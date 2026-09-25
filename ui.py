@@ -91,7 +91,7 @@ def news_list(items, limit=20, translate=None, tag_key=None, iq=True):
         translated_ok = tr[:len(items)] != titles
         titles, sums = tr[:len(items)], tr[len(items):]
     tickers = sorted({s for n in items for s in n.get("tickers", [])})
-    chg = data.changes(tickers) if tickers else {}
+    chg = data.quick_changes(tickers) if tickers else {}
     lg = data.logos(tickers) if tickers else {}
     if iq:
         newsiq.enrich(items, chg)
@@ -110,6 +110,15 @@ def valid(key, options):
     """Forget a remembered widget value that is no longer one of the options (lists change with data)."""
     if key in st.session_state and st.session_state[key] not in list(options):
         del st.session_state[key]
+
+
+def valid_multi(key, options):
+    """Same for multi-select widgets: keep only the remembered values that are still options."""
+    v = st.session_state.get(key)
+    if isinstance(v, list):
+        keep = [x for x in v if x in set(options)]
+        if keep != v:
+            st.session_state[key] = keep
 
 
 def open_picker(symbols, key, label_en="Open a company", label_ar="افتح شركة"):

@@ -324,11 +324,49 @@ def _sort_news(items):
     return out
 
 
-def market_news():
-    items = search_news("stock market", 25) + search_news("Wall Street stocks", 20)
+def market_news(hours=48):
+    """Market headlines: the news bot (~35 feeds, refreshed every 3 minutes) + Yahoo Finance. Newest first, duplicates removed."""
+    items = []
+    try:
+        import newsbot
+        items = newsbot.headlines(hours)
+    except Exception:
+        items = []
+    extra = search_news("stock market", 25) + search_news("Wall Street stocks", 20)
     for s in ("SPY", "QQQ", "^GSPC"):
-        items += news(s, 15)
+        extra += news(s, 15)
+    for n in extra:
+        n.setdefault("cat", "markets")
+        n.setdefault("also", [])
+    return _sort_news(items + extra)
+
+
+def symbol_news(symbol, count=40, hours=96):
+    """News about one company: Yahoo Finance + every bot headline that names it."""
+    items = news(symbol, count)
+    try:
+        import newsbot
+        items += [n for n in newsbot.bot(wait=False).items(hours) if symbol in (n.get("tickers") or [])]
+    except Exception:
+        pass
     return _sort_news(items)
+
+
+def quick_changes(symbols, limit=300):
+    """symbol -> (price, % change today) for many symbols at once (batch quotes; daily history as a fallback for a few)."""
+    syms = [s for s in dict.fromkeys(symbols) if s and "^" not in s and "=" not in s][:limit]
+    if not syms:
+        return {}
+    out = {}
+    df = quotes_df(syms)
+    if not df.empty and "Symbol" in df:
+        for sym, p, c in zip(df["Symbol"], df["Price"], df["Chg %"]):
+            if pd.notna(p) and pd.notna(c):
+                out[sym] = (float(p), float(c))
+    miss = [s for s in syms if s not in out][:40]
+    if miss:
+        out.update(changes(tuple(miss)))
+    return out
 
 
 def trending_stories(k=3):
@@ -660,7 +698,7 @@ def _fred(series_id, key):
         last_err = None
         for attempt in range(2):
             try:
-                r = requests.get("https://fred.stlouisfed.org/graph/fredgraph.csv", timeout=12,
+                r = requests.get("https://fred.stlouisfed.org/graph/fredgraph.csv", timeout=8,
                                  params={"id": series_id, "cosd": start},
                                  headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)", "Accept": "text/csv"})
                 r.raise_for_status()
@@ -678,10 +716,21 @@ def _fred(series_id, key):
     return s
 
 
+_FRED_CB = {"fails": 0, "until": 0.0}   # when FRED keeps failing, stop waiting on it for a while (BLS covers the key series)
+
+
 def fred(series_id):
+    key = _fred_key()
+    if not key and time.time() < _FRED_CB["until"]:
+        return pd.Series(dtype=float), f"{series_id}: FRED unreachable, skipped for now"
     try:
-        return _fred(series_id, _fred_key()), None
+        s = _fred(series_id, key)
+        _FRED_CB["fails"] = 0
+        return s, None
     except Exception as e:
+        _FRED_CB["fails"] += 1
+        if _FRED_CB["fails"] >= 3:
+            _FRED_CB["until"] = time.time() + 1800
         return pd.Series(dtype=float), f"{series_id}: {type(e).__name__} {str(e)[:80]}"
 
 

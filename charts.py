@@ -227,14 +227,19 @@ def price_chart(d, chart_type="Candles", overlays=(), panels=(), intraday=False,
 # Visualizations
 # =====================================================================
 def score_gauge(total, title):
+    """Half-circle score gauge. The title is drawn inside the chart's own top band (never under the elements above it)."""
     color = UP if total >= 55 else (DOWN if total < 45 else GOLD)
     fig = go.Figure(go.Indicator(
         mode="gauge+number", value=total, number=dict(suffix="/100", font=dict(size=28, color="#fff")),
-        title=dict(text=title, font=dict(size=13, color=MUTED)),
+        domain=dict(x=[0, 1], y=[0, 0.84]),
         gauge=dict(axis=dict(range=[0, 100], tickcolor=MUTED), bar=dict(color=color, thickness=0.32), bgcolor="rgba(0,0,0,0)", borderwidth=0,
                    steps=[dict(range=[0, 45], color=rgba(DOWN, 0.16)), dict(range=[45, 55], color="rgba(138,148,167,0.14)"),
                           dict(range=[55, 100], color=rgba(UP, 0.16))])))
-    return style(fig, 240, legend=False)
+    style(fig, 262, legend=False)
+    fig.update_layout(margin=dict(l=34, r=34, t=12, b=6))
+    fig.add_annotation(text=f"<b>{rtl_text(title)}</b>", x=0.5, y=1.0, xref="paper", yref="paper", xanchor="center", yanchor="top",
+                       showarrow=False, font=dict(size=14, color="#C9D2E3"))
+    return fig
 
 
 def gauge(score, title="Technical Rating", ticks=("Strong Sell", "Sell", "Neutral", "Buy", "Strong Buy")):

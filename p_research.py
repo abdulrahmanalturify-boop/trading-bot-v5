@@ -734,7 +734,7 @@ def page_stock():
     with tabs[5]:
         options_tab(sym, float(price))
     with tabs[6]:
-        ui.safe(ui.news_list, data.news(sym, 20), 15)
+        ui.safe(ui.news_list, data.symbol_news(sym, 20), 20)
     ui.foot()
 
 
@@ -1279,10 +1279,10 @@ def page_catalyst():
     name = inf.get("shortName") or U.name_of(sym)
     kind = "up" if score["total"] >= 55 else ("down" if score["total"] < 45 else "neu")
     bias_kind = "up" if p["bias"].startswith("Long") else ("down" if "Avoid" in p["bias"] else "neu")
-    ui.html(f'<h3 style="margin:.2rem 0">{T.esc(name)} ({sym})</h3>'
+    ui.html(f'<div class="cathead"><h3>{T.esc(name)} ({sym})</h3><div class="chips">'
             + T.badge(L(score["label"], score["label_ar"]), kind, "insights")
             + T.badge(f'{L("Bias", "التوجه")}: {L(p["bias"], p["bias_ar"])}', bias_kind, "explore")
-            + T.badge(f'{L("Setup", "الفرصة")}: {L(p["setup"], p["setup_ar"])}', "acc", "target"))
+            + T.badge(f'{L("Setup", "الفرصة")}: {L(p["setup"], p["setup_ar"])}', "acc", "target") + "</div></div>")
     g1, g2, g3, g4 = st.columns([1.3, 1, 1, 1])
     ui.chart(charts.score_gauge(score["total"], L("Catalyst score", "تقييم المحفزات")), key="cat_gauge", container=g1)
     scf = lambda v: "n/a" if v is None else f"{v:.0f}/100"

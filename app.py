@@ -5,8 +5,10 @@ Run locally:  streamlit run app.py
 import streamlit as st
 
 import data
+import newsbot
 import p_academy
 import p_bot
+import p_calendar
 import p_insight
 import p_markets
 import p_research
@@ -40,6 +42,11 @@ _qs = st.query_params.get("symbol")
 if _qs:
     ss.symbol = str(_qs).strip().upper()[:15] or ss.symbol
     del st.query_params["symbol"]
+
+try:
+    newsbot.bot(wait=False)          # the news bot starts collecting in the background
+except Exception:
+    pass
 
 st.markdown('<span class="css-anchor"></span>' + T.CSS + (T.RTL_CSS if ss.lang == "ar" else ""), unsafe_allow_html=True)
 st.logo(T.LOGO_WORDMARK, icon_image=T.LOGO_ICON, size="large")
@@ -126,7 +133,17 @@ P.update({
     "brief": st.Page(p_insight.page_brief, title=L("Daily Brief", "الموجز اليومي"), icon=":material/summarize:", url_path="brief"),
     "articles": st.Page(p_insight.page_articles, title=L("Articles", "المقالات"), icon=":material/article:", url_path="articles"),
     "sentiment": st.Page(p_insight.page_sentiment, title=L("Fear & Greed", "مؤشر الخوف والطمع"), icon=":material/speed:", url_path="sentiment"),
-    "seasonality": st.Page(p_insight.page_seasonality, title=L("Seasonality", "الموسمية"), icon=":material/calendar_month:", url_path="seasonality"),
+    "seasonality": st.Page(p_insight.page_seasonality, title=L("Seasonality", "الموسمية"), icon=":material/event_repeat:", url_path="seasonality"),
+    "earnings": st.Page(p_calendar.page_earnings_hub, title=L("Earnings Calendar", "مواعيد إعلانات الأرباح"), icon=":material/event_upcoming:",
+                        url_path="earnings-calendar"),
+    "results": st.Page(p_calendar.page_earnings_results, title=L("Earnings", "نتائج الأرباح"), icon=":material/request_quote:",
+                       url_path="earnings-results"),
+    "econcal": st.Page(p_calendar.page_econ_calendar, title=L("Economic Calendar", "التقويم الاقتصادي"), icon=":material/event_note:",
+                       url_path="economic-calendar"),
+    "holidays": st.Page(p_calendar.page_holidays, title=L("Holiday Calendar", "عطلات السوق"), icon=":material/beach_access:", url_path="market-holidays"),
+    "dividends": st.Page(p_calendar.page_dividends, title=L("Dividend Calendar", "تقويم التوزيعات"), icon=":material/payments:", url_path="dividend-calendar"),
+    "splits": st.Page(p_calendar.page_splits, title=L("Splits Calendar", "تقسيم الأسهم"), icon=":material/call_split:", url_path="stock-splits"),
+    "ipos": st.Page(p_calendar.page_ipos, title=L("IPO Calendar", "الاكتتابات العامة"), icon=":material/rocket_launch:", url_path="ipo-calendar"),
     "academy": st.Page(p_academy.page_academy, title=L("Courses", "الدورات"), icon=":material/school:", url_path="academy"),
     "glossary": st.Page(p_academy.page_glossary, title=L("Glossary", "قاموس المصطلحات"), icon=":material/menu_book:", url_path="glossary"),
     "auto": st.Page(p_bot.page_autotrader, title=L("Auto Trader", "التداول الآلي"), icon=":material/rocket_launch:", url_path="auto-trader"),
@@ -139,6 +156,7 @@ SECTIONS = [
     (L("Markets", "الأسواق"), "monitoring", ["overview", "futures", "options", "economy"]),
     (L("Discover", "اكتشف"), "explore", ["trending", "news"]),
     (L("Research", "الأبحاث"), "query_stats", ["stock", "screener"]),
+    (L("Calendar", "التقويم"), "calendar_month", ["earnings", "results", "econcal", "holidays", "dividends", "splits", "ipos"]),
     (L("Insight", "رؤى"), "lightbulb", ["brief", "articles", "sentiment", "seasonality"]),
     (L("Academy", "الأكاديمية"), "school", ["academy", "glossary"]),
     (L("Trading Bot", "بوت التداول"), "smart_toy", ["auto", "scanner", "catalyst", "lab", "trades"]),
@@ -164,8 +182,7 @@ if ss.get("_page") != _cur:
 
 
 # ---------------------------------------------------------------- top bar (in the site's top line): menus · search · market status · language
-LANGS = [("en", "EN", "English", ("Interface in English", "الواجهة بالإنجليزية")),
-         ("ar", "ع", "العربية", ("Interface in Arabic", "الواجهة بالعربية"))]
+LANGS = [("en", "us", "English", "الإنجليزية"), ("ar", "sa", "العربية", "Arabic")]
 
 
 def _set_lang(code):
@@ -174,16 +191,17 @@ def _set_lang(code):
 
 def lang_menu():
     cur = ss.lang
+    flag = "us" if cur == "en" else "sa"
     with st.container(key="langsec", width="content"):
-        st.markdown(f'<div class="langbtn" tabindex="0" title="Language · اللغة">{T.icon("language")}'
-                    f'<span class="lcode">{"EN" if cur == "en" else "ع"}</span><span class="ms chev">expand_more</span></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="langbtn" tabindex="0" title="Language · اللغة"><span class="flag {flag}"></span>'
+                    f'<span class="ms chev">expand_more</span></div>', unsafe_allow_html=True)
         with st.container(key="langdd"):
             st.markdown(f'<div class="navhd">{L("Language", "اللغة")} · {L("اللغة", "Language")}</div>', unsafe_allow_html=True)
-            for code, badge, native, sub in LANGS:
+            for code, fl, native, other in LANGS:
                 on = code == cur
+                sub = f"<small>{other}</small>" if code != cur else ""        # the name in the other language, e.g. العربية · Arabic
                 with st.container(key=f"langopt_{code}"):
-                    st.markdown(f'<div class="lopt{" on" if on else ""}"><span class="code{" ar" if code == "ar" else ""}">{badge}</span>'
-                                f'<span class="nm"><b>{native}</b><small>{L(*sub)}</small></span>'
+                    st.markdown(f'<div class="lopt{" on" if on else ""}"><span class="flag {fl}"></span><span class="nm"><b>{native}</b>{sub}</span>'
                                 + ('<span class="ms ck">check_circle</span>' if on else "") + "</div>", unsafe_allow_html=True)
                     st.button(native, key=f"langb_{code}", on_click=_set_lang, args=(code,), width="stretch")
 

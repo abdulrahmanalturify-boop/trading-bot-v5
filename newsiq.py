@@ -89,7 +89,10 @@ SOURCES = [(1.0, ("reuters", "bloomberg", "wall street journal", "wsj", "associa
            (0.4, ("yahoo finance", "investopedia", "business insider", "fortune", "forbes", "investor's business daily", "thestreet",
                   "the information", "techcrunch", "politico")),
            (-1.0, ("motley fool", "investorplace", "insider monkey")),
-           (-0.8, ("zacks", "simply wall", "gurufocus", "24/7 wall", "benzinga insights", "stocktwits", "kiplinger"))]
+           (-0.8, ("zacks", "simply wall", "gurufocus", "24/7 wall", "benzinga insights", "stocktwits", "kiplinger")),
+           (1.0, ("federal reserve", "bls", "sec")),
+           (0.3, ("benzinga", "nasdaq", "investing.com", "fox business", "seeking alpha", "coindesk", "pr newswire", "globenewswire",
+                  "cointelegraph"))]
 MEGA = {"AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "GOOG", "META", "AVGO", "TSLA", "BRK-B", "JPM", "LLY", "V", "MA", "UNH", "XOM", "WMT",
         "ORCL", "NFLX", "COST", "JNJ", "PG", "HD", "BAC", "ABBV", "KO", "PLTR", "AMD", "CRM", "TSM", "SPY", "QQQ"}
 
@@ -163,6 +166,10 @@ def analyze(n, chg=None, now=None):
     breadth = 0.4 if len(tickers) >= 3 else 0.0
     if breadth:
         reasons.append(("Several companies affected", "عدة شركات متأثرة", breadth))
+    k = len(n.get("also") or [])                  # the news bot found the same story at other outlets
+    wide = min(1.5, 0.5 * k)
+    if wide:
+        reasons.append((f"Covered by {k + 1} outlets", f"نشرته {k + 1} مصادر إخبارية", wide))
     rec = 0.0
     ts = n.get("time")
     if ts is not None and pd.notna(ts):
@@ -177,7 +184,7 @@ def analyze(n, chg=None, now=None):
                 reasons.append(("Fresh news", "خبر حديث", rec))
             elif rec < 0:
                 reasons.append(("Older story", "خبر قديم", rec))
-    raw = 2.0 + topic + event + opinion + src + impact + mega + breadth + rec
+    raw = 2.0 + topic + event + opinion + src + impact + mega + breadth + wide + rec
     score = int(max(1, min(10, round(raw))))
     kws = [(key, en, ar) for _, key, en, ar in hits[:4] if key != "street" or len(hits) == 1]
     for en, ar, pat in _ENT:

@@ -2,6 +2,8 @@
 p_markets.py - Overview (TradingView-style heatmap, sector rotation, market breadth) · Futures · Options market ·
 Economy · What's Trending · News
 """
+import time
+
 import numpy as np
 import pandas as pd
 import streamlit as st
@@ -9,6 +11,7 @@ import streamlit as st
 import charts
 import data
 import heatmap as HM
+import newsbot
 import newsiq
 import ta
 import taxonomy as X
@@ -336,7 +339,8 @@ def page_overview():
             val = f"{p:.3f}%" if gen == "Treasury Yields" else T.fmt_price(p)
             items.append(T.tile(L(nen, nar), val, chg, pct, px[sym]["Close"].tail(22).values, invert=(sym == "^VIX")))
         ui.html(T.tiles(items))
-    ui.safe(indicators_section, True)
+    # key economic indicators sit right after crypto; the slot is filled last, so the heatmap and charts below never wait for economic data
+    econ_slot = st.container()
     sp = ui.safe(heatmap_section)
     ui.safe(sector_section)
     ui.safe(breadth_section, sp)
@@ -347,6 +351,8 @@ def page_overview():
         ui.goto("options")
     if c.button(L("Economy dashboard", "لوحة الاقتصاد"), icon=":material/account_balance:", width="stretch"):
         ui.goto("economy")
+    with econ_slot:
+        ui.safe(indicators_section, True)
     ui.foot()
 
 
@@ -540,13 +546,14 @@ def indicators_section(compact=False):
         ui.html(T.tiles(items))
         st.caption(L("Green = better than the previous reading, red = worse (for inflation and unemployment, a rise counts as worse).",
                      "الأخضر = أفضل من القراءة السابقة، والأحمر = أسوأ (للتضخم والبطالة: الارتفاع يعتبر أسوأ)."))
-        if compact:
-            st.page_link(ui.PAGES["economy"], label=L("Open the economy page: charts, interest rates and the yield curve",
-                                                      "افتح صفحة الاقتصاد: الرسوم وأسعار الفائدة ومنحنى العائد"), icon=":material/arrow_forward:")
-            return errors, status
         names = {L(m["en"], m["ar"]): sid for sid, m in mac.items()}
-        pick = st.selectbox(L("Explore an indicator", "استعرض مؤشراً"), list(names))
-        ui.chart(charts.line(mac[names[pick]]["hist"], pick, height=320, fill=True), key="ec_ind")
+        if compact:
+            ui.valid("ov_ind_pick", list(names))
+        pick = st.selectbox(L("Explore an indicator", "استعرض مؤشراً"), list(names), key="ov_ind_pick" if compact else None)
+        ui.chart(charts.line(mac[names[pick]]["hist"], pick, height=320, fill=True), key="ov_ind" if compact else "ec_ind")
+        if compact:
+            st.page_link(ui.PAGES["economy"], label=L("Open the economy page: interest rates, the yield curve and the calendar",
+                                                      "افتح صفحة الاقتصاد: أسعار الفائدة ومنحنى العائد والتقويم"), icon=":material/arrow_forward:")
     else:
         st.warning(L("Indicator sources (FRED and BLS) could not be reached from the server right now. "
                      "For a permanent fix add a free FRED API key in Streamlit secrets as FRED_API_KEY.",
@@ -828,34 +835,108 @@ def page_trending():
 # =====================================================================
 def top_stories(k=3):
     """The most important recent stories that name at least one company (importance score, then freshness)."""
-    items = data.market_news()[:45]
-    tick = sorted({s_ for n in items for s_ in n.get("tickers", [])})
-    newsiq.enrich(items, data.changes(tick) if tick else {})
-    ranked = newsiq.rank([n for n in items if n.get("tickers")]) or newsiq.rank(items)
+    items = [n for n in data.market_news(24)[:400]]
+    fresh = [n for n in items if pd.notna(n.get("time")) and n["time"] >= pd.Timestamp.now(tz="UTC") - pd.Timedelta(hours=14)] or items[:60]
+    tick = sorted({s_ for n in fresh for s_ in n.get("tickers", [])})
+    newsiq.enrich(fresh, data.quick_changes(tick) if tick else {})
+    ranked = newsiq.rank([n for n in fresh if n.get("tickers")]) or newsiq.rank(fresh)
     return ranked[:k]
+
+
+def _ago(ts):
+    if not ts:
+        return "—"
+    m = max(0, (time.time() - ts) / 60)
+    return L(f"{int(m)} min ago", f"قبل {int(m)} دقيقة") if m < 60 else L(f"{int(m // 60)} h ago", f"قبل {int(m // 60)} ساعة")
+
+
+def _refresh_bot():
+    try:
+        newsbot.bot(wait=False).collect(force=True)
+    except Exception:
+        pass
+
+
+def bot_panel(items_24h):
+    """Live strip: how many headlines the bot has, from how many outlets, when it last updated; plus the status of every source."""
+    try:
+        b = newsbot.bot(wait=False)
+        health, updated = b.health(), b.updated
+    except Exception:
+        health, updated = [], None
+    live = sum(1 for h in health if h["ok"])
+    outlets = len({n.get("source") for n in items_24h})
+    c1, c2 = st.columns([5, 1], vertical_alignment="center")
+    c1.markdown(f'<div class="botbar"><span class="live"><i></i>{L("News bot · live", "بوت الأخبار · مباشر")}</span>'
+                f'<span><b>{len(items_24h):,}</b> {L("headlines in the last 24 hours", "خبراً خلال آخر 24 ساعة")}</span>'
+                f'<span><b>{outlets}</b> {L("outlets", "مصدراً")}</span>'
+                f'<span>{L("sources working", "مصادر تعمل")}: <b>{live}/{len(health) or len(newsbot.OUTLETS)}</b></span>'
+                f'<span>{L("updated", "آخر تحديث")} {_ago(updated)} · {L("every 3 minutes", "كل 3 دقائق")}</span></div>', unsafe_allow_html=True)
+    c2.button(L("Refresh", "تحديث"), icon=":material/refresh:", key="nw_refresh", on_click=_refresh_bot, width="stretch")
+    if health:
+        with st.expander(L(f"News sources ({live} working now)", f"مصادر الأخبار ({live} تعمل الآن)"), icon=":material/rss_feed:"):
+            cards = []
+            for h in health:
+                cls = "" if h["ok"] else ("wait" if not h["err"] else "bad")
+                right = (f'{h["items"]} · {h["ms"] / 1000:.1f}s' if h["ok"] and h["ms"] is not None else
+                         (T.esc(h["err"]) if h["err"] else L("waiting", "بالانتظار")))
+                cards.append(f'<div class="srcc {cls}"><i class="d"></i><b>{T.esc(h["outlet"])}</b><span>{right}</span></div>')
+            st.markdown('<div class="srcgrid">' + "".join(cards) + "</div>", unsafe_allow_html=True)
+            st.caption(L("The bot reads every source every 3 minutes and merges the same story told by several outlets (+N next to the source). "
+                         "A source in red is blocked or down right now and is retried automatically.",
+                         "البوت يقرأ كل المصادر كل 3 دقائق ويدمج الخبر نفسه إذا نشرته عدة مصادر (+N بجانب المصدر). "
+                         "المصدر الأحمر محجوب أو متوقف حالياً وتتم إعادة المحاولة تلقائياً."))
 
 
 def page_news():
     ui.header("newspaper", "Market News", "أخبار السوق",
-              "Latest US market headlines with keywords, an importance score from 1 to 10 and the companies affected by each story.",
-              "آخر أخبار السوق الأمريكي مع الكلمات المفتاحية ودرجة أهمية من 1 إلى 10 والشركات المتأثرة بكل خبر.")
+              "Live headlines collected by the news bot from Reuters, Bloomberg, WSJ, FT, CNBC, Benzinga and 20+ other sources, with keywords, "
+              "an importance score from 1 to 10 and the companies affected by each story.",
+              "أخبار مباشرة يجمعها بوت الأخبار من رويترز وبلومبرغ ووول ستريت جورنال وفايننشال تايمز وCNBC وبنزينغا وأكثر من 20 مصدراً آخر، "
+              "مع الكلمات المفتاحية ودرجة أهمية من 1 إلى 10 والشركات المتأثرة بكل خبر.")
     c1, c2, c3, c4, c5 = st.columns([1.5, 1.25, 1.45, 0.7, 0.9], vertical_alignment="bottom")
     sym = c1.text_input(L("Symbol (leave empty for market news)", "رمز سهم (اتركه فارغاً لأخبار السوق)"), "").strip().upper()
     sort = c2.segmented_control(L("Sort by", "الترتيب"), ["imp", "new"], default="imp", key="nw_sort",
                                 format_func=lambda k: L("Most important", "الأهم أولاً") if k == "imp" else L("Latest", "الأحدث")) or "imp"
     lvl = c3.segmented_control(L("Importance", "الأهمية"), [1, 5, 7, 9], default=1, key="nw_min",
                                format_func=lambda v: L("All", "الكل") if v == 1 else f"{v}+") or 1
-    count = c4.selectbox(L("Headlines", "عدد الأخبار"), [10, 20, 30, 50], index=1)
+    count = c4.selectbox(L("Headlines", "عدد الأخبار"), [10, 20, 30, 50, 100], index=1)
     translate = c5.toggle(L("Translate to Arabic", "ترجمة للعربية"), value=is_ar())
-    items = data.news(sym, 40) if sym else data.market_news()
-    tick = sorted({s_ for n in items for s_ in n.get("tickers", [])})
-    newsiq.enrich(items, data.changes(tick) if tick else {})
+    with st.spinner(L("The news bot is collecting headlines from 35 feeds (only the first time)...",
+                      "بوت الأخبار يجمع العناوين من 35 مصدراً (أول مرة فقط)...")):
+        items = data.symbol_news(sym) if sym else data.market_news(96)
+    if not sym:
+        now = pd.Timestamp.now(tz="UTC")
+        day = [n for n in items if pd.notna(n.get("time")) and n["time"] >= now - pd.Timedelta(hours=24)]
+        bot_panel(day)
+        d1, d2, d3 = st.columns([1.1, 2.3, 1.6], vertical_alignment="bottom")
+        hrs = d1.segmented_control(L("Time", "الوقت"), [1, 6, 24, 96], default=24, key="nw_hrs",
+                                   format_func=lambda h: {1: L("1 hour", "ساعة"), 6: L("6 hours", "6 ساعات"), 24: L("24 hours", "24 ساعة"),
+                                                          96: L("4 days", "4 أيام")}[h]) or 24
+        cats = [c for c in newsbot.CATS if any(n.get("cat") == c for n in items)]
+        if isinstance(ss.get("nw_cat"), list):
+            ss["nw_cat"] = [c for c in ss["nw_cat"] if c in cats]
+        pick_c = d2.pills(L("Category", "التصنيف"), cats, selection_mode="multi", key="nw_cat",
+                          format_func=lambda c: L(newsbot.CATS[c][0], newsbot.CATS[c][1])) or []
+        outs = sorted({n.get("source") for n in items if n.get("source")}, key=lambda o: (newsbot.RANK.get(o, 99), o))
+        ui.valid_multi("nw_src", outs)
+        pick_s = d3.multiselect(L("Sources", "المصادر"), outs, key="nw_src", placeholder=L("All sources", "كل المصادر"))
+        items = [n for n in items if pd.notna(n.get("time")) and n["time"] >= now - pd.Timedelta(hours=hrs)]
+        if pick_c:
+            items = [n for n in items if n.get("cat") in pick_c]
+        if pick_s:
+            items = [n for n in items if n.get("source") in pick_s or any(a in pick_s for a in n.get("also") or [])]
+    items = items[:1200]
+    recent = items[:250]
+    tick = sorted({s_ for n in recent for s_ in n.get("tickers", [])})
+    chg = data.quick_changes(tick) if tick else {}
+    newsiq.enrich(items, chg)
     if items:
         scores = [n["iq"]["score"] for n in items]
         vi, im = sum(1 for x in scores if x >= 9), sum(1 for x in scores if 7 <= x < 9)
         avg = sum(scores) / len(scores)
         k = st.columns(4)
-        k[0].markdown(T.kpi("newspaper", L("Headlines analysed", "أخبار تم تحليلها"), f"{len(items)}",
+        k[0].markdown(T.kpi("newspaper", L("Headlines analysed", "أخبار تم تحليلها"), f"{len(items):,}",
                             L("keywords and score for each one", "كلمات مفتاحية ودرجة لكل خبر")), unsafe_allow_html=True)
         k[1].markdown(T.kpi("priority_high", L("Very important (9–10)", "هام جداً (9–10)"), f"{vi}",
                             L("red = worth your attention now", "الأحمر = يستحق انتباهك الآن"), "neg" if vi else None), unsafe_allow_html=True)
@@ -881,9 +962,9 @@ def page_news():
     items = [n for n in items if n["iq"]["score"] >= lvl]
     if sort == "imp":
         items = newsiq.rank(items)
-    if not items and lvl > 1:
-        st.info(L("No headlines at this importance level right now. Choose a lower level.", "لا توجد أخبار بهذا المستوى من الأهمية حالياً. اختر مستوى أقل."),
-                icon=":material/filter_alt_off:")
+    if not items:
+        st.info(L("No headlines match these filters right now. Choose a longer time, a lower importance or more sources.",
+                  "لا توجد أخبار تطابق هذه الفلاتر حالياً. اختر وقتاً أطول أو أهمية أقل أو مصادر أكثر."), icon=":material/filter_alt_off:")
         ui.foot()
         return
     ui.news_list(items, count, translate=translate)
