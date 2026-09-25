@@ -9,6 +9,7 @@ import streamlit as st
 import charts
 import data
 import heatmap as HM
+import newsiq
 import ta
 import taxonomy as X
 import theme as T
@@ -335,6 +336,7 @@ def page_overview():
             val = f"{p:.3f}%" if gen == "Treasury Yields" else T.fmt_price(p)
             items.append(T.tile(L(nen, nar), val, chg, pct, px[sym]["Close"].tail(22).values, invert=(sym == "^VIX")))
         ui.html(T.tiles(items))
+    ui.safe(indicators_section, True)
     sp = ui.safe(heatmap_section)
     ui.safe(sector_section)
     ui.safe(breadth_section, sp)
@@ -518,8 +520,11 @@ RATE_NAMES = {0.25: ("3-month T-bill", "أذونات 3 أشهر"), 2.0: ("2-year
               10.0: ("10-year Treasury", "سندات 10 سنوات"), 30.0: ("30-year Treasury", "سندات 30 سنة")}
 
 
-def indicators_section():
-    ui.sec("query_stats", "Key indicators", "أهم المؤشرات")
+def indicators_section(compact=False):
+    if compact:
+        ui.sec("query_stats", "Key economic indicators", "أهم المؤشرات الاقتصادية")
+    else:
+        ui.sec("query_stats", "Key indicators", "أهم المؤشرات")
     with st.spinner(L("Loading economic data...", "جاري تحميل البيانات الاقتصادية...")):
         mac, errors, status = data.macro()
     if mac:
@@ -535,6 +540,10 @@ def indicators_section():
         ui.html(T.tiles(items))
         st.caption(L("Green = better than the previous reading, red = worse (for inflation and unemployment, a rise counts as worse).",
                      "الأخضر = أفضل من القراءة السابقة، والأحمر = أسوأ (للتضخم والبطالة: الارتفاع يعتبر أسوأ)."))
+        if compact:
+            st.page_link(ui.PAGES["economy"], label=L("Open the economy page: charts, interest rates and the yield curve",
+                                                      "افتح صفحة الاقتصاد: الرسوم وأسعار الفائدة ومنحنى العائد"), icon=":material/arrow_forward:")
+            return errors, status
         names = {L(m["en"], m["ar"]): sid for sid, m in mac.items()}
         pick = st.selectbox(L("Explore an indicator", "استعرض مؤشراً"), list(names))
         ui.chart(charts.line(mac[names[pick]]["hist"], pick, height=320, fill=True), key="ec_ind")
@@ -741,16 +750,16 @@ def _leaderboard(df, lg, n=12):
 
 def page_trending():
     ui.header("local_fire_department", "What's Trending", "الأكثر رواجاً",
-              "Today's market dashboard: top stories, movers, short interest and a full summary.",
-              "لوحة السوق اليوم: أهم الأخبار، الأسهم الأكثر حركة، البيع على المكشوف، وملخص شامل.")
+              "Today's most important stories, the biggest movers, short interest and a plain-language market summary.",
+              "أهم أخبار اليوم، الأسهم الأكثر حركة، البيع على المكشوف، وملخص السوق بلغة بسيطة.")
     px = _tile_prices()
     moves = _universe_moves()
     lists = {k: _list(k, moves) for k in LISTS}
     all_syms = [s for df, _ in lists.values() if not df.empty for s in df["Symbol"].head(12)]
 
     ui.sec("newspaper", "Top 3 trending stories", "أهم 3 أخبار رائجة")
-    stories = data.trending_stories(3)
-    tick = sorted({s for n in stories for s in n["tickers"]})
+    stories = top_stories(3)
+    tick = sorted({s_ for n in stories for s_ in n["tickers"]})
     lg = data.logos(list(dict.fromkeys(all_syms + tick)))
     if stories:
         titles = [n["title"] for n in stories]
@@ -760,29 +769,19 @@ def page_trending():
         cols = st.columns(len(stories))
         for i, (col, n, t) in enumerate(zip(cols, stories, titles)):
             ch = ui.chips(n["tickers"], chg, lg) or f'<span class="muted">{L("Broad market", "السوق بشكل عام")}</span>'
+            iq = n.get("iq")
+            score = ""
+            if iq:
+                bg, fg, bd = newsiq.colors(iq["score"])
+                lv = newsiq.level(iq["score"])
+                score = (f'<span class="iqs" style="background:{bg};color:{fg};border-color:{bd}">{iq["score"]}/10 · {T.esc(L(*lv))}</span>')
             col.markdown(f'<div class="story{" rtl" if is_ar() else ""}"><div class="rank">0{i + 1}</div><a class="t" href="{T.esc(n["link"])}" target="_blank">{T.esc(t)}</a>'
                          f'<div class="muted" style="font-size:.78rem;margin-top:6px">{T.esc(n["source"])} · {T.time_ago(n["time"], is_ar())}</div>'
+                         f'<div style="margin-top:8px">{score}</div>' + (T.kw_chips(iq, is_ar(), 3) if iq else "") +
                          f'<div class="aff"><span class="lbl" style="width:100%">{L("Affected companies", "الشركات المتأثرة")}</span>{ch}</div></div>',
                          unsafe_allow_html=True)
     else:
         st.caption(L("No trending stories right now.", "لا توجد أخبار رائجة حالياً."))
-
-    ui.sec("dashboard", "Dashboard", "لوحة المؤشرات")
-    k = st.columns(5)
-    spec = [("day_gainers", "trending_up", ("Top gainer", "الأعلى ارتفاعاً")), ("day_losers", "trending_down", ("Top loser", "الأكثر انخفاضاً")),
-            ("most_actives", "bolt", ("Most active", "الأكثر تداولاً")), ("most_shorted_stocks", "south_east", ("Most shorted", "الأكثر بيعاً على المكشوف"))]
-    for col, (kind, ic, (en, ar)) in zip(k, spec):
-        df = lists[kind][0]
-        if df.empty:
-            continue
-        r = df.iloc[0]
-        sub = f"{T.fmt_big(r['Volume'])} {L('shares', 'سهم')}" if kind == "most_actives" else (f"{r['Chg %']:+.2f}%" if pd.notna(r["Chg %"]) else "")
-        col.markdown(T.kpi(ic, L(en, ar), f'{T.logo_circle(r["Symbol"], lg.get(r["Symbol"]), 30)}{T.esc(r["Symbol"])}', sub,
-                           None if kind == "most_actives" else T.cls(r["Chg %"])), unsafe_allow_html=True)
-    if not moves.empty:
-        adv = int((moves["Chg %"] > 0).sum())
-        k[4].markdown(T.kpi("balance", L("Breadth (top 175)", "اتساع السوق"), f"{adv}/{len(moves)}", L("advancing", "صاعدة"),
-                            "pos" if adv > len(moves) / 2 else "neg"), unsafe_allow_html=True)
 
     ui.sec("summarize", "Market summary", "ملخص السوق")
     ui.html(f'<div class="card{" rtl" if is_ar() else ""}"><ul class="summary">' +
@@ -827,13 +826,65 @@ def page_trending():
 # =====================================================================
 # NEWS
 # =====================================================================
+def top_stories(k=3):
+    """The most important recent stories that name at least one company (importance score, then freshness)."""
+    items = data.market_news()[:45]
+    tick = sorted({s_ for n in items for s_ in n.get("tickers", [])})
+    newsiq.enrich(items, data.changes(tick) if tick else {})
+    ranked = newsiq.rank([n for n in items if n.get("tickers")]) or newsiq.rank(items)
+    return ranked[:k]
+
+
 def page_news():
     ui.header("newspaper", "Market News", "أخبار السوق",
-              "Latest US market headlines with the companies affected by each story.", "آخر أخبار السوق الأمريكي مع الشركات المتأثرة بكل خبر.")
-    c1, c2, c3 = st.columns([2, 1, 1])
+              "Latest US market headlines with keywords, an importance score from 1 to 10 and the companies affected by each story.",
+              "آخر أخبار السوق الأمريكي مع الكلمات المفتاحية ودرجة أهمية من 1 إلى 10 والشركات المتأثرة بكل خبر.")
+    c1, c2, c3, c4, c5 = st.columns([1.5, 1.25, 1.45, 0.7, 0.9], vertical_alignment="bottom")
     sym = c1.text_input(L("Symbol (leave empty for market news)", "رمز سهم (اتركه فارغاً لأخبار السوق)"), "").strip().upper()
-    count = c2.selectbox(L("Headlines", "عدد الأخبار"), [10, 20, 30], index=1)
-    translate = c3.toggle(L("Translate to Arabic", "ترجمة للعربية"), value=is_ar())
-    items = data.news(sym, 30) if sym else data.market_news()
+    sort = c2.segmented_control(L("Sort by", "الترتيب"), ["imp", "new"], default="imp", key="nw_sort",
+                                format_func=lambda k: L("Most important", "الأهم أولاً") if k == "imp" else L("Latest", "الأحدث")) or "imp"
+    lvl = c3.segmented_control(L("Importance", "الأهمية"), [1, 5, 7, 9], default=1, key="nw_min",
+                               format_func=lambda v: L("All", "الكل") if v == 1 else f"{v}+") or 1
+    count = c4.selectbox(L("Headlines", "عدد الأخبار"), [10, 20, 30, 50], index=1)
+    translate = c5.toggle(L("Translate to Arabic", "ترجمة للعربية"), value=is_ar())
+    items = data.news(sym, 40) if sym else data.market_news()
+    tick = sorted({s_ for n in items for s_ in n.get("tickers", [])})
+    newsiq.enrich(items, data.changes(tick) if tick else {})
+    if items:
+        scores = [n["iq"]["score"] for n in items]
+        vi, im = sum(1 for x in scores if x >= 9), sum(1 for x in scores if 7 <= x < 9)
+        avg = sum(scores) / len(scores)
+        k = st.columns(4)
+        k[0].markdown(T.kpi("newspaper", L("Headlines analysed", "أخبار تم تحليلها"), f"{len(items)}",
+                            L("keywords and score for each one", "كلمات مفتاحية ودرجة لكل خبر")), unsafe_allow_html=True)
+        k[1].markdown(T.kpi("priority_high", L("Very important (9–10)", "هام جداً (9–10)"), f"{vi}",
+                            L("red = worth your attention now", "الأحمر = يستحق انتباهك الآن"), "neg" if vi else None), unsafe_allow_html=True)
+        k[2].markdown(T.kpi("label_important", L("Important (7–8)", "هام (7–8)"), f"{im}", L("market-moving stories", "أخبار مؤثرة في السوق")),
+                      unsafe_allow_html=True)
+        lv = newsiq.level(round(avg))
+        k[3].markdown(T.kpi("speed", L("Average importance", "متوسط الأهمية"), f"{avg:.1f}/10", T.esc(L(*lv)),
+                            "neg" if avg >= 7 else ("pos" if avg < 4 else None)), unsafe_allow_html=True)
+        top = newsiq.top_keywords(items, 14)
+        if top:
+            opts = [kw[1] for kw, _ in top]
+            cnt = {kw[1]: c for kw, c in top}
+            ar_of = {kw[1]: kw[2] for kw, _ in top}
+            if isinstance(ss.get("nw_kw"), list):
+                ss["nw_kw"] = [v for v in ss["nw_kw"] if v in opts]
+            pick = st.pills(L("Top keywords (click to filter)", "أبرز الكلمات المفتاحية (اضغط للفلترة)"), opts, selection_mode="multi", key="nw_kw",
+                            format_func=lambda en: f"{ar_of.get(en, en) if is_ar() else en} · {cnt.get(en, 0)}") or []
+            if pick:
+                items = [n for n in items if any(kw[1] in pick for kw in n["iq"]["keywords"])]
+        ui.html(f'<div class="card" style="padding:10px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">'
+                f'<b style="font-size:.85rem">{L("Importance score", "درجة الأهمية")}</b>{T.iq_legend(is_ar())}'
+                f'<span class="muted" style="font-size:.74rem">{L("Hover a score to see why it was given.", "مرّر الماوس على الدرجة لتعرف سببها.")}</span></div>')
+    items = [n for n in items if n["iq"]["score"] >= lvl]
+    if sort == "imp":
+        items = newsiq.rank(items)
+    if not items and lvl > 1:
+        st.info(L("No headlines at this importance level right now. Choose a lower level.", "لا توجد أخبار بهذا المستوى من الأهمية حالياً. اختر مستوى أقل."),
+                icon=":material/filter_alt_off:")
+        ui.foot()
+        return
     ui.news_list(items, count, translate=translate)
     ui.foot()

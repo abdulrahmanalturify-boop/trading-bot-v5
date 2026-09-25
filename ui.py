@@ -6,6 +6,7 @@ import pandas as pd
 import streamlit as st
 
 import data
+import newsiq
 import theme as T
 from i18n import L, is_ar, lang
 
@@ -74,8 +75,8 @@ def row_list(rows, lg, show_vol=False):
     return '<div class="rowlist">' + "".join(out) + "</div>"
 
 
-def news_list(items, limit=20, translate=None, tag_key=None):
-    """News cards with 'affected companies' chips (logo + today's move, click to open)."""
+def news_list(items, limit=20, translate=None, tag_key=None, iq=True):
+    """News cards: importance score (1-10), keywords and 'affected companies' chips (logo + today's move, click to open)."""
     items = items[:limit]
     if not items:
         st.info(L("No news available right now.", "لا توجد أخبار متاحة حالياً."))
@@ -92,10 +93,13 @@ def news_list(items, limit=20, translate=None, tag_key=None):
     tickers = sorted({s for n in items for s in n.get("tickers", [])})
     chg = data.changes(tickers) if tickers else {}
     lg = data.logos(tickers) if tickers else {}
+    if iq:
+        newsiq.enrich(items, chg)
     out = []
     for n, t, s in zip(items, titles, sums):
         out.append(T.news_card(n, t, s, chips(n.get("tickers", []), chg, lg), L("Affected companies", "الشركات المتأثرة"),
-                               ar=translate and translated_ok, tag=n.get(tag_key) if tag_key else None))
+                               ar=translate and translated_ok, tag=n.get(tag_key) if tag_key else None,
+                               iq=n.get("iq") if iq else None, ui_ar=is_ar()))
     if translate and not translated_ok:
         st.caption(L("Translation service is busy right now; showing the original English. It will retry automatically.",
                      "خدمة الترجمة مشغولة حالياً؛ نعرض النص الإنجليزي الأصلي وستتم إعادة المحاولة تلقائياً."))

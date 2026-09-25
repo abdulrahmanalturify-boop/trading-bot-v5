@@ -2,6 +2,8 @@
 charts.py - All Plotly figures, one unified theme (site font, transparent cards, pastel up/down bars).
 Rule used everywhere: positive = light-green fill + dark-green text, negative = light-red fill + dark-red text.
 """
+import re
+
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
@@ -41,8 +43,18 @@ PANELS = ["RSI", "MACD", "Stochastic", "ADX", "ATR", "OBV", "MFI", "CCI"]
 CHART_TYPES = ["Candles", "Heikin Ashi", "OHLC", "Line", "Area"]
 
 
+_ARABIC = re.compile("[\u0600-\u06FF]")
+
+
+def rtl_text(t):
+    """Arabic titles mixed with numbers or Latin words keep their reading order inside Plotly's left-to-right SVG
+    (the whole title becomes a right-to-left isolate)."""
+    return f"\u2067{t}\u2069" if t and _ARABIC.search(str(t)) else t
+
+
 def style(fig, height=420, title=None, legend=True):
     top = (84 if legend else 48) if title else 14
+    title = rtl_text(title)
     fig.update_layout(
         template=TEMPLATE, height=height, margin=dict(l=8, r=8, t=top, b=8), hovermode="x unified",
         title=dict(text=f"<b>{title}</b>", yref="container", y=0.985, yanchor="top") if title else None,
@@ -803,4 +815,123 @@ def share_donut(labels, values, title=None, center=None, hover=None):
         fig.add_annotation(text=center, showarrow=False, font=dict(size=15, color="#fff"))
     style(fig, 400, title, legend=False)
     fig.update_layout(margin=dict(l=40, r=40, t=60, b=30))
+    return fig
+
+
+# =====================================================================
+# Insight: articles, fear & greed, seasonality
+# =====================================================================
+def lines(series_map, title=None, suffix="%", height=340, colors=None, dec=1):
+    """Several lines on one axis (e.g. headline vs core inflation)."""
+    fig = go.Figure()
+    for i, (name, s) in enumerate(series_map.items()):
+        col = (colors or PALETTE)[i % len(colors or PALETTE)]
+        fig.add_trace(go.Scatter(x=s.index, y=s.values, name=name, mode="lines", line=dict(color=col, width=2.6 if i == 0 else 2, shape="spline", smoothing=0.4),
+                                 hovertemplate=f"<b>{name}</b> · %{{x|%b %Y}}: %{{y:.{dec}f}}{suffix}<extra></extra>"))
+    style(fig, height, title)
+    fig.update_yaxes(ticksuffix=suffix, side="left")
+    fig.update_layout(hovermode="x unified")
+    return fig
+
+
+def drawdown(dd, title=None, height=340):
+    """Distance below the previous record high, in % (always <= 0)."""
+    fig = go.Figure(go.Scatter(x=dd.index, y=dd.values, mode="lines", fill="tozeroy", line=dict(color=DOWN, width=1.4),
+                               fillcolor=rgba(DOWN, 0.22), hovertemplate="%{x|%b %d, %Y}: %{y:.1f}%<extra></extra>"))
+    for lvl in (-10, -20):
+        fig.add_hline(y=lvl, line=dict(color="#3A4458", width=1, dash="dot"),
+                      annotation=dict(text=f"{lvl}%", font=dict(size=10, color=MUTED), xanchor="left"), annotation_position="bottom left")
+    style(fig, height, title, legend=False)
+    fig.update_yaxes(ticksuffix="%", side="left")
+    fig.update_layout(hovermode="x")
+    return fig
+
+
+def vix_chart(s, title=None, labels=("Calm", "Fear"), height=340):
+    fig = go.Figure()
+    top = max(40.0, float(s.max()) * 1.08) if len(s) else 40.0
+    fig.add_trace(go.Scatter(x=s.index, y=s.values, mode="lines", line=dict(color=GOLD, width=2), name="VIX",
+                             hovertemplate="%{x|%b %d, %Y}: %{y:.2f}<extra></extra>"))
+    fig.add_hrect(y0=0, y1=15, fillcolor=rgba(UP, 0.09), line_width=0, layer="below",
+                  annotation=dict(text=labels[0], font=dict(size=11, color=POS_BD), xanchor="left"), annotation_position="bottom left")
+    fig.add_hrect(y0=30, y1=top, fillcolor=rgba(DOWN, 0.1), line_width=0, layer="below",
+                  annotation=dict(text=labels[1], font=dict(size=11, color=NEG_BD), xanchor="left"), annotation_position="top left")
+    style(fig, height, title, legend=False)
+    fig.update_yaxes(range=[0, top], side="left")
+    fig.update_layout(hovermode="x")
+    return fig
+
+
+def dca_chart(df, title=None, names=("Monthly plan (DCA)", "Lump sum on day one", "Money invested"), height=380):
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=df.index, y=df["lump"], name=names[1], mode="lines", line=dict(color=GOLD, width=2.2),
+                             hovertemplate=f"{names[1]}: $%{{y:,.0f}}<extra></extra>"))
+    fig.add_trace(go.Scatter(x=df.index, y=df["dca"], name=names[0], mode="lines", line=dict(color=CYAN, width=2.6),
+                             hovertemplate=f"{names[0]}: $%{{y:,.0f}}<extra></extra>"))
+    fig.add_trace(go.Scatter(x=df.index, y=df["invested"], name=names[2], mode="lines", line=dict(color="#94A3B8", width=1.6, dash="dot", shape="hv"),
+                             hovertemplate=f"{names[2]}: $%{{y:,.0f}}<extra></extra>"))
+    style(fig, height, title)
+    fig.update_yaxes(tickprefix="$", side="left")
+    fig.update_layout(hovermode="x unified")
+    return fig
+
+
+FG_BANDS = [(0, 25, DOWN, 0.16), (25, 45, "#F97316", 0.1), (45, 55, "#94A3B8", 0.08), (55, 75, "#84CC16", 0.1), (75, 100, UP, 0.16)]
+
+
+def fg_history(fg, title=None, spx=None, names=("Fear & Greed", "S&P 500"), height=380):
+    """Index 0-100 with fear (red) to greed (green) bands; optional S&P 500 on a second axis."""
+    fig = make_subplots(specs=[[{"secondary_y": True}]]) if spx is not None else go.Figure()
+    tr = go.Scatter(x=fg.index, y=fg.values, name=names[0], mode="lines", line=dict(color="#E9EDF5", width=2.4),
+                    hovertemplate=f"{names[0]}: %{{y:.0f}}<extra></extra>")
+    if spx is not None:
+        fig.add_trace(tr, secondary_y=False)
+        fig.add_trace(go.Scatter(x=spx.index, y=spx.values, name=names[1], mode="lines", line=dict(color=ACCENT, width=1.4, dash="dot"),
+                                 opacity=0.8, hovertemplate=f"{names[1]}: %{{y:,.0f}}<extra></extra>"), secondary_y=True)
+        fig.update_yaxes(showgrid=False, side="right", secondary_y=True, tickfont=dict(color=rgba(ACCENT, 0.9)))
+    else:
+        fig.add_trace(tr)
+    for lo, hi, col, a in FG_BANDS:    # bands after the traces (plotly skips shapes on still-empty subplots)
+        fig.add_shape(type="rect", xref="x domain", yref="y", x0=0, x1=1, y0=lo, y1=hi, fillcolor=rgba(col, a), line_width=0, layer="below")
+    style(fig, height, title)
+    fig.update_yaxes(range=[0, 100], side="left", tickvals=[0, 25, 45, 55, 75, 100], secondary_y=False if spx is not None else None)
+    fig.update_layout(hovermode="x unified")
+    return fig
+
+
+def season_bars(labels, avg, win, cur=None, title=None, names=("Average return", "Up years"), height=380):
+    """Average return per month (pastel bars) + share of positive years (dots, right axis)."""
+    fill, line, txt, out = pastel(list(avg))
+    widths = [3 if i == cur else 1 for i in range(len(labels))]
+    lcol = [ACCENT if i == cur else c for i, c in enumerate(line)]
+    fig = make_subplots(specs=[[{"secondary_y": True}]])
+    fig.add_trace(go.Bar(x=labels, y=avg, name=names[0], marker=dict(color=fill, line=dict(color=lcol, width=widths)),
+                         text=[f"{v:+.1f}%" for v in avg], textposition="outside", textfont=dict(size=11, color=out),
+                         customdata=win, hovertemplate=f"%{{x}} · {names[0]}: %{{y:+.2f}}%<br>{names[1]}: %{{customdata:.0f}}%<extra></extra>"),
+                  secondary_y=False)
+    fig.add_trace(go.Scatter(x=labels, y=win, name=names[1], mode="lines+markers", line=dict(color=VIOLET, width=1.6, dash="dot"),
+                             marker=dict(size=8, color=VIOLET, line=dict(color=BG, width=1.5)),
+                             hovertemplate=f"%{{x}} · {names[1]}: %{{y:.0f}}%<extra></extra>"), secondary_y=True)
+    style(fig, height, title)
+    lo, hi = min(min(avg), 0), max(max(avg), 0)
+    pad = (hi - lo) * 0.25 or 1
+    fig.update_yaxes(ticksuffix="%", side="left", range=[lo - pad, hi + pad], zeroline=True, zerolinecolor="#3A4458", secondary_y=False)
+    fig.update_yaxes(ticksuffix="%", range=[0, 100], showgrid=False, side="right", secondary_y=True, tickfont=dict(color=rgba(VIOLET, 0.9)))
+    fig.update_layout(hovermode="x unified", bargap=0.3)
+    fig.update_xaxes(type="category")
+    return _bars(fig)
+
+
+def seasonal_path(avg, cur=None, title=None, names=("Average year", "This year"), height=360, xlab="Trading day of the year"):
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=avg.index, y=avg.values, name=names[0], mode="lines", line=dict(color=VIOLET, width=2.6, shape="spline", smoothing=0.6),
+                             hovertemplate=f"{names[0]} · %{{x}}: %{{y:+.1f}}%<extra></extra>"))
+    if cur is not None and len(cur):
+        fig.add_trace(go.Scatter(x=cur.index, y=cur.values, name=names[1], mode="lines", line=dict(color=CYAN, width=2.2),
+                                 hovertemplate=f"{names[1]} · %{{x}}: %{{y:+.1f}}%<extra></extra>"))
+    fig.add_hline(y=0, line=dict(color="#3A4458", width=1))
+    style(fig, height, title)
+    fig.update_yaxes(ticksuffix="%", side="left")
+    fig.update_xaxes(title_text=xlab, title_font=dict(size=11, color=MUTED))
+    fig.update_layout(hovermode="x unified")
     return fig

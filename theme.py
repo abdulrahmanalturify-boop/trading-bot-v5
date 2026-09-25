@@ -58,9 +58,14 @@ html, body, .stApp, .stMarkdown, button, input, textarea, select, label, [data-t
   background-size: 52px 52px; animation: gridmove 44s linear infinite; }}
 @keyframes aurora {{ 0% {{ transform: translate3d(0,0,0) scale(1); }} 100% {{ transform: translate3d(-3%,2%,0) scale(1.08); }} }}
 @keyframes gridmove {{ 0% {{ background-position:0 0,0 0; }} 100% {{ background-position:52px 52px,52px 52px; }} }}
-header[data-testid="stHeader"] {{ background: rgba(10,14,23,.86); backdrop-filter: blur(14px); border-bottom: 1px solid {BORDER}; }}
-[data-testid="stAppDeployButton"], [data-testid="stStatusWidget"] {{ display:none; }}
-.block-container {{ padding-top: 4.4rem; padding-bottom: 3rem; max-width: 1560px; position:relative; z-index:1; }}
+[data-testid="stAppViewContainer"] {{ z-index: 1; }}
+header[data-testid="stHeader"] {{ background: rgba(9,13,22,.84); backdrop-filter: blur(18px) saturate(150%); -webkit-backdrop-filter: blur(18px) saturate(150%);
+  border-bottom: 1px solid rgba(43,53,72,.85); box-shadow: 0 10px 28px rgba(0,0,0,.25); }}
+header[data-testid="stHeader"]::after {{ content:""; position:absolute; left:0; right:0; bottom:-1px; height:1px; pointer-events:none;
+  background: linear-gradient(90deg, transparent, rgba(61,123,255,.55), rgba(139,92,246,.45), transparent); }}
+[data-testid="stToolbarActions"], [data-testid="stAppDeployButton"], [data-testid="stStatusWidget"], [data-testid="stDecoration"] {{ display:none !important; }}
+[data-testid="stElementContainer"]:has(.css-anchor), .element-container:has(.css-anchor) {{ display:none !important; }}
+.block-container {{ padding-top: 4.4rem; padding-bottom: 3rem; max-width: 1560px; }}
 h1 {{ font-size: 1.8rem !important; font-weight: 800 !important; letter-spacing: -.02em; }}
 h2, h3 {{ font-weight: 750 !important; letter-spacing: -.01em; }}
 .ms {{ font-family:'Material Symbols Rounded'; font-weight:400; font-style:normal; font-size:1.15em; line-height:1; display:inline-block;
@@ -186,6 +191,24 @@ a.lnk {{ color:inherit !important; text-decoration:none !important; }} a.lnk:hov
 .news a.t:hover {{ color:#7EA6FF; }}
 .news .meta {{ color:{MUTED}; font-size:.78rem; margin-top:4px; }}
 .news .sum {{ color:{MUTED}; font-size:.88rem; margin-top:6px; line-height:1.75; }}
+.news .nh {{ display:flex; gap:14px; align-items:flex-start; }}
+.news .nb {{ flex:1; min-width:0; }}
+.news.hasiq {{ border-inline-start: 4px solid var(--iqd); }}
+.iq {{ flex:none; width:88px; text-align:center; border-radius:12px; padding:7px 6px 6px; background:var(--iqb); color:var(--iqf); border:1px solid var(--iqd); cursor:help; }}
+.iq .n {{ font-size:1.35rem; font-weight:800; line-height:1.1; direction:ltr; font-variant-numeric: tabular-nums; }}
+.iq .n small {{ font-size:.68rem; font-weight:700; opacity:.7; }}
+.iq .l {{ font-size:.64rem; font-weight:800; margin-top:2px; line-height:1.25; }}
+.iq .bar {{ height:4px; border-radius:3px; background:rgba(0,0,0,.09); margin-top:5px; overflow:hidden; direction:ltr; }}
+.iq .bar i {{ display:block; height:100%; background:var(--iqf); opacity:.55; border-radius:3px; }}
+.kw {{ display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }}
+.kwc {{ display:inline-flex; align-items:center; gap:5px; padding:3px 10px 3px 8px; border-radius:20px; font-size:.74rem; font-weight:700;
+  background:rgba(61,123,255,.1); color:#BFD3FB; border:1px solid rgba(61,123,255,.26); white-space:nowrap; }}
+.kwc .ms {{ font-size:.95rem; color:#7EA6FF; }}
+.kwc.ent {{ background:rgba(139,92,246,.1); color:#D9CCFC; border-color:rgba(139,92,246,.3); }} .kwc.ent .ms {{ color:#A78BFA; }}
+.kwc.op {{ background:rgba(138,148,167,.12); color:#B8C0CE; border-color:rgba(138,148,167,.26); }} .kwc.op .ms {{ color:#8A94A7; }}
+.iqleg {{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; font-size:.78rem; font-weight:700; }}
+.iqleg .sc {{ display:flex; gap:3px; direction:ltr; }}
+.iqleg .sc span {{ width:30px; height:24px; border-radius:6px; display:inline-flex; align-items:center; justify-content:center; font-size:.74rem; font-weight:800; }}
 .aff {{ margin-top:10px; display:flex; flex-wrap:wrap; gap:6px; align-items:center; }}
 .aff .lbl {{ color:{MUTED}; font-size:.74rem; margin-inline-end:4px; }}
 .tkc {{ direction:ltr; display:inline-flex; gap:6px; align-items:center; border-radius:20px; padding:3px 10px 3px 3px; font-size:.78rem; font-weight:800;
@@ -350,31 +373,101 @@ a.lnk {{ color:inherit !important; text-decoration:none !important; }} a.lnk:hov
 .sigs {{ display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:8px; }}
 .sigs .sg {{ display:flex; justify-content:space-between; align-items:center; gap:8px; padding:8px 10px; border-radius:12px; background:{CARD}; border:1px solid {BORDER}; }}
 .sigs .sg .n {{ font-weight:700; font-size:.84rem; }} .sigs .sg .v {{ color:{MUTED}; font-size:.74rem; direction:ltr; }}
-/* ---------- top navigation bar: hover menus (no click needed) ---------- */
-.st-key-topnav {{ position: sticky; top: 3.75rem; z-index: 99990; overflow: visible !important; padding: 6px 10px; margin-bottom: 14px;
-  background: rgba(12,17,28,.84); backdrop-filter: blur(16px) saturate(140%); -webkit-backdrop-filter: blur(16px) saturate(140%);
-  border: 1px solid {BORDER}; border-radius: 16px; box-shadow: 0 12px 30px rgba(0,0,0,.35); }}
+/* ---------- insight: daily brief ---------- */
+.brief {{ position:relative; border-radius:20px; padding:22px 26px 18px; border:1px solid {BORDER}; overflow:hidden; margin-bottom:12px;
+  background: radial-gradient(700px 260px at 0% 0%, rgba(61,123,255,.22), transparent 60%), radial-gradient(600px 240px at 100% 0%, rgba(139,92,246,.18), transparent 60%),
+  linear-gradient(180deg, {CARD2}, {CARD}); }}
+.brief .eyebrow {{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; color:{CYAN}; font-weight:800; letter-spacing:.14em; font-size:.72rem; text-transform:uppercase; }}
+.brief .hl {{ font-size:1.75rem; font-weight:800; margin:10px 0 8px; line-height:1.3; color:#fff; letter-spacing:-.01em; }}
+.brief ul {{ margin:8px 0 0; padding-inline-start:20px; }} .brief li {{ margin:4px 0; line-height:1.75; color:#D5DBE6; }}
+.brief .eyebrow .status {{ text-transform:none; letter-spacing:0; font-size:.74rem; padding:4px 10px; }}
+.brief .mood {{ display:inline-flex; align-items:center; gap:6px; padding:4px 11px; border-radius:20px; font-weight:800; font-size:.78rem; letter-spacing:0; text-transform:none; }}
+.bstory {{ display:flex; gap:12px; align-items:flex-start; padding:10px 4px; border-bottom:1px solid {BORDER}; }}
+.bstory:last-child {{ border-bottom:none; }}
+.bstory .sc {{ flex:none; width:46px; height:46px; border-radius:12px; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  font-weight:800; font-size:1.08rem; line-height:1; border:1px solid; direction:ltr; }}
+.bstory .sc small {{ font-size:.55rem; font-weight:700; opacity:.75; margin-top:3px; }}
+.bstory .b {{ min-width:0; flex:1; }}
+.bstory a {{ color:#E9EDF5 !important; text-decoration:none !important; font-weight:700; line-height:1.55; }} .bstory a:hover {{ color:#7EA6FF !important; }}
+.bstory .m {{ color:{MUTED}; font-size:.74rem; margin-top:3px; }}
+.bstory .kw {{ margin-top:6px; }} .bstory .kwc {{ font-size:.68rem; padding:2px 8px 2px 6px; }}
+.iqs {{ display:inline-block; padding:3px 10px; border-radius:10px; font-size:.74rem; font-weight:800; border:1px solid; }}
+.evt {{ display:grid; grid-template-columns: 96px minmax(0,1fr) auto; gap:12px; align-items:center; padding:9px 10px; border-radius:12px; background:{CARD};
+  border:1px solid {BORDER}; margin-bottom:6px; }}
+.evt .d {{ text-align:center; border-radius:10px; padding:5px 4px; background:rgba(61,123,255,.12); color:#BFD3FB; font-weight:800; font-size:.72rem; line-height:1.4; direction:ltr; }}
+.evt .n {{ font-weight:750; }} .evt .x {{ color:{MUTED}; font-size:.74rem; direction:ltr; white-space:nowrap; }}
+.evt.key {{ border-color: rgba(245,185,74,.45); }} .evt.key .d {{ background:{YEL_BG}; color:{YEL_FG}; }}
+/* ---------- insight: articles ---------- */
+.acard {{ background:{CARD}; border:1px solid {BORDER}; border-radius:18px; overflow:hidden; height:100%; transition: transform .18s, box-shadow .18s, border-color .18s; }}
+.acard .aart {{ position:relative; height:140px; overflow:hidden; }} .acard .aart svg {{ width:100%; height:100%; display:block; }}
+.acard .aicon {{ position:absolute; left:50%; top:46%; transform:translate(-50%,-50%); width:66px; height:66px; border-radius:50%; display:flex; align-items:center;
+  justify-content:center; background:rgba(255,255,255,.16); border:1.5px solid rgba(255,255,255,.45); }}
+.acard .aicon .ms {{ font-size:2rem; color:#fff; }}
+.acard .abody {{ padding:14px 16px 16px; }}
+.acat {{ font-size:.66rem; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:#93C5FD; }}
+.acard .attl {{ font-weight:800; font-size:1.05rem; line-height:1.45; margin-top:6px; color:#fff; }}
+.acard .adek {{ color:{MUTED}; font-size:.84rem; line-height:1.6; margin-top:6px; }}
+.acard .ameta {{ display:flex; gap:6px; margin-top:10px; flex-wrap:wrap; }}
+.acard.feat {{ display:grid; grid-template-columns: minmax(0,1.05fr) minmax(0,1fr); }}
+.acard.feat .aart {{ height:100%; min-height:260px; }} .acard.feat .aicon {{ width:92px; height:92px; }} .acard.feat .aicon .ms {{ font-size:2.8rem; }}
+.acard.feat .attl {{ font-size:1.6rem; line-height:1.3; }} .acard.feat .adek {{ font-size:.98rem; }}
+.acard.feat .abody {{ padding:26px 28px; display:flex; flex-direction:column; justify-content:center; }}
+[class*="st-key-art_"] {{ position:relative; height:100%; }}
+[class*="st-key-art_"] [data-testid="stElementContainer"] {{ position:static !important; }}
+[class*="st-key-art_"] .stButton {{ position:absolute !important; inset:0; z-index:4; margin:0 !important; }}
+[class*="st-key-art_"] .stButton button {{ width:100% !important; height:100% !important; opacity:0; cursor:pointer; }}
+[class*="st-key-art_"]:hover .acard {{ transform: translateY(-4px); box-shadow: 0 14px 32px rgba(61,123,255,.18); border-color: rgba(96,140,255,.5); }}
+.article .at {{ font-size:2.15rem; font-weight:800; line-height:1.25; margin:10px 0 8px; color:#fff; letter-spacing:-.015em; }}
+.article .dek {{ color:#C7CFDD; font-size:1.1rem; line-height:1.75; }}
+.article .ah {{ font-size:1.3rem; font-weight:800; margin:26px 0 6px; color:#fff; }}
+.article p, .article li {{ line-height:1.95; color:#D5DBE6; font-size:1.02rem; }}
+.article ul {{ padding-inline-start:22px; margin:6px 0; }} .article li {{ margin:5px 0; }}
+.acover {{ position:relative; height:180px; border-radius:18px; overflow:hidden; margin:6px 0 4px; }} .acover svg {{ width:100%; height:100%; display:block; }}
+.tkw {{ background: linear-gradient(135deg, rgba(34,211,238,.1), rgba(61,123,255,.08)); border:1px solid rgba(34,211,238,.28); border-radius:16px; padding:14px 18px; margin:16px 0 8px; }}
+.tkw .h {{ font-weight:800; font-size:.78rem; letter-spacing:.1em; text-transform:uppercase; color:{CYAN}; margin-bottom:4px; display:flex; gap:6px; align-items:center; }}
+.tkw .t {{ display:flex; gap:10px; align-items:flex-start; margin:6px 0; line-height:1.75; color:#E2E8F0; }} .tkw .t .ms {{ color:#4ADE80; margin-top:4px; }}
+.anote {{ border-inline-start:3px solid {ACCENT}; background:rgba(61,123,255,.08); padding:12px 16px; border-radius:12px; margin:16px 0; display:flex; gap:10px; line-height:1.8; }}
+.anote .ms {{ color:#7EA6FF; margin-top:3px; }}
+.acap {{ color:{MUTED}; font-size:.8rem; margin:2px 0 4px; display:flex; gap:6px; align-items:center; }}
+.acap .ms {{ color:{CYAN}; }}
+/* ---------- insight: fear & greed ---------- */
+.fgcmp {{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; margin-top:10px; }}
+.fgcmp .c {{ border-radius:12px; padding:9px 8px; text-align:center; border:1px solid transparent; }}
+.fgcmp .c .l {{ font-size:.66rem; font-weight:800; opacity:.8; }} .fgcmp .c .v {{ font-size:1.3rem; font-weight:800; margin-top:2px; direction:ltr; }}
+.fgcmp .c .s {{ font-size:.64rem; font-weight:800; }}
+.fgc {{ background: linear-gradient(180deg,{CARD2},{CARD}); border:1px solid {BORDER}; border-radius:16px; padding:13px 14px; height:100%; }}
+.fgc .h {{ display:flex; justify-content:space-between; gap:8px; align-items:flex-start; }}
+.fgc .h b {{ font-size:.92rem; }} .fgc .x {{ color:{MUTED}; font-size:.78rem; line-height:1.65; margin-top:8px; }}
+.fgc .r {{ font-size:.78rem; margin-top:8px; font-weight:700; color:#C9D0DC; }}
+.fgbar {{ position:relative; height:8px; border-radius:5px; margin-top:12px; background: linear-gradient(90deg, #EF4444, #F97316 30%, #94A3B8 50%, #84CC16 70%, #22C55E); direction:ltr; }}
+.fgbar i {{ position:absolute; top:-4px; width:16px; height:16px; border-radius:50%; background:#fff; border:3px solid {BG}; transform:translateX(-50%); box-shadow:0 2px 6px rgba(0,0,0,.5); }}
+/* ---------- top navigation: lives in the site's top line (Streamlit header row), hover menus ---------- */
+.st-key-topnav {{ container-type: inline-size; container-name: topnav; overflow: visible !important; gap: 10px !important; }}
 .st-key-topnav, .st-key-topnav div, .st-key-navleft, .st-key-navright {{ overflow: visible !important; }}
-.st-key-navleft {{ flex-wrap: wrap; }}
+.st-key-navleft {{ flex-wrap: nowrap !important; gap: 3px !important; }}
+.st-key-navright {{ flex-wrap: nowrap !important; gap: 8px !important; }}
+[data-testid="stLayoutWrapper"]:has(> .st-key-navsearch), .st-key-topnav > .st-key-navsearch {{ flex: 0 1 520px !important; min-width: 190px !important;
+  margin-inline-start: auto; }}
 [class*="st-key-navsec_"] {{ position: relative; gap: 0 !important; }}
-.navbtn {{ display:flex; align-items:center; gap:7px; padding:8px 13px; border-radius:11px; font-weight:700; font-size:.92rem; color:#D5DBE6;
+.navbtn {{ display:flex; align-items:center; gap:7px; height:38px; padding:0 12px; border-radius:11px; font-weight:700; font-size:.9rem; color:#C9D2E3;
   cursor:pointer; white-space:nowrap; border:1px solid transparent; transition: background .18s, color .18s, border-color .18s; user-select:none; outline:none; }}
-.navbtn .ms {{ font-size:1.12rem; color:#8FA3C8; transition: color .18s; }}
-.navbtn .chev {{ font-size:1rem; transition: transform .22s ease; }}
+.navbtn .ms {{ font-size:1.14rem; color:#8FA3C8; transition: color .18s; }}
+.navbtn .chev {{ font-size:1rem; opacity:.75; transition: transform .22s ease; }}
 [class*="st-key-navsec_"]:hover .navbtn, [class*="st-key-navsec_"]:focus-within .navbtn {{ color:#fff;
   background: linear-gradient(135deg, rgba(61,123,255,.24), rgba(139,92,246,.2)); border-color: rgba(96,140,255,.45); }}
 [class*="st-key-navsec_"]:hover .navbtn .ms, [class*="st-key-navsec_"]:focus-within .navbtn .ms {{ color:#fff; }}
 [class*="st-key-navsec_"]:hover .chev, [class*="st-key-navsec_"]:focus-within .chev {{ transform: rotate(180deg); }}
-.navbtn.on {{ color:#fff; background: rgba(61,123,255,.13); border-color: rgba(61,123,255,.3); }}
+.navbtn.on {{ color:#fff; background: rgba(61,123,255,.14); border-color: rgba(61,123,255,.34); }}
 .navbtn.on .ms {{ color:#7EA6FF; }}
-[class*="st-key-navdd_"] {{ position:absolute !important; top: calc(100% + 8px); left:0; width: 262px !important; min-width: 262px; z-index: 1000; gap: 2px !important;
+[class*="st-key-navdd_"], .st-key-langdd {{ position:absolute !important; top: calc(100% + 10px); left:0; width: 262px !important; min-width: 262px !important;
+  max-width: none !important; z-index: 1000; gap: 2px !important;
   padding: 10px 8px 8px; background: rgba(17,23,35,.98); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
   border: 1px solid #2B3548; border-radius: 16px; box-shadow: 0 24px 50px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.02) inset;
   opacity: 0; visibility: hidden; transform: translateY(8px) scale(.98); transform-origin: top left;
   transition: opacity .16s ease, transform .18s ease, visibility .18s; }}
-[class*="st-key-navdd_"]::before {{ content:""; position:absolute; left:0; right:0; top:-12px; height:12px; }}
-[class*="st-key-navsec_"]:hover [class*="st-key-navdd_"], [class*="st-key-navsec_"]:focus-within [class*="st-key-navdd_"] {{
-  opacity: 1; visibility: visible; transform: none; }}
+[class*="st-key-navdd_"]::before, .st-key-langdd::before {{ content:""; position:absolute; left:0; right:0; top:-14px; height:14px; }}
+[class*="st-key-navsec_"]:hover [class*="st-key-navdd_"], [class*="st-key-navsec_"]:focus-within [class*="st-key-navdd_"],
+.st-key-langsec:hover .st-key-langdd, .st-key-langsec:focus-within .st-key-langdd {{ opacity: 1; visibility: visible; transform: none; }}
 .navhd {{ font-size:.64rem; letter-spacing:.14em; text-transform:uppercase; color:{MUTED}; font-weight:800; padding: 0 10px 6px;
   border-bottom: 1px solid {BORDER}; margin-bottom: 4px; }}
 [class*="st-key-navdd_"] [data-testid="stPageLink"] a {{ border-radius: 11px; padding: 7px 10px; margin: 1px 0; transition: background .14s, transform .14s; }}
@@ -382,11 +475,70 @@ a.lnk {{ color:inherit !important; text-decoration:none !important; }} a.lnk:hov
 [class*="st-key-navdd_"] [data-testid="stPageLink"] a span {{ font-weight: 650; }}
 [class*="st-key-navon_"] [data-testid="stPageLink"] a {{ background: linear-gradient(90deg, rgba(61,123,255,.3), rgba(139,92,246,.16)) !important;
   box-shadow: inset 3px 0 0 {ACCENT}; }}
-.st-key-navright {{ margin-inline-start: auto; }}
-.st-key-navright [data-testid="stTextInput"] input {{ border-radius: 11px; }}
-.status.mini {{ padding: 2px 0; font-size: .66rem; margin-inline-start: auto; background: transparent; border: none; text-transform: none;
-  letter-spacing: 0; gap: 5px; white-space: nowrap; }}
-.status.mini .muted {{ display: none; }}
+.st-key-navright .status {{ padding: 7px 12px; font-size: .76rem; white-space: nowrap; background: rgba(17,23,35,.75); }}
+/* search: wide type-ahead box */
+.st-key-navsearch [data-testid="stSelectbox"], .st-key-navsearch [data-testid="stTextInput"] {{ position: relative; }}
+.st-key-navsearch [data-testid="stSelectbox"]::before, .st-key-navsearch [data-testid="stTextInput"]::before {{ content: "search";
+  font-family: 'Material Symbols Rounded'; position: absolute; inset-inline-start: 12px; top: 50%; transform: translateY(-50%); z-index: 3;
+  font-size: 1.2rem; line-height: 1; color: #8A94A7; pointer-events: none; }}
+.st-key-navsearch input {{ padding-inline-start: 38px !important; font-size: .88rem !important; }}
+.st-key-navsearch [role="group"], .st-key-navsearch [data-baseweb="select"] > div, .st-key-navsearch [data-baseweb="input"] {{
+  border-radius: 12px !important; background: rgba(22,29,43,.92) !important; border-color: #2B3548 !important; transition: border-color .15s, box-shadow .15s; }}
+.st-key-navsearch [role="group"]:hover, .st-key-navsearch [data-baseweb="select"] > div:hover, .st-key-navsearch [data-baseweb="input"]:hover {{ border-color: rgba(96,140,255,.55) !important; }}
+.st-key-navsearch [role="group"][data-focus-within], .st-key-navsearch [data-baseweb="select"]:focus-within > div, .st-key-navsearch [data-baseweb="input"]:focus-within {{
+  border-color: {ACCENT} !important; box-shadow: 0 0 0 3px rgba(61,123,255,.22); }}
+.st-key-navsearch button[aria-label="Open"] {{ display: none !important; }}
+.st-key-navsearch input::placeholder {{ color: #8A94A7 !important; }}
+/* language menu */
+.st-key-langsec {{ position: relative; gap: 0 !important; }}
+.langbtn {{ display:flex; align-items:center; gap:6px; height:38px; padding:0 9px 0 10px; border-radius:11px; border:1px solid #2B3548;
+  background: rgba(22,29,43,.9); color:#E9EDF5; font-weight:800; font-size:.82rem; letter-spacing:.02em; cursor:pointer; white-space:nowrap; user-select:none; outline:none;
+  transition: border-color .18s, background .18s; }}
+.langbtn .ms {{ font-size:1.14rem; color:#7EA6FF; }}
+.langbtn .chev {{ font-size:1rem; color:{MUTED}; transition: transform .2s ease; }}
+.langbtn .lcode {{ min-width: 18px; text-align: center; }}
+.st-key-langsec:hover .langbtn, .st-key-langsec:focus-within .langbtn {{ border-color: rgba(96,140,255,.55);
+  background: linear-gradient(135deg, rgba(61,123,255,.22), rgba(139,92,246,.18)); }}
+.st-key-langsec:hover .langbtn .chev, .st-key-langsec:focus-within .langbtn .chev {{ transform: rotate(180deg); }}
+.st-key-langdd {{ left: auto; right: 0; width: 238px !important; min-width: 238px !important; transform-origin: top right; }}
+.lopt {{ display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:12px; transition: background .14s; }}
+.lopt .code {{ flex:none; width:34px; height:34px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:.8rem; color:#fff;
+  background: linear-gradient(135deg, {ACCENT}, {VIOLET}); box-shadow: 0 6px 14px rgba(61,123,255,.25); }}
+.lopt .code.ar {{ background: linear-gradient(135deg, #10B981, #0EA5E9); font-size: 1rem; box-shadow: 0 6px 14px rgba(16,185,129,.22); }}
+.lopt .nm {{ min-width:0; }} .lopt .nm b {{ display:block; font-size:.92rem; color:#fff; }} .lopt .nm small {{ color:{MUTED}; font-size:.72rem; }}
+.lopt .ck {{ margin-inline-start:auto; color:#4ADE80; font-size:1.2rem; }}
+.lopt.on {{ background: rgba(61,123,255,.16); box-shadow: inset 0 0 0 1px rgba(61,123,255,.35); }}
+[class*="st-key-langopt_"] {{ position:relative; gap:0 !important; }}
+[class*="st-key-langopt_"] [data-testid="stElementContainer"] {{ position:static !important; }}
+[class*="st-key-langopt_"] .stButton {{ position:absolute !important; inset:0; z-index:4; margin:0 !important; }}
+[class*="st-key-langopt_"] .stButton button {{ width:100% !important; height:100% !important; opacity:0; cursor:pointer; }}
+[class*="st-key-langopt_"]:hover .lopt:not(.on) {{ background: rgba(61,123,255,.1); }}
+/* narrower screens: the bar compacts itself instead of wrapping */
+@container topnav (max-width: 1660px) {{ .navbtn .chev {{ display:none; }} }}
+@container topnav (max-width: 1380px) {{ .st-key-navright .status .muted {{ display:none; }} }}
+@container topnav (max-width: 1210px) {{ .navbtn {{ padding:0 9px; gap:6px; font-size:.86rem; }} .st-key-navright .status b {{ display:none; }}
+  .st-key-navright .status {{ padding: 9px; }} }}
+@container topnav (max-width: 980px) {{ .navbtn > span:not(.ms) {{ display:none; }} .navbtn {{ padding:0 10px; }} }}
+@container topnav (max-width: 720px) {{ .st-key-navright .status {{ display:none; }} .langbtn .chev {{ display:none; }} }}
+/* desktop: the bar IS the site's top line. It is anchored to the main area's own box (the same box as Streamlit's header),
+   so it spans from the sidebar edge to the menu button, follows the sidebar when it is opened/closed/resized and never scrolls away. */
+@media (min-width: 1024px) {{
+  [data-testid="stMainBlockContainer"]:has(.st-key-topnav) {{ padding-top: 3.75rem !important; }}
+  [data-testid="stLayoutWrapper"]:has(> .st-key-topnav) {{ position: static !important; height: 0; min-height: 0; overflow: visible; }}
+  .st-key-topnav {{ position: absolute !important; top: 0; left: 1.25rem; right: 4.25rem; width: auto !important; max-width: none !important;
+    height: 3.75rem; min-height: 3.75rem; z-index: 999990; flex-wrap: nowrap !important; }}
+  .stApp:has([data-testid="stExpandSidebarButton"]) .st-key-topnav {{ left: 6.6rem; }}
+}}
+@container topnav (min-width: 1900px) {{ [data-testid="stLayoutWrapper"]:has(> .st-key-navsearch), .st-key-topnav > .st-key-navsearch {{ flex-basis: 640px !important; }} }}
+/* tablets and phones: a card under the top line, menus open full width */
+@media (max-width: 1023.98px) {{
+  .st-key-topnav {{ position: relative; z-index: 60; flex-wrap: wrap !important; padding: 6px 8px; margin-bottom: 6px; background: rgba(12,17,28,.86);
+    border: 1px solid {BORDER}; border-radius: 16px; }}
+  .st-key-navleft {{ flex-wrap: wrap !important; }}
+  [data-testid="stLayoutWrapper"]:has(> .st-key-navsearch), .st-key-topnav > .st-key-navsearch {{ flex: 1 1 100% !important; order: 3; margin: 0 !important; }}
+  [class*="st-key-navsec_"] {{ position: static; }}
+  [class*="st-key-navdd_"] {{ left: 8px !important; right: 8px !important; width: auto !important; min-width: 0 !important; top: calc(100% + 4px); }}
+}}
 /* ---------- sidebar: market pulse + watchlist ---------- */
 [data-testid="stSidebar"] [data-testid="stVerticalBlock"] {{ gap: .45rem; }}
 .pulse {{ background: linear-gradient(160deg, rgba(61,123,255,.16), rgba(139,92,246,.08) 55%, {CARD}); border:1px solid {BORDER};
@@ -415,7 +567,8 @@ a.lnk {{ color:inherit !important; text-decoration:none !important; }} a.lnk:hov
 [class*="st-key-wlr_"] .stButton {{ position:absolute !important; inset:0; z-index:4; margin:0 !important; }}
 [class*="st-key-wlr_"] .stButton button {{ width:100% !important; height:100% !important; opacity:0; cursor:pointer; }}
 [class*="st-key-wlr_"]:hover .wlr {{ border-color: rgba(96,140,255,.6); transform: translateX(3px); box-shadow: 0 8px 18px rgba(0,0,0,.35); }}
-@media (max-width: 900px) {{ .st-key-topnav {{ position: static; }} [class*="st-key-navdd_"] {{ width: 230px !important; min-width: 230px; }} .dash {{ grid-template-columns: 1fr; }} .cal {{ grid-template-columns:repeat(5,minmax(0,1fr)); }} .cal .wk, .cal .wkh {{ display:none; }} }}
+@media (max-width: 600px) {{ .iqleg .sc span {{ width:22px; height:22px; font-size:.66rem; }} .iq {{ width:74px; }} }}
+@media (max-width: 900px) {{ .acard.feat {{ grid-template-columns: 1fr; }} .fgcmp {{ grid-template-columns: repeat(2,minmax(0,1fr)); }} .dash {{ grid-template-columns: 1fr; }} .cal {{ grid-template-columns:repeat(5,minmax(0,1fr)); }} .cal .wk, .cal .wkh {{ display:none; }} }}
 </style>
 """
 
@@ -432,6 +585,7 @@ html, body, .stApp, .stMarkdown, button, input, textarea, select, label, [data-b
 [class*="st-key-navdd_"] {{ left:auto; right:0; transform-origin: top right; }}
 [class*="st-key-navon_"] [data-testid="stPageLink"] a {{ box-shadow: inset -3px 0 0 {ACCENT}; }}
 [class*="st-key-navdd_"] [data-testid="stPageLink"] a:hover {{ transform: translateX(-2px); }}
+.st-key-langdd {{ right:auto; left:0; transform-origin: top left; }}
 </style>
 """
 
@@ -623,14 +777,50 @@ def time_ago(ts, ar=False):
     return f"{int(mins // 1440)}d ago"
 
 
-def news_card(n, title, summary, chips="", aff_label="", ar=False, tag=None):
+def iq_badge(iq, ar=False):
+    """Importance score box: 10 = very important (light red + dark red), 1 = not important (light green + dark green)."""
+    import newsiq
+    sc = int(iq["score"])
+    bg, fg, bd = newsiq.colors(sc)
+    en, a = newsiq.level(sc)
+    why = " · ".join(f"{r[1] if ar else r[0]} {r[2]:+.1f}" for r in iq.get("reasons", []))
+    tip = f"{'الأهمية' if ar else 'Importance'} {sc}/10: {a if ar else en}" + (f" · {why}" if why else "")
+    return (f'<div class="iq" style="--iqb:{bg};--iqf:{fg};--iqd:{bd}" title="{esc(tip)}"><div class="n">{sc}<small>/10</small></div>'
+            f'<div class="l">{esc(a if ar else en)}</div><div class="bar"><i style="width:{sc * 10}%"></i></div></div>')
+
+
+def kw_chips(iq, ar=False, limit=6):
+    import newsiq
+    out = []
+    for key, en, a in iq.get("keywords", [])[:limit]:
+        k = " op" if key == "opinion" else (" ent" if key == "entity" else "")
+        out.append(f'<span class="kwc{k}">{icon(newsiq.TOPIC_ICON.get(key, "label"))}{esc(a if ar else en)}</span>')
+    return '<div class="kw">' + "".join(out) + "</div>" if out else ""
+
+
+def iq_legend(ar=False):
+    import newsiq
+    cells = "".join(f'<span style="background:{newsiq.COLORS[i][0]};color:{newsiq.COLORS[i][1]}">{i}</span>' for i in range(1, 11))
+    lo, hi = ("غير هام", "هام جداً") if ar else ("Not important", "Very important")
+    return (f'<div class="iqleg"><span class="muted">{esc(lo)}</span><span class="sc">{cells}</span><span class="muted">{esc(hi)}</span></div>')
+
+
+def news_card(n, title, summary, chips="", aff_label="", ar=False, tag=None, iq=None, ui_ar=None):
+    """News card. iq = newsiq.analyze(...) adds the importance box, a colored edge and keyword chips."""
+    import newsiq
+    ui_ar = ar if ui_ar is None else ui_ar
     summary = summary or ""
     short = esc(summary[:300]) + ("…" if len(summary) > 300 else "")
     tag_html = f"{badge(tag, 'acc')} " if tag else ""
     aff = f'<div class="aff"><span class="lbl">{esc(aff_label)}</span>{chips}</div>' if chips else ""
     rtl = " rtl" if ar else ""
-    return (f'<div class="news{rtl}">{tag_html}<a class="t" href="{esc(n["link"])}" target="_blank">{esc(title)}</a>'
-            f'<div class="meta">{icon("schedule")} {esc(n["source"])} · {time_ago(n["time"], ar)}</div>'
+    head = (f'<div class="nb">{tag_html}<a class="t" href="{esc(n["link"])}" target="_blank">{esc(title)}</a>'
+            f'<div class="meta">{icon("schedule")} {esc(n["source"])} · {time_ago(n["time"], ar)}</div></div>')
+    if iq:
+        edge = newsiq.colors(iq["score"])[2]
+        return (f'<div class="news hasiq{rtl}" style="--iqd:{edge}"><div class="nh">{head}{iq_badge(iq, ui_ar)}</div>'
+                + (f'<div class="sum">{short}</div>' if short else "") + kw_chips(iq, ui_ar) + aff + "</div>")
+    return (f'<div class="news{rtl}"><div class="nh">{head}</div>'
             + (f'<div class="sum">{short}</div>' if short else "") + aff + "</div>")
 
 
@@ -647,7 +837,7 @@ def market_status(ar=False):
         state, dot = ("ما بعد الإغلاق" if ar else "After-Hours"), "pre"
     else:
         state, dot = ("السوق مغلق" if ar else "Market Closed"), "closed"
-    return f'<span class="status"><span class="dot {dot}"></span><b>{state}</b><span class="muted">· {now:%H:%M} ET</span></span>'
+    return f'<span class="status" title="{state} · {now:%H:%M} ET"><span class="dot {dot}"></span><b>{state}</b><span class="muted">· {now:%H:%M} ET</span></span>'
 
 
 # ---------------------------------------------------------------- modern widgets
@@ -867,3 +1057,44 @@ def goal(pct_of_goal, left, right, met=False):
     w = max(0.0, min(100.0, pct_of_goal))
     return (f'<div class="goal{" met" if met else ""}"><div class="gt"><span>{esc(left)}</span><span>{esc(right)}</span></div>'
             f'<div class="gb"><span style="width:{w:.0f}%"></span></div></div>')
+
+
+FG_ZONES = [(0, 25, "Extreme fear", "خوف شديد", "neg"), (25, 45, "Fear", "خوف", "neg"), (45, 55, "Neutral", "محايد", "neu"),
+            (55, 75, "Greed", "طمع", "pos"), (75, 101, "Extreme greed", "طمع شديد", "pos")]
+FG_COLORS = ["#EF4444", "#F97316", "#94A3B8", "#84CC16", "#22C55E"]
+
+
+def fg_zone(v):
+    for lo, hi, en, ar, kind in FG_ZONES:
+        if lo <= v < hi:
+            return en, ar, kind
+    return FG_ZONES[-1][2:]
+
+
+def fg_gauge(v, ar=False, sub=""):
+    """Fear & Greed dial: five colored zones, a needle and the value in a pastel box."""
+    v = max(0.0, min(100.0, float(v)))
+    cx, cy, r = 160, 158, 118
+    def pt(p, rr):
+        a = np.pi * (1 - p / 100)
+        return cx + rr * np.cos(a), cy - rr * np.sin(a)
+    arcs = []
+    for (lo, hi, *_), col in zip(FG_ZONES, FG_COLORS):
+        x0, y0 = pt(lo + 0.9, r)
+        x1, y1 = pt(min(hi, 100) - 0.9, r)
+        arcs.append(f'<path d="M{x0:.1f} {y0:.1f} A{r} {r} 0 0 1 {x1:.1f} {y1:.1f}" fill="none" stroke="{col}" stroke-width="24" stroke-linecap="butt" opacity=".92"/>')
+    ticks = "".join(f'<text x="{pt(t, r + 26)[0]:.1f}" y="{pt(t, r + 26)[1] + 4:.1f}" text-anchor="middle" font-size="11" fill="{MUTED}" '
+                    f'font-family="{FONT}">{t}</text>' for t in (0, 25, 50, 75, 100))
+    nx, ny = pt(v, r - 30)
+    en, a, kind = fg_zone(v)
+    bg, fg = {"pos": (POS_BG, POS_FG), "neg": (NEG_BG, NEG_FG)}.get(kind, (NEU_BG, NEU_FG))
+    label = a if ar else en
+    return (f'<svg viewBox="0 0 320 250" style="width:100%;max-width:380px;display:block;margin:auto">'
+            f'<path d="M{cx - r} {cy} A{r} {r} 0 0 1 {cx + r} {cy}" fill="none" stroke="{BORDER}" stroke-width="30"/>{"".join(arcs)}{ticks}'
+            f'<line x1="{cx}" y1="{cy}" x2="{nx:.1f}" y2="{ny:.1f}" stroke="#fff" stroke-width="5" stroke-linecap="round"/>'
+            f'<circle cx="{cx}" cy="{cy}" r="10" fill="#fff"/><circle cx="{cx}" cy="{cy}" r="4" fill="{BG}"/>'
+            f'<rect x="{cx - 62}" y="{cy + 20}" width="124" height="42" rx="12" fill="{bg}"/>'
+            f'<text x="{cx}" y="{cy + 49}" text-anchor="middle" font-size="26" font-weight="800" fill="{fg}" font-family="{FONT}">{v:.0f}</text>'
+            f'<text x="{cx}" y="{cy + 84}" text-anchor="middle" font-size="15" font-weight="800" fill="#fff" font-family="{FONT}">{esc(label)}</text>'
+            + (f'<text x="{cx}" y="{cy + 102}" text-anchor="middle" font-size="11" fill="{MUTED}" font-family="{FONT}">{esc(sub)}</text>' if sub else "")
+            + "</svg>")
