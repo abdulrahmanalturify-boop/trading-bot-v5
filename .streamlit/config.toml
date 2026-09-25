@@ -1,0 +1,7 @@
+[theme]
+base = "dark"
+primaryColor = "#3D7BFF"
+backgroundColor = "#0A0E17"
+secondaryBackgroundColor = "#161D2B"
+textColor = "#E9EDF5"
+font = "Plus Jakarta Sans:https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
