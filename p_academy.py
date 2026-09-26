@@ -2,7 +2,10 @@
 p_academy.py - Academy (interactive 3-minute courses with quizzes, learning dashboard) · Glossary
 Clicking anywhere on a course card opens it (invisible button over the card, no page reload, progress is kept).
 """
+import math
 import pandas as pd
+import academy_visuals as AV
+import academy_labs as AL
 import streamlit as st
 
 import academy as A
@@ -39,6 +42,8 @@ def _card_html(c):
               "prog": T.badge(L("In progress", "قيد التعلم"), "gold", "timelapse"),
               "new": T.badge(L("Start", "ابدأ"), "neu", "play_circle")}[st_]
     mins = T.badge(L(str(c["mins"]) + " min", str(c["mins"]) + " دقائق"), "neu", "schedule")
+    if c.get("new"):
+        status += T.badge(L("New", "جديد"), "vio", "auto_awesome")
     color = LEVEL_COLOR.get(lvl[0], T.ACCENT)
     return (f'<div class="course" style="--lv:{color}"><div class="art">{A.course_art(c["art"], c["id"])}'
             f'<div class="play">{T.icon("play_arrow")}</div></div><div class="body"><div class="ttl">{T.esc(L(*c["title"]))}</div>'
@@ -64,6 +69,9 @@ def course_cards(courses, prefix="crs", per_row=3):
 
 # ---------------------------------------------------------------- interactive blocks
 def interactive(key):
+    if key in AL.LABS:
+        AL.render(key)
+        return
     if key == "candle_anatomy":
         ui.html('<div class="card" style="text-align:center">' + A.CANDLE_ANATOMY.format(
             high=L("High", "الأعلى"), low=L("Low", "الأدنى"), open=L("Open", "الافتتاح"), close=L("Close", "الإغلاق"),
@@ -173,17 +181,21 @@ def _course_view(c):
             st.rerun()
         return
     # ---- quiz
+    st.caption(L("Pass with at least 80%. You can review and try again.", "الاجتياز من 80%. تقدر تراجع وتحاول مرة ثانية."))
     ui.sec("quiz", "Quick quiz", "اختبار سريع")
     answers = []
     for i, (q_en, q_ar, opts, ans, _, _) in enumerate(c["quiz"]):
         answers.append(st.radio(f"{i + 1}. {L(q_en, q_ar)}", list(range(len(opts))), index=None, key=f"q_{cid}_{i}",
-                                format_func=lambda k, o=opts: L(*o[k])))
+                                format_func=lambda k, o=[L(*option) for option in opts]: o[k]))
     a, b = st.columns([1, 1])
     if a.button(L("Back to lessons", "رجوع للدروس"), icon=":material/chevron_left:", width="stretch"):
         ss[f"step_{cid}"] = n - 1
         st.rerun()
     if b.button(L("Check answers", "تحقق من الإجابات"), type="primary", icon=":material/fact_check:", width="stretch"):
-        ss[f"checked_{cid}"] = True
+        if any(answer is None for answer in answers):
+            st.warning(L("Answer every question before checking.", "جاوب على كل الأسئلة قبل التحقق."))
+        else:
+            ss[f"checked_{cid}"] = True
     if ss.get(f"checked_{cid}"):
         score = 0
         for i, ((q_en, q_ar, opts, ans, w_en, w_ar), got) in enumerate(zip(c["quiz"], answers)):
@@ -192,7 +204,7 @@ def _course_view(c):
             ui.html(f'<div class="check{rtl}">{T.ico("check", "pos") if ok else T.ico("close", "neg")}<div><b>{i + 1}. {T.esc(L(*opts[ans]))}</b> '
                     f'<span class="muted">· {T.esc(L(w_en, w_ar))}</span></div></div>')
         total = len(c["quiz"])
-        if score >= total - 1:
+        if score >= math.ceil(total * 0.8):
             ss.setdefault("completed", set()).add(cid)
             st.success(L(f"Great job: {score}/{total}. Course completed!", f"أحسنت: {score}/{total}. أكملت الدورة!"), icon=":material/workspace_premium:")
         else:
@@ -206,7 +218,7 @@ def _course_view(c):
 
 def dashboard():
     """Learning dashboard: overall ring, progress per level (level colors), completed vs in progress, continue card."""
-    done = ss.get("completed", set())
+    done = set(ss.get("completed", set())) & {c["id"] for c in A.COURSES}
     prog = [c for c in A.COURSES if _status(c["id"]) == "prog"]
     total = len(A.COURSES)
     pct = len(done) / total * 100 if total else 0
@@ -253,25 +265,74 @@ def dashboard():
                  args=(nxt["id"],), width="stretch")
 
 
+def _academy_hero():
+    count = len(A.COURSES)
+    ui.html(f'<section class="ac-hero"><div><div class="ac-eyebrow">ALTURAIFI / ACADEMY</div>'
+            f'<h1>{L("Build knowledge.<br>Invest with understanding.", "ابنِ معرفتك.<br>واستثمر بفهم.")}</h1>'
+            f'<p>{L("Your learning space for markets, investing and trading. Follow a path, explore a lesson and test the idea yourself.", "مساحتك لتعلّم الأسواق والاستثمار والتداول. اختر مسارك، افهم الفكرة، وجرّبها بنفسك.")}</p>'
+            f'<div class="ac-meta"><span>{count} {L("courses", "دورة")}</span>'
+            f'<span>{len(AL.LABS)} {L("interactive labs", "مختبرات تفاعلية")}</span>'
+            f'<span>{L("Arabic + English", "عربي + إنجليزي")}</span></div></div>'
+            f'<div class="ac-emblem">{AV.MARK}</div></section>')
+
+
+def _learning_path():
+    paths = {
+        "start": (L("Start investing", "أبدأ الاستثمار"), ["goals", "basics", "compounding", "funds", "inflation", "allocation"]),
+        "research": (L("Analyse companies", "أحلل الشركات"), ["statements", "value", "quality", "valuation_scenarios"]),
+        "trade": (L("Build a trading process", "أبني منهج تداول"), ["execution", "candles", "risk", "behaviour", "robustness"]),
+    }
+    goal = st.selectbox(L("My learning goal", "هدفي من التعلم"), list(paths), format_func=lambda x:paths[x][0], key="ac_goal")
+    minutes=st.slider(L("Study minutes per week", "دقائق الدراسة بالأسبوع"),10,120,30,step=10,key="ac_minutes")
+    courses=[_course(cid) for cid in paths[goal][1] if _course(cid)]
+    remaining=[c for c in courses if _status(c["id"])!="done"]
+    total_minutes=sum(c["mins"] for c in remaining)
+    st.info(L(f"{len(remaining)} courses remaining · about {total_minutes} reading minutes · {math.ceil(total_minutes/minutes)} study weeks. Allow extra time for practice.",
+              f"باقي {len(remaining)} دورات · تقريبًا {total_minutes} دقيقة قراءة · {math.ceil(total_minutes/minutes)} أسابيع دراسة. خصص وقت إضافي للتطبيق."))
+    if remaining:
+        st.button(L("Start / continue this path", "ابدأ أو أكمل المسار"),type="primary",key="ac_path_start",on_click=_open_course,args=(remaining[0]["id"],))
+    for i,c in enumerate(courses,1):
+        st.write(f"{i:02d} · {L(*c['title'])} " + ("✓" if _status(c['id'])=="done" else ""))
+
+
 def page_academy():
-    cid = ss.get("course") or st.query_params.get("course")
-    c = _course(cid) if cid else None
-    if c:
-        ss["course"] = c["id"]
-        _course_view(c)
+    st.logo(AV.WORDMARK, icon_image=AV.MARK, size="large")
+    ui.html(AV.CSS)
+    with st.container(key="academy_root"):
+        cid = ss.get("course") or st.query_params.get("course")
+        c = _course(cid) if cid else None
+        if c:
+            ss["course"] = c["id"]
+            _course_view(c)
+            with st.expander(L("Further learning", "قراءات إضافية")):
+                st.markdown("[Investor.gov — investing education](https://www.investor.gov/introduction-investing)\n\n"
+                            "[Financial Industry Regulatory Authority — bonds](https://www.finra.org/investors/investing/investment-products/bonds)")
+            ui.foot()
+            return
+        _academy_hero()
+        catalog, path, labs, progress = st.tabs([L("Explore courses", "استكشف الدورات"), L("My learning path", "مساري التعليمي"),
+                                              L("Interactive labs", "المختبرات التفاعلية"), L("My progress", "تقدمي")])
+        with catalog:
+            a,b=st.columns([3,1])
+            query=a.text_input(L("Search courses", "ابحث عن دورة"),placeholder=L("e.g. bonds, cash flow, risk", "مثل: السندات، النقد، المخاطرة"),key="ac_search").strip().casefold()
+            state=b.selectbox(L("Show", "اعرض"),["all","new","progress","done"],key="ac_status",format_func=lambda x, labels={"all":L("All courses","كل الدورات"),"new":L("New additions","المضافة حديثًا"),"progress":L("In progress","قيد التعلم"),"done":L("Completed","المكتملة")}:labels[x])
+            lvl=st.radio(L("Level", "المستوى"),list(LEVELS),index=0,horizontal=True,key="ac_lvl",format_func=lambda k, labels={key:L(*val) for key,val in LEVELS.items()}:labels[k]) or "all"
+            courses=[c for c in A.COURSES if (lvl=="all" or c["level"][0]==lvl)
+                     and (not query or query in " ".join(c["title"]+c["tagline"]).casefold())
+                     and (state=="all" or state=="new" and c.get("new") or state=="progress" and _status(c["id"])=="prog" or state=="done" and _status(c["id"])=="done")]
+            st.caption(L(f"{len(courses)} courses · choose a card to begin",f"{len(courses)} دورة · اختر بطاقة للبدء"))
+            if courses: course_cards(courses)
+            else: st.info(L("No matching courses. Try another search or level.","ما فيه دورات تطابق الاختيار. غيّر البحث أو المستوى."))
+        with path:
+            _learning_path()
+        with labs:
+            ui.html('<div class="ac-note">'+L("Change the assumptions and see the result. These labs use hypothetical data and work without live market feeds.","غيّر الافتراضات وشوف النتيجة. المختبرات تستخدم بيانات افتراضية وتعمل بدون أسعار سوق مباشرة.")+'</div>')
+            selected=st.selectbox(L("Choose a lab", "اختر المختبر"),list(AL.LABS),format_func=lambda x, labels={key:L(*val) for key,val in AL.LABS.items()}:labels[x],key="ac_lab")
+            AL.render(selected,namespace="hub")
+        with progress:
+            ui.safe(dashboard)
+            st.caption(L("Progress is stored for this session, not in a permanent learner account.","التقدم محفوظ للجلسة الحالية، مو بحساب متعلم دائم."))
         ui.foot()
-        return
-    ui.header("school", "Academy", "الأكاديمية",
-              "Short interactive courses: about 3 minutes each, with live charts and a quiz. Click any card to start.",
-              "دورات قصيرة وتفاعلية: حوالي 3 دقائق لكل دورة، مع رسوم مباشرة واختبار. اضغط على أي بطاقة للبدء.")
-    ui.sec("dashboard", "Learning dashboard", "لوحة التعلم")
-    ui.safe(dashboard)
-    ui.sec("school", "Courses", "الدورات")
-    lvl = st.segmented_control(L("Level", "المستوى"), list(LEVELS), default="all", key="ac_lvl",
-                               format_func=lambda k: L(*LEVELS[k])) or "all"
-    courses = [c for c in A.COURSES if lvl == "all" or c["level"][0] == lvl]
-    course_cards(courses)
-    ui.foot()
 
 
 def page_glossary():
@@ -288,3 +349,4 @@ def page_glossary():
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
 BUILD = "8.4"
+
