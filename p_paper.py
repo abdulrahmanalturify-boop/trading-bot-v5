@@ -12,8 +12,12 @@ Page, top to bottom:
     what worked by stock and by strategy), the open positions, the recent trades ("Full list below" jumps to All trades),
     the charts, the monthly returns (click a month to open its calendar) and all trades. Several selected bots also get a
     combined dashboard, the "Return since start" chart and one tab per bot.
+Every bot has two phases, shown apart by the switch under the hero: its FORWARD TEST (LIVE), recorded session by session
+after each close and never recalculated, and its HISTORICAL SIMULATION (SIM), a backtest from its start date up to the day
+the forward test began, recalculated with the current engine (see paperbots.py).
 Adding, editing and deleting open in dialogs; a password unlocks them when BOTS_PASSWORD is set.
 """
+import json
 from datetime import datetime, timedelta
 from math import hypot
 from zoneinfo import ZoneInfo
@@ -61,6 +65,11 @@ INSTR_CHIP = {"stock": ("show_chart", "Stocks", "أسهم"), "options": ("receip
               "both": ("layers", "Stocks + options · est.", "أسهم + أوبشن · تقديري")}
 # option prices are never real quotes: Yahoo keeps no option price history, so every premium is a Black-Scholes estimate
 EST = ("est.", "تقديري")
+# the two phases of a bot: (icon, name en, ar, tag en, ar, line en, ar)
+PHASES = {"live": ("sensors", "Forward test", "التجربة الأمامية", "LIVE", "مباشر",
+                   "Recorded session by session", "تُسجَّل جلسة بجلسة"),
+          "sim": ("history", "Historical simulation", "المحاكاة التاريخية", "SIM", "محاكاة",
+                  "Recalculated from past prices", "تُحسب من أسعار الماضي")}
 OTYPE_LABEL = {"call": ("Calls (buy signals)", "Call (إشارات الشراء)"), "put": ("Puts (sell signals)", "Put (إشارات البيع)"),
                "both": ("Calls + Puts", "Call + Put")}
 STRIKE_LABEL = {-10: ("10% in the money", "داخل السعر 10%"), -5: ("5% in the money", "داخل السعر 5%"), 0: ("At the money", "عند السعر"),
@@ -167,6 +176,43 @@ PAGE_CSS = f"""<style>
 [class*="st-key-pb_trash_"] button span {{ color:{_D} !important; }}
 [class*="st-key-pb_edit_"] button p, [class*="st-key-pb_trash_"] button p {{ display:none !important; }}
 @media (hover: none) {{ [class*="st-key-pbcard_"] [class*="st-key-pb_edit_"], [class*="st-key-pbcard_"] [class*="st-key-pb_trash_"] {{ opacity:1; }} }}
+
+/* ---------- LIVE / SIM: the tag on the cards and the page switch ---------- */
+.pbc .it {{ min-width:0; flex:1 1 auto; }}
+.pbc .it .ms {{ flex:none; }}
+.pbc .it .tx {{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }}
+.pbc .nw {{ white-space:nowrap; }}
+.pbc .rt {{ display:inline-flex; align-items:center; gap:6px; transition:opacity .15s; flex:none; }}
+.phg {{ display:inline-flex; align-items:center; gap:4px; font-size:.58rem; font-weight:800; letter-spacing:.06em; border-radius:6px;
+  padding:2px 5px; line-height:1.3; white-space:nowrap; }}
+.phg.live {{ background:{T.POS_BG}; color:{T.POS_FG}; }}
+.phg.live::before {{ content:""; width:6px; height:6px; border-radius:50%; background:currentColor; animation:pbtw 2s ease-in-out infinite; }}
+.phg.sim {{ background:{T.YEL_BG}; color:{T.YEL_FG}; }}
+[class*="st-key-pbcard_"]:hover .pbc .rt {{ opacity:0; }}
+[class*="st-key-pbphase"] {{ background:rgba(10,14,23,.55); border:1px solid {_BD}; border-radius:16px; padding:5px; margin-bottom:2px; }}
+[class*="st-key-pbphase"] [data-testid="stHorizontalBlock"] {{ gap:5px !important; flex-wrap:nowrap !important; }}
+[class*="st-key-pbphase"] [data-testid="stColumn"] {{ min-width:0 !important; }}
+[class*="st-key-pbph_"] {{ position:relative; }}
+[class*="st-key-pbph_"] [data-testid="stElementContainer"] {{ position:static !important; }}
+[class*="st-key-pbph_"] [class*="st-key-pb_ph_"] {{ position:absolute !important; inset:0; z-index:4; margin:0 !important; width:auto !important; }}
+[class*="st-key-pbph_"] [class*="st-key-pb_ph_"] .stButton, [class*="st-key-pbph_"] [class*="st-key-pb_ph_"] button
+  {{ width:100% !important; height:100% !important; opacity:0; cursor:pointer; }}
+.pbph {{ display:flex; align-items:center; gap:11px; min-height:60px; box-sizing:border-box; border-radius:12px; padding:9px 14px;
+  color:#AEB7C6; transition:background .18s, color .18s, box-shadow .18s; }}
+[class*="st-key-pbph_"]:hover .pbph:not(.on) {{ background:rgba(61,123,255,.10); color:#fff; }}
+.pbph.on {{ background:linear-gradient(100deg,{_A},{_V} 70%,#6D5CF6); color:#fff; box-shadow:0 10px 26px rgba(61,123,255,.30), inset 0 1px 0 rgba(255,255,255,.18); }}
+.pbph .i .ms {{ font-size:1.2rem; color:{_C}; background:rgba(34,211,238,.12); border-radius:10px; padding:6px; }}
+.pbph.on .i .ms {{ color:#fff; background:rgba(255,255,255,.18); }}
+.pbph .nm {{ display:flex; flex-direction:column; line-height:1.25; min-width:0; }}
+.pbph .nm b {{ font-weight:800; font-size:.95rem; }}
+.pbph .nm span {{ font-size:.72rem; font-weight:600; opacity:.8; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
+.pbph .phg {{ margin-inline-start:auto; }}
+.pbph.on .phg {{ background:rgba(255,255,255,.22); color:#fff; }}
+.pbrec {{ display:flex; flex-wrap:wrap; gap:7px; margin:2px 0 10px; }}
+.pbrec .c {{ display:inline-flex; align-items:center; gap:6px; background:rgba(138,148,167,.10); border:1px solid {_BD}; border-radius:999px;
+  padding:4px 12px; font-size:.75rem; font-weight:700; color:#AEB7C6; white-space:nowrap; }}
+.pbrec .c b {{ color:#fff; unicode-bidi:isolate; direction:ltr; }}
+.pbrec .c .ms {{ font-size:.95rem; color:{_C}; }}
 
 /* ---------- "Add Bot": the logo tile with a plus and the cyan trend arrow ---------- */
 .pbadd {{ align-items:center; justify-content:center; gap:10px; text-align:center; border:1.5px dashed {_A}77 !important;
@@ -624,7 +670,10 @@ def _hero_art(ranked_sims):
 def hero_html(sims, n_bots):
     rk = ranked(sims)
     live = [s for s in sims if s["ok"] and not s["waiting"]]
+    ph = phase()
     chips = [f'<span class="chip">{T.icon("smart_toy")}<b>{n_bots}/{PB.MAX_BOTS}</b> {L("bots", "بوتات")}</span>']
+    if sims:
+        chips.append(f'<span class="chip">{T.icon(PHASES[ph][0])}{T.esc(L(*PHASES[ph][1:3]))} {phase_tag(ph)}</span>')
     if live:
         cap = sum(s["bot"]["capital"] for s in live)
         bal = sum(s["final"] for s in live)
@@ -632,8 +681,9 @@ def hero_html(sims, n_bots):
         n_orders = sum(len(s["next_buys"]) + len(s["next_sells"]) for s in live)
         chips.append(f'<span class="chip">{T.icon("account_balance_wallet")}{L("Total balance", "إجمالي الرصيد")} <b>{T.money(bal)}</b>'
                      f'{T.pill((bal / cap - 1) * 100 if cap else 0.0)}</span>')
-        chips.append(f'<span class="chip">{T.icon("swap_vert")}{L("Open trades", "صفقات مفتوحة")} <b>{n_open}</b></span>')
-        if n_orders:
+        if ph == "live":
+            chips.append(f'<span class="chip">{T.icon("swap_vert")}{L("Open trades", "صفقات مفتوحة")} <b>{n_open}</b></span>')
+        if n_orders and ph == "live":
             chips.append(f'<span class="chip">{T.icon("bolt")}{L("Orders at next open", "أوامر الافتتاح القادم")} <b>{n_orders}</b></span>')
         best = rk[0]
         chips.append(f'<span class="chip">{T.icon("emoji_events")}<b>{T.esc(best["bot"]["name"])}</b>{T.pill(best["ret"])}</span>')
@@ -641,10 +691,11 @@ def hero_html(sims, n_bots):
         chips.append(f'<span class="chip">{T.icon("payments")}{L("Virtual money", "أموال وهمية")}</span>')
         chips.append(f'<span class="chip">{T.icon("candlestick_chart")}{L("Real prices", "أسعار حقيقية")}</span>')
     title = L("Paper <b>Bots</b>", "البوتات <b>الافتراضية</b>")
-    tag = L(f"Up to {PB.MAX_BOTS} bots trade with virtual money on real prices, forward from the day they start: a company, a sector, "
-            "an industry or all companies, with one or more strategies or ready-made combined strategies, buying stocks, options or both.",
-            f"حتى {PB.MAX_BOTS} بوتات تتداول بأموال وهمية على أسعار حقيقية من يوم تشغيلها وللأمام: شركة أو قطاع أو صناعة أو كل الشركات، "
-            "باستراتيجية وحدة أو أكثر أو باستراتيجيات مركّبة جاهزة، وتشتري أسهم أو أوبشن أو الاثنين.")
+    tag = L(f"Up to {PB.MAX_BOTS} bots trade with virtual money on real prices: a company, a sector, an industry or all companies, with one "
+            "or more strategies or ready-made combined strategies. Each one has a forward test recorded session by session, kept apart "
+            "from its historical simulation.",
+            f"حتى {PB.MAX_BOTS} بوتات تتداول بأموال وهمية على أسعار حقيقية: شركة أو قطاع أو صناعة أو كل الشركات، باستراتيجية وحدة أو أكثر "
+            "أو باستراتيجيات مركّبة جاهزة. لكل بوت تجربة أمامية تُسجَّل جلسة بجلسة، ومفصولة عن محاكاته التاريخية.")
     return (f'<div class="pbhero{" rtl" if is_ar() else ""}"><div class="grid"></div><div class="art">{_hero_art(rk)}</div>'
             f'<div class="txt"><div class="eb">{T.icon("robot_2")}{L("Paper trading lab", "مختبر التداول الافتراضي")}</div>'
             f'<div class="t">{title}</div><div class="tg">{T.esc(tag)}</div><div class="chips">{"".join(chips)}</div>'
@@ -661,9 +712,14 @@ def cbadge(text, kind="neu", ic=None):
 
 def status_badge(sim, mk=T.badge):
     if not sim["ok"]:
+        if sim.get("why") in ("nohist", "gone5"):
+            return mk(L("No historical part", "بدون جزء تاريخي"), "neu", "history")
         return mk(L("Unavailable", "غير متاح"), "neu", "error")
     if sim["waiting"]:
-        return mk(L("Starts next session", "يبدأ الجلسة القادمة"), "neu", "schedule")
+        return mk(L(f"Starts {since_of(sim)}", f"يبدأ {since_of(sim)}"), "neu", "schedule")
+    if sim.get("phase") == "sim":
+        n = sim.get("sessions") or 0
+        return mk(L(f"Backtest · {n:,} sessions", f"اختبار تاريخي · {n:,} جلسة"), "gold", "history")
     nb, ns = len(sim["next_buys"]), len(sim["next_sells"])
     if sim.get("intraday") and nb:
         return mk(L("Enters at the next 5-min candle", "يدخل مع شمعة الـ 5 دقائق القادمة"), "gold", "bolt")
@@ -701,17 +757,84 @@ def card_chip(b):
 
 
 def since_of(sim):
-    """The first day the bot trades: its start date (the Opening Range Breakout: the first day it has 5-minute prices for)."""
-    if sim.get("intraday") and sim.get("start") is not None:
+    """The first day of this phase: the forward test's first session, or the bot's start date for the historical simulation
+    (the Opening Range Breakout: the first day it has 5-minute prices for)."""
+    if sim.get("intraday") and sim.get("start") is not None and not sim.get("waiting"):
         return pd.Timestamp(sim["start"]).strftime("%Y-%m-%d")
+    if sim.get("phase") == "live":
+        return max(fwd_since(sim["bot"]) or sim["bot"]["start_date"], sim["bot"]["start_date"])
     return sim["bot"]["start_date"]
+
+
+def until_of(sim):
+    """The last session of this phase (the historical simulation ends the day before the forward test starts)."""
+    return pd.Timestamp(sim["last_date"]).strftime("%Y-%m-%d") if sim.get("ok") else ""
+
+
+def fwd_since(b):
+    return (b.get("fwd") or {}).get("since")
+
+
+def phase():
+    return ss.get("pb_phase") if ss.get("pb_phase") in PHASES else "live"
+
+
+def _set_phase(p):
+    ss["pb_phase"] = p
+
+
+def phase_tag(ph):
+    return f'<span class="phg {ph}">{T.esc(L(*PHASES[ph][3:5]))}</span>'
+
+
+def phase_sims(sims, ph):
+    """The bots' results in one phase: their forward tests, or their historical simulations (a bot that started on the day
+    its forward test began has no historical part)."""
+    if ph == "live":
+        return sims
+    return [s["hist"] if s.get("hist") is not None and not (s["hist"].get("ok") and s["hist"].get("waiting"))
+            else {"bot": s["bot"], "ok": False, "why": "nohist", "waiting": False, "phase": "sim"} for s in sims]
+
+
+def _saved_sessions(sims):
+    return sum(len(((s["bot"].get("fwd") or {}).get("eq")) or {}) for s in sims)
+
+
+def phase_switch(sims):
+    """The page-wide switch between the forward tests (LIVE) and the historical simulations (SIM)."""
+    ph = phase()
+    with st.container(key="pbphase"):
+        cols = st.columns(2, gap="small")
+        for col, p in zip(cols, ("live", "sim")):
+            ic, en, ar_, _, _, sen, sar = PHASES[p]
+            with col:
+                with st.container(key=f"pbph_{p}"):
+                    ui.html(f'<div class="pbph{" on" if p == ph else ""}"><span class="i">{T.icon(ic)}</span>'
+                            f'<span class="nm"><b>{T.esc(L(en, ar_))}</b><span>{T.esc(L(sen, sar))}</span></span>{phase_tag(p)}</div>')
+                    st.button(L(en, ar_), key=f"pb_ph_{p}", on_click=_set_phase, args=(p,), width="stretch")
+    if ph == "live":
+        st.caption(L("Forward test: each bot starts it with its full capital on the first session after it is added (or after its trading "
+                     "rules change). After every US close, the session's fills, the orders for the next open and the closing balance are "
+                     "saved with the engine version; saved sessions are replayed from the record and never recalculated.",
+                     "التجربة الأمامية: كل بوت يبدأها برأس ماله كامل من أول جلسة بعد إضافته (أو بعد تغيير قواعد تداوله). بعد كل إغلاق "
+                     "للسوق الأمريكي تنحفظ صفقات الجلسة وأوامر الافتتاح القادم ورصيد الإغلاق مع نسخة المحرك، والجلسات المحفوظة "
+                     "تنعرض من السجل وما يُعاد حسابها أبداً."))
+    else:
+        st.caption(L("Historical simulation: each bot's rules replayed on past prices from its start date up to the day its forward test "
+                     "began. It is recalculated with the current engine whenever the page opens, so it shows how the rules would have "
+                     "done, not signals the bot actually gave.",
+                     "المحاكاة التاريخية: قواعد كل بوت مُعاد تشغيلها على أسعار الماضي من تاريخ بدايته إلى اليوم اللي بدأت فيه تجربته "
+                     "الأمامية. تنحسب من جديد بالنسخة الحالية للمحرك كل ما تفتح الصفحة، فهي توضح كيف كانت القواعد بتسوي، "
+                     "وليست إشارات أعطاها البوت فعلاً."))
 
 
 def bot_card(rank, sim, logo, selected=False):
     b = sim["bot"]
     ic, en, ar_ = card_chip(b)
     medal = T.icon("emoji_events") if rank == 1 else ""
-    top = f'<div class="top"><span class="it">{T.icon(ic)}{T.esc(L(en, ar_))}</span><span class="rk r{rank}">{medal}#{rank}</span></div>'
+    ph = "sim" if sim.get("phase") == "sim" else "live"
+    top = (f'<div class="top"><span class="it">{T.icon(ic)}<span class="tx">{T.esc(L(en, ar_))}</span></span>'
+           f'<span class="rt">{phase_tag(ph)}<span class="rk r{rank}">{medal}#{rank}</span></span></div>')
     badges = f'<div class="bdg">{cbadge(how_label(b, short=True), "vio", "smart_toy")}{status_badge(sim, cbadge)}</div>'
     if sim["ok"] and not sim["waiting"]:
         ret, m = sim["ret"], sim["metrics"]
@@ -719,14 +842,24 @@ def bot_card(rank, sim, logo, selected=False):
         win = iso(f"{m['Win Rate %']:.0f}%")
         trades = L(f'{m["Trades"]} trades', f'{m["Trades"]} صفقة') + (f' · {L("win", "نجاح")} {win}' if m["Trades"] else "")
         watch = "" if b["kind"] == "company" else " · " + L(f'{sim["n_symbols"]} stocks', f'{sim["n_symbols"]} سهم')
+        when = (f'<span class="nw">{iso(f"{since_of(sim)} → {until_of(sim)}")}</span>' if ph == "sim"
+                else f'{L("since", "منذ")} <span class="nw">{iso(since_of(sim))}</span>')
         body = (f'<div class="spk">{_spark_area(sim["equity"], b["capital"], b["id"])}</div>'
                 f'<div class="row"><div><div class="muted" style="font-size:.72rem">{L("Balance", "الرصيد")}</div>'
                 f'<div style="font-weight:800;font-size:1.1rem;direction:ltr">{T.money(sim["final"])}</div></div>'
                 f'<div class="r">{T.pbox(f"{ret:+.2f}%", ret)}{spx}</div></div>'
-                f'<div class="pbft">{trades}{watch} · {L("since", "منذ")} {iso(since_of(sim))}</div>')
+                f'<div class="pbft">{trades}{watch} · {when}</div>')
     elif sim["ok"]:
-        body = (f'<div class="pbft">{L("Starts with the first US session from", "يبدأ مع أول جلسة أمريكية من")} '
-                f'{iso(b["start_date"])} · {iso(T.money(b["capital"]))}</div>')
+        body = (f'<div class="pbft">{L("The forward test starts with the US session of", "التجربة الأمامية تبدأ مع جلسة")} '
+                f'{iso(since_of(sim))} · {iso(T.money(b["capital"]))}</div>')
+    elif sim.get("why") == "gone5":
+        why = L("The 5-minute prices before its forward test are past Yahoo's 60 days.",
+                "أسعار الـ 5 دقائق قبل تجربته الأمامية تعدّت الـ 60 يوم حقت ياهو.")
+        body = f'<div class="pbft">{why}</div>'
+    elif sim.get("why") == "nohist":
+        why = L("It started with its forward test, so it has no historical simulation.",
+                "بدأ مع تجربته الأمامية، فما عنده محاكاة تاريخية.")
+        body = f'<div class="pbft">{why}</div>'
     else:
         why = L("No price data right now.", "لا توجد بيانات أسعار حالياً.") if sim["why"] == "data" else L("Strategy not found.", "الاستراتيجية غير موجودة.")
         body = f'<div class="pbft">{why}</div>'
@@ -863,7 +996,10 @@ def compare_chart(sims, spy):
             series[name] = (s["equity"] / s["bot"]["capital"] - 1) * 100
     if not series:
         return
-    ui.sec("stacked_line_chart", "Return since start", "العائد منذ البداية")
+    if phase() == "sim":
+        ui.sec("stacked_line_chart", "Return over the historical simulation", "العائد خلال المحاكاة التاريخية")
+    else:
+        ui.sec("stacked_line_chart", "Return since the forward test began", "العائد منذ بداية التجربة الأمامية")
     first = min(v.index[0] for v in series.values())
     spx_name = "S&P 500 (SPY)"
     if spy is not None and not spy.empty:
@@ -898,7 +1034,8 @@ def single_view(sim, in_tab=False):
     if abs(cash) < 0.01:                     # a fully invested bot shows $0, not -$0
         cash = 0.0
     has_spy = sim["bench"] is not None
-    return {"key": str(b["id"]), "multi": False, "group": b["kind"] != "company", "n_bots": 1, "cap": float(b["capital"]),
+    return {"key": str(b["id"]) + ("s" if sim.get("phase") == "sim" else ""), "multi": False, "phase": sim.get("phase", "live"),
+            "until": until_of(sim), "group": b["kind"] != "company", "n_bots": 1, "cap": float(b["capital"]),
             "final": float(sim["final"]), "ret": float(sim["ret"]), "bench_ret": sim["bench_ret"], "base_ret": sim["group_ret"],
             "equity": sim["equity"], "bench": sim["bench"] if has_spy else sim["group"],
             "bench_name": "S&P 500 (SPY)" if has_spy else L("Buy & Hold", "شراء واحتفاظ"), "npos": sim["npos"], "trades": tr,
@@ -929,11 +1066,12 @@ def combined_view(sims):
     trades = pd.concat(frames, ignore_index=True) if frames else views[0]["trades"]
     for c in ("Entry", "Exit", "Shares", "P&L $", "P&L %", "Stock Entry", "Stock Exit", "Fees", "Stop", "Target"):
         trades[c] = pd.to_numeric(trades[c], errors="coerce")        # an empty frame would turn the pooled columns into objects
-    return {"key": "all", "name": "", "scope": L(f"all {len(live)} selected bots", f"كل البوتات المحددة ({len(live)})"), "multi": True, "group": True, "n_bots": len(live), "cap": cap, "final": final,
+    return {"key": "all" + ("s" if live[0].get("phase") == "sim" else ""), "name": "", "scope": L(f"all {len(live)} selected bots", f"كل البوتات المحددة ({len(live)})"), "multi": True, "group": True, "n_bots": len(live), "cap": cap, "final": final,
             "ret": (final / cap - 1) * 100, "bench_ret": float((bench.iloc[-1] / cap - 1) * 100), "base_ret": None,
             "equity": eq, "bench": bench, "bench_name": "S&P 500 (SPY)", "npos": npos,
             "trades": trades, "cash": float(sum(v["cash"] for v in views)),
-            "sessions": max(s["sessions"] for s in live), "since": min(s["bot"]["start_date"] for s in live),
+            "sessions": max(s["sessions"] for s in live), "since": min(since_of(s) for s in live), "until": max(until_of(s) for s in live),
+            "phase": live[0].get("phase", "live"),
             "opts": any(v["opts"] for v in views), "last": max(v["last"] for v in views), "sims": live}
 
 
@@ -973,7 +1111,9 @@ def kpi_row(v):
               "" if diff is None else f"S&amp;P {v['bench_ret']:+.2f}%", None if diff is None else T.cls(diff)),
         T.kpi("hourglass_top", L("Open P&L", "ربح المراكز المفتوحة"), sm(open_pnl), open_sub, T.cls(open_pnl) if n_open else None),
         T.kpi("savings", L("Cash", "الكاش"), T.money(v["cash"]), L("invested ", "مستثمر ") + iso(f"{inv_pct:.0f}%"), None),
-        T.kpi("calendar_month", L("Running", "مدة التشغيل"), f"{v['sessions']:,}", L("sessions since ", "جلسة منذ ") + iso(v["since"]), None),
+        (T.kpi("history", L("Simulated", "مدة المحاكاة"), f"{v['sessions']:,}", L("sessions · ", "جلسة · ") + iso(f"{v['since']} → {v['until']}"), None)
+         if v.get("phase") == "sim" else
+         T.kpi("calendar_month", L("Forward test", "التجربة الأمامية"), f"{v['sessions']:,}", L("sessions since ", "جلسة منذ ") + iso(v["since"]), None)),
     ]
     return '<div class="pbk">' + "".join(tiles) + "</div>"
 
@@ -1114,11 +1254,14 @@ def open_panel(v, lg):
     pct = invested / v["final"] * 100 if v["final"] > 0 else 0.0
     chips = (_chip(L("Positions", "المراكز"), f"<b>{n}</b>") + _chip(L("Invested", "مستثمر"), f"<b>{T.money(invested)} · {pct:.0f}%</b>")
              + _chip(L("Cash", "الكاش"), f"<b>{T.money(v['cash'])}</b>") + _chip(L("Open P&L", "الربح المفتوح"), T.pbox(sm(open_pnl), open_pnl)))
-    head = (f'<div class="hd"><div class="tt">{T.icon("work")}{T.esc(_title(v, "Open positions", "المراكز المفتوحة"))}<span class="live"></span></div>'
+    sim_ = v.get("phase") == "sim"
+    title = _title(v, "Open when the simulation ended", "المفتوحة عند نهاية المحاكاة") if sim_ else _title(v, "Open positions", "المراكز المفتوحة")
+    head = (f'<div class="hd"><div class="tt">{T.icon("work")}{T.esc(title)}{"" if sim_ else "<span class=live></span>"}</div>'
             f'<div class="sum">{chips}</div></div>')
     if not n:
-        ui.html(f'<div class="pbp">{head}<div class="pbempty">{T.icon("hourglass_empty")}'
-                f'{L("No open positions right now. The bot is waiting for a signal.", "لا توجد مراكز مفتوحة حالياً. البوت ينتظر إشارة.")}</div></div>')
+        empty = (L("No positions were open when the simulation ended.", "ما كان فيه مراكز مفتوحة عند نهاية المحاكاة.") if sim_ else
+                 L("No open positions right now. The bot is waiting for a signal.", "لا توجد مراكز مفتوحة حالياً. البوت ينتظر إشارة."))
+        ui.html(f'<div class="pbp">{head}<div class="pbempty">{T.icon("hourglass_empty")}{empty}</div></div>')
         return
     rows = []
     for i in op.assign(_v=val).sort_values("_v", ascending=False).index:
@@ -1136,7 +1279,8 @@ def open_panel(v, lg):
                     f'<td{tip}>{_fp(r["Entry"])} → <b>{_fp(r["Exit"])}</b> {_chg(r["Entry"], r["Exit"])}{est}</td>'
                     f'<td>{qty} <span class="m">· {T.money(value)} · {w:.1f}%</span></td><td>{_plan(r)}</td>{_pnl_cell(r)}</tr>')
     heads = ([L("Asset", "الأصل"), L("Type", "النوع")] + ([L("Bot", "البوت")] if v["multi"] else [])
-             + [L("Strategy", "الاستراتيجية"), L("Opened", "الفتح"), L("Entry → now", "الدخول ← الآن"), L("Size", "الحجم"),
+             + [L("Strategy", "الاستراتيجية"), L("Opened", "الفتح"),
+                (L("Entry → last", "الدخول ← الأخير") if sim_ else L("Entry → now", "الدخول ← الآن")), L("Size", "الحجم"),
                 L("Exit plan", "خطة الخروج"), L("Open P&amp;L", "الربح")])
     ui.html(f'<div class="pbp">{head}{_table(heads, rows)}</div>')
 
@@ -1448,7 +1592,9 @@ def bot_header(sim):
     names = list(b["strategies"])
     ins = instrument(b)
     uni = universe_label(b, sim.get("n_symbols") if sim["ok"] else None)
-    badges = T.badge(uni, "gold", KIND_ICON[b["kind"]]) + T.badge(how_label(b), "vio", "smart_toy")
+    ph = "sim" if sim.get("phase") == "sim" else "live"
+    badges = (T.badge(L(*PHASES[ph][1:3]) + " · " + L(*PHASES[ph][3:5]), "gold" if ph == "sim" else "up", PHASES[ph][0])
+              + T.badge(uni, "gold", KIND_ICON[b["kind"]]) + T.badge(how_label(b), "vio", "smart_toy"))
     if is_orb(b):
         badges += T.badge(L("5-minute candles · long and short", "شموع 5 دقائق · شراء وبيع مكشوف"), "acc", "timer")
     else:
@@ -1462,7 +1608,7 @@ def bot_header(sim):
     if ins != "stock":
         badges += T.badge(_options_txt(b["options"]), "neu", "receipt_long")
         badges += T.badge(L("Option prices estimated (Black-Scholes)", "أسعار الأوبشن تقديرية (بلاك-شولز)"), "gold", "info")
-    badges += (T.badge(L("Start ", "البداية ") + iso(since_of(sim) if sim["ok"] else b["start_date"]), "neu", "event")
+    badges += (T.badge(L("Start ", "البداية ") + iso(since_of(sim) if sim["ok"] or sim.get("phase") == "live" else b["start_date"]), "neu", "event")
                + T.badge(L("Capital ", "رأس المال ") + iso(T.money(b["capital"])), "neu", "account_balance_wallet"))
     if ins != "options":
         badges += T.badge(L("Fee ", "العمولة ") + iso(f"{b['fee']:g}%") + L(" / side", " لكل جهة"), "neu", "receipt")
@@ -1519,6 +1665,123 @@ def next_orders(sim):
                + " · ".join(parts) + "." + note, icon=":material/bolt:")
 
 
+# =====================================================================
+# the forward test's saved record
+# =====================================================================
+def _qty(e):
+    q = float(e.get("q") or 0)
+    if e.get("k") in ("Call", "Put"):
+        return L(f"{int(q)} contracts", f"{int(q)} عقد")
+    return f"{q:,.2f}"
+
+
+def record_rows(rec):
+    """Every saved fill and order of a forward-test record, newest first: [(session, event, symbol, type, strategy, price,
+    quantity, note, engine)]."""
+    rows = []
+    for e in rec.get("ev") or []:
+        k = str(e.get("k") or "Stock")
+        typ = L(*TYPE_ONE.get(k, (k, k)))
+        if e.get("a") == "T":                                  # a 5-minute trade: opened and closed the same day
+            et, xt = str(e.get("et", ""))[11:16], str(e.get("xt", ""))[11:16]
+            rows.append((e["d"], 1, L(f"Trade {et} → {xt}", f"صفقة {et} ← {xt}"), e["s"], typ, strat_short(PBK.ORB),
+                         f'{_fp(e["p"])} → {_fp(e["xp"])}', _qty(e), L(e.get("r", ""), EXIT_AR.get(e.get("r", ""), e.get("r", ""))),
+                         e.get("v", "")))
+        elif e.get("a") == "B":
+            if k in ("Call", "Put"):
+                note = str(e.get("c") or "")
+            else:
+                note = " · ".join(x for x in (f'SL {_fp(e["st"])}' if e.get("st") else "",
+                                                f'TP {_fp(e["tg"])}' if e.get("tg") is not None else "") if x)
+            rows.append((e["d"], 0, L("Bought at the open", "شراء عند الافتتاح"), e["s"], typ, strat_short(e.get("l", "")),
+                         _fp(e["p"]), _qty(e), note, e.get("v", "")))
+        else:
+            r = str(e.get("r") or "")
+            rows.append((e["d"], 1, L("Sold", "بيع"), e["s"], typ, strat_short(e.get("l", "")), _fp(e["p"]), "",
+                         L(r, EXIT_AR.get(r, r)), e.get("v", "")))
+    for e in rec.get("sig") or []:
+        k = str(e.get("k") or "Stock")
+        buy = e.get("a") == "B"
+        r = str(e.get("r") or "")
+        rows.append((e["d"], 2, L("Buy order for the next open", "أمر شراء للافتتاح القادم") if buy else
+                     L("Sell order for the next open", "أمر بيع للافتتاح القادم"), e["s"], L(*TYPE_ONE.get(k, (k, k))),
+                     strat_short(e.get("l", "")), "", "", "" if buy or r in ("", "Signal") else L(r, EXIT_AR.get(r, r)), e.get("v", "")))
+    rows.sort(key=lambda x: (x[0], x[1]), reverse=True)
+    return [(d, *rest) for d, _, *rest in rows]
+
+
+def record_panel(sim):
+    """What the forward test saved: every fill and every order with the engine version that decided it, when each batch of
+    sessions was saved, the settings the record belongs to, and the earlier forward tests of the bot."""
+    b = sim["bot"]
+    rec = b.get("fwd") or {}
+    if not rec:
+        return
+    n = len(rec.get("eq") or {})
+    ev, sg, log = rec.get("ev") or [], rec.get("sig") or [], rec.get("log") or []
+    vers = sorted({str(x.get("v")) for x in ev + sg + log if x.get("v")}, key=lambda v: [int(p) if p.isdigit() else 0 for p in v.split(".")])
+    ui.sec("fact_check", "Forward-test record", "سجل التجربة الأمامية")
+    chip = lambda ic, label, val: f'<span class="c">{T.icon(ic)}{T.esc(label)} <b>{T.esc(str(val))}</b></span>'
+    ui.html('<div class="pbrec">' + chip("event", L("Since", "منذ"), rec.get("since", "—"))
+            + chip("event_available", L("Saved through", "محفوظ لين"), rec.get("until") or "—")
+            + chip("calendar_month", L("Sessions saved", "جلسات محفوظة"), n)
+            + chip("receipt_long", L("Fills", "صفقات منفذة"), len(ev)) + chip("bolt", L("Orders", "أوامر"), len(sg))
+            + chip("tag", L("Settings", "الإعدادات"), rec.get("hash", "—"))
+            + chip("memory", L("Engine", "المحرك"), ", ".join(vers) if vers else rec.get("v", "—")) + "</div>")
+    st.caption(L("A session is saved once it has closed (30 minutes after the US close), on the first page view after that. Saved "
+                 "sessions keep their fills, orders and closing balance even if the engine or the price data change later; changing "
+                 "how the bot trades starts a new forward test, and the old one is kept below.",
+                 "الجلسة تنحفظ بعد ما تقفل (بعد إغلاق السوق الأمريكي بـ 30 دقيقة)، مع أول فتح للصفحة بعدها. الجلسات المحفوظة تبقى "
+                 "صفقاتها وأوامرها ورصيد إغلاقها مثل ما هي حتى لو تغيّر المحرك أو بيانات الأسعار بعدين؛ وتغيير طريقة تداول البوت يبدأ "
+                 "تجربة أمامية جديدة، والقديمة تنحفظ تحت."))
+    rows = record_rows(rec)
+    if rows:
+        cols = [L("Session", "الجلسة"), L("Event", "الحدث"), L("Symbol", "الرمز"), L("Type", "النوع"), L("Strategy", "الاستراتيجية"),
+                L("Price", "السعر"), L("Quantity", "الكمية"), L("Note", "ملاحظة"), L("Engine", "المحرك")]
+        df = pd.DataFrame(rows[:1000], columns=cols)
+        st.dataframe(df, hide_index=True, height=min(420, 38 + 35 * len(df)))
+    else:
+        ui.html(f'<div class="pbempty">{T.icon("hourglass_empty")}'
+                f'{L("Nothing traded yet in the saved sessions.", "ما فيه تداول في الجلسات المحفوظة للحين.")}</div>')
+    if sim.get("mismatch"):
+        st.caption(L(f'{sim["mismatch"]} saved entries no longer match the stocks in the data (a stock left the group); they are kept in '
+                     "the record and skipped when showing it.",
+                     f'{sim["mismatch"]} من المدخلات المحفوظة ما عادت تطابق الأسهم في البيانات (سهم طلع من المجموعة)؛ باقية في السجل '
+                     "وتنتخطى وقت العرض."))
+    c1, c2 = st.columns(2, gap="medium")
+    with c1:
+        with st.expander(L("When each batch was saved", "متى انحفظت كل دفعة"), icon=":material/schedule:"):
+            if log:
+                ui.html("".join(f'<div class="muted" style="font-size:.8rem;margin:3px 0">{iso(x.get("at", "")[:16].replace("T", " "))} UTC · '
+                                + L(f'sessions {x.get("from")} → {x.get("to")} ({x.get("n", 1)}) · engine {x.get("v")}',
+                                    f'الجلسات {x.get("from")} ← {x.get("to")} ({x.get("n", 1)}) · المحرك {x.get("v")}') + "</div>"
+                                for x in reversed(log[-60:])))
+            else:
+                st.caption(L("Nothing saved yet.", "ما انحفظ شي للحين."))
+    with c2:
+        with st.expander(L("Settings of this forward test", "إعدادات هذه التجربة الأمامية"), icon=":material/tune:"):
+            st.caption(L(f"Started {str(rec.get('made', ''))[:10]} with engine {rec.get('v', '')} · settings hash {rec.get('hash', '')}",
+                         f"بدأت {str(rec.get('made', ''))[:10]} بالمحرك {rec.get('v', '')} · بصمة الإعدادات {rec.get('hash', '')}"))
+            st.code(json.dumps(rec.get("cfg") or {}, indent=1, ensure_ascii=False), language="json")
+    prev = [x for x in b.get("fwd_prev") or [] if isinstance(x, dict)]
+    if prev:
+        lines = []
+        for x in reversed(prev):
+            eq = x.get("eq") or {}
+            last = eq[max(eq)][0] if eq else None
+            cap = float((x.get("cfg") or {}).get("capital") or b["capital"])
+            ret = f" · {(last / cap - 1) * 100:+.2f}%" if last and cap else ""
+            lines.append(f'<div class="muted" style="font-size:.8rem;margin:3px 0">{iso(str(x.get("since")) + " → " + str(x.get("until")))} · '
+                         + L(f"{len(eq)} sessions", f"{len(eq)} جلسة") + (f" · {iso(T.money(last))}{iso(ret)}" if last else "")
+                         + f' · {L("settings", "الإعدادات")} {T.esc(str(x.get("hash", "")))}</div>')
+        with st.expander(L(f"Earlier forward tests ({len(prev)})", f"تجارب أمامية سابقة ({len(prev)})"), icon=":material/inventory_2:"):
+            st.caption(L("Ended when the bot's trading settings were changed.", "انتهت لما تغيّرت إعدادات تداول البوت."))
+            ui.html("".join(lines))
+    blob = json.dumps({"bot": b["name"], "record": rec, "earlier": prev}, ensure_ascii=False, default=str, indent=1)
+    st.download_button(L("Download the record (JSON)", "تحميل السجل (JSON)"), blob.encode("utf-8"), f"paper_bot_{b['id']}_record.json",
+                       "application/json", icon=":material/download:", key=f"pb_rec_{b['id']}")
+
+
 def section(name, key):
     """Every part of the details sits in its own block, so the space between parts is always the same."""
     return st.container(key=f"pbsec_{name}_{key}")
@@ -1531,6 +1794,9 @@ def details(sim, in_tab=False):
     with section("head", key):
         ui.safe(_details_head, sim)
     if not sim["ok"] or sim["waiting"]:
+        if sim["ok"] and sim.get("phase") == "live" and b.get("fwd_prev"):
+            with section("record", key):             # a new forward test that hasn't started: the earlier ones are still here
+                ui.safe(record_panel, sim)
         return
     v = single_view(sim, in_tab)
     lg = view_logos(v)
@@ -1538,7 +1804,9 @@ def details(sim, in_tab=False):
         ("open", open_panel, (v, lg)), ("recent", recent_panel, (v, lg)), ("equity", balance_chart, (v,)),
         ("price", orb_chart_section if sim.get("intraday") else price_chart_section, (sim,)), ("pnl", pnl_charts, (v,)),
         ("months", month_grid, (v,)),
-        ("all", all_trades, (v, f"paper_bot_{b['id']}.csv"))]
+        ("all", all_trades, (v, f"paper_bot_{b['id']}{'_sim' if sim.get('phase') == 'sim' else ''}.csv"))]
+    if sim.get("phase") != "sim":
+        parts.append(("record", record_panel, (sim,)))
     for name, fn, args in parts:
         with section(name, key):
             ui.safe(fn, *args)
@@ -1549,6 +1817,18 @@ def _details_head(sim):
     bot_header(sim)
     if not sim["ok"]:
         uni = universe_label(b)
+        if sim["why"] == "gone5":
+            st.info(L("Yahoo keeps 5-minute prices for 60 days, and they no longer reach the days before this bot's forward test "
+                      f"({fwd_since(b)}), so its historical simulation can't be shown any more. Its forward test is saved and goes on.",
+                      "ياهو يحتفظ بأسعار الـ 5 دقائق لمدة 60 يوم، وما عادت توصل للأيام اللي قبل التجربة الأمامية لهذا البوت "
+                      f"({fwd_since(b)})، فما عاد ينعرض له محاكاة تاريخية. تجربته الأمامية محفوظة ومستمرة."), icon=":material/history:")
+            return
+        if sim["why"] == "nohist":
+            st.info(L(f"This bot started on the day its forward test began ({fwd_since(b)}), so it has no historical simulation. "
+                      "Edit it and pick an earlier start date to add one; its forward test goes on.",
+                      f"هذا البوت بدأ من يوم بداية تجربته الأمامية ({fwd_since(b)})، فما عنده محاكاة تاريخية. عدّله واختر تاريخ بداية "
+                      "أقدم عشان تنضاف، وتجربته الأمامية تكمل."), icon=":material/history:")
+            return
         if sim["why"] == "strategy":
             st.warning(L("This bot's strategy or group no longer exists on the site. Edit it or delete it.",
                          "استراتيجية هذا البوت أو مجموعته لم تعد موجودة في الموقع. عدّله أو احذفه."), icon=":material/error:")
@@ -1557,16 +1837,32 @@ def _details_head(sim):
                          f"لا توجد بيانات أسعار لـ {uni} حالياً. تأكد من الرمز، أو حاول بعد دقيقة."), icon=":material/error:")
         return
     if sim["waiting"]:
+        d0 = since_of(sim)
         if sim.get("intraday"):
-            st.info(L(f"The bot starts with the first US session on or after {b['start_date']} and trades during the session on 5-minute candles.",
-                      f"البوت يبدأ مع أول جلسة أمريكية من تاريخ {b['start_date']} ويتداول أثناء الجلسة على شموع 5 دقائق."),
+            st.info(L(f"The forward test starts with the US session of {d0} and trades during the session on 5-minute candles.",
+                      f"التجربة الأمامية تبدأ مع جلسة {d0} الأمريكية وتتداول أثناء الجلسة على شموع 5 دقائق."),
                     icon=":material/schedule:")
             return
-        st.info(L(f"The bot starts with the first US session on or after {b['start_date']}. After that session closes it checks its "
-                  "strategies, and any order is filled at the next open.",
-                  f"البوت يبدأ مع أول جلسة أمريكية من تاريخ {b['start_date']}. بعد إغلاق الجلسة يفحص الاستراتيجيات، وأي أمر يتنفذ عند الافتتاح التالي."),
+        st.info(L(f"The forward test starts with the US session of {d0}. After that session closes the bot checks its strategies, "
+                  "and any order is filled at the next open.",
+                  f"التجربة الأمامية تبدأ مع جلسة {d0} الأمريكية. بعد إغلاق الجلسة يفحص البوت الاستراتيجيات، وأي أمر يتنفذ عند الافتتاح التالي."),
                 icon=":material/schedule:")
         return
+    if sim.get("phase") == "sim":
+        d0, d1, f0 = since_of(sim), until_of(sim), fwd_since(b)
+        st.caption(L(f"Historical simulation from {d0} to {d1}: the bot's rules replayed on past prices, recalculated with the current "
+                     f"engine whenever the page opens. It is not a record of real signals; the forward test (LIVE) starts {f0}.",
+                     f"محاكاة تاريخية من {d0} إلى {d1}: قواعد البوت مُعاد تشغيلها على أسعار الماضي، وتنحسب من جديد بالنسخة الحالية للمحرك "
+                     f"كل ما تفتح الصفحة. هي ليست سجل إشارات فعلية؛ والتجربة الأمامية (مباشر) تبدأ {f0}."))
+    else:
+        rec = b.get("fwd") or {}
+        n = len(rec.get("eq") or {})
+        saved = (L(f"{n} sessions saved, through {rec.get('until')}", f"{n} جلسة محفوظة لين {rec.get('until')}") if n else
+                 L("the first session is saved once it closes", "أول جلسة تنحفظ أول ما تقفل"))
+        st.caption(L(f"Forward test since {since_of(sim)}: {saved}. Saved sessions are replayed from the record and never recalculated; the "
+                     "record (every fill, every order and the engine version) is at the bottom of this page.",
+                     f"تجربة أمامية منذ {since_of(sim)}: {saved}. الجلسات المحفوظة تنعرض من السجل وما يُعاد حسابها؛ والسجل (كل صفقة وكل "
+                     "أمر ونسخة المحرك) في آخر الصفحة."))
     if instrument(b) != "stock":
         st.caption(L(OPT_EST_EN, OPT_EST_AR))
     if sim.get("intraday"):
@@ -1575,7 +1871,8 @@ def _details_head(sim):
                      "relative volume). Every trade opens and closes on the same day.",
                      f"ياهو يحتفظ بأسعار الـ 5 دقائق لمدة 60 يوم، فهذا البوت يعرض صفقاته من {first} (أول 5 جلسات تبني الحجم النسبي فقط). "
                      "كل صفقة تنفتح وتتقفل في نفس اليوم."))
-    next_orders(sim)
+    if sim.get("phase") != "sim":
+        next_orders(sim)
 
 
 def portfolio(chosen, spy, sims):
@@ -2234,8 +2531,15 @@ def bot_form(mode, bot=None):
         start = d1.date_input(L("Start date", "تاريخ البداية"), min_value=low, max_value=today, key="pb_start")
         d2.caption(L("5-minute prices go back 60 days, so the start can be up to 59 days ago.",
                      "أسعار الـ 5 دقائق ترجع 60 يوم بس، فالبداية تكون خلال آخر 59 يوم.") if orb else
-                   L("Today = the bot trades live from now on. An earlier date replays the past first, like the Strategy Lab, then carries on live.",
-                     "اليوم = البوت يتداول مباشرة من الحين وللأمام. التاريخ الأقدم يعيد تشغيل الفترة الماضية أولاً مثل مختبر الاستراتيجيات، ثم يكمل مباشرة."))
+                   L("Today = a forward test only, saved session by session from the next session. An earlier date also adds a historical "
+                     "simulation from that date, shown apart (SIM).",
+                     "اليوم = تجربة أمامية فقط، تنحفظ جلسة بجلسة من الجلسة القادمة. التاريخ الأقدم يضيف كمان محاكاة تاريخية من ذاك التاريخ، "
+                     "تنعرض لحالها (محاكاة)."))
+        if mode == "edit":
+            st.caption(L("Saving a change to how the bot trades (strategies, stocks, capital, risk) starts a new forward test from the next "
+                         "session, and the old record is kept. A new name or start date keeps the forward test going.",
+                         "حفظ أي تغيير في طريقة تداول البوت (الاستراتيجيات، الأسهم، رأس المال، المخاطرة) يبدأ تجربة أمامية جديدة من الجلسة "
+                         "القادمة، والسجل القديم ينحفظ. تغيير الاسم أو تاريخ البداية ما يوقف التجربة الأمامية."))
         label = L("Start the bot", "شغّل البوت") if mode == "add" else L("Save changes", "حفظ التعديلات")
         pressed = st.button(label, type="primary", icon=":material/play_arrow:" if mode == "add" else ":material/save:", key="pb_create",
                             width="stretch")
@@ -2298,7 +2602,7 @@ def bot_form(mode, bot=None):
         if mode == "add":
             PB.create_bot(rec)
         else:
-            PB.update_bot(bot["id"], rec)
+            PB.update_bot(bot["id"], rec, old=bot)
     except PB.StoreError as e:
         if e.kind == "full":
             st.error(L(f"You already have {PB.MAX_BOTS} bots.", f"عندك {PB.MAX_BOTS} بوتات بالفعل."))
@@ -2369,9 +2673,14 @@ def page_paper_bots():
         with st.spinner(L("Updating the bots with the latest prices" + (" (groups of stocks can take up to a minute)..." if big else "..."),
                           "جاري تحديث البوتات بآخر الأسعار" + (" (مجموعات الأسهم قد تاخذ لين دقيقة)..." if big else "..."))):
             sims, spy = PB.run_all(bots)
-    ui.html(hero_html(sims, len(bots)))
+    if sims and "pb_phase" not in ss:              # the forward tests once a session has been saved, else the simulations
+        ss["pb_phase"] = "live" if _saved_sessions(sims) else "sim"
+    shown = phase_sims(sims, phase())
+    ui.html(hero_html(shown, len(bots)))
     storage_notice(err)
-    sel = ui.safe(leaderboard, sims, len(bots), err is None and len(bots) < PB.MAX_BOTS) or []
+    if sims:
+        ui.safe(phase_switch, sims)
+    sel = ui.safe(leaderboard, shown, len(bots), err is None and len(bots) < PB.MAX_BOTS) or []
 
     op = ss.pop("pb_open", None)
     if op and err is None:
@@ -2385,7 +2694,7 @@ def page_paper_bots():
             "ما فيه بوتات للحين. اضغط <b>أضف بوت</b>، واختر وش يتداول (شركة أو قطاع أو صناعة أو كل الشركات)، ووش يشتري (أسهم أو أوبشن أو الاثنين)، "
             "واستراتيجياته. بعدها يفحص استراتيجياته بعد كل إغلاق للسوق الأمريكي، ويتداول بأموال وهمية عند الافتتاح التالي.") + "</div>")
     elif sims:
-        chosen = [s for s in ranked(sims) if s["bot"]["id"] in sel]
+        chosen = [s for s in ranked(shown) if s["bot"]["id"] in sel]
         if not chosen:
             ui.html(f'<div class="card" style="line-height:1.9;margin-top:14px">{T.ico("ads_click", "acc")} ' + L(
                 "Click a bot's card to see its dashboard. Select one, several, or press <b>Select all</b>.",
@@ -2393,14 +2702,16 @@ def page_paper_bots():
         elif len(chosen) == 1:
             ui.safe(details, chosen[0])
         else:
-            ui.safe(portfolio, chosen, spy, sims)
+            ui.safe(portfolio, chosen, spy, shown)
 
     st.caption(L("Virtual trading on real daily prices (dividend-adjusted, may be delayed); the Opening Range Breakout uses 5-minute prices from "
-                 "the last 60 days. Results are recalculated from each bot's start date whenever the page opens. No real money and no broker are "
-                 "involved. Past results do not guarantee future returns.",
+                 "the last 60 days. Forward tests are saved session by session after each US close and never recalculated; historical "
+                 "simulations are recalculated whenever the page opens. No real money and no broker are involved. Past results do not "
+                 "guarantee future returns.",
                  "تداول وهمي على أسعار يومية حقيقية (معدّلة بالتوزيعات وقد تكون متأخرة)، واختراق نطاق الافتتاح يستخدم أسعار 5 دقائق لآخر 60 يوم. "
-                 "النتائج تُحسب من جديد من تاريخ بداية كل بوت كل ما تفتح الصفحة. لا توجد أموال حقيقية ولا وسيط. النتائج السابقة لا تضمن المستقبل."))
+                 "التجارب الأمامية تنحفظ جلسة بجلسة بعد كل إغلاق للسوق الأمريكي وما يُعاد حسابها، والمحاكاة التاريخية تنحسب من جديد كل ما "
+                 "تفتح الصفحة. لا توجد أموال حقيقية ولا وسيط. النتائج السابقة لا تضمن المستقبل."))
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "7.9"
+BUILD = "8.0"

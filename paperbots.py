@@ -16,8 +16,14 @@ With a group of stocks the bot holds up to `max_pos` positions, each opened with
 stocks signal than there are free slots, the strongest over the last 3 months are bought first.
 A bot on one company with one strategy gives exactly the Strategy Lab result from its start date.
 
-Only each bot's settings are saved. Its trades are replayed from the start date whenever the page opens, so no server has
-to stay on all day and everyone sees the same results.
+Every bot has two phases:
+  * a HISTORICAL SIMULATION from its start date up to the day it was added (or last changed): a backtest, recomputed with the
+    current engine whenever the page opens, and
+  * a FORWARD TEST that starts with the full capital on the first session after that, and is RECORDED: once a session has
+    closed, its fills, the orders decided at its close and its closing balance are saved with the engine version and a hash of
+    the settings ('fwd' in the bot's params), and from then on they are replayed from the record, never recomputed. Changing
+    the settings starts a new forward test; the old record is kept ('fwd_prev').
+No server has to stay on all day: the sessions that closed since the last visit are recorded on the next page view.
 
 Storage (Streamlit > Settings > Secrets):
     SUPABASE_URL = "https://xxxx.supabase.co"
@@ -27,6 +33,7 @@ Without Supabase the bots live in a temporary file that is lost when the app res
 The table is the one from SETUP_SQL; what the bot trades and its strategies are kept inside the `params` JSON, so bots
 saved by the first version of this page keep working.
 """
+import hashlib
 import hmac
 import json
 import os
@@ -42,6 +49,7 @@ from math import exp
 
 import data
 import engine
+import mcal
 import playbooks as PB
 import ta
 import universe as U
@@ -348,7 +356,9 @@ def _norm(r):
                 "stop_pct": max(_num(r.get("stop_pct")), 0.0), "atr_mult": max(_num(r.get("atr_mult")), 0.0),
                 "tp_pct": max(_num(r.get("tp_pct")), 0.0), "trail_pct": max(_num(r.get("trail_pct")), 0.0),
                 "start_date": str(r.get("start_date"))[:10], "created_at": str(r.get("created_at") or "")[:19],
-                "valid": bool(strategies) and allowed and bool(members(kind, value))}
+                "valid": bool(strategies) and allowed and bool(members(kind, value)),
+                "fwd": params.get("fwd") if isinstance(params, dict) and isinstance(params.get("fwd"), dict) else None,
+                "fwd_prev": list(params.get("fwd_prev") or []) if isinstance(params, dict) else []}
     except Exception:
         return None
 
@@ -373,12 +383,14 @@ def make_record(name, kind, value, strategies, max_pos, capital, fee, stop_pct, 
         sym = "ALL" if kind == "all" else f"{kind.upper()}:{value}"
         value = "all" if kind == "all" else value
     joiner = " & " if combine["mode"] == "combo" else " + "
-    return {"name": str(name)[:40], "symbol": sym[:120], "strategy": joiner.join(strategies)[:250],
-            "params": {"v": 2, "universe": {"kind": kind, "value": value}, "strategies": strategies,
-                       "max_pos": int(min(max(int(max_pos), 1), MAX_POS_LIMIT)), "combine": combine,
-                       "instrument": instrument if instrument in INSTRUMENTS else "stock", "options": clean_options(options)},
-            "capital": float(capital), "fee": float(fee), "stop_pct": float(stop_pct), "atr_mult": float(atr_mult),
-            "tp_pct": float(tp_pct), "trail_pct": float(trail_pct), "start_date": str(start_date)[:10]}
+    rec = {"name": str(name)[:40], "symbol": sym[:120], "strategy": joiner.join(strategies)[:250],
+           "params": {"v": 2, "universe": {"kind": kind, "value": value}, "strategies": strategies,
+                      "max_pos": int(min(max(int(max_pos), 1), MAX_POS_LIMIT)), "combine": combine,
+                      "instrument": instrument if instrument in INSTRUMENTS else "stock", "options": clean_options(options)},
+           "capital": float(capital), "fee": float(fee), "stop_pct": float(stop_pct), "atr_mult": float(atr_mult),
+           "tp_pct": float(tp_pct), "trail_pct": float(trail_pct), "start_date": str(start_date)[:10]}
+    rec["params"]["fwd"] = new_record(_settings_of_record(rec))
+    return rec
 
 
 def list_bots():
@@ -406,9 +418,19 @@ def create_bot(rec):
     _list_raw.clear()
 
 
-def update_bot(bot_id, rec):
-    """Replace a bot's settings (a row from make_record); its history is replayed from its start date with the new settings."""
+def update_bot(bot_id, rec, old=None):
+    """Replace a bot's settings (a row from make_record); its historical simulation is recomputed with the new settings.
+    old: the bot as it was. When the trading settings didn't change (a new name, a new start date), its forward-test record
+    goes on; otherwise a new forward test starts and the old record is kept in 'fwd_prev' (the last 3)."""
     rec = json.loads(json.dumps({k: rec[k] for k in FIELDS}, default=float))
+    old_fwd = (old or {}).get("fwd")
+    if old_fwd and old_fwd.get("hash") == rec["params"]["fwd"]["hash"]:
+        rec["params"]["fwd"] = old_fwd
+        rec["params"]["fwd_prev"] = list((old or {}).get("fwd_prev") or [])
+    else:
+        prev = list((old or {}).get("fwd_prev") or []) + ([dict(old_fwd, ended=_now_iso())] if old_fwd and old_fwd.get("until") else [])
+        rec["params"]["fwd_prev"] = prev[-3:]
+    rec = json.loads(json.dumps(rec, default=float))
     if backend() == "supabase":
         url, h = _sb()
         r = _request("PATCH", url, headers={**h, "Prefer": "return=minimal"}, params={"id": f"eq.{int(bot_id)}"}, data=json.dumps(rec))
@@ -431,6 +453,118 @@ def delete_bot(bot_id):
     else:
         with _LOCK:
             _local_write([x for x in _local_read() if str(x.get("id")) != str(bot_id)])
+    _list_raw.clear()
+
+
+# ---------------------------------------------------------------- the forward-test record
+def ny_now():
+    return pd.Timestamp.now(tz="America/New_York").tz_localize(None)
+
+
+def _now_iso():
+    return pd.Timestamp.now(tz="UTC").strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def _close_min(day):
+    return 13 * 60 if mcal.day_status(pd.Timestamp(day).date())[0] == "early" else 16 * 60
+
+
+def forward_start(now=None):
+    """The first session of a forward test that starts now: today while today's session hasn't closed, else the next one."""
+    now = pd.Timestamp(now) if now is not None else ny_now()
+    d = now.normalize()
+    if mcal.is_trading_day(d.date()) and now < d + pd.Timedelta(minutes=_close_min(d)):
+        return f"{d:%Y-%m-%d}"
+    d += pd.Timedelta(days=1)
+    while not mcal.is_trading_day(d.date()):
+        d += pd.Timedelta(days=1)
+    return f"{d:%Y-%m-%d}"
+
+
+def last_closed_session(now=None, settle=30):
+    """The latest session whose closing prices are final (`settle` minutes after the close)."""
+    now = pd.Timestamp(now) if now is not None else ny_now()
+    d = now.normalize()
+    if mcal.is_trading_day(d.date()) and now >= d + pd.Timedelta(minutes=_close_min(d) + settle):
+        return f"{d:%Y-%m-%d}"
+    d -= pd.Timedelta(days=1)
+    while not mcal.is_trading_day(d.date()):
+        d -= pd.Timedelta(days=1)
+    return f"{d:%Y-%m-%d}"
+
+
+def _settings_of_record(rec):
+    p = rec["params"]
+    return {"kind": p["universe"]["kind"], "value": p["universe"]["value"], "strategies": p["strategies"], "combine": p["combine"],
+            "max_pos": p["max_pos"], "instrument": p["instrument"], "options": p["options"],
+            **{k: rec[k] for k in ("capital", "fee", "stop_pct", "atr_mult", "tp_pct", "trail_pct")}}
+
+
+def settings_of(bot):
+    """Everything that decides how the bot trades (not its name or start date), in one plain form."""
+    comb = bot.get("combine") or {}
+    comb = {k: comb[k] for k in ("mode", "min", "window") if k in comb} if comb.get("mode") == "combo" else {"mode": "any"}
+    ins = bot.get("instrument") or "stock"
+    return json.loads(json.dumps(
+        {"kind": bot["kind"], "value": bot["value"], "strategies": bot["strategies"], "combine": comb,
+         "max_pos": 1 if bot["kind"] == "company" else int(bot["max_pos"]), "instrument": ins,
+         "options": bot.get("options") if ins != "stock" else None,
+         **{k: round(float(bot[k]), 6) for k in ("capital", "fee", "stop_pct", "atr_mult", "tp_pct", "trail_pct")}}, default=float))
+
+
+def settings_hash(bot):
+    """A short fingerprint of the settings (settings_of): the same settings always give the same hash."""
+    return hashlib.sha1(json.dumps(settings_of(bot), sort_keys=True).encode()).hexdigest()[:10]
+
+
+def new_record(bot, now=None):
+    """An empty forward-test record for these settings, starting with the first session after `now`. It keeps a copy of the
+    settings ('cfg') and their hash, so it always says which version of the strategy it recorded."""
+    return {"since": forward_start(now), "until": None, "hash": settings_hash(bot), "cfg": settings_of(bot), "made": _now_iso(),
+            "v": BUILD, "ev": [], "sig": [], "eq": {}, "log": []}
+
+
+def record_update(bot, sim, now=None):
+    """The bot's record with the sessions of `sim` (its forward run) that have closed since the last record, or None.
+    Each fill and order carries the engine version that decided it ('v'); 'log' says when each batch was recorded."""
+    rec = bot.get("fwd")
+    if not rec or not sim.get("ok") or sim.get("waiting"):
+        return None
+    last = last_closed_session(now)
+    rows, until = sim.get("eq_rows") or {}, rec.get("until")
+    new = sorted(d for d in rows if rec["since"] <= d <= last and (until is None or d > until))
+    if not new:
+        return None
+    lo, hi = new[0], new[-1]
+    pick = lambda items: [dict(e, v=BUILD) for e in items or [] if lo <= e["d"] <= hi]
+    at = _now_iso()
+    return {**rec, "until": hi, "ev": list(rec.get("ev") or []) + pick(sim.get("events")),
+            "sig": list(rec.get("sig") or []) + pick(sim.get("signals")), "eq": {**(rec.get("eq") or {}), **{d: rows[d] for d in new}},
+            "log": (list(rec.get("log") or []) + [{"from": lo, "to": hi, "n": len(new), "at": at, "v": BUILD}])[-500:], "v": BUILD}
+
+
+def params_of(bot):
+    """The params JSON of a saved bot (list_bots form), for writing it back."""
+    return {"v": 2, "universe": {"kind": bot["kind"], "value": bot["value"]}, "strategies": bot["strategies"], "max_pos": bot["max_pos"],
+            "combine": bot["combine"], "instrument": bot["instrument"], "options": bot["options"], "fwd": bot.get("fwd"),
+            "fwd_prev": bot.get("fwd_prev") or []}
+
+
+def save_record(bot, record):
+    """Write a bot's forward-test record (only its params change)."""
+    params = json.loads(json.dumps({**params_of(bot), "fwd": record}, default=float))
+    if backend() == "supabase":
+        url, h = _sb()
+        r = _request("PATCH", url, headers={**h, "Prefer": "return=minimal"}, params={"id": f"eq.{int(bot['id'])}"},
+                     data=json.dumps({"params": params}))
+        _check(r)
+    else:
+        with _LOCK:
+            rows = _local_read()
+            for x in rows:
+                if str(x.get("id")) == str(bot["id"]):
+                    x["params"] = params
+            _local_write(rows)
     _list_raw.clear()
 
 
@@ -494,10 +628,14 @@ def _bs(kind, S, K, T, sigma):
     return max(K - S, 0.0) if T <= 0 or sigma <= 0 else max(c - S + K * exp(-0.04 * T), 0.0)
 
 
-def simulate(bot, px, spy=None):
+def simulate(bot, px, spy=None, record=None):
     """Replay the bot from its start date on the prices in px ({symbol: daily OHLC}).
     Returns a dict; 'ok' is False with 'why' = strategy | data when it can't run; 'waiting' is True when no session has
-    closed since the start date yet."""
+    closed since the start date yet.
+    record: a forward-test record (see new_record). Its sessions since..until are REPLAYED from the recorded fills and closing
+    balances instead of being decided again, so a change of the engine or of the data never rewrites them; the sessions after
+    it are decided normally. Every fill ('events'), every order decided at a close ('signals') and every closing balance
+    ('eq_rows') of the run is returned, so the caller can record the sessions that have closed."""
     out = {"bot": bot, "ok": False, "why": None, "waiting": False}
     if not bot.get("valid") or PB.ORB in bot["strategies"]:           # the Opening Range Breakout runs in simulate_orb
         out["why"] = "strategy"
@@ -611,6 +749,19 @@ def simulate(bot, px, spy=None):
         PENT &= live[None, :, None]
         PENT &= valid[None, :, :]
 
+    days = [str(d)[:10] for d in (idx.tz_localize(None) if getattr(idx, "tz", None) is not None else idx)]
+    rec = record or {}
+    r_since, r_until = rec.get("since"), rec.get("until")
+    frozen = np.array([bool(r_since and r_until and r_since <= d <= r_until) for d in days])
+    replay, rsig = {}, {}                                      # recorded fills and orders of the frozen sessions, in their order
+    for key, dest in (("ev", replay), ("sig", rsig)):
+        for e in rec.get(key) or []:
+            if frozen.any() and r_since <= e["d"] <= r_until:
+                dest.setdefault(e["d"], []).append(e)
+    rec_eq = rec.get("eq") or {}
+    sym_pos, lab_pos = {s: j for j, s in enumerate(syms)}, {name: k for k, name in enumerate(labels)}
+    events, signals, eq_rows, mismatch = [], [], {}, []
+
     fee, cap = bot["fee"] / 100, float(bot["capital"])
     max_pos = 1 if bot["kind"] == "company" else int(bot["max_pos"])
     rk = risk_kwargs(bot)
@@ -622,10 +773,13 @@ def simulate(bot, px, spy=None):
     def sigma_of(hv, fallback=0.35):
         return float(np.clip((hv if np.isfinite(hv) else fallback) * 1.1, 0.15, 1.5))
 
-    def close(key, t, price, reason, under=None):
+    def close(key, t, price, reason, under=None, log=True):
         nonlocal cash
         j = key[0]
         q = pos.pop(key)
+        if log:
+            events.append({"d": days[t], "a": "S", "s": syms[j], "k": q["kind"], "l": labels[q["k"]], "p": float(price), "r": reason,
+                           **({"u": float(under)} if under is not None and q["kind"] != "Stock" else {})})
         if q["kind"] == "Stock":
             proceeds = q["shares"] * price * (1 - fee)
             cost = q["shares"] * q["entry"] * (1 + fee)
@@ -647,7 +801,125 @@ def simulate(bot, px, spy=None):
     def slots(group):
         return max_pos - sum(1 for key, q in pos.items() if key[1] == group and not q["exit"])
 
+    def decide(t):
+        """4) signals at the close: the rule that opened a trade decides its exit; new signals fill the free slots.
+        Every order decided here is logged in `signals` (the next session carries it out)."""
+        for (j, g), q in pos.items():
+            if not valid[t, j]:
+                continue
+            was = q["exit"]
+            if (PEXT if q["kind"] == "Put" else EXT)[q["k"], t, j]:
+                q["exit"] = True
+            elif q.get("plan") and C[t, j] < q["floor"]:
+                q["exit"] = True                                # closed under the trade's own failure line (NaN = none)
+            elif q.get("mb") and not q["exit"] and K[t, j] - q["kb"] >= q["mb"] - 1:
+                q["exit"], q["why"] = True, "Time Stop"         # held max_bars sessions: sell at the next open
+            if q["exit"] and not was:
+                signals.append({"d": days[t], "a": "S", "s": syms[j], "k": q["kind"], "l": labels[q["k"]], "r": q.get("why", "Signal")})
+        if live[t]:
+            cand = []
+            if want_stock or want_call:
+                row = ENT[:, t, :]
+                for j in np.flatnonzero(row.any(axis=0)):
+                    m_ = MOM[t, j]
+                    rank_ = (-m_ if not np.isnan(m_) else np.inf, syms[j])
+                    if want_stock and (j, "S") not in pos:
+                        cand.append((rank_, int(j), int(np.argmax(row[:, j])), "Stock"))
+                    if want_call and (j, "O") not in pos:
+                        cand.append((rank_, int(j), int(np.argmax(row[:, j])), "Call"))
+            if want_put:                                       # puts: the weakest of the last 3 months first
+                row = PENT[:, t, :]
+                taken = {c[1] for c in cand if c[3] != "Stock"}
+                for j in np.flatnonzero(row.any(axis=0)):
+                    if (j, "O") not in pos and j not in taken:
+                        m_ = MOM[t, j]
+                        cand.append(((m_ if not np.isnan(m_) else np.inf, syms[j]), int(j), int(np.argmax(row[:, j])), "Put"))
+            cand.sort(key=lambda c: c[0])
+            free = {"S": slots("S"), "O": slots("O")}
+            for _, j, k, kind in cand:
+                g = "S" if kind == "Stock" else "O"
+                if free[g] > 0:
+                    pend.append((j, k, kind, t))
+                    free[g] -= 1
+                    signals.append({"d": days[t], "a": "B", "s": syms[j], "k": kind, "l": labels[k]})
+
+    def value(t):
+        """5) value at the close (a recorded session keeps the balance it had when it was recorded)."""
+        nonlocal eq_prev
+        mv = float(sum(q["shares"] * CF[t, key[0]] if q["kind"] == "Stock" else q["shares"] * 100 * q["value"] for key, q in pos.items()))
+        equity[t] = cash + mv
+        invested[t] = mv / equity[t] if equity[t] > 0 else 0.0
+        npos[t] = len(pos)
+        if frozen[t] and days[t] in rec_eq:
+            equity[t], invested[t], npos[t] = rec_eq[days[t]]
+        eq_prev = equity[t]
+        if live[t]:
+            eq_rows[days[t]] = [float(equity[t]), float(invested[t]), int(npos[t])]
+
+    def replay_day(t):
+        """A recorded session: apply its fills as they were recorded, value the options, move the trailing peaks, and take
+        the orders recorded at its close (the sells flag their trades; the buys of the last recorded close fill next)."""
+        nonlocal cash
+        for e in replay.get(days[t], []):
+            j, g = sym_pos.get(e["s"]), "S" if e["k"] == "Stock" else "O"
+            if j is None:
+                mismatch.append(e)
+                continue
+            if e["a"] == "S":
+                if (j, g) in pos:
+                    close((j, g), t, float(e["p"]), e["r"], e.get("u"), log=False)
+                else:
+                    mismatch.append(e)
+                continue
+            k = lab_pos.get(e["l"])
+            if k is None or (j, g) in pos:
+                mismatch.append(e)
+                continue
+            p_, q_ = float(e["p"]), float(e["q"])
+            if g == "S":
+                cash -= q_ * p_ * (1 + fee)
+                pos[(j, "S")] = {"kind": "Stock", "shares": q_, "entry": p_, "t": t, "kb": K[t, j], "peak": p_,
+                                 "stop": float(e.get("st") or 0.0), "target": float(e["tg"]) if e.get("tg") is not None else np.inf,
+                                 "k": k, "exit": False, "contract": e["s"], "s0": p_}
+                if e.get("pl"):
+                    pos[(j, "S")].update(plan=True, mb=int(e.get("mb") or 0), floor=float(e["fl"]) if e.get("fl") is not None else np.nan)
+            else:
+                n_ = int(q_)
+                cash -= n_ * (p_ * 100 + OPT_FEE)
+                pos[(j, "O")] = {"kind": e["k"], "shares": n_, "entry": p_, "t": t, "kb": K[t, j], "k": k, "exit": False, "K": float(e["K"]),
+                                 "expiry": pd.Timestamp(e["x"]).tz_localize(idx.tz) if getattr(idx, "tz", None) is not None else pd.Timestamp(e["x"]),
+                                 "sigma": float(e["sg"]), "value": p_, "s0": float(e["s0"]), "contract": e["c"]}
+        for key, q in pos.items():                         # what step 3 does besides exiting (the exits are in the record)
+            j = key[0]
+            if not valid[t, j]:
+                continue
+            if q["kind"] == "Stock":
+                q["peak"] = max(q["peak"], H[t, j])
+            else:
+                t_left = (q["expiry"] - idx[t]).days
+                q["value"] = _bs(q["kind"], C[t, j], q["K"], max(t_left, 0) / 365, sigma_of(HVC[t, j], q["sigma"]))
+        for e in rsig.get(days[t], []):
+            j, g = sym_pos.get(e["s"]), "S" if e["k"] == "Stock" else "O"
+            if j is None:
+                mismatch.append(e)
+            elif e["a"] == "S":
+                if (j, g) in pos:
+                    pos[(j, g)]["exit"] = True
+                    if e.get("r") and e["r"] != "Signal":
+                        pos[(j, g)]["why"] = e["r"]
+            elif days[t] == r_until:                           # the orders of the last recorded close: filled at the next open
+                k = lab_pos.get(e["l"])
+                if k is None:
+                    mismatch.append(e)
+                else:
+                    pend.append((j, k, e["k"], t))
+
     for t in range(T):
+        if frozen[t]:
+            pend = []
+            replay_day(t)
+            value(t)
+            continue
         # 1) yesterday's exit signals: sell at today's open
         for key in [key for key, q in pos.items() if q["exit"] and valid[t, key[0]]]:
             q, j = pos[key], key[0]
@@ -687,6 +959,10 @@ def simulate(bot, px, spy=None):
                                  "k": k, "exit": False, "contract": syms[j], "s0": o}
                 if i >= 0:
                     pos[(j, "S")].update(plan=True, mb=int(MB[i]), floor=PFLOOR[i, ts, j])
+                q = pos[(j, "S")]
+                events.append({"d": days[t], "a": "B", "s": syms[j], "k": "Stock", "l": labels[k], "p": float(o), "q": float(shares),
+                               "st": float(q["stop"]), "tg": float(target) if np.isfinite(target) else None,
+                               **({"pl": 1, "mb": int(MB[i]), "fl": float(q["floor"]) if np.isfinite(q["floor"]) else None} if i >= 0 else {})})
             else:                                              # options: a % of the balance, priced with Black-Scholes
                 sigma = sigma_of(HVP[t, j])
                 strike = strike_for(o * (1 + oc["strike"] / 100) if kind == "Call" else o * (1 - oc["strike"] / 100))
@@ -701,6 +977,8 @@ def simulate(bot, px, spy=None):
                 pos[(j, "O")] = {"kind": kind, "shares": n, "entry": prem, "t": t, "kb": K[t, j], "k": k, "exit": False, "K": strike,
                                  "expiry": expiry, "sigma": sigma, "value": prem, "s0": o,
                                  "contract": f"{syms[j]} {strike:g}{kind[0]} {expiry:%Y-%m-%d}"}
+                events.append({"d": days[t], "a": "B", "s": syms[j], "k": kind, "l": labels[k], "p": float(prem), "q": n, "K": float(strike),
+                               "x": str(expiry)[:10], "sg": float(sigma), "s0": float(o), "c": pos[(j, "O")]["contract"]})
         pend = []
         # 3) shares: stop loss / trailing stop / take profit during the day · options: value at the close, take profit / stop / time
         for key in list(pos):
@@ -731,47 +1009,8 @@ def simulate(bot, px, spy=None):
                 why = "Time Exit"
             if why:
                 close(key, t, q["value"], why, C[t, j])
-        # 4) signals at the close: the rule that opened a trade decides its exit; new signals fill the free slots
-        for (j, g), q in pos.items():
-            if not valid[t, j]:
-                continue
-            if (PEXT if q["kind"] == "Put" else EXT)[q["k"], t, j]:
-                q["exit"] = True
-            elif q.get("plan") and C[t, j] < q["floor"]:
-                q["exit"] = True                                # closed under the trade's own failure line (NaN = none)
-            elif q.get("mb") and not q["exit"] and K[t, j] - q["kb"] >= q["mb"] - 1:
-                q["exit"], q["why"] = True, "Time Stop"         # held max_bars sessions: sell at the next open
-        if live[t]:
-            cand = []
-            if want_stock or want_call:
-                row = ENT[:, t, :]
-                for j in np.flatnonzero(row.any(axis=0)):
-                    m_ = MOM[t, j]
-                    rank_ = (-m_ if not np.isnan(m_) else np.inf, syms[j])
-                    if want_stock and (j, "S") not in pos:
-                        cand.append((rank_, int(j), int(np.argmax(row[:, j])), "Stock"))
-                    if want_call and (j, "O") not in pos:
-                        cand.append((rank_, int(j), int(np.argmax(row[:, j])), "Call"))
-            if want_put:                                       # puts: the weakest of the last 3 months first
-                row = PENT[:, t, :]
-                taken = {c[1] for c in cand if c[3] != "Stock"}
-                for j in np.flatnonzero(row.any(axis=0)):
-                    if (j, "O") not in pos and j not in taken:
-                        m_ = MOM[t, j]
-                        cand.append(((m_ if not np.isnan(m_) else np.inf, syms[j]), int(j), int(np.argmax(row[:, j])), "Put"))
-            cand.sort(key=lambda c: c[0])
-            free = {"S": slots("S"), "O": slots("O")}
-            for _, j, k, kind in cand:
-                g = "S" if kind == "Stock" else "O"
-                if free[g] > 0:
-                    pend.append((j, k, kind, t))
-                    free[g] -= 1
-        # 5) value at the close
-        mv = float(sum(q["shares"] * CF[t, key[0]] if q["kind"] == "Stock" else q["shares"] * 100 * q["value"] for key, q in pos.items()))
-        equity[t] = cash + mv
-        invested[t] = mv / equity[t] if equity[t] > 0 else 0.0
-        npos[t] = len(pos)
-        eq_prev = equity[t]
+        decide(t)
+        value(t)
 
     open_rows = []
     for (j, g), q in pos.items():
@@ -799,7 +1038,9 @@ def simulate(bot, px, spy=None):
     out.update(ok=True, start=start, symbols=syms, n_symbols=N, last_date=idx[-1], trades=tr, max_pos=max_pos,
                next_buys=[(syms[j], labels[k], kind) for j, k, kind, _ in pend],
                next_sells=[(syms[j], labels[q["k"]], q["kind"]) for (j, g), q in pos.items() if q["exit"]],
-               n_open=len(pos), in_pos=bool(pos), cash=float(cash))
+               n_open=len(pos), in_pos=bool(pos), cash=float(cash),
+               events=[e for e in events if e["d"] >= days[0]], signals=signals,
+               eq_rows=eq_rows, mismatch=len(mismatch))
     if bot["kind"] == "company":
         out["frame"] = frames[syms[0]]
 
@@ -831,12 +1072,14 @@ def simulate(bot, px, spy=None):
     return out
 
 
-def simulate_orb(bot, px5, pxd, spy=None, now=None):
+def simulate_orb(bot, px5, pxd, spy=None, now=None, record=None):
     """The Opening Range Breakout bot on 5-minute candles (px5 {symbol: 5-minute OHLCV}, pxd {symbol: daily OHLC} for the
     ATR). Every trade opens and closes on the same day; when more stocks break out than there are free slots, the ones
     that broke out first are taken (a tie goes to the higher relative volume). Each trade gets an equal slot of the
     balance at the day's open. Yahoo keeps 5-minute prices for 60 days, so the bot shows the last 60 days at most (the
-    first 5 sessions only build the relative volume). Same result dict as simulate(), plus 'intraday' and 'days5'."""
+    first 5 sessions only build the relative volume). Same result dict as simulate(), plus 'intraday' and 'days5'.
+    record: the forward-test record; its recorded days keep their recorded trades and balances (even after Yahoo's 60 days
+    have moved past them), and the run returns its closed trades ('events') and balances ('eq_rows') to be recorded."""
     out = {"bot": bot, "ok": False, "why": None, "waiting": False, "intraday": True}
     if not bot.get("valid") or PB.ORB not in bot["strategies"]:
         out["why"] = "strategy"
@@ -855,7 +1098,18 @@ def simulate_orb(bot, px5, pxd, spy=None, now=None):
     syms = sorted(bars)
     days = pd.DatetimeIndex(sorted(set().union(*(set(b.index.normalize()) for b in bars.values()))))
     start = max(pd.Timestamp(bot["start_date"]), days[min(PB.BASE_MIN, len(days) - 1)])
-    live_days = days[days >= start]
+    rec = record or {}
+    r_since, r_until = rec.get("since"), rec.get("until")
+    rec_eq = {d: v for d, v in (rec.get("eq") or {}).items() if r_since and r_until and r_since <= d <= r_until}
+    rec_tr = {}
+    for e in rec.get("ev") or []:
+        if e["d"] in rec_eq:
+            rec_tr.setdefault(e["d"], []).append(e)
+    if rec_eq:                                             # recorded days stay, even when the 5-minute data no longer has them
+        start = min(start, pd.Timestamp(min(rec_eq)))
+    live_days = pd.DatetimeIndex(sorted(set(days[days >= start]) | {pd.Timestamp(d) for d in rec_eq}))
+    live_days = live_days[live_days >= pd.Timestamp(bot["start_date"])]
+    events, eq_rows = [], {}
     cap, fee = float(bot["capital"]), bot["fee"] / 100
     max_pos = 1 if bot["kind"] == "company" else int(bot["max_pos"])
     cand = [dict(r, Symbol=s) for s in syms for r in sig[s].to_dict("records") if r["Day"] >= start]
@@ -873,6 +1127,25 @@ def simulate_orb(bot, px5, pxd, spy=None, now=None):
     eq, inv, npos = [], [], []
     cash = cap
     for d in live_days:
+        ds = f"{d:%Y-%m-%d}"
+        if ds in rec_eq:                                   # a recorded day: its trades and closing balance as recorded
+            for e in rec_tr.get(ds, []):
+                side = 1 if e["k"] == "Stock" else -1
+                entry, exit_px, shares = float(e["p"]), float(e["xp"]), float(e["q"])
+                cost = shares * entry * (1 + fee)
+                fees = shares * (entry + exit_px) * fee
+                pnl = shares * (exit_px - entry) * side - fees
+                trades.append({"Symbol": e["s"], "Strategy": PB.ORB, "Entry Date": pd.Timestamp(e["et"]), "Entry": entry, "Shares": shares,
+                               "Bars": int(e["b"]), "Type": e["k"], "Contract": e["s"], "Stock Entry": entry, "Stop": float(e["st"]),
+                               "Target": float(e["tg"]), "Expiry": None, "Exit Date": pd.Timestamp(e["xt"]), "Exit": exit_px, "P&L $": pnl,
+                               "P&L %": pnl / cost * 100, "Exit Reason": e["r"], "Stock Exit": exit_px, "Fees": fees})
+                days5.setdefault(f'{e["s"]}|{ds}', True)
+            value, inv_, npos_ = rec_eq[ds]
+            eq.append(float(value))
+            inv.append(float(inv_))
+            npos.append(int(npos_))
+            equity = cash = float(value)
+            continue
         alloc, busy, pnl_day, held_value, n_open, reserved = equity / max_pos, [], 0.0, 0.0, 0, 0
         for r in by_day.get(d, []):
             at = r["_at"]
@@ -906,11 +1179,16 @@ def simulate_orb(bot, px5, pxd, spy=None, now=None):
             pnl = shares * (exit_px - entry) * side - fees
             trades.append({**row, "Exit Date": r["Exit Time"], "Exit": exit_px, "P&L $": pnl, "P&L %": pnl / cost * 100,
                            "Exit Reason": r["Reason"], "Stock Exit": exit_px, "Fees": fees})
+            events.append({"d": ds, "a": "T", "s": r["Symbol"], "k": kind, "sg": f'{r["Signal"]:%Y-%m-%d %H:%M}',
+                           "et": f'{r["Entry Time"]:%Y-%m-%d %H:%M}', "p": entry, "q": float(shares), "st": float(r["Stop"]),
+                           "tg": float(r["Target"]), "xt": f'{r["Exit Time"]:%Y-%m-%d %H:%M}', "xp": exit_px, "r": r["Reason"],
+                           "b": int(r["Bars"])})
             pnl_day += pnl
         value = equity + pnl_day                           # open trades (today only) are valued at their last price
         eq.append(value)
         inv.append(min(len(busy), max_pos) / max_pos)      # the share of the slots the day used
         npos.append(len(busy))                             # trades held during the day (all are closed by the end of it)
+        eq_rows[ds] = [float(value), float(inv[-1]), int(npos[-1])]
         cash = value - held_value
         if not n_open:
             equity = value
@@ -920,15 +1198,18 @@ def simulate_orb(bot, px5, pxd, spy=None, now=None):
         days5 = {}
         for key in sorted(keep):
             sym, day = key.split("|")
-            b = bars[sym]
+            b = bars.get(sym)
+            if b is None:
+                continue
             day_b = b[b.index.normalize() == pd.Timestamp(day)]
             if len(day_b):
                 days5[key] = PB.with_vwap(day_b)[["Open", "High", "Low", "Close", "Volume", "VWAP"]]
     else:
         days5 = {}
-    out.update(ok=True, start=start, symbols=syms, n_symbols=len(syms), last_date=days[-1], trades=tr, max_pos=max_pos,
-               next_buys=next_buys, next_sells=[], n_open=len(open_rows), in_pos=bool(open_rows), cash=float(cash),
-               days5=days5, first_day=days[0], last_bar=max(t for t, _ in last_bar.values()))
+    out.update(ok=True, start=start, symbols=syms, n_symbols=len(syms), last_date=max(days[-1], live_days[-1]) if len(live_days) else days[-1],
+               trades=tr, max_pos=max_pos, next_buys=next_buys, next_sells=[], n_open=len(open_rows), in_pos=bool(open_rows),
+               cash=float(cash), days5=days5, first_day=days[0], last_bar=max(t for t, _ in last_bar.values()),
+               events=events, signals=[], eq_rows=eq_rows, mismatch=0)
     if bot["kind"] == "company":
         d0 = pxd.get(syms[0])
         out["frame"] = _prep(d0) if d0 is not None and len(d0) else None
@@ -938,7 +1219,7 @@ def simulate_orb(bot, px5, pxd, spy=None, now=None):
         return out
     eqs = pd.Series(eq, index=live_days)
     invs = pd.Series(inv, index=live_days)
-    cl = closes.loc[live_days]
+    cl = closes.reindex(live_days).ffill().bfill()         # recorded days may be older than the 5-minute data
     cols = [c for c in cl.columns if np.isfinite(cl[c].iloc[0]) and cl[c].iloc[0] > 0]
     grp = (cl[cols] / cl[cols].iloc[0]).mean(axis=1) * cap if cols else pd.Series(cap, index=live_days)
     m = engine.metrics({"equity": eqs, "position": invs, "trades": tr}, pd.DataFrame({"Close": grp}), cap)
@@ -967,25 +1248,70 @@ def _bench(spy, li, cap):
 def _run_cached(bot_json, build=None):
     """build: the site version, so results cached by an older version of the engine are never reused."""
     bot = json.loads(bot_json)
+    rec = bot.get("fwd") or None
+    since = rec.get("since") if rec else None
+    fwd_bot = {**bot, "start_date": max(since, bot["start_date"])} if since else bot
+    hist_bot = {**bot, "fwd": None} if since and bot["start_date"] < since else None
     if PB.ORB in bot.get("strategies", {}):          # 5-minute candles (Yahoo keeps 60 days) + daily ones for the ATR
         syms = members(bot["kind"], bot["value"]) if bot.get("valid") else []
         px5 = load_prices(syms, "60d", "5m")
         pxd = load_prices(list(syms) + ["SPY"], "1y")
-        return simulate_orb(bot, px5, pxd, pxd.get("SPY"))
-    period = period_for(bot["start_date"])
-    px = load_prices(members(bot["kind"], bot["value"]), period)
-    spy = px.get("SPY")
-    if spy is None or len(spy) < 2:
-        spy = data.history("SPY", period)
-    return simulate(bot, px, spy)
+        fwd = simulate_orb(fwd_bot, px5, pxd, pxd.get("SPY"), record=rec)
+        hist = None
+        if hist_bot:
+            cut = pd.Timestamp(since)
+            px5h = {s: _before(d, cut) for s, d in px5.items()}
+            hist = simulate_orb(hist_bot, px5h, pxd, pxd.get("SPY"), now=cut - pd.Timedelta(minutes=1))
+            if not hist["ok"] and hist["why"] == "data":
+                hist["why"] = "gone5"                # Yahoo's 60 days of 5-minute prices no longer reach before the forward test
+    else:
+        period = period_for(bot["start_date"])
+        px = load_prices(members(bot["kind"], bot["value"]), period)
+        spy = px.get("SPY")
+        if spy is None or len(spy) < 2:
+            spy = data.history("SPY", period)
+        fwd = simulate(fwd_bot, px, spy, record=rec)
+        hist = simulate(hist_bot, {s: _before(d, pd.Timestamp(since)) for s, d in px.items()}, spy) if hist_bot else None
+    fwd["phase"] = "live"
+    if hist is not None:
+        hist["phase"] = "sim"
+    fwd["hist"] = hist
+    return fwd
+
+
+def _before(df, cut):
+    """The candles of the sessions before `cut` (daily or 5-minute, naive or New York time)."""
+    if df is None or not len(df):
+        return df
+    ix = pd.DatetimeIndex(df.index)
+    if ix.tz is not None:
+        ix = ix.tz_convert("America/New_York").tz_localize(None)
+    return df[np.asarray(ix.normalize() < cut)]
 
 
 def run_all(bots):
     """Every bot replayed (each result cached for 10 minutes, like the prices) + SPY for the comparison chart."""
     sims = []
     for b in bots:
-        sim = dict(_run_cached(json.dumps(b, sort_keys=True, default=str), BUILD))
+        if not b.get("fwd") and b.get("id") is not None:         # a bot saved before forward tests were recorded: start now
+            b = {**b, "fwd": new_record(b)}
+            try:
+                save_record(b, b["fwd"])
+            except Exception:
+                pass
+        rec = b.get("fwd") or {}
+        key = {**b, "fwd_prev": None, "fwd": {k: rec.get(k) for k in ("since", "until", "ev", "sig", "eq")} if rec else None}
+        sim = dict(_run_cached(json.dumps(key, sort_keys=True, default=str), BUILD))   # only what the run needs is in the key
         sim["bot"] = b                       # the saved settings as they are (the cache key sorts the JSON)
+        if sim.get("hist") is not None:
+            sim["hist"] = {**sim["hist"], "bot": b}
+        upd = record_update(b, sim)
+        if upd is not None:                  # sessions closed since the last visit: record them (never recomputed again)
+            try:
+                save_record(b, upd)
+                b["fwd"] = upd
+            except Exception:
+                pass
         sims.append(sim)
     period = max((period_for(b["start_date"]) for b in bots), key=PERIODS.index) if bots else "2y"
     return sims, data.history("SPY", period)
@@ -1002,4 +1328,4 @@ def journal(sim):
                          "Days": tr["Bars"], "Exit Reason": tr["Exit Reason"]})
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "7.9"
+BUILD = "8.0"
