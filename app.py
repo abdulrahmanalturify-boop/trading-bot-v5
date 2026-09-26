@@ -10,9 +10,9 @@ import streamlit as st
 # ---------------------------------------------------------------- always run the newest code
 # Streamlit Cloud re-reads app.py after every GitHub upload but can keep the other modules (theme, data, ...) from the
 # previous version in memory. Every module carries BUILD; if one in memory is older, all of them are reloaded in order.
-BUILD = "7.5"
+BUILD = "7.6"
 _ORDER = ["i18n", "flags", "mcal", "universe", "sp500", "taxonomy", "ta", "academy", "insight", "heatmap", "newsiq", "theme", "data",
-          "caldata", "newsbot", "charts", "engine", "autotrader", "ui", "tdash", "paperbots", "p_markets", "p_research", "p_insight",
+          "caldata", "newsbot", "charts", "engine", "playbooks", "autotrader", "ui", "tdash", "paperbots", "p_markets", "p_research", "p_insight",
           "p_academy", "p_bot", "p_paper", "p_calendar"]
 if any(m in sys.modules and getattr(sys.modules[m], "BUILD", None) != BUILD for m in _ORDER):
     for _m in _ORDER:

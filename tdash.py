@@ -179,4 +179,4 @@ def render(tr, op, s, capital, key="td"):
                 f'<span class="muted">{n_open} {L("positions", "مراكز")}</span></div>{open_html(op, lg)}</div>')
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "7.5"
+BUILD = "7.6"

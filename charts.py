@@ -127,7 +127,7 @@ def price_chart(d, chart_type="Candles", overlays=(), panels=(), intraday=False,
             fig.update_yaxes(range=[lo - (hi - lo) * 0.05, hi + (hi - lo) * 0.05], row=1, col=1)
 
     ma = {"SMA 20": ("SMA20", GOLD), "SMA 50": ("SMA50", ACCENT), "SMA 200": ("SMA200", PURPLE),
-          "EMA 9": ("EMA9", "#4DD0E1"), "EMA 21": ("EMA21", "#FF8A65")}
+          "EMA 9": ("EMA9", "#4DD0E1"), "EMA 20": ("EMA20", CYAN), "EMA 21": ("EMA21", "#FF8A65")}
     for o in overlays:
         if o in ma and ma[o][0] in d and d[ma[o][0]].notna().any():
             col_name, color = ma[o]
@@ -316,6 +316,102 @@ def trade_chart(d, trades=None, overlays=(), panels=(), mode="Line", height=None
     arrows(closed, "_xd", False)
     fig.update_layout(hovermode="closest", legend=dict(orientation="h", y=1.02, x=0, yanchor="bottom"))
     return fig
+
+
+ORB_WORDS = {"range": "Opening range", "high": "Range high", "low": "Range low", "vwap": "VWAP", "long": "BUY", "short": "SHORT",
+             "cover": "COVER", "sell": "SELL", "stop": "Stop", "target": "Target", "at": "at"}
+
+
+def orb_chart(bars, trades=None, or_minutes=15, mode="Candles", words=None, height=None):
+    """One session of 5-minute candles for the Opening Range Breakout: the opening range shaded with its high and low
+    across the day, the session VWAP, and each trade from entry to exit with its stop and target.
+    bars: Open / High / Low / Close / Volume (+ VWAP) with naive New York times."""
+    w = {**ORB_WORDS, **(words or {})}
+    x = bars.index.strftime("%H:%M")
+    fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.02, row_heights=[0.8, 0.2])
+    if mode == "Candles":
+        fig.add_trace(go.Candlestick(x=x, open=bars["Open"], high=bars["High"], low=bars["Low"], close=bars["Close"], name="Price",
+                                     increasing_line_color=UP, decreasing_line_color=DOWN, increasing_fillcolor=UP,
+                                     decreasing_fillcolor=DOWN, showlegend=False), 1, 1)
+    else:
+        fig.add_trace(go.Scatter(x=x, y=bars["Close"], mode="lines", line=dict(color=rgba(CYAN, 0.12), width=7), hoverinfo="skip",
+                                 showlegend=False), 1, 1)
+        fig.add_trace(go.Scatter(x=x, y=bars["Close"], mode="lines", name="Price", line=dict(color="#EEF2F8", width=1.8),
+                                 hovertemplate="%{x}<br>%{y:,.2f}<extra></extra>", showlegend=False), 1, 1)
+    k = max(int(or_minutes) // 5, 1)
+    orb = bars.iloc[:k]
+    hi, lo = float(orb["High"].max()), float(orb["Low"].min())
+    lo_all, hi_all = float(bars["Low"].min()), float(bars["High"].max())
+    fig.add_vrect(x0=-0.5, x1=min(k, len(x)) - 0.5, fillcolor=rgba(ACCENT, 0.13), line_width=0, layer="below", row=1, col=1)
+    fig.add_annotation(x=0, y=1, xref="x", yref="y domain", text=w["range"], showarrow=False, xanchor="left", yanchor="bottom",
+                       font=dict(color="#9CC3FF", size=11))
+    for y, name, color in ((hi, w["high"], CYAN), (lo, w["low"], VIOLET)):
+        fig.add_trace(go.Scatter(x=[x[0], x[-1]], y=[y, y], mode="lines", name=f"{name} {y:,.2f}", line=dict(color=color, width=1.3, dash="dash"),
+                                 hovertemplate=f"{name} {y:,.2f}<extra></extra>"), 1, 1)
+    if "VWAP" in bars and bars["VWAP"].notna().any():
+        fig.add_trace(go.Scatter(x=x, y=bars["VWAP"], mode="lines", name=w["vwap"], line=dict(color=GOLD, width=1.5),
+                                 hovertemplate="VWAP %{y:,.2f}<extra></extra>"), 1, 1)
+    span = (hi_all - lo_all) or max(hi_all, 1.0) * 0.01
+    off = span * 0.05
+    ys = [lo_all, hi_all]
+    if trades is not None and len(trades):
+        pos = {t: i for i, t in enumerate(bars.index)}
+
+        def at(ts):
+            ts = pd.Timestamp(ts)
+            if ts in pos:
+                return x[pos[ts]]
+            i = min(int(bars.index.searchsorted(ts)), len(x) - 1)     # "Close of Day" is stamped at 16:00, after the last candle
+            return x[i]
+
+        for _, r in trades.iterrows():
+            long_ = r.get("Type", "Stock") != "Short"
+            closed = r["Exit Reason"] != "Open"
+            xe, xx = at(r["Entry Date"]), at(r["Exit Date"])
+            color = (UP if r["P&L $"] > 0 else DOWN) if closed else GOLD
+            fig.add_trace(go.Scatter(x=[xe, xx], y=[float(r["Entry"]), float(r["Exit"])], mode="lines", showlegend=False, hoverinfo="skip",
+                                     line=dict(color=color, width=2, dash="dot")), 1, 1)
+            # the stop and the target from the entry to the exit (at least an hour long, so a quick trade still shows them)
+            i0 = list(x).index(xe)
+            x_end = x[min(max(list(x).index(xx), i0 + 12), len(x) - 1)]
+            for y, name, c in ((r.get("Stop"), w["stop"], DOWN), (r.get("Target"), w["target"], UP)):
+                if y is not None and pd.notna(y):
+                    ys.append(float(y))
+                    fig.add_trace(go.Scatter(x=[xe, x_end], y=[float(y), float(y)], mode="lines+text", showlegend=False,
+                                             text=["", f"{name} {float(y):,.2f}"], textposition="middle right",
+                                             textfont=dict(size=10, color=c, family=FONT_FAMILY),
+                                             line=dict(color=rgba(c, 0.8), width=1.4, dash="dash"),
+                                             hovertemplate=f"{name} {float(y):,.2f}<extra></extra>"), 1, 1)
+            e_bar = bars.loc[pd.Timestamp(r["Entry Date"])] if pd.Timestamp(r["Entry Date"]) in pos else None
+            e_y = (float(e_bar["Low"]) - off if long_ else float(e_bar["High"]) + off) if e_bar is not None else float(r["Entry"])
+            fig.add_trace(go.Scatter(x=[xe], y=[e_y], mode="markers+text", name=w["long"] if long_ else w["short"],
+                                     text=[w["long"] if long_ else w["short"]], textposition="bottom center" if long_ else "top center",
+                                     textfont=dict(size=10, color=UP if long_ else DOWN, family=FONT_FAMILY),
+                                     marker=dict(symbol="triangle-up" if long_ else "triangle-down", size=14, color=UP if long_ else DOWN,
+                                                 line=dict(color="#0A0E17", width=1.5)),
+                                     hovertemplate=f"<b>{w['long'] if long_ else w['short']}</b> {w['at']} {float(r['Entry']):,.2f}<br>%{{x}}"
+                                                   "<extra></extra>", showlegend=False), 1, 1)
+            if closed:
+                word = w["sell"] if long_ else w["cover"]
+                why = r.get("Why", r["Exit Reason"])
+                fig.add_trace(go.Scatter(x=[xx], y=[float(r["Exit"]) + (off if long_ else -off)], mode="markers+text", name=word, text=[word],
+                                         textposition="top center" if long_ else "bottom center",
+                                         textfont=dict(size=10, color=DOWN if long_ else UP, family=FONT_FAMILY),
+                                         marker=dict(symbol="triangle-down" if long_ else "triangle-up", size=14, color=DOWN if long_ else UP,
+                                                     line=dict(color="#0A0E17", width=1.5)),
+                                         hovertemplate=f"<b>{word}</b> {w['at']} {float(r['Exit']):,.2f} · {why}<br>"
+                                                       f"{float(r['P&L %']):+.2f}% ({'+' if r['P&L $'] > 0 else '-'}${abs(float(r['P&L $'])):,.0f})"
+                                                       "<extra></extra>", showlegend=False), 1, 1)
+    vcol = [rgba(UP, 0.5) if c >= o else rgba(DOWN, 0.5) for o, c in zip(bars["Open"], bars["Close"])]
+    fig.add_trace(go.Bar(x=x, y=bars["Volume"], marker_color=vcol, name="Volume", showlegend=False, hovertemplate="%{x}<br>%{y:,.0f}<extra></extra>"),
+                  2, 1)
+    style(fig, height or 520)
+    top, bot = max(ys), min(ys)
+    pad = (top - bot) * 0.08 or 1.0
+    fig.update_yaxes(range=[bot - pad, top + pad], row=1, col=1)
+    fig.update_xaxes(type="category", nticks=10)
+    fig.update_layout(hovermode="closest", legend=dict(orientation="h", y=1.02, x=0, yanchor="bottom"))
+    return _bars(fig)
 
 
 def pct_bars(labels, values, title=None, height=None, hover=None):
@@ -1063,4 +1159,4 @@ def seasonal_path(avg, cur=None, title=None, names=("Average year", "This year")
     return fig
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "7.5"
+BUILD = "7.6"

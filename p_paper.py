@@ -1,7 +1,8 @@
 """
 p_paper.py - Paper Bots: up to 5 bots that trade with virtual money on real prices, forward from the day they start.
-Each bot trades one company, a sector, an industry or all companies, with one or more Strategy Lab strategies, and buys
-stocks, options, or both side by side.
+Each bot trades one company, a sector, an industry or all companies, with one or more Strategy Lab strategies (buying
+stocks, options, or both side by side) or with "combined strategies": complete setups written as exact numeric rules
+(playbooks.py), each with its own stop, target and time stop; the Opening Range Breakout trades 5-minute candles.
 
 Page, top to bottom:
   * a hero in the site's colours: the bots as five slots on the brand's rising cyan line, with the totals as chips,
@@ -27,6 +28,7 @@ import data
 import engine
 import mcal
 import paperbots as PB
+import playbooks as PBK
 import ta
 import tdash
 import theme as T
@@ -39,12 +41,21 @@ KIND_LABEL = {"company": ("One company", "شركة"), "sector": ("A sector", "ق
               "all": ("All companies", "كل الشركات")}
 KIND_ICON = {"company": "domain", "sector": "category", "industry": "factory", "all": "public"}
 OVERLAYS = {"SMA Crossover": ["SMA 20", "SMA 50"], "Golden Cross (50/200)": ["SMA 50", "SMA 200"],
-            "EMA Crossover": ["EMA 9", "EMA 21"], "Bollinger Breakout": ["Bollinger Bands"]}
-PANELS = {"RSI Mean Reversion": ["RSI"], "MACD Crossover": ["MACD"], "OBV Trend (Volume)": ["OBV"], "MFI Money Flow (Volume)": ["MFI"]}
-CATS = {"trend": ("Trend", "اتجاه", ["SMA Crossover", "EMA Crossover", "Golden Cross (50/200)", "MACD Crossover"]),
-        "breakout": ("Breakout", "اختراق", ["Bollinger Breakout", "Donchian Breakout (Turtle)", "Volume Breakout"]),
-        "reversion": ("Mean reversion", "ارتداد", ["RSI Mean Reversion", "MFI Money Flow (Volume)"]),
-        "volume": ("Volume", "فوليوم", ["OBV Trend (Volume)", "Volume Breakout", "VWMA Crossover (Volume)", "MFI Money Flow (Volume)"])}
+            "EMA Crossover": ["EMA 9", "EMA 21"], "Bollinger Breakout": ["Bollinger Bands"],
+            PBK.TREND_PULLBACK: ["EMA 20", "SMA 50", "SMA 200"], PBK.BREAKOUT_RETEST: ["SMA 50"],
+            PBK.SQUEEZE: ["Bollinger Bands", "SMA 50"], PBK.RANGE: ["Bollinger Bands"]}
+PANELS = {"RSI Mean Reversion": ["RSI"], "MACD Crossover": ["MACD"], "OBV Trend (Volume)": ["OBV"], "MFI Money Flow (Volume)": ["MFI"],
+          PBK.TREND_PULLBACK: ["RSI", "ADX"], PBK.RANGE: ["RSI", "ADX"]}
+# the two ways to pick strategies in the form
+MODES = {"single": ("tune", "Strategies: one, several or all", "الاستراتيجيات: وحدة أو أكثر أو الكل",
+                    "The Strategy Lab strategies. Pick one, several or all of them; any of them can open a trade.",
+                    "استراتيجيات مختبر الاستراتيجيات. اختر وحدة أو أكثر أو كلها، وأي وحدة منها تقدر تفتح صفقة."),
+         "combo": ("hub", "Combined strategies", "الاستراتيجيات المركّبة",
+                   "Complete setups written as exact numbers: trend, pullback or breakout, confirmation, and their own stop, "
+                   "target and time stop.",
+                   "استراتيجيات كاملة مكتوبة بأرقام دقيقة: اتجاه وتراجع أو اختراق وتأكيد، ولكل وحدة وقفها وهدفها ووقفها الزمني.")}
+PB_ICON = {PBK.TREND_PULLBACK: "trending_up", PBK.BREAKOUT_RETEST: "north_east", PBK.SQUEEZE: "compress", PBK.RANGE: "swap_vert",
+           PBK.ORB: "timer"}
 INSTR_LABEL = {"stock": ("Stocks", "أسهم"), "options": ("Options", "أوبشن"), "both": ("Both", "الاثنين")}
 INSTR_CHIP = {"stock": ("show_chart", "Stocks", "أسهم"), "options": ("receipt_long", "Options", "أوبشن"),
               "both": ("layers", "Stocks + options", "أسهم + أوبشن")}
@@ -52,15 +63,19 @@ OTYPE_LABEL = {"call": ("Calls (buy signals)", "Call (إشارات الشراء)
                "both": ("Calls + Puts", "Call + Put")}
 STRIKE_LABEL = {-10: ("10% in the money", "داخل السعر 10%"), -5: ("5% in the money", "داخل السعر 5%"), 0: ("At the money", "عند السعر"),
                 5: ("5% out of the money", "خارج السعر 5%"), 10: ("10% out of the money", "خارج السعر 10%")}
-TYPE_BADGE = {"Stock": ("STOCK", "سهم", "up"), "Call": ("CALL", "CALL", "acc"), "Put": ("PUT", "PUT", "vio")}
-TYPE_NAME = {"Stock": ("Stocks", "الأسهم"), "Call": ("Calls", "عقود Call"), "Put": ("Puts", "عقود Put")}
-EXIT_KIND = {"Signal": "neu", "Stop Loss": "down", "Trailing Stop": "gold", "Take Profit": "up", "Time Exit": "org"}
-EXIT_AR = {**engine.EXIT_REASON_AR, "Time Exit": "خروج قبل الانتهاء"}
+TYPE_BADGE = {"Stock": ("STOCK", "سهم", "up"), "Call": ("CALL", "CALL", "acc"), "Put": ("PUT", "PUT", "vio"),
+              "Short": ("SHORT", "بيع مكشوف", "down")}
+TYPE_NAME = {"Stock": ("Stocks", "الأسهم"), "Call": ("Calls", "عقود Call"), "Put": ("Puts", "عقود Put"), "Short": ("Shorts", "البيع المكشوف")}
+TYPE_ONE = {"Stock": ("Stock", "سهم"), "Call": ("Call", "Call"), "Put": ("Put", "Put"), "Short": ("Short", "بيع مكشوف")}
+EXIT_KIND = {"Signal": "neu", "Stop Loss": "down", "Trailing Stop": "gold", "Take Profit": "up", "Time Exit": "org", "Time Stop": "org",
+             "Close of Day": "neu"}
+EXIT_AR = {**engine.EXIT_REASON_AR, "Time Exit": "خروج قبل الانتهاء", "Time Stop": "وقف زمني", "Close of Day": "إغلاق اليوم"}
 MONTHS_EN = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 DEFAULTS = {"pb_name": "", "pb_capital": 1_000_000, "pb_kind": "all", "pb_symbol": "AAPL", "pb_sector": "Technology",
             "pb_ind_sector": "Technology", "pb_industry": "Semiconductors", "pb_maxpos": 10, "pb_store": ["SMA Crossover"],
             "pb_fee": 0.05, "pb_stop": 2.0, "pb_atr": 0.0, "pb_tp": 0.0, "pb_trail": 0.0, "pb_combine": "any", "pb_instr": "stock",
-            "pb_otype": "call", "pb_dte": 30, "pb_strike": 0, "pb_oalloc": 5.0, "pb_otp": 100.0, "pb_osl": 50.0}
+            "pb_otype": "call", "pb_dte": 30, "pb_strike": 0, "pb_oalloc": 5.0, "pb_otp": 100.0, "pb_osl": 50.0,
+            "pb_mode": "single", "pb_store_pb": [PBK.TREND_PULLBACK]}
 
 _A, _V, _C, _D, _G, _BG, _BD, _MU = T.ACCENT, T.VIOLET, T.CYAN, T.DOWN, T.GOLD, T.CARD2, T.BORDER, T.MUTED
 _CARD_H = 352          # every card in the leaderboard (bots and "Add Bot") has this height
@@ -258,20 +273,109 @@ a.pblink .ms {{ font-size:1rem; }}
 .pbct .muted {{ font-size:.78rem; font-weight:600; }} .pbct .pill {{ min-width:0; padding:2px 8px; font-size:.76rem; }}
 .pbct .pbox {{ padding:2px 8px; font-size:.8rem; }}
 
-@media (prefers-reduced-motion: reduce) {{ .pbhero *, .pbadd * {{ animation:none !important; }} }}
+/* ---------- add / edit form: a banner in the hero's colours, then numbered cards with space between them ---------- */
+.pbfb {{ position:relative; overflow:hidden; border-radius:18px; border:1px solid {_BD}; padding:16px 20px 14px; min-height:118px;
+  background:linear-gradient(120deg,#060c1c,#0c1d3f,#1c1543,#071a33); background-size:300% 300%; animation:sky 20s ease-in-out infinite; }}
+.pbfb .art {{ position:absolute; top:0; bottom:0; right:0; width:34%; pointer-events:none; }}
+.pbfb .art svg {{ width:100%; height:100%; display:block; }}
+.pbfb .ln {{ animation:pbdraw 7s ease-in-out infinite; }}
+.pbfb .tx {{ position:relative; z-index:2; max-width:76%; }}
+.pbfb.rtl .art {{ right:auto; left:0; transform:scaleX(-1); }}
+.pbfb.rtl .tx {{ margin-left:auto; }}
+.pbfb .eb {{ color:{_C}; font-weight:800; letter-spacing:.18em; font-size:.66rem; text-transform:uppercase; display:flex; align-items:center; gap:6px; }}
+.pbfb .eb .ms {{ font-size:.95rem; }}
+.pbfb .t {{ font-size:1.55rem; font-weight:800; color:#fff; margin:5px 0 3px; letter-spacing:-.01em; line-height:1.15; }}
+.pbfb .t b {{ background:linear-gradient(90deg,{_A},{_V},{_C}); -webkit-background-clip:text; background-clip:text; color:transparent; }}
+.pbfb .s {{ color:#C7CFDD; font-size:.84rem; line-height:1.5; }}
+.pbfb .pbstp {{ display:flex; flex-wrap:wrap; gap:4px; margin-top:11px; }}
+.pbfb .pbstp span {{ display:inline-flex; align-items:center; gap:5px; font-size:.7rem; font-weight:700; color:#C9D0DC; background:rgba(17,23,35,.72);
+  border:1px solid rgba(255,255,255,.06); border-radius:999px; padding:2px 9px 2px 3px; white-space:nowrap; }}
+.pbfb.rtl .pbstp span {{ padding:2px 3px 2px 9px; }}
+.pbfb .pbstp i {{ font-style:normal; width:17px; height:17px; border-radius:50%; display:grid; place-items:center; font-size:.62rem; font-weight:800;
+  color:#fff; background:linear-gradient(135deg,{_A},{_V}); }}
+[class*="st-key-pbf_"] {{ position:relative; overflow:hidden; background:linear-gradient(180deg,{_BG},{T.CARD}); border:1px solid {_BD};
+  border-radius:18px; padding:14px 18px 16px 21px; margin-top:16px; box-shadow:0 10px 26px rgba(0,0,0,.18); }}
+[class*="st-key-pbf_"]::before {{ content:""; position:absolute; top:0; bottom:0; left:0; width:3px; background:linear-gradient(180deg,{_A},{_V},{_C}); }}
+[class*="st-key-pbf_"] [data-testid="stMarkdownContainer"] {{ margin-bottom:0 !important; }}
+.pbfh {{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:2px; }}
+.pbfh .n {{ width:28px; height:28px; border-radius:9px; display:grid; place-items:center; font-weight:800; font-size:.84rem; color:#fff; flex:none;
+  background:linear-gradient(135deg,{_A},{_V}); box-shadow:0 6px 16px rgba(61,123,255,.35); }}
+.pbfh .t {{ display:flex; align-items:center; gap:7px; font-weight:800; font-size:1.03rem; color:#fff; }}
+.pbfh .t .ms {{ color:{_C}; font-size:1.15rem; }}
+.pbfh .h {{ color:{_MU}; font-size:.76rem; font-weight:600; margin-inline-start:auto; }}
+.pbfs {{ display:flex; align-items:center; gap:6px; font-weight:800; font-size:.74rem; color:#AEB7C6; letter-spacing:.08em; text-transform:uppercase; }}
+.pbfs .ms {{ color:{_C}; font-size:1rem; }}
+/* the two ways to pick strategies: two tiles, the chosen one lit */
+[class*="st-key-pbmode_"] {{ position:relative; height:100%; transition:transform .16s ease; }}
+[class*="st-key-pbmode_"]:hover {{ transform:translateY(-2px); }}
+[class*="st-key-pbmode_"] [data-testid="stElementContainer"] {{ position:static !important; }}
+[class*="st-key-pbmode_"] [class*="st-key-pb_mode_"] {{ position:absolute !important; inset:0; z-index:4; margin:0 !important; width:auto !important; }}
+[class*="st-key-pbmode_"] [class*="st-key-pb_mode_"] .stButton, [class*="st-key-pbmode_"] [class*="st-key-pb_mode_"] button
+  {{ width:100% !important; height:100% !important; opacity:0; cursor:pointer; }}
+.pbmode {{ min-height:138px; box-sizing:border-box; border-radius:16px; padding:13px 15px; border:1.5px solid {_BD};
+  background:linear-gradient(180deg,rgba(255,255,255,.025),rgba(255,255,255,0)); transition:border-color .16s, box-shadow .16s, background .16s; }}
+[class*="st-key-pbmode_"]:hover .pbmode {{ border-color:{_A}99; }}
+.pbmode.on {{ border-color:{_A}; box-shadow:0 0 0 1px {_A}55, 0 12px 28px rgba(61,123,255,.22);
+  background:radial-gradient(120% 90% at 0% 0%,rgba(61,123,255,.22),transparent 62%),linear-gradient(180deg,rgba(139,92,246,.10),rgba(34,211,238,.04)); }}
+.pbmode .top {{ display:flex; justify-content:space-between; align-items:center; }}
+.pbmode .i .ms {{ font-size:1.15rem; color:#fff; background:linear-gradient(135deg,{_A},{_V}); border-radius:10px; padding:6px; }}
+.pbmode .ck .ms {{ font-size:1.35rem; color:{_MU}; }}
+.pbmode.on .ck .ms {{ color:{_C}; }}
+.pbmode .nm {{ font-weight:800; color:#fff; font-size:.98rem; margin-top:10px; }}
+.pbmode .ds {{ color:#AEB7C6; font-size:.78rem; line-height:1.5; margin-top:4px; }}
+.pbmode .ct {{ display:inline-block; margin-top:8px; font-size:.66rem; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:#9CC3FF; }}
+/* the chosen strategies inside the drop-downs, in the brand colours */
+[class*="st-key-pb_ms_"] [data-baseweb="tag"] {{ background:linear-gradient(135deg,rgba(61,123,255,.30),rgba(139,92,246,.30)) !important;
+  border:1px solid {_A}66 !important; border-radius:10px !important; }}
+[class*="st-key-pb_ms_"] [data-baseweb="tag"] span {{ color:#fff !important; font-weight:700; }}
+[class*="st-key-pb_ms_"] [data-baseweb="select"] > div {{ border-radius:12px !important; }}
+/* a combined strategy's rules */
+.pbrl {{ border:1px solid {_BD}; border-radius:16px; background:rgba(10,14,23,.5); padding:12px 14px 13px; }}
+.pbrl + .pbrl {{ margin-top:10px; }}
+.pbrl .hd {{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }}
+.pbrl .hd .i .ms {{ font-size:1.1rem; color:#fff; background:linear-gradient(135deg,{_A},{_V}); border-radius:10px; padding:6px; }}
+.pbrl .nm {{ display:flex; flex-direction:column; line-height:1.3; }}
+.pbrl .nm b {{ color:#fff; font-size:.96rem; }}
+.pbrl .nm span {{ color:{_MU}; font-size:.74rem; font-weight:600; }}
+.pbrl .cs {{ display:flex; flex-wrap:wrap; gap:6px; margin-inline-start:auto; }}
+.pbrl .cs .c {{ display:inline-flex; align-items:center; gap:5px; font-size:.72rem; font-weight:700; color:#C9D0DC; background:rgba(138,148,167,.10);
+  border:1px solid {_BD}; border-radius:999px; padding:3px 10px; white-space:nowrap; }}
+.pbrl .cs .c .ms {{ font-size:.95rem; color:{_C}; }}
+.pbrl .gr {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:9px; margin-top:11px; }}
+.pbrl .gr:has(> .g:nth-child(4)) {{ grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); }}
+.pbrl .g {{ background:rgba(255,255,255,.028); border:1px solid rgba(255,255,255,.055); border-radius:12px; padding:9px 12px 8px; }}
+.pbrl .gt {{ display:flex; align-items:center; gap:7px; font-size:.68rem; font-weight:800; letter-spacing:.09em; text-transform:uppercase; color:#9CC3FF; }}
+.pbrl .gt .k {{ width:18px; height:18px; border-radius:6px; display:grid; place-items:center; background:rgba(61,123,255,.25); color:#fff; font-size:.64rem; }}
+.pbrl ul {{ margin:6px 0 0; padding-inline-start:18px; }}
+.pbrl li {{ color:#DCE2EC; font-size:.8rem; line-height:1.55; margin:2px 0; }}
+.pbrl li::marker {{ color:{_C}; }}
+
+@media (prefers-reduced-motion: reduce) {{ .pbhero *, .pbadd *, .pbfb * {{ animation:none !important; }} }}
+@media (max-width: 640px) {{ .pbfb .art {{ width:100%; opacity:.25; }} .pbfb .tx {{ max-width:100%; }} }}
 </style>"""
 # Arabic: no letter-spacing (it breaks the joined letters) and the accent bars move to the right edge
 PAGE_RTL_CSS = """<style>
-.pbhero .eb, .pbc .it, .pbmh, .pbt th { letter-spacing:0; }
-.pbp::before, .pbid::before { left:auto; right:0; }
+.pbhero .eb, .pbc .it, .pbmh, .pbt th, .pbfb .eb, .pbfs, .pbmode .ct, .pbrl .gt { letter-spacing:0; }
+.pbp::before, .pbid::before, [class*="st-key-pbf_"]::before { left:auto; right:0; }
 .pbp { padding:14px 19px 8px 16px; }
+[class*="st-key-pbf_"] { padding:14px 21px 16px 18px; }
+.pbmode.on { background:radial-gradient(120% 90% at 100% 0%,rgba(61,123,255,.22),transparent 62%),linear-gradient(180deg,rgba(139,92,246,.10),rgba(34,211,238,.04)); }
 </style>"""
 
 
 def strat_name(k):
     if k == PB.COMBO:
-        return L("Combined rule", "القاعدة المركبة")
-    return L(k, engine.STRATEGY_AR.get(k, k))
+        return L("Agreement rule", "قاعدة الاتفاق")
+    return L(k, engine.STRATEGY_AR.get(k) or PBK.AR.get(k, k))
+
+
+def is_combined(bot):
+    """True for a bot that runs the combined strategies (playbooks)."""
+    return any(PB.is_playbook(s) for s in bot["strategies"])
+
+
+def is_orb(bot):
+    return PBK.ORB in bot["strategies"]
 
 
 def strat_short(k):
@@ -299,13 +403,17 @@ def combo_rule(bot):
     if c.get("mode") != "combo":
         return None
     if c["min"] >= n:
-        return L(f"Combined: all {n} agree", f"مركبة: لازم تتفق الـ {n} كلها")
-    return L(f"Combined: {c['min']} of {n} agree", f"مركبة: تتفق {c['min']} من {n}")
+        return L(f"Agreement: all {n} agree", f"اتفاق: لازم تتفق الـ {n} كلها")
+    return L(f"Agreement: {c['min']} of {n} agree", f"اتفاق: تتفق {c['min']} من {n}")
 
 
 def how_label(bot, short=False):
     rule = combo_rule(bot)
     names = list(bot["strategies"])
+    if is_combined(bot):
+        if short:
+            return strat_short(names[0]) if len(names) == 1 else L(f"{len(names)} combined strategies", f"{len(names)} استراتيجيات مركّبة")
+        return L("Combined: ", "مركّبة: ") + " + ".join(strat_short(x) for x in names)
     if rule and short:
         return rule
     if rule:
@@ -323,8 +431,8 @@ def strategies_label(names, short=False):
 
 
 def _params_txt(name, params):
-    spec = engine.STRATEGIES.get(name, (None, []))[1]
-    labels = {k: L(lab, engine.PARAM_AR.get(lab, lab)) for k, lab, *_ in spec}
+    spec = PB.spec_of(name)[1] if name in PB.ALL_STRATEGIES else []
+    labels = {k: L(lab, engine.PARAM_AR.get(lab) or PBK.PARAM_AR.get(lab, lab)) for k, lab, *_ in spec}
     return " · ".join(f"{labels.get(k, k)} {v:g}" for k, v in params.items())
 
 
@@ -333,6 +441,14 @@ def instrument(bot):
 
 
 def _stock_risk(bot):
+    if is_orb(bot):
+        return L("Stop and target from the opening range · out by the close", "الوقف والهدف من نطاق الافتتاح · خروج قبل الإغلاق")
+    if is_combined(bot):
+        out = [L("Stop · target · time stop from the rules", "الوقف والهدف والوقف الزمني من الشروط")]
+        if bot["trail_pct"]:
+            trail = iso(f"{bot['trail_pct']:g}%")
+            out.append(f"{L('Trailing', 'متحرك')} {trail}")
+        return " · ".join(out)
     out = []
     for k, en, ar_, suf in (("stop_pct", "Stop", "وقف", "%"), ("atr_mult", "ATR stop ×", "وقف ATR ×", ""),
                             ("tp_pct", "Target", "هدف", "%"), ("trail_pct", "Trailing", "متحرك", "%")):
@@ -494,9 +610,9 @@ def hero_html(sims, n_bots):
         chips.append(f'<span class="chip">{T.icon("candlestick_chart")}{L("Real prices", "أسعار حقيقية")}</span>')
     title = L("Paper <b>Bots</b>", "البوتات <b>الافتراضية</b>")
     tag = L(f"Up to {PB.MAX_BOTS} bots trade with virtual money on real prices, forward from the day they start: a company, a sector, "
-            "an industry or all companies, with one or more strategies, buying stocks, options or both.",
+            "an industry or all companies, with one or more strategies or ready-made combined strategies, buying stocks, options or both.",
             f"حتى {PB.MAX_BOTS} بوتات تتداول بأموال وهمية على أسعار حقيقية من يوم تشغيلها وللأمام: شركة أو قطاع أو صناعة أو كل الشركات، "
-            "باستراتيجية وحدة أو أكثر، وتشتري أسهم أو أوبشن أو الاثنين.")
+            "باستراتيجية وحدة أو أكثر أو باستراتيجيات مركّبة جاهزة، وتشتري أسهم أو أوبشن أو الاثنين.")
     return (f'<div class="pbhero{" rtl" if is_ar() else ""}"><div class="grid"></div><div class="art">{_hero_art(rk)}</div>'
             f'<div class="txt"><div class="eb">{T.icon("robot_2")}{L("Paper trading lab", "مختبر التداول الافتراضي")}</div>'
             f'<div class="t">{title}</div><div class="tg">{T.esc(tag)}</div><div class="chips">{"".join(chips)}</div>'
@@ -512,6 +628,8 @@ def status_badge(sim):
     if sim["waiting"]:
         return T.badge(L("Starts next session", "يبدأ الجلسة القادمة"), "neu", "schedule")
     nb, ns = len(sim["next_buys"]), len(sim["next_sells"])
+    if sim.get("intraday") and nb:
+        return T.badge(L("Enters at the next 5-min candle", "يدخل مع شمعة الـ 5 دقائق القادمة"), "gold", "bolt")
     if sim["bot"]["kind"] == "company":
         if nb:
             return T.badge(L("Buys at next open", "يشتري عند الافتتاح القادم"), "gold", "bolt")
@@ -536,9 +654,25 @@ def head_html(b, logo=None):
             f'<div class="sub">{T.esc(universe_label(b))}</div></div></div>')
 
 
+def card_chip(b):
+    """(icon, English, Arabic) for the top-left corner of a bot's card."""
+    if is_orb(b):
+        return "timer", "5-min · long / short", "5 دقائق · شراء / بيع"
+    if is_combined(b):
+        return "hub", "Combined · stocks", "مركّبة · أسهم"
+    return INSTR_CHIP[instrument(b)]
+
+
+def since_of(sim):
+    """The first day the bot trades: its start date (the Opening Range Breakout: the first day it has 5-minute prices for)."""
+    if sim.get("intraday") and sim.get("start") is not None:
+        return pd.Timestamp(sim["start"]).strftime("%Y-%m-%d")
+    return sim["bot"]["start_date"]
+
+
 def bot_card(rank, sim, logo, selected=False):
     b = sim["bot"]
-    ic, en, ar_ = INSTR_CHIP[instrument(b)]
+    ic, en, ar_ = card_chip(b)
     medal = T.icon("emoji_events") if rank == 1 else ""
     top = f'<div class="top"><span class="it">{T.icon(ic)}{T.esc(L(en, ar_))}</span><span class="rk r{rank}">{medal}#{rank}</span></div>'
     badges = f'<div class="bdg">{T.badge(how_label(b, short=True), "vio", "smart_toy")}{status_badge(sim)}</div>'
@@ -552,7 +686,7 @@ def bot_card(rank, sim, logo, selected=False):
                 f'<div class="row"><div><div class="muted" style="font-size:.72rem">{L("Balance", "الرصيد")}</div>'
                 f'<div style="font-weight:800;font-size:1.1rem;direction:ltr">{T.money(sim["final"])}</div></div>'
                 f'<div class="r">{T.pbox(f"{ret:+.2f}%", ret)}{spx}</div></div>'
-                f'<div class="pbft">{trades}{watch} · {L("since", "منذ")} {iso(b["start_date"])}</div>')
+                f'<div class="pbft">{trades}{watch} · {L("since", "منذ")} {iso(since_of(sim))}</div>')
     elif sim["ok"]:
         body = (f'<div class="pbft">{L("Starts with the first US session from", "يبدأ مع أول جلسة أمريكية من")} '
                 f'{iso(b["start_date"])} · {iso(T.money(b["capital"]))}</div>')
@@ -731,7 +865,7 @@ def single_view(sim, in_tab=False):
             "final": float(sim["final"]), "ret": float(sim["ret"]), "bench_ret": sim["bench_ret"], "base_ret": sim["group_ret"],
             "equity": sim["equity"], "bench": sim["bench"] if has_spy else sim["group"],
             "bench_name": "S&P 500 (SPY)" if has_spy else L("Buy & Hold", "شراء واحتفاظ"), "npos": sim["npos"], "trades": tr,
-            "cash": float(cash), "name": b["name"], "scope": b["name"] if in_tab else "", "sessions": sim["sessions"], "since": b["start_date"], "opts": instrument(b) != "stock",
+            "cash": float(cash), "name": b["name"], "scope": b["name"] if in_tab else "", "sessions": sim["sessions"], "since": since_of(sim), "opts": instrument(b) != "stock",
             "last": pd.Timestamp(sim["last_date"])}
 
 
@@ -891,10 +1025,27 @@ def _plan(r):
     return " · ".join(parts) or f'<span class="m">{L("on the signal", "بالإشارة")}</span>'
 
 
-def _held(bars):
+def _held(bars, intra=False):
+    """How long a trade was held: sessions, or minutes for 5-minute trades."""
+    if intra:
+        m = max(int(bars), 0) * 5
+        h, mm = divmod(m, 60)
+        if not h:
+            return L(f"{m} min", f"{m} دقيقة")
+        return L(f"{h} h {mm} min", f"{h} س {mm} د") if mm else L(f"{h} h", f"{h} ساعة")
     if bars <= 0:
         return L("today", "اليوم")
     return L("1 session", "جلسة وحدة") if bars == 1 else L(f"{bars} sessions", f"{bars} جلسة")
+
+
+def _intra(r):
+    """A trade of the Opening Range Breakout (5-minute candles: dates carry the time)."""
+    return r["Strategy"] == PBK.ORB
+
+
+def _when(ts, intra=False):
+    ts = pd.Timestamp(ts)
+    return f"{ts:%Y-%m-%d %H:%M}" if intra else f"{ts:%Y-%m-%d}"
 
 
 def _pnl_cell(r):
@@ -939,8 +1090,9 @@ def open_panel(v, lg):
         qty = L(f'{int(r["Shares"])} contracts', f'{int(r["Shares"])} عقد') if opt else L(f'{r["Shares"]:,.2f} sh', f'{r["Shares"]:,.2f} سهم')
         tip = f' title="{L("stock", "السهم")} {_fp(r["Stock Entry"])} → {_fp(r["Stock Exit"])}"' if opt else ""
         who = f'<td><span class="m">{T.esc(r["Bot"])}</span></td>' if v["multi"] else ""
+        intra = _intra(r)
         rows.append(f'<tr><td>{_asset(r, lg)}</td><td>{type_badge(r["Type"])}</td>{who}<td>{T.esc(strat_short(r["Strategy"]))}</td>'
-                    f'<td>{pd.Timestamp(r["Entry Date"]):%Y-%m-%d} <span class="m">· {_held(int(r["Bars"]))}</span></td>'
+                    f'<td>{_when(r["Entry Date"], intra)} <span class="m">· {_held(int(r["Bars"]), intra)}</span></td>'
                     f'<td{tip}>{_fp(r["Entry"])} → <b>{_fp(r["Exit"])}</b> {_chg(r["Entry"], r["Exit"])}</td>'
                     f'<td>{qty} <span class="m">· {T.money(value)} · {w:.1f}%</span></td><td>{_plan(r)}</td>{_pnl_cell(r)}</tr>')
     heads = ([L("Asset", "الأصل"), L("Type", "النوع")] + ([L("Bot", "البوت")] if v["multi"] else [])
@@ -970,9 +1122,11 @@ def recent_panel(v, lg, n=10):
         opt = r["Type"] in ("Call", "Put")
         tip = f' title="{L("stock", "السهم")} {_fp(r["Stock Entry"])} → {_fp(r["Stock Exit"])}"' if opt else ""
         who = f'<td><span class="m">{T.esc(r["Bot"])}</span></td>' if v["multi"] else ""
+        intra = _intra(r)
+        span = (f'{_when(r["Entry Date"], True)} → {pd.Timestamp(r["Exit Date"]):%H:%M}' if intra
+                else f'{_when(r["Entry Date"])} → {_when(r["Exit Date"])}')
         rows.append(f'<tr><td>{_asset(r, lg)}</td><td>{type_badge(r["Type"])}</td>{who}<td>{T.esc(strat_short(r["Strategy"]))}</td>'
-                    f'<td>{pd.Timestamp(r["Entry Date"]):%Y-%m-%d} → {pd.Timestamp(r["Exit Date"]):%Y-%m-%d} '
-                    f'<span class="m">· {_held(int(r["Bars"]))}</span></td>'
+                    f'<td>{span} <span class="m">· {_held(int(r["Bars"]), intra)}</span></td>'
                     f'<td{tip}>{_fp(r["Entry"])} → <b>{_fp(r["Exit"])}</b></td><td>{exit_badge(r["Exit Reason"])}</td>{_pnl_cell(r)}</tr>')
     heads = ([L("Asset", "الأصل"), L("Type", "النوع")] + ([L("Bot", "البوت")] if v["multi"] else [])
              + [L("Strategy", "الاستراتيجية"), L("Held", "المدة"), L("Entry → exit", "الدخول ← الخروج"), L("Exit reason", "سبب الخروج"), "P&amp;L"])
@@ -1140,6 +1294,48 @@ def price_chart_section(sim):
                  "على الأيام اللي انمسكت فيها، والذهبي = صفقة مفتوحة. عقود الأوبشن معلّمة على سعر السهم."))
 
 
+def orb_chart_section(sim):
+    """Opening Range Breakout: one trading day at a time on 5-minute candles (the range, VWAP, entry, exit, stop and target)."""
+    b, tr = sim["bot"], sim["trades"]
+    ui.sec("candlestick_chart", "Trades on the 5-minute chart", "الصفقات على شارت 5 دقائق")
+    days = sim.get("days5") or {}
+    if not days:
+        st.caption(L("No trades yet. The chart appears after the first trade.", "لا توجد صفقات بعد. الشارت يظهر بعد أول صفقة."))
+        return
+    keys = sorted(days, key=lambda k: (k.split("|")[1], k.split("|")[0]), reverse=True)
+    t_day = pd.to_datetime(tr["Entry Date"]).dt.strftime("%Y-%m-%d")
+    res = {}
+    for k in keys:
+        sym, day = k.split("|")
+        rows = tr[(tr["Symbol"] == sym) & (t_day == day)]
+        res[k] = rows
+    def label(k):
+        sym, day = k.split("|")
+        rows = res[k]
+        if rows.empty:
+            return f"{day} · {sym} · " + L("no trade", "بدون صفقة")
+        r = rows.iloc[0]
+        side = L("long", "شراء") if r["Type"] != "Short" else L("short", "بيع مكشوف")
+        state = L("open", "مفتوحة") if r["Exit Reason"] == "Open" else f'{float(r["P&L %"]):+.2f}%'
+        return f"{day} · {sym} · {side} · {state}"
+    left, right = st.columns([3, 1.3], vertical_alignment="bottom")
+    ui.valid(f"pb_orbday_{b['id']}", keys)
+    key = left.selectbox(L("Trading day", "يوم التداول"), keys, key=f"pb_orbday_{b['id']}", format_func=label)
+    ui.valid(f"pb_orbct_{b['id']}", ["Candles", "Line"])
+    mode = right.segmented_control(L("Chart", "الشارت"), ["Candles", "Line"], default="Candles", key=f"pb_orbct_{b['id']}",
+                                   format_func=lambda k: {"Line": L("Line", "خط"), "Candles": L("Candles", "شموع")}[k]) or "Candles"
+    marks = res[key].copy()
+    marks["Why"] = marks["Exit Reason"].map(lambda x: L(x, EXIT_AR.get(x, x)))
+    words = None if not is_ar() else {"range": "نطاق الافتتاح", "high": "قمة النطاق", "low": "قاع النطاق", "long": "شراء", "short": "بيع مكشوف",
+                                      "cover": "تغطية", "sell": "بيع", "stop": "الوقف", "target": "الهدف", "at": "بسعر"}
+    fig = charts.orb_chart(days[key], marks, b["strategies"][PBK.ORB]["or_minutes"], mode, words)
+    ui.chart(fig, key=f"pb_orb_{b['id']}")
+    st.caption(L("Blue band = the opening range, with its high and low across the day · gold = the session VWAP · "
+                 "▲ buy / ▼ short at the entry, the opposite arrow at the exit · dashed red = stop, dashed green = target.",
+                 "الشريط الأزرق = نطاق الافتتاح مع قمته وقاعه على طول اليوم · الذهبي = VWAP الجلسة · "
+                 "▲ شراء / ▼ بيع مكشوف عند الدخول، والسهم المعاكس عند الخروج · الأحمر المتقطع = الوقف، والأخضر المتقطع = الهدف."))
+
+
 def all_trades(v, file_name):
     ui.html(f'<div id="pb-all-{v["key"]}" class="pbanchor"></div>')
     ui.sec("table_rows", f"All trades · {v['scope'] or v['name']}", f"كل الصفقات · {v['scope'] or v['name']}")
@@ -1152,18 +1348,33 @@ def all_trades(v, file_name):
                   "لا توجد صفقات بعد. البوت يتداول فقط لما تعطي استراتيجية إشارة."))
         return
     opts = v["opts"]
-    cols = (["Bot"] if v["multi"] else []) + PB.TRADE_COLS + (["Type", "Contract", "Stock Entry", "Stock Exit"] if opts else [])
+    shorts = bool(tr["Type"].eq("Short").any())
+    cols = (["Bot"] if v["multi"] else []) + PB.TRADE_COLS + (["Type", "Contract", "Stock Entry", "Stock Exit"] if opts else
+                                                                (["Type"] if shorts else []))
     show = tr[cols].sort_values("Entry Date", kind="stable").reset_index(drop=True)
     show.insert(0, "#", range(1, len(show) + 1))
+    intra = show["Strategy"].eq(PBK.ORB)
     show["Strategy"] = show["Strategy"].map(strat_short)
-    show["Entry Date"] = pd.to_datetime(show["Entry Date"]).dt.date
-    show["Exit Date"] = pd.to_datetime(show["Exit Date"]).dt.date
+    if intra.any():                  # 5-minute trades: the time of day, and minutes instead of days
+        show["Entry Date"] = [_when(t, i) for t, i in zip(show["Entry Date"], intra)]
+        show["Exit Date"] = [_when(t, i) for t, i in zip(show["Exit Date"], intra)]
+        show.insert(show.columns.get_loc("Bars") + 1, "Minutes", np.where(intra, show["Bars"] * 5, np.nan))
+        if intra.all():
+            show = show.drop(columns="Bars")
+        else:
+            show["Bars"] = np.where(intra, np.nan, show["Bars"])
+    else:
+        show["Entry Date"] = pd.to_datetime(show["Entry Date"]).dt.date
+        show["Exit Date"] = pd.to_datetime(show["Exit Date"]).dt.date
+    if "Type" in show:
+        show["Type"] = show["Type"].map(lambda k: L(*TYPE_ONE.get(k, (k, k))))
     show["Exit Reason"] = show["Exit Reason"].map(lambda x: L(x, EXIT_AR.get(x, x)))
     only_opt = opts and tr["Type"].isin(["Call", "Put"]).all()
     N = {"Bot": L("Bot", "البوت"), "Symbol": L("Symbol", "الرمز"), "Strategy": L("Strategy", "الاستراتيجية"),
          "Entry Date": L("Entry date", "تاريخ الدخول"), "Entry": L("Entry", "سعر الدخول"), "Exit Date": L("Exit date", "تاريخ الخروج"),
          "Exit": L("Exit / now", "سعر الخروج / الحالي"), "Shares": L("Shares", "الأسهم"), "P&L $": L("P&L $", "الربح $"),
-         "P&L %": L("P&L %", "الربح %"), "Bars": L("Days", "الأيام"), "Exit Reason": L("Exit reason", "سبب الخروج"),
+         "P&L %": L("P&L %", "الربح %"), "Bars": L("Days", "الأيام"), "Minutes": L("Minutes", "الدقائق"),
+         "Exit Reason": L("Exit reason", "سبب الخروج"),
          "Type": L("Type", "النوع"), "Contract": L("Contract", "العقد"), "Stock Entry": L("Stock at entry", "السهم عند الدخول"),
          "Stock Exit": L("Stock at exit / now", "السهم عند الخروج / الحالي")}
     if only_opt:
@@ -1196,8 +1407,11 @@ def bot_header(sim):
     ins = instrument(b)
     uni = universe_label(b, sim.get("n_symbols") if sim["ok"] else None)
     badges = T.badge(uni, "gold", KIND_ICON[b["kind"]]) + T.badge(how_label(b), "vio", "smart_toy")
-    ic, en, ar_ = INSTR_CHIP[ins]
-    badges += T.badge(L("Buys ", "يشتري ") + L(en, ar_).lower(), "acc", ic)
+    if is_orb(b):
+        badges += T.badge(L("5-minute candles · long and short", "شموع 5 دقائق · شراء وبيع مكشوف"), "acc", "timer")
+    else:
+        ic, en, ar_ = INSTR_CHIP[ins]
+        badges += T.badge(L("Buys ", "يشتري ") + L(en, ar_).lower(), "acc", ic)
     if b["kind"] != "company":
         badges += T.badge(L(f"Up to {b['max_pos']} trades at once", f"حتى {b['max_pos']} صفقات في نفس الوقت")
                           + (L(" (each: stocks, options)", " (لكل من الأسهم والأوبشن)") if ins == "both" else ""), "neu", "stacks")
@@ -1205,13 +1419,21 @@ def bot_header(sim):
         badges += T.badge(_stock_risk(b), "neu", "shield")
     if ins != "stock":
         badges += T.badge(_options_txt(b["options"]), "neu", "receipt_long")
-    badges += (T.badge(L("Start ", "البداية ") + iso(b["start_date"]), "neu", "event")
+    badges += (T.badge(L("Start ", "البداية ") + iso(since_of(sim) if sim["ok"] else b["start_date"]), "neu", "event")
                + T.badge(L("Capital ", "رأس المال ") + iso(T.money(b["capital"])), "neu", "account_balance_wallet"))
     if ins != "options":
         badges += T.badge(L("Fee ", "العمولة ") + iso(f"{b['fee']:g}%") + L(" / side", " لكل جهة"), "neu", "receipt")
     logo = data.logos([b["value"]]).get(b["value"]) if b["kind"] == "company" else None
     ui.html(f'<div class="card pbid">{head_html(b, logo)}<div class="bdgs">{badges}</div></div>')
     with st.expander(L("How this bot trades", "طريقة تداول البوت"), icon=":material/tune:"):
+        if is_combined(b):
+            ui.html("".join(rules_html(n, p) for n, p in b["strategies"].items()))
+            if len(names) > 1:
+                st.caption(L("Any of these strategies can open a trade; each trade follows the plan of the strategy that opened it "
+                             "(its stop, target and time stop).",
+                             "أي استراتيجية منها تقدر تفتح صفقة، وكل صفقة تمشي على خطة الاستراتيجية اللي فتحتها (وقفها وهدفها ووقفها الزمني)."))
+            st.caption(R_CAPTION())
+            return
         rows = "".join(f'<div style="margin:4px 0">{T.badge(strat_name(n), "vio", "smart_toy")} '
                        f'<span class="muted">{T.esc(_params_txt(n, p))}</span></div>' for n, p in b["strategies"].items())
         ui.html(rows or "—")
@@ -1230,6 +1452,10 @@ def bot_header(sim):
 
 def next_orders(sim):
     if not (sim["next_buys"] or sim["next_sells"]):
+        return
+    if sim.get("intraday"):
+        st.warning(L("Breakout on the latest 5-minute candle: ", "اختراق على آخر شمعة 5 دقائق: ") + ", ".join(_order_txt(x) for x in sim["next_buys"])
+                   + L(". It is filled at the next candle's open.", ". يتنفذ عند افتتاح الشمعة التالية."), icon=":material/bolt:")
         return
     last = pd.Timestamp(sim["last_date"])
     parts = []
@@ -1261,7 +1487,8 @@ def details(sim, in_tab=False):
     lg = view_logos(v)
     parts = ([] if in_tab else [("dash", dashboard, (v,))]) + [
         ("open", open_panel, (v, lg)), ("recent", recent_panel, (v, lg)), ("equity", balance_chart, (v,)),
-        ("price", price_chart_section, (sim,)), ("pnl", pnl_charts, (v,)), ("months", month_grid, (v,)),
+        ("price", orb_chart_section if sim.get("intraday") else price_chart_section, (sim,)), ("pnl", pnl_charts, (v,)),
+        ("months", month_grid, (v,)),
         ("all", all_trades, (v, f"paper_bot_{b['id']}.csv"))]
     for name, fn, args in parts:
         with section(name, key):
@@ -1281,11 +1508,22 @@ def _details_head(sim):
                          f"لا توجد بيانات أسعار لـ {uni} حالياً. تأكد من الرمز، أو حاول بعد دقيقة."), icon=":material/error:")
         return
     if sim["waiting"]:
+        if sim.get("intraday"):
+            st.info(L(f"The bot starts with the first US session on or after {b['start_date']} and trades during the session on 5-minute candles.",
+                      f"البوت يبدأ مع أول جلسة أمريكية من تاريخ {b['start_date']} ويتداول أثناء الجلسة على شموع 5 دقائق."),
+                    icon=":material/schedule:")
+            return
         st.info(L(f"The bot starts with the first US session on or after {b['start_date']}. After that session closes it checks its "
                   "strategies, and any order is filled at the next open.",
                   f"البوت يبدأ مع أول جلسة أمريكية من تاريخ {b['start_date']}. بعد إغلاق الجلسة يفحص الاستراتيجيات، وأي أمر يتنفذ عند الافتتاح التالي."),
                 icon=":material/schedule:")
         return
+    if sim.get("intraday"):
+        first = iso(since_of(sim))
+        st.caption(L(f"Yahoo keeps 5-minute prices for 60 days, so this bot shows its trades from {first} (the first 5 sessions only build the "
+                     "relative volume). Every trade opens and closes on the same day.",
+                     f"ياهو يحتفظ بأسعار الـ 5 دقائق لمدة 60 يوم، فهذا البوت يعرض صفقاته من {first} (أول 5 جلسات تبني الحجم النسبي فقط). "
+                     "كل صفقة تنفتح وتتقفل في نفس اليوم."))
     next_orders(sim)
 
 
@@ -1344,11 +1582,12 @@ def can_edit():
     return False
 
 
-FORM_KEYS = list(DEFAULTS) + ["pb_min", "pb_start", "pb_cat", "pb_edit_id"]
+FORM_KEYS = list(DEFAULTS) + ["pb_min", "pb_start", "pb_edit_id"]
+FORM_PREFIXES = ("pb_strats_", "pb_pp_", "pb_ms_")
 
 
 def _reset_form():
-    for k in [k for k in list(ss.keys()) if k in FORM_KEYS or str(k).startswith("pb_strats_")]:
+    for k in [k for k in list(ss.keys()) if k in FORM_KEYS or str(k).startswith(FORM_PREFIXES)]:
         del ss[k]
 
 
@@ -1358,8 +1597,11 @@ def _init_form():
             ss[k] = list(v) if isinstance(v, list) else v
     if ss.get("pb_kind") not in PB.KINDS:          # clicking the selected option again clears it
         ss["pb_kind"] = DEFAULTS["pb_kind"]
-    if not isinstance(ss.get("pb_store"), list):
-        ss["pb_store"] = []
+    if ss.get("pb_mode") not in MODES:
+        ss["pb_mode"] = DEFAULTS["pb_mode"]
+    for k in ("pb_store", "pb_store_pb"):
+        if not isinstance(ss.get(k), list):
+            ss[k] = []
     today = PB.today_ny()
     if "pb_start" not in ss or ss["pb_start"] > today:
         ss["pb_start"] = today
@@ -1373,12 +1615,18 @@ def _load_form(bot):
     """Fill the form with a bot's settings (pencil on its card)."""
     _reset_form()
     k, v = bot["kind"], bot["value"]
+    books = [s for s in PBK.PLAYBOOKS if s in bot["strategies"]]
     ss.update({"pb_edit_id": bot["id"], "pb_name": bot["name"], "pb_capital": _clip(round(bot["capital"]), 100, 100_000_000, int),
-               "pb_kind": k, "pb_store": [s for s in engine.STRATEGIES if s in bot["strategies"]], "pb_combine": bot["combine"]["mode"],
+               "pb_kind": k, "pb_mode": "combo" if books else "single",
+               # the bot's own way keeps exactly its strategies (none when they no longer exist); the other way gets its default
+               "pb_store": list(DEFAULTS["pb_store"]) if books else [s for s in engine.STRATEGIES if s in bot["strategies"]],
+               "pb_store_pb": books or list(DEFAULTS["pb_store_pb"]), "pb_combine": bot["combine"]["mode"],
                "pb_maxpos": _clip(bot["max_pos"] if k != "company" else DEFAULTS["pb_maxpos"], 1, PB.MAX_POS_LIMIT, int),
                "pb_instr": instrument(bot), "pb_fee": _clip(bot["fee"], 0.0, 1.0), "pb_stop": _clip(bot["stop_pct"], 0.0, 50.0),
                "pb_atr": _clip(bot["atr_mult"], 0.0, 10.0), "pb_tp": _clip(bot["tp_pct"], 0.0, 500.0),
                "pb_trail": _clip(bot["trail_pct"], 0.0, 50.0), "pb_start": pd.Timestamp(bot["start_date"]).date()})
+    for s in books:
+        _pp_seed(s, bot["strategies"][s])
     if bot["combine"]["mode"] == "combo":
         ss["pb_min"] = int(bot["combine"]["min"])
     o = bot.get("options") or PB.OPTION_DEFAULTS
@@ -1392,19 +1640,102 @@ def _load_form(bot):
         ss["pb_industry"], ss["pb_ind_sector"] = v, PB.industry_sector(v) or "Technology"
 
 
-def _pick_changed(key, opts):
-    """Strategy pills of one filter changed: keep the picks from the other filters."""
-    picked = set(ss.get(key) or [])
-    keep = [s for s in ss.get("pb_store", []) if s not in opts]
-    ss["pb_store"] = [s for s in engine.STRATEGIES if s in picked or s in keep]
+# ---------------------------------------------------------------- form state: the two ways to pick strategies
+def _set_mode(m):
+    ss["pb_mode"] = m
 
 
-def _all_strats():
-    ss["pb_store"] = list(engine.STRATEGIES)
+def _ms_changed(key, store):
+    """A strategies drop-down changed: remember the choice (the drop-down itself is only drawn for its own way)."""
+    ss[store] = list(ss.get(key) or [])
 
 
-def _no_strats():
-    ss["pb_store"] = []
+def _set_store(store, names):
+    ss[store] = list(names)
+
+
+def _slug(name):
+    return "".join(ch if ch.isalnum() else "_" for ch in name.lower())
+
+
+def _pp_key(name, k):
+    return f"pb_pp_{_slug(name)}_{k}"
+
+
+def _pp_seed(name, params=None, force=False):
+    """A combined strategy's numbers in the form: the saved bot's, else the defaults (kept when already there)."""
+    p = {**PBK.defaults(name), **(params or {})}
+    for k, _, lo, hi, dflt, step in PBK.PLAYBOOKS[name][1]:
+        key = _pp_key(name, k)
+        if key in ss and not force:
+            continue
+        v = p[k]
+        ss[key] = bool(v) if k == "shorts" else (float(v) if isinstance(step, float) else int(v))
+
+
+def _pp_reset(name):
+    _pp_seed(name, None, force=True)
+
+
+def _pp_params(name):
+    d = PBK.defaults(name)
+    out = {}
+    for k, *_ in PBK.PLAYBOOKS[name][1]:
+        v = ss.get(_pp_key(name, k), d[k])
+        out[k] = int(v) if isinstance(v, bool) else v
+    return out
+
+
+def R_CAPTION():
+    return L("R = the trade's risk: the distance from the entry to the stop. A 2R target sits twice that distance from the entry.",
+             "R = مخاطرة الصفقة: المسافة من سعر الدخول إلى الوقف. هدف 2R يعني ضعف هذي المسافة من سعر الدخول.")
+
+
+def _rule_txt(x):
+    return T.esc(x.replace(">=", "≥").replace("<=", "≤").replace("+/-", "±").replace(" x ", " × "))
+
+
+def rules_html(name, params=None):
+    """A combined strategy as a card: what it trades on, its exits as chips, and its numbered rule groups."""
+    p = {**PBK.defaults(name), **(params or {})}
+    tf = L(*PBK.TIMEFRAME.get(name, ("Daily candles", "شموع يومية")))
+    if name == PBK.ORB:
+        side = L("Long and short", "شراء وبيع مكشوف") if p["shorts"] else L("Long only", "شراء فقط")
+        chips = [("schedule", L(f"Range: first {int(p['or_minutes'])} min", f"النطاق: أول {int(p['or_minutes'])} دقيقة")),
+                 ("flag", L(f"Target {p['target_r']:g}R", f"الهدف {p['target_r']:g}R")),
+                 ("logout", L("Out by the close", "خروج قبل الإغلاق"))]
+    else:
+        side = L("Long only", "شراء فقط")
+        tgt = (L("Target: top zone of the range", "الهدف: منطقة أعلى النطاق") if name == PBK.RANGE
+               else L(f"Target {p['target_r']:g}R", f"الهدف {p['target_r']:g}R"))
+        chips = [("flag", tgt), ("hourglass_top", L(f"Time stop {int(p['max_bars'])} sessions", f"وقف زمني {int(p['max_bars'])} جلسة"))]
+    chip_html = "".join(f'<span class="c">{T.icon(i)}{T.esc(t)}</span>' for i, t in chips)
+    groups = "".join(
+        f'<div class="g"><div class="gt"><span class="k">{i}</span>{T.esc(L(ge, ga))}</div><ul>'
+        + "".join(f"<li>{_rule_txt(L(en, ar_))}</li>" for en, ar_ in items) + "</ul></div>"
+        for i, (ge, ga, items) in enumerate(PBK.rules(name, p), 1))
+    return (f'<div class="pbrl"><div class="hd"><span class="i">{T.icon(PB_ICON.get(name, "hub"))}</span>'
+            f'<div class="nm"><b>{T.esc(strat_name(name))}</b><span>{T.esc(tf)} · {T.esc(side)}</span></div>'
+            f'<div class="cs">{chip_html}</div></div><div class="gr">{groups}</div></div>')
+
+
+def _pp_inputs(name):
+    """The numbers of one combined strategy, editable (they are clipped to their ranges when the bot is saved)."""
+    with st.expander(L("Adjust the numbers", "عدّل الأرقام"), icon=":material/tune:"):
+        cols = st.columns(4)
+        for i, (k, lab, lo, hi, dflt, step) in enumerate(PBK.PLAYBOOKS[name][1]):
+            key, label, c = _pp_key(name, k), L(lab, PBK.PARAM_AR.get(lab, lab)), cols[i % 4]
+            if k == "shorts":
+                c.toggle(L("Short breakdowns", "بيع مكشوف عند الكسر"), key=key)
+            elif k == "or_minutes":
+                ui.valid(key, [15, 30])
+                c.selectbox(label, [15, 30], key=key)
+            elif isinstance(step, float):
+                c.number_input(label, float(lo), float(hi), step=float(step), key=key, format="%.2f")
+            else:
+                c.number_input(label, int(lo), int(hi), step=int(step), key=key)
+        st.button(L("Back to the defaults", "رجّع الأرقام الافتراضية"), key=f"pb_ppdef_{_slug(name)}", icon=":material/restart_alt:",
+                  on_click=_pp_reset, args=(name,))
 
 
 def combo_caption(need, n):
@@ -1441,94 +1772,86 @@ def instrument_caption(instr):
 
 def _default_name(kind, value, strats, need=None, instr="stock"):
     n = len(strats)
-    how = strat_short(strats[0]) if n == 1 else (L("all strategies", "كل الاستراتيجيات") if n == len(engine.STRATEGIES)
-                                                  else L(f"{n} strategies", f"{n} استراتيجيات"))
+    if n > 1 and all(PB.is_playbook(s) for s in strats):
+        how = L(f"{n} combined", f"{n} مركّبة")
+    else:
+        how = strat_short(strats[0]) if n == 1 else (L("all strategies", "كل الاستراتيجيات") if n == len(engine.STRATEGIES)
+                                                      else L(f"{n} strategies", f"{n} استراتيجيات"))
     if need:
-        how = L(f"combined {need}/{n}", f"مركبة {need}/{n}")
+        how = L(f"agreement {need}/{n}", f"اتفاق {need}/{n}")
     what = {"company": value, "sector": sector_name(value), "industry": gics_name(value), "all": L("All companies", "كل الشركات")}[kind]
     tail = {"stock": "", "options": " · " + L("options", "أوبشن"), "both": " · " + L("stocks+options", "أسهم+أوبشن")}[instr]
     return f"{what} · {how}{tail}"[:40]
 
 
-def bot_form(mode, bot=None):
-    """The add / edit form (inside a dialog)."""
-    _init_form()
-    a, c = st.columns([2, 1])
-    a.text_input(L("Bot name (optional)", "اسم البوت (اختياري)"), key="pb_name", max_chars=40,
-                 placeholder=L("e.g. Tech momentum", "مثال: بوت التقنية"))
-    c.number_input(L("Virtual capital ($)", "رأس المال الوهمي ($)"), 100, 100_000_000, step=10_000, key="pb_capital")
+# ---------------------------------------------------------------- the form's look: a banner, then numbered cards
+STEPS = [("Basics", "الأساسيات"), ("Market", "السوق"), ("Strategies", "الاستراتيجيات"), ("Buys", "الشراء"), ("Exits", "الخروج"),
+         ("Start", "البداية")]
+FORM_ART = ('<svg viewBox="0 0 260 120" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'
+            '<defs><linearGradient id="pbfl" x1="0" x2="1"><stop offset="0" stop-color="#22D3EE" stop-opacity="0"/>'
+            '<stop offset=".35" stop-color="#22D3EE"/><stop offset=".75" stop-color="#3D7BFF"/><stop offset="1" stop-color="#A78BFA"/></linearGradient>'
+            '<filter id="pbfg" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.5" result="b"/>'
+            '<feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>'
+            '<g transform="translate(150 14) scale(1.9)" opacity=".07"><path d="M17 48 L29.5 15.5 Q32 11 34.5 15.5 L47 48" fill="none" '
+            'stroke="#fff" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/></g>'
+            '<path d="M12 104 L58 80 L96 88 L138 58 L176 64 L236 22" fill="none" stroke="#22D3EE" stroke-opacity=".12" stroke-width="10" '
+            'stroke-linecap="round" stroke-linejoin="round"/>'
+            '<path class="ln" d="M12 104 L58 80 L96 88 L138 58 L176 64 L236 22" fill="none" stroke="url(#pbfl)" stroke-width="3" '
+            'stroke-linecap="round" stroke-linejoin="round" filter="url(#pbfg)" style="stroke-dasharray:290;--len:290"/>'
+            '<path d="M222 21 L237 21.6 L236.4 36" fill="none" stroke="#A78BFA" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>'
+            + "".join(f'<circle cx="{x}" cy="{y}" r="5" fill="#0A0E17" stroke="{c}" stroke-width="2.4"/>'
+                      for x, y, c in ((58, 80, "#22D3EE"), (96, 88, "#3D7BFF"), (138, 58, "#3D7BFF"), (176, 64, "#8B5CF6")))
+            + '</svg>')
 
-    # 1) what it trades
-    ui.valid("pb_kind", PB.KINDS)
-    kind = st.segmented_control(L("What does the bot trade?", "وش يتداول البوت؟"), list(PB.KINDS), key="pb_kind",
-                                format_func=lambda k: L(*KIND_LABEL[k])) or DEFAULTS["pb_kind"]
-    sectors = PB.sector_members()
-    if kind == "company":
-        st.text_input(L("Symbol", "الرمز"), key="pb_symbol", max_chars=15,
-                      help=L("Any Yahoo Finance symbol: AAPL, SPY, BTC-USD, 2222.SR…", "أي رمز من ياهو فاينانس: AAPL، SPY، BTC-USD، 2222.SR…"))
-        count = 1
-    elif kind == "sector":
-        ui.valid("pb_sector", sectors)
-        sec = st.selectbox(L("Sector", "القطاع"), list(sectors), key="pb_sector",
-                           format_func=lambda s: f"{sector_name(s)} · {len(sectors[s])} " + L("stocks", "سهم"))
-        count = len(sectors.get(sec, []))
-    elif kind == "industry":
-        x, y = st.columns(2)
-        ui.valid("pb_ind_sector", sectors)
-        isec = x.selectbox(L("Sector", "القطاع"), list(sectors), key="pb_ind_sector", format_func=sector_name)
-        inds = PB.industry_members(isec)
-        ui.valid("pb_industry", inds)
-        ind = y.selectbox(L("Industry", "الصناعة"), list(inds), key="pb_industry",
-                          format_func=lambda i: f"{gics_name(i)} · {len(inds[i])} " + L("stocks", "سهم"))
-        count = len(inds.get(ind, []))
+
+def form_banner(mode, bot=None):
+    if mode == "add":
+        title = L("Build your <b>bot</b>", "ابنِ <b>بوتك</b>")
+        sub = L("Six short steps. Everything can be changed later with the pencil on its card.",
+                "ست خطوات قصيرة، وتقدر تغيّر أي شي بعدين من القلم على كرت البوت.")
     else:
-        count = len(PB.all_members())
-        st.caption(L(f"{count} US companies: the S&P 500 plus the site's largest names. The first load takes longer (up to a minute) "
-                     "because the history of every stock is downloaded.",
-                     f"{count} شركة أمريكية: إس آند بي 500 وأكبر الشركات في الموقع. أول تحميل ياخذ وقت أطول (لين دقيقة) "
-                     "لأنه يحمّل تاريخ كل الأسهم."))
+        title = L("Edit ", "تعديل ") + f"<b>{T.esc(bot['name'])}</b>"
+        sub = L("Saving replays the bot from its start date with the new settings.", "الحفظ يعيد حساب البوت من تاريخ بدايته بالإعدادات الجديدة.")
+    steps = "".join(f'<span><i>{i}</i>{T.esc(L(en, ar_))}</span>' for i, (en, ar_) in enumerate(STEPS, 1))
+    return (f'<div class="pbfb{" rtl" if is_ar() else ""}"><div class="art">{FORM_ART}</div><div class="tx">'
+            f'<div class="eb">{T.icon("robot_2")}{L("Paper trading lab", "مختبر التداول الافتراضي")}</div>'
+            f'<div class="t">{title}</div><div class="s">{T.esc(sub)}</div><div class="pbstp">{steps}</div></div></div>')
 
-    # 2) what it buys: stocks, options, or both
-    ui.valid("pb_instr", list(PB.INSTRUMENTS))
-    instr = st.segmented_control(L("What does the bot buy?", "وش يشتري البوت؟"), list(PB.INSTRUMENTS), key="pb_instr",
-                                 format_func=lambda k: L(*INSTR_LABEL[k])) or "stock"
-    st.caption(instrument_caption(instr))
-    if kind != "company":
-        m1, m2 = st.columns([1, 2], vertical_alignment="bottom")
-        maxpos = m1.number_input(L("Max open trades", "أقصى عدد صفقات مفتوحة"), 1, PB.MAX_POS_LIMIT, step=1, key="pb_maxpos")
-        share = {"stock": L(f"1/{maxpos} of the balance", f"1/{maxpos} من الرصيد"),
-                 "options": L("a set % of the balance (below)", "نسبة ثابتة من الرصيد (تحت)"),
-                 "both": L(f"1/{maxpos} of the balance (stocks) or a set % (options), and stocks and options have {maxpos} places each",
-                           f"1/{maxpos} من الرصيد (الأسهم) أو نسبة ثابتة (الأوبشن)، وللأسهم {maxpos} أماكن وللأوبشن {maxpos} أماكن")}[instr]
-        m2.caption(L(f"Each trade gets {share}. After every close the bot checks all {count} stocks; "
-                     "when more stocks signal than free slots, it buys the strongest of the last 3 months first (puts: the weakest).",
-                     f"كل صفقة تاخذ {share}. بعد كل إغلاق يفحص البوت كل الـ {count} سهم، "
-                     "وإذا أعطت أسهم إشارات أكثر من الأماكن الفاضية، يشتري الأقوى أداءً آخر 3 أشهر أولاً (والـ Put الأضعف)."))
 
-    # 3) strategies: filter · pills · select all
+def form_head(n, ic, en, ar_, hint_en="", hint_ar=""):
+    hint = f'<span class="h">{T.esc(L(hint_en, hint_ar))}</span>' if hint_en else ""
+    ui.html(f'<div class="pbfh"><span class="n">{n}</span><span class="t">{T.icon(ic)}{T.esc(L(en, ar_))}</span>{hint}</div>')
+
+
+def mode_tile(m, on):
+    ic, en, ar_, den, dar = MODES[m]
+    count = len(engine.STRATEGIES) if m == "single" else len(PBK.PLAYBOOKS)
+    return (f'<div class="pbmode{" on" if on else ""}"><div class="top"><span class="i">{T.icon(ic)}</span>'
+            f'<span class="ck">{T.icon("check_circle" if on else "radio_button_unchecked")}</span></div>'
+            f'<div class="nm">{T.esc(L(en, ar_))}</div><div class="ds">{T.esc(L(den, dar))}</div>'
+            f'<div class="ct">{count} {L("strategies", "استراتيجيات")}</div></div>')
+
+
+def _classic_picker():
+    """Way 1: the Strategy Lab strategies in a drop-down, with select all / clear and how they work together."""
     names = list(engine.STRATEGIES)
-    ui.valid("pb_cat", list(CATS))
-    ui.sec("filter_alt", "Stock filter strategies", "فلتر استراتيجيات الأسهم")
-    cat = st.segmented_control(L("Stock filter strategies", "فلتر استراتيجيات الأسهم"), list(CATS), key="pb_cat",
-                               format_func=lambda k: L(*CATS[k][:2]), label_visibility="collapsed")
-    opts = [s for s in names if s in CATS[cat][2]] if cat in CATS else names
-    pkey = f"pb_strats_{cat or 'all'}"
-    ss[pkey] = [s for s in opts if s in ss.get("pb_store", [])]
-    st.pills(L("Strategies: one, several or all", "الاستراتيجيات: وحدة أو أكثر أو الكل"), opts, selection_mode="multi", key=pkey,
-             format_func=strat_name, on_change=_pick_changed, args=(pkey, opts))
+    ss["pb_ms_single"] = [s for s in dict.fromkeys(ss.get("pb_store", [])) if s in names]       # in the order they were picked
+    st.multiselect(L("Strategies", "الاستراتيجيات"), names, key="pb_ms_single", format_func=strat_name, on_change=_ms_changed,
+                   args=("pb_ms_single", "pb_store"), placeholder=L("Choose one or more strategies", "اختر استراتيجية أو أكثر"))
     strats = [s for s in names if s in ss.get("pb_store", [])]
     s1, s2, s3 = st.columns([1.2, 1, 3], vertical_alignment="center")
-    s1.button(L("Select all", "تحديد الكل"), icon=":material/done_all:", on_click=_all_strats, key="pb_allstrats", width="stretch",
-              type="primary" if len(strats) < len(names) else "secondary")
-    s2.button(L("Clear", "مسح"), icon=":material/close:", on_click=_no_strats, key="pb_nostrats", width="stretch", disabled=not strats)
-    s3.caption(L(f"{len(strats)} selected: ", f"{len(strats)} مختارة: ") + (", ".join(strat_short(s) for s in strats) or "—"))
+    s1.button(L("Select all", "تحديد الكل"), icon=":material/done_all:", on_click=_set_store, args=("pb_store", names), key="pb_allstrats",
+              width="stretch", type="primary" if len(strats) < len(names) else "secondary")
+    s2.button(L("Clear", "مسح"), icon=":material/close:", on_click=_set_store, args=("pb_store", []), key="pb_nostrats", width="stretch",
+              disabled=not strats)
+    s3.caption(L(f"{len(strats)} of {len(names)} selected", f"{len(strats)} من {len(names)} مختارة"))
     mode_, need = "any", None
     if len(strats) > 1:
         ui.valid("pb_combine", ["any", "combo"])
         mode_ = st.segmented_control(L("How do the strategies work together?", "كيف تشتغل الاستراتيجيات مع بعض؟"), ["any", "combo"],
                                      key="pb_combine", format_func=lambda k: {
                                          "any": L("Each on its own", "كل وحدة لحالها"),
-                                         "combo": L("Combined (custom rule)", "مركبة (قاعدة مخصصة)")}[k]) or "any"
+                                         "combo": L("Agreement rule (custom)", "قاعدة اتفاق (مخصصة)")}[k]) or "any"
         if mode_ == "combo":
             n = len(strats)
             if not isinstance(ss.get("pb_min"), int) or not 2 <= ss["pb_min"] <= n:
@@ -1542,54 +1865,229 @@ def bot_form(mode, bot=None):
                          "or by the stop loss, take profit or trailing stop.",
                          "أي استراتيجية مختارة تقدر تفتح صفقة، والصفقة تتقفل بإشارة الخروج من نفس الاستراتيجية اللي فتحتها، "
                          "أو بوقف الخسارة أو جني الأرباح أو الوقف المتحرك."))
+    return strats, mode_, need
 
-    # 4) exits: the stock stops and fee, the option filters, or both
-    if instr != "options":
-        if instr == "both":
-            ui.sec("shield", "Stock exits", "خروج الأسهم")
-        r = st.columns(5)
-        off = L("0 = off", "0 = إيقاف")
-        r[0].number_input(L("Fee % / side", "العمولة %"), 0.0, 1.0, step=0.01, key="pb_fee")
-        r[1].number_input(L("Stop loss %", "وقف الخسارة %"), 0.0, 50.0, step=0.5, help=off, key="pb_stop")
-        r[2].number_input(L("ATR stop ×", "وقف ATR ×"), 0.0, 10.0, step=0.5, help=off, key="pb_atr")
-        r[3].number_input(L("Take profit %", "جني الأرباح %"), 0.0, 500.0, step=1.0, help=off, key="pb_tp")
-        r[4].number_input(L("Trailing stop %", "الوقف المتحرك %"), 0.0, 50.0, step=0.5, help=off, key="pb_trail")
-    if instr != "stock":
-        ui.sec("tune", "Option filters", "فلاتر الأوبشن")
-        o1, o2, o3 = st.columns(3)
-        ui.valid("pb_otype", list(PB.OPTION_TYPES))
-        o1.selectbox(L("Option type", "نوع العقد"), list(PB.OPTION_TYPES), key="pb_otype", format_func=lambda k: L(*OTYPE_LABEL[k]))
-        o2.number_input(L("Days to expiry", "أيام حتى الانتهاء"), 7, 180, step=1, key="pb_dte")
-        ui.valid("pb_strike", list(PB.STRIKES))
-        o3.selectbox(L("Strike", "سعر التنفيذ"), list(PB.STRIKES), key="pb_strike", format_func=lambda k: L(*STRIKE_LABEL[k]))
-        o4, o5, o6 = st.columns(3)
-        o4.number_input(L("Per trade (% of balance)", "لكل صفقة (% من الرصيد)"), 0.5, 50.0, step=0.5, key="pb_oalloc")
-        o5.number_input(L("Take profit on the option %", "هدف ربح العقد %"), 5.0, 2000.0, step=5.0, key="pb_otp")
-        o6.number_input(L("Stop loss on the option %", "وقف خسارة العقد %"), 5.0, 95.0, step=5.0, key="pb_osl")
-        st.caption(options_caption())
 
-    # 5) start
+def _combined_picker(kind):
+    """Way 2: the combined strategies in a drop-down, each shown with its exact rules and its numbers."""
+    names = list(PBK.PLAYBOOKS)
+    ss["pb_ms_combo"] = [s for s in dict.fromkeys(ss.get("pb_store_pb", [])) if s in names]
+    st.multiselect(L("Combined strategies", "الاستراتيجيات المركّبة"), names, key="pb_ms_combo", format_func=strat_name,
+                   on_change=_ms_changed, args=("pb_ms_combo", "pb_store_pb"),
+                   placeholder=L("Choose one or more combined strategies", "اختر استراتيجية مركّبة أو أكثر"))
+    strats = [s for s in names if s in ss.get("pb_store_pb", [])]
+    s1, s2, s3 = st.columns([1.2, 1, 3], vertical_alignment="center")
+    s1.button(L("Select all", "تحديد الكل"), icon=":material/done_all:", on_click=_set_store, args=("pb_store_pb", PBK.DAILY), key="pb_allbooks",
+              width="stretch", type="primary" if set(strats) != set(PBK.DAILY) else "secondary",
+              help=L("The four daily ones. The Opening Range Breakout runs alone.", "الأربع اليومية. اختراق نطاق الافتتاح يشتغل لحاله."))
+    s2.button(L("Clear", "مسح"), icon=":material/close:", on_click=_set_store, args=("pb_store_pb", []), key="pb_nobooks", width="stretch",
+              disabled=not strats)
+    s3.caption(L(f"{len(strats)} of {len(names)} selected", f"{len(strats)} من {len(names)} مختارة"))
+    if PBK.ORB in strats and len(strats) > 1:
+        st.warning(L("The Opening Range Breakout runs alone: it trades 5-minute candles and closes every trade the same day. Keep it on its "
+                     "own, or remove it to run the others together.",
+                     "اختراق نطاق الافتتاح يشتغل لحاله: يتداول على شموع 5 دقائق ويقفل كل صفقة في نفس اليوم. خلّه لحاله، أو شيله عشان تشغّل الباقي مع بعض."),
+                   icon=":material/error:")
+    elif PBK.ORB in strats:
+        if kind == "all":
+            st.warning(L("The Opening Range Breakout can't run on all companies (5-minute prices for 500+ stocks are too much to download). "
+                         "Pick one company, a sector or an industry.",
+                         "اختراق نطاق الافتتاح ما يشتغل على كل الشركات (أسعار 5 دقائق لأكثر من 500 سهم ثقيلة جداً). اختر شركة أو قطاع أو صناعة."),
+                       icon=":material/error:")
+        st.info(L("5-minute candles: Yahoo keeps them for 60 days, so this bot shows about the last 60 days (the first 5 sessions only build "
+                  "the relative volume). It buys upside breakouts, shorts downside ones, and closes everything the same day.",
+                  "شموع 5 دقائق: ياهو يحتفظ فيها 60 يوم، فهذا البوت يعرض آخر 60 يوم تقريباً (أول 5 جلسات تبني الحجم النسبي فقط). "
+                  "يشتري الاختراق للأعلى، ويبيع على المكشوف الكسر للأسفل، ويقفل كل شي في نفس اليوم."), icon=":material/timer:")
+    elif len(strats) > 1:
+        st.caption(L("Any of them can open a trade; each trade follows the plan of the strategy that opened it (its stop, target and time stop).",
+                     "أي وحدة منها تقدر تفتح صفقة، وكل صفقة تمشي على خطة الاستراتيجية اللي فتحتها (وقفها وهدفها ووقفها الزمني)."))
+    for s in strats:
+        _pp_seed(s)
+        ui.html(rules_html(s, _pp_params(s)))
+        _pp_inputs(s)
+    if strats:
+        st.caption(R_CAPTION())
+    return strats
+
+
+def bot_form(mode, bot=None):
+    """The add / edit form (inside a dialog): a banner, then six numbered cards with space between them."""
+    _init_form()
+    ui.html(form_banner(mode, bot))
+
+    # 1) basics
+    with st.container(key="pbf_1"):
+        form_head(1, "badge", "Basics", "الأساسيات", "A name and the virtual money it starts with", "الاسم والمبلغ الوهمي اللي يبدأ فيه")
+        a, c = st.columns([2, 1])
+        a.text_input(L("Bot name (optional)", "اسم البوت (اختياري)"), key="pb_name", max_chars=40,
+                     placeholder=L("e.g. Tech momentum", "مثال: بوت التقنية"))
+        c.number_input(L("Virtual capital ($)", "رأس المال الوهمي ($)"), 100, 100_000_000, step=10_000, key="pb_capital")
+
+    # 2) what it trades
+    with st.container(key="pbf_2"):
+        form_head(2, "public", "What does the bot trade?", "وش يتداول البوت؟", "One company or a whole group of stocks",
+                  "شركة وحدة أو مجموعة أسهم كاملة")
+        ui.valid("pb_kind", PB.KINDS)
+        kind = st.segmented_control(L("What does the bot trade?", "وش يتداول البوت؟"), list(PB.KINDS), key="pb_kind",
+                                    format_func=lambda k: L(*KIND_LABEL[k]), label_visibility="collapsed") or DEFAULTS["pb_kind"]
+        sectors = PB.sector_members()
+        if kind == "company":
+            st.text_input(L("Symbol", "الرمز"), key="pb_symbol", max_chars=15,
+                          help=L("Any Yahoo Finance symbol: AAPL, SPY, BTC-USD, 2222.SR…", "أي رمز من ياهو فاينانس: AAPL، SPY، BTC-USD، 2222.SR…"))
+            count = 1
+        elif kind == "sector":
+            ui.valid("pb_sector", sectors)
+            sec = st.selectbox(L("Sector", "القطاع"), list(sectors), key="pb_sector",
+                               format_func=lambda s: f"{sector_name(s)} · {len(sectors[s])} " + L("stocks", "سهم"))
+            count = len(sectors.get(sec, []))
+        elif kind == "industry":
+            x, y = st.columns(2)
+            ui.valid("pb_ind_sector", sectors)
+            isec = x.selectbox(L("Sector", "القطاع"), list(sectors), key="pb_ind_sector", format_func=sector_name)
+            inds = PB.industry_members(isec)
+            ui.valid("pb_industry", inds)
+            ind = y.selectbox(L("Industry", "الصناعة"), list(inds), key="pb_industry",
+                              format_func=lambda i: f"{gics_name(i)} · {len(inds[i])} " + L("stocks", "سهم"))
+            count = len(inds.get(ind, []))
+        else:
+            count = len(PB.all_members())
+            st.caption(L(f"{count} US companies: the S&P 500 plus the site's largest names. The first load takes longer (up to a minute) "
+                         "because the history of every stock is downloaded.",
+                         f"{count} شركة أمريكية: إس آند بي 500 وأكبر الشركات في الموقع. أول تحميل ياخذ وقت أطول (لين دقيقة) "
+                         "لأنه يحمّل تاريخ كل الأسهم."))
+
+    # 3) strategies: two ways, each a drop-down
+    with st.container(key="pbf_3"):
+        form_head(3, "filter_alt", "Stock filter strategies", "فلتر استراتيجيات الأسهم", "Choose a way, then pick from its list",
+                  "اختر الطريقة، ثم اختر من قائمتها")
+        way = ss["pb_mode"] if ss.get("pb_mode") in MODES else "single"
+        t1, t2 = st.columns(2, gap="small")
+        for col, m in ((t1, "single"), (t2, "combo")):
+            with col:
+                with st.container(key=f"pbmode_{m}"):
+                    ui.html(mode_tile(m, m == way))
+                    st.button(L(*MODES[m][1:3]), key=f"pb_mode_{m}", on_click=_set_mode, args=(m,), width="stretch")
+        if way == "single":
+            strats, mode_, need = _classic_picker()
+        else:
+            strats, mode_, need = _combined_picker(kind), "any", None
+    combined = way == "combo"
+    orb = combined and PBK.ORB in strats
+
+    # 4) what it buys and how much per trade
+    with st.container(key="pbf_4"):
+        form_head(4, "shopping_bag", "What does the bot buy?", "وش يشتري البوت؟", "And how much goes into each trade",
+                  "وكم يحط في كل صفقة")
+        if combined:
+            instr = "stock"
+            chips = T.badge(L("Stocks", "أسهم"), "acc", "show_chart") + (T.badge(L("Long and short", "شراء وبيع مكشوف"), "vio", "swap_vert")
+                                                                         if orb else T.badge(L("Long", "شراء"), "vio", "trending_up"))
+            ui.html(f'<div>{chips}</div>')
+            st.caption(L("Combined strategies trade shares: every rule, stop and target is written for the stock's price.",
+                         "الاستراتيجيات المركّبة تتداول أسهم: كل الشروط والوقف والهدف مكتوبة على سعر السهم."))
+        else:
+            ui.valid("pb_instr", list(PB.INSTRUMENTS))
+            instr = st.segmented_control(L("What does the bot buy?", "وش يشتري البوت؟"), list(PB.INSTRUMENTS), key="pb_instr",
+                                         format_func=lambda k: L(*INSTR_LABEL[k]), label_visibility="collapsed") or "stock"
+            st.caption(instrument_caption(instr))
+        if kind != "company":
+            m1, m2 = st.columns([1, 2], vertical_alignment="bottom")
+            maxpos = m1.number_input(L("Max open trades", "أقصى عدد صفقات مفتوحة"), 1, PB.MAX_POS_LIMIT, step=1, key="pb_maxpos")
+            share = {"stock": L(f"1/{maxpos} of the balance", f"1/{maxpos} من الرصيد"),
+                     "options": L("a set % of the balance (below)", "نسبة ثابتة من الرصيد (تحت)"),
+                     "both": L(f"1/{maxpos} of the balance (stocks) or a set % (options), and stocks and options have {maxpos} places each",
+                               f"1/{maxpos} من الرصيد (الأسهم) أو نسبة ثابتة (الأوبشن)، وللأسهم {maxpos} أماكن وللأوبشن {maxpos} أماكن")}[instr]
+            if orb:
+                m2.caption(L(f"Each trade gets {share} at the day's open. When more stocks break out than there are free slots, the "
+                             "earliest breakouts are taken first (a tie goes to the higher relative volume).",
+                             f"كل صفقة تاخذ {share} عند افتتاح اليوم. وإذا اخترقت أسهم أكثر من الأماكن الفاضية، ياخذ الأبكر اختراقاً أولاً "
+                             "(وعند التساوي الأعلى حجماً نسبياً)."))
+            else:
+                m2.caption(L(f"Each trade gets {share}. After every close the bot checks all {count} stocks; "
+                             "when more stocks signal than free slots, it buys the strongest of the last 3 months first (puts: the weakest).",
+                             f"كل صفقة تاخذ {share}. بعد كل إغلاق يفحص البوت كل الـ {count} سهم، "
+                             "وإذا أعطت أسهم إشارات أكثر من الأماكن الفاضية، يشتري الأقوى أداءً آخر 3 أشهر أولاً (والـ Put الأضعف)."))
+
+    # 5) exits and costs
+    with st.container(key="pbf_5"):
+        form_head(5, "shield", "Exits and costs", "الخروج والتكاليف")
+        if combined:
+            r = st.columns(3)
+            r[0].number_input(L("Fee % / side", "العمولة %"), 0.0, 1.0, step=0.01, key="pb_fee")
+            if not orb:
+                r[1].number_input(L("Trailing stop % (optional)", "الوقف المتحرك % (اختياري)"), 0.0, 50.0, step=0.5,
+                                  help=L("0 = off", "0 = إيقاف"), key="pb_trail")
+            st.caption(L("The stop, the target and the time stop come from each strategy's rules above; a trailing stop, if you set one, "
+                         "is added on top.",
+                         "الوقف والهدف والوقف الزمني جايين من شروط كل استراتيجية فوق، والوقف المتحرك (إذا حطيته) ينضاف فوقها.")
+                       if not orb else
+                       L("The stop and the target come from the opening range; whatever is still open is closed at the day's last candle.",
+                         "الوقف والهدف من نطاق الافتتاح، وأي صفقة باقية تتقفل مع آخر شمعة في اليوم."))
+        else:
+            if instr != "options":
+                if instr == "both":
+                    ui.html(f'<div class="pbfs">{T.icon("show_chart")}{L("Stocks", "الأسهم")}</div>')
+                r = st.columns(5)
+                off = L("0 = off", "0 = إيقاف")
+                r[0].number_input(L("Fee % / side", "العمولة %"), 0.0, 1.0, step=0.01, key="pb_fee")
+                r[1].number_input(L("Stop loss %", "وقف الخسارة %"), 0.0, 50.0, step=0.5, help=off, key="pb_stop")
+                r[2].number_input(L("ATR stop ×", "وقف ATR ×"), 0.0, 10.0, step=0.5, help=off, key="pb_atr")
+                r[3].number_input(L("Take profit %", "جني الأرباح %"), 0.0, 500.0, step=1.0, help=off, key="pb_tp")
+                r[4].number_input(L("Trailing stop %", "الوقف المتحرك %"), 0.0, 50.0, step=0.5, help=off, key="pb_trail")
+            if instr != "stock":
+                ui.html(f'<div class="pbfs">{T.icon("receipt_long")}{L("Option filters", "فلاتر الأوبشن")}</div>')
+                o1, o2, o3 = st.columns(3)
+                ui.valid("pb_otype", list(PB.OPTION_TYPES))
+                o1.selectbox(L("Option type", "نوع العقد"), list(PB.OPTION_TYPES), key="pb_otype", format_func=lambda k: L(*OTYPE_LABEL[k]))
+                o2.number_input(L("Days to expiry", "أيام حتى الانتهاء"), 7, 180, step=1, key="pb_dte")
+                ui.valid("pb_strike", list(PB.STRIKES))
+                o3.selectbox(L("Strike", "سعر التنفيذ"), list(PB.STRIKES), key="pb_strike", format_func=lambda k: L(*STRIKE_LABEL[k]))
+                o4, o5, o6 = st.columns(3)
+                o4.number_input(L("Per trade (% of balance)", "لكل صفقة (% من الرصيد)"), 0.5, 50.0, step=0.5, key="pb_oalloc")
+                o5.number_input(L("Take profit on the option %", "هدف ربح العقد %"), 5.0, 2000.0, step=5.0, key="pb_otp")
+                o6.number_input(L("Stop loss on the option %", "وقف خسارة العقد %"), 5.0, 95.0, step=5.0, key="pb_osl")
+                st.caption(options_caption())
+
+    # 6) start
     today = PB.today_ny()
-    low = min(today - timedelta(days=5 * 365), ss["pb_start"])
-    d1, d2 = st.columns([1, 2], vertical_alignment="bottom")
-    start = d1.date_input(L("Start date", "تاريخ البداية"), min_value=low, max_value=today, key="pb_start")
-    d2.caption(L("Today = the bot trades live from now on. An earlier date replays the past first, like the Strategy Lab, then carries on live.",
-                 "اليوم = البوت يتداول مباشرة من الحين وللأمام. التاريخ الأقدم يعيد تشغيل الفترة الماضية أولاً مثل مختبر الاستراتيجيات، ثم يكمل مباشرة."))
-
-    label = L("Start the bot", "شغّل البوت") if mode == "add" else L("Save changes", "حفظ التعديلات")
-    if not st.button(label, type="primary", icon=":material/play_arrow:" if mode == "add" else ":material/save:", key="pb_create"):
+    with st.container(key="pbf_6"):
+        form_head(6, "event", "Start", "البداية")
+        low = today - timedelta(days=59) if orb else min(today - timedelta(days=5 * 365), ss["pb_start"])
+        if ss["pb_start"] < low:
+            ss["pb_start"] = low
+        d1, d2 = st.columns([1, 2], vertical_alignment="bottom")
+        start = d1.date_input(L("Start date", "تاريخ البداية"), min_value=low, max_value=today, key="pb_start")
+        d2.caption(L("5-minute prices go back 60 days, so the start can be up to 59 days ago.",
+                     "أسعار الـ 5 دقائق ترجع 60 يوم بس، فالبداية تكون خلال آخر 59 يوم.") if orb else
+                   L("Today = the bot trades live from now on. An earlier date replays the past first, like the Strategy Lab, then carries on live.",
+                     "اليوم = البوت يتداول مباشرة من الحين وللأمام. التاريخ الأقدم يعيد تشغيل الفترة الماضية أولاً مثل مختبر الاستراتيجيات، ثم يكمل مباشرة."))
+        label = L("Start the bot", "شغّل البوت") if mode == "add" else L("Save changes", "حفظ التعديلات")
+        pressed = st.button(label, type="primary", icon=":material/play_arrow:" if mode == "add" else ":material/save:", key="pb_create",
+                            width="stretch")
+    if not pressed:
         return
     if not strats:
         st.error(L("Pick at least one strategy.", "اختر استراتيجية وحدة على الأقل."))
         return
-    keep = (bot or {}).get("strategies", {})
-    params = {s: keep.get(s, {}) for s in strats}                     # an edited bot keeps its own strategy settings
-    for s in strats:
-        p = PB.clean_params(s, params[s])
-        if "fast" in p and "slow" in p and p["fast"] >= p["slow"]:
-            st.error(L(f"{strat_name(s)}: the fast period must be smaller than the slow period.",
-                       f"{strat_name(s)}: الفترة السريعة لازم تكون أصغر من البطيئة."))
+    if combined:
+        if orb and len(strats) > 1:
+            st.error(L("The Opening Range Breakout runs alone. Keep it on its own, or remove it.",
+                       "اختراق نطاق الافتتاح يشتغل لحاله. خلّه لحاله أو شيله."))
             return
+        if orb and kind == "all":
+            st.error(L("The Opening Range Breakout can't run on all companies. Pick one company, a sector or an industry.",
+                       "اختراق نطاق الافتتاح ما يشتغل على كل الشركات. اختر شركة أو قطاع أو صناعة."))
+            return
+        params = {s: _pp_params(s) for s in strats}
+    else:
+        keep = (bot or {}).get("strategies", {})
+        params = {s: keep.get(s, {}) for s in strats}                     # an edited bot keeps its own strategy settings
+        for s in strats:
+            p = PB.clean_params(s, params[s])
+            if "fast" in p and "slow" in p and p["fast"] >= p["slow"]:
+                st.error(L(f"{strat_name(s)}: the fast period must be smaller than the slow period.",
+                           f"{strat_name(s)}: الفترة السريعة لازم تكون أصغر من البطيئة."))
+                return
     value = {"company": str(ss.get("pb_symbol") or "").strip().upper(), "sector": ss.get("pb_sector"),
              "industry": ss.get("pb_industry"), "all": "all"}[kind]
     if not value:
@@ -1602,11 +2100,14 @@ def bot_form(mode, bot=None):
             st.error(L(f"No price data for {value}. Check the symbol (for example AAPL, BTC-USD, 2222.SR).",
                        f"لا توجد بيانات للرمز {value}. تأكد من الرمز (مثلاً AAPL أو BTC-USD أو 2222.SR)."))
             return
-    combo = mode_ == "combo" and len(strats) > 1
+    combo = mode_ == "combo" and len(strats) > 1 and not combined
     name = str(ss.get("pb_name") or "").strip() or _default_name(kind, value, strats, need if combo else None, instr)
     options = {"type": ss["pb_otype"], "dte": ss["pb_dte"], "strike": ss["pb_strike"], "alloc": ss["pb_oalloc"], "tp": ss["pb_otp"],
                "sl": ss["pb_osl"]} if instr != "stock" else None
-    risk = (0.0, 0.0, 0.0, 0.0) if instr == "options" else (ss["pb_stop"], ss["pb_atr"], ss["pb_tp"], ss["pb_trail"])
+    if combined:
+        risk = (0.0, 0.0, 0.0, 0.0 if orb else ss["pb_trail"])
+    else:
+        risk = (0.0, 0.0, 0.0, 0.0) if instr == "options" else (ss["pb_stop"], ss["pb_atr"], ss["pb_tp"], ss["pb_trail"])
     rec = PB.make_record(name, kind, value, params, ss.get("pb_maxpos", DEFAULTS["pb_maxpos"]), ss["pb_capital"], ss["pb_fee"], *risk,
                          pd.Timestamp(start).strftime("%Y-%m-%d"), {"mode": "combo", "min": int(need)} if combo else None,
                          instrument=instr, options=options)
@@ -1635,9 +2136,6 @@ def _bot_dialog_body(mode, bot, n_bots):
         st.info(L(f"You have {PB.MAX_BOTS} bots, the maximum. Delete one to add another.",
                   f"عندك {PB.MAX_BOTS} بوتات، وهذا الحد الأعلى. احذف واحد عشان تضيف غيره."), icon=":material/block:")
         return
-    if mode == "edit":
-        st.caption(L("Saving replays the bot from its start date with the new settings.",
-                     "الحفظ يعيد حساب البوت من تاريخ بدايته بالإعدادات الجديدة."))
     bot_form(mode, bot)
 
 
@@ -1714,11 +2212,12 @@ def page_paper_bots():
         else:
             ui.safe(portfolio, chosen, spy, sims)
 
-    st.caption(L("Virtual trading on real daily prices (dividend-adjusted, may be delayed). Results are recalculated from each bot's start date "
-                 "whenever the page opens. No real money and no broker are involved. Past results do not guarantee future returns.",
-                 "تداول وهمي على أسعار يومية حقيقية (معدّلة بالتوزيعات وقد تكون متأخرة). النتائج تُحسب من جديد من تاريخ بداية كل بوت كل ما تفتح الصفحة. "
-                 "لا توجد أموال حقيقية ولا وسيط. النتائج السابقة لا تضمن المستقبل."))
+    st.caption(L("Virtual trading on real daily prices (dividend-adjusted, may be delayed); the Opening Range Breakout uses 5-minute prices from "
+                 "the last 60 days. Results are recalculated from each bot's start date whenever the page opens. No real money and no broker are "
+                 "involved. Past results do not guarantee future returns.",
+                 "تداول وهمي على أسعار يومية حقيقية (معدّلة بالتوزيعات وقد تكون متأخرة)، واختراق نطاق الافتتاح يستخدم أسعار 5 دقائق لآخر 60 يوم. "
+                 "النتائج تُحسب من جديد من تاريخ بداية كل بوت كل ما تفتح الصفحة. لا توجد أموال حقيقية ولا وسيط. النتائج السابقة لا تضمن المستقبل."))
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "7.5"
+BUILD = "7.6"

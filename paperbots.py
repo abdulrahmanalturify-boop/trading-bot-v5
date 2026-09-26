@@ -6,7 +6,9 @@ Each bot chooses
   * WHAT it trades: one company, a whole sector, an industry (GICS sub-industry), or all companies
     (the S&P 500 + the site's largest companies), and
   * HOW it trades: one or more of the Strategy Lab strategies (any of them can open a trade; a trade closes on the exit
-    signal of the strategy that opened it, or by the stop loss / take profit / trailing stop), or a combined rule, and
+    signal of the strategy that opened it, or by the stop loss / take profit / trailing stop), or a custom rule where n of
+    them must agree, or the "combined strategies" of playbooks.py (each brings its own stop, target and time stop; the
+    Opening Range Breakout trades 5-minute candles in simulate_orb), and
   * WHAT it buys: stocks, options (calls on buy signals / puts on sell signals, priced with Black-Scholes), or both side by
     side (stocks and options each have their own `max_pos` slots; options are bought first at the open).
 Same fills as the Strategy Lab: signals on the daily close, orders at the next open, stops checked during the day.
@@ -40,6 +42,7 @@ from math import exp
 
 import data
 import engine
+import playbooks as PB
 import ta
 import universe as U
 from autotrader import bs_call, strike_for
@@ -260,13 +263,44 @@ def clean_options(o):
             "sl": float(min(max(_num(o["sl"], 50.0), 5.0), 95.0))}
 
 
+ALL_STRATEGIES = list(engine.STRATEGIES) + list(PB.PLAYBOOKS)       # fixed order: the first one wins a tie
+
+
+def is_playbook(name):
+    return name in PB.PLAYBOOKS
+
+
+def spec_of(name):
+    """(signal function, [(key, label, min, max, default, step), ...]) of a Strategy Lab strategy or a playbook."""
+    return engine.STRATEGIES.get(name) or PB.PLAYBOOKS[name]
+
+
+def tidy(strategies, instrument, kind):
+    """The rules every bot follows: a bot runs either Strategy Lab strategies or combined strategies (playbooks), the
+    combined strategies trade shares (each one plans its own stop, target and time stop for them), and the Opening Range
+    Breakout runs alone and not on all companies (5-minute prices for 500+ stocks are too much to download).
+    Returns (strategies, instrument, ok)."""
+    if PB.ORB in strategies:
+        return {PB.ORB: strategies[PB.ORB]}, "stock", kind != "all"
+    books = {k: v for k, v in strategies.items() if is_playbook(k)}
+    if books:
+        return books, "stock", True
+    return strategies, instrument if instrument in INSTRUMENTS else "stock", True
+
+
 def clean_params(strategy, params):
-    """Strategy parameters clipped to the Strategy Lab ranges (missing ones get the defaults)."""
+    """Strategy parameters clipped to their ranges (missing ones get the defaults)."""
     out = {}
-    for k, _, lo, hi, dflt, step in engine.STRATEGIES[strategy][1]:
+    snap = is_playbook(strategy)                     # playbook settings also sit on their step grid (e.g. 15 or 30 minutes)
+    for k, _, lo, hi, dflt, step in spec_of(strategy)[1]:
         v = _num((params or {}).get(k, dflt), dflt)
+        if snap:
+            v = lo + round((min(max(v, lo), hi) - lo) / step) * step
+            v = round(v, 6)
         v = float(v) if isinstance(step, float) else int(round(v))
         out[k] = min(max(v, lo), hi)
+    if strategy == PB.ORB:
+        out["last_entry"] = min(PB.last_entry_of(out["or_minutes"], out["last_entry"]), 240)
     return out
 
 
@@ -294,19 +328,20 @@ def _norm(r):
             value, max_pos = value.strip().upper(), 1
         if kind == "all":
             value = "all"
-        strategies = {s: clean_params(s, raw[s]) for s in engine.STRATEGIES if s in raw}
-        combo = comb.get("mode") == "combo" and len(strategies) > 1
+        strategies = {s: clean_params(s, raw[s]) for s in ALL_STRATEGIES if s in raw}
+        strategies, instrument, allowed = tidy(strategies, instrument, kind)
+        combo = comb.get("mode") == "combo" and len(strategies) > 1 and not any(map(is_playbook, strategies))
         combine = {"mode": "combo" if combo else "any",
                    "min": min(max(int(_num(comb.get("min"), len(strategies))), 1), max(len(strategies), 1)) if combo else 1}
         return {"id": r["id"], "name": str(r.get("name") or value)[:40], "kind": kind, "value": value,
                 "symbol": value if kind == "company" else None, "strategies": strategies, "combine": combine,
-                "instrument": instrument if instrument in INSTRUMENTS else "stock", "options": clean_options(opts),
+                "instrument": instrument, "options": clean_options(opts),
                 "max_pos": min(max(max_pos, 1), MAX_POS_LIMIT),
                 "capital": max(_num(r.get("capital"), 10000.0), 1.0), "fee": max(_num(r.get("fee")), 0.0),
                 "stop_pct": max(_num(r.get("stop_pct")), 0.0), "atr_mult": max(_num(r.get("atr_mult")), 0.0),
                 "tp_pct": max(_num(r.get("tp_pct")), 0.0), "trail_pct": max(_num(r.get("trail_pct")), 0.0),
                 "start_date": str(r.get("start_date"))[:10], "created_at": str(r.get("created_at") or "")[:19],
-                "valid": bool(strategies) and bool(members(kind, value))}
+                "valid": bool(strategies) and allowed and bool(members(kind, value))}
     except Exception:
         return None
 
@@ -316,9 +351,10 @@ def make_record(name, kind, value, strategies, max_pos, capital, fee, stop_pct, 
     """Settings from the form -> a row for the table (FIELDS).
     combine: None / {'mode': 'any'} = any strategy opens its own trades; {'mode': 'combo', 'min': n} = buy only when at least
     n of the strategies agree (see simulate)."""
-    strategies = {s: clean_params(s, p) for s, p in strategies.items() if s in engine.STRATEGIES}
+    strategies = {s: clean_params(s, p) for s, p in strategies.items() if s in ALL_STRATEGIES}
+    strategies, instrument, _ = tidy(strategies, instrument, kind)
     combine = combine or {}
-    if combine.get("mode") == "combo" and len(strategies) > 1:
+    if combine.get("mode") == "combo" and len(strategies) > 1 and not any(map(is_playbook, strategies)):
         combine = {"mode": "combo", "min": int(min(max(int(combine.get("min") or len(strategies)), 1), len(strategies)))}
     else:
         combine = {"mode": "any"}
@@ -406,14 +442,14 @@ def period_for(start):
     return "max"
 
 
-def load_prices(symbols, period):
-    """{symbol: daily OHLC} in one batch download (cached by the data module); a missing single stock is retried alone."""
+def load_prices(symbols, period, interval="1d"):
+    """{symbol: OHLC} in one batch download (cached by the data module); a missing single stock is retried alone."""
     symbols = tuple(dict.fromkeys(s for s in symbols if s))
-    px = dict(data.history_many(symbols, period)) if symbols else {}
+    px = dict(data.history_many(symbols, period, interval)) if symbols else {}
     missing = [s for s in symbols if s not in px or len(px[s]) < 2]
     if len(missing) <= 3:                  # a single company (or SPY) that the batch missed; big groups just skip gaps
         for s in missing:
-            df = data.history(s, period)
+            df = data.history(s, period, interval)
             if not df.empty:
                 px[s] = df
     return px
@@ -454,7 +490,7 @@ def simulate(bot, px, spy=None):
     Returns a dict; 'ok' is False with 'why' = strategy | data when it can't run; 'waiting' is True when no session has
     closed since the start date yet."""
     out = {"bot": bot, "ok": False, "why": None, "waiting": False}
-    if not bot.get("valid"):
+    if not bot.get("valid") or PB.ORB in bot["strategies"]:           # the Opening Range Breakout runs in simulate_orb
         out["why"] = "strategy"
         return out
     frames = {}
@@ -476,9 +512,9 @@ def simulate(bot, px, spy=None):
     if getattr(idx, "tz", None) is not None:
         start = start.tz_localize(idx.tz)
     live = np.asarray(idx >= start)
-    names = [s for s in engine.STRATEGIES if s in bot["strategies"]]      # fixed order: the first one wins a tie
+    names = [s for s in ALL_STRATEGIES if s in bot["strategies"]]        # fixed order: the first one wins a tie
     comb = bot.get("combine") or {}
-    combo = comb.get("mode") == "combo" and len(names) > 1
+    combo = comb.get("mode") == "combo" and len(names) > 1 and not any(map(is_playbook, names))
     need = min(max(int(comb.get("min") or len(names)), 1), len(names)) if combo else 1
     labels = [COMBO] if combo else names        # what opens a trade: each strategy, or the combined rule
     S = len(labels)
@@ -496,6 +532,13 @@ def simulate(bot, px, spy=None):
     HVP, HVC = (np.full((T, N), np.nan) for _ in range(2))
     ENT, EXT = np.zeros((S, T, N), bool), np.zeros((S, T, N), bool)
     PENT, PEXT = (np.zeros((S, T, N), bool) for _ in range(2)) if want_put else (None, None)
+    # playbooks bring a trade plan fixed on the signal bar: stop price, target (absolute, or a multiple of the risk), time stop
+    PIDX = [-1] * S
+    books = [k for k, name in enumerate(labels) if is_playbook(name)]
+    for i, k in enumerate(books):
+        PIDX[k] = i
+    PSTOP, PTGT, PFLOOR = (np.full((len(books), T, N), np.nan) for _ in range(3))
+    TR, MB = np.full(len(books), np.nan), np.zeros(len(books), int)
     for j, s in enumerate(syms):
         df = frames[s]
         p = idx.get_indexer(df.index)
@@ -508,7 +551,21 @@ def simulate(bot, px, spy=None):
             HVC[p, j], HVP[p, j] = hv, np.r_[np.nan, hv[:-1]]
         K[p, j] = np.arange(len(df))
         MOM[p, j] = df["Close"].pct_change(63).to_numpy(float)
-        sig = [engine.STRATEGIES[name][0](df, **bot["strategies"][name]) for name in names]
+        sig, ind = [], (PB.Ind(df, spy) if PIDX and max(PIDX) >= 0 else None)     # indicators shared by the playbooks
+        for k, name in enumerate(names):
+            if is_playbook(name):
+                e, x, plan = PB.signals(name, df, bot["strategies"][name], market=spy, ind=ind)
+                i = PIDX[k]
+                PSTOP[i, p, j] = plan["stop"].to_numpy(float)
+                if plan["target"] is not None:
+                    PTGT[i, p, j] = plan["target"].to_numpy(float)
+                if plan.get("floor") is not None:
+                    PFLOOR[i, p, j] = plan["floor"].to_numpy(float)
+                TR[i] = plan["target_r"] if plan["target_r"] else np.nan
+                MB[i] = int(plan["max_bars"] or 0)
+                sig.append((e, x))
+            else:
+                sig.append(engine.STRATEGIES[name][0](df, **bot["strategies"][name]))
         if combo:
             # a strategy "agrees" while it is in its buy state (after its own buy signal, until its own sell signal);
             # the bot buys on the day at least `need` agree and sells when fewer than `need` agree
@@ -523,7 +580,8 @@ def simulate(bot, px, spy=None):
                 ENT[k, p, j] = e.fillna(False).astype(bool).to_numpy()
                 EXT[k, p, j] = x.fillna(False).astype(bool).to_numpy()
                 if want_put:                               # puts: bought on the strategy's sell signal, sold on its buy signal
-                    PENT[k, p, j] = EXT[k, p, j]
+                    # (a playbook's exit is a condition that can last for days: its first day is the sell signal)
+                    PENT[k, p, j] = PB.first_bar(x).to_numpy() if PIDX[k] >= 0 else EXT[k, p, j]
                     PEXT[k, p, j] = ENT[k, p, j]
     valid = ~np.isnan(C)
     CF = pd.DataFrame(C).ffill().to_numpy()                    # last known close, to value the portfolio every day
@@ -557,11 +615,13 @@ def simulate(bot, px, spy=None):
             proceeds = q["shares"] * 100 * price - q["shares"] * OPT_FEE
             cost = q["shares"] * 100 * q["entry"] + q["shares"] * OPT_FEE
             fees = 2 * q["shares"] * OPT_FEE
+        plan = q.get("plan", False)                        # a playbook trade keeps its stop and target in the journal
         trades.append({"Symbol": syms[j], "Strategy": labels[q["k"]], "Entry Date": idx[q["t"]], "Entry": q["entry"],
                        "Exit Date": idx[t], "Exit": price, "Shares": q["shares"], "P&L $": proceeds - cost,
                        "P&L %": (proceeds / cost - 1) * 100, "Bars": int(K[t, j] - q["kb"]), "Exit Reason": reason,
                        "Type": q["kind"], "Contract": q["contract"], "Stock Entry": q["s0"], "Stock Exit": under, "Fees": fees,
-                       "Stop": np.nan, "Target": np.nan, "Expiry": q.get("expiry")})
+                       "Stop": q["stop"] if plan and q["stop"] > 0 else np.nan,
+                       "Target": q["target"] if plan and np.isfinite(q["target"]) else np.nan, "Expiry": q.get("expiry")})
         cash += proceeds
 
     def slots(group):
@@ -572,30 +632,41 @@ def simulate(bot, px, spy=None):
         for key in [key for key, q in pos.items() if q["exit"] and valid[t, key[0]]]:
             q, j = pos[key], key[0]
             if q["kind"] == "Stock":
-                close(key, t, O[t, j], "Signal")
+                close(key, t, O[t, j], q.get("why", "Signal"))
             else:
                 t_left = max((q["expiry"] - idx[t]).days, 0)
                 close(key, t, _bs(q["kind"], O[t, j], q["K"], t_left / 365, sigma_of(HVP[t, j], q["sigma"])), "Signal", O[t, j])
         # 2) yesterday's entry signals: buy at today's open, best first (options first, so shares get the rest of the cash)
-        for j, k, kind in sorted(pend, key=lambda x: x[2] == "Stock"):
+        for j, k, kind, ts in sorted(pend, key=lambda x: x[2] == "Stock"):
             g = "S" if kind == "Stock" else "O"
             if (j, g) in pos or not valid[t, j] or sum(1 for key in pos if key[1] == g) >= max_pos:
                 continue
             o = O[t, j]
             if kind == "Stock":                                # one equal slot of the balance
+                i = PIDX[k]
+                stops, target = [], np.inf
+                if i >= 0:                                     # the playbook's plan, from the signal bar
+                    ps, pt = PSTOP[i, ts, j], PTGT[i, ts, j]
+                    if not np.isfinite(ps) or o <= ps or (np.isfinite(pt) and o >= pt):
+                        continue                               # opened under the stop or over the target: no trade
+                    stops.append(ps)
+                    target = pt if np.isfinite(pt) else (o + TR[i] * (o - ps) if np.isfinite(TR[i]) else np.inf)
                 alloc = min(cash, eq_prev / max_pos)
                 if alloc <= 0:
                     continue
                 shares = alloc / (o * (1 + fee))
                 cash -= shares * o * (1 + fee)
-                stops = []
                 if stop_pct:
                     stops.append(o * (1 - stop_pct / 100))
                 if atr_mult and not np.isnan(ATRP[t, j]):
                     stops.append(o - atr_mult * ATRP[t, j])
+                if tp_pct:
+                    target = min(target, o * (1 + tp_pct / 100))
                 pos[(j, "S")] = {"kind": "Stock", "shares": shares, "entry": o, "t": t, "kb": K[t, j], "peak": o,
-                                 "stop": max(stops) if stops else 0.0, "target": o * (1 + tp_pct / 100) if tp_pct else np.inf,
+                                 "stop": max(stops) if stops else 0.0, "target": target,
                                  "k": k, "exit": False, "contract": syms[j], "s0": o}
+                if i >= 0:
+                    pos[(j, "S")].update(plan=True, mb=int(MB[i]), floor=PFLOOR[i, ts, j])
             else:                                              # options: a % of the balance, priced with Black-Scholes
                 sigma = sigma_of(HVP[t, j])
                 strike = strike_for(o * (1 + oc["strike"] / 100) if kind == "Call" else o * (1 - oc["strike"] / 100))
@@ -639,8 +710,14 @@ def simulate(bot, px, spy=None):
                 close(key, t, q["value"], why, C[t, j])
         # 4) signals at the close: the rule that opened a trade decides its exit; new signals fill the free slots
         for (j, g), q in pos.items():
-            if valid[t, j] and (PEXT if q["kind"] == "Put" else EXT)[q["k"], t, j]:
+            if not valid[t, j]:
+                continue
+            if (PEXT if q["kind"] == "Put" else EXT)[q["k"], t, j]:
                 q["exit"] = True
+            elif q.get("plan") and C[t, j] < q["floor"]:
+                q["exit"] = True                                # closed under the trade's own failure line (NaN = none)
+            elif q.get("mb") and not q["exit"] and K[t, j] - q["kb"] >= q["mb"] - 1:
+                q["exit"], q["why"] = True, "Time Stop"         # held max_bars sessions: sell at the next open
         if live[t]:
             cand = []
             if want_stock or want_call:
@@ -664,7 +741,7 @@ def simulate(bot, px, spy=None):
             for _, j, k, kind in cand:
                 g = "S" if kind == "Stock" else "O"
                 if free[g] > 0:
-                    pend.append((j, k, kind))
+                    pend.append((j, k, kind, t))
                     free[g] -= 1
         # 5) value at the close
         mv = float(sum(q["shares"] * CF[t, key[0]] if q["kind"] == "Stock" else q["shares"] * 100 * q["value"] for key, q in pos.items()))
@@ -697,7 +774,7 @@ def simulate(bot, px, spy=None):
                           "Expiry": q.get("expiry")})
     tr = pd.DataFrame(trades + open_rows, columns=TRADE_COLS + EXTRA_COLS)
     out.update(ok=True, start=start, symbols=syms, n_symbols=N, last_date=idx[-1], trades=tr, max_pos=max_pos,
-               next_buys=[(syms[j], labels[k], kind) for j, k, kind in pend],
+               next_buys=[(syms[j], labels[k], kind) for j, k, kind, _ in pend],
                next_sells=[(syms[j], labels[q["k"]], q["kind"]) for (j, g), q in pos.items() if q["exit"]],
                n_open=len(pos), in_pos=bool(pos), cash=float(cash))
     if bot["kind"] == "company":
@@ -731,10 +808,147 @@ def simulate(bot, px, spy=None):
     return out
 
 
+def simulate_orb(bot, px5, pxd, spy=None, now=None):
+    """The Opening Range Breakout bot on 5-minute candles (px5 {symbol: 5-minute OHLCV}, pxd {symbol: daily OHLC} for the
+    ATR). Every trade opens and closes on the same day; when more stocks break out than there are free slots, the ones
+    that broke out first are taken (a tie goes to the higher relative volume). Each trade gets an equal slot of the
+    balance at the day's open. Yahoo keeps 5-minute prices for 60 days, so the bot shows the last 60 days at most (the
+    first 5 sessions only build the relative volume). Same result dict as simulate(), plus 'intraday' and 'days5'."""
+    out = {"bot": bot, "ok": False, "why": None, "waiting": False, "intraday": True}
+    if not bot.get("valid") or PB.ORB not in bot["strategies"]:
+        out["why"] = "strategy"
+        return out
+    prm = bot["strategies"][PB.ORB]
+    now = pd.Timestamp(now) if now is not None else pd.Timestamp.now(tz=PB.NY).tz_localize(None)
+    bars, sig = {}, {}
+    for s in dict.fromkeys(members(bot["kind"], bot["value"])):
+        b = PB.ny_bars(px5.get(s))
+        if b.index.normalize().nunique() >= PB.BASE_MIN + 1:
+            bars[s] = b
+            sig[s] = PB.orb_trades(b, pxd.get(s), now=now, **prm)
+    if not bars:
+        out["why"] = "data"
+        return out
+    syms = sorted(bars)
+    days = pd.DatetimeIndex(sorted(set().union(*(set(b.index.normalize()) for b in bars.values()))))
+    start = max(pd.Timestamp(bot["start_date"]), days[min(PB.BASE_MIN, len(days) - 1)])
+    live_days = days[days >= start]
+    cap, fee = float(bot["capital"]), bot["fee"] / 100
+    max_pos = 1 if bot["kind"] == "company" else int(bot["max_pos"])
+    cand = [dict(r, Symbol=s) for s in syms for r in sig[s].to_dict("records") if r["Day"] >= start]
+    five = pd.Timedelta(minutes=5)
+    for r in cand:                                         # a pending order would enter at the next candle's open
+        r["_at"] = r["Signal"] + five if r["Pending"] else r["Entry Time"]
+    cand.sort(key=lambda r: (r["_at"], -r["RVOL"], r["Symbol"]))
+    by_day = {}
+    for r in cand:
+        by_day.setdefault(r["Day"], []).append(r)
+    # the day's last close of every stock (to value the group and the open trades)
+    closes = pd.DataFrame({s: b["Close"].groupby(b.index.normalize()).last() for s, b in bars.items()}).reindex(days).ffill()
+    last_bar = {s: (b.index[-1], float(b["Close"].iloc[-1])) for s, b in bars.items()}
+    equity, trades, open_rows, next_buys, days5 = cap, [], [], [], {}
+    eq, inv, npos = [], [], []
+    cash = cap
+    for d in live_days:
+        alloc, busy, pnl_day, held_value, n_open, reserved = equity / max_pos, [], 0.0, 0.0, 0, 0
+        for r in by_day.get(d, []):
+            at = r["_at"]
+            if sum(1 for x in busy if x >= at) + reserved >= max_pos:
+                continue                                   # every slot is taken at that moment
+            side = 1 if r["Side"] == "Long" else -1
+            kind = "Stock" if side > 0 else "Short"
+            if r["Pending"]:
+                next_buys.append((r["Symbol"], PB.ORB, kind))
+                reserved += 1                              # the order holds its slot until the next candle
+                continue
+            busy.append(r["Exit Bar"])
+            entry = float(r["Entry"])
+            shares = alloc / (entry * (1 + fee))
+            cost = shares * entry * (1 + fee)
+            days5.setdefault(f'{r["Symbol"]}|{d:%Y-%m-%d}', True)
+            row = {"Symbol": r["Symbol"], "Strategy": PB.ORB, "Entry Date": r["Entry Time"], "Entry": entry, "Shares": shares,
+                   "Bars": int(r["Bars"]), "Type": kind, "Contract": r["Symbol"], "Stock Entry": entry, "Stop": float(r["Stop"]),
+                   "Target": float(r["Target"]), "Expiry": None}
+            if r["Open"]:                                  # today's session is still trading
+                last = float(r["Exit"])
+                pnl = shares * (last - entry) * side - shares * entry * fee
+                open_rows.append({**row, "Exit Date": r["Exit Time"], "Exit": last, "P&L $": pnl, "P&L %": pnl / cost * 100,
+                                  "Exit Reason": "Open", "Stock Exit": last, "Fees": shares * entry * fee})
+                held_value += cost + pnl
+                n_open += 1
+                pnl_day += pnl
+                continue
+            exit_px = float(r["Exit"])
+            fees = shares * (entry + exit_px) * fee
+            pnl = shares * (exit_px - entry) * side - fees
+            trades.append({**row, "Exit Date": r["Exit Time"], "Exit": exit_px, "P&L $": pnl, "P&L %": pnl / cost * 100,
+                           "Exit Reason": r["Reason"], "Stock Exit": exit_px, "Fees": fees})
+            pnl_day += pnl
+        value = equity + pnl_day                           # open trades (today only) are valued at their last price
+        eq.append(value)
+        inv.append(min(len(busy), max_pos) / max_pos)      # the share of the slots the day used
+        npos.append(len(busy))                             # trades held during the day (all are closed by the end of it)
+        cash = value - held_value
+        if not n_open:
+            equity = value
+    tr = pd.DataFrame(trades + open_rows, columns=TRADE_COLS + EXTRA_COLS)
+    if bot["kind"] == "company" or len(days5) <= 400:     # the traded days (and the last one) for the day chart
+        keep = set(days5) | ({f"{syms[0]}|{days[-1]:%Y-%m-%d}"} if bot["kind"] == "company" else set())
+        days5 = {}
+        for key in sorted(keep):
+            sym, day = key.split("|")
+            b = bars[sym]
+            day_b = b[b.index.normalize() == pd.Timestamp(day)]
+            if len(day_b):
+                days5[key] = PB.with_vwap(day_b)[["Open", "High", "Low", "Close", "Volume", "VWAP"]]
+    else:
+        days5 = {}
+    out.update(ok=True, start=start, symbols=syms, n_symbols=len(syms), last_date=days[-1], trades=tr, max_pos=max_pos,
+               next_buys=next_buys, next_sells=[], n_open=len(open_rows), in_pos=bool(open_rows), cash=float(cash),
+               days5=days5, first_day=days[0], last_bar=max(t for t, _ in last_bar.values()))
+    if bot["kind"] == "company":
+        d0 = pxd.get(syms[0])
+        out["frame"] = _prep(d0) if d0 is not None and len(d0) else None
+    if not len(live_days):
+        out.update(waiting=True, equity=pd.Series(dtype=float), invested=pd.Series(dtype=float), npos=pd.Series(dtype=float),
+                   metrics=None, bench=None, bench_ret=None, group_ret=None, final=cap, ret=0.0, sessions=0)
+        return out
+    eqs = pd.Series(eq, index=live_days)
+    invs = pd.Series(inv, index=live_days)
+    cl = closes.loc[live_days]
+    cols = [c for c in cl.columns if np.isfinite(cl[c].iloc[0]) and cl[c].iloc[0] > 0]
+    grp = (cl[cols] / cl[cols].iloc[0]).mean(axis=1) * cap if cols else pd.Series(cap, index=live_days)
+    m = engine.metrics({"equity": eqs, "position": invs, "trades": tr}, pd.DataFrame({"Close": grp}), cap)
+    bench, bench_ret = _bench(spy, live_days, cap)
+    out.update(equity=eqs, invested=invs, npos=pd.Series(npos, index=live_days, dtype=float), metrics=m, bench=bench,
+               bench_ret=bench_ret, group=grp, group_ret=float((grp.iloc[-1] / cap - 1) * 100), final=float(eqs.iloc[-1]),
+               ret=float((eqs.iloc[-1] / cap - 1) * 100), sessions=len(live_days))
+    return out
+
+
+def _bench(spy, li, cap):
+    """SPY bought with the same capital on the first day (None when SPY is missing)."""
+    if spy is None or spy.empty:
+        return None, None
+    s = spy["Close"].copy()
+    if getattr(s.index, "tz", None) is not None and getattr(li, "tz", None) is None:
+        s.index = s.index.tz_localize(None)
+    s = s[~s.index.duplicated(keep="last")].reindex(li).ffill().bfill()
+    if s.notna().all() and float(s.iloc[0]) > 0:
+        bench = s / float(s.iloc[0]) * cap
+        return bench, float((bench.iloc[-1] / cap - 1) * 100)
+    return None, None
+
+
 @st.cache_data(ttl=600, show_spinner=False, max_entries=24)
 def _run_cached(bot_json, build=None):
     """build: the site version, so results cached by an older version of the engine are never reused."""
     bot = json.loads(bot_json)
+    if PB.ORB in bot.get("strategies", {}):          # 5-minute candles (Yahoo keeps 60 days) + daily ones for the ATR
+        syms = members(bot["kind"], bot["value"]) if bot.get("valid") else []
+        px5 = load_prices(syms, "60d", "5m")
+        pxd = load_prices(list(syms) + ["SPY"], "1y")
+        return simulate_orb(bot, px5, pxd, pxd.get("SPY"))
     period = period_for(bot["start_date"])
     px = load_prices(members(bot["kind"], bot["value"]), period)
     spy = px.get("SPY")
@@ -765,4 +979,4 @@ def journal(sim):
                          "Days": tr["Bars"], "Exit Reason": tr["Exit Reason"]})
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "7.5"
+BUILD = "7.6"
