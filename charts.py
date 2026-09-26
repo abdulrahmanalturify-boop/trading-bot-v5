@@ -223,6 +223,127 @@ def price_chart(d, chart_type="Candles", overlays=(), panels=(), intraday=False,
     return fig
 
 
+TRADE_WORDS = {"buy": "Buy", "sell": "Sell", "win": "Winning trade", "loss": "Losing trade", "open": "Open trade", "BUY": "BUY",
+               "SELL": "SELL", "at": "at", "stock": "stock at"}
+
+
+def trade_chart(d, trades=None, overlays=(), panels=(), mode="Line", height=None, words=None):
+    """A bot's trades on one stock: a clean light price line with a soft cyan glow (or candles), green BUY arrows under the bar and red SELL arrows
+    above it, every trade joined entry -> exit (green = profit, red = loss) over a light band for the days it was held, and
+    the open trade in gold. trades: Entry Date / Entry / Exit Date / Exit / P&L $ / P&L % / Exit Reason / Strategy / Type."""
+    w = {**TRADE_WORDS, **(words or {})}
+    fig = price_chart(d, "Candles" if mode == "Candles" else "Line", overlays, panels, False, trades=None, height=height)
+    fmt = "%Y-%m-%d"
+    lo, hi = float(d["Low"].min()), float(d["High"].max())
+    rng = (hi - lo) or max(hi, 1.0) * 0.05
+    if mode != "Candles":
+        for tr in fig.data:
+            if tr.name == "Price":
+                tr.update(line=dict(color="#EEF2F8", width=1.8, shape="linear"), hovertemplate="%{x}<br>%{y:,.2f}<extra></extra>")
+        fig.add_trace(go.Scatter(x=d.index.strftime(fmt), y=d["Close"], mode="lines", line=dict(color=rgba(CYAN, 0.12), width=7),
+                                 hoverinfo="skip", showlegend=False), 1, 1)
+        try:
+            fig.data = (fig.data[-1],) + tuple(fig.data[:-1])        # the soft glow goes under the price line
+        except (TypeError, ValueError):
+            pass
+    fig.update_yaxes(range=[lo - rng * 0.1, hi + rng * 0.1], row=1, col=1)
+    if trades is None or trades.empty:
+        return fig
+    t = trades.copy()
+    t["_ed"], t["_xd"] = pd.to_datetime(t["Entry Date"]), pd.to_datetime(t["Exit Date"])
+    t = t[t["_ed"].isin(d.index)]
+    if t.empty:
+        return fig
+    closed = t[(t["Exit Reason"] != "Open") & t["_xd"].isin(d.index)]
+    open_ = t[t["Exit Reason"] == "Open"]
+    off = rng * 0.045
+
+    # the days each trade was held, lightly shaded (the latest 60 trades)
+    for _, r in closed.tail(60).iterrows():
+        fig.add_vrect(x0=r["_ed"].strftime(fmt), x1=r["_xd"].strftime(fmt), fillcolor=rgba(UP if r["P&L $"] > 0 else DOWN, 0.07),
+                      line_width=0, layer="below", row=1, col=1)
+    # entry -> exit, green when the trade made money
+    for win, color, name in ((True, UP, w["win"]), (False, DOWN, w["loss"])):
+        part = closed[(closed["P&L $"] > 0) == win]
+        xs, ys = [], []
+        for _, r in part.iterrows():
+            xs += [r["_ed"].strftime(fmt), r["_xd"].strftime(fmt), None]
+            ys += [float(r["Entry"]), float(r["Exit"]), None]
+        if xs:
+            fig.add_trace(go.Scatter(x=xs, y=ys, mode="lines", name=name, line=dict(color=color, width=1.8, dash="dot"),
+                                     hoverinfo="skip"), 1, 1)
+    last_x, last_c = d.index[-1].strftime(fmt), float(d["Close"].iloc[-1])
+    if not open_.empty:
+        xs, ys = [], []
+        for _, r in open_.iterrows():
+            xs += [r["_ed"].strftime(fmt), last_x, None]
+            ys += [float(r["Entry"]), last_c, None]
+        fig.add_trace(go.Scatter(x=xs, y=ys, mode="lines", name=w["open"], line=dict(color=GOLD, width=1.8, dash="dash"),
+                                 hoverinfo="skip"), 1, 1)
+
+    def arrows(rows, when, is_buy):
+        """One arrow per day (several legs on the same day share it), under the bar for a buy, above it for a sell."""
+        if rows.empty:
+            return
+        xs, ys, tips = [], [], []
+        for day, g in rows.groupby(when, sort=True):
+            bar = d.loc[day]
+            if isinstance(bar, pd.DataFrame):
+                bar = bar.iloc[-1]
+            lines = []
+            for _, r in g.iterrows():
+                stock = r.get("Type", "Stock") == "Stock"
+                leg = "" if stock else f" {str(r['Type']).upper()}"
+                at = w["at"] if stock else w["stock"]
+                if is_buy:
+                    lines.append(f"{w['BUY']}{leg} {at} {float(r['Entry']):,.2f} · {r.get('Strategy', '')}")
+                else:
+                    lines.append(f"{w['SELL']}{leg} {at} {float(r['Exit']):,.2f} · {r.get('Why', r['Exit Reason'])} · {float(r['P&L %']):+.2f}% "
+                                 f"({'+' if r['P&L $'] > 0 else '-'}${abs(float(r['P&L $'])):,.0f})")
+            xs.append(day.strftime(fmt))
+            ys.append(float(bar["Low"]) - off if is_buy else float(bar["High"]) + off)
+            tips.append(f"<b>{day:%Y-%m-%d}</b><br>" + "<br>".join(lines))
+        many = len(xs) > 28
+        fig.add_trace(go.Scatter(
+            x=xs, y=ys, mode="markers" if many else "markers+text", name=w["buy"] if is_buy else w["sell"],
+            text=None if many else [w["BUY"] if is_buy else w["SELL"]] * len(xs), textposition="bottom center" if is_buy else "top center",
+            textfont=dict(size=9, color=UP if is_buy else DOWN, family=FONT_FAMILY),
+            marker=dict(symbol="triangle-up" if is_buy else "triangle-down", size=13, color=UP if is_buy else DOWN,
+                        line=dict(color="#0A0E17", width=1.5)),
+            hovertext=tips, hovertemplate="%{hovertext}<extra></extra>"), 1, 1)
+
+    arrows(t, "_ed", True)
+    arrows(closed, "_xd", False)
+    fig.update_layout(hovermode="closest", legend=dict(orientation="h", y=1.02, x=0, yanchor="bottom"))
+    return fig
+
+
+def pct_bars(labels, values, title=None, height=None, hover=None):
+    """Signed percentages as horizontal bars in the dark theme: emerald for gains, rose for losses, rounded, the stronger
+    bars more opaque, the value printed at the bar's end."""
+    order = np.argsort(values)
+    labels = [labels[i] for i in order]
+    values = [float(values[i]) for i in order]
+    hover = [hover[i] for i in order] if hover is not None else None
+    top = max((abs(v) for v in values), default=0) or 1.0
+    pos, neg = "#34D399", "#FB7185"
+    fills = [rgba(pos if v >= 0 else neg, 0.38 + 0.57 * abs(v) / top) for v in values]
+    edges = [pos if v >= 0 else neg for v in values]
+    fig = go.Figure(go.Bar(
+        x=values, y=labels, orientation="h", marker=dict(color=fills, line=dict(color=edges, width=1)),
+        text=[f"<b>{v:+.2f}%</b>" for v in values], textposition="outside", cliponaxis=False,
+        textfont=dict(color=edges, size=12, family=FONT_FAMILY),
+        hovertext=hover or [f"{v:+.2f}%" for v in values], hovertemplate="<b>%{y}</b><br>%{hovertext}<extra></extra>"))
+    style(fig, height or max(260, 30 * len(values) + 80), title, legend=False)
+    span = max(abs(min(values + [0])), abs(max(values + [0]))) or 1.0
+    lo, hi = min(values + [0]), max(values + [0])
+    fig.update_xaxes(showgrid=True, gridcolor="rgba(138,148,167,0.08)", zeroline=True, zerolinecolor="#4B5568", zerolinewidth=1.5,
+                     ticksuffix="%", range=[lo - span * (0.28 if lo < 0 else 0.04), hi + span * (0.28 if hi > 0 else 0.04)])
+    fig.update_yaxes(side="left", gridcolor="rgba(0,0,0,0)", tickfont=dict(color="#C9D0DC", size=12))
+    fig.update_layout(hovermode="closest", bargap=0.38)
+    return _bars(fig)
+
+
 # =====================================================================
 # Visualizations
 # =====================================================================
@@ -942,4 +1063,4 @@ def seasonal_path(avg, cur=None, title=None, names=("Average year", "This year")
     return fig
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "7.4"
+BUILD = "7.5"

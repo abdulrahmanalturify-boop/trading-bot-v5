@@ -57,8 +57,8 @@ TYPE_NAME = {"Stock": ("Stocks", "الأسهم"), "Call": ("Calls", "عقود Ca
 EXIT_KIND = {"Signal": "neu", "Stop Loss": "down", "Trailing Stop": "gold", "Take Profit": "up", "Time Exit": "org"}
 EXIT_AR = {**engine.EXIT_REASON_AR, "Time Exit": "خروج قبل الانتهاء"}
 MONTHS_EN = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
-DEFAULTS = {"pb_name": "", "pb_capital": 1_000_000, "pb_kind": "company", "pb_symbol": "AAPL", "pb_sector": "Technology",
-            "pb_ind_sector": "Technology", "pb_industry": "Semiconductors", "pb_maxpos": 5, "pb_store": ["SMA Crossover"],
+DEFAULTS = {"pb_name": "", "pb_capital": 1_000_000, "pb_kind": "all", "pb_symbol": "AAPL", "pb_sector": "Technology",
+            "pb_ind_sector": "Technology", "pb_industry": "Semiconductors", "pb_maxpos": 10, "pb_store": ["SMA Crossover"],
             "pb_fee": 0.05, "pb_stop": 2.0, "pb_atr": 0.0, "pb_tp": 0.0, "pb_trail": 0.0, "pb_combine": "any", "pb_instr": "stock",
             "pb_otype": "call", "pb_dte": 30, "pb_strike": 0, "pb_oalloc": 5.0, "pb_otp": 100.0, "pb_osl": 50.0}
 
@@ -172,56 +172,61 @@ PAGE_CSS = f"""<style>
 .pbadd .slots span.on {{ background:linear-gradient(90deg,{_A},{_V}); }}
 
 /* ---------- details ---------- */
-.pbid {{ position:relative; overflow:hidden; }}
+.pbid {{ position:relative; overflow:hidden; margin:0 !important; }}
 .pbid::before {{ content:""; position:absolute; top:0; bottom:0; left:0; width:3px; background:linear-gradient(180deg,{_A},{_V},{_C}); }}
 .pbid .co .tk {{ font-size:1.12rem; }}
 .pbid .bdgs {{ margin-top:10px; }}
-.pbk {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px; margin-bottom:12px; }}
-.pbsub {{ display:flex; align-items:center; gap:8px; font-weight:800; font-size:.98rem; color:#fff; margin:14px 0 8px; }}
+.pbk {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px; }}
+.pbsub {{ display:flex; align-items:center; gap:8px; font-weight:800; font-size:.98rem; color:#fff; margin:8px 0 0; }}
 .pbsub .ms {{ color:#fff; background:linear-gradient(135deg,{_A},{_V}); border-radius:8px; padding:4px; font-size:1rem; }}
 .pbsub .muted {{ font-size:.76rem; font-weight:600; }}
-.pbgt {{ color:{_MU}; font-size:.68rem; font-weight:800; letter-spacing:.1em; text-transform:uppercase; margin:4px 0 8px; }}
-.pbst {{ display:grid; grid-template-columns:repeat(auto-fill,minmax(172px,1fr)); gap:10px; }}
-.pbst .kpi .v {{ font-size:1.12rem; }}
-.pbst .kpi .s {{ font-size:.74rem; }}
-.pbsel {{ display:flex; flex-wrap:wrap; gap:8px; margin:-2px 0 12px; }}
+.pbsel {{ display:flex; flex-wrap:wrap; gap:8px; }}
 .pbsel .c {{ display:inline-flex; align-items:center; gap:6px; padding:5px 10px; border-radius:10px; background:rgba(138,148,167,.12);
   border:1px solid {_BD}; font-size:.78rem; font-weight:700; color:#C9D0DC; }}
 .pbsel .c .pill {{ min-width:0; padding:1px 6px; font-size:.72rem; }}
+/* every part of the details is its own block: the same space between parts, the normal gap inside them */
+[class*="st-key-pbsec_"] {{ margin-top:20px; }}
+[class*="st-key-pbsec_"] [data-testid="stMarkdownContainer"] {{ margin-bottom:0 !important; }}
+[class*="st-key-pbsec_"] .sec {{ margin:0 !important; }}
+[class*="st-key-pbsec_"] .tdk {{ margin-bottom:0 !important; }}
+[class*="st-key-pbcard_"] [data-testid="stMarkdownContainer"] {{ margin-bottom:0 !important; }}
 
 /* ---------- panels: open positions / recent trades / calendar ---------- */
 .pbp {{ position:relative; overflow:hidden; background:linear-gradient(180deg,{_BG},{T.CARD}); border:1px solid {_BD}; border-radius:18px;
-  padding:14px 16px 8px 19px; margin:6px 0 14px; }}
+  padding:14px 16px 10px 19px; margin:0; }}
 .pbp::before {{ content:""; position:absolute; top:0; bottom:0; left:0; width:3px; background:linear-gradient(180deg,{_A},{_V},{_C}); }}
-.pbp .hd {{ display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:8px; }}
+.pbp .hd {{ display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px; }}
 .pbp .tt {{ display:flex; align-items:center; gap:8px; font-weight:800; font-size:1.02rem; color:#fff; }}
 .pbp .tt .ms {{ color:#fff; background:linear-gradient(135deg,{_A},{_V}); border-radius:8px; padding:4px; font-size:1rem; }}
 .pbp .tt .live {{ width:8px; height:8px; border-radius:50%; background:{_G}; box-shadow:0 0 0 3px rgba(245,185,74,.18); }}
 .pbp .sum {{ display:flex; flex-wrap:wrap; gap:7px; align-items:center; }}
-.pbp .sum .c {{ background:rgba(138,148,167,.12); border:1px solid {_BD}; border-radius:10px; padding:4px 9px; font-size:.76rem; font-weight:700;
-  color:#C9D0DC; }}
-.pbp .sum .c b {{ color:#fff; unicode-bidi:isolate; direction:ltr; display:inline-block; }} .pbp .sum .pbox {{ padding:1px 7px; font-size:.78rem; }}
-.pbempty {{ color:{_MU}; padding:14px 2px 12px; display:flex; align-items:center; gap:8px; }}
+.pbp .sum .c {{ display:inline-flex; align-items:center; gap:7px; background:rgba(138,148,167,.10); border:1px solid {_BD}; border-radius:999px;
+  padding:4px 12px; font-size:.75rem; font-weight:700; color:#AEB7C6; line-height:1.4; white-space:nowrap; }}
+.pbp .sum .c b {{ color:#fff; unicode-bidi:isolate; direction:ltr; font-weight:800; }}
+.pbp .sum .c .pbox {{ padding:1px 8px; font-size:.74rem; border-radius:999px; line-height:1.4; margin:0; }}
+.pbempty {{ color:{_MU}; padding:10px 2px 8px; display:flex; align-items:center; gap:8px; }}
 .pbscroll {{ overflow-x:auto; }}
-.pbt {{ width:100%; border-collapse:collapse; font-size:.83rem; direction:ltr; min-width:860px; }}
-.pbt th {{ color:{_MU}; font-size:.63rem; letter-spacing:.08em; text-transform:uppercase; text-align:left; padding:7px 8px;
-  border-bottom:1px solid {_BD}; white-space:nowrap; font-weight:800; }}
-.pbt td {{ padding:9px 8px; border-bottom:1px solid rgba(34,43,59,.6); vertical-align:middle; text-align:left; }}
-.pbt tbody tr:last-child td {{ border-bottom:none; }}
-.pbt tbody tr:hover td {{ background:rgba(61,123,255,.06); }}
+/* modern slim tables: one line per row, rounded rows, no grid lines */
+.pbt {{ width:100%; min-width:900px; border-collapse:separate !important; border-spacing:0 4px !important; font-size:.8rem; direction:ltr;
+  border:none !important; margin:-4px 0 0 !important; background:none !important; }}
+.pbt thead tr, .pbt tbody tr {{ background:none !important; border:none !important; }}
+.pbt th {{ color:{_MU}; font-size:.6rem; letter-spacing:.09em; text-transform:uppercase; text-align:left; padding:6px 12px 2px !important;
+  font-weight:800; white-space:nowrap; border:none !important; background:none !important; }}
+.pbt td {{ padding:6px 12px !important; white-space:nowrap; vertical-align:middle; text-align:left; line-height:1.35; color:#DCE2EC;
+  background:rgba(255,255,255,.028) !important; border:none !important; border-top:1px solid rgba(255,255,255,.045) !important;
+  border-bottom:1px solid rgba(255,255,255,.045) !important; transition:background .15s ease; }}
+.pbt td:first-child {{ border-left:1px solid rgba(255,255,255,.045) !important; border-radius:10px 0 0 10px; }}
+.pbt td:last-child {{ border-right:1px solid rgba(255,255,255,.045) !important; border-radius:0 10px 10px 0; }}
+.pbt tbody tr:hover td {{ background:rgba(61,123,255,.10) !important; }}
 .pbt th.r, .pbt td.r {{ text-align:right; }}
-.pbt .v {{ font-weight:800; color:#fff; white-space:nowrap; }}
-.pbt .v2 {{ font-weight:700; color:#C9D0DC; }}
-.pbt .m {{ color:{_MU}; font-size:.72rem; margin-top:2px; font-weight:600; white-space:nowrap; }}
-.pbt .m.up {{ color:#4ADE80; }} .pbt .m.dn {{ color:#F87171; }}
-.pbt a {{ color:#fff !important; text-decoration:none !important; }} .pbt a:hover .tk {{ color:#7EA6FF; }}
-.pbt .co .sub {{ max-width:170px; }}
-.pbt .bar {{ height:4px; width:92px; border-radius:3px; background:{_BD}; margin-top:6px; overflow:hidden; }}
-.pbt .bar span {{ display:block; height:100%; border-radius:3px; background:linear-gradient(90deg,{_A},{_C}); }}
-.pbt .rng {{ position:relative; width:110px; height:6px; border-radius:4px; margin-top:7px;
-  background:linear-gradient(90deg,{T.NEG_BG},#E2E8F0 50%,{T.POS_BG}); }}
-.pbt .rng i {{ position:absolute; top:-3px; width:4px; height:12px; margin-left:-2px; border-radius:2px; background:#fff; box-shadow:0 0 0 2px {T.BG}; }}
-.pbt .badge {{ margin:0; }}
+.pbt b {{ color:#fff; font-weight:800; }}
+.pbt .as {{ display:inline-flex; align-items:center; gap:8px; color:#fff !important; text-decoration:none !important; }}
+.pbt .as .lg {{ width:22px !important; height:22px !important; font-size:9px !important; }}
+.pbt .as b {{ font-size:.84rem; }} .pbt .as:hover b {{ color:#7EA6FF; }}
+.pbt .m {{ color:{_MU}; font-size:.72rem; font-weight:600; }}
+.pbt .up {{ color:#4ADE80; font-weight:700; }} .pbt .dn {{ color:#F87171; font-weight:700; }}
+.pbt .badge {{ margin:0; padding:2px 9px; font-size:.64rem; }}
+.pbt .pbox {{ padding:1px 9px; font-size:.76rem; border-radius:999px; margin-left:8px; }}
 a.pblink {{ display:inline-flex; align-items:center; gap:4px; color:#7EA6FF !important; font-weight:800; font-size:.8rem;
   text-decoration:none !important; padding:4px 10px; border-radius:10px; border:1px solid {_A}55; background:{_A}14; }}
 a.pblink:hover {{ color:#fff !important; border-color:{_A}; background:{_A}33; }}
@@ -229,26 +234,25 @@ a.pblink .ms {{ font-size:1rem; }}
 .pbanchor {{ scroll-margin-top:96px; height:1px; }}
 
 /* ---------- monthly returns: every month is a button that opens its calendar ---------- */
-[class*="st-key-pbmg_"] {{ overflow-x:auto; padding-bottom:4px; gap:.45rem !important; }}
-[class*="st-key-pbmg_"] [data-testid="stHorizontalBlock"] {{ min-width:780px; flex-wrap:nowrap !important; gap:5px !important; }}
+[class*="st-key-pbmg_"] {{ overflow-x:auto; overflow-y:hidden; max-width:860px; gap:5px !important; padding:10px 12px 12px;
+  background:linear-gradient(180deg,{_BG},{T.CARD}); border:1px solid {_BD}; border-radius:16px; }}
+[class*="st-key-pbmg_"] [data-testid="stHorizontalBlock"] {{ min-width:680px; flex-wrap:nowrap !important; gap:4px !important;
+  align-items:center !important; }}
 [class*="st-key-pbmg_"] [data-testid="stColumn"] {{ min-width:0 !important; }}
-.pbmh {{ color:{_MU}; font-size:.66rem; font-weight:800; text-align:center; letter-spacing:.06em; text-transform:uppercase; padding:2px 0; }}
-.pbmy {{ font-weight:800; color:#fff; font-size:.86rem; padding:6px 2px; }}
-.pbmt {{ text-align:center; }} .pbmt .pbox {{ padding:5px 6px; font-size:.78rem; }}
-.pbme {{ height:34px; border-radius:9px; border:1px dashed {_BD}; opacity:.45; }}
-[class*="st-key-pbmo_"] button {{ min-height:34px !important; height:34px; padding:0 3px !important; border-radius:9px !important;
-  transition:transform .12s ease, box-shadow .12s ease; }}
-[class*="st-key-pbmo_"] button p {{ font-size:.76rem !important; font-weight:800 !important; white-space:nowrap; direction:ltr; }}
-[class*="st-key-pbmo_pos"] button {{ background:{T.POS_BG} !important; border:1px solid {T.POS_BD} !important; }}
-[class*="st-key-pbmo_pos"] button p {{ color:{T.POS_FG} !important; }}
-[class*="st-key-pbmo_neg"] button {{ background:{T.NEG_BG} !important; border:1px solid {T.NEG_BD} !important; }}
-[class*="st-key-pbmo_neg"] button p {{ color:{T.NEG_FG} !important; }}
-[class*="st-key-pbmo_neu"] button {{ background:#E2E8F0 !important; border:1px solid #CBD5E1 !important; }}
-[class*="st-key-pbmo_neu"] button p {{ color:#334155 !important; }}
+[class*="st-key-pbmg_"] [data-testid="stElementContainer"], [class*="st-key-pbmg_"] .stMarkdown,
+[class*="st-key-pbmg_"] [data-testid="stMarkdownContainer"] {{ margin:0 !important; }}
+[class*="st-key-pbmg_"] [data-testid="stMarkdownContainer"] p {{ margin:0 !important; }}
+.pbmh {{ color:{_MU}; font-size:.58rem; font-weight:800; text-align:center; letter-spacing:.06em; text-transform:uppercase; line-height:16px; }}
+.pbmy {{ font-weight:800; color:#fff; font-size:.78rem; line-height:26px; }}
+.pbmt {{ text-align:center; line-height:26px; }} .pbmt .pbox {{ padding:2px 6px; font-size:.68rem; border-radius:6px; }}
+.pbme {{ height:26px; border-radius:6px; background:rgba(138,148,167,.06); }}
+[class*="st-key-pbmo_"] button {{ min-height:26px !important; height:26px; padding:0 2px !important; border-radius:6px !important;
+  border:0 !important; transition:transform .12s ease, box-shadow .12s ease; }}
+[class*="st-key-pbmo_"] button p {{ font-size:.68rem !important; font-weight:700 !important; color:#1F2937 !important; white-space:nowrap; direction:ltr; }}
 [class*="st-key-pbmo_"] button:hover {{ transform:translateY(-2px); box-shadow:0 6px 16px rgba(0,0,0,.35); }}
 [class*="st-key-pbmo_"][class*="_on_"] button {{ box-shadow:0 0 0 2px {T.BG}, 0 0 0 4px {_A} !important; transform:translateY(-2px); }}
 [class*="st-key-pbcalbox_"] {{ background:linear-gradient(180deg,{_BG},{T.CARD}); border:1px solid {_A}66; border-radius:18px; padding:14px 16px;
-  box-shadow:0 12px 30px rgba(61,123,255,.12); margin-top:6px; }}
+  box-shadow:0 12px 30px rgba(61,123,255,.12); margin-top:6px; max-width:1100px; }}
 .pbct {{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; font-weight:800; font-size:1rem; color:#fff; }}
 .pbct .ms {{ color:#fff; background:linear-gradient(135deg,{_A},{_V}); border-radius:8px; padding:4px; font-size:1rem; }}
 .pbct .muted {{ font-size:.78rem; font-weight:600; }} .pbct .pill {{ min-width:0; padding:2px 8px; font-size:.76rem; }}
@@ -258,7 +262,7 @@ a.pblink .ms {{ font-size:1rem; }}
 </style>"""
 # Arabic: no letter-spacing (it breaks the joined letters) and the accent bars move to the right edge
 PAGE_RTL_CSS = """<style>
-.pbhero .eb, .pbc .it, .pbgt, .pbmh, .pbt th { letter-spacing:0; }
+.pbhero .eb, .pbc .it, .pbmh, .pbt th { letter-spacing:0; }
 .pbp::before, .pbid::before { left:auto; right:0; }
 .pbp { padding:14px 19px 8px 16px; }
 </style>"""
@@ -713,19 +717,21 @@ def _open_value(op):
     return pd.Series(np.where(opt, op["Shares"] * 100 * op["Exit"], op["Shares"] * op["Stock Exit"]), index=op.index, dtype=float)
 
 
-def single_view(sim):
+def single_view(sim, in_tab=False):
     b = sim["bot"]
     tr = sim["trades"].assign(Bot=b["name"])
     op = tr[tr["Exit Reason"] == "Open"]
     cash = sim.get("cash")
     if cash is None:
         cash = sim["final"] - float(_open_value(op).sum())
+    if abs(cash) < 0.01:                     # a fully invested bot shows $0, not -$0
+        cash = 0.0
     has_spy = sim["bench"] is not None
     return {"key": str(b["id"]), "multi": False, "group": b["kind"] != "company", "n_bots": 1, "cap": float(b["capital"]),
             "final": float(sim["final"]), "ret": float(sim["ret"]), "bench_ret": sim["bench_ret"], "base_ret": sim["group_ret"],
             "equity": sim["equity"], "bench": sim["bench"] if has_spy else sim["group"],
             "bench_name": "S&P 500 (SPY)" if has_spy else L("Buy & Hold", "شراء واحتفاظ"), "npos": sim["npos"], "trades": tr,
-            "cash": float(cash), "sessions": sim["sessions"], "since": b["start_date"], "opts": instrument(b) != "stock",
+            "cash": float(cash), "name": b["name"], "scope": b["name"] if in_tab else "", "sessions": sim["sessions"], "since": b["start_date"], "opts": instrument(b) != "stock",
             "last": pd.Timestamp(sim["last_date"])}
 
 
@@ -752,7 +758,7 @@ def combined_view(sims):
     trades = pd.concat(frames, ignore_index=True) if frames else views[0]["trades"]
     for c in ("Entry", "Exit", "Shares", "P&L $", "P&L %", "Stock Entry", "Stock Exit", "Fees", "Stop", "Target"):
         trades[c] = pd.to_numeric(trades[c], errors="coerce")        # an empty frame would turn the pooled columns into objects
-    return {"key": "all", "multi": True, "group": True, "n_bots": len(live), "cap": cap, "final": final,
+    return {"key": "all", "name": "", "scope": L(f"all {len(live)} selected bots", f"كل البوتات المحددة ({len(live)})"), "multi": True, "group": True, "n_bots": len(live), "cap": cap, "final": final,
             "ret": (final / cap - 1) * 100, "bench_ret": float((bench.iloc[-1] / cap - 1) * 100), "base_ret": None,
             "equity": eq, "bench": bench, "bench_name": "S&P 500 (SPY)", "npos": npos,
             "trades": trades, "cash": float(sum(v["cash"] for v in views)),
@@ -801,44 +807,40 @@ def kpi_row(v):
     return '<div class="pbk">' + "".join(tiles) + "</div>"
 
 
-def _group_tiles(closed, col, label_fn, icon):
-    out = []
-    for k, g in closed.groupby(col, sort=False):
-        pnl, n = float(g["P&L $"].sum()), len(g)
-        wr, avg = float((g["P&L $"] > 0).mean() * 100), float(g["P&L %"].mean())
-        w_, a_ = iso(f"{wr:.0f}%"), iso(f"{avg:+.1f}%")
-        sub = L(f"{n} trades · win {w_} · avg {a_}", f"{n} صفقة · نجاح {w_} · متوسط {a_}")
-        out.append((pnl, T.kpi(icon, label_fn(k), sm(pnl), sub, T.cls(pnl))))
-    out.sort(key=lambda x: -x[0])
-    return "".join(h for _, h in out)
+def _contrib(closed, by, cap):
+    """Each group's share of the return, % of the starting capital (so the bars add up to the closed-trade return)."""
+    g = closed.groupby(by).agg(pnl=("P&L $", "sum"), n=("P&L $", "size"), wins=("P&L $", lambda x: int((x > 0).sum())))
+    g["pct"] = g["pnl"].astype(float) / cap * 100
+    return g
+
+
+def _bars_from(g, labels, title, key, container):
+    hover = [f"{sm(r.pnl)} · " + L(f"{int(r.n)} trades · win {r.wins / r.n * 100:.0f}%", f"{int(r.n)} صفقة · نجاح {r.wins / r.n * 100:.0f}%")
+             for r in g.itertuples()]
+    ui.chart(charts.pct_bars(labels, list(g["pct"].values), title, max(250, 30 * len(g) + 80), hover), key=key, container=container)
 
 
 def what_worked(v):
     tr = v["trades"]
     closed = tr[tr["Exit Reason"] != "Open"]
     ui.html(f'<div class="pbsub">{T.icon("pie_chart")}{L("What worked", "ماذا نجح")}'
-            f'<span class="muted">· {L("closed trades", "الصفقات المغلقة")}</span></div>')
+            f'<span class="muted">· {L("closed trades, share of the return in % of the starting capital", "الصفقات المغلقة، نصيبها من العائد (% من رأس المال)")}</span></div>')
     if closed.empty:
         st.caption(L("This part fills in after the first closed trade.", "هذا الجزء يمتلئ بعد أول صفقة مغلقة."))
         return
-    c1, c2 = st.columns([1.2, 1], gap="medium")
+    c1, c2 = st.columns(2, gap="medium")
     if v["group"]:
-        g = closed.groupby("Symbol")["P&L $"].sum()
-        g = pd.concat([g.nlargest(6), g.nsmallest(6)]).groupby(level=0).first().sort_values()
-        labels, title = list(g.index), L("P&L by stock, best and worst ($)", "الربح حسب السهم، الأفضل والأسوأ ($)")
+        g = _contrib(closed, "Symbol", v["cap"])
+        g = g.loc[list(dict.fromkeys(list(g["pct"].nlargest(6).index) + list(g["pct"].nsmallest(6).index)))]
+        _bars_from(g, list(g.index), L("By stock, best and worst", "حسب السهم، الأفضل والأسوأ"), f"pb_ww_{v['key']}", c1)
     else:
-        g = closed.groupby("Exit Reason")["P&L $"].sum().sort_values()
-        labels = [L(x, EXIT_AR.get(x, x)) for x in g.index]
-        title = L("P&L by exit reason ($)", "الربح حسب سبب الخروج ($)")
-    ui.chart(charts.hbar(labels, [float(x) for x in g.values], title, max(280, 32 * len(g) + 90), suffix=""),
-             key=f"pb_ww_{v['key']}", container=c1)
-    html = (f'<div class="pbgt">{L("By strategy", "حسب الاستراتيجية")}</div>'
-            f'<div class="pbst">{_group_tiles(closed, "Strategy", strat_short, "smart_toy")}</div>')
-    if v["opts"]:
-        html += (f'<div class="pbgt" style="margin-top:16px">{L("By type", "حسب النوع")}</div>'
-                 f'<div class="pbst">{_group_tiles(closed, "Type", lambda k: L(*TYPE_NAME.get(k, (k, k))), "category")}</div>')
-    with c2:
-        ui.html(html)
+        g = _contrib(closed, "Exit Reason", v["cap"])
+        _bars_from(g, [L(x, EXIT_AR.get(x, x)) for x in g.index], L("By exit reason", "حسب سبب الخروج"), f"pb_ww_{v['key']}", c1)
+    g = _contrib(closed, "Strategy", v["cap"])
+    _bars_from(g, [strat_short(k) for k in g.index], L("By strategy", "حسب الاستراتيجية"), f"pb_wws_{v['key']}", c2)
+    g = _contrib(closed, "Type", v["cap"])
+    if len(g) > 1:
+        _bars_from(g, [L(*TYPE_NAME.get(k, (k, k))) for k in g.index], L("By type", "حسب النوع"), f"pb_wwt_{v['key']}", c2)
 
 
 def dashboard(v):
@@ -857,46 +859,60 @@ def dashboard(v):
 # panels: open positions · recent trades
 # =====================================================================
 def _asset(r, lg):
+    """Logo, symbol and a short note on one line: the contract for options, the sector for stocks."""
     sym = r["Symbol"]
     if r["Type"] in ("Call", "Put"):
-        sub = r["Contract"]
+        sub = " ".join(str(r["Contract"]).split(" ")[1:])            # "205C 2026-10-02"
     else:
         sec = PB.sector_of(sym)
         sub = sector_name(sec) if sec else ""
-    return T.company(sym, "", lg.get(sym), 28, sub=sub, href=ui.href(sym))
+    return (f'<a class="as" href="{ui.href(sym)}" target="_self">{T.logo_circle(sym, lg.get(sym), 22)}<b>{T.esc(sym)}</b>'
+            f'<span class="m">{T.esc(sub)}</span></a>')
+
+
+def _chg(a, b):
+    c = (float(b) / float(a) - 1) * 100 if float(a) else 0.0
+    return f'<span class="{"up" if c >= 0 else "dn"}">{c:+.1f}%</span>'
 
 
 def _plan(r):
-    """How the open position will close: the stock's stop / target (with where the price sits between them), or the option's expiry."""
+    """How the open position will close, on one line: stop / target for shares, expiry + target / stop for options."""
     now = float(r["Exit"])
     if r["Type"] in ("Call", "Put"):
         exp = pd.Timestamp(r["Expiry"])
         left = max((exp - pd.Timestamp(r["Exit Date"])).days, 0)
-        total = max((exp - pd.Timestamp(r["Entry Date"])).days, 1)
-        used = min(max(1 - left / total, 0.0), 1.0) * 100
-        left_txt = L(f"{left} days left", f"باقي {left} يوم")
-        return (f'<div class="v">{L("Expires", "ينتهي")} {exp:%Y-%m-%d}</div>'
-                f'<div class="m">{left_txt} · TP {_fp(r["Target"])} · SL {_fp(r["Stop"])}</div>'
-                f'<div class="bar"><span style="width:{used:.0f}%"></span></div>')
-    stop, target = r["Stop"], r["Target"]
-    has_stop, has_tp = pd.notna(stop), pd.notna(target)
-    if not has_stop and not has_tp:
-        return f'<div class="v2">{L("On the signal", "بالإشارة")}</div><div class="m">{L("no stop / target", "بدون وقف / هدف")}</div>'
-    lines = ""
-    if has_stop:
-        lines += f'<div class="m dn">{L("Stop", "وقف")} {_fp(stop)} ({(stop / now - 1) * 100:+.1f}%)</div>'
-    if has_tp:
-        lines += f'<div class="m up">{L("Target", "هدف")} {_fp(target)} ({(target / now - 1) * 100:+.1f}%)</div>'
-    if has_stop and has_tp and target > stop:
-        pos = min(max((now - stop) / (target - stop), 0.0), 1.0) * 100
-        lines += f'<div class="rng"><i style="left:{pos:.0f}%"></i></div>'
-    return lines
+        return (f'{exp:%Y-%m-%d} <span class="m">· {L(f"{left}d left", f"باقي {left} يوم")}</span> '
+                f'<span class="up">TP {_fp(r["Target"])}</span> <span class="dn">SL {_fp(r["Stop"])}</span>')
+    parts = []
+    if pd.notna(r["Stop"]):
+        parts.append(f'<span class="dn">SL {_fp(r["Stop"])}</span><span class="m"> {(float(r["Stop"]) / now - 1) * 100:+.1f}%</span>')
+    if pd.notna(r["Target"]):
+        parts.append(f'<span class="up">TP {_fp(r["Target"])}</span><span class="m"> {(float(r["Target"]) / now - 1) * 100:+.1f}%</span>')
+    return " · ".join(parts) or f'<span class="m">{L("on the signal", "بالإشارة")}</span>'
 
 
 def _held(bars):
     if bars <= 0:
         return L("today", "اليوم")
     return L("1 session", "جلسة وحدة") if bars == 1 else L(f"{bars} sessions", f"{bars} جلسة")
+
+
+def _pnl_cell(r):
+    return f'<td class="r">{_chg(1, 1 + float(r["P&L %"]) / 100)}{T.pbox(sm(r["P&L $"]), r["P&L $"])}</td>'
+
+
+def _chip(label, value_html):
+    return f'<span class="c">{T.esc(label)}{value_html}</span>'
+
+
+def _title(v, en, ar_):
+    """Panel / section title; with several bots it also says whose trades these are."""
+    return L(en, ar_) + (f" · {v['scope']}" if v.get("scope") else "")
+
+
+def _table(heads, rows, right_last=True):
+    th = "".join(f"<th>{h}</th>" for h in heads[:-1]) + f'<th class="{"r" if right_last else ""}">{heads[-1]}</th>'
+    return f'<div class="pbscroll"><table class="pbt"><thead><tr>{th}</tr></thead><tbody>{"".join(rows)}</tbody></table></div>'
 
 
 def open_panel(v, lg):
@@ -906,11 +922,9 @@ def open_panel(v, lg):
     n, invested = len(op), float(val.sum()) if len(op) else 0.0
     open_pnl = float(op["P&L $"].sum()) if n else 0.0
     pct = invested / v["final"] * 100 if v["final"] > 0 else 0.0
-    chips = (f'<span class="c"><b>{n}</b> {L("positions", "مراكز")}</span>'
-             f'<span class="c">{L("Invested", "مستثمر")} <b>{T.money(invested)} · {pct:.0f}%</b></span>'
-             f'<span class="c">{L("Cash", "الكاش")} <b>{T.money(v["cash"])}</b></span>'
-             f'<span class="c">{L("Open P&L", "الربح المفتوح")} {T.pbox(sm(open_pnl), open_pnl)}</span>')
-    head = (f'<div class="hd"><div class="tt">{T.icon("work")}{L("Open positions", "المراكز المفتوحة")}<span class="live"></span></div>'
+    chips = (_chip(L("Positions", "المراكز"), f"<b>{n}</b>") + _chip(L("Invested", "مستثمر"), f"<b>{T.money(invested)} · {pct:.0f}%</b>")
+             + _chip(L("Cash", "الكاش"), f"<b>{T.money(v['cash'])}</b>") + _chip(L("Open P&L", "الربح المفتوح"), T.pbox(sm(open_pnl), open_pnl)))
+    head = (f'<div class="hd"><div class="tt">{T.icon("work")}{T.esc(_title(v, "Open positions", "المراكز المفتوحة"))}<span class="live"></span></div>'
             f'<div class="sum">{chips}</div></div>')
     if not n:
         ui.html(f'<div class="pbp">{head}<div class="pbempty">{T.icon("hourglass_empty")}'
@@ -919,33 +933,20 @@ def open_panel(v, lg):
     rows = []
     for i in op.assign(_v=val).sort_values("_v", ascending=False).index:
         r = op.loc[i]
-        is_opt = r["Type"] in ("Call", "Put")
+        opt = r["Type"] in ("Call", "Put")
         value = float(val.loc[i])
         w = value / v["final"] * 100 if v["final"] > 0 else 0.0
-        held = _held(int(r["Bars"]))
-        who = f'<div class="m">{T.esc(r["Bot"])}</div>' if v["multi"] else ""
-        if is_opt:
-            qty = L(f'{int(r["Shares"])} contracts', f'{int(r["Shares"])} عقد')
-            price = (f'<div class="v">{_fp(r["Entry"])} → {_fp(r["Exit"])}</div>'
-                     f'<div class="m">{L("stock", "السهم")} {_fp(r["Stock Entry"])} → {_fp(r["Stock Exit"])}</div>')
-        else:
-            qty = L(f'{r["Shares"]:,.2f} shares', f'{r["Shares"]:,.2f} سهم')
-            chg = (float(r["Exit"]) / float(r["Entry"]) - 1) * 100
-            price = (f'<div class="v">{_fp(r["Entry"])} → {_fp(r["Exit"])}</div>'
-                     f'<div class="m {"up" if chg >= 0 else "dn"}">{chg:+.2f}%</div>')
-        rows.append(f'<tr><td>{_asset(r, lg)}</td><td>{type_badge(r["Type"])}{who}</td>'
-                    f'<td><div class="v2">{T.esc(strat_short(r["Strategy"]))}</div></td>'
-                    f'<td><div class="v">{pd.Timestamp(r["Entry Date"]):%Y-%m-%d}</div><div class="m">{held}</div></td>'
-                    f'<td>{price}</td>'
-                    f'<td><div class="v">{qty}</div><div class="m">{T.money(value)} · {w:.1f}%</div>'
-                    f'<div class="bar"><span style="width:{min(w, 100):.0f}%"></span></div></td>'
-                    f'<td>{_plan(r)}</td>'
-                    f'<td class="r">{T.pbox(sm(r["P&L $"]), r["P&L $"])}<div class="m">{r["P&L %"]:+.2f}%</div></td></tr>')
-    heads = [L("Asset", "الأصل"), L("Type", "النوع"), L("Strategy", "الاستراتيجية"), L("Opened", "تاريخ الفتح"),
-             L("Entry → now", "الدخول ← الآن"), L("Size", "الحجم"), L("Exit plan", "خطة الخروج")]
-    th = "".join(f"<th>{h}</th>" for h in heads) + f'<th class="r">{L("Open P&L", "الربح")}</th>'
-    ui.html(f'<div class="pbp">{head}<div class="pbscroll"><table class="pbt"><thead><tr>{th}</tr></thead>'
-            f'<tbody>{"".join(rows)}</tbody></table></div></div>')
+        qty = L(f'{int(r["Shares"])} contracts', f'{int(r["Shares"])} عقد') if opt else L(f'{r["Shares"]:,.2f} sh', f'{r["Shares"]:,.2f} سهم')
+        tip = f' title="{L("stock", "السهم")} {_fp(r["Stock Entry"])} → {_fp(r["Stock Exit"])}"' if opt else ""
+        who = f'<td><span class="m">{T.esc(r["Bot"])}</span></td>' if v["multi"] else ""
+        rows.append(f'<tr><td>{_asset(r, lg)}</td><td>{type_badge(r["Type"])}</td>{who}<td>{T.esc(strat_short(r["Strategy"]))}</td>'
+                    f'<td>{pd.Timestamp(r["Entry Date"]):%Y-%m-%d} <span class="m">· {_held(int(r["Bars"]))}</span></td>'
+                    f'<td{tip}>{_fp(r["Entry"])} → <b>{_fp(r["Exit"])}</b> {_chg(r["Entry"], r["Exit"])}</td>'
+                    f'<td>{qty} <span class="m">· {T.money(value)} · {w:.1f}%</span></td><td>{_plan(r)}</td>{_pnl_cell(r)}</tr>')
+    heads = ([L("Asset", "الأصل"), L("Type", "النوع")] + ([L("Bot", "البوت")] if v["multi"] else [])
+             + [L("Strategy", "الاستراتيجية"), L("Opened", "الفتح"), L("Entry → now", "الدخول ← الآن"), L("Size", "الحجم"),
+                L("Exit plan", "خطة الخروج"), L("Open P&amp;L", "الربح")])
+    ui.html(f'<div class="pbp">{head}{_table(heads, rows)}</div>')
 
 
 def recent_panel(v, lg, n=10):
@@ -953,13 +954,12 @@ def recent_panel(v, lg, n=10):
     closed = tr[tr["Exit Reason"] != "Open"].sort_values("Exit Date", ascending=False, kind="stable")
     total = len(closed)
     link = f'<a class="pblink" href="#pb-all-{v["key"]}" target="_self">{L("Full list below", "القائمة الكاملة بالأسفل")}{T.icon("south")}</a>'
-    chips = f'<span class="c">{L("Last", "آخر")} <b>{min(n, total)}</b> {L("of", "من")} <b>{total}</b></span>'
+    chips = _chip(L("Last", "آخر"), f"<b>{min(n, total)} / {total}</b>")
     if total:
         wr = (closed["P&L $"] > 0).mean() * 100
         net = float(closed["P&L $"].sum())
-        chips += (f'<span class="c">{L("Win rate", "نسبة النجاح")} <b>{wr:.0f}%</b></span>'
-                  f'<span class="c">{L("Closed P&L", "ربح المغلقة")} {T.pbox(sm(net), net)}</span>')
-    head = (f'<div class="hd"><div class="tt">{T.icon("receipt_long")}{L("Recent trades", "آخر الصفقات")}</div>'
+        chips += _chip(L("Win rate", "نسبة النجاح"), f"<b>{wr:.0f}%</b>") + _chip(L("Closed P&L", "ربح المغلقة"), T.pbox(sm(net), net))
+    head = (f'<div class="hd"><div class="tt">{T.icon("receipt_long")}{T.esc(_title(v, "Recent trades", "آخر الصفقات"))}</div>'
             f'<div class="sum">{chips}{link}</div></div>')
     if not total:
         ui.html(f'<div class="pbp">{head}<div class="pbempty">{T.icon("hourglass_empty")}'
@@ -967,40 +967,62 @@ def recent_panel(v, lg, n=10):
         return
     rows = []
     for _, r in closed.head(n).iterrows():
-        is_opt = r["Type"] in ("Call", "Put")
-        held = _held(int(r["Bars"]))
-        who = f'<div class="m">{T.esc(r["Bot"])}</div>' if v["multi"] else ""
-        sub = (f'<div class="m">{L("stock", "السهم")} {_fp(r["Stock Entry"])} → {_fp(r["Stock Exit"])}</div>' if is_opt else
-               f'<div class="m">{L("Qty", "الكمية")} {r["Shares"]:,.2f}</div>')
-        rows.append(f'<tr><td>{_asset(r, lg)}</td><td>{type_badge(r["Type"])}{who}</td>'
-                    f'<td><div class="v2">{T.esc(strat_short(r["Strategy"]))}</div></td>'
-                    f'<td><div class="v">{pd.Timestamp(r["Entry Date"]):%Y-%m-%d} → {pd.Timestamp(r["Exit Date"]):%Y-%m-%d}</div>'
-                    f'<div class="m">{held}</div></td>'
-                    f'<td><div class="v">{_fp(r["Entry"])} → {_fp(r["Exit"])}</div>{sub}</td>'
-                    f'<td>{exit_badge(r["Exit Reason"])}</td>'
-                    f'<td class="r">{T.pbox(sm(r["P&L $"]), r["P&L $"])}<div class="m">{r["P&L %"]:+.2f}%</div></td></tr>')
-    heads = [L("Asset", "الأصل"), L("Type", "النوع"), L("Strategy", "الاستراتيجية"), L("Held", "المدة"),
-             L("Entry → exit", "الدخول ← الخروج"), L("Exit reason", "سبب الخروج")]
-    th = "".join(f"<th>{h}</th>" for h in heads) + f'<th class="r">P&amp;L</th>'
-    ui.html(f'<div class="pbp">{head}<div class="pbscroll"><table class="pbt"><thead><tr>{th}</tr></thead>'
-            f'<tbody>{"".join(rows)}</tbody></table></div></div>')
+        opt = r["Type"] in ("Call", "Put")
+        tip = f' title="{L("stock", "السهم")} {_fp(r["Stock Entry"])} → {_fp(r["Stock Exit"])}"' if opt else ""
+        who = f'<td><span class="m">{T.esc(r["Bot"])}</span></td>' if v["multi"] else ""
+        rows.append(f'<tr><td>{_asset(r, lg)}</td><td>{type_badge(r["Type"])}</td>{who}<td>{T.esc(strat_short(r["Strategy"]))}</td>'
+                    f'<td>{pd.Timestamp(r["Entry Date"]):%Y-%m-%d} → {pd.Timestamp(r["Exit Date"]):%Y-%m-%d} '
+                    f'<span class="m">· {_held(int(r["Bars"]))}</span></td>'
+                    f'<td{tip}>{_fp(r["Entry"])} → <b>{_fp(r["Exit"])}</b></td><td>{exit_badge(r["Exit Reason"])}</td>{_pnl_cell(r)}</tr>')
+    heads = ([L("Asset", "الأصل"), L("Type", "النوع")] + ([L("Bot", "البوت")] if v["multi"] else [])
+             + [L("Strategy", "الاستراتيجية"), L("Held", "المدة"), L("Entry → exit", "الدخول ← الخروج"), L("Exit reason", "سبب الخروج"), "P&amp;L"])
+    ui.html(f'<div class="pbp">{head}{_table(heads, rows)}</div>')
 
 
 # =====================================================================
 # charts · monthly returns (a month opens its calendar) · all trades
 # =====================================================================
-def perf_charts(v):
+def balance_chart(v):
     ui.sec("show_chart", "Balance vs the market", "الرصيد مقابل السوق")
     ui.chart(charts.equity_chart(v["equity"], v["bench"], (L("Bot", "البوت"), v["bench_name"], L("Drawdown %", "التراجع %"))),
              key=f"pb_eq_{v['key']}")
+
+
+def pnl_charts(v):
     tr = v["trades"]
     daily = tdash._daily(tr[tr["Exit Reason"] != "Open"])
     if len(daily):
+        ui.sec("bar_chart", "Profit of the closed trades", "ربح الصفقات المغلقة")
         c1, c2 = st.columns(2)
         ui.chart(charts.area(daily["pnl"].cumsum(), L("Cumulative P&L (closed trades)", "الربح التراكمي (الصفقات المغلقة)"), T.CYAN, 300),
                  key=f"pb_cum_{v['key']}", container=c1)
         ui.chart(charts.signed_bars(daily.index, daily["pnl"].values, L("Daily P&L", "الربح اليومي"), 300), key=f"pb_day_{v['key']}",
                  container=c2)
+
+
+# the colours of the old monthly heatmap: pale for small months, deeper green / red for big ones
+_HEAT_STOPS = [(0.0, "#F1AEB5"), (0.35, T.NEG_BG), (0.5, "#E2E8F0"), (0.65, T.POS_BG), (1.0, "#A3CFBB")]
+
+
+def _heat_color(t):
+    for (t0, c0), (t1, c1) in zip(_HEAT_STOPS, _HEAT_STOPS[1:]):
+        if t <= t1:
+            u = (t - t0) / (t1 - t0)
+            a, b = (tuple(int(c[i:i + 2], 16) for i in (1, 3, 5)) for c in (c0, c1))
+            return "#" + "".join(f"{round(x + (y - x) * u):02X}" for x, y in zip(a, b))
+    return _HEAT_STOPS[-1][1]
+
+
+def _heat_class(x, top):
+    """p1..p4 / n1..n4 by the month's size against the biggest month; z for flat."""
+    if not x:
+        return "z"
+    return ("p" if x > 0 else "n") + str(min(4, int(abs(x) / top * 4) + 1))
+
+
+HEAT_CSS = "<style>" + "".join(
+    f'[class*="st-key-pbmo_{s}{k}"] button {{ background:{_heat_color(0.5 + (0.5 if s == "p" else -0.5) * (k - 0.5) / 4)} !important; }}'
+    for s in "pn" for k in range(1, 5)) + '[class*="st-key-pbmo_z"] button { background:#E2E8F0 !important; }</style>'
 
 
 def _pick_month(ck, ym):
@@ -1025,6 +1047,7 @@ def month_grid(v):
     st.caption(L("Click a month to open its calendar of daily results; click it again to close it.",
                  "اضغط على أي شهر يفتح لك تقويمه بنتائج كل يوم، واضغطه مرة ثانية يتقفل."))
     names = tdash.MONTHS_AR if is_ar() else MONTHS_EN
+    top = float(np.nanmax(np.abs(table.to_numpy(float)))) or 1.0
     spec = [1.05] + [1] * 12 + [1.15]
     with st.container(key=f"pbmg_{key}"):
         hc = st.columns(spec, gap="small")
@@ -1042,7 +1065,7 @@ def month_grid(v):
                     continue
                 ym = f"{y}_{m:02d}"
                 x1 = round(float(x), 1)
-                kind = "pos" if x1 > 0 else ("neg" if x1 < 0 else "neu")
+                kind = _heat_class(x1, top)
                 on = "_on" if cur == ym else ""
                 cols[m].button(f"{x1:+.1f}%" if x1 else "0.0%", key=f"pbmo_{kind}{on}_{key}_{ym}", on_click=_pick_month, args=(ck, ym), width="stretch",
                                help=L(f"Open the calendar of {names[m - 1]} {y}", f"افتح تقويم {names[m - 1]} {y}"))
@@ -1075,16 +1098,20 @@ def price_chart_section(sim):
     b, tr = sim["bot"], sim["trades"]
     names = list(b["strategies"])
     ui.sec("candlestick_chart", "Trades on the chart", "الصفقات على الشارت")
+    left, right = st.columns([3, 1.3], vertical_alignment="bottom")
     if b["kind"] != "company":
         traded = list(dict.fromkeys(tr.sort_values("Entry Date", ascending=False)["Symbol"]))
         if not traded:
             st.caption(L("No trades yet. The chart appears after the first trade.", "لا توجد صفقات بعد. الشارت يظهر بعد أول صفقة."))
             return
         ui.valid(f"pb_chart_{b['id']}", traded)
-        sym = st.selectbox(L("Stock", "السهم"), traded, key=f"pb_chart_{b['id']}")
+        sym = left.selectbox(L("Stock", "السهم"), traded, key=f"pb_chart_{b['id']}")
         full = data.history(sym, PB.period_for(b["start_date"]))
     else:
         sym, full = b["value"], sim.get("frame")
+    ui.valid(f"pb_ct_{b['id']}", ["Line", "Candles"])
+    mode = right.segmented_control(L("Chart", "الشارت"), ["Line", "Candles"], default="Line", key=f"pb_ct_{b['id']}",
+                                   format_func=lambda k: {"Line": L("Line", "خط"), "Candles": L("Candles", "شموع")}[k]) or "Line"
     if full is None or full.empty:
         return
     full = ta.add_all(full)
@@ -1093,18 +1120,32 @@ def price_chart_section(sim):
     overlays = list(dict.fromkeys(o for n in names for o in OVERLAYS.get(n, [])))
     panels = list(dict.fromkeys(p for n in names for p in PANELS.get(n, [])))[:2]
     marks = tr[tr["Symbol"] == sym].copy()
-    marks["Entry"], marks["Exit"] = marks["Stock Entry"], marks["Stock Exit"]     # options: mark the stock price, not the premium
-    fig = charts.price_chart(view, "Candles" if len(view) <= 800 else "Line", overlays, panels, False, trades=marks)
+    marks["Entry"], marks["Exit"] = marks["Stock Entry"], marks["Stock Exit"]     # options: marked at the stock's price
+    marks["Strategy"] = marks["Strategy"].map(strat_short)
+    marks["Why"] = marks["Exit Reason"].map(lambda x: L(x, EXIT_AR.get(x, x)))
+    words = None if not is_ar() else {"buy": "شراء", "sell": "بيع", "win": "صفقة رابحة", "loss": "صفقة خاسرة", "open": "صفقة مفتوحة",
+                                      "BUY": "شراء", "SELL": "بيع", "at": "بسعر", "stock": "السهم"}
+    fig = charts.trade_chart(view, marks, overlays, panels, mode, words=words)
     try:
-        fig.add_vline(x=pd.Timestamp(sim["equity"].index[0]).strftime("%Y-%m-%d"), line=dict(color=T.GOLD, width=1.2, dash="dot"))
+        first = pd.Timestamp(sim["equity"].index[0]).strftime("%Y-%m-%d")
+        fig.add_vline(x=first, line=dict(color=T.GOLD, width=1.2, dash="dot"))
+        fig.add_annotation(x=first, y=1, xref="x", yref="y domain", text=L("Start", "البداية"), showarrow=False, xanchor="left",
+                           yanchor="bottom", font=dict(color=T.GOLD, size=11))
     except Exception:
         pass
     ui.chart(fig, key=f"pb_px_{b['id']}")
+    st.caption(L("▲ green = buy, under the bar · ▼ red = sell, above the bar. The dotted line joins each trade (green = profit, "
+                 "red = loss) over the days it was held; gold = still open. Options are marked at the stock's price.",
+                 "▲ الأخضر = شراء تحت الشمعة · ▼ الأحمر = بيع فوق الشمعة. الخط المنقط يربط كل صفقة (أخضر = ربح، أحمر = خسارة) "
+                 "على الأيام اللي انمسكت فيها، والذهبي = صفقة مفتوحة. عقود الأوبشن معلّمة على سعر السهم."))
 
 
 def all_trades(v, file_name):
     ui.html(f'<div id="pb-all-{v["key"]}" class="pbanchor"></div>')
-    ui.sec("table_rows", "All trades", "كل الصفقات")
+    ui.sec("table_rows", f"All trades · {v['scope'] or v['name']}", f"كل الصفقات · {v['scope'] or v['name']}")
+    st.caption(L(f"Every trade of the {v['n_bots']} selected bots together, with a column saying which bot made it.",
+                 f"كل صفقات البوتات المحددة ({v['n_bots']}) مع بعض، مع عمود يوضح أي بوت سواها.") if v["multi"] else
+               L("Every trade of this bot since its start.", "كل صفقات هذا البوت من بدايته."))
     tr = v["trades"]
     if tr.empty:
         st.info(L("No trades yet. The bot trades only when a strategy gives a signal.",
@@ -1203,7 +1244,31 @@ def next_orders(sim):
                + " · ".join(parts) + "." + note, icon=":material/bolt:")
 
 
-def details(sim):
+def section(name, key):
+    """Every part of the details sits in its own block, so the space between parts is always the same."""
+    return st.container(key=f"pbsec_{name}_{key}")
+
+
+def details(sim, in_tab=False):
+    """in_tab: one of several selected bots; the combined dashboard above them already covers the dashboard."""
+    b = sim["bot"]
+    key = str(b["id"])
+    with section("head", key):
+        ui.safe(_details_head, sim)
+    if not sim["ok"] or sim["waiting"]:
+        return
+    v = single_view(sim, in_tab)
+    lg = view_logos(v)
+    parts = ([] if in_tab else [("dash", dashboard, (v,))]) + [
+        ("open", open_panel, (v, lg)), ("recent", recent_panel, (v, lg)), ("equity", balance_chart, (v,)),
+        ("price", price_chart_section, (sim,)), ("pnl", pnl_charts, (v,)), ("months", month_grid, (v,)),
+        ("all", all_trades, (v, f"paper_bot_{b['id']}.csv"))]
+    for name, fn, args in parts:
+        with section(name, key):
+            ui.safe(fn, *args)
+
+
+def _details_head(sim):
     b = sim["bot"]
     bot_header(sim)
     if not sim["ok"]:
@@ -1222,15 +1287,6 @@ def details(sim):
                 icon=":material/schedule:")
         return
     next_orders(sim)
-    v = single_view(sim)
-    lg = view_logos(v)
-    ui.safe(dashboard, v)
-    ui.safe(open_panel, v, lg)
-    ui.safe(recent_panel, v, lg)
-    ui.safe(perf_charts, v)
-    ui.safe(price_chart_section, sim)
-    ui.safe(month_grid, v)
-    ui.safe(all_trades, v, f"paper_bot_{b['id']}.csv")
 
 
 def portfolio(chosen, spy, sims):
@@ -1239,17 +1295,20 @@ def portfolio(chosen, spy, sims):
     v = combined_view(chosen)
     lg = view_logos(v) if v else {}
     if v:
-        ui.safe(dashboard, v)
-        ui.safe(open_panel, v, lg)
-        ui.safe(recent_panel, v, lg)
-    ui.safe(compare_chart, chosen, spy)
+        for name, fn, args in (("dash", dashboard, (v,)), ("open", open_panel, (v, lg)), ("recent", recent_panel, (v, lg))):
+            with section(name, "all"):
+                ui.safe(fn, *args)
+    with section("cmp", "all"):
+        ui.safe(compare_chart, chosen, spy)
     rank = {s["bot"]["id"]: i for i, s in enumerate(ranked(sims), 1)}
-    tabs = st.tabs([f'#{rank[s["bot"]["id"]]} {s["bot"]["name"]}' for s in chosen])
-    for tab, s in zip(tabs, chosen):
-        with tab:
-            ui.safe(details, s)
+    with section("tabs", "all"):
+        tabs = st.tabs([f'#{rank[s["bot"]["id"]]} {s["bot"]["name"]}' for s in chosen])
+        for tab, s in zip(tabs, chosen):
+            with tab:
+                ui.safe(details, s, True)
     if v:
-        ui.safe(all_trades, v, "paper_bots_selected.csv")
+        with section("all", "all"):
+            ui.safe(all_trades, v, "paper_bots_selected.csv")
 
 
 # =====================================================================
@@ -1298,7 +1357,7 @@ def _init_form():
         if k not in ss:
             ss[k] = list(v) if isinstance(v, list) else v
     if ss.get("pb_kind") not in PB.KINDS:          # clicking the selected option again clears it
-        ss["pb_kind"] = "company"
+        ss["pb_kind"] = DEFAULTS["pb_kind"]
     if not isinstance(ss.get("pb_store"), list):
         ss["pb_store"] = []
     today = PB.today_ny()
@@ -1316,7 +1375,7 @@ def _load_form(bot):
     k, v = bot["kind"], bot["value"]
     ss.update({"pb_edit_id": bot["id"], "pb_name": bot["name"], "pb_capital": _clip(round(bot["capital"]), 100, 100_000_000, int),
                "pb_kind": k, "pb_store": [s for s in engine.STRATEGIES if s in bot["strategies"]], "pb_combine": bot["combine"]["mode"],
-               "pb_maxpos": _clip(bot["max_pos"] if k != "company" else 5, 1, PB.MAX_POS_LIMIT, int),
+               "pb_maxpos": _clip(bot["max_pos"] if k != "company" else DEFAULTS["pb_maxpos"], 1, PB.MAX_POS_LIMIT, int),
                "pb_instr": instrument(bot), "pb_fee": _clip(bot["fee"], 0.0, 1.0), "pb_stop": _clip(bot["stop_pct"], 0.0, 50.0),
                "pb_atr": _clip(bot["atr_mult"], 0.0, 10.0), "pb_tp": _clip(bot["tp_pct"], 0.0, 500.0),
                "pb_trail": _clip(bot["trail_pct"], 0.0, 50.0), "pb_start": pd.Timestamp(bot["start_date"]).date()})
@@ -1402,7 +1461,7 @@ def bot_form(mode, bot=None):
     # 1) what it trades
     ui.valid("pb_kind", PB.KINDS)
     kind = st.segmented_control(L("What does the bot trade?", "وش يتداول البوت؟"), list(PB.KINDS), key="pb_kind",
-                                format_func=lambda k: L(*KIND_LABEL[k])) or "company"
+                                format_func=lambda k: L(*KIND_LABEL[k])) or DEFAULTS["pb_kind"]
     sectors = PB.sector_members()
     if kind == "company":
         st.text_input(L("Symbol", "الرمز"), key="pb_symbol", max_chars=15,
@@ -1449,8 +1508,9 @@ def bot_form(mode, bot=None):
     # 3) strategies: filter · pills · select all
     names = list(engine.STRATEGIES)
     ui.valid("pb_cat", list(CATS))
-    cat = st.segmented_control(L("Filter strategies", "فلتر الاستراتيجيات"), list(CATS), key="pb_cat",
-                               format_func=lambda k: L(*CATS[k][:2]))
+    ui.sec("filter_alt", "Stock filter strategies", "فلتر استراتيجيات الأسهم")
+    cat = st.segmented_control(L("Stock filter strategies", "فلتر استراتيجيات الأسهم"), list(CATS), key="pb_cat",
+                               format_func=lambda k: L(*CATS[k][:2]), label_visibility="collapsed")
     opts = [s for s in names if s in CATS[cat][2]] if cat in CATS else names
     pkey = f"pb_strats_{cat or 'all'}"
     ss[pkey] = [s for s in opts if s in ss.get("pb_store", [])]
@@ -1547,7 +1607,7 @@ def bot_form(mode, bot=None):
     options = {"type": ss["pb_otype"], "dte": ss["pb_dte"], "strike": ss["pb_strike"], "alloc": ss["pb_oalloc"], "tp": ss["pb_otp"],
                "sl": ss["pb_osl"]} if instr != "stock" else None
     risk = (0.0, 0.0, 0.0, 0.0) if instr == "options" else (ss["pb_stop"], ss["pb_atr"], ss["pb_tp"], ss["pb_trail"])
-    rec = PB.make_record(name, kind, value, params, ss.get("pb_maxpos", 5), ss["pb_capital"], ss["pb_fee"], *risk,
+    rec = PB.make_record(name, kind, value, params, ss.get("pb_maxpos", DEFAULTS["pb_maxpos"]), ss["pb_capital"], ss["pb_fee"], *risk,
                          pd.Timestamp(start).strftime("%Y-%m-%d"), {"mode": "combo", "min": int(need)} if combo else None,
                          instrument=instr, options=options)
     try:
@@ -1616,7 +1676,7 @@ def open_dialog(op, bots):
 # page
 # =====================================================================
 def page_paper_bots():
-    ui.html(PAGE_CSS + (PAGE_RTL_CSS if is_ar() else ""))
+    ui.html(PAGE_CSS + HEAT_CSS + (PAGE_RTL_CSS if is_ar() else ""))
     try:
         bots, err = PB.list_bots(), None
     except PB.StoreError as e:
@@ -1661,4 +1721,4 @@ def page_paper_bots():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "7.4"
+BUILD = "7.5"
