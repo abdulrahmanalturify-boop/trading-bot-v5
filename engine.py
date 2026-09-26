@@ -52,6 +52,45 @@ def strat_donchian(df, entry=20, exit=10):
     return df["Close"] > hh, df["Close"] < ll
 
 
+# ---- volume strategies
+def _vol(df):
+    return df["Volume"].fillna(0) if "Volume" in df else pd.Series(0.0, index=df.index)
+
+
+def strat_obv(df, obv_ma=20, trend=50):
+    """On-Balance Volume: buy when OBV crosses above its average while the price is above its trend average;
+    sell when OBV crosses back below its average (buyers' volume is fading)."""
+    obv = (np.sign(df["Close"].diff()).fillna(0) * _vol(df)).cumsum()
+    avg = obv.rolling(int(obv_ma)).mean()
+    return _cross_up(obv, avg) & (df["Close"] > ta.sma(df["Close"], int(trend))), _cross_down(obv, avg)
+
+
+def strat_volume_breakout(df, lookback=20, vol_mult=1.5, exit=10):
+    """Breakout on heavy volume: close above the N-day high with volume at least k x its N-day average;
+    exit when the close falls below the M-day low."""
+    v = _vol(df)
+    hh = df["High"].rolling(int(lookback)).max().shift(1)
+    ll = df["Low"].rolling(int(exit)).min().shift(1)
+    avg = v.rolling(int(lookback)).mean().shift(1)
+    return (df["Close"] > hh) & (avg > 0) & (v >= float(vol_mult) * avg), df["Close"] < ll
+
+
+def strat_vwma(df, period=20):
+    """Volume-weighted moving average: buy when the price crosses above the VWMA, sell when it crosses below."""
+    v = _vol(df)
+    vwma = (df["Close"] * v).rolling(int(period)).sum() / v.rolling(int(period)).sum().replace(0, np.nan)
+    return _cross_up(df["Close"], vwma), _cross_down(df["Close"], vwma)
+
+
+def strat_mfi(df, period=14, buy_below=20, sell_above=70):
+    """Money Flow Index (an RSI weighted by volume): buy when MFI climbs back above the oversold level while the
+    price is above its 200-day average; sell when MFI is overbought."""
+    m = ta.mfi(df.assign(Volume=_vol(df)), int(period))
+    trend = df["Close"] > ta.sma(df["Close"], 200)
+    trend = trend | ta.sma(df["Close"], 200).isna()
+    return _cross_up(m, pd.Series(float(buy_below), index=m.index)) & trend, m > float(sell_above)
+
+
 STRATEGIES = {
     "SMA Crossover": (strat_sma, [("fast", "Fast SMA", 5, 100, 20, 1), ("slow", "Slow SMA", 10, 250, 50, 1)]),
     "EMA Crossover": (strat_ema, [("fast", "Fast EMA", 3, 50, 9, 1), ("slow", "Slow EMA", 5, 200, 21, 1)]),
@@ -66,6 +105,14 @@ STRATEGIES = {
                                              ("std", "Std Dev", 1.0, 3.5, 2.0, 0.1)]),
     "Donchian Breakout (Turtle)": (strat_donchian, [("entry", "Entry High (days)", 5, 100, 20, 1),
                                                     ("exit", "Exit Low (days)", 3, 60, 10, 1)]),
+    "OBV Trend (Volume)": (strat_obv, [("obv_ma", "OBV average (days)", 5, 100, 20, 1), ("trend", "Trend SMA", 10, 250, 50, 1)]),
+    "Volume Breakout": (strat_volume_breakout, [("lookback", "Breakout high (days)", 5, 100, 20, 1),
+                                                ("vol_mult", "Volume x average", 1.0, 5.0, 1.5, 0.1),
+                                                ("exit", "Exit Low (days)", 3, 60, 10, 1)]),
+    "VWMA Crossover (Volume)": (strat_vwma, [("period", "VWMA period", 5, 200, 20, 1)]),
+    "MFI Money Flow (Volume)": (strat_mfi, [("period", "MFI period", 2, 30, 14, 1),
+                                            ("buy_below", "Buy when MFI crosses up", 5, 50, 20, 1),
+                                            ("sell_above", "Sell when MFI above", 50, 95, 70, 1)]),
 }
 
 
@@ -213,12 +260,16 @@ def optimize(df, name, px, xs, py, ys, base_params, capital=10000, fee=0.0005, m
 STRATEGY_AR = {"SMA Crossover": "تقاطع المتوسطات البسيطة", "EMA Crossover": "تقاطع المتوسطات الأسية",
                "Golden Cross (50/200)": "التقاطع الذهبي 50/200", "RSI Mean Reversion": "الارتداد بمؤشر RSI",
                "MACD Crossover": "تقاطع الماكد", "Bollinger Breakout": "اختراق بولنجر",
-               "Donchian Breakout (Turtle)": "اختراق دونشيان (السلحفاة)"}
+               "Donchian Breakout (Turtle)": "اختراق دونشيان (السلحفاة)", "OBV Trend (Volume)": "اتجاه حجم التداول OBV",
+               "Volume Breakout": "اختراق بحجم تداول عالي", "VWMA Crossover (Volume)": "تقاطع المتوسط المرجّح بالحجم VWMA",
+               "MFI Money Flow (Volume)": "تدفق الأموال MFI"}
 PARAM_AR = {"Fast SMA": "المتوسط السريع", "Slow SMA": "المتوسط البطيء", "Fast EMA": "الأسي السريع",
             "Slow EMA": "الأسي البطيء", "RSI Period": "فترة RSI", "Buy when RSI crosses up": "شراء عند صعود RSI فوق",
             "Sell when RSI above": "بيع عندما RSI فوق", "Fast": "السريع", "Slow": "البطيء", "Signal": "الإشارة",
             "Period": "الفترة", "Std Dev": "الانحراف المعياري", "Entry High (days)": "قمة الدخول (أيام)",
-            "Exit Low (days)": "قاع الخروج (أيام)"}
+            "Exit Low (days)": "قاع الخروج (أيام)", "OBV average (days)": "متوسط OBV (أيام)", "Trend SMA": "متوسط الاتجاه",
+            "Breakout high (days)": "قمة الاختراق (أيام)", "Volume x average": "الحجم × المتوسط", "VWMA period": "فترة المتوسط المرجّح",
+            "MFI period": "فترة MFI", "Buy when MFI crosses up": "شراء عند صعود MFI فوق", "Sell when MFI above": "بيع عندما MFI فوق"}
 SETUP_AR = {"Breakout": "اختراق", "Pullback to SMA20": "ارتداد لمتوسط 20", "Oversold Bounce": "ارتداد من تشبع بيعي",
             "Downtrend": "اتجاه هابط", "Range / Wait": "تذبذب / انتظار"}
 BIAS_AR = {"Long": "شراء", "Long (aggressive)": "شراء (مغامر)", "Avoid / No Long": "تجنّب", "Neutral": "محايد"}
@@ -544,4 +595,4 @@ def catalyst_score(tech, fund, events):
             return {"total": total, "technical": t, "fundamental": f, "event": e, "label": en, "label_ar": ar}
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "7.1"
+BUILD = "7.2"

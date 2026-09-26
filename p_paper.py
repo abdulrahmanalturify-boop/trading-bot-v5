@@ -28,10 +28,14 @@ KIND_LABEL = {"company": ("One company", "شركة"), "sector": ("A sector", "ق
 KIND_ICON = {"company": "domain", "sector": "category", "industry": "factory", "all": "public"}
 OVERLAYS = {"SMA Crossover": ["SMA 20", "SMA 50"], "Golden Cross (50/200)": ["SMA 50", "SMA 200"],
             "EMA Crossover": ["EMA 9", "EMA 21"], "Bollinger Breakout": ["Bollinger Bands"]}
-PANELS = {"RSI Mean Reversion": ["RSI"], "MACD Crossover": ["MACD"]}
-DEFAULTS = {"pb_name": "", "pb_capital": 10000, "pb_kind": "company", "pb_symbol": "AAPL", "pb_sector": "Technology",
+PANELS = {"RSI Mean Reversion": ["RSI"], "MACD Crossover": ["MACD"], "OBV Trend (Volume)": ["OBV"], "MFI Money Flow (Volume)": ["MFI"]}
+# buttons inside a container whose key starts with "pbred" get red text and a red outline (Delete, No)
+RED_CSS = (f'<style>[class*="st-key-pbred"] button {{ border-color: {T.DOWN}88 !important; }}'
+           f'[class*="st-key-pbred"] button p, [class*="st-key-pbred"] button span {{ color: {T.DOWN} !important; }}'
+           f'[class*="st-key-pbred"] button:hover {{ border-color: {T.DOWN} !important; background: {T.DOWN}1A !important; }}</style>')
+DEFAULTS = {"pb_name": "", "pb_capital": 100000, "pb_kind": "company", "pb_symbol": "AAPL", "pb_sector": "Technology",
             "pb_ind_sector": "Technology", "pb_industry": "Semiconductors", "pb_maxpos": 5, "pb_strats": ["SMA Crossover"],
-            "pb_fee": 0.05, "pb_stop": 7.0, "pb_atr": 0.0, "pb_tp": 0.0, "pb_trail": 0.0}
+            "pb_fee": 0.05, "pb_stop": 2.0, "pb_atr": 0.0, "pb_tp": 0.0, "pb_trail": 0.0}
 
 
 def strat_name(k):
@@ -524,11 +528,9 @@ def add_form(bots):
         # 2) how it trades
         names = list(engine.STRATEGIES)
         ui.valid_multi("pb_strats", names)
-        p1, p2 = st.columns([4, 1], vertical_alignment="bottom")
-        with p1:
-            strats = st.pills(L("Strategies: one, several or all", "الاستراتيجيات: وحدة أو أكثر أو الكل"), names, selection_mode="multi",
-                              key="pb_strats", format_func=strat_name) or []
-        p2.button(L("All", "الكل"), icon=":material/done_all:", on_click=_all_strats, key="pb_allstrats", width="stretch")
+        strats = st.pills(L("Strategies: one, several or all", "الاستراتيجيات: وحدة أو أكثر أو الكل"), names, selection_mode="multi",
+                          key="pb_strats", format_func=strat_name) or []
+        st.button(L("Select all strategies", "اختر كل الاستراتيجيات"), icon=":material/done_all:", on_click=_all_strats, key="pb_allstrats")
         strats = [s for s in names if s in strats]
         if len(strats) > 1:
             st.caption(L("Any selected strategy can open a trade; the trade closes on the exit signal of the strategy that opened it, "
@@ -608,6 +610,14 @@ def add_form(bots):
             st.rerun()
 
 
+def _ask_delete(bot_id):
+    ss["pb_confirm"] = bot_id
+
+
+def _cancel_delete():
+    ss.pop("pb_confirm", None)
+
+
 def delete_list(bots):
     if not bots:
         return
@@ -618,17 +628,26 @@ def delete_list(bots):
             a.markdown(f'<b>{T.esc(b["name"])}</b> <span class="muted">· {T.esc(universe_label(b))} · '
                        f'{T.esc(strategies_label(list(b["strategies"]), short=True))} · {L("since", "منذ")} {T.esc(b["start_date"])}</span>',
                        unsafe_allow_html=True)
-            with c.popover(L("Delete", "حذف"), icon=":material/delete:", width="stretch"):
-                st.markdown(L(f"Delete **{b['name']}** and its whole record? This can't be undone.",
-                              f"حذف **{b['name']}** وكل سجله؟ ما تقدر ترجعه بعدين."))
-                if st.button(L("Yes, delete", "نعم، احذف"), type="primary", key=f"pb_del_{b['id']}", icon=":material/delete_forever:"):
-                    try:
-                        PB.delete_bot(b["id"])
-                    except PB.StoreError as e:
-                        storage_notice(e)
-                        return
-                    st.toast(L("Bot deleted.", "تم حذف البوت."), icon=":material/delete:")
-                    st.rerun()
+            with c.container(key=f"pbred_del_{b['id']}"):
+                st.button(L("Delete", "حذف"), icon=":material/delete:", key=f"pb_del_{b['id']}", on_click=_ask_delete, args=(b["id"],),
+                          width="stretch")
+            if ss.get("pb_confirm") != b["id"]:
+                continue
+            st.markdown(L(f"Delete **{b['name']}** and its whole record? This can't be undone.",
+                          f"حذف **{b['name']}** وكل سجله؟ ما تقدر ترجعه بعدين."))
+            y, n, _ = st.columns([1, 1, 3])
+            with n.container(key=f"pbred_no_{b['id']}"):
+                st.button(L("No", "لا"), icon=":material/close:", key=f"pb_no_{b['id']}", on_click=_cancel_delete, width="stretch")
+            if y.button(L("Yes, delete", "نعم، احذف"), type="primary", key=f"pb_yes_{b['id']}", icon=":material/delete_forever:",
+                        width="stretch"):
+                try:
+                    PB.delete_bot(b["id"])
+                except PB.StoreError as e:
+                    storage_notice(e)
+                    return
+                ss.pop("pb_confirm", None)
+                st.toast(L("Bot deleted.", "تم حذف البوت."), icon=":material/delete:")
+                st.rerun()
 
 
 def manage(bots, err):
@@ -656,6 +675,7 @@ def page_paper_bots():
               "a sector, an industry or all companies, with one or more Strategy Lab strategies: signal on the daily close, order at the next open.",
               f"حتى {PB.MAX_BOTS} بوتات تتداول بأموال وهمية على أسعار حقيقية، من يوم تشغيلها وللأمام. كل بوت يتداول شركة أو قطاع أو صناعة أو كل الشركات، "
               "باستراتيجية وحدة أو أكثر من مختبر الاستراتيجيات: الإشارة على الإغلاق اليومي، والتنفيذ عند افتتاح اليوم التالي.")
+    ui.html(RED_CSS)
     try:
         bots, err = PB.list_bots(), None
     except PB.StoreError as e:
@@ -686,4 +706,4 @@ def page_paper_bots():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "7.1"
+BUILD = "7.2"

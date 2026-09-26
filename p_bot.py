@@ -108,7 +108,8 @@ def page_lab():
     d = ta.add_all(df)
     overlays = {"SMA Crossover": ["SMA 20", "SMA 50"], "Golden Cross (50/200)": ["SMA 50", "SMA 200"],
                 "EMA Crossover": ["EMA 9", "EMA 21"], "Bollinger Breakout": ["Bollinger Bands"]}.get(cfg["strategy"], [])
-    panels = {"RSI Mean Reversion": ["RSI"], "MACD Crossover": ["MACD"]}.get(cfg["strategy"], [])
+    panels = {"RSI Mean Reversion": ["RSI"], "MACD Crossover": ["MACD"], "OBV Trend (Volume)": ["OBV"],
+              "MFI Money Flow (Volume)": ["MFI"]}.get(cfg["strategy"], [])
     ui.chart(charts.price_chart(d, "Candles" if len(df) <= 800 else "Line", overlays, panels, False, trades=tr), key="lab_price")
     bench = df["Close"] / df["Close"].iloc[0] * cfg["capital"]
     ui.chart(charts.equity_chart(res["equity"], bench, (L("Strategy", "الاستراتيجية"), L("Buy & Hold", "شراء واحتفاظ"),
@@ -418,4 +419,4 @@ def page_autotrader():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "7.1"
+BUILD = "7.2"
