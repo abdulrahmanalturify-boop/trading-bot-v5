@@ -1,0 +1,58 @@
+"""Local vector artwork and scoped academy styling; no remote image dependency."""
+from html import escape
+import hashlib
+ACADEMY_REVISION = "2026-09-26.1"
+MARK = '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="Academy university emblem"><defs><linearGradient id="acmark" x2="1" y2="1"><stop stop-color="#3D7BFF"/><stop offset="1" stop-color="#8B5CF6"/></linearGradient></defs><rect x="2" y="2" width="92" height="92" rx="25" fill="url(#acmark)"/><path d="M20 36 48 20 76 36M24 40H72M29 43V63M42 43V59M54 43V59M67 43V63M20 73H76" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M25 63Q37 58 48 65Q59 58 71 63V78Q59 73 48 80Q37 73 25 78ZM48 65V80" fill="#102347" stroke="#79E6F3" stroke-width="2.5" stroke-linejoin="round"/></svg>'''
+WORDMARK = MARK.replace('viewBox="0 0 96 96"','viewBox="0 0 420 96"').replace('</svg>','<text x="114" y="43" fill="#EDF2FF" font-family="Arial,sans-serif" font-size="25" font-weight="700">ALTURAIFI</text><text x="114" y="72" fill="#A9BFFF" font-family="Arial,sans-serif" font-size="20" letter-spacing="5">ACADEMY</text></svg>')
+
+
+def cover(kind, uid="course"):
+    """Topic-specific, original SVG covers in a unified blue/violet palette."""
+    token=hashlib.sha1(uid.encode()).hexdigest()[:10]
+    shapes={
+      "plan": '<rect x="140" y="34" width="120" height="118" rx="14"/><path d="M164 64h68M164 85h44M164 106h56M164 127h35"/>',
+      "growth": '<path d="M80 138H320M90 130Q180 125 220 88T312 36"/><path d="m289 39 25-4-1 26"/>',
+      "fund": '<rect x="110" y="50" width="72" height="80" rx="12"/><rect x="197" y="29" width="72" height="80" rx="12"/><rect x="225" y="78" width="72" height="80" rx="12"/>',
+      "orders": '<path d="M83 60h208l-19-18M291 60l-19 18M317 125H109l19-18M109 125l19 18"/><circle cx="122" cy="60" r="12"/><circle cx="274" cy="125" r="12"/>',
+      "statements": '<rect x="87" y="55" width="85" height="103" rx="9"/><rect x="164" y="30" width="85" height="128" rx="9"/><rect x="241" y="68" width="72" height="90" rx="9"/><path d="M183 57h46M183 77h33M183 97h46M183 117h25"/>',
+      "inflation": '<circle cx="160" cy="94" r="53"/><path d="M160 61v66M177 70h-24a14 14 0 0 0 0 28h14a14 14 0 0 1 0 28h-25M235 129V57m-16 19 16-19 16 19M270 145V91"/>',
+      "mind": '<path d="M153 143v-23c-35-22-28-77 13-88 51-15 88 29 70 67l20 20h-24v24h-26v18M164 70l17 17 29-32"/>',
+      "allocation": '<circle cx="200" cy="95" r="60"/><path d="M200 35v60h60M200 95l-44 41"/><circle cx="200" cy="95" r="22"/>',
+      "quality": '<path d="M90 80h64v62H90ZM173 57h64v85h-64ZM256 31h64v111h-64Z"/><path d="m117 57 16 10 22-24M261 158h60"/>',
+      "bonds": '<rect x="103" y="40" width="194" height="106" rx="12"/><path d="M125 65h109M125 84h80M125 119h70"/><circle cx="258" cy="108" r="22"/><path d="m246 128-4 29 16-10 16 10-4-29"/>',
+      "valuation": '<path d="M77 141h244M99 126 153 91 208 108 292 41M99 126 153 114 208 93 292 83M99 126 153 139 208 130 292 139"/><circle cx="292" cy="41" r="6"/>',
+      "research": '<rect x="84" y="44" width="180" height="102" rx="12"/><path d="m107 118 27-25 29 13 25-39 38 13"/><circle cx="270" cy="118" r="34"/><path d="m294 143 27 25"/>',
+    }
+    aliases={"market":"growth","candles":"quality","levels":"orders","ma":"valuation","osc":"research","risk":"mind","value":"statements","options":"valuation","macro":"bonds"}
+    art=shapes.get(kind,shapes.get(aliases.get(kind),shapes["plan"]))
+    return f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 190" role="img" aria-label="{escape(kind)} course illustration"><defs><linearGradient id="bg{token}" x2="1" y2="1"><stop stop-color="#14294A"/><stop offset="1" stop-color="#201A41"/></linearGradient><linearGradient id="ink{token}" x2="1" y2="1"><stop stop-color="#6ECDF5"/><stop offset="1" stop-color="#AC94FF"/></linearGradient></defs><rect width="400" height="190" fill="url(#bg{token})"/><circle cx="349" cy="26" r="97" fill="#8362EF" opacity=".09"/><circle cx="54" cy="191" r="113" fill="#3D7BFF" opacity=".09"/><g stroke="#A4B7E5" opacity=".06">{''.join(f'<path d="M{x} 0v190"/>' for x in range(0,401,25))}{''.join(f'<path d="M0 {y}h400"/>' for y in range(0,191,25))}</g><g fill="#111D35" fill-opacity=".8" stroke="url(#ink{token})" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">{art}</g><circle cx="34" cy="28" r="4" fill="#6ECDF5"/><path d="M46 28h38" stroke="#8096BB" stroke-width="2"/></svg>'''
+
+CSS = '''<style>
+.stApp:has(.st-key-academy_root) {background:#090F1D;}
+.stApp:has(.st-key-academy_root)::before {animation:none;background:radial-gradient(ellipse at 12% 8%,#23417b44,transparent 55%),radial-gradient(ellipse at 92% 38%,#562a9133,transparent 55%);}
+.stApp:has(.st-key-academy_root)::after {animation:none;opacity:.12;}
+.st-key-academy_root .ac-hero {position:relative;overflow:hidden;border:1px solid #304369;border-radius:26px;padding:38px;background:radial-gradient(ellipse at 88% 10%,#7553c83d,transparent 55%),linear-gradient(115deg,#152641,#10192c 65%);margin-bottom:20px;display:grid;grid-template-columns:minmax(0,1fr) 210px;gap:32px;align-items:center;}
+.ac-hero h1 {font-size:clamp(30px,3vw,46px);line-height:1.2;letter-spacing:-1px;color:#F2F5FF;margin:12px 0!important;}
+.ac-hero p {color:#B1BED5;max-width:680px;font-size:15px;line-height:1.9;margin:10px 0;}
+.ac-eyebrow {color:#92AEF9;font-size:11px;font-weight:800;letter-spacing:2px;}
+.ac-emblem {max-width:180px;margin:auto;filter:drop-shadow(0 22px 40px #050a17aa);transform:rotate(-5deg);}
+.ac-emblem svg {width:100%;height:auto;}
+.ac-meta {display:flex;flex-wrap:wrap;gap:10px;margin-top:22px;}
+.ac-meta span {font-size:12px;color:#CBD7EF;padding:7px 12px;border:1px solid #344465;border-radius:8px;background:#101a2e80;}
+.st-key-academy_root .course {border-radius:18px;border:1px solid #283750;background:linear-gradient(145deg,#141F32,#101827);height:100%;}
+.st-key-academy_root .course .art {height:170px;}
+.st-key-academy_root .course .body {padding:20px;}
+.st-key-academy_root .course .ttl {font-size:1.02rem;min-height:48px;}
+.st-key-academy_root .course .tag {font-size:.8rem;min-height:50px;color:#A1B0C9;}
+.st-key-academy_root .course .play {background:#18243de8;border:1px solid #6b7eac;color:#BDD4FF;width:32px;height:32px;}
+.st-key-academy_root .course .prog {height:3px;background:#25304A;margin-top:18px;}
+.st-key-academy_root .course .prog span {background:linear-gradient(90deg,#4F8AFF,#A78BFA);}
+.st-key-academy_root .dcard {background:#111D30;border-color:#293953;border-radius:18px;}
+.st-key-academy_root .lesson {background:linear-gradient(130deg,#14233A,#111A2B);border:1px solid #304464;border-radius:20px;}
+.st-key-academy_root .lesson p {font-size:1.02rem;line-height:2;}
+.st-key-academy_root [class*="st-key-crs_"]:focus-within .course {outline:2px solid #8CAFFF;outline-offset:3px;}
+.st-key-academy_root [data-testid="stTabs"] button {font-weight:700;}
+.ac-note {padding:16px 20px;border-inline-start:3px solid #8B5CF6;border-radius:8px;background:#19213a;color:#B7C7E4;font-size:13px;line-height:1.8;}
+@media(max-width:650px){.st-key-academy_root .ac-hero {grid-template-columns:1fr;padding:24px;gap:12px;}.ac-emblem {max-width:80px;position:absolute;inset-inline-end:20px;top:20px;opacity:.3;}.ac-hero h1{max-width:90%;}.st-key-academy_root .course .ttl,.st-key-academy_root .course .tag{min-height:0;}}
+@media(prefers-reduced-motion:reduce){.st-key-academy_root *{transition:none!important;animation:none!important;}}
+</style>'''

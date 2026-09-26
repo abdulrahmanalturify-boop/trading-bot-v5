@@ -370,3 +370,9 @@ CANDLE_ANATOMY = """<svg viewBox="0 0 520 240" xmlns="http://www.w3.org/2000/svg
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
 BUILD = "8.4"
+
+
+# Academy expansion: original courses retain their identifiers and progress.
+from academy_extra import EXTRA_COURSES, ACADEMY_REVISION
+from academy_visuals import cover as course_art
+COURSES.extend(EXTRA_COURSES)
