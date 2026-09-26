@@ -15,6 +15,7 @@ import requests
 import streamlit as st
 import yfinance as yf
 
+import ta
 import universe as U
 
 try:
@@ -936,6 +937,9 @@ def market_quotes(symbols):
     return df, "history"
 
 
+ytd_change = ta.ytd_change        # year-to-date % change from the last close of the previous year
+
+
 @st.cache_data(ttl=1800, show_spinner=False)
 def _perf(symbols):
     hist = _history_many(symbols, "1y", "1d")
@@ -945,9 +949,7 @@ def _perf(symbols):
         if len(c) < 6:
             continue
         f = lambda n: (c.iloc[-1] / c.iloc[-n - 1] - 1) * 100 if len(c) > n else np.nan
-        ytd = c[c.index.year == c.index[-1].year]
-        rows.append({"Symbol": s, "1W": f(5), "1M": f(21), "3M": f(63),
-                     "YTD": (c.iloc[-1] / ytd.iloc[0] - 1) * 100 if len(ytd) > 1 else np.nan,
+        rows.append({"Symbol": s, "1W": f(5), "1M": f(21), "3M": f(63), "YTD": ytd_change(c),
                      "1Y": (c.iloc[-1] / c.iloc[0] - 1) * 100})
     if not rows:
         raise Empty("perf")
@@ -1161,4 +1163,4 @@ def revenues(symbols, limit=100):
     return out
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "7.8"
+BUILD = "7.9"

@@ -38,13 +38,12 @@ def _last(px, sym):
 
 
 def _chg(df, n):
-    """% change over n bars ('ytd' = since the first close of the year)."""
+    """% change over n bars ('ytd' = since the last close of the previous year)."""
     if df is None or df.empty:
         return np.nan
     c = df["Close"].dropna()
     if n == "ytd":
-        y = c[c.index.year == c.index[-1].year]
-        return (c.iloc[-1] / y.iloc[0] - 1) * 100 if len(y) > 1 else np.nan
+        return data.ytd_change(c)
     return (c.iloc[-1] / c.iloc[-1 - n] - 1) * 100 if len(c) > n else np.nan
 
 
@@ -972,4 +971,4 @@ def page_news():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "7.8"
+BUILD = "7.9"

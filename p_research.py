@@ -132,8 +132,7 @@ def technicals_tab(daily):
     cells = []
     for lab, n in (("1D", 1), ("1W", 5), ("1M", 21), ("3M", 63), ("6M", 126), ("YTD", "ytd"), ("1Y", 252)):
         if n == "ytd":
-            y = c[c.index.year == c.index[-1].year]
-            v = (c.iloc[-1] / y.iloc[0] - 1) * 100 if len(y) > 1 else np.nan
+            v = data.ytd_change(c)
         else:
             v = (c.iloc[-1] / c.iloc[-1 - n] - 1) * 100 if len(c) > n else np.nan
         if pd.notna(v):
@@ -1109,7 +1108,6 @@ def _technicals(symbols):
             continue
         c = df["Close"]
         perf = lambda n: (c.iloc[-1] / c.iloc[-n - 1] - 1) * 100 if len(c) > n else np.nan
-        ytd = c[c.index.year == c.index[-1].year]
         vol = c.pct_change().tail(21).std() * np.sqrt(252) * 100
         atr, gap = np.nan, np.nan
         if {"High", "Low"} <= set(df.columns):
@@ -1118,7 +1116,7 @@ def _technicals(symbols):
         if "Open" in df.columns and len(c) > 1:
             gap = float((df["Open"].iloc[-1] / c.iloc[-2] - 1) * 100)
         rows.append({"Symbol": s, "Perf W": perf(5), "Perf M": perf(21), "Perf 3M": perf(63),
-                     "Perf YTD": (c.iloc[-1] / ytd.iloc[0] - 1) * 100 if len(ytd) > 1 else np.nan,
+                     "Perf YTD": data.ytd_change(c),
                      "RSI": float(ta.rsi(c).iloc[-1]), "Volatility": vol, "ATR %": atr, "Gap %": gap,
                      "SMA20": float(c.tail(20).mean()), "Last": float(c.iloc[-1]), "_spark": c.tail(60).values})
     return pd.DataFrame(rows)
@@ -1604,4 +1602,4 @@ def page_catalyst():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "7.8"
+BUILD = "7.9"

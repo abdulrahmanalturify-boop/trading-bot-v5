@@ -393,4 +393,4 @@ def dividends(start, end):
     return df.drop_duplicates(["Symbol", "ExDate"]).sort_values(["ExDate", "Symbol"]).reset_index(drop=True), src
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "7.8"
+BUILD = "7.9"

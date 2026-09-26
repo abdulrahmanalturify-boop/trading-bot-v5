@@ -163,9 +163,10 @@ def backtest(df, entries, exits, capital=10000.0, fee=0.0005, stop_pct=None, atr
             target = entry_px * (1 + tp_pct / 100) if tp_pct else np.inf
         pending_entry = False
 
-        # 2) intraday risk management
+        # 2) intraday risk management. A daily candle doesn't say whether its high or its low came first, so the trailing
+        #    stop checked today comes from the highest high up to yesterday (or the entry price); today's high only raises
+        #    it from tomorrow. When the stop and the target are both touched in one candle, the stop is assumed first.
         if shares > 0:
-            peak = max(peak, h[i])
             trail = peak * (1 - trail_pct / 100) if trail_pct else 0.0
             eff_stop = max(stop, trail)
             if l[i] <= eff_stop:
@@ -173,6 +174,8 @@ def backtest(df, entries, exits, capital=10000.0, fee=0.0005, stop_pct=None, atr
                 close_trade(i, px, "Trailing Stop" if trail >= stop and trail_pct else "Stop Loss")
             elif h[i] >= target:
                 close_trade(i, max(o[i], target), "Take Profit")
+            else:
+                peak = max(peak, h[i])
 
         # 3) new signals at the close
         if shares > 0 and ex[i]:
@@ -595,4 +598,4 @@ def catalyst_score(tech, fund, events):
             return {"total": total, "technical": t, "fundamental": f, "event": e, "label": en, "label_ar": ar}
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "7.8"
+BUILD = "7.9"
