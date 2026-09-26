@@ -144,22 +144,6 @@ def page_lab():
                 st.caption(L("The best cell in the past is often overfit. Prefer stable regions.",
                              "أفضل خانة في الماضي غالباً تكون مبالغة؛ فضّل المناطق المستقرة."))
 
-    with st.expander(L("Compare all strategies on this symbol", "قارن كل الاستراتيجيات على هذا السهم"), icon=":material/leaderboard:"):
-        if st.button(L("Run comparison", "شغّل المقارنة"), icon=":material/play_arrow:"):
-            rows = []
-            for name, (_, spec) in engine.STRATEGIES.items():
-                p = {k: dflt for k, _, _, _, dflt, _ in spec}
-                mm = engine.run_strategy(df, name, p, cfg["capital"], cfg["fee"] / 100, **risk_kwargs(cfg))["metrics"]
-                rows.append({L("Strategy", "الاستراتيجية"): strat_name(name), **{L(k, METRIC_AR[k]): mm[k] for k in METRIC_AR},
-                             L("Trades", "الصفقات"): mm["Trades"]})
-            comp = pd.DataFrame(rows).sort_values(L("Sharpe", "شارب"), ascending=False)
-            tr_col, cagr = L("Total Return %", METRIC_AR["Total Return %"]), L("CAGR %", METRIC_AR["CAGR %"])
-            st.dataframe(comp.style.map(T.color_style, subset=[tr_col, cagr]).format(
-                {tr_col: "{:+.1f}%", cagr: "{:+.1f}%", L("Sharpe", "شارب"): "{:.2f}",
-                 L("Max Drawdown %", METRIC_AR["Max Drawdown %"]): "{:.1f}%", L("Win Rate %", METRIC_AR["Win Rate %"]): "{:.0f}%"}),
-                hide_index=True)
-            ui.chart(charts.hbar(list(comp[L("Strategy", "الاستراتيجية")]), list(comp[tr_col]),
-                                 L("Total return by strategy", "العائد الكلي حسب الاستراتيجية")), key="lab_cmp")
     ui.foot()
 
 
@@ -424,4 +408,4 @@ def page_autotrader():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "8.0"
+BUILD = "8.1"

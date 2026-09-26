@@ -1898,6 +1898,85 @@ def portfolio(chosen, spy, sims):
 
 
 # =====================================================================
+# compare every strategy on one symbol (moved here from the Strategy Lab)
+# =====================================================================
+CMP_PERIODS = {"1y": (365, "5y", "1 year", "سنة"), "2y": (730, "5y", "2 years", "سنتين"), "5y": (1826, "10y", "5 years", "5 سنوات")}
+CMP_METRICS = [("Total Return %", "العائد الكلي %"), ("CAGR %", "العائد السنوي المركب %"), ("Sharpe", "شارب"),
+               ("Max Drawdown %", "أقصى تراجع %"), ("Win Rate %", "نسبة النجاح %")]
+
+
+@st.cache_data(ttl=600, show_spinner=False)
+def compare_all(sym, per, build=None):
+    """Every daily strategy (the Strategy Lab ones and the combined ones) on one symbol over the period, each with its default
+    settings, $100,000 and a 0.05% fee, through the same engine as the bots. Returns (rows, buy & hold %, first day) or None."""
+    days, load, _, _ = CMP_PERIODS[per]
+    df = data.history(sym, load)
+    if df is None or df.empty or len(df) < 260:
+        return None
+    spy = data.history("SPY", load)
+    first = pd.Timestamp(df.index[-1]).tz_localize(None).normalize() - pd.Timedelta(days=days)
+    start = f"{first:%Y-%m-%d}"
+    rows, bh = [], None
+    for name in PB.ALL_STRATEGIES:
+        if name == PBK.ORB:                          # 5-minute candles, 60 days: not comparable on daily prices
+            continue
+        bot = {"id": 0, "name": "cmp", "kind": "company", "value": sym, "symbol": sym, "strategies": {name: PB.clean_params(name, {})},
+               "combine": {"mode": "any"}, "instrument": "stock", "options": None, "max_pos": 1, "capital": 100_000.0, "fee": 0.05,
+               "stop_pct": 0.0, "atr_mult": 0.0, "tp_pct": 0.0, "trail_pct": 0.0, "start_date": start, "valid": True}
+        r = PB.simulate(bot, {sym: df}, spy)
+        if not r["ok"] or r["waiting"] or not r.get("metrics"):
+            continue
+        m = r["metrics"]
+        bh = m["Buy & Hold %"] if bh is None else bh
+        rows.append({"name": name, "book": PB.is_playbook(name), **{k: float(m[k]) for k, _ in CMP_METRICS}, "Trades": int(m["Trades"])})
+    return (rows, bh, start) if rows else None
+
+
+def compare_section(sims):
+    """An expander at the bottom of the page: pick a symbol and a period, and every strategy is backtested on it."""
+    one = [s["bot"]["value"] for s in sims if s["bot"]["kind"] == "company"]
+    ss.setdefault("pb_cmp_sym", one[0] if one else "AAPL")
+    ss.setdefault("pb_cmp_per", "2y")
+    with st.expander(L("Compare all strategies on a symbol", "قارن كل الاستراتيجيات على سهم"), icon=":material/leaderboard:"):
+        a, b_, c = st.columns([1.2, 1.8, 1.1], vertical_alignment="bottom")
+        a.text_input(L("Symbol", "الرمز"), key="pb_cmp_sym")
+        b_.segmented_control(L("Period", "المدة"), list(CMP_PERIODS), key="pb_cmp_per", format_func=lambda k: L(*CMP_PERIODS[k][2:4]))
+        run = c.button(L("Run comparison", "شغّل المقارنة"), icon=":material/play_arrow:", key="pb_cmp_run", width="stretch")
+        sym = str(ss.get("pb_cmp_sym") or "").strip().upper()
+        per = ss.get("pb_cmp_per") or "2y"
+        if run and sym:
+            with st.spinner(L(f"Backtesting every strategy on {sym}...", f"جاري اختبار كل الاستراتيجيات على {sym}...")):
+                ss["pb_cmp_res"] = (sym, per, compare_all(sym, per, PB.BUILD))
+        got = ss.get("pb_cmp_res")
+        if not got:
+            st.caption(L("Every strategy with its default settings, $100,000 and a 0.05% fee per side, on the same engine as the bots "
+                         "(signals on the close, orders at the next open). The Opening Range Breakout is left out: it needs 5-minute prices.",
+                         "كل استراتيجية بإعداداتها الافتراضية، و100,000$ وعمولة 0.05% لكل جهة، على نفس محرك البوتات (الإشارة على الإغلاق "
+                         "والتنفيذ عند الافتتاح التالي). اختراق نطاق الافتتاح مستبعد لأنه يحتاج أسعار 5 دقائق."))
+            return
+        sym_r, per_r, res = got
+        if res is None:
+            st.error(L(f"Not enough price data for {sym_r}. Check the symbol (for example AAPL, BTC-USD, 2222.SR).",
+                       f"لا توجد بيانات كافية للرمز {sym_r}. تأكد من الرمز (مثلاً AAPL أو BTC-USD أو 2222.SR)."))
+            return
+        rows, bh, start = res
+        col = {k: L(en, ar_) for k, (en, ar_) in zip([k for k, _ in CMP_METRICS], CMP_METRICS)}
+        name_c, kind_c, tr_c = L("Strategy", "الاستراتيجية"), L("Kind", "النوع"), L("Trades", "الصفقات")
+        comp = pd.DataFrame([{name_c: strat_name(r["name"]), kind_c: L("Combined", "مركّبة") if r["book"] else L("Classic", "كلاسيكية"),
+                              **{col[k]: r[k] for k, _ in CMP_METRICS}, tr_c: r["Trades"]} for r in rows]).sort_values(col["Sharpe"], ascending=False)
+        st.caption(L(f"{sym_r} · from {start} · buy & hold {bh:+.1f}% · sorted by Sharpe",
+                     f"{sym_r} · من {start} · الشراء والاحتفاظ {bh:+.1f}% · مرتبة حسب شارب"))
+        tr_col, cagr = col["Total Return %"], col["CAGR %"]
+        st.dataframe(comp.style.map(T.color_style, subset=[tr_col, cagr]).format(
+            {tr_col: "{:+.1f}%", cagr: "{:+.1f}%", col["Sharpe"]: "{:.2f}", col["Max Drawdown %"]: "{:.1f}%", col["Win Rate %"]: "{:.0f}%"}),
+            hide_index=True, height=min(560, 38 + 35 * len(comp)))
+        ui.chart(charts.hbar(list(comp[name_c]), list(comp[tr_col]), L("Total return by strategy", "العائد الكلي حسب الاستراتيجية"),
+                             max(320, 28 * len(comp) + 80)), key="pb_cmp_chart")
+        st.caption(L("Past results on one symbol don't promise the same in the future; a strategy that tops one stock can trail on another.",
+                     "نتائج الماضي على سهم واحد ما تضمن نفسها مستقبلاً، والاستراتيجية الأولى على سهم ممكن تتأخر على غيره."))
+
+
+# =====================================================================
 # dialogs: unlock · add / edit · delete
 # =====================================================================
 def _unlock():
@@ -2704,6 +2783,7 @@ def page_paper_bots():
         else:
             ui.safe(portfolio, chosen, spy, shown)
 
+    ui.safe(compare_section, sims)
     st.caption(L("Virtual trading on real daily prices (dividend-adjusted, may be delayed); the Opening Range Breakout uses 5-minute prices from "
                  "the last 60 days. Forward tests are saved session by session after each US close and never recalculated; historical "
                  "simulations are recalculated whenever the page opens. No real money and no broker are involved. Past results do not "
@@ -2714,4 +2794,4 @@ def page_paper_bots():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "8.0"
+BUILD = "8.1"
