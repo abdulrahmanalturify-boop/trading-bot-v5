@@ -174,4 +174,4 @@ def legend(rng=3.0):
     return f'<div class="hmlegend">{cells}</div>'
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "7.3"
+BUILD = "7.4"

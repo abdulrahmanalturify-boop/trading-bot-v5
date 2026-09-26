@@ -6,7 +6,9 @@ Each bot chooses
   * WHAT it trades: one company, a whole sector, an industry (GICS sub-industry), or all companies
     (the S&P 500 + the site's largest companies), and
   * HOW it trades: one or more of the Strategy Lab strategies (any of them can open a trade; a trade closes on the exit
-    signal of the strategy that opened it, or by the stop loss / take profit / trailing stop).
+    signal of the strategy that opened it, or by the stop loss / take profit / trailing stop), or a combined rule, and
+  * WHAT it buys: stocks, options (calls on buy signals / puts on sell signals, priced with Black-Scholes), or both side by
+    side (stocks and options each have their own `max_pos` slots; options are bought first at the open).
 Same fills as the Strategy Lab: signals on the daily close, orders at the next open, stops checked during the day.
 With a group of stocks the bot holds up to `max_pos` positions, each opened with an equal share of the balance; when more
 stocks signal than there are free slots, the strongest over the last 3 months are bought first.
@@ -240,6 +242,7 @@ def _num(v, default=0.0):
         return default
 
 
+INSTRUMENTS = ("stock", "options", "both")   # both = stocks on buy signals + options by the option filters, side by side
 OPTION_DEFAULTS = {"type": "call", "dte": 30, "strike": 0, "alloc": 5.0, "tp": 100.0, "sl": 50.0}
 OPTION_TYPES = ("call", "put", "both")
 STRIKES = (-10, -5, 0, 5, 10)            # % out of the money (negative = in the money)
@@ -297,7 +300,7 @@ def _norm(r):
                    "min": min(max(int(_num(comb.get("min"), len(strategies))), 1), max(len(strategies), 1)) if combo else 1}
         return {"id": r["id"], "name": str(r.get("name") or value)[:40], "kind": kind, "value": value,
                 "symbol": value if kind == "company" else None, "strategies": strategies, "combine": combine,
-                "instrument": "options" if instrument == "options" else "stock", "options": clean_options(opts),
+                "instrument": instrument if instrument in INSTRUMENTS else "stock", "options": clean_options(opts),
                 "max_pos": min(max(max_pos, 1), MAX_POS_LIMIT),
                 "capital": max(_num(r.get("capital"), 10000.0), 1.0), "fee": max(_num(r.get("fee")), 0.0),
                 "stop_pct": max(_num(r.get("stop_pct")), 0.0), "atr_mult": max(_num(r.get("atr_mult")), 0.0),
@@ -328,7 +331,7 @@ def make_record(name, kind, value, strategies, max_pos, capital, fee, stop_pct, 
     return {"name": str(name)[:40], "symbol": sym[:120], "strategy": joiner.join(strategies)[:250],
             "params": {"v": 2, "universe": {"kind": kind, "value": value}, "strategies": strategies,
                        "max_pos": int(min(max(int(max_pos), 1), MAX_POS_LIMIT)), "combine": combine,
-                       "instrument": "options" if instrument == "options" else "stock", "options": clean_options(options)},
+                       "instrument": instrument if instrument in INSTRUMENTS else "stock", "options": clean_options(options)},
             "capital": float(capital), "fee": float(fee), "stop_pct": float(stop_pct), "atr_mult": float(atr_mult),
             "tp_pct": float(tp_pct), "trail_pct": float(trail_pct), "start_date": str(start_date)[:10]}
 
@@ -435,7 +438,7 @@ def _state(entries, exits):
 
 
 TRADE_COLS = ["Symbol", "Strategy", "Entry Date", "Entry", "Exit Date", "Exit", "Shares", "P&L $", "P&L %", "Bars", "Exit Reason"]
-EXTRA_COLS = ["Type", "Contract", "Stock Entry", "Stock Exit", "Fees"]   # Type: Stock / Call / Put; option prices are per share
+EXTRA_COLS = ["Type", "Contract", "Stock Entry", "Stock Exit", "Fees", "Stop", "Target", "Expiry"]   # Type: Stock / Call / Put; option prices are per share
 
 
 def _bs(kind, S, K, T, sigma):
@@ -480,11 +483,12 @@ def simulate(bot, px, spy=None):
     labels = [COMBO] if combo else names        # what opens a trade: each strategy, or the combined rule
     S = len(labels)
     atr_on = bool(bot["atr_mult"])
-    options = bot.get("instrument") == "options"
+    instrument = bot.get("instrument") if bot.get("instrument") in INSTRUMENTS else "stock"
+    options = instrument in ("options", "both")
     oc = bot.get("options") or OPTION_DEFAULTS
-    want_long = not options or oc["type"] in ("call", "both")          # stocks, or calls on buy signals
+    want_stock = instrument in ("stock", "both")                       # shares on buy signals
+    want_call = options and oc["type"] in ("call", "both")             # calls on buy signals
     want_put = options and oc["type"] in ("put", "both")               # puts on sell signals
-    long_kind = "Call" if options else "Stock"
 
     # wide arrays (dates x stocks); each stock's indicators and signals come from its own history, exactly like the lab
     O, H, Lo, C = (np.full((T, N), np.nan) for _ in range(4))
@@ -540,9 +544,10 @@ def simulate(bot, px, spy=None):
     def sigma_of(hv, fallback=0.35):
         return float(np.clip((hv if np.isfinite(hv) else fallback) * 1.1, 0.15, 1.5))
 
-    def close(j, t, price, reason, under=None):
+    def close(key, t, price, reason, under=None):
         nonlocal cash
-        q = pos.pop(j)
+        j = key[0]
+        q = pos.pop(key)
         if q["kind"] == "Stock":
             proceeds = q["shares"] * price * (1 - fee)
             cost = q["shares"] * q["entry"] * (1 + fee)
@@ -555,21 +560,26 @@ def simulate(bot, px, spy=None):
         trades.append({"Symbol": syms[j], "Strategy": labels[q["k"]], "Entry Date": idx[q["t"]], "Entry": q["entry"],
                        "Exit Date": idx[t], "Exit": price, "Shares": q["shares"], "P&L $": proceeds - cost,
                        "P&L %": (proceeds / cost - 1) * 100, "Bars": int(K[t, j] - q["kb"]), "Exit Reason": reason,
-                       "Type": q["kind"], "Contract": q["contract"], "Stock Entry": q["s0"], "Stock Exit": under, "Fees": fees})
+                       "Type": q["kind"], "Contract": q["contract"], "Stock Entry": q["s0"], "Stock Exit": under, "Fees": fees,
+                       "Stop": np.nan, "Target": np.nan, "Expiry": q.get("expiry")})
         cash += proceeds
+
+    def slots(group):
+        return max_pos - sum(1 for key, q in pos.items() if key[1] == group and not q["exit"])
 
     for t in range(T):
         # 1) yesterday's exit signals: sell at today's open
-        for j in [j for j, q in pos.items() if q["exit"] and valid[t, j]]:
-            q = pos[j]
+        for key in [key for key, q in pos.items() if q["exit"] and valid[t, key[0]]]:
+            q, j = pos[key], key[0]
             if q["kind"] == "Stock":
-                close(j, t, O[t, j], "Signal")
+                close(key, t, O[t, j], "Signal")
             else:
                 t_left = max((q["expiry"] - idx[t]).days, 0)
-                close(j, t, _bs(q["kind"], O[t, j], q["K"], t_left / 365, sigma_of(HVP[t, j], q["sigma"])), "Signal", O[t, j])
-        # 2) yesterday's entry signals: buy at today's open, best first
-        for j, k, kind in pend:
-            if j in pos or not valid[t, j] or len(pos) >= max_pos:
+                close(key, t, _bs(q["kind"], O[t, j], q["K"], t_left / 365, sigma_of(HVP[t, j], q["sigma"])), "Signal", O[t, j])
+        # 2) yesterday's entry signals: buy at today's open, best first (options first, so shares get the rest of the cash)
+        for j, k, kind in sorted(pend, key=lambda x: x[2] == "Stock"):
+            g = "S" if kind == "Stock" else "O"
+            if (j, g) in pos or not valid[t, j] or sum(1 for key in pos if key[1] == g) >= max_pos:
                 continue
             o = O[t, j]
             if kind == "Stock":                                # one equal slot of the balance
@@ -583,9 +593,9 @@ def simulate(bot, px, spy=None):
                     stops.append(o * (1 - stop_pct / 100))
                 if atr_mult and not np.isnan(ATRP[t, j]):
                     stops.append(o - atr_mult * ATRP[t, j])
-                pos[j] = {"kind": "Stock", "shares": shares, "entry": o, "t": t, "kb": K[t, j], "peak": o,
-                          "stop": max(stops) if stops else 0.0, "target": o * (1 + tp_pct / 100) if tp_pct else np.inf, "k": k,
-                          "exit": False, "contract": syms[j], "s0": o}
+                pos[(j, "S")] = {"kind": "Stock", "shares": shares, "entry": o, "t": t, "kb": K[t, j], "peak": o,
+                                 "stop": max(stops) if stops else 0.0, "target": o * (1 + tp_pct / 100) if tp_pct else np.inf,
+                                 "k": k, "exit": False, "contract": syms[j], "s0": o}
             else:                                              # options: a % of the balance, priced with Black-Scholes
                 sigma = sigma_of(HVP[t, j])
                 strike = strike_for(o * (1 + oc["strike"] / 100) if kind == "Call" else o * (1 - oc["strike"] / 100))
@@ -597,23 +607,24 @@ def simulate(bot, px, spy=None):
                     continue
                 cash -= n * (prem * 100 + OPT_FEE)
                 expiry = idx[t] + pd.Timedelta(days=oc["dte"])
-                pos[j] = {"kind": kind, "shares": n, "entry": prem, "t": t, "kb": K[t, j], "k": k, "exit": False, "K": strike,
-                          "expiry": expiry, "sigma": sigma, "value": prem, "s0": o,
-                          "contract": f"{syms[j]} {strike:g}{kind[0]} {expiry:%Y-%m-%d}"}
+                pos[(j, "O")] = {"kind": kind, "shares": n, "entry": prem, "t": t, "kb": K[t, j], "k": k, "exit": False, "K": strike,
+                                 "expiry": expiry, "sigma": sigma, "value": prem, "s0": o,
+                                 "contract": f"{syms[j]} {strike:g}{kind[0]} {expiry:%Y-%m-%d}"}
         pend = []
-        # 3) stocks: stop loss / trailing stop / take profit during the day · options: value at the close, take profit / stop / time
-        for j in list(pos):
+        # 3) shares: stop loss / trailing stop / take profit during the day · options: value at the close, take profit / stop / time
+        for key in list(pos):
+            j = key[0]
             if not valid[t, j]:
                 continue
-            q = pos[j]
+            q = pos[key]
             if q["kind"] == "Stock":
                 q["peak"] = max(q["peak"], H[t, j])
                 trail = q["peak"] * (1 - trail_pct / 100) if trail_pct else 0.0
                 eff = max(q["stop"], trail)
                 if Lo[t, j] <= eff:
-                    close(j, t, min(O[t, j], eff), "Trailing Stop" if trail >= q["stop"] and trail_pct else "Stop Loss")
+                    close(key, t, min(O[t, j], eff), "Trailing Stop" if trail >= q["stop"] and trail_pct else "Stop Loss")
                 elif H[t, j] >= q["target"]:
-                    close(j, t, max(O[t, j], q["target"]), "Take Profit")
+                    close(key, t, max(O[t, j], q["target"]), "Take Profit")
                 continue
             t_left = (q["expiry"] - idx[t]).days
             q["value"] = _bs(q["kind"], C[t, j], q["K"], max(t_left, 0) / 365, sigma_of(HVC[t, j], q["sigma"]))
@@ -625,56 +636,70 @@ def simulate(bot, px, spy=None):
             elif t_left <= TIME_EXIT_DAYS:
                 why = "Time Exit"
             if why:
-                close(j, t, q["value"], why, C[t, j])
+                close(key, t, q["value"], why, C[t, j])
         # 4) signals at the close: the rule that opened a trade decides its exit; new signals fill the free slots
-        for j, q in pos.items():
+        for (j, g), q in pos.items():
             if valid[t, j] and (PEXT if q["kind"] == "Put" else EXT)[q["k"], t, j]:
                 q["exit"] = True
-        free = max_pos - sum(1 for q in pos.values() if not q["exit"])
-        if free > 0 and live[t]:
-            cand = {}
-            if want_long:
+        if live[t]:
+            cand = []
+            if want_stock or want_call:
                 row = ENT[:, t, :]
                 for j in np.flatnonzero(row.any(axis=0)):
-                    if j not in pos:
-                        m_ = MOM[t, j]
-                        cand[j] = ((-m_ if not np.isnan(m_) else np.inf, syms[j]), int(np.argmax(row[:, j])), long_kind)
+                    m_ = MOM[t, j]
+                    rank_ = (-m_ if not np.isnan(m_) else np.inf, syms[j])
+                    if want_stock and (j, "S") not in pos:
+                        cand.append((rank_, int(j), int(np.argmax(row[:, j])), "Stock"))
+                    if want_call and (j, "O") not in pos:
+                        cand.append((rank_, int(j), int(np.argmax(row[:, j])), "Call"))
             if want_put:                                       # puts: the weakest of the last 3 months first
                 row = PENT[:, t, :]
+                taken = {c[1] for c in cand if c[3] != "Stock"}
                 for j in np.flatnonzero(row.any(axis=0)):
-                    if j not in pos and j not in cand:
+                    if (j, "O") not in pos and j not in taken:
                         m_ = MOM[t, j]
-                        cand[j] = ((m_ if not np.isnan(m_) else np.inf, syms[j]), int(np.argmax(row[:, j])), "Put")
-            order = sorted(cand, key=lambda j: cand[j][0])
-            pend = [(int(j), cand[j][1], cand[j][2]) for j in order[:free]]
+                        cand.append(((m_ if not np.isnan(m_) else np.inf, syms[j]), int(j), int(np.argmax(row[:, j])), "Put"))
+            cand.sort(key=lambda c: c[0])
+            free = {"S": slots("S"), "O": slots("O")}
+            for _, j, k, kind in cand:
+                g = "S" if kind == "Stock" else "O"
+                if free[g] > 0:
+                    pend.append((j, k, kind))
+                    free[g] -= 1
         # 5) value at the close
-        mv = float(sum(q["shares"] * CF[t, j] if q["kind"] == "Stock" else q["shares"] * 100 * q["value"] for j, q in pos.items()))
+        mv = float(sum(q["shares"] * CF[t, key[0]] if q["kind"] == "Stock" else q["shares"] * 100 * q["value"] for key, q in pos.items()))
         equity[t] = cash + mv
         invested[t] = mv / equity[t] if equity[t] > 0 else 0.0
         npos[t] = len(pos)
         eq_prev = equity[t]
 
     open_rows = []
-    for j, q in pos.items():
+    for (j, g), q in pos.items():
         tl = int(np.flatnonzero(valid[:, j])[-1])
         c_last = C[tl, j]
+        stop_lvl = target_lvl = np.nan
         if q["kind"] == "Stock":
             basis = q["entry"] * (1 + fee)
             pnl, pct, exit_px = q["shares"] * (c_last - basis), (c_last / basis - 1) * 100, c_last
             fees = q["shares"] * q["entry"] * fee
+            eff = max(q["stop"], q["peak"] * (1 - trail_pct / 100) if trail_pct else 0.0)
+            stop_lvl = eff if eff > 0 else np.nan
+            target_lvl = q["target"] if np.isfinite(q["target"]) else np.nan
         else:
             cost = q["shares"] * 100 * q["entry"] + q["shares"] * OPT_FEE
             pnl = q["shares"] * 100 * q["value"] - cost
             pct, exit_px, fees = pnl / cost * 100, q["value"], q["shares"] * OPT_FEE
+            stop_lvl, target_lvl = q["entry"] * (1 - oc["sl"] / 100), q["entry"] * (1 + oc["tp"] / 100)
         open_rows.append({"Symbol": syms[j], "Strategy": labels[q["k"]], "Entry Date": idx[q["t"]], "Entry": q["entry"],
                           "Exit Date": idx[tl], "Exit": exit_px, "Shares": q["shares"], "P&L $": pnl, "P&L %": pct,
                           "Bars": int(K[tl, j] - q["kb"]), "Exit Reason": "Open", "Type": q["kind"], "Contract": q["contract"],
-                          "Stock Entry": q["s0"], "Stock Exit": c_last, "Fees": fees})
+                          "Stock Entry": q["s0"], "Stock Exit": c_last, "Fees": fees, "Stop": stop_lvl, "Target": target_lvl,
+                          "Expiry": q.get("expiry")})
     tr = pd.DataFrame(trades + open_rows, columns=TRADE_COLS + EXTRA_COLS)
     out.update(ok=True, start=start, symbols=syms, n_symbols=N, last_date=idx[-1], trades=tr, max_pos=max_pos,
                next_buys=[(syms[j], labels[k], kind) for j, k, kind in pend],
-               next_sells=[(syms[j], labels[q["k"]], q["kind"]) for j, q in pos.items() if q["exit"]],
-               n_open=len(pos), in_pos=bool(pos))
+               next_sells=[(syms[j], labels[q["k"]], q["kind"]) for (j, g), q in pos.items() if q["exit"]],
+               n_open=len(pos), in_pos=bool(pos), cash=float(cash))
     if bot["kind"] == "company":
         out["frame"] = frames[syms[0]]
 
@@ -707,7 +732,8 @@ def simulate(bot, px, spy=None):
 
 
 @st.cache_data(ttl=600, show_spinner=False, max_entries=24)
-def _run_cached(bot_json):
+def _run_cached(bot_json, build=None):
+    """build: the site version, so results cached by an older version of the engine are never reused."""
     bot = json.loads(bot_json)
     period = period_for(bot["start_date"])
     px = load_prices(members(bot["kind"], bot["value"]), period)
@@ -721,7 +747,7 @@ def run_all(bots):
     """Every bot replayed (each result cached for 10 minutes, like the prices) + SPY for the comparison chart."""
     sims = []
     for b in bots:
-        sim = dict(_run_cached(json.dumps(b, sort_keys=True, default=str)))
+        sim = dict(_run_cached(json.dumps(b, sort_keys=True, default=str), BUILD))
         sim["bot"] = b                       # the saved settings as they are (the cache key sorts the JSON)
         sims.append(sim)
     period = max((period_for(b["start_date"]) for b in bots), key=PERIODS.index) if bots else "2y"
@@ -739,4 +765,4 @@ def journal(sim):
                          "Days": tr["Bars"], "Exit Reason": tr["Exit Reason"]})
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "7.3"
+BUILD = "7.4"

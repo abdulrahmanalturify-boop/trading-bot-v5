@@ -30,6 +30,11 @@ def _goal(value, goal, fmt, higher=True):
                   L(f"Goal: {fmt(goal)}", f"الهدف: {fmt(goal)}"), met)
 
 
+def _cents(v):
+    """Cents only while the amount is small, so six- and seven-figure results still fit their card."""
+    return 2 if abs(v) < 100_000 else 0
+
+
 def kpi_cards(s, capital):
     net = s["net"]
     wr, dr = s["win_rate"], s["day_win_rate"]
@@ -43,7 +48,7 @@ def kpi_cards(s, capital):
     exp_goal = capital * 0.002
     dd_txt, dd_kind = f"{s['max_dd']:.1f}%", ("neg" if s["max_dd"] < -0.05 else "neu")
     cards = [
-        f'<div class="tdc"><div class="h">{L("Net P&L", "صافي الربح")}</div><div class="big">{T.pbox(T.money(net, 2), net)}</div>'
+        f'<div class="tdc"><div class="h">{L("Net P&L", "صافي الربح")}</div><div class="big">{T.pbox(T.money(net, _cents(net)), net)}</div>'
         f'<div><span class="chip2">{s["trades"]} {L("trades", "صفقة")}</span></div>'
         f'<div class="foot2"><div>{L("GROSS", "الإجمالي")}<b>{T.money(s["gross"])}</b></div>'
         f'<div>{L("FEES", "العمولات")}<b class="dnt">-{T.money(s["fees"])}</b></div></div></div>',
@@ -63,7 +68,7 @@ def kpi_cards(s, capital):
         f'<div class="vals" style="margin-top:12px"><span>{L("Return", "العائد")} {T.pill(s["ret"])}</span></div>'
         f'<div class="vals" style="margin-top:6px"><span class="muted">S&amp;P</span>{T.pill(s["bench_ret"])}</div>'
         f'{_goal(abs(s["max_dd"]), GOALS["dd"], lambda g: f"< {g:.0f}%", higher=False)}</div>',
-        f'<div class="tdc"><div class="h">{L("Expectancy", "العائد المتوقع للصفقة")}</div><div class="big">{T.pbox(T.money(s["expectancy"], 2), s["expectancy"])}</div>'
+        f'<div class="tdc"><div class="h">{L("Expectancy", "العائد المتوقع للصفقة")}</div><div class="big">{T.pbox(T.money(s["expectancy"], _cents(s["expectancy"])), s["expectancy"])}</div>'
         f'<div class="muted" style="font-size:.72rem;margin-top:8px">{L("average profit per trade", "متوسط الربح لكل صفقة")}</div>'
         f'{_goal(s["expectancy"], exp_goal, lambda g: T.money(g))}</div>',
     ]
@@ -174,4 +179,4 @@ def render(tr, op, s, capital, key="td"):
                 f'<span class="muted">{n_open} {L("positions", "مراكز")}</span></div>{open_html(op, lg)}</div>')
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "7.3"
+BUILD = "7.4"

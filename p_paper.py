@@ -1,14 +1,23 @@
 """
 p_paper.py - Paper Bots: up to 5 bots that trade with virtual money on real prices, forward from the day they start.
-Each bot trades one company, a sector, an industry or all companies, with one or more Strategy Lab strategies, buying stocks
-or options.
-Top: one card per bot (hover = zoom + a pencil to edit on the right + a red trash on the left; click = select, blue top line)
-and an "+ Add Bot" card. Only the selected bots' details are shown below (Select all selects every bot).
+Each bot trades one company, a sector, an industry or all companies, with one or more Strategy Lab strategies, and buys
+stocks, options, or both side by side.
+
+Page, top to bottom:
+  * a hero in the site's colours: the bots as five slots on the brand's rising cyan line, with the totals as chips,
+  * one card per bot (hover = zoom + a pencil to edit on the right + a red trash on the left; click = select, blue top line)
+    and an "Add Bot" card of the same size,
+  * for the selected bots only (Select all selects every bot): a dashboard first (KPIs, the win-rate / profit-factor cards,
+    what worked by stock and by strategy), the open positions, the recent trades ("Full list below" jumps to All trades),
+    the charts, the monthly returns (click a month to open its calendar) and all trades. Several selected bots also get a
+    combined dashboard, the "Return since start" chart and one tab per bot.
 Adding, editing and deleting open in dialogs; a password unlocks them when BOTS_PASSWORD is set.
 """
 from datetime import datetime, timedelta
+from math import hypot
 from zoneinfo import ZoneInfo
 
+import numpy as np
 import pandas as pd
 import streamlit as st
 
@@ -36,32 +45,92 @@ CATS = {"trend": ("Trend", "اتجاه", ["SMA Crossover", "EMA Crossover", "Gol
         "breakout": ("Breakout", "اختراق", ["Bollinger Breakout", "Donchian Breakout (Turtle)", "Volume Breakout"]),
         "reversion": ("Mean reversion", "ارتداد", ["RSI Mean Reversion", "MFI Money Flow (Volume)"]),
         "volume": ("Volume", "فوليوم", ["OBV Trend (Volume)", "Volume Breakout", "VWMA Crossover (Volume)", "MFI Money Flow (Volume)"])}
+INSTR_LABEL = {"stock": ("Stocks", "أسهم"), "options": ("Options", "أوبشن"), "both": ("Both", "الاثنين")}
+INSTR_CHIP = {"stock": ("show_chart", "Stocks", "أسهم"), "options": ("receipt_long", "Options", "أوبشن"),
+              "both": ("layers", "Stocks + options", "أسهم + أوبشن")}
 OTYPE_LABEL = {"call": ("Calls (buy signals)", "Call (إشارات الشراء)"), "put": ("Puts (sell signals)", "Put (إشارات البيع)"),
                "both": ("Calls + Puts", "Call + Put")}
 STRIKE_LABEL = {-10: ("10% in the money", "داخل السعر 10%"), -5: ("5% in the money", "داخل السعر 5%"), 0: ("At the money", "عند السعر"),
                 5: ("5% out of the money", "خارج السعر 5%"), 10: ("10% out of the money", "خارج السعر 10%")}
-DEFAULTS = {"pb_name": "", "pb_capital": 100000, "pb_kind": "company", "pb_symbol": "AAPL", "pb_sector": "Technology",
+TYPE_BADGE = {"Stock": ("STOCK", "سهم", "up"), "Call": ("CALL", "CALL", "acc"), "Put": ("PUT", "PUT", "vio")}
+TYPE_NAME = {"Stock": ("Stocks", "الأسهم"), "Call": ("Calls", "عقود Call"), "Put": ("Puts", "عقود Put")}
+EXIT_KIND = {"Signal": "neu", "Stop Loss": "down", "Trailing Stop": "gold", "Take Profit": "up", "Time Exit": "org"}
+EXIT_AR = {**engine.EXIT_REASON_AR, "Time Exit": "خروج قبل الانتهاء"}
+MONTHS_EN = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+DEFAULTS = {"pb_name": "", "pb_capital": 1_000_000, "pb_kind": "company", "pb_symbol": "AAPL", "pb_sector": "Technology",
             "pb_ind_sector": "Technology", "pb_industry": "Semiconductors", "pb_maxpos": 5, "pb_store": ["SMA Crossover"],
             "pb_fee": 0.05, "pb_stop": 2.0, "pb_atr": 0.0, "pb_tp": 0.0, "pb_trail": 0.0, "pb_combine": "any", "pb_instr": "stock",
             "pb_otype": "call", "pb_dte": 30, "pb_strike": 0, "pb_oalloc": 5.0, "pb_otp": 100.0, "pb_osl": 50.0}
-_A, _D, _BG = T.ACCENT, T.DOWN, T.CARD2
+
+_A, _V, _C, _D, _G, _BG, _BD, _MU = T.ACCENT, T.VIOLET, T.CYAN, T.DOWN, T.GOLD, T.CARD2, T.BORDER, T.MUTED
+_CARD_H = 352          # every card in the leaderboard (bots and "Add Bot") has this height
 PAGE_CSS = f"""<style>
+/* ---------- red actions (delete dialog) ---------- */
 [class*="st-key-pbred"] button {{ border-color:{_D}88 !important; }}
 [class*="st-key-pbred"] button p, [class*="st-key-pbred"] button span {{ color:{_D} !important; }}
 [class*="st-key-pbred"] button:hover {{ border-color:{_D} !important; background:{_D}1A !important; }}
-.pbc {{ margin:0 !important; min-height:248px; height:100%; transition: box-shadow .18s ease, border-color .18s ease; }}
-.pbc .top {{ display:flex; justify-content:flex-end; height:22px; margin:-4px 0 4px; }}
-.pbc .rk {{ font-weight:800; color:{T.MUTED}; transition:opacity .15s; }}
+
+/* ---------- hero: the bots on the brand's rising line ---------- */
+.pbhero {{ position:relative; overflow:hidden; border-radius:22px; border:1px solid {_BD}; margin:2px 0 16px; min-height:258px;
+  background:linear-gradient(120deg,#060c1c,#0c1d3f,#1c1543,#071a33); background-size:300% 300%; animation:sky 20s ease-in-out infinite; }}
+.pbhero .grid {{ position:absolute; inset:0; pointer-events:none;
+  background-image:linear-gradient(rgba(34,211,238,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(34,211,238,.07) 1px,transparent 1px);
+  background-size:36px 36px; -webkit-mask-image:radial-gradient(ellipse at 78% 45%,#000 0%,transparent 68%);
+  mask-image:radial-gradient(ellipse at 78% 45%,#000 0%,transparent 68%); }}
+.pbhero .art {{ position:absolute; top:0; bottom:0; right:0; width:58%; pointer-events:none; }}
+.pbhero .art svg {{ width:100%; height:100%; display:block; }}
+.pbhero .txt {{ position:relative; z-index:2; padding:26px 30px 24px; max-width:640px;
+  background:linear-gradient(90deg,rgba(10,14,23,.78) 0%,rgba(10,14,23,.35) 70%,rgba(10,14,23,0) 100%); }}
+.pbhero.rtl .art {{ right:auto; left:0; }}
+.pbhero.rtl .txt {{ margin-left:auto; background:linear-gradient(270deg,rgba(10,14,23,.78) 0%,rgba(10,14,23,.35) 70%,rgba(10,14,23,0) 100%); }}
+.pbhero .eb {{ color:{_C}; font-weight:800; letter-spacing:.2em; font-size:.72rem; text-transform:uppercase; display:flex; align-items:center; gap:8px; }}
+.pbhero .eb .ms {{ font-size:1.05rem; }}
+.pbhero .t {{ font-size:2.4rem; font-weight:800; line-height:1.08; margin:8px 0 6px; color:#fff; letter-spacing:-.02em; }}
+.pbhero .t b {{ background:linear-gradient(90deg,{_A},{_V},{_C}); -webkit-background-clip:text; background-clip:text; color:transparent; }}
+.pbhero .tg {{ color:#C7CFDD; font-size:.94rem; line-height:1.6; max-width:540px; }}
+.pbhero .chips {{ display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }}
+.pbhero .chip {{ background:rgba(17,23,35,.8); border:1px solid {_BD}; backdrop-filter:blur(6px); border-radius:10px; padding:6px 10px;
+  font-size:.8rem; display:inline-flex; align-items:center; gap:7px; color:#C9D0DC; font-variant-numeric:tabular-nums; }}
+.pbhero .chip b {{ color:#fff; unicode-bidi:isolate; direction:ltr; }} .pbhero .chip .ms {{ color:{_C}; font-size:1rem; }}
+.pbhero .chip .pill {{ min-width:0; padding:2px 7px; font-size:.74rem; }}
+.pbhero .st {{ margin-top:12px; }}
+.pbhero .ln {{ animation:pbdraw 8s ease-in-out infinite; }}
+.pbhero .halo {{ transform-box:fill-box; transform-origin:center; animation:pbpulse 2.6s ease-out infinite; }}
+.pbhero .tw {{ animation:pbtw 3.8s ease-in-out infinite; }}
+.pbhero .mv {{ animation:pbtravel 8s ease-in-out infinite; }}
+@keyframes pbdraw {{ 0% {{ stroke-dashoffset:var(--len); }} 55%,100% {{ stroke-dashoffset:0; }} }}
+@keyframes pbtravel {{ 0% {{ offset-distance:0%; }} 55%,100% {{ offset-distance:100%; }} }}
+@keyframes pbpulse {{ 0% {{ transform:scale(1); opacity:.9; }} 100% {{ transform:scale(2.1); opacity:0; }} }}
+@keyframes pbtw {{ 0%,100% {{ opacity:.85; }} 50% {{ opacity:.1; }} }}
+@media (max-width: 820px) {{ .pbhero .art {{ width:100%; opacity:.28; }} .pbhero .t {{ font-size:1.9rem; }} .pbhero .txt {{ background:none; }} }}
+
+/* ---------- bot cards ---------- */
+.pbc {{ margin:0 !important; height:{_CARD_H}px; box-sizing:border-box; display:flex; flex-direction:column; overflow:hidden; position:relative;
+  transition:box-shadow .18s ease, border-color .18s ease; }}
+.pbc::before {{ content:""; position:absolute; left:0; right:0; top:0; height:3px; background:linear-gradient(90deg,{_A},{_V},{_C});
+  opacity:0; transition:opacity .18s; }}
+.pbc .top {{ display:flex; justify-content:space-between; align-items:center; height:22px; margin:-4px 0 8px; gap:6px; }}
+.pbc .it {{ display:inline-flex; align-items:center; gap:5px; font-size:.62rem; font-weight:800; letter-spacing:.1em; text-transform:uppercase;
+  color:{_MU}; transition:opacity .15s; white-space:nowrap; overflow:hidden; }}
+.pbc .it .ms {{ font-size:.95rem; color:{_C}; }}
+.pbc .rk {{ display:inline-flex; align-items:center; gap:3px; font-weight:800; color:{_MU}; transition:opacity .15s; direction:ltr; }}
+.pbc .rk .ms {{ font-size:1.05rem; }}
+.pbc .rk.r1 {{ color:{_G}; }} .pbc .rk.r2 {{ color:#C7CEDB; }} .pbc .rk.r3 {{ color:#D9925F; }}
+.pbc .co .tk {{ display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; white-space:normal; line-height:1.25; }}
+.pbc .bdg {{ margin-top:10px; max-height:60px; overflow:hidden; }}
+.pbc .body {{ margin-top:auto; }}
+.pbc .spk {{ margin:0 -2px 8px; height:52px; }}
+.pbc .spk svg {{ width:100%; height:52px; display:block; overflow:visible; }}
+.pbc .row {{ display:flex; justify-content:space-between; align-items:flex-end; gap:8px; }}
+.pbc .row .r {{ text-align:end; white-space:nowrap; }}
+.pbc .pbft {{ color:{_MU}; font-size:.74rem; margin-top:10px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }}
 .pbc.sel {{ border-top:3px solid {_A}; box-shadow:0 0 0 1px {_A}55, 0 12px 30px {_A}26; }}
-.pbadd {{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; border:1.5px dashed {_A}88 !important;
-         color:{_A}; text-align:center; }}
-.pbadd .plus {{ width:54px; height:54px; border-radius:50%; background:{_A}22; display:flex; align-items:center; justify-content:center;
-               font-size:34px; font-weight:300; line-height:1; }}
-.pbadd b {{ font-size:1.02rem; }} .pbadd span.sub {{ color:{T.MUTED}; font-size:.78rem; }}
+.pbc.sel::before {{ display:none; }}
 [class*="st-key-pbcard_"] {{ position:relative; transition:transform .18s ease; }}
 [class*="st-key-pbcard_"]:hover {{ transform:translateY(-4px) scale(1.02); z-index:3; }}
 [class*="st-key-pbcard_"]:hover .pbc {{ box-shadow:0 14px 34px rgba(61,123,255,.20); }}
-[class*="st-key-pbcard_"]:hover .pbc .rk {{ opacity:0; }}
+[class*="st-key-pbcard_"]:hover .pbc::before {{ opacity:.95; }}
+[class*="st-key-pbcard_"]:hover .pbc .rk, [class*="st-key-pbcard_"]:hover .pbc .it {{ opacity:0; }}
 [class*="st-key-pbcard_"] [data-testid="stElementContainer"] {{ position:static !important; }}
 [class*="st-key-pbcard_"] [class*="st-key-pb_pick_"] {{ position:absolute !important; inset:0; z-index:4; margin:0 !important; width:auto !important; }}
 [class*="st-key-pbcard_"] [class*="st-key-pb_pick_"] .stButton, [class*="st-key-pbcard_"] [class*="st-key-pb_pick_"] button
@@ -79,6 +148,119 @@ PAGE_CSS = f"""<style>
 [class*="st-key-pb_trash_"] button span {{ color:{_D} !important; }}
 [class*="st-key-pb_edit_"] button p, [class*="st-key-pb_trash_"] button p {{ display:none !important; }}
 @media (hover: none) {{ [class*="st-key-pbcard_"] [class*="st-key-pb_edit_"], [class*="st-key-pbcard_"] [class*="st-key-pb_trash_"] {{ opacity:1; }} }}
+
+/* ---------- "Add Bot": the logo tile with a plus and the cyan trend arrow ---------- */
+.pbadd {{ align-items:center; justify-content:center; gap:10px; text-align:center; border:1.5px dashed {_A}77 !important;
+  background:radial-gradient(120% 80% at 50% 0%,rgba(61,123,255,.12),transparent 62%),linear-gradient(180deg,{_BG},{T.CARD}) !important; }}
+[class*="st-key-pbcard_add"]:hover .pbadd {{ border-color:{_A} !important; border-style:solid !important;
+  box-shadow:0 0 0 1px {_A}55, 0 16px 40px rgba(61,123,255,.28) !important; }}
+.pbadd .plus {{ width:92px; height:92px; }}
+.pbadd .plus svg {{ width:92px; height:92px; display:block; overflow:visible; }}
+.pbadd .orbit {{ transform-box:view-box; transform-origin:46px 46px; animation:pbspin 16s linear infinite; }}
+.pbadd .cross {{ transform-box:view-box; transform-origin:46px 46px; transition:transform .45s cubic-bezier(.3,1.6,.5,1); }}
+.pbadd .tile {{ transform-box:view-box; transform-origin:46px 46px; transition:transform .3s ease; }}
+[class*="st-key-pbcard_add"]:hover .pbadd .cross {{ transform:rotate(90deg); }}
+[class*="st-key-pbcard_add"]:hover .pbadd .tile {{ transform:scale(1.06); }}
+[class*="st-key-pbcard_add"]:hover .pbadd .spark {{ animation:pbspark 1s ease-out; }}
+@keyframes pbspin {{ to {{ transform:rotate(360deg); }} }}
+@keyframes pbspark {{ from {{ stroke-dashoffset:40; }} to {{ stroke-dashoffset:0; }} }}
+.pbadd .ttl {{ font-weight:800; font-size:1.15rem; background:linear-gradient(90deg,{_A},{_V},{_C}); -webkit-background-clip:text;
+  background-clip:text; color:transparent; }}
+.pbadd .sub {{ color:{_MU}; font-size:.78rem; }}
+.pbadd .slots {{ display:flex; gap:6px; justify-content:center; margin-top:2px; direction:ltr; }}
+.pbadd .slots span {{ width:18px; height:6px; border-radius:4px; background:{_BD}; display:block; }}
+.pbadd .slots span.on {{ background:linear-gradient(90deg,{_A},{_V}); }}
+
+/* ---------- details ---------- */
+.pbid {{ position:relative; overflow:hidden; }}
+.pbid::before {{ content:""; position:absolute; top:0; bottom:0; left:0; width:3px; background:linear-gradient(180deg,{_A},{_V},{_C}); }}
+.pbid .co .tk {{ font-size:1.12rem; }}
+.pbid .bdgs {{ margin-top:10px; }}
+.pbk {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px; margin-bottom:12px; }}
+.pbsub {{ display:flex; align-items:center; gap:8px; font-weight:800; font-size:.98rem; color:#fff; margin:14px 0 8px; }}
+.pbsub .ms {{ color:#fff; background:linear-gradient(135deg,{_A},{_V}); border-radius:8px; padding:4px; font-size:1rem; }}
+.pbsub .muted {{ font-size:.76rem; font-weight:600; }}
+.pbgt {{ color:{_MU}; font-size:.68rem; font-weight:800; letter-spacing:.1em; text-transform:uppercase; margin:4px 0 8px; }}
+.pbst {{ display:grid; grid-template-columns:repeat(auto-fill,minmax(172px,1fr)); gap:10px; }}
+.pbst .kpi .v {{ font-size:1.12rem; }}
+.pbst .kpi .s {{ font-size:.74rem; }}
+.pbsel {{ display:flex; flex-wrap:wrap; gap:8px; margin:-2px 0 12px; }}
+.pbsel .c {{ display:inline-flex; align-items:center; gap:6px; padding:5px 10px; border-radius:10px; background:rgba(138,148,167,.12);
+  border:1px solid {_BD}; font-size:.78rem; font-weight:700; color:#C9D0DC; }}
+.pbsel .c .pill {{ min-width:0; padding:1px 6px; font-size:.72rem; }}
+
+/* ---------- panels: open positions / recent trades / calendar ---------- */
+.pbp {{ position:relative; overflow:hidden; background:linear-gradient(180deg,{_BG},{T.CARD}); border:1px solid {_BD}; border-radius:18px;
+  padding:14px 16px 8px 19px; margin:6px 0 14px; }}
+.pbp::before {{ content:""; position:absolute; top:0; bottom:0; left:0; width:3px; background:linear-gradient(180deg,{_A},{_V},{_C}); }}
+.pbp .hd {{ display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:8px; }}
+.pbp .tt {{ display:flex; align-items:center; gap:8px; font-weight:800; font-size:1.02rem; color:#fff; }}
+.pbp .tt .ms {{ color:#fff; background:linear-gradient(135deg,{_A},{_V}); border-radius:8px; padding:4px; font-size:1rem; }}
+.pbp .tt .live {{ width:8px; height:8px; border-radius:50%; background:{_G}; box-shadow:0 0 0 3px rgba(245,185,74,.18); }}
+.pbp .sum {{ display:flex; flex-wrap:wrap; gap:7px; align-items:center; }}
+.pbp .sum .c {{ background:rgba(138,148,167,.12); border:1px solid {_BD}; border-radius:10px; padding:4px 9px; font-size:.76rem; font-weight:700;
+  color:#C9D0DC; }}
+.pbp .sum .c b {{ color:#fff; unicode-bidi:isolate; direction:ltr; display:inline-block; }} .pbp .sum .pbox {{ padding:1px 7px; font-size:.78rem; }}
+.pbempty {{ color:{_MU}; padding:14px 2px 12px; display:flex; align-items:center; gap:8px; }}
+.pbscroll {{ overflow-x:auto; }}
+.pbt {{ width:100%; border-collapse:collapse; font-size:.83rem; direction:ltr; min-width:860px; }}
+.pbt th {{ color:{_MU}; font-size:.63rem; letter-spacing:.08em; text-transform:uppercase; text-align:left; padding:7px 8px;
+  border-bottom:1px solid {_BD}; white-space:nowrap; font-weight:800; }}
+.pbt td {{ padding:9px 8px; border-bottom:1px solid rgba(34,43,59,.6); vertical-align:middle; text-align:left; }}
+.pbt tbody tr:last-child td {{ border-bottom:none; }}
+.pbt tbody tr:hover td {{ background:rgba(61,123,255,.06); }}
+.pbt th.r, .pbt td.r {{ text-align:right; }}
+.pbt .v {{ font-weight:800; color:#fff; white-space:nowrap; }}
+.pbt .v2 {{ font-weight:700; color:#C9D0DC; }}
+.pbt .m {{ color:{_MU}; font-size:.72rem; margin-top:2px; font-weight:600; white-space:nowrap; }}
+.pbt .m.up {{ color:#4ADE80; }} .pbt .m.dn {{ color:#F87171; }}
+.pbt a {{ color:#fff !important; text-decoration:none !important; }} .pbt a:hover .tk {{ color:#7EA6FF; }}
+.pbt .co .sub {{ max-width:170px; }}
+.pbt .bar {{ height:4px; width:92px; border-radius:3px; background:{_BD}; margin-top:6px; overflow:hidden; }}
+.pbt .bar span {{ display:block; height:100%; border-radius:3px; background:linear-gradient(90deg,{_A},{_C}); }}
+.pbt .rng {{ position:relative; width:110px; height:6px; border-radius:4px; margin-top:7px;
+  background:linear-gradient(90deg,{T.NEG_BG},#E2E8F0 50%,{T.POS_BG}); }}
+.pbt .rng i {{ position:absolute; top:-3px; width:4px; height:12px; margin-left:-2px; border-radius:2px; background:#fff; box-shadow:0 0 0 2px {T.BG}; }}
+.pbt .badge {{ margin:0; }}
+a.pblink {{ display:inline-flex; align-items:center; gap:4px; color:#7EA6FF !important; font-weight:800; font-size:.8rem;
+  text-decoration:none !important; padding:4px 10px; border-radius:10px; border:1px solid {_A}55; background:{_A}14; }}
+a.pblink:hover {{ color:#fff !important; border-color:{_A}; background:{_A}33; }}
+a.pblink .ms {{ font-size:1rem; }}
+.pbanchor {{ scroll-margin-top:96px; height:1px; }}
+
+/* ---------- monthly returns: every month is a button that opens its calendar ---------- */
+[class*="st-key-pbmg_"] {{ overflow-x:auto; padding-bottom:4px; gap:.45rem !important; }}
+[class*="st-key-pbmg_"] [data-testid="stHorizontalBlock"] {{ min-width:780px; flex-wrap:nowrap !important; gap:5px !important; }}
+[class*="st-key-pbmg_"] [data-testid="stColumn"] {{ min-width:0 !important; }}
+.pbmh {{ color:{_MU}; font-size:.66rem; font-weight:800; text-align:center; letter-spacing:.06em; text-transform:uppercase; padding:2px 0; }}
+.pbmy {{ font-weight:800; color:#fff; font-size:.86rem; padding:6px 2px; }}
+.pbmt {{ text-align:center; }} .pbmt .pbox {{ padding:5px 6px; font-size:.78rem; }}
+.pbme {{ height:34px; border-radius:9px; border:1px dashed {_BD}; opacity:.45; }}
+[class*="st-key-pbmo_"] button {{ min-height:34px !important; height:34px; padding:0 3px !important; border-radius:9px !important;
+  transition:transform .12s ease, box-shadow .12s ease; }}
+[class*="st-key-pbmo_"] button p {{ font-size:.76rem !important; font-weight:800 !important; white-space:nowrap; direction:ltr; }}
+[class*="st-key-pbmo_pos"] button {{ background:{T.POS_BG} !important; border:1px solid {T.POS_BD} !important; }}
+[class*="st-key-pbmo_pos"] button p {{ color:{T.POS_FG} !important; }}
+[class*="st-key-pbmo_neg"] button {{ background:{T.NEG_BG} !important; border:1px solid {T.NEG_BD} !important; }}
+[class*="st-key-pbmo_neg"] button p {{ color:{T.NEG_FG} !important; }}
+[class*="st-key-pbmo_neu"] button {{ background:#E2E8F0 !important; border:1px solid #CBD5E1 !important; }}
+[class*="st-key-pbmo_neu"] button p {{ color:#334155 !important; }}
+[class*="st-key-pbmo_"] button:hover {{ transform:translateY(-2px); box-shadow:0 6px 16px rgba(0,0,0,.35); }}
+[class*="st-key-pbmo_"][class*="_on_"] button {{ box-shadow:0 0 0 2px {T.BG}, 0 0 0 4px {_A} !important; transform:translateY(-2px); }}
+[class*="st-key-pbcalbox_"] {{ background:linear-gradient(180deg,{_BG},{T.CARD}); border:1px solid {_A}66; border-radius:18px; padding:14px 16px;
+  box-shadow:0 12px 30px rgba(61,123,255,.12); margin-top:6px; }}
+.pbct {{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; font-weight:800; font-size:1rem; color:#fff; }}
+.pbct .ms {{ color:#fff; background:linear-gradient(135deg,{_A},{_V}); border-radius:8px; padding:4px; font-size:1rem; }}
+.pbct .muted {{ font-size:.78rem; font-weight:600; }} .pbct .pill {{ min-width:0; padding:2px 8px; font-size:.76rem; }}
+.pbct .pbox {{ padding:2px 8px; font-size:.8rem; }}
+
+@media (prefers-reduced-motion: reduce) {{ .pbhero *, .pbadd * {{ animation:none !important; }} }}
+</style>"""
+# Arabic: no letter-spacing (it breaks the joined letters) and the accent bars move to the right edge
+PAGE_RTL_CSS = """<style>
+.pbhero .eb, .pbc .it, .pbgt, .pbmh, .pbt th { letter-spacing:0; }
+.pbp::before, .pbid::before { left:auto; right:0; }
+.pbp { padding:14px 19px 8px 16px; }
 </style>"""
 
 
@@ -142,18 +324,23 @@ def _params_txt(name, params):
     return " · ".join(f"{labels.get(k, k)} {v:g}" for k, v in params.items())
 
 
-def _risk_txt(bot):
-    if bot.get("instrument") == "options":
-        o = bot["options"]
-        return " · ".join([L(*OTYPE_LABEL[o["type"]]), L(f"{o['dte']} days", f"{o['dte']} يوم"), L(*STRIKE_LABEL[o["strike"]]),
-                           L(f"{o['alloc']:g}% per trade", f"{o['alloc']:g}% لكل صفقة"), L(f"target +{o['tp']:g}%", f"هدف +{o['tp']:g}%"),
-                           L(f"stop -{o['sl']:g}%", f"وقف -{o['sl']:g}%")])
+def instrument(bot):
+    return bot.get("instrument") if bot.get("instrument") in PB.INSTRUMENTS else "stock"
+
+
+def _stock_risk(bot):
     out = []
     for k, en, ar_, suf in (("stop_pct", "Stop", "وقف", "%"), ("atr_mult", "ATR stop ×", "وقف ATR ×", ""),
                             ("tp_pct", "Target", "هدف", "%"), ("trail_pct", "Trailing", "متحرك", "%")):
         if bot[k]:
-            out.append(f"{L(en, ar_)} {bot[k]:g}{suf}")
+            out.append(f"{L(en, ar_)} {iso(f'{bot[k]:g}{suf}')}")
     return " · ".join(out) or L("No stop", "بدون وقف")
+
+
+def _options_txt(o):
+    alloc, tp, sl = iso(f"{o['alloc']:g}%"), iso(f"+{o['tp']:g}%"), iso(f"-{o['sl']:g}%")
+    return " · ".join([L(*OTYPE_LABEL[o["type"]]), L(f"{o['dte']} days", f"{o['dte']} يوم"), L(*STRIKE_LABEL[o["strike"]]),
+                       L(f"{alloc} per trade", f"{alloc} لكل صفقة"), L(f"target {tp}", f"هدف {tp}"), L(f"stop {sl}", f"وقف {sl}")])
 
 
 def _session_live():
@@ -162,6 +349,29 @@ def _session_live():
     kind, _ = mcal.day_status(now.date())
     close = 780 if kind == "early" else 960
     return now.weekday() < 5 and kind != "closed" and 570 <= now.hour * 60 + now.minute < close
+
+
+def iso(x):
+    """A date, amount or percentage kept as one left-to-right piece inside Arabic text (Unicode isolates, harmless in English)."""
+    return f"\u2066{x}\u2069"
+
+
+def sm(v, dec=0):
+    """Signed money: +$1,234 / -$1,234."""
+    return ("+" if v is not None and not pd.isna(v) and v > 0 else "") + T.money(v, dec)
+
+
+def type_badge(kind):
+    en, ar_, color = TYPE_BADGE.get(kind, TYPE_BADGE["Stock"])
+    return T.badge(L(en, ar_), color)
+
+
+def exit_badge(reason):
+    return T.badge(L(reason, EXIT_AR.get(reason, reason)), EXIT_KIND.get(reason, "neu"))
+
+
+def _fp(x):
+    return "$" + T.fmt_price(x)
 
 
 # =====================================================================
@@ -208,9 +418,89 @@ def storage_notice(err):
             setup_steps()
 
 
+# =====================================================================
+# hero: the five bot slots on the brand's rising line
+# =====================================================================
+_SLOTS = [(62, 196), (150, 152), (238, 166), (326, 106), (414, 64)]
+
+
+def _hero_art(ranked_sims):
+    """Slot 5 (top right) holds the best bot, empty slots sit at the bottom left."""
+    pts = [(16, 222)] + _SLOTS + [(476, 36)]
+    path = "M" + " L".join(f"{x} {y}" for x, y in pts)
+    length = sum(hypot(x2 - x1, y2 - y1) for (x1, y1), (x2, y2) in zip(pts, pts[1:]))
+    s = ['<svg viewBox="0 0 520 250" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" style="direction:ltr">'
+         '<defs><linearGradient id="pbln" x1="0" x2="1"><stop offset="0" stop-color="#22D3EE" stop-opacity="0"/>'
+         '<stop offset=".3" stop-color="#22D3EE"/><stop offset=".72" stop-color="#3D7BFF"/><stop offset="1" stop-color="#A78BFA"/></linearGradient>'
+         '<linearGradient id="pbnd" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3D7BFF"/><stop offset="1" stop-color="#8B5CF6"/></linearGradient>'
+         '<filter id="pbgl" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3" result="b"/>'
+         '<feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>',
+         # the brand's "A", large and faint
+         '<g transform="translate(366 66) scale(3.5)" opacity=".06"><path d="M17 48 L29.5 15.5 Q32 11 34.5 15.5 L47 48" fill="none" '
+         'stroke="#fff" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/></g>']
+    rng = np.random.default_rng(11)
+    for _ in range(16):
+        s.append(f'<circle class="tw" cx="{rng.uniform(20, 510):.0f}" cy="{rng.uniform(8, 240):.0f}" r="{rng.uniform(.6, 1.5):.1f}" '
+                 f'fill="#9CC3FF" style="animation-delay:-{rng.uniform(0, 4):.1f}s"/>')
+    s.append(f'<path d="{path}" fill="none" stroke="#22D3EE" stroke-opacity=".10" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>')
+    s.append(f'<path class="ln" d="{path}" fill="none" stroke="url(#pbln)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" '
+             f'filter="url(#pbgl)" style="stroke-dasharray:{length:.0f};--len:{length:.0f}"/>')
+    s.append('<path d="M461 35 L476.5 35.6 L475.9 51" fill="none" stroke="#A78BFA" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>')
+    s.append(f'<circle class="mv" r="4.5" fill="#22D3EE" filter="url(#pbgl)" style="offset-path:path(\'{path}\')"/>')
+    for i, (x, y) in enumerate(_SLOTS):
+        rank = PB.MAX_BOTS - i
+        if rank > len(ranked_sims):
+            s.append(f'<g opacity=".8"><circle cx="{x}" cy="{y}" r="14" fill="#0A0E17" fill-opacity=".55" stroke="#8A94A7" stroke-width="1.6" '
+                     f'stroke-dasharray="3 4"/><path d="M{x - 5} {y} H{x + 5} M{x} {y - 5} V{y + 5}" stroke="#8A94A7" stroke-width="2" '
+                     f'stroke-linecap="round"/></g>')
+            continue
+        sim = ranked_sims[rank - 1]
+        live = sim["ok"] and not sim["waiting"]
+        ret = sim.get("ret") or 0.0
+        ring = (T.UP if ret >= 0 else T.DOWN) if live else T.MUTED
+        label = f"{ret:+.1f}%" if live else "—"
+        name = sim["bot"]["name"]
+        name = name[:13] + "…" if len(name) > 14 else name
+        s.append(f'<g><circle class="halo" cx="{x}" cy="{y}" r="15" fill="none" stroke="{ring}" stroke-width="2" style="animation-delay:-{i * 0.5:.1f}s"/>'
+                 f'<circle cx="{x}" cy="{y}" r="15" fill="url(#pbnd)" stroke="#0A0E17" stroke-width="2"/>'
+                 f'<text x="{x}" y="{y + 4.5}" text-anchor="middle" font-size="12.5" font-weight="800" fill="#fff" font-family="{T.FONT}">{rank}</text>'
+                 f'<text x="{x}" y="{y - 36}" text-anchor="middle" font-size="13" font-weight="800" fill="{ring}" font-family="{T.FONT}">{label}</text>'
+                 f'<text x="{x}" y="{y - 22}" text-anchor="middle" font-size="10.5" fill="#C7CFDD" font-family="{T.FONT}">{T.esc(name)}</text></g>')
+    return "".join(s) + "</svg>"
+
+
+def hero_html(sims, n_bots):
+    rk = ranked(sims)
+    live = [s for s in sims if s["ok"] and not s["waiting"]]
+    chips = [f'<span class="chip">{T.icon("smart_toy")}<b>{n_bots}/{PB.MAX_BOTS}</b> {L("bots", "بوتات")}</span>']
+    if live:
+        cap = sum(s["bot"]["capital"] for s in live)
+        bal = sum(s["final"] for s in live)
+        n_open = sum(s["n_open"] for s in live)
+        n_orders = sum(len(s["next_buys"]) + len(s["next_sells"]) for s in live)
+        chips.append(f'<span class="chip">{T.icon("account_balance_wallet")}{L("Total balance", "إجمالي الرصيد")} <b>{T.money(bal)}</b>'
+                     f'{T.pill((bal / cap - 1) * 100 if cap else 0.0)}</span>')
+        chips.append(f'<span class="chip">{T.icon("swap_vert")}{L("Open trades", "صفقات مفتوحة")} <b>{n_open}</b></span>')
+        if n_orders:
+            chips.append(f'<span class="chip">{T.icon("bolt")}{L("Orders at next open", "أوامر الافتتاح القادم")} <b>{n_orders}</b></span>')
+        best = rk[0]
+        chips.append(f'<span class="chip">{T.icon("emoji_events")}<b>{T.esc(best["bot"]["name"])}</b>{T.pill(best["ret"])}</span>')
+    else:
+        chips.append(f'<span class="chip">{T.icon("payments")}{L("Virtual money", "أموال وهمية")}</span>')
+        chips.append(f'<span class="chip">{T.icon("candlestick_chart")}{L("Real prices", "أسعار حقيقية")}</span>')
+    title = L("Paper <b>Bots</b>", "البوتات <b>الافتراضية</b>")
+    tag = L(f"Up to {PB.MAX_BOTS} bots trade with virtual money on real prices, forward from the day they start: a company, a sector, "
+            "an industry or all companies, with one or more strategies, buying stocks, options or both.",
+            f"حتى {PB.MAX_BOTS} بوتات تتداول بأموال وهمية على أسعار حقيقية من يوم تشغيلها وللأمام: شركة أو قطاع أو صناعة أو كل الشركات، "
+            "باستراتيجية وحدة أو أكثر، وتشتري أسهم أو أوبشن أو الاثنين.")
+    return (f'<div class="pbhero{" rtl" if is_ar() else ""}"><div class="grid"></div><div class="art">{_hero_art(rk)}</div>'
+            f'<div class="txt"><div class="eb">{T.icon("robot_2")}{L("Paper trading lab", "مختبر التداول الافتراضي")}</div>'
+            f'<div class="t">{title}</div><div class="tg">{T.esc(tag)}</div><div class="chips">{"".join(chips)}</div>'
+            f'<div class="st">{T.market_status(is_ar())}</div></div></div>')
+
 
 # =====================================================================
-# cards: leaderboard with hover actions, selection and "+ Add Bot"
+# cards: leaderboard with hover actions, selection and "Add Bot"
 # =====================================================================
 def status_badge(sim):
     if not sim["ok"]:
@@ -244,35 +534,78 @@ def head_html(b, logo=None):
 
 def bot_card(rank, sim, logo, selected=False):
     b = sim["bot"]
-    top = f'<div class="top"><span class="rk">#{rank}</span></div>'
-    badges = f'<div style="margin-top:8px">{T.badge(how_label(b, short=True), "vio", "smart_toy")}'
-    if b.get("instrument") == "options":
-        badges += T.badge(L("Options", "أوبشن"), "gold", "receipt_long")
-    badges += f'{status_badge(sim)}</div>'
+    ic, en, ar_ = INSTR_CHIP[instrument(b)]
+    medal = T.icon("emoji_events") if rank == 1 else ""
+    top = f'<div class="top"><span class="it">{T.icon(ic)}{T.esc(L(en, ar_))}</span><span class="rk r{rank}">{medal}#{rank}</span></div>'
+    badges = f'<div class="bdg">{T.badge(how_label(b, short=True), "vio", "smart_toy")}{status_badge(sim)}</div>'
     if sim["ok"] and not sim["waiting"]:
         ret, m = sim["ret"], sim["metrics"]
-        spark = T.sparkline(sim["equity"].tail(120).values, T.UP if ret >= 0 else T.DOWN, 90, 32)
-        spx = "" if sim["bench_ret"] is None else f'<div class="muted" style="font-size:.72rem;margin-top:4px;direction:ltr">S&amp;P 500 {sim["bench_ret"]:+.2f}%</div>'
-        trades = L(f'{m["Trades"]} trades', f'{m["Trades"]} صفقة') + (f' · {L("win", "نجاح")} {m["Win Rate %"]:.0f}%' if m["Trades"] else "")
+        spx = "" if sim["bench_ret"] is None else f'<div class="muted" style="font-size:.7rem;margin-top:4px;direction:ltr">S&amp;P 500 {sim["bench_ret"]:+.2f}%</div>'
+        win = iso(f"{m['Win Rate %']:.0f}%")
+        trades = L(f'{m["Trades"]} trades', f'{m["Trades"]} صفقة') + (f' · {L("win", "نجاح")} {win}' if m["Trades"] else "")
         watch = "" if b["kind"] == "company" else " · " + L(f'{sim["n_symbols"]} stocks', f'{sim["n_symbols"]} سهم')
-        body = (f'<div style="display:flex;justify-content:space-between;align-items:flex-end;gap:8px;margin-top:12px">'
-                f'<div><div class="muted" style="font-size:.72rem">{L("Balance", "الرصيد")}</div>'
-                f'<div style="font-weight:800;font-size:1.1rem;direction:ltr">{T.money(sim["final"])}</div></div>{spark}'
-                f'<div style="text-align:end">{T.pbox(f"{ret:+.2f}%", ret)}{spx}</div></div>'
-                f'<div class="muted" style="font-size:.74rem;margin-top:10px">{trades}{watch} · {L("since", "منذ")} {b["start_date"]}</div>')
+        body = (f'<div class="spk">{_spark_area(sim["equity"], b["capital"], b["id"])}</div>'
+                f'<div class="row"><div><div class="muted" style="font-size:.72rem">{L("Balance", "الرصيد")}</div>'
+                f'<div style="font-weight:800;font-size:1.1rem;direction:ltr">{T.money(sim["final"])}</div></div>'
+                f'<div class="r">{T.pbox(f"{ret:+.2f}%", ret)}{spx}</div></div>'
+                f'<div class="pbft">{trades}{watch} · {L("since", "منذ")} {iso(b["start_date"])}</div>')
     elif sim["ok"]:
-        body = (f'<div class="muted" style="margin-top:12px;font-size:.8rem">{L("Starts with the first US session from", "يبدأ مع أول جلسة أمريكية من")} '
-                f'{b["start_date"]} · {T.money(b["capital"])}</div>')
+        body = (f'<div class="pbft">{L("Starts with the first US session from", "يبدأ مع أول جلسة أمريكية من")} '
+                f'{iso(b["start_date"])} · {iso(T.money(b["capital"]))}</div>')
     else:
         why = L("No price data right now.", "لا توجد بيانات أسعار حالياً.") if sim["why"] == "data" else L("Strategy not found.", "الاستراتيجية غير موجودة.")
-        body = f'<div class="muted" style="margin-top:12px;font-size:.8rem">{why}</div>'
-    return f'<div class="card pbc{" sel" if selected else ""}">{top}{head_html(b, logo)}{badges}{body}</div>'
+        body = f'<div class="pbft">{why}</div>'
+    return f'<div class="card pbc{" sel" if selected else ""}">{top}{head_html(b, logo)}{badges}<div class="body">{body}</div></div>'
+
+
+def _spark_area(equity, capital, uid, n=160):
+    """The balance over the last sessions as a card-wide area (green above the starting capital, red below), with the
+    starting capital as a dotted line."""
+    v = np.asarray(equity.tail(n).values, dtype=float)
+    v = v[np.isfinite(v)]
+    if len(v) < 2:
+        return ""
+    lo, hi = min(v.min(), capital), max(v.max(), capital)
+    rng = (hi - lo) or 1.0
+    w, h = 200.0, 52.0
+    xs = np.linspace(0, w, len(v))
+    ys = h - 3 - (v - lo) / rng * (h - 6)
+    base = h - 3 - (capital - lo) / rng * (h - 6)
+    pts = " ".join(f"{x:.1f},{y:.1f}" for x, y in zip(xs, ys))
+    col = T.UP if v[-1] >= capital else T.DOWN
+    gid = f"pbsp{uid}"
+    return (f'<svg viewBox="0 0 {w:.0f} {h:.0f}" preserveAspectRatio="none" aria-hidden="true">'
+            f'<defs><linearGradient id="{gid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="{col}" stop-opacity=".32"/>'
+            f'<stop offset="1" stop-color="{col}" stop-opacity="0"/></linearGradient></defs>'
+            f'<polygon points="0,{h:.0f} {pts} {w:.0f},{h:.0f}" fill="url(#{gid})"/>'
+            f'<line x1="0" y1="{base:.1f}" x2="{w:.0f}" y2="{base:.1f}" stroke="#8A94A7" stroke-width="1" stroke-dasharray="3 4" '
+            f'vector-effect="non-scaling-stroke" opacity=".6"/>'
+            f'<polyline points="{pts}" fill="none" stroke="{col}" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></svg>')
+
+
+# the site's logo tile (blue-violet, rounded) with a white plus and the cyan trend arrow; a dashed orbit turns around it
+PLUS_SVG = ('<svg viewBox="0 0 92 92" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'
+            '<defs><linearGradient id="pbaddg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3D7BFF"/>'
+            '<stop offset="1" stop-color="#8B5CF6"/></linearGradient>'
+            '<filter id="pbaddf" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="5"/></filter></defs>'
+            '<g class="orbit"><circle cx="46" cy="46" r="43" fill="none" stroke="#22D3EE" stroke-opacity=".45" stroke-width="1.4" stroke-dasharray="2 7"/>'
+            '<circle cx="46" cy="3" r="3.2" fill="#22D3EE"/><circle cx="89" cy="46" r="2" fill="#A78BFA"/></g>'
+            '<g class="tile"><rect x="16" y="20" width="60" height="60" rx="17" fill="#3D7BFF" opacity=".45" filter="url(#pbaddf)"/>'
+            '<rect x="16" y="16" width="60" height="60" rx="17" fill="url(#pbaddg)"/>'
+            '<path d="M22 30 Q22 22 30 22 H62 Q70 22 70 30" fill="none" stroke="#fff" stroke-opacity=".22" stroke-width="2" stroke-linecap="round"/>'
+            '<g class="cross"><path d="M46 32 V60 M32 46 H60" stroke="#fff" stroke-width="6.5" stroke-linecap="round"/></g>'
+            '<path class="spark" d="M51 67 L57 62 L61 64 L69 56" fill="none" stroke="#22D3EE" stroke-width="3.2" stroke-linecap="round" '
+            'stroke-linejoin="round" style="stroke-dasharray:40"/>'
+            '<path d="M65 55.6 L69.4 55.9 L69.1 60.3" fill="none" stroke="#22D3EE" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>'
+            '</g></svg>')
 
 
 def add_card(n_bots):
     left = PB.MAX_BOTS - n_bots
-    return (f'<div class="card pbc pbadd"><div class="plus">+</div><b>{L("Add Bot", "أضف بوت")}</b>'
-            f'<span class="sub">{L(f"{left} of {PB.MAX_BOTS} left", f"باقي {left} من {PB.MAX_BOTS}")}</span></div>')
+    slots = "".join(f'<span class="{"on" if i < n_bots else "off"}"></span>' for i in range(PB.MAX_BOTS))
+    return (f'<div class="card pbc pbadd"><div class="plus">{PLUS_SVG}</div><div class="ttl">{L("Add Bot", "أضف بوت")}</div>'
+            f'<div class="sub">{L(f"{left} of {PB.MAX_BOTS} slots left", f"باقي {left} من {PB.MAX_BOTS} أماكن")}</div>'
+            f'<div class="slots">{slots}</div></div>')
 
 
 def ranked(sims):
@@ -370,7 +703,445 @@ def compare_chart(sims, spy):
 
 
 # =====================================================================
-# one bot in detail
+# a "view": one bot, or several bots added together (same keys, so the dashboard and panels serve both)
+# =====================================================================
+def _open_value(op):
+    """Market value of open rows: shares x price, or contracts x 100 x premium."""
+    if op.empty:
+        return pd.Series(dtype=float)
+    opt = op["Type"].isin(["Call", "Put"])
+    return pd.Series(np.where(opt, op["Shares"] * 100 * op["Exit"], op["Shares"] * op["Stock Exit"]), index=op.index, dtype=float)
+
+
+def single_view(sim):
+    b = sim["bot"]
+    tr = sim["trades"].assign(Bot=b["name"])
+    op = tr[tr["Exit Reason"] == "Open"]
+    cash = sim.get("cash")
+    if cash is None:
+        cash = sim["final"] - float(_open_value(op).sum())
+    has_spy = sim["bench"] is not None
+    return {"key": str(b["id"]), "multi": False, "group": b["kind"] != "company", "n_bots": 1, "cap": float(b["capital"]),
+            "final": float(sim["final"]), "ret": float(sim["ret"]), "bench_ret": sim["bench_ret"], "base_ret": sim["group_ret"],
+            "equity": sim["equity"], "bench": sim["bench"] if has_spy else sim["group"],
+            "bench_name": "S&P 500 (SPY)" if has_spy else L("Buy & Hold", "شراء واحتفاظ"), "npos": sim["npos"], "trades": tr,
+            "cash": float(cash), "sessions": sim["sessions"], "since": b["start_date"], "opts": instrument(b) != "stock",
+            "last": pd.Timestamp(sim["last_date"])}
+
+
+def combined_view(sims):
+    """Several bots as one portfolio: balances, benchmarks and positions added up day by day (a bot holds its capital
+    before its start date), trades pooled."""
+    live = [s for s in sims if s["ok"] and not s["waiting"] and len(s["equity"])]
+    if not live:
+        return None
+    idx = live[0]["equity"].index
+    for s in live[1:]:
+        idx = idx.union(s["equity"].index)
+
+    def fill(x, cap):
+        return x.reindex(idx).ffill().fillna(cap)
+
+    eq = sum(fill(s["equity"], s["bot"]["capital"]) for s in live)
+    bench = sum(fill(s["bench"] if s["bench"] is not None else s["group"], s["bot"]["capital"]) for s in live)
+    npos = sum(s["npos"].reindex(idx).fillna(0) for s in live)
+    views = [single_view(s) for s in live]
+    cap = float(sum(s["bot"]["capital"] for s in live))
+    final = float(eq.iloc[-1])
+    frames = [v["trades"] for v in views if len(v["trades"])]
+    trades = pd.concat(frames, ignore_index=True) if frames else views[0]["trades"]
+    for c in ("Entry", "Exit", "Shares", "P&L $", "P&L %", "Stock Entry", "Stock Exit", "Fees", "Stop", "Target"):
+        trades[c] = pd.to_numeric(trades[c], errors="coerce")        # an empty frame would turn the pooled columns into objects
+    return {"key": "all", "multi": True, "group": True, "n_bots": len(live), "cap": cap, "final": final,
+            "ret": (final / cap - 1) * 100, "bench_ret": float((bench.iloc[-1] / cap - 1) * 100), "base_ret": None,
+            "equity": eq, "bench": bench, "bench_name": "S&P 500 (SPY)", "npos": npos,
+            "trades": trades, "cash": float(sum(v["cash"] for v in views)),
+            "sessions": max(s["sessions"] for s in live), "since": min(s["bot"]["start_date"] for s in live),
+            "opts": any(v["opts"] for v in views), "last": max(v["last"] for v in views), "sims": live}
+
+
+def view_stats(v):
+    tr = v["trades"]
+    return autotrader.stats({"trades": tr[tr["Exit Reason"] != "Open"], "open": tr[tr["Exit Reason"] == "Open"], "equity": v["equity"],
+                             "bench": v["bench"], "positions": v["npos"], "capital": v["cap"]})
+
+
+def view_logos(v):
+    tr = v["trades"]
+    op = tr[tr["Exit Reason"] == "Open"]
+    recent = tr[tr["Exit Reason"] != "Open"].sort_values("Exit Date", ascending=False).head(12)
+    return data.logos(list(dict.fromkeys(list(op["Symbol"]) + list(recent["Symbol"])))[:60])
+
+
+# =====================================================================
+# dashboard: KPIs · win-rate / profit-factor cards · what worked
+# =====================================================================
+def kpi_row(v):
+    tr = v["trades"]
+    op = tr[tr["Exit Reason"] == "Open"]
+    open_pnl = float(op["P&L $"].sum()) if len(op) else 0.0
+    invested = max(v["final"] - v["cash"], 0.0)
+    inv_pct = invested / v["final"] * 100 if v["final"] > 0 else 0.0
+    if v["multi"]:
+        ret_sub = L(f"{v['n_bots']} bots together", f"{v['n_bots']} بوتات مع بعض")
+    else:
+        ret_sub = (L("Group bought equally ", "المجموعة بالتساوي ") if v["group"] else L("Buy & hold ", "شراء واحتفاظ ")) + iso(f"{v['base_ret']:+.2f}%")
+    diff = None if v["bench_ret"] is None else v["ret"] - v["bench_ret"]
+    n_open = len(op)
+    open_sub = L(f"{n_open} open positions", f"{n_open} مراكز مفتوحة") if n_open != 1 else L("1 open position", "مركز مفتوح واحد")
+    tiles = [
+        T.kpi("account_balance_wallet", L("Balance", "الرصيد"), T.money(v["final"]), L("start ", "البداية ") + iso(T.money(v["cap"])), T.cls(v["ret"])),
+        T.kpi("trending_up", L("Return", "العائد"), f"{v['ret']:+.2f}%", ret_sub, T.cls(v["ret"])),
+        T.kpi("show_chart", L("vs S&P 500", "مقابل إس آند بي"), "—" if diff is None else f"{diff:+.2f}%",
+              "" if diff is None else f"S&amp;P {v['bench_ret']:+.2f}%", None if diff is None else T.cls(diff)),
+        T.kpi("hourglass_top", L("Open P&L", "ربح المراكز المفتوحة"), sm(open_pnl), open_sub, T.cls(open_pnl) if n_open else None),
+        T.kpi("savings", L("Cash", "الكاش"), T.money(v["cash"]), L("invested ", "مستثمر ") + iso(f"{inv_pct:.0f}%"), None),
+        T.kpi("calendar_month", L("Running", "مدة التشغيل"), f"{v['sessions']:,}", L("sessions since ", "جلسة منذ ") + iso(v["since"]), None),
+    ]
+    return '<div class="pbk">' + "".join(tiles) + "</div>"
+
+
+def _group_tiles(closed, col, label_fn, icon):
+    out = []
+    for k, g in closed.groupby(col, sort=False):
+        pnl, n = float(g["P&L $"].sum()), len(g)
+        wr, avg = float((g["P&L $"] > 0).mean() * 100), float(g["P&L %"].mean())
+        w_, a_ = iso(f"{wr:.0f}%"), iso(f"{avg:+.1f}%")
+        sub = L(f"{n} trades · win {w_} · avg {a_}", f"{n} صفقة · نجاح {w_} · متوسط {a_}")
+        out.append((pnl, T.kpi(icon, label_fn(k), sm(pnl), sub, T.cls(pnl))))
+    out.sort(key=lambda x: -x[0])
+    return "".join(h for _, h in out)
+
+
+def what_worked(v):
+    tr = v["trades"]
+    closed = tr[tr["Exit Reason"] != "Open"]
+    ui.html(f'<div class="pbsub">{T.icon("pie_chart")}{L("What worked", "ماذا نجح")}'
+            f'<span class="muted">· {L("closed trades", "الصفقات المغلقة")}</span></div>')
+    if closed.empty:
+        st.caption(L("This part fills in after the first closed trade.", "هذا الجزء يمتلئ بعد أول صفقة مغلقة."))
+        return
+    c1, c2 = st.columns([1.2, 1], gap="medium")
+    if v["group"]:
+        g = closed.groupby("Symbol")["P&L $"].sum()
+        g = pd.concat([g.nlargest(6), g.nsmallest(6)]).groupby(level=0).first().sort_values()
+        labels, title = list(g.index), L("P&L by stock, best and worst ($)", "الربح حسب السهم، الأفضل والأسوأ ($)")
+    else:
+        g = closed.groupby("Exit Reason")["P&L $"].sum().sort_values()
+        labels = [L(x, EXIT_AR.get(x, x)) for x in g.index]
+        title = L("P&L by exit reason ($)", "الربح حسب سبب الخروج ($)")
+    ui.chart(charts.hbar(labels, [float(x) for x in g.values], title, max(280, 32 * len(g) + 90), suffix=""),
+             key=f"pb_ww_{v['key']}", container=c1)
+    html = (f'<div class="pbgt">{L("By strategy", "حسب الاستراتيجية")}</div>'
+            f'<div class="pbst">{_group_tiles(closed, "Strategy", strat_short, "smart_toy")}</div>')
+    if v["opts"]:
+        html += (f'<div class="pbgt" style="margin-top:16px">{L("By type", "حسب النوع")}</div>'
+                 f'<div class="pbst">{_group_tiles(closed, "Type", lambda k: L(*TYPE_NAME.get(k, (k, k))), "category")}</div>')
+    with c2:
+        ui.html(html)
+
+
+def dashboard(v):
+    if v["multi"]:
+        ui.sec("space_dashboard", "Portfolio dashboard", "لوحة أداء المحفظة")
+        chips = "".join(f'<span class="c">{T.icon("smart_toy")}{T.esc(s["bot"]["name"])} {T.pill(s["ret"])}</span>' for s in v["sims"])
+        ui.html(f'<div class="pbsel">{chips}</div>')
+    else:
+        ui.sec("space_dashboard", "Dashboard", "لوحة الأداء")
+    ui.html(kpi_row(v))
+    ui.html(tdash.kpi_cards(view_stats(v), v["cap"]))
+    what_worked(v)
+
+
+# =====================================================================
+# panels: open positions · recent trades
+# =====================================================================
+def _asset(r, lg):
+    sym = r["Symbol"]
+    if r["Type"] in ("Call", "Put"):
+        sub = r["Contract"]
+    else:
+        sec = PB.sector_of(sym)
+        sub = sector_name(sec) if sec else ""
+    return T.company(sym, "", lg.get(sym), 28, sub=sub, href=ui.href(sym))
+
+
+def _plan(r):
+    """How the open position will close: the stock's stop / target (with where the price sits between them), or the option's expiry."""
+    now = float(r["Exit"])
+    if r["Type"] in ("Call", "Put"):
+        exp = pd.Timestamp(r["Expiry"])
+        left = max((exp - pd.Timestamp(r["Exit Date"])).days, 0)
+        total = max((exp - pd.Timestamp(r["Entry Date"])).days, 1)
+        used = min(max(1 - left / total, 0.0), 1.0) * 100
+        left_txt = L(f"{left} days left", f"باقي {left} يوم")
+        return (f'<div class="v">{L("Expires", "ينتهي")} {exp:%Y-%m-%d}</div>'
+                f'<div class="m">{left_txt} · TP {_fp(r["Target"])} · SL {_fp(r["Stop"])}</div>'
+                f'<div class="bar"><span style="width:{used:.0f}%"></span></div>')
+    stop, target = r["Stop"], r["Target"]
+    has_stop, has_tp = pd.notna(stop), pd.notna(target)
+    if not has_stop and not has_tp:
+        return f'<div class="v2">{L("On the signal", "بالإشارة")}</div><div class="m">{L("no stop / target", "بدون وقف / هدف")}</div>'
+    lines = ""
+    if has_stop:
+        lines += f'<div class="m dn">{L("Stop", "وقف")} {_fp(stop)} ({(stop / now - 1) * 100:+.1f}%)</div>'
+    if has_tp:
+        lines += f'<div class="m up">{L("Target", "هدف")} {_fp(target)} ({(target / now - 1) * 100:+.1f}%)</div>'
+    if has_stop and has_tp and target > stop:
+        pos = min(max((now - stop) / (target - stop), 0.0), 1.0) * 100
+        lines += f'<div class="rng"><i style="left:{pos:.0f}%"></i></div>'
+    return lines
+
+
+def _held(bars):
+    if bars <= 0:
+        return L("today", "اليوم")
+    return L("1 session", "جلسة وحدة") if bars == 1 else L(f"{bars} sessions", f"{bars} جلسة")
+
+
+def open_panel(v, lg):
+    tr = v["trades"]
+    op = tr[tr["Exit Reason"] == "Open"].copy()
+    val = _open_value(op)
+    n, invested = len(op), float(val.sum()) if len(op) else 0.0
+    open_pnl = float(op["P&L $"].sum()) if n else 0.0
+    pct = invested / v["final"] * 100 if v["final"] > 0 else 0.0
+    chips = (f'<span class="c"><b>{n}</b> {L("positions", "مراكز")}</span>'
+             f'<span class="c">{L("Invested", "مستثمر")} <b>{T.money(invested)} · {pct:.0f}%</b></span>'
+             f'<span class="c">{L("Cash", "الكاش")} <b>{T.money(v["cash"])}</b></span>'
+             f'<span class="c">{L("Open P&L", "الربح المفتوح")} {T.pbox(sm(open_pnl), open_pnl)}</span>')
+    head = (f'<div class="hd"><div class="tt">{T.icon("work")}{L("Open positions", "المراكز المفتوحة")}<span class="live"></span></div>'
+            f'<div class="sum">{chips}</div></div>')
+    if not n:
+        ui.html(f'<div class="pbp">{head}<div class="pbempty">{T.icon("hourglass_empty")}'
+                f'{L("No open positions right now. The bot is waiting for a signal.", "لا توجد مراكز مفتوحة حالياً. البوت ينتظر إشارة.")}</div></div>')
+        return
+    rows = []
+    for i in op.assign(_v=val).sort_values("_v", ascending=False).index:
+        r = op.loc[i]
+        is_opt = r["Type"] in ("Call", "Put")
+        value = float(val.loc[i])
+        w = value / v["final"] * 100 if v["final"] > 0 else 0.0
+        held = _held(int(r["Bars"]))
+        who = f'<div class="m">{T.esc(r["Bot"])}</div>' if v["multi"] else ""
+        if is_opt:
+            qty = L(f'{int(r["Shares"])} contracts', f'{int(r["Shares"])} عقد')
+            price = (f'<div class="v">{_fp(r["Entry"])} → {_fp(r["Exit"])}</div>'
+                     f'<div class="m">{L("stock", "السهم")} {_fp(r["Stock Entry"])} → {_fp(r["Stock Exit"])}</div>')
+        else:
+            qty = L(f'{r["Shares"]:,.2f} shares', f'{r["Shares"]:,.2f} سهم')
+            chg = (float(r["Exit"]) / float(r["Entry"]) - 1) * 100
+            price = (f'<div class="v">{_fp(r["Entry"])} → {_fp(r["Exit"])}</div>'
+                     f'<div class="m {"up" if chg >= 0 else "dn"}">{chg:+.2f}%</div>')
+        rows.append(f'<tr><td>{_asset(r, lg)}</td><td>{type_badge(r["Type"])}{who}</td>'
+                    f'<td><div class="v2">{T.esc(strat_short(r["Strategy"]))}</div></td>'
+                    f'<td><div class="v">{pd.Timestamp(r["Entry Date"]):%Y-%m-%d}</div><div class="m">{held}</div></td>'
+                    f'<td>{price}</td>'
+                    f'<td><div class="v">{qty}</div><div class="m">{T.money(value)} · {w:.1f}%</div>'
+                    f'<div class="bar"><span style="width:{min(w, 100):.0f}%"></span></div></td>'
+                    f'<td>{_plan(r)}</td>'
+                    f'<td class="r">{T.pbox(sm(r["P&L $"]), r["P&L $"])}<div class="m">{r["P&L %"]:+.2f}%</div></td></tr>')
+    heads = [L("Asset", "الأصل"), L("Type", "النوع"), L("Strategy", "الاستراتيجية"), L("Opened", "تاريخ الفتح"),
+             L("Entry → now", "الدخول ← الآن"), L("Size", "الحجم"), L("Exit plan", "خطة الخروج")]
+    th = "".join(f"<th>{h}</th>" for h in heads) + f'<th class="r">{L("Open P&L", "الربح")}</th>'
+    ui.html(f'<div class="pbp">{head}<div class="pbscroll"><table class="pbt"><thead><tr>{th}</tr></thead>'
+            f'<tbody>{"".join(rows)}</tbody></table></div></div>')
+
+
+def recent_panel(v, lg, n=10):
+    tr = v["trades"]
+    closed = tr[tr["Exit Reason"] != "Open"].sort_values("Exit Date", ascending=False, kind="stable")
+    total = len(closed)
+    link = f'<a class="pblink" href="#pb-all-{v["key"]}" target="_self">{L("Full list below", "القائمة الكاملة بالأسفل")}{T.icon("south")}</a>'
+    chips = f'<span class="c">{L("Last", "آخر")} <b>{min(n, total)}</b> {L("of", "من")} <b>{total}</b></span>'
+    if total:
+        wr = (closed["P&L $"] > 0).mean() * 100
+        net = float(closed["P&L $"].sum())
+        chips += (f'<span class="c">{L("Win rate", "نسبة النجاح")} <b>{wr:.0f}%</b></span>'
+                  f'<span class="c">{L("Closed P&L", "ربح المغلقة")} {T.pbox(sm(net), net)}</span>')
+    head = (f'<div class="hd"><div class="tt">{T.icon("receipt_long")}{L("Recent trades", "آخر الصفقات")}</div>'
+            f'<div class="sum">{chips}{link}</div></div>')
+    if not total:
+        ui.html(f'<div class="pbp">{head}<div class="pbempty">{T.icon("hourglass_empty")}'
+                f'{L("No closed trades yet.", "لا توجد صفقات مغلقة بعد.")}</div></div>')
+        return
+    rows = []
+    for _, r in closed.head(n).iterrows():
+        is_opt = r["Type"] in ("Call", "Put")
+        held = _held(int(r["Bars"]))
+        who = f'<div class="m">{T.esc(r["Bot"])}</div>' if v["multi"] else ""
+        sub = (f'<div class="m">{L("stock", "السهم")} {_fp(r["Stock Entry"])} → {_fp(r["Stock Exit"])}</div>' if is_opt else
+               f'<div class="m">{L("Qty", "الكمية")} {r["Shares"]:,.2f}</div>')
+        rows.append(f'<tr><td>{_asset(r, lg)}</td><td>{type_badge(r["Type"])}{who}</td>'
+                    f'<td><div class="v2">{T.esc(strat_short(r["Strategy"]))}</div></td>'
+                    f'<td><div class="v">{pd.Timestamp(r["Entry Date"]):%Y-%m-%d} → {pd.Timestamp(r["Exit Date"]):%Y-%m-%d}</div>'
+                    f'<div class="m">{held}</div></td>'
+                    f'<td><div class="v">{_fp(r["Entry"])} → {_fp(r["Exit"])}</div>{sub}</td>'
+                    f'<td>{exit_badge(r["Exit Reason"])}</td>'
+                    f'<td class="r">{T.pbox(sm(r["P&L $"]), r["P&L $"])}<div class="m">{r["P&L %"]:+.2f}%</div></td></tr>')
+    heads = [L("Asset", "الأصل"), L("Type", "النوع"), L("Strategy", "الاستراتيجية"), L("Held", "المدة"),
+             L("Entry → exit", "الدخول ← الخروج"), L("Exit reason", "سبب الخروج")]
+    th = "".join(f"<th>{h}</th>" for h in heads) + f'<th class="r">P&amp;L</th>'
+    ui.html(f'<div class="pbp">{head}<div class="pbscroll"><table class="pbt"><thead><tr>{th}</tr></thead>'
+            f'<tbody>{"".join(rows)}</tbody></table></div></div>')
+
+
+# =====================================================================
+# charts · monthly returns (a month opens its calendar) · all trades
+# =====================================================================
+def perf_charts(v):
+    ui.sec("show_chart", "Balance vs the market", "الرصيد مقابل السوق")
+    ui.chart(charts.equity_chart(v["equity"], v["bench"], (L("Bot", "البوت"), v["bench_name"], L("Drawdown %", "التراجع %"))),
+             key=f"pb_eq_{v['key']}")
+    tr = v["trades"]
+    daily = tdash._daily(tr[tr["Exit Reason"] != "Open"])
+    if len(daily):
+        c1, c2 = st.columns(2)
+        ui.chart(charts.area(daily["pnl"].cumsum(), L("Cumulative P&L (closed trades)", "الربح التراكمي (الصفقات المغلقة)"), T.CYAN, 300),
+                 key=f"pb_cum_{v['key']}", container=c1)
+        ui.chart(charts.signed_bars(daily.index, daily["pnl"].values, L("Daily P&L", "الربح اليومي"), 300), key=f"pb_day_{v['key']}",
+                 container=c2)
+
+
+def _pick_month(ck, ym):
+    ss[ck] = None if ss.get(ck) == ym else ym
+
+
+def _close_month(ck):
+    ss[ck] = None
+
+
+def month_grid(v):
+    table = engine.monthly_returns(v["equity"])
+    if table.empty:
+        return
+    key = v["key"]
+    ck = f"pb_cal_{key}"
+    have = {f"{y}_{m:02d}" for y, row in table.iterrows() for m, x in row.items() if pd.notna(x)}
+    if ss.get(ck) not in have:
+        ss[ck] = None
+    cur = ss[ck]
+    ui.sec("calendar_month", "Monthly returns", "العوائد الشهرية")
+    st.caption(L("Click a month to open its calendar of daily results; click it again to close it.",
+                 "اضغط على أي شهر يفتح لك تقويمه بنتائج كل يوم، واضغطه مرة ثانية يتقفل."))
+    names = tdash.MONTHS_AR if is_ar() else MONTHS_EN
+    spec = [1.05] + [1] * 12 + [1.15]
+    with st.container(key=f"pbmg_{key}"):
+        hc = st.columns(spec, gap="small")
+        hc[0].markdown(f'<div class="pbmh">{L("Year", "السنة")}</div>', unsafe_allow_html=True)
+        for i in range(12):
+            hc[i + 1].markdown(f'<div class="pbmh">{names[i]}</div>', unsafe_allow_html=True)
+        hc[13].markdown(f'<div class="pbmh">{L("Total", "المجموع")}</div>', unsafe_allow_html=True)
+        for y, row in table.iterrows():
+            cols = st.columns(spec, gap="small", vertical_alignment="center")
+            cols[0].markdown(f'<div class="pbmy">{y}</div>', unsafe_allow_html=True)
+            for m in range(1, 13):
+                x = row.get(m)
+                if pd.isna(x):
+                    cols[m].markdown('<div class="pbme"></div>', unsafe_allow_html=True)
+                    continue
+                ym = f"{y}_{m:02d}"
+                x1 = round(float(x), 1)
+                kind = "pos" if x1 > 0 else ("neg" if x1 < 0 else "neu")
+                on = "_on" if cur == ym else ""
+                cols[m].button(f"{x1:+.1f}%" if x1 else "0.0%", key=f"pbmo_{kind}{on}_{key}_{ym}", on_click=_pick_month, args=(ck, ym), width="stretch",
+                               help=L(f"Open the calendar of {names[m - 1]} {y}", f"افتح تقويم {names[m - 1]} {y}"))
+            tot = (np.prod(1 + row.dropna().to_numpy(float) / 100) - 1) * 100
+            cols[13].markdown(f'<div class="pbmt">{T.pbox(f"{tot:+.1f}%", tot)}</div>', unsafe_allow_html=True)
+    if not cur:
+        return
+    y, m = (int(p) for p in cur.split("_"))
+    tr = v["trades"]
+    closed = tr[tr["Exit Reason"] != "Open"]
+    daily = tdash._daily(closed)
+    mtd = daily[(daily.index.year == y) & (daily.index.month == m)] if len(daily) else daily
+    pnl = float(mtd["pnl"].sum()) if len(mtd) else 0.0
+    with st.container(key=f"pbcalbox_{key}"):
+        a, b = st.columns([6, 1], vertical_alignment="center")
+        a.markdown(f'<div class="pbct">{T.icon("calendar_month")}{tdash.month_name(y, m)}'
+                   f'<span class="muted">{L("Month return", "عائد الشهر")}</span>{T.pill(table.loc[y, m])}'
+                   f'<span class="muted">{L("Closed P&L", "ربح المغلقة")}</span>{T.pbox(sm(pnl), pnl)}'
+                   f'<span class="muted">{len(mtd)} {L("trading days with closes", "أيام فيها إغلاق صفقات")}</span></div>',
+                   unsafe_allow_html=True)
+        b.button(L("Close", "إغلاق"), icon=":material/close:", key=f"pbcal_x_{key}", on_click=_close_month, args=(ck,), width="stretch")
+        ui.html(tdash.calendar_html(closed, y, m))
+        if not len(mtd):
+            st.caption(L("No trade closed in this month; the return comes from positions that were still open.",
+                         "ما انقفلت صفقات في هذا الشهر؛ العائد جاي من مراكز كانت مفتوحة."))
+
+
+def price_chart_section(sim):
+    """The bot's trades on one stock's chart, from a little before the start."""
+    b, tr = sim["bot"], sim["trades"]
+    names = list(b["strategies"])
+    ui.sec("candlestick_chart", "Trades on the chart", "الصفقات على الشارت")
+    if b["kind"] != "company":
+        traded = list(dict.fromkeys(tr.sort_values("Entry Date", ascending=False)["Symbol"]))
+        if not traded:
+            st.caption(L("No trades yet. The chart appears after the first trade.", "لا توجد صفقات بعد. الشارت يظهر بعد أول صفقة."))
+            return
+        ui.valid(f"pb_chart_{b['id']}", traded)
+        sym = st.selectbox(L("Stock", "السهم"), traded, key=f"pb_chart_{b['id']}")
+        full = data.history(sym, PB.period_for(b["start_date"]))
+    else:
+        sym, full = b["value"], sim.get("frame")
+    if full is None or full.empty:
+        return
+    full = ta.add_all(full)
+    start_i = int(full.index.searchsorted(pd.Timestamp(sim["equity"].index[0])))
+    view = full.iloc[max(0, start_i - 30):]
+    overlays = list(dict.fromkeys(o for n in names for o in OVERLAYS.get(n, [])))
+    panels = list(dict.fromkeys(p for n in names for p in PANELS.get(n, [])))[:2]
+    marks = tr[tr["Symbol"] == sym].copy()
+    marks["Entry"], marks["Exit"] = marks["Stock Entry"], marks["Stock Exit"]     # options: mark the stock price, not the premium
+    fig = charts.price_chart(view, "Candles" if len(view) <= 800 else "Line", overlays, panels, False, trades=marks)
+    try:
+        fig.add_vline(x=pd.Timestamp(sim["equity"].index[0]).strftime("%Y-%m-%d"), line=dict(color=T.GOLD, width=1.2, dash="dot"))
+    except Exception:
+        pass
+    ui.chart(fig, key=f"pb_px_{b['id']}")
+
+
+def all_trades(v, file_name):
+    ui.html(f'<div id="pb-all-{v["key"]}" class="pbanchor"></div>')
+    ui.sec("table_rows", "All trades", "كل الصفقات")
+    tr = v["trades"]
+    if tr.empty:
+        st.info(L("No trades yet. The bot trades only when a strategy gives a signal.",
+                  "لا توجد صفقات بعد. البوت يتداول فقط لما تعطي استراتيجية إشارة."))
+        return
+    opts = v["opts"]
+    cols = (["Bot"] if v["multi"] else []) + PB.TRADE_COLS + (["Type", "Contract", "Stock Entry", "Stock Exit"] if opts else [])
+    show = tr[cols].sort_values("Entry Date", kind="stable").reset_index(drop=True)
+    show.insert(0, "#", range(1, len(show) + 1))
+    show["Strategy"] = show["Strategy"].map(strat_short)
+    show["Entry Date"] = pd.to_datetime(show["Entry Date"]).dt.date
+    show["Exit Date"] = pd.to_datetime(show["Exit Date"]).dt.date
+    show["Exit Reason"] = show["Exit Reason"].map(lambda x: L(x, EXIT_AR.get(x, x)))
+    only_opt = opts and tr["Type"].isin(["Call", "Put"]).all()
+    N = {"Bot": L("Bot", "البوت"), "Symbol": L("Symbol", "الرمز"), "Strategy": L("Strategy", "الاستراتيجية"),
+         "Entry Date": L("Entry date", "تاريخ الدخول"), "Entry": L("Entry", "سعر الدخول"), "Exit Date": L("Exit date", "تاريخ الخروج"),
+         "Exit": L("Exit / now", "سعر الخروج / الحالي"), "Shares": L("Shares", "الأسهم"), "P&L $": L("P&L $", "الربح $"),
+         "P&L %": L("P&L %", "الربح %"), "Bars": L("Days", "الأيام"), "Exit Reason": L("Exit reason", "سبب الخروج"),
+         "Type": L("Type", "النوع"), "Contract": L("Contract", "العقد"), "Stock Entry": L("Stock at entry", "السهم عند الدخول"),
+         "Stock Exit": L("Stock at exit / now", "السهم عند الخروج / الحالي")}
+    if only_opt:
+        N.update({"Entry": L("Premium in", "سعر العقد دخول"), "Exit": L("Premium out / now", "سعر العقد خروج / الحالي"),
+                  "Shares": L("Contracts", "العقود")})
+    elif opts:
+        N.update({"Entry": L("Entry (share / premium)", "الدخول (سهم / عقد)"), "Exit": L("Exit / now (share / premium)", "الخروج / الحالي (سهم / عقد)"),
+                  "Shares": L("Shares / contracts", "أسهم / عقود")})
+    show = show.rename(columns=N)
+    st.dataframe(show.iloc[::-1].style.map(T.color_style, subset=[N["P&L %"], N["P&L $"]]).format(
+        {N["Entry"]: "{:,.2f}", N["Exit"]: "{:,.2f}", N["Shares"]: "{:,.0f}" if only_opt else "{:,.2f}", N["P&L $"]: "{:+,.2f}",
+         N["P&L %"]: "{:+.2f}%", **({N["Stock Entry"]: "{:,.2f}", N["Stock Exit"]: "{:,.2f}"} if opts else {})}),
+        hide_index=True, height=min(460, 38 + 35 * len(show)))
+    st.download_button(L("Export CSV", "تصدير CSV"), show.to_csv(index=False).encode("utf-8-sig"), file_name,
+                       "text/csv", icon=":material/download:", key=f"pb_csv_{v['key']}")
+
+
+# =====================================================================
+# one bot in detail · several bots together
 # =====================================================================
 def _order_txt(item):
     sym, label, kind = item
@@ -378,23 +1149,27 @@ def _order_txt(item):
     return f"{sym} ({strat_short(label)}{extra})"
 
 
-def details(sim):
+def bot_header(sim):
     b = sim["bot"]
     names = list(b["strategies"])
-    group = b["kind"] != "company"
-    opts = b.get("instrument") == "options"
+    ins = instrument(b)
     uni = universe_label(b, sim.get("n_symbols") if sim["ok"] else None)
-    ui.html(f'<div style="font-weight:800;font-size:1.15rem;margin:6px 0 8px">{head_html(b)}</div>')
     badges = T.badge(uni, "gold", KIND_ICON[b["kind"]]) + T.badge(how_label(b), "vio", "smart_toy")
-    if opts:
-        badges += T.badge(L("Buys options", "يشتري أوبشن"), "gold", "receipt_long")
-    if group:
-        badges += T.badge(L(f"Up to {b['max_pos']} trades at once", f"حتى {b['max_pos']} صفقات في نفس الوقت"), "neu", "stacks")
-    badges += (T.badge(_risk_txt(b), "neu", "shield") + T.badge(L("Start ", "البداية ") + b["start_date"], "neu", "event")
-               + T.badge(L("Capital ", "رأس المال ") + T.money(b["capital"]), "neu", "account_balance_wallet"))
-    if not opts:
-        badges += T.badge(L("Fee {:g}% / side", "العمولة {:g}% لكل جهة").format(b["fee"]), "neu", "receipt")
-    ui.html(f'<div class="card">{badges}</div>')
+    ic, en, ar_ = INSTR_CHIP[ins]
+    badges += T.badge(L("Buys ", "يشتري ") + L(en, ar_).lower(), "acc", ic)
+    if b["kind"] != "company":
+        badges += T.badge(L(f"Up to {b['max_pos']} trades at once", f"حتى {b['max_pos']} صفقات في نفس الوقت")
+                          + (L(" (each: stocks, options)", " (لكل من الأسهم والأوبشن)") if ins == "both" else ""), "neu", "stacks")
+    if ins != "options":
+        badges += T.badge(_stock_risk(b), "neu", "shield")
+    if ins != "stock":
+        badges += T.badge(_options_txt(b["options"]), "neu", "receipt_long")
+    badges += (T.badge(L("Start ", "البداية ") + iso(b["start_date"]), "neu", "event")
+               + T.badge(L("Capital ", "رأس المال ") + iso(T.money(b["capital"])), "neu", "account_balance_wallet"))
+    if ins != "options":
+        badges += T.badge(L("Fee ", "العمولة ") + iso(f"{b['fee']:g}%") + L(" / side", " لكل جهة"), "neu", "receipt")
+    logo = data.logos([b["value"]]).get(b["value"]) if b["kind"] == "company" else None
+    ui.html(f'<div class="card pbid">{head_html(b, logo)}<div class="bdgs">{badges}</div></div>')
     with st.expander(L("How this bot trades", "طريقة تداول البوت"), icon=":material/tune:"):
         rows = "".join(f'<div style="margin:4px 0">{T.badge(strat_name(n), "vio", "smart_toy")} '
                        f'<span class="muted">{T.esc(_params_txt(n, p))}</span></div>' for n, p in b["strategies"].items())
@@ -406,10 +1181,33 @@ def details(sim):
                          "or by the stop loss, take profit or trailing stop.",
                          "أي استراتيجية منها تقدر تفتح صفقة، والصفقة تتقفل بإشارة الخروج من نفس الاستراتيجية اللي فتحتها، "
                          "أو بوقف الخسارة أو جني الأرباح أو الوقف المتحرك."))
-        if opts:
+        if ins == "both":
+            st.caption(both_caption())
+        if ins != "stock":
             st.caption(options_caption())
 
+
+def next_orders(sim):
+    if not (sim["next_buys"] or sim["next_sells"]):
+        return
+    last = pd.Timestamp(sim["last_date"])
+    parts = []
+    if sim["next_buys"]:
+        parts.append(L("buy ", "شراء ") + ", ".join(_order_txt(x) for x in sim["next_buys"]))
+    if sim["next_sells"]:
+        parts.append(L("sell ", "بيع ") + ", ".join(_order_txt(x) for x in sim["next_sells"]))
+    note = L(" The latest candle is still moving, so these signals are confirmed at today's close.",
+             " الشمعة الأخيرة لسا تتحرك، فالإشارات تتأكد عند إغلاق اليوم.") if _session_live() and last.date() == PB.today_ny() else ""
+    day = iso(f"{last:%Y-%m-%d}")
+    st.warning(L(f"Orders for the next open (signals of {day}): ", f"أوامر الافتتاح القادم (إشارات {day}): ")
+               + " · ".join(parts) + "." + note, icon=":material/bolt:")
+
+
+def details(sim):
+    b = sim["bot"]
+    bot_header(sim)
     if not sim["ok"]:
+        uni = universe_label(b)
         if sim["why"] == "strategy":
             st.warning(L("This bot's strategy or group no longer exists on the site. Edit it or delete it.",
                          "استراتيجية هذا البوت أو مجموعته لم تعد موجودة في الموقع. عدّله أو احذفه."), icon=":material/error:")
@@ -423,139 +1221,35 @@ def details(sim):
                   f"البوت يبدأ مع أول جلسة أمريكية من تاريخ {b['start_date']}. بعد إغلاق الجلسة يفحص الاستراتيجيات، وأي أمر يتنفذ عند الافتتاح التالي."),
                 icon=":material/schedule:")
         return
-
-    m, tr, cap = sim["metrics"], sim["trades"], b["capital"]
-    last = pd.Timestamp(sim["last_date"])
-    op = tr[tr["Exit Reason"] == "Open"]
-    if not group:
-        if len(op):
-            o = op.iloc[0]
-            what = f"{o['Contract']} · " if opts else ""
-            st.success(what + L(f"In a trade since {pd.Timestamp(o['Entry Date']):%b %d, %Y} at ${o['Entry']:,.2f} · open P&L {o['P&L %']:+.2f}%",
-                                f"في صفقة منذ {pd.Timestamp(o['Entry Date']):%Y-%m-%d} بسعر ${o['Entry']:,.2f} · الربح الحالي {o['P&L %']:+.2f}%"),
-                       icon=":material/trending_up:")
-        else:
-            st.info(L("Out of the market, waiting for a buy signal.", "خارج السوق، ينتظر إشارة شراء."), icon=":material/pause_circle:")
-    elif len(op):
-        st.success(L(f"{len(op)} open trades: ", f"{len(op)} صفقات مفتوحة: ") + ", ".join(op["Contract"] if opts else op["Symbol"]),
-                   icon=":material/trending_up:")
-    else:
-        st.info(L("No open trades, waiting for signals.", "لا توجد صفقات مفتوحة، ينتظر إشارات."), icon=":material/pause_circle:")
-    if sim["next_buys"] or sim["next_sells"]:
-        parts = []
-        if sim["next_buys"]:
-            parts.append(L("buy ", "شراء ") + ", ".join(_order_txt(x) for x in sim["next_buys"]))
-        if sim["next_sells"]:
-            parts.append(L("sell ", "بيع ") + ", ".join(_order_txt(x) for x in sim["next_sells"]))
-        note = L(" The latest candle is still moving, so these signals are confirmed at today's close.",
-                 " الشمعة الأخيرة لسا تتحرك، فالإشارات تتأكد عند إغلاق اليوم.") if _session_live() and last.date() == PB.today_ny() else ""
-        st.warning(L(f"Orders for the next open (signals of {last:%Y-%m-%d}): ", f"أوامر الافتتاح القادم (إشارات {last:%Y-%m-%d}): ")
-                   + " · ".join(parts) + "." + note, icon=":material/bolt:")
-
-    closed = tr[tr["Exit Reason"] != "Open"]
-    wins = int((closed["P&L $"] > 0).sum())
-    bh_label = L("Buy & hold ", "شراء واحتفاظ ") if not group else L("Group bought equally ", "المجموعة بالتساوي ")
-    kp = [("account_balance_wallet", L("Balance", "الرصيد"), T.money(sim["final"]), L("start ", "البداية ") + T.money(cap), T.cls(sim["ret"])),
-          ("trending_up", L("Return", "العائد"), f"{sim['ret']:+.2f}%", bh_label + f"{sim['group_ret']:+.2f}%", T.cls(sim["ret"])),
-          ("show_chart", L("vs S&P 500", "مقابل إس آند بي"),
-           "—" if sim["bench_ret"] is None else f"{sim['ret'] - sim['bench_ret']:+.2f}%",
-           "" if sim["bench_ret"] is None else f"S&P {sim['bench_ret']:+.2f}%",
-           None if sim["bench_ret"] is None else T.cls(sim["ret"] - sim["bench_ret"])),
-          ("south_east", L("Max drawdown", "أقصى تراجع"), f"{m['Max Drawdown %']:.2f}%", "", "neg" if m["Max Drawdown %"] < -0.05 else None),
-          ("target", L("Win rate", "نسبة النجاح"), f"{m['Win Rate %']:.0f}%" if len(closed) else "—",
-           L(f"{wins} of {len(closed)} closed trades", f"{wins} من {len(closed)} صفقة مغلقة"),
-           ("pos" if m["Win Rate %"] >= 50 else "neg") if len(closed) else None),
-          ("calendar_month", L("Running", "مدة التشغيل"), L(f"{sim['sessions']} sessions", f"{sim['sessions']} جلسة"),
-           L("since ", "منذ ") + b["start_date"], None)]
-    for col, (ic, lab, val, sub, kind) in zip(st.columns(6), kp):
-        col.markdown(T.kpi(ic, lab, val, sub, kind), unsafe_allow_html=True)
-
-    # price chart with the bot's trades on one stock (from a little before the start)
-    ui.sec("candlestick_chart", "Trades on the chart", "الصفقات على الشارت")
-    if group:
-        traded = list(dict.fromkeys(tr.sort_values("Entry Date", ascending=False)["Symbol"]))
-        if not traded:
-            st.caption(L("No trades yet. The chart appears after the first trade.", "لا توجد صفقات بعد. الشارت يظهر بعد أول صفقة."))
-            full = None
-        else:
-            ui.valid(f"pb_chart_{b['id']}", traded)
-            sym = st.selectbox(L("Stock", "السهم"), traded, key=f"pb_chart_{b['id']}")
-            full = data.history(sym, PB.period_for(b["start_date"]))
-    else:
-        sym, full = b["value"], sim.get("frame")
-    if full is not None and not full.empty:
-        full = ta.add_all(full)
-        start_i = int(full.index.searchsorted(pd.Timestamp(sim["equity"].index[0])))
-        view = full.iloc[max(0, start_i - 30):]
-        overlays = list(dict.fromkeys(o for n in names for o in OVERLAYS.get(n, [])))
-        panels = list(dict.fromkeys(p for n in names for p in PANELS.get(n, [])))[:2]
-        marks = tr[tr["Symbol"] == sym].copy()
-        if opts:                                     # options: mark the stock price, not the option premium
-            marks["Entry"], marks["Exit"] = marks["Stock Entry"], marks["Stock Exit"]
-        fig = charts.price_chart(view, "Candles" if len(view) <= 800 else "Line", overlays, panels, False, trades=marks)
-        try:
-            fig.add_vline(x=pd.Timestamp(sim["equity"].index[0]).strftime("%Y-%m-%d"), line=dict(color=T.GOLD, width=1.2, dash="dot"))
-        except Exception:
-            pass
-        ui.chart(fig, key=f"pb_px_{b['id']}")
-
-    ui.sec("show_chart", "Balance vs the market", "الرصيد مقابل السوق")
-    bench = sim["bench"] if sim["bench"] is not None else sim["group"]
-    bench_name = "S&P 500 (SPY)" if sim["bench"] is not None else L("Buy & Hold", "شراء واحتفاظ")
-    ui.chart(charts.equity_chart(sim["equity"], bench, (L("Bot", "البوت"), bench_name, L("Drawdown %", "التراجع %"))), key=f"pb_eq_{b['id']}")
-    ui.chart(charts.monthly_heatmap(engine.monthly_returns(sim["equity"]), L("Monthly returns", "العوائد الشهرية"),
-                                    tdash.MONTHS_AR if is_ar() else None), key=f"pb_month_{b['id']}")
-
-    jr = PB.journal(sim)
-    j_closed, j_open = jr[jr["Exit Reason"] != "Open"], jr[jr["Exit Reason"] == "Open"]
-    s = autotrader.stats({"trades": j_closed, "open": j_open, "equity": sim["equity"], "bench": bench, "positions": sim["npos"],
-                          "capital": cap})
-    tdash.render(j_closed, j_open, s, cap, key=f"pb_td_{b['id']}")
-
-    by_strat = len(names) > 1 and not combo_rule(b)
-    if len(closed) and (group or by_strat):
-        ui.sec("pie_chart", "What worked", "ماذا نجح")
-        c1, c2 = st.columns(2)
-        if by_strat:
-            g = closed.groupby("Strategy")["P&L $"].sum().sort_values()
-            ui.chart(charts.hbar([strat_short(k) for k in g.index], [float(v) for v in g.values], L("P&L by strategy ($)", "الربح حسب الاستراتيجية ($)"),
-                                 max(260, 34 * len(g) + 80), suffix=""), key=f"pb_bys_{b['id']}", container=c1)
-        if group:
-            g = closed.groupby("Symbol")["P&L $"].sum()
-            g = pd.concat([g.nlargest(6), g.nsmallest(6)]).groupby(level=0).first().sort_values()
-            ui.chart(charts.hbar(list(g.index), [float(v) for v in g.values], L("P&L by stock, best and worst ($)", "الربح حسب السهم، الأفضل والأسوأ ($)"),
-                                 max(260, 30 * len(g) + 80), suffix=""), key=f"pb_bysym_{b['id']}", container=c2 if by_strat else c1)
-
-    ui.sec("table_rows", "All trades", "كل الصفقات")
-    if tr.empty:
-        st.info(L("No trades yet. The bot trades only when a strategy gives a signal.",
-                  "لا توجد صفقات بعد. البوت يتداول فقط لما تعطي استراتيجية إشارة."))
-        return
-    show = tr.copy() if opts else tr.drop(columns=["Type", "Contract", "Stock Entry", "Stock Exit", "Fees"])
-    if opts:
-        show = show.drop(columns=["Fees"])
-    show.insert(0, "#", range(1, len(show) + 1))
-    show["Strategy"] = show["Strategy"].map(strat_short)
-    show["Entry Date"] = pd.to_datetime(show["Entry Date"]).dt.date
-    show["Exit Date"] = pd.to_datetime(show["Exit Date"]).dt.date
-    show["Exit Reason"] = show["Exit Reason"].map(lambda x: L(x, engine.EXIT_REASON_AR.get(x, x)))
-    N = {"Symbol": L("Symbol", "الرمز"), "Strategy": L("Strategy", "الاستراتيجية"), "Entry Date": L("Entry date", "تاريخ الدخول"),
-         "Entry": L("Entry", "سعر الدخول"), "Exit Date": L("Exit date", "تاريخ الخروج"), "Exit": L("Exit / now", "سعر الخروج / الحالي"),
-         "Shares": L("Shares", "الأسهم"), "P&L $": L("P&L $", "الربح $"), "P&L %": L("P&L %", "الربح %"), "Bars": L("Days", "الأيام"),
-         "Exit Reason": L("Exit reason", "سبب الخروج"), "Type": L("Type", "النوع"), "Contract": L("Contract", "العقد"),
-         "Stock Entry": L("Stock at entry", "السهم عند الدخول"), "Stock Exit": L("Stock at exit / now", "السهم عند الخروج / الحالي")}
-    if opts:
-        N.update({"Entry": L("Premium in", "سعر العقد دخول"), "Exit": L("Premium out / now", "سعر العقد خروج / الحالي"),
-                  "Shares": L("Contracts", "العقود")})
-    show = show.rename(columns=N)
-    st.dataframe(show.iloc[::-1].style.map(T.color_style, subset=[N["P&L %"], N["P&L $"]]).format(
-        {N["Entry"]: "{:,.2f}", N["Exit"]: "{:,.2f}", N["Shares"]: "{:,.0f}" if opts else "{:,.2f}", N["P&L $"]: "{:+,.2f}",
-         N["P&L %"]: "{:+.2f}%", **({N["Stock Entry"]: "{:,.2f}", N["Stock Exit"]: "{:,.2f}"} if opts else {})}),
-        hide_index=True, height=min(420, 38 + 35 * len(show)))
-    st.download_button(L("Export CSV", "تصدير CSV"), show.to_csv(index=False).encode("utf-8-sig"), f"paper_bot_{b['id']}.csv",
-                       "text/csv", icon=":material/download:", key=f"pb_csv_{b['id']}")
+    next_orders(sim)
+    v = single_view(sim)
+    lg = view_logos(v)
+    ui.safe(dashboard, v)
+    ui.safe(open_panel, v, lg)
+    ui.safe(recent_panel, v, lg)
+    ui.safe(perf_charts, v)
+    ui.safe(price_chart_section, sim)
+    ui.safe(month_grid, v)
+    ui.safe(all_trades, v, f"paper_bot_{b['id']}.csv")
 
 
+def portfolio(chosen, spy, sims):
+    """Several selected bots: one combined dashboard, their open positions and recent trades together, the returns chart,
+    one tab per bot, and every trade in one table."""
+    v = combined_view(chosen)
+    lg = view_logos(v) if v else {}
+    if v:
+        ui.safe(dashboard, v)
+        ui.safe(open_panel, v, lg)
+        ui.safe(recent_panel, v, lg)
+    ui.safe(compare_chart, chosen, spy)
+    rank = {s["bot"]["id"]: i for i, s in enumerate(ranked(sims), 1)}
+    tabs = st.tabs([f'#{rank[s["bot"]["id"]]} {s["bot"]["name"]}' for s in chosen])
+    for tab, s in zip(tabs, chosen):
+        with tab:
+            ui.safe(details, s)
+    if v:
+        ui.safe(all_trades, v, "paper_bots_selected.csv")
 
 
 # =====================================================================
@@ -623,7 +1317,7 @@ def _load_form(bot):
     ss.update({"pb_edit_id": bot["id"], "pb_name": bot["name"], "pb_capital": _clip(round(bot["capital"]), 100, 100_000_000, int),
                "pb_kind": k, "pb_store": [s for s in engine.STRATEGIES if s in bot["strategies"]], "pb_combine": bot["combine"]["mode"],
                "pb_maxpos": _clip(bot["max_pos"] if k != "company" else 5, 1, PB.MAX_POS_LIMIT, int),
-               "pb_instr": bot.get("instrument", "stock"), "pb_fee": _clip(bot["fee"], 0.0, 1.0), "pb_stop": _clip(bot["stop_pct"], 0.0, 50.0),
+               "pb_instr": instrument(bot), "pb_fee": _clip(bot["fee"], 0.0, 1.0), "pb_stop": _clip(bot["stop_pct"], 0.0, 50.0),
                "pb_atr": _clip(bot["atr_mult"], 0.0, 10.0), "pb_tp": _clip(bot["tp_pct"], 0.0, 500.0),
                "pb_trail": _clip(bot["trail_pct"], 0.0, 50.0), "pb_start": pd.Timestamp(bot["start_date"]).date()})
     if bot["combine"]["mode"] == "combo":
@@ -670,14 +1364,31 @@ def options_caption():
              "مع 0.65$ لكل عقد، فالأسعار الحقيقية تختلف.")
 
 
-def _default_name(kind, value, strats, need=None, options=False):
+def both_caption():
+    return L("Both: every buy signal buys the stock and, with calls on, a call on it too; a sell signal sells them (and buys a put when "
+             "puts are on). Options are bought first at the open with their % of the balance, and the stock gets its slot from the rest. "
+             "Stocks follow the stop loss / take profit / trailing stop, options follow the option filters.",
+             "الاثنين: كل إشارة شراء يشتري فيها السهم، ومعه عقد Call إذا كانت الـ Call مفعّلة؛ وإشارة البيع تبيعهم (وتشتري Put إذا كانت الـ Put مفعّلة). "
+             "العقود تنشرى أول عند الافتتاح بنسبتها من الرصيد، والسهم ياخذ مكانه من الباقي. الأسهم تمشي على وقف الخسارة وجني الأرباح والوقف المتحرك، "
+             "والعقود تمشي على فلاتر الأوبشن.")
+
+
+def instrument_caption(instr):
+    return {"stock": L("Shares only, with the stock exits below.", "أسهم فقط، مع إعدادات خروج الأسهم تحت."),
+            "options": L("Option contracts only: calls on buy signals and / or puts on sell signals, with the option filters below.",
+                         "عقود أوبشن فقط: Call مع إشارات الشراء و/أو Put مع إشارات البيع، مع فلاتر الأوبشن تحت."),
+            "both": both_caption()}[instr]
+
+
+def _default_name(kind, value, strats, need=None, instr="stock"):
     n = len(strats)
     how = strat_short(strats[0]) if n == 1 else (L("all strategies", "كل الاستراتيجيات") if n == len(engine.STRATEGIES)
                                                   else L(f"{n} strategies", f"{n} استراتيجيات"))
     if need:
         how = L(f"combined {need}/{n}", f"مركبة {need}/{n}")
     what = {"company": value, "sector": sector_name(value), "industry": gics_name(value), "all": L("All companies", "كل الشركات")}[kind]
-    return f"{what} · {how}{' · ' + L('options', 'أوبشن') if options else ''}"[:40]
+    tail = {"stock": "", "options": " · " + L("options", "أوبشن"), "both": " · " + L("stocks+options", "أسهم+أوبشن")}[instr]
+    return f"{what} · {how}{tail}"[:40]
 
 
 def bot_form(mode, bot=None):
@@ -686,7 +1397,7 @@ def bot_form(mode, bot=None):
     a, c = st.columns([2, 1])
     a.text_input(L("Bot name (optional)", "اسم البوت (اختياري)"), key="pb_name", max_chars=40,
                  placeholder=L("e.g. Tech momentum", "مثال: بوت التقنية"))
-    c.number_input(L("Virtual capital ($)", "رأس المال الوهمي ($)"), 100, 100_000_000, step=1000, key="pb_capital")
+    c.number_input(L("Virtual capital ($)", "رأس المال الوهمي ($)"), 100, 100_000_000, step=10_000, key="pb_capital")
 
     # 1) what it trades
     ui.valid("pb_kind", PB.KINDS)
@@ -718,17 +1429,21 @@ def bot_form(mode, bot=None):
                      f"{count} شركة أمريكية: إس آند بي 500 وأكبر الشركات في الموقع. أول تحميل ياخذ وقت أطول (لين دقيقة) "
                      "لأنه يحمّل تاريخ كل الأسهم."))
 
-    # 2) what it buys
-    ui.valid("pb_instr", ["stock", "options"])
-    instr = st.segmented_control(L("What does the bot buy?", "وش يشتري البوت؟"), ["stock", "options"], key="pb_instr",
-                                 format_func=lambda k: {"stock": L("Stocks", "أسهم"), "options": L("Options", "أوبشن")}[k]) or "stock"
+    # 2) what it buys: stocks, options, or both
+    ui.valid("pb_instr", list(PB.INSTRUMENTS))
+    instr = st.segmented_control(L("What does the bot buy?", "وش يشتري البوت؟"), list(PB.INSTRUMENTS), key="pb_instr",
+                                 format_func=lambda k: L(*INSTR_LABEL[k])) or "stock"
+    st.caption(instrument_caption(instr))
     if kind != "company":
         m1, m2 = st.columns([1, 2], vertical_alignment="bottom")
         maxpos = m1.number_input(L("Max open trades", "أقصى عدد صفقات مفتوحة"), 1, PB.MAX_POS_LIMIT, step=1, key="pb_maxpos")
-        share = L("a set % of the balance (below)", "نسبة ثابتة من الرصيد (تحت)") if instr == "options" else f"1/{maxpos}"
-        m2.caption(L(f"Each trade gets {share} of the balance. After every close the bot checks all {count} stocks; "
+        share = {"stock": L(f"1/{maxpos} of the balance", f"1/{maxpos} من الرصيد"),
+                 "options": L("a set % of the balance (below)", "نسبة ثابتة من الرصيد (تحت)"),
+                 "both": L(f"1/{maxpos} of the balance (stocks) or a set % (options), and stocks and options have {maxpos} places each",
+                           f"1/{maxpos} من الرصيد (الأسهم) أو نسبة ثابتة (الأوبشن)، وللأسهم {maxpos} أماكن وللأوبشن {maxpos} أماكن")}[instr]
+        m2.caption(L(f"Each trade gets {share}. After every close the bot checks all {count} stocks; "
                      "when more stocks signal than free slots, it buys the strongest of the last 3 months first (puts: the weakest).",
-                     f"كل صفقة تاخذ {share} من الرصيد. بعد كل إغلاق يفحص البوت كل الـ {count} سهم، "
+                     f"كل صفقة تاخذ {share}. بعد كل إغلاق يفحص البوت كل الـ {count} سهم، "
                      "وإذا أعطت أسهم إشارات أكثر من الأماكن الفاضية، يشتري الأقوى أداءً آخر 3 أشهر أولاً (والـ Put الأضعف)."))
 
     # 3) strategies: filter · pills · select all
@@ -768,8 +1483,18 @@ def bot_form(mode, bot=None):
                          "أي استراتيجية مختارة تقدر تفتح صفقة، والصفقة تتقفل بإشارة الخروج من نفس الاستراتيجية اللي فتحتها، "
                          "أو بوقف الخسارة أو جني الأرباح أو الوقف المتحرك."))
 
-    # 4) exits: option filters, or the stock stops and fee
-    if instr == "options":
+    # 4) exits: the stock stops and fee, the option filters, or both
+    if instr != "options":
+        if instr == "both":
+            ui.sec("shield", "Stock exits", "خروج الأسهم")
+        r = st.columns(5)
+        off = L("0 = off", "0 = إيقاف")
+        r[0].number_input(L("Fee % / side", "العمولة %"), 0.0, 1.0, step=0.01, key="pb_fee")
+        r[1].number_input(L("Stop loss %", "وقف الخسارة %"), 0.0, 50.0, step=0.5, help=off, key="pb_stop")
+        r[2].number_input(L("ATR stop ×", "وقف ATR ×"), 0.0, 10.0, step=0.5, help=off, key="pb_atr")
+        r[3].number_input(L("Take profit %", "جني الأرباح %"), 0.0, 500.0, step=1.0, help=off, key="pb_tp")
+        r[4].number_input(L("Trailing stop %", "الوقف المتحرك %"), 0.0, 50.0, step=0.5, help=off, key="pb_trail")
+    if instr != "stock":
         ui.sec("tune", "Option filters", "فلاتر الأوبشن")
         o1, o2, o3 = st.columns(3)
         ui.valid("pb_otype", list(PB.OPTION_TYPES))
@@ -782,14 +1507,6 @@ def bot_form(mode, bot=None):
         o5.number_input(L("Take profit on the option %", "هدف ربح العقد %"), 5.0, 2000.0, step=5.0, key="pb_otp")
         o6.number_input(L("Stop loss on the option %", "وقف خسارة العقد %"), 5.0, 95.0, step=5.0, key="pb_osl")
         st.caption(options_caption())
-    else:
-        r = st.columns(5)
-        off = L("0 = off", "0 = إيقاف")
-        r[0].number_input(L("Fee % / side", "العمولة %"), 0.0, 1.0, step=0.01, key="pb_fee")
-        r[1].number_input(L("Stop loss %", "وقف الخسارة %"), 0.0, 50.0, step=0.5, help=off, key="pb_stop")
-        r[2].number_input(L("ATR stop ×", "وقف ATR ×"), 0.0, 10.0, step=0.5, help=off, key="pb_atr")
-        r[3].number_input(L("Take profit %", "جني الأرباح %"), 0.0, 500.0, step=1.0, help=off, key="pb_tp")
-        r[4].number_input(L("Trailing stop %", "الوقف المتحرك %"), 0.0, 50.0, step=0.5, help=off, key="pb_trail")
 
     # 5) start
     today = PB.today_ny()
@@ -826,11 +1543,10 @@ def bot_form(mode, bot=None):
                        f"لا توجد بيانات للرمز {value}. تأكد من الرمز (مثلاً AAPL أو BTC-USD أو 2222.SR)."))
             return
     combo = mode_ == "combo" and len(strats) > 1
-    is_opt = instr == "options"
-    name = str(ss.get("pb_name") or "").strip() or _default_name(kind, value, strats, need if combo else None, is_opt)
+    name = str(ss.get("pb_name") or "").strip() or _default_name(kind, value, strats, need if combo else None, instr)
     options = {"type": ss["pb_otype"], "dte": ss["pb_dte"], "strike": ss["pb_strike"], "alloc": ss["pb_oalloc"], "tp": ss["pb_otp"],
-               "sl": ss["pb_osl"]} if is_opt else None
-    risk = (0.0, 0.0, 0.0, 0.0) if is_opt else (ss["pb_stop"], ss["pb_atr"], ss["pb_tp"], ss["pb_trail"])
+               "sl": ss["pb_osl"]} if instr != "stock" else None
+    risk = (0.0, 0.0, 0.0, 0.0) if instr == "options" else (ss["pb_stop"], ss["pb_atr"], ss["pb_tp"], ss["pb_trail"])
     rec = PB.make_record(name, kind, value, params, ss.get("pb_maxpos", 5), ss["pb_capital"], ss["pb_fee"], *risk,
                          pd.Timestamp(start).strftime("%Y-%m-%d"), {"mode": "combo", "min": int(need)} if combo else None,
                          instrument=instr, options=options)
@@ -900,17 +1616,11 @@ def open_dialog(op, bots):
 # page
 # =====================================================================
 def page_paper_bots():
-    ui.html(PAGE_CSS)
-    ui.header("robot_2", "Paper Bots", "البوتات الافتراضية",
-              f"Up to {PB.MAX_BOTS} bots trade with virtual money on real prices, forward from the day they start. Each one trades a company, "
-              "a sector, an industry or all companies, with one or more strategies, buying stocks or options.",
-              f"حتى {PB.MAX_BOTS} بوتات تتداول بأموال وهمية على أسعار حقيقية، من يوم تشغيلها وللأمام. كل بوت يتداول شركة أو قطاع أو صناعة أو كل الشركات، "
-              "باستراتيجية وحدة أو أكثر، ويشتري أسهم أو أوبشن.")
+    ui.html(PAGE_CSS + (PAGE_RTL_CSS if is_ar() else ""))
     try:
         bots, err = PB.list_bots(), None
     except PB.StoreError as e:
         bots, err = [], e
-    storage_notice(err)
 
     sims, spy = [], None
     if bots:
@@ -918,6 +1628,8 @@ def page_paper_bots():
         with st.spinner(L("Updating the bots with the latest prices" + (" (groups of stocks can take up to a minute)..." if big else "..."),
                           "جاري تحديث البوتات بآخر الأسعار" + (" (مجموعات الأسهم قد تاخذ لين دقيقة)..." if big else "..."))):
             sims, spy = PB.run_all(bots)
+    ui.html(hero_html(sims, len(bots)))
+    storage_notice(err)
     sel = ui.safe(leaderboard, sims, len(bots), err is None and len(bots) < PB.MAX_BOTS) or []
 
     op = ss.pop("pb_open", None)
@@ -926,26 +1638,21 @@ def page_paper_bots():
 
     if not bots and err is None:
         ui.html(f'<div class="card" style="line-height:1.9;margin-top:14px">{T.ico("smart_toy", "acc")} ' + L(
-            "No bots yet. Press <b>+ Add Bot</b>, choose what the bot trades (a company, a sector, an industry or all companies), what it buys "
-            "(stocks or options) and its strategies. From then on it checks its strategies after every US close and trades with virtual money "
-            "at the next open.",
-            "ما فيه بوتات للحين. اضغط <b>+ أضف بوت</b>، واختر وش يتداول (شركة أو قطاع أو صناعة أو كل الشركات)، ووش يشتري (أسهم أو أوبشن)، "
+            "No bots yet. Press <b>Add Bot</b>, choose what the bot trades (a company, a sector, an industry or all companies), what it buys "
+            "(stocks, options or both) and its strategies. From then on it checks its strategies after every US close and trades with virtual "
+            "money at the next open.",
+            "ما فيه بوتات للحين. اضغط <b>أضف بوت</b>، واختر وش يتداول (شركة أو قطاع أو صناعة أو كل الشركات)، ووش يشتري (أسهم أو أوبشن أو الاثنين)، "
             "واستراتيجياته. بعدها يفحص استراتيجياته بعد كل إغلاق للسوق الأمريكي، ويتداول بأموال وهمية عند الافتتاح التالي.") + "</div>")
     elif sims:
         chosen = [s for s in ranked(sims) if s["bot"]["id"] in sel]
         if not chosen:
             ui.html(f'<div class="card" style="line-height:1.9;margin-top:14px">{T.ico("ads_click", "acc")} ' + L(
-                "Click a bot's card to see its details. Select one, several, or press <b>Select all</b>.",
-                "اضغط على كرت البوت عشان تشوف تفاصيله. تقدر تحدد واحد أو أكثر، أو تضغط <b>تحديد الكل</b>.") + "</div>")
+                "Click a bot's card to see its dashboard. Select one, several, or press <b>Select all</b>.",
+                "اضغط على كرت البوت عشان تشوف لوحة أدائه. تقدر تحدد واحد أو أكثر، أو تضغط <b>تحديد الكل</b>.") + "</div>")
         elif len(chosen) == 1:
             ui.safe(details, chosen[0])
         else:
-            ui.safe(compare_chart, chosen, spy)
-            rank = {s["bot"]["id"]: i for i, s in enumerate(ranked(sims), 1)}
-            tabs = st.tabs([f'#{rank[s["bot"]["id"]]} {s["bot"]["name"]}' for s in chosen])
-            for tab, s in zip(tabs, chosen):
-                with tab:
-                    ui.safe(details, s)
+            ui.safe(portfolio, chosen, spy, sims)
 
     st.caption(L("Virtual trading on real daily prices (dividend-adjusted, may be delayed). Results are recalculated from each bot's start date "
                  "whenever the page opens. No real money and no broker are involved. Past results do not guarantee future returns.",
@@ -954,4 +1661,4 @@ def page_paper_bots():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "7.3"
+BUILD = "7.4"
