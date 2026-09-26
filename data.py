@@ -1,1164 +1,481 @@
 """
-data.py - Data loading. Sources: Yahoo Finance (yfinance), FRED (economic data), Google Translate.
-Rule: failures are NEVER cached (the cached inner function raises, the wrapper returns an empty value),
-so a temporary error doesn't stick for hours.
+p_paper.py - Paper Bots: up to 5 bots that trade with virtual money on real prices, forward from the day they start.
+Leaderboard · comparison chart · details of one bot (chart, equity, trading dashboard, trades) · manage (add / delete).
 """
-import io
-import json
-import time
-from concurrent.futures import ThreadPoolExecutor
-from datetime import date, timedelta
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
-import numpy as np
 import pandas as pd
-import requests
 import streamlit as st
-import yfinance as yf
 
-import universe as U
+import autotrader
+import charts
+import data
+import engine
+import mcal
+import paperbots as PB
+import ta
+import tdash
+import theme as T
+import ui
+from i18n import L
 
-try:
-    from yfinance import EquityQuery
-except Exception:  # very old yfinance
-    EquityQuery = None
-
-
-class Empty(Exception):
-    pass
-
-
-def _flat(df):
-    if df is None or df.empty:
-        return pd.DataFrame()
-    if isinstance(df.columns, pd.MultiIndex):
-        df = df.copy()
-        df.columns = df.columns.get_level_values(0)
-    return df.dropna(subset=["Close"])
+ss = st.session_state
+NEW_BOT = {"name": "", "symbol": "AAPL", "strategy": "SMA Crossover", "params": {}, "capital": 10000, "fee": 0.05,
+           "stop": 7.0, "atr": 0.0, "tp": 0.0, "trail": 0.0}
+OVERLAYS = {"SMA Crossover": ["SMA 20", "SMA 50"], "Golden Cross (50/200)": ["SMA 50", "SMA 200"],
+            "EMA Crossover": ["EMA 9", "EMA 21"], "Bollinger Breakout": ["Bollinger Bands"]}
+PANELS = {"RSI Mean Reversion": ["RSI"], "MACD Crossover": ["MACD"]}
 
 
-def _split(df, symbols):
-    out = {}
-    if df is None or df.empty:
-        return out
-    if not isinstance(df.columns, pd.MultiIndex):
-        if len(symbols) == 1:
-            out[symbols[0]] = df.dropna(subset=["Close"])
-        return out
-    lvl0 = set(df.columns.get_level_values(0))
-    for s in symbols:
-        try:
-            sub = df[s] if s in lvl0 else df.xs(s, axis=1, level=1)
-        except KeyError:
-            continue
-        sub = sub.dropna(subset=["Close"])
-        if not sub.empty:
-            out[s] = sub
-    return out
+def strat_name(k):
+    return L(k, engine.STRATEGY_AR.get(k, k))
 
 
-# ---------------------------------------------------------------- prices
-@st.cache_data(ttl=300, show_spinner=False)
-def _history(symbol, period, interval):
-    df = _flat(yf.download(symbol, period=period, interval=interval, auto_adjust=True, progress=False))
-    if df.empty:
-        raise Empty(symbol)
-    return df
+def _params_txt(bot):
+    spec = engine.STRATEGIES.get(bot["strategy"], (None, []))[1]
+    labels = {k: L(lab, engine.PARAM_AR.get(lab, lab)) for k, lab, *_ in spec}
+    return " · ".join(f"{labels.get(k, k)} {v:g}" for k, v in bot["params"].items())
 
 
-def history(symbol, period="2y", interval="1d"):
-    try:
-        return _history(symbol, period, interval)
-    except Exception:
-        return pd.DataFrame()
-
-
-@st.cache_data(ttl=600, show_spinner=False)
-def _history_many(symbols, period, interval):
-    out = _split(yf.download(list(symbols), period=period, interval=interval, auto_adjust=True,
-                             progress=False, threads=True), list(symbols))
-    if not out:
-        raise Empty("batch")
-    return out
-
-
-def history_many(symbols, period="1y", interval="1d"):
-    symbols = tuple(dict.fromkeys(s for s in symbols if s))
-    if not symbols:
-        return {}
-    try:
-        return _history_many(symbols, period, interval)
-    except Exception:
-        return {}
-
-
-def changes(symbols, period="5d"):
-    """symbol -> (last price, % change vs previous close)."""
-    out = {}
-    for s, df in history_many(symbols, period).items():
-        if len(df) >= 2:
-            out[s] = (float(df["Close"].iloc[-1]), float((df["Close"].iloc[-1] / df["Close"].iloc[-2] - 1) * 100))
-    return out
-
-
-@st.cache_data(ttl=21600, show_spinner=False)
-def _info(symbol):
-    i = dict(yf.Ticker(symbol).info or {})
-    if len(i) < 3:
-        raise Empty(symbol)
-    return i
-
-
-def info(symbol):
-    try:
-        return _info(symbol)
-    except Exception:
-        return {}
-
-
-# ---------------------------------------------------------------- search & screeners
-@st.cache_data(ttl=3600, show_spinner=False)
-def _search(query):
+def _risk_txt(bot):
     out = []
-    for q in yf.Search(query, max_results=10, news_count=0).quotes or []:
-        sym = q.get("symbol")
-        if sym:
-            out.append({"symbol": sym, "name": q.get("longname") or q.get("shortname") or sym,
-                        "exchange": q.get("exchDisp") or q.get("exchange", ""),
-                        "type": q.get("typeDisp") or q.get("quoteType", "")})
-    if not out:
-        raise Empty(query)
-    return out
-
-
-def search(query):
-    try:
-        return _search(query)
-    except Exception:
-        return []
-
-
-def _quotes_df(quotes):
-    rows = []
-    for q in quotes or []:
-        rows.append({
-            "Symbol": q.get("symbol"), "Name": q.get("shortName") or q.get("longName") or q.get("symbol"),
-            "Price": q.get("regularMarketPrice"), "Chg %": q.get("regularMarketChangePercent"),
-            "Volume": q.get("regularMarketVolume"), "Avg Vol": q.get("averageDailyVolume3Month"),
-            "Mkt Cap": q.get("marketCap"), "P/E": q.get("trailingPE"), "Fwd P/E": q.get("forwardPE"),
-            "P/B": q.get("priceToBook"), "EPS": q.get("epsTrailingTwelveMonths"),
-            "Div %": (q.get("trailingAnnualDividendYield") or 0) * 100 if q.get("trailingAnnualDividendYield") is not None else None,
-            "52W High": q.get("fiftyTwoWeekHigh"), "52W Low": q.get("fiftyTwoWeekLow"),
-            "52W %": q.get("fiftyTwoWeekChangePercent"), "SMA50": q.get("fiftyDayAverage"),
-            "SMA200": q.get("twoHundredDayAverage"), "Rating": q.get("averageAnalystRating"),
-            "Exchange": q.get("fullExchangeName") or q.get("exchange"),
-        })
-    return pd.DataFrame(rows)
-
-
-@st.cache_data(ttl=600, show_spinner=False)
-def _screen(name, count):
-    try:
-        res = yf.screen(name, count=count)
-    except TypeError:
-        res = yf.screen(name)
-    df = _quotes_df(res.get("quotes", []) if isinstance(res, dict) else [])
-    if df.empty:
-        raise Empty(name)
-    return df
-
-
-def screen(name, count=25):
-    try:
-        return _screen(name, count)
-    except Exception:
-        return pd.DataFrame()
-
-
-def build_query(filters):
-    """filters: list of (op, field, *values). Region US is always added."""
-    parts = [EquityQuery("eq", ["region", "us"])]
-    for f in filters:
-        op, field, *vals = f
-        if op == "or_eq":
-            opts = list(vals[0])
-            parts.append(EquityQuery("eq", [field, opts[0]]) if len(opts) == 1
-                         else EquityQuery("or", [EquityQuery("eq", [field, v]) for v in opts]))
-        else:
-            parts.append(EquityQuery(op, [field, *vals]))
-    return parts[0] if len(parts) == 1 else EquityQuery("and", parts)
-
-
-@st.cache_data(ttl=900, show_spinner=False)
-def _screen_custom(filters_json, sort_field, sort_asc, size):
-    q = build_query(json.loads(filters_json))
-    res = yf.screen(q, sortField=sort_field, sortAsc=sort_asc, size=size)
-    df = _quotes_df(res.get("quotes", []) if isinstance(res, dict) else [])
-    if df.empty:
-        raise Empty("custom")
-    return df
-
-
-def screen_custom(filters, sort_field="intradaymarketcap", sort_asc=False, size=100):
-    """Returns (DataFrame, error message or None)."""
-    if EquityQuery is None:
-        return pd.DataFrame(), "EquityQuery not available in this yfinance version"
-    try:
-        return _screen_custom(json.dumps(filters), sort_field, sort_asc, size), None
-    except Empty:
-        return pd.DataFrame(), None
-    except Exception as e:
-        return pd.DataFrame(), str(e)[:160]
-
-
-@st.cache_data(ttl=43200, show_spinner=False)
-def _sector_caps(sector):
-    q = build_query([("eq", "sector", sector)])
-    res = yf.screen(q, sortField="intradaymarketcap", sortAsc=False, size=100)
-    caps = {x.get("symbol"): x.get("marketCap") for x in res.get("quotes", []) if x.get("marketCap")}
-    if not caps:
-        raise Empty(sector)
-    return caps
-
-
-@st.cache_data(ttl=600, show_spinner=False)
-def market_caps():
-    """Live market caps for the heatmap (falls back to static estimates). Re-checked every 10 minutes."""
-    caps = {s: v[3] * 1e9 for s, v in U.STOCKS.items()}
-    if EquityQuery is None:
-        return caps, False
-    live = False
-    for sec in U.SECTORS:
-        try:
-            for s, c in _sector_caps(sec).items():
-                if s in caps:
-                    caps[s] = c
-                    live = True
-        except Exception:
-            continue
-    return caps, live
-
-
-# ---------------------------------------------------------------- news
-def _tickers_of(it, c, title):
-    found = []
-    for s in it.get("relatedTickers") or c.get("relatedTickers") or []:
-        if isinstance(s, str):
-            found.append(s)
-    fin = c.get("finance") or {}
-    for t in fin.get("stockTickers") or []:
-        s = t.get("symbol") if isinstance(t, dict) else None
-        if s:
-            found.append(s)
-    found += U.detect_tickers(title)
-    clean = [s for s in dict.fromkeys(found) if s and "^" not in s and "=" not in s]
-    return clean[:6]
-
-
-def parse_news(items):
-    out = []
-    for it in items or []:
-        if not isinstance(it, dict):
-            continue
-        c = it.get("content", it)
-        title = c.get("title")
-        if not title:
-            continue
-        link = ((c.get("canonicalUrl") or {}).get("url") or (c.get("clickThroughUrl") or {}).get("url")
-                or c.get("link") or it.get("link") or "")
-        prov = c.get("provider")
-        source = prov.get("displayName", "") if isinstance(prov, dict) else (c.get("publisher") or it.get("publisher") or "")
-        pub = c.get("pubDate") or c.get("displayTime") or c.get("providerPublishTime") or it.get("providerPublishTime")
-        ts = (pd.to_datetime(pub, unit="s", utc=True) if isinstance(pub, (int, float))
-              else pd.to_datetime(pub, utc=True, errors="coerce"))
-        out.append({"title": title, "link": link, "source": source, "time": ts,
-                    "summary": c.get("summary") or c.get("description") or "", "tickers": _tickers_of(it, c, title), "img": _thumb(c, it)})
-    return out
-
-
-def _thumb(c, it):
-    """Best picture of a Yahoo news item (about 400 px wide)."""
-    th = c.get("thumbnail") or it.get("thumbnail") or {}
-    if not isinstance(th, dict):
-        return ""
-    res = [r for r in (th.get("resolutions") or []) if isinstance(r, dict) and r.get("url")]
-    if res:
-        return min(res, key=lambda r: abs((r.get("width") or 0) - 420)).get("url", "")
-    return th.get("originalUrl") or th.get("url") or ""
-
-
-@st.cache_data(ttl=1200, show_spinner=False)
-def _news(symbol, count):
-    t = yf.Ticker(symbol)
-    try:
-        raw = t.get_news(count=count)
-    except Exception:
-        raw = t.news
-    out = parse_news(raw)
-    if not out:
-        raise Empty(symbol)
-    for n in out:
-        if symbol not in n["tickers"] and "^" not in symbol:
-            n["tickers"] = [symbol] + n["tickers"][:5]
-    return out
-
-
-def news(symbol, count=20):
-    try:
-        return _news(symbol, count)
-    except Exception:
-        return []
-
-
-@st.cache_data(ttl=1200, show_spinner=False)
-def _search_news(query, count):
-    out = parse_news(yf.Search(query, max_results=1, news_count=count).news)
-    if not out:
-        raise Empty(query)
-    return out
-
-
-def search_news(query, count=20):
-    try:
-        return _search_news(query, count)
-    except Exception:
-        return []
-
-
-def _sort_news(items):
-    seen, out = set(), []
-    for n in items:
-        k = n["title"].strip().lower()
-        if k not in seen:
-            seen.add(k)
-            out.append(n)
-    out.sort(key=lambda n: n["time"] if pd.notna(n["time"]) else pd.Timestamp("1970-01-01", tz="UTC"), reverse=True)
-    return out
-
-
-def market_news(hours=48):
-    """Market headlines: the news bot (~35 feeds, refreshed every 3 minutes) + Yahoo Finance. Newest first, duplicates removed."""
-    items = []
-    try:
-        import newsbot
-        items = newsbot.headlines(hours)
-    except Exception:
-        items = []
-    extra = search_news("stock market", 25) + search_news("Wall Street stocks", 20)
-    for s in ("SPY", "QQQ", "^GSPC"):
-        extra += news(s, 15)
-    for n in extra:
-        n.setdefault("cat", "markets")
-        n.setdefault("also", [])
-    return _sort_news(items + extra)
-
-
-def symbol_news(symbol, count=40, hours=96):
-    """News about one company: Yahoo Finance + every bot headline that names it."""
-    items = news(symbol, count)
-    try:
-        import newsbot
-        items += [n for n in newsbot.bot(wait=False).items(hours) if symbol in (n.get("tickers") or [])]
-    except Exception:
-        pass
-    return _sort_news(items)
-
-
-def quick_changes(symbols, limit=300):
-    """symbol -> (price, % change today) for many symbols at once (batch quotes; daily history as a fallback for a few)."""
-    syms = [s for s in dict.fromkeys(symbols) if s and "^" not in s and "=" not in s][:limit]
-    if not syms:
-        return {}
-    out = {}
-    df = quotes_df(syms)
-    if not df.empty and "Symbol" in df:
-        for sym, p, c in zip(df["Symbol"], df["Price"], df["Chg %"]):
-            if pd.notna(p) and pd.notna(c):
-                out[sym] = (float(p), float(c))
-    miss = [s for s in syms if s not in out][:40]
-    if miss:
-        out.update(changes(tuple(miss)))
-    return out
-
-
-def trending_stories(k=3):
-    """Top stories = recent market news that mention the most companies."""
-    items = market_news()
-    recent = [n for n in items[:40] if n["tickers"]]
-    recent.sort(key=lambda n: (len(n["tickers"]) >= 2, n["time"] if pd.notna(n["time"]) else pd.Timestamp("1970-01-01", tz="UTC")),
-                reverse=True)
-    picked = recent[:k]
-    if len(picked) < k:
-        picked += [n for n in items if n not in picked][: k - len(picked)]
-    return picked
-
-
-_TR_FAIL = {"t": 0.0}
-
-
-def _gtx(text, target):
-    r = requests.get("https://translate.googleapis.com/translate_a/single", timeout=8,
-                     params={"client": "gtx", "sl": "auto", "tl": target, "dt": "t", "q": text},
-                     headers={"User-Agent": "Mozilla/5.0"})
-    r.raise_for_status()
-    return "".join(seg[0] for seg in r.json()[0] if seg and seg[0])
-
-
-def _mymemory(text, target):
-    r = requests.get("https://api.mymemory.translated.net/get", timeout=8, params={"q": text[:480], "langpair": f"en|{target}"})
-    r.raise_for_status()
-    out = r.json().get("responseData", {}).get("translatedText")
-    if not out or "MYMEMORY WARNING" in out:
-        raise Empty("mymemory")
-    return out
-
-
-def _deep(text, target):
-    from deep_translator import GoogleTranslator
-    return GoogleTranslator(source="auto", target=target).translate(text[:4500])
-
-
-def _translate_one(text, target):
-    last = None
-    for fn in (_gtx, _deep, _mymemory):
-        try:
-            out = fn(text, target)
-            if out and out.strip():
-                return out
-        except Exception as e:
-            last = e
-    raise last or Empty("translate")
-
-
-def _chunks(texts, limit=1400):
-    batch, size = [], 0
-    for i, t in enumerate(texts):
-        t = (t or "").replace("\n", " ").strip()
-        if batch and size + len(t) > limit:
-            yield batch
-            batch, size = [], 0
-        batch.append((i, t))
-        size += len(t) + 1
-    if batch:
-        yield batch
-
-
-@st.cache_data(ttl=86400, show_spinner=False)
-def _translate(texts, target):
-    out = list(texts)
-    ok = 0
-
-    def do_batch(batch):
-        joined = "\n".join(t for _, t in batch)
-        try:
-            res = _translate_one(joined, target).split("\n")
-            if len(res) == len(batch):
-                return [(i, r) for (i, _), r in zip(batch, res)]
-        except Exception:
-            pass
-        pairs = []
-        for i, t in batch:
-            try:
-                pairs.append((i, _translate_one(t, target) if t else t))
-            except Exception:
-                pairs.append((i, None))
-        return pairs
-
-    with ThreadPoolExecutor(max_workers=4) as ex:
-        for pairs in ex.map(do_batch, list(_chunks(texts))):
-            for i, r in pairs:
-                if r:
-                    out[i] = r
-                    ok += 1
-    if texts and ok == 0:
-        raise Empty("translate")
-    return out
-
-
-def translate(texts, target="ar"):
-    """Translates a list of strings (Google gtx -> deep-translator -> MyMemory). Never raises."""
-    import time
-    texts = tuple(texts)
-    if not texts or time.time() - _TR_FAIL["t"] < 600:
-        return list(texts)
-    try:
-        return _translate(texts, target)
-    except Exception:
-        _TR_FAIL["t"] = time.time()
-        return list(texts)
-
-
-def translate_long(text, target="ar"):
-    """Long text (company descriptions): split into sentences-ish chunks."""
-    if not text:
-        return text
-    parts, cur = [], ""
-    for sent in text.replace("\n", " ").split(". "):
-        if len(cur) + len(sent) > 900 and cur:
-            parts.append(cur)
-            cur = ""
-        cur += sent + ". "
-    if cur:
-        parts.append(cur)
-    return " ".join(translate(parts, target))
-
-
-# ---------------------------------------------------------------- company logos
-# The server checks once (cached 7 days) which logo URL works, then pages use that URL directly:
-# no broken-image icons and much lighter pages than embedding the images.
-_LOGO_MEM = {}
-_LOGO_CB = {"fails": 0, "until": 0.0}
-
-
-def _is_img(b):
-    return len(b) > 200 and (b[:4] == b"\x89PNG" or b[:3] == b"\xff\xd8\xff" or b[:4] == b"RIFF")
-
-
-@st.cache_data(ttl=7 * 86400, show_spinner=False)
-def _logo_src(sym):
-    net_err = 0
-    for url in (f"https://assets.parqet.com/logos/symbol/{sym}?format=png&size=100",
-                f"https://financialmodelingprep.com/image-stock/{sym}.png"):
-        try:
-            r = requests.get(url, timeout=4, headers={"User-Agent": "Mozilla/5.0"})
-            if r.status_code == 200 and _is_img(r.content):
-                return url
-        except Exception:
-            net_err += 1
-    if net_err == 2:
-        raise Empty(sym)      # network trouble: try again later (not cached)
-    return None               # this company has no logo: remember that
-
-
-def _one_logo(s):
-    try:
-        u = _logo_src(s)
-    except Exception:                      # host unreachable: retry later, open the breaker after repeated failures
-        _LOGO_CB["fails"] += 1
-        if _LOGO_CB["fails"] >= 6:
-            _LOGO_CB["until"] = time.time() + 600
-            _LOGO_CB["fails"] = 0
-        return None
-    _LOGO_CB["fails"] = 0
-    _LOGO_MEM[s] = u                       # a URL, or None when the company has no logo
-    return u
-
-
-def logos(symbols):
-    """symbol -> verified logo URL (or None). Indices, FX, futures and crypto get no logo."""
-    syms = [s for s in dict.fromkeys(symbols) if s and not any(c in s for c in "^=") and not s.endswith("-USD")]
-    if time.time() < _LOGO_CB["until"]:           # logo hosts unreachable: use what we already know
-        return {s: _LOGO_MEM.get(s) for s in syms}
-    out = {s: _LOGO_MEM[s] for s in syms if s in _LOGO_MEM}
-    todo = [s for s in syms if s not in out]
-    if todo:
-        with ThreadPoolExecutor(max_workers=12) as ex:
-            for s, u in zip(todo, ex.map(_one_logo, todo)):
-                out[s] = u
-    return out
-
-
-def logo_url(sym):
-    """Direct URL (used inside tables, loaded by the browser)."""
-    return f"https://assets.parqet.com/logos/symbol/{sym}?format=png&size=64"
-
-
-# ---------------------------------------------------------------- fundamentals & catalysts
-@st.cache_data(ttl=21600, show_spinner=False)
-def fundamentals(symbol):
-    t = yf.Ticker(symbol)
-    out = {"earnings_date": None, "ratings": pd.DataFrame(), "targets": {}, "rec_summary": pd.DataFrame(),
-           "earnings_hist": pd.DataFrame(), "income_q": pd.DataFrame(), "insiders": pd.DataFrame()}
-
-    def attempt(key, fn):
-        try:
-            val = fn()
-            if val is not None:
-                out[key] = val
-        except Exception:
-            pass
-
-    def earn_date():
-        cal = t.calendar
-        dates = cal.get("Earnings Date") if isinstance(cal, dict) else None
-        dates = [pd.Timestamp(x) for x in (dates or []) if x is not None]
-        return min(dates) if dates else None
-
-    def ratings():
-        r = t.upgrades_downgrades
-        if r is None or r.empty:
-            return pd.DataFrame()
-        r = r.copy()
-        idx = pd.to_datetime(r.index, errors="coerce")
-        if getattr(idx, "tz", None) is not None:
-            idx = idx.tz_localize(None)
-        r.index = idx
-        return r[r.index >= pd.Timestamp.now() - pd.Timedelta(days=90)].sort_index(ascending=False)
-
-    def earnings_hist():
-        e = t.get_earnings_dates(limit=12)
-        if e is None or e.empty:
-            return pd.DataFrame()
-        rep = [c for c in e.columns if "Reported" in c]
-        return e.dropna(subset=rep) if rep else e
-
-    attempt("earnings_date", earn_date)
-    attempt("ratings", ratings)
-    attempt("targets", lambda: dict(t.analyst_price_targets or {}))
-    attempt("rec_summary", lambda: t.recommendations_summary)
-    attempt("earnings_hist", earnings_hist)
-    attempt("income_q", lambda: t.quarterly_income_stmt)
-    attempt("insiders", lambda: t.insider_transactions)
-    return out
-
-
-# ---------------------------------------------------------------- company profile
-def profile(symbol):
-    i = info(symbol)
-    officers = i.get("companyOfficers") or []
-    ceo = next((o.get("name") for o in officers if "CEO" in str(o.get("title", "")).upper()), None) or (officers[0].get("name") if officers else None)
-    hq = ", ".join(x for x in (i.get("city"), i.get("state"), i.get("country")) if x)
-    return {"name": i.get("longName") or i.get("shortName") or U.name_of(symbol), "summary": i.get("longBusinessSummary") or "",
-            "sector": i.get("sector") or (U.sector_of(symbol) if U.known(symbol) else None),
-            "industry": i.get("industry") or (U.industry_of(symbol) if U.known(symbol) else None),
-            "website": i.get("website"), "employees": i.get("fullTimeEmployees"), "hq": hq, "ceo": ceo,
-            "exchange": i.get("fullExchangeName") or i.get("exchange"), "currency": i.get("currency", "USD"),
-            "officers": officers[:6]}
-
-
-@st.cache_data(ttl=7 * 86400, show_spinner=False)
-def _classify(symbol):
-    i = dict(yf.Ticker(symbol).info or {})
-    if len(i) < 3:
-        raise Empty(symbol)                       # nothing came back: don't cache
-    return i.get("sector"), i.get("industry")     # may be (None, None) for funds: cached
-
-
-def classify(symbols, limit=40):
-    """sector/industry for any ticker (static lists first, Yahoo for the rest, cached 7 days)."""
-    from sp500 import SP500
-    out, todo = {}, []
-    for s in symbols:
-        if U.known(s):
-            out[s] = (U.sector_of(s), U.industry_of(s))
-        elif s in SP500:
-            out[s] = (SP500[s][1], SP500[s][2])
-        else:
-            todo.append(s)
-
-    def one(s):
-        try:
-            return s, _classify(s)
-        except Exception:
-            return s, (None, None)
-    with ThreadPoolExecutor(max_workers=6) as ex:
-        for s, v in ex.map(one, todo[:limit]):
-            out[s] = v
-    return out
-
-
-# ---------------------------------------------------------------- options
-@st.cache_data(ttl=1800, show_spinner=False)
-def _expirations(symbol):
-    exps = list(yf.Ticker(symbol).options or [])
-    if not exps:
-        raise Empty(symbol)
-    return exps
-
-
-def expirations(symbol):
-    try:
-        return _expirations(symbol)
-    except Exception:
-        return []
-
-
-@st.cache_data(ttl=300, show_spinner=False)
-def _chain(symbol, exp):
-    oc = yf.Ticker(symbol).option_chain(exp)
-    calls, puts = oc.calls.copy(), oc.puts.copy()
-    if calls.empty and puts.empty:
-        raise Empty(symbol)
-    return calls, puts
-
-
-def option_chain(symbol, exp):
-    try:
-        return _chain(symbol, exp)
-    except Exception:
-        return pd.DataFrame(), pd.DataFrame()
-
-
-# ---------------------------------------------------------------- economy
-def _fred_key():
-    try:
-        return st.secrets.get("FRED_API_KEY")
-    except Exception:
-        return None
-
-
-@st.cache_data(ttl=43200, show_spinner=False)
-def _fred(series_id, key):
-    start = (date.today() - timedelta(days=365 * 6)).isoformat()
-    if key:
-        r = requests.get("https://api.stlouisfed.org/fred/series/observations", timeout=20,
-                         params={"series_id": series_id, "api_key": key, "file_type": "json", "observation_start": start})
-        r.raise_for_status()
-        obs = r.json().get("observations", [])
-        s = pd.Series({pd.Timestamp(o["date"]): pd.to_numeric(o["value"], errors="coerce") for o in obs}, dtype=float)
+    for k, en, ar_, suf in (("stop_pct", "Stop", "وقف", "%"), ("atr_mult", "ATR stop ×", "وقف ATR ×", ""),
+                            ("tp_pct", "Target", "هدف", "%"), ("trail_pct", "Trailing", "متحرك", "%")):
+        if bot[k]:
+            out.append(f"{L(en, ar_)} {bot[k]:g}{suf}")
+    return " · ".join(out) or L("No stop", "بدون وقف")
+
+
+def _session_live():
+    """True while the US market is open (the latest daily candle is still moving)."""
+    now = datetime.now(ZoneInfo("America/New_York"))
+    kind, _ = mcal.day_status(now.date())
+    close = 780 if kind == "early" else 960
+    return now.weekday() < 5 and kind != "closed" and 570 <= now.hour * 60 + now.minute < close
+
+
+# =====================================================================
+# storage messages
+# =====================================================================
+def setup_steps():
+    steps = L(
+        "<b>1.</b> Create a free account at <b>supabase.com</b> and press <b>New project</b> (any name and password, the closest region).<br>"
+        "<b>2.</b> In the project open <b>SQL Editor</b>, paste the code below and press <b>Run</b>. It creates the table for the bots.<br>"
+        "<b>3.</b> Open <b>Project Settings</b> and copy the <b>Project URL</b>, then open <b>API Keys</b> and copy the <b>secret</b> key "
+        "(it starts with <code>sb_secret_</code>). Never use it in a public place; it only goes into Streamlit Secrets.<br>"
+        "<b>4.</b> In Streamlit open your app's <b>Settings → Secrets</b> and add the three lines below under your FRED key, then press <b>Save</b>.",
+        "<b>1.</b> سجّل حساب مجاني في <b>supabase.com</b> واضغط <b>New project</b> (أي اسم وكلمة مرور، واختر أقرب منطقة).<br>"
+        "<b>2.</b> داخل المشروع افتح <b>SQL Editor</b>، والصق الكود اللي تحت واضغط <b>Run</b>. هذا ينشئ جدول البوتات.<br>"
+        "<b>3.</b> افتح <b>Project Settings</b> وانسخ <b>Project URL</b>، ثم افتح <b>API Keys</b> وانسخ المفتاح <b>secret</b> "
+        "(يبدأ بـ <code>sb_secret_</code>). لا تحطه في أي مكان عام، مكانه الوحيد Secrets في Streamlit.<br>"
+        "<b>4.</b> في Streamlit افتح <b>Settings ← Secrets</b> للموقع، وأضف الأسطر الثلاثة اللي تحت تحت مفتاح FRED، ثم اضغط <b>Save</b>.")
+    ui.html(f'<div style="line-height:2">{steps}</div>')
+    st.code(PB.SETUP_SQL, language="sql")
+    st.code('SUPABASE_URL = "https://xxxx.supabase.co"\nSUPABASE_KEY = "sb_secret_..."\nBOTS_PASSWORD = "' +
+            L("choose-a-password", "اختر-كلمة-مرور") + '"', language="toml")
+
+
+def storage_notice(err):
+    if err is not None:
+        msg = {"no_table": L("Supabase is connected, but the bots table is missing. Open SQL Editor in Supabase, run this code, then refresh.",
+                             "Supabase متصل، لكن جدول البوتات غير موجود. افتح SQL Editor في Supabase وشغّل هذا الكود، ثم حدّث الصفحة."),
+               "auth": L("Supabase refused the key. In Secrets, SUPABASE_KEY must be the secret key (Supabase → Settings → API Keys → secret).",
+                         "Supabase رفض المفتاح. لازم يكون SUPABASE_KEY في Secrets هو المفتاح السري (Supabase ← Settings ← API Keys ← secret)."),
+               "network": L("Couldn't reach Supabase right now. Check SUPABASE_URL in Secrets, or try again in a minute.",
+                            "تعذر الاتصال بـ Supabase حالياً. تأكد من SUPABASE_URL في Secrets، أو حاول بعد دقيقة.")}.get(
+            err.kind, L("Supabase returned an error.", "Supabase رجّع خطأ."))
+        st.error(msg, icon=":material/database:")
+        if err.kind == "no_table":
+            st.code(PB.SETUP_SQL, language="sql")
+        with st.expander(L("Technical details", "تفاصيل فنية")):
+            st.code(err.detail[:600] or err.kind)
+    elif PB.backend() == "local":
+        st.warning(L("Trial mode: bots are kept in temporary storage and are lost when the site restarts. Connect Supabase (free) to keep them for good.",
+                     "وضع التجربة: البوتات محفوظة مؤقتاً وتنحذف إذا أعاد الموقع التشغيل. اربط Supabase (مجاني) عشان تنحفظ بشكل دائم."),
+                   icon=":material/info:")
+        with st.expander(L("How to connect Supabase (5 minutes)", "طريقة ربط Supabase (5 دقائق)"), icon=":material/database:"):
+            setup_steps()
+
+
+# =====================================================================
+# leaderboard + comparison
+# =====================================================================
+def status_badge(sim):
+    if not sim["ok"]:
+        return T.badge(L("Unavailable", "غير متاح"), "neu", "error")
+    if sim["waiting"]:
+        return T.badge(L("Starts next session", "يبدأ الجلسة القادمة"), "neu", "schedule")
+    if sim["next"] == "buy":
+        return T.badge(L("Buys at next open", "يشتري عند الافتتاح القادم"), "gold", "bolt")
+    if sim["next"] == "sell":
+        return T.badge(L("Sells at next open", "يبيع عند الافتتاح القادم"), "gold", "bolt")
+    if sim["in_pos"]:
+        return T.badge(L("In a trade", "في صفقة"), "acc", "trending_up")
+    return T.badge(L("Waiting for a signal", "ينتظر إشارة"), "neu", "hourglass_empty")
+
+
+def bot_card(rank, sim, logo):
+    b = sim["bot"]
+    head = (f'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px">'
+            f'{T.company(b["symbol"], "", logo, 32, sub=b["name"], href=ui.href(b["symbol"]))}'
+            f'<span class="muted" style="font-weight:800">#{rank}</span></div>')
+    badges = f'<div style="margin-top:8px">{T.badge(strat_name(b["strategy"]), "vio", "smart_toy")}{status_badge(sim)}</div>'
+    if sim["ok"] and not sim["waiting"]:
+        ret, m = sim["ret"], sim["metrics"]
+        spark = T.sparkline(sim["equity"].tail(120).values, T.UP if ret >= 0 else T.DOWN, 90, 32)
+        spx = "" if sim["bench_ret"] is None else f'<div class="muted" style="font-size:.72rem;margin-top:4px;direction:ltr">S&amp;P 500 {sim["bench_ret"]:+.2f}%</div>'
+        trades = L(f'{m["Trades"]} trades', f'{m["Trades"]} صفقة') + (f' · {L("win", "نجاح")} {m["Win Rate %"]:.0f}%' if m["Trades"] else "")
+        body = (f'<div style="display:flex;justify-content:space-between;align-items:flex-end;gap:8px;margin-top:12px">'
+                f'<div><div class="muted" style="font-size:.72rem">{L("Balance", "الرصيد")}</div>'
+                f'<div style="font-weight:800;font-size:1.1rem;direction:ltr">{T.money(sim["final"])}</div></div>{spark}'
+                f'<div style="text-align:end">{T.pbox(f"{ret:+.2f}%", ret)}{spx}</div></div>'
+                f'<div class="muted" style="font-size:.74rem;margin-top:10px">{trades} · {L("since", "منذ")} {b["start_date"]}</div>')
+    elif sim["ok"]:
+        body = (f'<div class="muted" style="margin-top:12px;font-size:.8rem">{L("Starts with the first US session from", "يبدأ مع أول جلسة أمريكية من")} '
+                f'{b["start_date"]} · {T.money(b["capital"])}</div>')
     else:
-        last_err = None
-        for attempt in range(2):
-            try:
-                r = requests.get("https://fred.stlouisfed.org/graph/fredgraph.csv", timeout=8,
-                                 params={"id": series_id, "cosd": start},
-                                 headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)", "Accept": "text/csv"})
-                r.raise_for_status()
-                break
-            except Exception as e:
-                last_err = e
+        body = f'<div class="muted" style="margin-top:12px;font-size:.8rem">{L("No price data right now.", "لا توجد بيانات أسعار حالياً.") if sim["why"] == "data" else L("Strategy not found.", "الاستراتيجية غير موجودة.")}</div>'
+    return f'<div class="card" style="margin:0;height:100%">{head}{badges}{body}</div>'
+
+
+def ranked(sims):
+    return sorted(sims, key=lambda s: (not (s["ok"] and not s["waiting"]), -(s.get("ret") or 0.0) if s["ok"] else 0.0))
+
+
+def leaderboard(sims):
+    ui.sec("leaderboard", "Leaderboard", "ترتيب البوتات")
+    lg = data.logos([s["bot"]["symbol"] for s in sims])
+    cards = "".join(bot_card(i, s, lg.get(s["bot"]["symbol"])) for i, s in enumerate(ranked(sims), 1))
+    ui.html(f'<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;margin-bottom:16px">{cards}</div>')
+
+
+def compare_chart(sims, spy):
+    series, seen = {}, set()
+    for s in sims:
+        if s["ok"] and not s["waiting"] and len(s["equity"]) >= 2:
+            name = s["bot"]["name"]
+            if name in seen:
+                name = f'{name} (#{s["bot"]["id"]})'
+            seen.add(name)
+            series[name] = (s["equity"] / s["bot"]["capital"] - 1) * 100
+    if not series:
+        return
+    ui.sec("stacked_line_chart", "Return since start", "العائد منذ البداية")
+    first = min(v.index[0] for v in series.values())
+    spx_name = "S&P 500 (SPY)"
+    if spy is not None and not spy.empty:
+        sp = spy["Close"][spy.index >= first]
+        if len(sp) >= 2:
+            series[spx_name] = (sp / sp.iloc[0] - 1) * 100
+    fig = charts.lines(series, None, suffix="%", height=380, dec=2)
+    fig.update_traces(selector=dict(name=spx_name), line=dict(dash="dot", color=T.MUTED, width=1.6))
+    ui.chart(fig, key="pb_cmp")
+    st.caption(L("Each bot is measured from its own start date; the S&P 500 line starts with the oldest bot.",
+                 "كل بوت يُقاس من تاريخ بدايته؛ وخط إس آند بي 500 يبدأ مع أقدم بوت."))
+
+
+# =====================================================================
+# one bot in detail
+# =====================================================================
+def details(sims):
+    ui.sec("query_stats", "Bot details", "تفاصيل البوت")
+    by_id = {s["bot"]["id"]: s for s in sims}
+    ids = [s["bot"]["id"] for s in ranked(sims)]
+    ui.valid("pb_sel", ids)
+    sel = st.segmented_control(L("Bot", "البوت"), ids, default=ids[0], key="pb_sel", label_visibility="collapsed",
+                               format_func=lambda i: f'{by_id[i]["bot"]["name"]}') or ids[0]
+    sim = by_id[sel]
+    b = sim["bot"]
+    start_txt = L("Start ", "البداية ") + b["start_date"]
+    cap_txt = L("Capital ", "رأس المال ") + T.money(b["capital"])
+    fee_txt = L("Fee {:g}% / side", "العمولة {:g}% لكل جهة").format(b["fee"])
+    ui.html('<div class="card">' + T.badge(b["symbol"], "gold", "sell") + T.badge(strat_name(b["strategy"]), "vio", "smart_toy")
+            + T.badge(_params_txt(b) or "—", "neu", "tune") + T.badge(_risk_txt(b), "neu", "shield") + T.badge(start_txt, "neu", "event")
+            + T.badge(cap_txt, "neu", "account_balance_wallet") + T.badge(fee_txt, "neu", "receipt") + "</div>")
+
+    if not sim["ok"]:
+        if sim["why"] == "strategy":
+            st.warning(L("This bot uses a strategy that no longer exists on the site. Delete it and add a new one.",
+                         "هذا البوت يستخدم استراتيجية لم تعد موجودة في الموقع. احذفه وأضف بوت جديد."), icon=":material/error:")
         else:
-            raise last_err
-        df = pd.read_csv(io.StringIO(r.text))
-        idx = pd.DatetimeIndex(pd.to_datetime(df.iloc[:, 0], errors="coerce"))
-        s = pd.Series(pd.to_numeric(df.iloc[:, 1], errors="coerce").values, index=idx)
-    s = s[s.index.notna()].dropna().sort_index()
-    if len(s) < 3:
-        raise Empty(series_id)
-    return s
+            st.warning(L(f"No price data for {b['symbol']} right now. Check the symbol, or try again in a minute.",
+                         f"لا توجد بيانات أسعار للرمز {b['symbol']} حالياً. تأكد من الرمز، أو حاول بعد دقيقة."), icon=":material/error:")
+        return
+    if sim["waiting"]:
+        st.info(L(f"The bot starts with the first US session on or after {b['start_date']}. After that session closes it checks its "
+                  "strategy, and any order is filled at the next open.",
+                  f"البوت يبدأ مع أول جلسة أمريكية من تاريخ {b['start_date']}. بعد إغلاق الجلسة يفحص الاستراتيجية، وأي أمر يتنفذ عند الافتتاح التالي."),
+                icon=":material/schedule:")
+        return
 
+    m, tr, cap = sim["metrics"], sim["trades"], b["capital"]
+    last = pd.Timestamp(sim["last_date"])
+    if sim["in_pos"] and sim["open"] is not None:
+        o = sim["open"]
+        st.success(L(f"In a trade since {pd.Timestamp(o['Entry Date']):%b %d, %Y} at ${o['Entry']:,.2f} · open P&L {o['P&L %']:+.2f}%",
+                     f"في صفقة شراء منذ {pd.Timestamp(o['Entry Date']):%Y-%m-%d} بسعر ${o['Entry']:,.2f} · الربح الحالي {o['P&L %']:+.2f}%"),
+                   icon=":material/trending_up:")
+    else:
+        st.info(L("Out of the market, waiting for a buy signal.", "خارج السوق، ينتظر إشارة شراء."), icon=":material/pause_circle:")
+    if sim["next"]:
+        live = _session_live() and last.date() == PB.today_ny()
+        what = L("buy", "شراء") if sim["next"] == "buy" else L("sell", "بيع")
+        note = L(" The latest candle is still moving, so the signal is confirmed at today's close.",
+                 " الشمعة الأخيرة لسا تتحرك، فالإشارة تتأكد عند إغلاق اليوم.") if live else ""
+        st.warning(L(f"{what.capitalize()} signal on the latest session ({last:%Y-%m-%d}): the bot will {what} at the next open.{note}",
+                     f"إشارة {what} في آخر جلسة ({last:%Y-%m-%d}): البوت ب{'يشتري' if sim['next'] == 'buy' else 'يبيع'} عند الافتتاح التالي.{note}"),
+                   icon=":material/bolt:")
 
-_FRED_CB = {"fails": 0, "until": 0.0}   # when FRED keeps failing, stop waiting on it for a while (BLS covers the key series)
+    closed = tr[tr["Exit Reason"] != "Open"]
+    wins = int((closed["P&L $"] > 0).sum())
+    kp = [("account_balance_wallet", L("Balance", "الرصيد"), T.money(sim["final"]), L(f"start {T.money(cap)}", f"البداية {T.money(cap)}"), T.cls(sim["ret"])),
+          ("trending_up", L("Return", "العائد"), f"{sim['ret']:+.2f}%", L(f"Buy & hold {m['Buy & Hold %']:+.2f}%", f"شراء واحتفاظ {m['Buy & Hold %']:+.2f}%"), T.cls(sim["ret"])),
+          ("show_chart", L("vs S&P 500", "مقابل إس آند بي"),
+           "—" if sim["bench_ret"] is None else f"{sim['ret'] - sim['bench_ret']:+.2f}%",
+           "" if sim["bench_ret"] is None else f"S&P {sim['bench_ret']:+.2f}%",
+           None if sim["bench_ret"] is None else T.cls(sim["ret"] - sim["bench_ret"])),
+          ("south_east", L("Max drawdown", "أقصى تراجع"), f"{m['Max Drawdown %']:.2f}%", "", "neg" if m["Max Drawdown %"] < -0.05 else None),
+          ("target", L("Win rate", "نسبة النجاح"), f"{m['Win Rate %']:.0f}%" if len(closed) else "—",
+           L(f"{wins} of {len(closed)} closed trades", f"{wins} من {len(closed)} صفقة مغلقة"),
+           ("pos" if m["Win Rate %"] >= 50 else "neg") if len(closed) else None),
+          ("calendar_month", L("Running", "مدة التشغيل"), L(f"{sim['sessions']} sessions", f"{sim['sessions']} جلسة"),
+           L(f"since {b['start_date']}", f"منذ {b['start_date']}"), None)]
+    for col, (ic, lab, val, sub, kind) in zip(st.columns(6), kp):
+        col.markdown(T.kpi(ic, lab, val, sub, kind), unsafe_allow_html=True)
 
-
-def fred(series_id):
-    key = _fred_key()
-    if not key and time.time() < _FRED_CB["until"]:
-        return pd.Series(dtype=float), f"{series_id}: FRED unreachable, skipped for now"
+    # price with the bot's trades (from a little before the start)
+    full = ta.add_all(sim["full"])
+    i0 = max(0, int(full.index.searchsorted(sim["d"].index[0])) - 30)
+    view = full.iloc[i0:]
+    fig = charts.price_chart(view, "Candles" if len(view) <= 800 else "Line", OVERLAYS.get(b["strategy"], []), PANELS.get(b["strategy"], []),
+                             False, trades=tr)
     try:
-        s = _fred(series_id, key)
-        _FRED_CB["fails"] = 0
-        return s, None
-    except Exception as e:
-        _FRED_CB["fails"] += 1
-        if _FRED_CB["fails"] >= 3:
-            _FRED_CB["until"] = time.time() + 1800
-        return pd.Series(dtype=float), f"{series_id}: {type(e).__name__} {str(e)[:80]}"
-
-
-def transform(s, how):
-    if how == "yoy":
-        freq = 52 if len(s) > 2 and (s.index[-1] - s.index[-2]).days < 10 else (4 if (s.index[-1] - s.index[-2]).days > 80 else 12)
-        return (s / s.shift(freq) - 1) * 100
-    if how == "mom":
-        return (s / s.shift(1) - 1) * 100
-    if how == "diff":
-        return s.diff()
-    if how == "level_k":
-        return s / 1000
-    if how == "level_m":
-        return s / 1000
-    return s
-
-
-BLS_MAP = {"CPIAUCSL": "CUSR0000SA0", "CPILFESL": "CUSR0000SA0L1E", "UNRATE": "LNS14000000", "PAYEMS": "CES0000000001",
-           "PPIFIS": "WPSFD4", "JTSJOL": "JTS000000000000000JOL"}
-
-
-@st.cache_data(ttl=43200, show_spinner=False)
-def _bls(series_ids):
-    y = date.today().year
-    r = requests.post("https://api.bls.gov/publicAPI/v1/timeseries/data/", timeout=20,
-                      json={"seriesid": list(series_ids), "startyear": str(y - 3), "endyear": str(y)},
-                      headers={"Content-type": "application/json"})
-    r.raise_for_status()
-    js = r.json()
-    if js.get("status") != "REQUEST_SUCCEEDED":
-        raise Empty(str(js.get("message"))[:120])
-    out = {}
-    for ser in js.get("Results", {}).get("series", []):
-        pts = {}
-        for d in ser.get("data", []):
-            per = d.get("period", "")
-            if per.startswith("M") and per != "M13":
-                v = pd.to_numeric(d.get("value"), errors="coerce")
-                pts[pd.Timestamp(int(d["year"]), int(per[1:]), 1)] = v
-        if pts:
-            out[ser["seriesID"]] = pd.Series(pts).sort_index().dropna()
-    if not out:
-        raise Empty("bls")
-    return out
-
-
-@st.cache_data(ttl=900, show_spinner=False)
-def macro():
-    """Returns (indicators, errors, source status). Order: FRED (API key or CSV) -> BLS for the labor/inflation series.
-    Successful series are cached 12h; the combined result is re-checked every 15 minutes."""
-    ids = list(U.MACRO_SERIES)
-    with ThreadPoolExecutor(max_workers=9) as ex:
-        results = dict(zip(ids, ex.map(fred, ids)))
-    raw, src, errors = {}, {}, []
-    for sid, (s, err) in results.items():
-        if err:
-            errors.append(err)
-        else:
-            raw[sid], src[sid] = s, "FRED"
-    status = {"FRED": f"{len(raw)}/{len(ids)}"}
-    need = [sid for sid in ids if sid not in raw and sid in BLS_MAP]
-    if need:
-        try:
-            got = _bls(tuple(BLS_MAP[x] for x in need))
-            for sid in need:
-                if BLS_MAP[sid] in got:
-                    raw[sid], src[sid] = got[BLS_MAP[sid]], "BLS"
-            status["BLS"] = f"{sum(1 for v in src.values() if v == 'BLS')}/{len(need)}"
-        except Exception as e:
-            status["BLS"] = f"failed: {type(e).__name__} {str(e)[:80]}"
-    out = {}
-    for sid, (en, ar, how, unit, bad) in U.MACRO_SERIES.items():
-        if sid not in raw:
-            continue
-        s = transform(raw[sid], how).dropna()
-        if len(s) < 2:
-            continue
-        out[sid] = {"en": en, "ar": ar, "value": float(s.iloc[-1]), "prev": float(s.iloc[-2]), "date": s.index[-1],
-                    "unit": unit, "higher_is_bad": bad, "hist": s.tail(36), "source": src[sid]}
-    return out, errors, status
-
-
-@st.cache_data(ttl=3600, show_spinner=False)
-def _econ_calendar(start, end):
-    cal = yf.Calendars(start=start, end=end)
-    frames = []
-    for offset in range(0, 600, 100):
-        df = cal.get_economic_events_calendar(limit=100, offset=offset, force=True)
-        if df is None or df.empty:
-            break
-        frames.append(df.reset_index())
-        if len(df) < 100:
-            break
-    if not frames:
-        raise Empty("calendar")
-    return pd.concat(frames, ignore_index=True).drop_duplicates()
-
-
-def econ_calendar(days_back=7, days_fwd=7):
-    """Economic events (US only when a region column exists)."""
-    if not hasattr(yf, "Calendars"):
-        return pd.DataFrame()
-    start = (date.today() - timedelta(days=days_back)).isoformat()
-    end = (date.today() + timedelta(days=days_fwd)).isoformat()
-    try:
-        df = _econ_calendar(start, end).copy()
-    except Exception:
-        return pd.DataFrame()
-    region = next((c for c in df.columns if c.lower() in ("region", "country", "country code")), None)
-    if region:
-        df = df[df[region].astype(str).str.upper().isin(["US", "USA", "UNITED STATES"])]
-    return df
-
-
-def econ_releases(days_back=45):
-    """Latest US release per event (actual vs expected vs previous)."""
-    df = econ_calendar(days_back, 0)
-    if df.empty:
-        return df
-    ev = next((c for c in df.columns if c.lower() in ("event", "econ release")), df.columns[0])
-    act = next((c for c in df.columns if c.lower() == "actual"), None)
-    tcol = next((c for c in df.columns if "Time" in c or "Date" in c), None)
-    if act is None:
-        return pd.DataFrame()
-    df = df[pd.to_numeric(df[act], errors="coerce").notna()].copy()
-    if tcol:
-        df[tcol] = pd.to_datetime(df[tcol], errors="coerce", utc=True)
-        df = df.sort_values(tcol, ascending=False)
-    return df.drop_duplicates(subset=[ev]).rename(columns={ev: "Event"})
-
-
-# ---------------------------------------------------------------- batch quotes (one request per 150 symbols)
-QUOTE_URL = "https://query1.finance.yahoo.com/v7/finance/quote?"
-
-
-@st.cache_data(ttl=90, show_spinner=False)
-def _quotes(symbols):
-    from yfinance.data import YfData
-    yd = YfData()
-    out = []
-    for i in range(0, len(symbols), 150):
-        js = yd.get_raw_json(QUOTE_URL, params={"symbols": ",".join(symbols[i:i + 150]), "formatted": "false",
-                                                "lang": "en-US", "region": "US"})
-        out += ((js or {}).get("quoteResponse") or {}).get("result") or []
-    if not out:
-        raise Empty("quotes")
-    return out
-
-
-def _ratio(a, b):
-    try:
-        return (float(a) / float(b) - 1) * 100 if a and b else np.nan
-    except (TypeError, ValueError):
-        return np.nan
-
-
-def quotes_df(symbols):
-    """Live snapshot for many symbols at once."""
-    try:
-        raw = _quotes(tuple(dict.fromkeys(symbols)))
-    except Exception:
-        return pd.DataFrame()
-    rows = []
-    for q in raw:
-        p = q.get("regularMarketPrice")
-        rows.append({"Symbol": q.get("symbol"), "Name": q.get("shortName") or q.get("longName") or q.get("symbol"),
-                     "Price": p, "Chg %": q.get("regularMarketChangePercent"), "Mkt Cap": q.get("marketCap"),
-                     "Volume": q.get("regularMarketVolume"), "Avg Vol": q.get("averageDailyVolume3Month"),
-                     "52W %": q.get("fiftyTwoWeekChangePercent"), "vs50 %": _ratio(p, q.get("fiftyDayAverage")),
-                     "vs200 %": _ratio(p, q.get("twoHundredDayAverage")), "Hi52 %": _ratio(p, q.get("fiftyTwoWeekHigh")),
-                     "Lo52 %": _ratio(p, q.get("fiftyTwoWeekLow")), "PRE": q.get("preMarketChangePercent"),
-                     "POST": q.get("postMarketChangePercent"), "P/E": q.get("trailingPE")})
-    df = pd.DataFrame(rows)
-    for c in ("Price", "Chg %", "Mkt Cap", "Volume", "Avg Vol", "52W %", "PRE", "POST", "P/E"):
-        df[c] = pd.to_numeric(df[c], errors="coerce")
-    if df["52W %"].notna().sum() > 5 and df["52W %"].abs().median() < 1.5:     # some API versions send fractions
-        df["52W %"] = df["52W %"] * 100
-    return df
-
-
-def market_quotes(symbols):
-    """(DataFrame, source): batch quotes, or daily history as a fallback."""
-    df = quotes_df(symbols)
-    if not df.empty and df["Chg %"].notna().sum() >= max(1, len(symbols) // 2):
-        return df, "live"
-    ch = changes(tuple(symbols))
-    if not ch:
-        return pd.DataFrame(), "none"
-    df = pd.DataFrame([{"Symbol": s, "Price": p, "Chg %": c} for s, (p, c) in ch.items()])
-    df["Mkt Cap"] = df["Symbol"].map(lambda s: U.STOCKS[s][3] * 1e9 if s in U.STOCKS else np.nan)
-    return df, "history"
-
-
-@st.cache_data(ttl=1800, show_spinner=False)
-def _perf(symbols):
-    hist = _history_many(symbols, "1y", "1d")
-    rows = []
-    for s, df in hist.items():
-        c = df["Close"].dropna()
-        if len(c) < 6:
-            continue
-        f = lambda n: (c.iloc[-1] / c.iloc[-n - 1] - 1) * 100 if len(c) > n else np.nan
-        ytd = c[c.index.year == c.index[-1].year]
-        rows.append({"Symbol": s, "1W": f(5), "1M": f(21), "3M": f(63),
-                     "YTD": (c.iloc[-1] / ytd.iloc[0] - 1) * 100 if len(ytd) > 1 else np.nan,
-                     "1Y": (c.iloc[-1] / c.iloc[0] - 1) * 100})
-    if not rows:
-        raise Empty("perf")
-    return pd.DataFrame(rows)
-
-
-def perf_table(symbols):
-    """1W / 1M / 3M / YTD / 1Y % change per symbol (cached 30 min)."""
-    try:
-        return _perf(tuple(dict.fromkeys(symbols)))
-    except Exception:
-        return pd.DataFrame()
-
-
-# ---------------------------------------------------------------- financial statements
-STMT_KEYS = ("inc_a", "inc_q", "bal_a", "bal_q", "cf_a", "cf_q")
-
-
-@st.cache_data(ttl=21600, show_spinner=False)
-def _statements(symbol):
-    t = yf.Ticker(symbol)
-    fns = {"inc_a": lambda: t.income_stmt, "inc_q": lambda: t.quarterly_income_stmt, "bal_a": lambda: t.balance_sheet,
-           "bal_q": lambda: t.quarterly_balance_sheet, "cf_a": lambda: t.cashflow, "cf_q": lambda: t.quarterly_cashflow}
-    out = {}
-    for k, fn in fns.items():
-        try:
-            v = fn()
-            out[k] = v if isinstance(v, pd.DataFrame) else pd.DataFrame()
-        except Exception:
-            out[k] = pd.DataFrame()
-    if all(v.empty for v in out.values()):
-        raise Empty(symbol)
-    return out
-
-
-def statements(symbol):
-    try:
-        return _statements(symbol)
-    except Exception:
-        return {k: pd.DataFrame() for k in STMT_KEYS}
-
-
-# ---------------------------------------------------------------- options market snapshot
-@st.cache_data(ttl=600, show_spinner=False)
-def _opt_snapshot(symbol):
-    t = yf.Ticker(symbol)
-    exps = list(t.options or [])
-    if not exps:
-        raise Empty(symbol)
-    today = pd.Timestamp.now().normalize()
-    exp = next((e for e in exps if (pd.Timestamp(e) - today).days >= 1), exps[0])
-    oc = t.option_chain(exp)
-    calls, puts = oc.calls.copy(), oc.puts.copy()
-    if calls.empty and puts.empty:
-        raise Empty(symbol)
-    und = getattr(oc, "underlying", None) or {}
-    price = und.get("regularMarketPrice") if isinstance(und, dict) else None
-    if not price:
-        h = t.history(period="5d")
-        price = float(h["Close"].iloc[-1]) if not h.empty else None
-    if not price:
-        raise Empty(symbol)
-    for df in (calls, puts):
-        for c in ("volume", "openInterest", "bid", "ask", "lastPrice", "impliedVolatility", "strike"):
-            if c in df:
-                df[c] = pd.to_numeric(df[c], errors="coerce")
-    strikes = sorted(set(calls["strike"].dropna()) | set(puts["strike"].dropna()))
-    atm = min(strikes, key=lambda k: abs(k - price))
-
-    def mid(df):
-        r = df[df["strike"] == atm]
-        if r.empty:
-            return np.nan
-        r = r.iloc[0]
-        return (r["bid"] + r["ask"]) / 2 if (r["bid"] or 0) > 0 and (r["ask"] or 0) > 0 else r["lastPrice"]
-    iv = np.nanmean([calls.loc[calls["strike"] == atm, "impliedVolatility"].mean(),
-                     puts.loc[puts["strike"] == atm, "impliedVolatility"].mean()])
-    cv, pv = float(calls["volume"].fillna(0).sum()), float(puts["volume"].fillna(0).sum())
-    coi, poi = float(calls["openInterest"].fillna(0).sum()), float(puts["openInterest"].fillna(0).sum())
-    unusual = []
-    for kind, df in (("CALL", calls), ("PUT", puts)):
-        d = df[(df["volume"].fillna(0) >= 500) & (df["volume"].fillna(0) > df["openInterest"].fillna(0))]
-        for _, r in d.iterrows():
-            unusual.append({"Symbol": symbol, "Type": kind, "Strike": float(r["strike"]), "Expiry": exp, "Volume": float(r["volume"]),
-                            "OI": float(r["openInterest"]) if pd.notna(r["openInterest"]) else 0.0, "Last": float(r["lastPrice"]),
-                            "IV %": float(r["impliedVolatility"]) * 100 if pd.notna(r["impliedVolatility"]) else np.nan})
-    straddle = float(np.nansum([mid(calls), mid(puts)]))
-    return {"symbol": symbol, "price": float(price), "expiry": exp, "dte": max((pd.Timestamp(exp) - today).days, 0),
-            "atm": float(atm), "iv": float(iv) * 100 if pd.notna(iv) else np.nan, "move": straddle,
-            "move_pct": straddle / float(price) * 100, "call_vol": cv, "put_vol": pv, "pc_vol": pv / max(cv, 1),
-            "pc_oi": poi / max(coi, 1), "call_oi": coi, "put_oi": poi, "unusual": unusual, "n_exp": len(exps)}
-
-
-def options_snapshot(symbols):
-    """Nearest-expiry options stats for several underlyings (cached 10 min each)."""
-    def one(s):
-        try:
-            return _opt_snapshot(s)
-        except Exception:
-            return None
-    with ThreadPoolExecutor(max_workers=6) as ex:
-        return [r for r in ex.map(one, symbols) if r]
-
-
-def known_logos(symbols):
-    """Logos already verified by earlier pages (no network)."""
-    return {s: _LOGO_MEM[s] for s in symbols if _LOGO_MEM.get(s)}
-
-
-# ---------------------------------------------------------------- interest rates (New York Fed, U.S. Treasury; Yahoo / FRED as fallbacks)
-_RATE_UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36"}
-
-
-@st.cache_data(ttl=3600, show_spinner=False)
-def _nyfed(kind, n):
-    grp = "unsecured" if kind == "effr" else "secured"
-    r = requests.get(f"https://markets.newyorkfed.org/api/rates/{grp}/{kind}/last/{n}.json", timeout=12, headers=_RATE_UA)
-    r.raise_for_status()
-    rows = (r.json() or {}).get("refRates") or []
-    if not rows:
-        raise Empty(kind)
-    df = pd.DataFrame(rows)
-    df["effectiveDate"] = pd.to_datetime(df["effectiveDate"], errors="coerce")
-    for c in ("percentRate", "targetRateFrom", "targetRateTo"):
-        if c in df:
-            df[c] = pd.to_numeric(df[c], errors="coerce")
-    df = df.dropna(subset=["effectiveDate"]).sort_values("effectiveDate").set_index("effectiveDate")
-    return df[[c for c in ("percentRate", "targetRateFrom", "targetRateTo") if c in df]]
-
-
-def fed_funds(n=500):
-    """(DataFrame[percentRate, targetRateFrom, targetRateTo], source name)."""
-    try:
-        return _nyfed("effr", n), "New York Fed"
+        fig.add_vline(x=pd.Timestamp(sim["d"].index[0]).strftime("%Y-%m-%d"), line=dict(color=T.GOLD, width=1.2, dash="dot"))
     except Exception:
         pass
-    s, _ = fred("DFF")
-    if not s.empty:
-        return pd.DataFrame({"percentRate": s}), "FRED"
-    return pd.DataFrame(), None
+    ui.chart(fig, key=f"pb_px_{b['id']}")
+
+    bench = sim["bench"] if sim["bench"] is not None else sim["d"]["Close"] / sim["d"]["Close"].iloc[0] * cap
+    bench_name = "S&P 500 (SPY)" if sim["bench"] is not None else L("Buy & Hold", "شراء واحتفاظ")
+    ui.chart(charts.equity_chart(sim["equity"], bench, (L("Bot", "البوت"), bench_name, L("Drawdown %", "التراجع %"))), key=f"pb_eq_{b['id']}")
+
+    jr = PB.journal(sim)
+    j_closed, j_open = jr[jr["Exit Reason"] != "Open"], jr[jr["Exit Reason"] == "Open"]
+    s = autotrader.stats({"trades": j_closed, "open": j_open, "equity": sim["equity"], "bench": bench, "positions": sim["position"],
+                          "capital": cap})
+    tdash.render(j_closed, j_open, s, cap, key=f"pb_td_{b['id']}")
+
+    ui.sec("table_rows", "All trades", "كل الصفقات")
+    if tr.empty:
+        st.info(L("No trades yet. The bot trades only when its strategy gives a signal.",
+                  "لا توجد صفقات بعد. البوت يتداول فقط لما تعطي الاستراتيجية إشارة."))
+        return
+    show = tr.copy()
+    show.insert(0, "#", range(1, len(show) + 1))
+    show["Entry Date"] = pd.to_datetime(show["Entry Date"]).dt.date
+    show["Exit Date"] = pd.to_datetime(show["Exit Date"]).dt.date
+    show["Exit Reason"] = show["Exit Reason"].map(lambda x: L(x, engine.EXIT_REASON_AR.get(x, x)))
+    N = {"Entry Date": L("Entry date", "تاريخ الدخول"), "Entry": L("Entry", "سعر الدخول"), "Exit Date": L("Exit date", "تاريخ الخروج"),
+         "Exit": L("Exit / now", "سعر الخروج / الحالي"), "Shares": L("Shares", "الأسهم"), "P&L $": L("P&L $", "الربح $"), "P&L %": L("P&L %", "الربح %"),
+         "Bars": L("Days", "الأيام"), "Exit Reason": L("Exit reason", "سبب الخروج")}
+    show = show.rename(columns=N)
+    st.dataframe(show.iloc[::-1].style.map(T.color_style, subset=[N["P&L %"], N["P&L $"]]).format(
+        {N["Entry"]: "{:,.2f}", N["Exit"]: "{:,.2f}", N["Shares"]: "{:,.2f}", N["P&L $"]: "{:+,.2f}", N["P&L %"]: "{:+.2f}%"}),
+        hide_index=True, height=min(420, 38 + 35 * len(show)))
+    st.download_button(L("Export CSV", "تصدير CSV"), show.to_csv(index=False).encode("utf-8-sig"), f"paper_bot_{b['symbol']}_{b['id']}.csv",
+                       "text/csv", icon=":material/download:", key=f"pb_csv_{b['id']}")
 
 
-def _maturity(col):
-    import re
-    m = re.match(r"\s*(\d+(?:\.\d+)?)\s*(Mo|Month|Yr|Year)", str(col))
-    if not m:
-        return None
-    n = float(m.group(1))
-    return n / 12 if m.group(2).startswith("M") else n
+# =====================================================================
+# manage: unlock · add · delete
+# =====================================================================
+def _unlock():
+    if ss.get("pb_admin"):                 # typing Enter and pressing the button both call this
+        return
+    if PB.check_password(ss.get("pb_pw")):
+        ss.pb_admin = True
+        ss.pb_pw = ""
+    else:
+        ss.pb_bad_pw = True
 
 
-def maturity_label(m):
-    return f"{m * 12:g}M" if m < 1 else f"{m:g}Y"
+def can_edit():
+    mode = PB.admin_mode()
+    if mode == "open" or (mode == "password" and ss.get("pb_admin")):
+        return True
+    if mode == "locked":
+        st.info(L("To add or delete bots, add BOTS_PASSWORD to your Streamlit Secrets (Settings → Secrets). Visitors can only watch the bots.",
+                  "لإضافة أو حذف البوتات، أضف BOTS_PASSWORD في Secrets حق Streamlit (Settings ← Secrets). الزوار يقدرون يشاهدون البوتات فقط."),
+                icon=":material/lock:")
+        st.code('BOTS_PASSWORD = "' + L("choose-a-password", "اختر-كلمة-مرور") + '"', language="toml")
+        return False
+    st.caption(L("Visitors can watch the bots. Enter your password to add or delete bots.",
+                 "الزوار يقدرون يشاهدون البوتات. اكتب كلمة المرور لإضافة أو حذف البوتات."))
+    a, b = st.columns([3, 1], vertical_alignment="bottom")
+    a.text_input(L("Password", "كلمة المرور"), type="password", key="pb_pw", on_change=_unlock)
+    b.button(L("Unlock", "دخول"), icon=":material/lock_open:", on_click=_unlock, width="stretch", key="pb_unlock")
+    if ss.pop("pb_bad_pw", False):
+        st.error(L("Wrong password.", "كلمة المرور غير صحيحة."))
+    return False
 
 
-@st.cache_data(ttl=3600, show_spinner=False)
-def _treasury(year):
-    url = (f"https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/{year}/all"
-           f"?type=daily_treasury_yield_curve&field_tdr_date_value={year}&page&_format=csv")
-    r = requests.get(url, timeout=15, headers=_RATE_UA)
-    r.raise_for_status()
-    df = pd.read_csv(io.StringIO(r.text))
-    if "Date" not in df.columns:
-        raise Empty(year)
-    df["Date"] = pd.to_datetime(df["Date"], format="%m/%d/%Y", errors="coerce")
-    cols = {c: _maturity(c) for c in df.columns if c != "Date"}
-    cols = {c: m for c, m in cols.items() if m is not None}
-    out = df.set_index("Date")[list(cols)].apply(pd.to_numeric, errors="coerce")
-    out.columns = [cols[c] for c in out.columns]
-    out = out[out.index.notna()].sort_index().dropna(how="all")
-    if out.empty:
-        raise Empty(year)
-    return out
+def _from_lab():
+    lab = ss.get("lab_cfg") or {}
+    new = dict(NEW_BOT)
+    for k in ("symbol", "strategy", "capital", "fee", "stop", "atr", "tp", "trail"):
+        if k in lab:
+            new[k] = lab[k]
+    new["params"] = {k: dict(v) for k, v in (lab.get("params") or {}).items()}
+    ss.pb_new = new
 
 
-YAHOO_CURVE = {"^IRX": 0.25, "^FVX": 5.0, "^TNX": 10.0, "^TYX": 30.0}
+def add_form(bots):
+    ui.sec("add_circle", "Add a bot", "أضف بوت")
+    if len(bots) >= PB.MAX_BOTS:
+        st.info(L(f"You have {PB.MAX_BOTS} bots, the maximum. Delete one to add another.",
+                  f"عندك {PB.MAX_BOTS} بوتات، وهذا الحد الأعلى. احذف واحد عشان تضيف غيره."), icon=":material/block:")
+        return
+    cfg = ss.setdefault("pb_new", {**NEW_BOT, "params": {}})
+    if cfg.get("strategy") not in engine.STRATEGIES:
+        cfg["strategy"] = NEW_BOT["strategy"]
+    st.button(L("Copy my Strategy Lab settings", "انسخ إعدادات مختبر الاستراتيجيات"), icon=":material/content_copy:", on_click=_from_lab,
+              key="pb_copylab")
+    with st.container(border=True):
+        c = st.columns([1.3, 1, 1.6, 1, 0.8])
+        cfg["name"] = c[0].text_input(L("Bot name", "اسم البوت"), cfg["name"], max_chars=40, placeholder=L("e.g. Apple trend", "مثال: بوت أبل"))
+        cfg["symbol"] = c[1].text_input(L("Symbol", "الرمز"), cfg["symbol"], max_chars=15,
+                                        help=L("Any Yahoo Finance symbol: AAPL, SPY, BTC-USD, 2222.SR…",
+                                               "أي رمز من ياهو فاينانس: AAPL، SPY، BTC-USD، 2222.SR…")).strip().upper()
+        names = list(engine.STRATEGIES)
+        cfg["strategy"] = c[2].selectbox(L("Strategy", "الاستراتيجية"), names, index=names.index(cfg["strategy"]), format_func=strat_name)
+        cfg["capital"] = c[3].number_input(L("Virtual capital ($)", "رأس المال الوهمي ($)"), 100, 100_000_000, int(cfg["capital"]), step=1000)
+        cfg["fee"] = c[4].number_input(L("Fee % / side", "العمولة %"), 0.0, 1.0, float(cfg["fee"]), step=0.01)
+        spec = engine.STRATEGIES[cfg["strategy"]][1]
+        params = cfg["params"].setdefault(cfg["strategy"], {k: dflt for k, _, _, _, dflt, _ in spec})
+        pc = st.columns(len(spec) + 4)
+        for i, (k, label, lo, hi, dflt, step) in enumerate(spec):
+            lab = L(label, engine.PARAM_AR.get(label, label))
+            if isinstance(step, float):
+                params[k] = pc[i].number_input(lab, float(lo), float(hi), min(max(float(params.get(k, dflt)), float(lo)), float(hi)), step=float(step))
+            else:
+                params[k] = pc[i].number_input(lab, int(lo), int(hi), min(max(int(params.get(k, dflt)), int(lo)), int(hi)), step=int(step))
+        j = len(spec)
+        off = L("0 = off", "0 = إيقاف")
+        cfg["stop"] = pc[j].number_input(L("Stop loss %", "وقف الخسارة %"), 0.0, 50.0, float(cfg["stop"]), step=0.5, help=off)
+        cfg["atr"] = pc[j + 1].number_input(L("ATR stop ×", "وقف ATR ×"), 0.0, 10.0, float(cfg["atr"]), step=0.5, help=off)
+        cfg["tp"] = pc[j + 2].number_input(L("Take profit %", "جني الأرباح %"), 0.0, 500.0, float(cfg["tp"]), step=1.0, help=off)
+        cfg["trail"] = pc[j + 3].number_input(L("Trailing stop %", "الوقف المتحرك %"), 0.0, 50.0, float(cfg["trail"]), step=0.5, help=off)
+        today = PB.today_ny()
+        d1, d2 = st.columns([1, 2], vertical_alignment="bottom")
+        start = d1.date_input(L("Start date", "تاريخ البداية"), today, min_value=today - timedelta(days=5 * 365), max_value=today, key="pb_start")
+        d2.caption(L("Today = the bot trades live from now on. An earlier date replays the past first, like the Strategy Lab, then carries on live.",
+                     "اليوم = البوت يتداول مباشرة من الحين وللأمام. التاريخ الأقدم يعيد تشغيل الفترة الماضية أولاً مثل مختبر الاستراتيجيات، ثم يكمل مباشرة."))
+
+        if st.button(L("Start the bot", "شغّل البوت"), type="primary", icon=":material/play_arrow:", key="pb_create"):
+            sym = cfg["symbol"]
+            if "fast" in params and "slow" in params and params["fast"] >= params["slow"]:
+                st.error(L("Fast period must be smaller than slow period.", "الفترة السريعة لازم تكون أصغر من البطيئة."))
+                return
+            if not sym:
+                st.error(L("Type a symbol.", "اكتب رمز السهم."))
+                return
+            with st.spinner(L(f"Checking {sym}...", f"جاري التحقق من {sym}...")):
+                df = data.history(sym, "2y")
+            if df.empty or len(df) < 60:
+                st.error(L(f"No price data for {sym}. Check the symbol (for example AAPL, BTC-USD, 2222.SR).",
+                           f"لا توجد بيانات للرمز {sym}. تأكد من الرمز (مثلاً AAPL أو BTC-USD أو 2222.SR)."))
+                return
+            short = strat_name(cfg["strategy"]).split(" (")[0]
+            rec = {"name": (cfg["name"].strip() or f"{sym} · {short}")[:40], "symbol": sym, "strategy": cfg["strategy"],
+                   "params": dict(params), "capital": float(cfg["capital"]), "fee": float(cfg["fee"]), "stop_pct": float(cfg["stop"]),
+                   "atr_mult": float(cfg["atr"]), "tp_pct": float(cfg["tp"]), "trail_pct": float(cfg["trail"]),
+                   "start_date": pd.Timestamp(start).strftime("%Y-%m-%d")}
+            try:
+                PB.create_bot(rec)
+            except PB.StoreError as e:
+                if e.kind == "full":
+                    st.error(L(f"You already have {PB.MAX_BOTS} bots.", f"عندك {PB.MAX_BOTS} بوتات بالفعل."))
+                else:
+                    storage_notice(e)
+                return
+            cfg["name"] = ""
+            st.toast(L(f"Bot started: {rec['name']}", f"تم تشغيل البوت: {rec['name']}"), icon=":material/rocket_launch:")
+            st.rerun()
 
 
-def yield_curve():
-    """(DataFrame dates x maturity in years, source name)."""
-    y = date.today().year
-    frames = []
-    for yr in (y - 1, y):
-        try:
-            frames.append(_treasury(yr))
-        except Exception:
-            continue
-    if frames:
-        df = pd.concat(frames).sort_index()
-        df = df[~df.index.duplicated(keep="last")]
-        df = df.T.groupby(level=0).mean().T                  # merge duplicate maturities if the site renames a column
-        return df.reindex(sorted(df.columns), axis=1), "U.S. Treasury"
-    hist = history_many(tuple(YAHOO_CURVE), "2y")
-    if hist:
-        df = pd.DataFrame({YAHOO_CURVE[s]: h["Close"] for s, h in hist.items()}).sort_index().dropna(how="all")
-        return df.reindex(sorted(df.columns), axis=1), "Yahoo Finance"
-    return pd.DataFrame(), None
+def delete_list(bots):
+    if not bots:
+        return
+    ui.sec("delete", "Delete a bot", "حذف بوت")
+    for b in bots:
+        with st.container(border=True):
+            a, c = st.columns([4, 1], vertical_alignment="center")
+            a.markdown(f'<b>{T.esc(b["name"])}</b> <span class="muted">· {T.esc(b["symbol"])} · {T.esc(strat_name(b["strategy"]))} · '
+                       f'{L("since", "منذ")} {T.esc(b["start_date"])}</span>', unsafe_allow_html=True)
+            with c.popover(L("Delete", "حذف"), icon=":material/delete:", width="stretch"):
+                st.markdown(L(f"Delete **{b['name']}** and its whole record? This can't be undone.",
+                              f"حذف **{b['name']}** وكل سجله؟ ما تقدر ترجعه بعدين."))
+                if st.button(L("Yes, delete", "نعم، احذف"), type="primary", key=f"pb_del_{b['id']}", icon=":material/delete_forever:"):
+                    try:
+                        PB.delete_bot(b["id"])
+                    except PB.StoreError as e:
+                        storage_notice(e)
+                        return
+                    st.toast(L("Bot deleted.", "تم حذف البوت."), icon=":material/delete:")
+                    st.rerun()
 
 
-def revenues(symbols, limit=100):
-    """symbol -> trailing-12-month revenue (from the company profile, cached 6 hours)."""
-    syms = [s for s in dict.fromkeys(symbols) if s][:limit]
+def manage(bots, err):
+    with st.expander(L(f"Manage bots ({len(bots)} of {PB.MAX_BOTS})", f"إدارة البوتات ({len(bots)} من {PB.MAX_BOTS})"),
+                     icon=":material/settings:", expanded=not bots):
+        if err is not None:
+            st.caption(L("Fix the storage message above first.", "صلّح رسالة التخزين اللي فوق أولاً."))
+            return
+        if not can_edit():
+            return
+        add_form(bots)
+        delete_list(bots)
+        if PB.admin_mode() == "password":
+            if st.button(L("Lock", "قفل"), icon=":material/lock:", key="pb_lock"):
+                ss.pb_admin = False
+                st.rerun()
 
-    def one(s):
-        v = info(s).get("totalRevenue")
-        return s, float(v) if isinstance(v, (int, float)) and v > 0 else None
-    out = {}
-    with ThreadPoolExecutor(max_workers=8) as ex:
-        for s, v in ex.map(one, syms):
-            out[s] = v
-    return out
+
+# =====================================================================
+# page
+# =====================================================================
+def page_paper_bots():
+    ui.header("robot_2", "Paper Bots", "البوتات الافتراضية",
+              f"Up to {PB.MAX_BOTS} bots trade with virtual money on real prices, forward from the day they start. "
+              "Same engine as the Strategy Lab: signal on the daily close, order at the next open, stops checked during the day.",
+              f"حتى {PB.MAX_BOTS} بوتات تتداول بأموال وهمية على أسعار حقيقية، من يوم تشغيلها وللأمام. "
+              "نفس محرك مختبر الاستراتيجيات: الإشارة على الإغلاق اليومي، والتنفيذ عند افتتاح اليوم التالي، والوقف يُفحص خلال اليوم.")
+    try:
+        bots, err = PB.list_bots(), None
+    except PB.StoreError as e:
+        bots, err = [], e
+    storage_notice(err)
+
+    if bots:
+        with st.spinner(L("Updating the bots with the latest prices...", "جاري تحديث البوتات بآخر الأسعار...")):
+            sims, spy = PB.run_all(bots)
+        ui.safe(leaderboard, sims)
+        ui.safe(compare_chart, sims, spy)
+        ui.safe(details, sims)
+    elif err is None:
+        msg = L("No bots yet. Open <b>Manage bots</b> below, pick a symbol and a strategy, and press <b>Start the bot</b>. "
+                "From then on the bot checks its strategy after every US close and trades with virtual money at the next open.",
+                "ما فيه بوتات للحين. افتح <b>إدارة البوتات</b> تحت، واختر السهم والاستراتيجية، واضغط <b>شغّل البوت</b>. "
+                "بعدها البوت يفحص استراتيجيته بعد كل إغلاق للسوق الأمريكي، ويتداول بأموال وهمية عند الافتتاح التالي.")
+        ui.html(f'<div class="card" style="line-height:1.9">{T.ico("smart_toy", "acc")} {msg}</div>')
+
+    manage(bots, err)
+    st.caption(L("Virtual trading on real daily prices (dividend-adjusted, may be delayed). Results are recalculated from each bot's start date "
+                 "whenever the page opens. No real money and no broker are involved. Past results do not guarantee future returns.",
+                 "تداول وهمي على أسعار يومية حقيقية (معدّلة بالتوزيعات وقد تكون متأخرة). النتائج تُحسب من جديد من تاريخ بداية كل بوت كل ما تفتح الصفحة. "
+                 "لا توجد أموال حقيقية ولا وسيط. النتائج السابقة لا تضمن المستقبل."))
+    ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
 BUILD = "7.1"

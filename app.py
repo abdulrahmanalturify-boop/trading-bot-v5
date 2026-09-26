@@ -12,8 +12,8 @@ import streamlit as st
 # previous version in memory. Every module carries BUILD; if one in memory is older, all of them are reloaded in order.
 BUILD = "7.1"
 _ORDER = ["i18n", "flags", "mcal", "universe", "sp500", "taxonomy", "ta", "academy", "insight", "heatmap", "newsiq", "theme", "data",
-          "caldata", "newsbot", "charts", "engine", "autotrader", "ui", "tdash", "p_markets", "p_research", "p_insight", "p_academy",
-          "p_bot", "p_calendar"]
+          "caldata", "newsbot", "charts", "engine", "autotrader", "ui", "tdash", "paperbots", "p_markets", "p_research", "p_insight",
+          "p_academy", "p_bot", "p_paper", "p_calendar"]
 if any(m in sys.modules and getattr(sys.modules[m], "BUILD", None) != BUILD for m in _ORDER):
     for _m in _ORDER:
         if _m in sys.modules:
@@ -29,6 +29,7 @@ import p_bot
 import p_calendar
 import p_insight
 import p_markets
+import p_paper
 import p_research
 import theme as T
 import ui
@@ -165,6 +166,7 @@ P.update({
     "academy": st.Page(p_academy.page_academy, title=L("Courses", "الدورات"), icon=":material/school:", url_path="academy"),
     "glossary": st.Page(p_academy.page_glossary, title=L("Glossary", "قاموس المصطلحات"), icon=":material/menu_book:", url_path="glossary"),
     "auto": st.Page(p_bot.page_autotrader, title=L("Auto Trader", "التداول الآلي"), icon=":material/rocket_launch:", url_path="auto-trader"),
+    "paper": st.Page(p_paper.page_paper_bots, title=L("Paper Bots", "البوتات الافتراضية"), icon=":material/robot_2:", url_path="paper-bots"),
     "scanner": st.Page(p_research.page_scanner, title=L("Scanner", "صائد الفرص"), icon=":material/radar:", url_path="scanner"),
     "catalyst": st.Page(p_research.page_catalyst, title="Catalyst Pro", icon=":material/bolt:", url_path="catalyst"),
     "lab": st.Page(p_bot.page_lab, title=L("Strategy Lab", "مختبر الاستراتيجيات"), icon=":material/smart_toy:", url_path="strategy-lab"),
@@ -177,7 +179,7 @@ SECTIONS = [
     (L("Calendar", "التقويم"), "calendar_month", ["earnings", "results", "econcal", "holidays", "dividends", "splits", "ipos"]),
     (L("Insight", "رؤى"), "lightbulb", ["brief", "articles", "sentiment", "seasonality"]),
     (L("Academy", "الأكاديمية"), "school", ["academy", "glossary"]),
-    (L("Trading Bot", "بوت التداول"), "smart_toy", ["auto", "scanner", "catalyst", "lab", "trades"]),
+    (L("Trading Bot", "بوت التداول"), "smart_toy", ["paper", "auto", "scanner", "catalyst", "lab", "trades"]),
 ]
 # the built-in menu is hidden; the bar below opens its menus on hover and navigates without reloading the site
 pg = st.navigation({label: [P[k] for k in keys] for label, _, keys in SECTIONS}, position="hidden")
