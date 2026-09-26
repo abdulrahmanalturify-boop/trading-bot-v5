@@ -337,9 +337,9 @@ ARTICLES = [
                "first, and backtest rules before trusting them with real money.",
           "احتفظ بسجل تداول: التاريخ والسبب والدخول والوقف والهدف وما حدث. بعد 20 أو 30 صفقة تظهر الأنماط: الإعدادات التي تنجح معك، والأوقات التي يسوء "
           "فيها تداولك، والأخطاء التي تكررها. جرّب الاستراتيجيات الجديدة بحساب تجريبي أو بمبالغ صغيرة أولاً، واختبر القواعد تاريخياً قبل أن تثق بها بأموال حقيقية."),
-         ("note", "The Strategy Lab backtests rules on real data, and the Trade Journal keeps score of the bot's trades.",
-          "مختبر الاستراتيجيات يختبر القواعد على بيانات حقيقية، وسجل الصفقات يتابع نتائج صفقات البوت.")],
-     "related": ["lab", "trades", "academy"]},
+         ("note", "Paper Bots trade rules with virtual money on real prices and let you test a strategy on any stock before trusting it.",
+          "البوتات الافتراضية تتداول القواعد بأموال وهمية على أسعار حقيقية، وتقدر تختبر فيها أي استراتيجية على أي سهم قبل ما تثق فيها.")],
+     "related": ["paper", "academy"]},
 ]
 
 
@@ -497,4 +497,4 @@ def art_scene(aid, cat, uid):
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "8.2"
+BUILD = "8.3"

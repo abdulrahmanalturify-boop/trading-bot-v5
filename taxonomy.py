@@ -323,4 +323,4 @@ def segment_of(sym, theme=None, sub=None, industry=None):
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "8.2"
+BUILD = "8.3"

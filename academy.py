@@ -108,8 +108,8 @@ COURSES = [
           "السعر فوق متوسط 200 الصاعد: اتجاه صاعد طويل المدى. تحته والمتوسط نازل: اتجاه هابط. وإذا كان متوسط 20 فوق 50 و50 فوق 200 فكل الأطر الزمنية متفقة: اتجاه صاعد قوي.",
           "Trade with the trend, not against it.", "تداول مع الاتجاه وليس ضده.", "ma_live"),
          ("Golden and death crosses", "التقاطع الذهبي والسلبي",
-          "A golden cross happens when the 50-day crosses above the 200-day: often the start of a long uptrend. The death cross is the opposite. Try both in the Strategy Lab to see how they performed on any stock.",
-          "التقاطع الذهبي يحدث عندما يعبر متوسط 50 فوق متوسط 200، وغالباً يكون بداية اتجاه صاعد طويل. والتقاطع السلبي عكسه. جرّب الاثنين في مختبر الاستراتيجيات لترى أداءهما على أي سهم.",
+          "A golden cross happens when the 50-day crosses above the 200-day: often the start of a long uptrend. The death cross is the opposite. Try both in Paper Bots (Test a strategy on a symbol) to see how they performed on any stock.",
+          "التقاطع الذهبي يحدث عندما يعبر متوسط 50 فوق متوسط 200، وغالباً يكون بداية اتجاه صاعد طويل. والتقاطع السلبي عكسه. جرّب الاثنين في البوتات الافتراضية (اختبر استراتيجية على سهم) لترى أداءهما على أي سهم.",
           "Crosses are slow but filter out a lot of noise.", "التقاطعات بطيئة لكنها تصفي كثيراً من الضجيج.", None),
          ("Limitations", "العيوب",
           "Moving averages lag because they use past prices. In sideways markets they cross back and forth and create false signals (whipsaws). Combine them with support/resistance and volume instead of using them alone.",
@@ -369,4 +369,4 @@ CANDLE_ANATOMY = """<svg viewBox="0 0 520 240" xmlns="http://www.w3.org/2000/svg
 </svg>"""
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "8.2"
+BUILD = "8.3"

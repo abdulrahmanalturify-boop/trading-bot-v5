@@ -52,8 +52,8 @@ PANELS = {"RSI Mean Reversion": ["RSI"], "MACD Crossover": ["MACD"], "OBV Trend 
           PBK.TREND_PULLBACK: ["RSI", "ADX"], PBK.RANGE: ["RSI", "ADX"]}
 # the two ways to pick strategies in the form
 MODES = {"single": ("tune", "Strategies: one, several or all", "الاستراتيجيات: وحدة أو أكثر أو الكل",
-                    "The Strategy Lab strategies. Pick one, several or all of them; any of them can open a trade.",
-                    "استراتيجيات مختبر الاستراتيجيات. اختر وحدة أو أكثر أو كلها، وأي وحدة منها تقدر تفتح صفقة."),
+                    "The classic indicator strategies. Pick one, several or all of them; any of them can open a trade.",
+                    "استراتيجيات المؤشرات الكلاسيكية. اختر وحدة أو أكثر أو كلها، وأي وحدة منها تقدر تفتح صفقة."),
          "combo": ("hub", "Combined strategies", "الاستراتيجيات المركّبة",
                    "Complete setups written as exact numbers: trend, pullback or breakout, confirmation, and their own stop, "
                    "target and time stop.",
@@ -2554,7 +2554,7 @@ def classic_rules_html(name, params=None):
                  + "".join(f"<li>{_rule_txt(L(en, ar_))}</li>" for en, ar_ in items) + "</ul></div>"
                  for i, (ge, ga, items) in enumerate(groups, 1))
     return (f'<div class="pbrl"><div class="hd"><span class="i">{T.icon("insights")}</span>'
-            f'<div class="nm"><b>{T.esc(strat_name(name))}</b><span>{T.esc(L("Daily candles · Strategy Lab", "شموع يومية · مختبر الاستراتيجيات"))}</span></div>'
+            f'<div class="nm"><b>{T.esc(strat_name(name))}</b><span>{T.esc(L("Daily candles · classic", "شموع يومية · كلاسيكية"))}</span></div>'
             f'</div><div class="gr">{gh}</div></div>')
 
 
@@ -3011,4 +3011,4 @@ def page_paper_bots():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "8.2"
+BUILD = "8.3"
