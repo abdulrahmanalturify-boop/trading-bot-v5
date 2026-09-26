@@ -19,7 +19,7 @@ import ta
 import tdash
 import theme as T
 import ui
-from i18n import L, sector_name
+from i18n import L, is_ar, sector_name
 from sp500 import gics_name
 
 ss = st.session_state
@@ -323,9 +323,38 @@ def details(sims):
     for col, (ic, lab, val, sub, kind) in zip(st.columns(6), kp):
         col.markdown(T.kpi(ic, lab, val, sub, kind), unsafe_allow_html=True)
 
+    # price chart with the bot's trades on one stock (from a little before the start)
+    ui.sec("candlestick_chart", "Trades on the chart", "الصفقات على الشارت")
+    if group:
+        traded = list(dict.fromkeys(tr.sort_values("Entry Date", ascending=False)["Symbol"]))
+        if not traded:
+            st.caption(L("No trades yet. The chart appears after the first trade.", "لا توجد صفقات بعد. الشارت يظهر بعد أول صفقة."))
+            full = None
+        else:
+            ui.valid(f"pb_chart_{b['id']}", traded)
+            sym = st.selectbox(L("Stock", "السهم"), traded, key=f"pb_chart_{b['id']}")
+            full = data.history(sym, PB.period_for(b["start_date"]))
+    else:
+        sym, full = b["value"], sim.get("frame")
+    if full is not None and not full.empty:
+        full = ta.add_all(full)
+        start_i = int(full.index.searchsorted(pd.Timestamp(sim["equity"].index[0])))
+        view = full.iloc[max(0, start_i - 30):]
+        overlays = list(dict.fromkeys(o for n in names for o in OVERLAYS.get(n, [])))
+        panels = list(dict.fromkeys(p for n in names for p in PANELS.get(n, [])))[:2]
+        fig = charts.price_chart(view, "Candles" if len(view) <= 800 else "Line", overlays, panels, False, trades=tr[tr["Symbol"] == sym])
+        try:
+            fig.add_vline(x=pd.Timestamp(sim["equity"].index[0]).strftime("%Y-%m-%d"), line=dict(color=T.GOLD, width=1.2, dash="dot"))
+        except Exception:
+            pass
+        ui.chart(fig, key=f"pb_px_{b['id']}")
+
+    ui.sec("show_chart", "Balance vs the market", "الرصيد مقابل السوق")
     bench = sim["bench"] if sim["bench"] is not None else sim["group"]
     bench_name = "S&P 500 (SPY)" if sim["bench"] is not None else L("Buy & Hold", "شراء واحتفاظ")
     ui.chart(charts.equity_chart(sim["equity"], bench, (L("Bot", "البوت"), bench_name, L("Drawdown %", "التراجع %"))), key=f"pb_eq_{b['id']}")
+    ui.chart(charts.monthly_heatmap(engine.monthly_returns(sim["equity"]), L("Monthly returns", "العوائد الشهرية"),
+                                    tdash.MONTHS_AR if is_ar() else None), key=f"pb_month_{b['id']}")
 
     jr = PB.journal(sim)
     j_closed, j_open = jr[jr["Exit Reason"] != "Open"], jr[jr["Exit Reason"] == "Open"]
@@ -345,32 +374,6 @@ def details(sims):
             g = pd.concat([g.nlargest(6), g.nsmallest(6)]).groupby(level=0).first().sort_values()
             ui.chart(charts.hbar(list(g.index), [float(v) for v in g.values], L("P&L by stock, best and worst ($)", "الربح حسب السهم، الأفضل والأسوأ ($)"),
                                  max(260, 30 * len(g) + 80), suffix=""), key=f"pb_bysym_{b['id']}", container=c2 if len(names) > 1 else c1)
-
-    # price chart with the bot's trades on one stock (from a little before the start)
-    ui.sec("candlestick_chart", "Trades on the chart", "الصفقات على الشارت")
-    if group:
-        traded = list(dict.fromkeys(tr.sort_values("Entry Date", ascending=False)["Symbol"]))
-        if not traded:
-            st.caption(L("No trades yet. The chart appears after the first trade.", "لا توجد صفقات بعد. الشارت يظهر بعد أول صفقة."))
-            full = None
-        else:
-            ui.valid(f"pb_chart_{b['id']}", traded)
-            sym = st.selectbox(L("Stock", "السهم"), traded, key=f"pb_chart_{b['id']}")
-            full = data.history(sym, PB.period_for(b["start_date"]))
-    else:
-        sym, full = b["value"], sim.get("frame")
-    if full is not None and not full.empty:
-        full = ta.add_all(full)
-        start_i = int(full.index.searchsorted(pd.Timestamp(sim["equity"].index[0])))
-        view = full.iloc[max(0, start_i - 30):]
-        one = names[0] if len(names) == 1 else None
-        fig = charts.price_chart(view, "Candles" if len(view) <= 800 else "Line", OVERLAYS.get(one, []), PANELS.get(one, []),
-                                 False, trades=tr[tr["Symbol"] == sym])
-        try:
-            fig.add_vline(x=pd.Timestamp(sim["equity"].index[0]).strftime("%Y-%m-%d"), line=dict(color=T.GOLD, width=1.2, dash="dot"))
-        except Exception:
-            pass
-        ui.chart(fig, key=f"pb_px_{b['id']}")
 
     ui.sec("table_rows", "All trades", "كل الصفقات")
     if tr.empty:
