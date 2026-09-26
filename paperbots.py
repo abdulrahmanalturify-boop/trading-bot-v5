@@ -43,6 +43,7 @@ MAX_BOTS = 5
 MAX_POS_LIMIT = 20
 TABLE = "paper_bots"
 KINDS = ("company", "sector", "industry", "all")
+COMBO = "__combo__"          # trades opened by a combined (custom) rule carry this strategy name
 FIELDS = ["name", "symbol", "strategy", "params", "capital", "fee", "stop_pct", "atr_mult", "tp_pct", "trail_pct", "start_date"]
 SETUP_SQL = """create table if not exists paper_bots (
   id bigint generated always as identity primary key,
@@ -258,9 +259,11 @@ def _norm(r):
             uni = params.get("universe") or {}
             kind, value = str(uni.get("kind") or "company"), str(uni.get("value") or "")
             raw, max_pos = params.get("strategies") or {}, int(_num(params.get("max_pos"), 5))
+            comb = params.get("combine") or {}
         else:
             kind, value = "company", str(r["symbol"])
             raw, max_pos = {str(r["strategy"]): params}, 1
+            comb = {}
         if kind not in KINDS:
             kind, value = "company", str(r.get("symbol") or "")
         if kind == "company":
@@ -268,8 +271,11 @@ def _norm(r):
         if kind == "all":
             value = "all"
         strategies = {s: clean_params(s, raw[s]) for s in engine.STRATEGIES if s in raw}
+        combo = comb.get("mode") == "combo" and len(strategies) > 1
+        combine = {"mode": "combo" if combo else "any",
+                   "min": min(max(int(_num(comb.get("min"), len(strategies))), 1), max(len(strategies), 1)) if combo else 1}
         return {"id": r["id"], "name": str(r.get("name") or value)[:40], "kind": kind, "value": value,
-                "symbol": value if kind == "company" else None, "strategies": strategies,
+                "symbol": value if kind == "company" else None, "strategies": strategies, "combine": combine,
                 "max_pos": min(max(max_pos, 1), MAX_POS_LIMIT),
                 "capital": max(_num(r.get("capital"), 10000.0), 1.0), "fee": max(_num(r.get("fee")), 0.0),
                 "stop_pct": max(_num(r.get("stop_pct")), 0.0), "atr_mult": max(_num(r.get("atr_mult")), 0.0),
@@ -280,17 +286,25 @@ def _norm(r):
         return None
 
 
-def make_record(name, kind, value, strategies, max_pos, capital, fee, stop_pct, atr_mult, tp_pct, trail_pct, start_date):
-    """Settings from the form -> a row for the table (FIELDS)."""
+def make_record(name, kind, value, strategies, max_pos, capital, fee, stop_pct, atr_mult, tp_pct, trail_pct, start_date, combine=None):
+    """Settings from the form -> a row for the table (FIELDS).
+    combine: None / {'mode': 'any'} = any strategy opens its own trades; {'mode': 'combo', 'min': n} = buy only when at least
+    n of the strategies agree (see simulate)."""
     strategies = {s: clean_params(s, p) for s, p in strategies.items() if s in engine.STRATEGIES}
+    combine = combine or {}
+    if combine.get("mode") == "combo" and len(strategies) > 1:
+        combine = {"mode": "combo", "min": int(min(max(int(combine.get("min") or len(strategies)), 1), len(strategies)))}
+    else:
+        combine = {"mode": "any"}
     if kind == "company":
         value, max_pos, sym = str(value).strip().upper(), 1, str(value).strip().upper()
     else:
         sym = "ALL" if kind == "all" else f"{kind.upper()}:{value}"
         value = "all" if kind == "all" else value
-    return {"name": str(name)[:40], "symbol": sym[:120], "strategy": " + ".join(strategies)[:250],
+    joiner = " & " if combine["mode"] == "combo" else " + "
+    return {"name": str(name)[:40], "symbol": sym[:120], "strategy": joiner.join(strategies)[:250],
             "params": {"v": 2, "universe": {"kind": kind, "value": value}, "strategies": strategies,
-                       "max_pos": int(min(max(int(max_pos), 1), MAX_POS_LIMIT))},
+                       "max_pos": int(min(max(int(max_pos), 1), MAX_POS_LIMIT)), "combine": combine},
             "capital": float(capital), "fee": float(fee), "stop_pct": float(stop_pct), "atr_mult": float(atr_mult),
             "tp_pct": float(tp_pct), "trail_pct": float(trail_pct), "start_date": str(start_date)[:10]}
 
@@ -372,6 +386,13 @@ def risk_kwargs(bot):
 
 
 # ---------------------------------------------------------------- the portfolio engine
+def _state(entries, exits):
+    """1 while a strategy is in its buy state (from its buy signal until its sell signal), else 0. A sell wins a tie."""
+    e = entries.fillna(False).astype(bool).to_numpy()
+    x = exits.fillna(False).astype(bool).to_numpy()
+    return pd.Series(np.where(x, 0.0, np.where(e, 1.0, np.nan)), index=entries.index).ffill().fillna(0.0)
+
+
 TRADE_COLS = ["Symbol", "Strategy", "Entry Date", "Entry", "Exit Date", "Exit", "Shares", "P&L $", "P&L %", "Bars", "Exit Reason"]
 
 
@@ -403,7 +424,11 @@ def simulate(bot, px, spy=None):
         start = start.tz_localize(idx.tz)
     live = np.asarray(idx >= start)
     names = [s for s in engine.STRATEGIES if s in bot["strategies"]]      # fixed order: the first one wins a tie
-    S = len(names)
+    comb = bot.get("combine") or {}
+    combo = comb.get("mode") == "combo" and len(names) > 1
+    need = min(max(int(comb.get("min") or len(names)), 1), len(names)) if combo else 1
+    labels = [COMBO] if combo else names        # what opens a trade: each strategy, or the combined rule
+    S = len(labels)
     atr_on = bool(bot["atr_mult"])
 
     # wide arrays (dates x stocks); each stock's indicators and signals come from its own history, exactly like the lab
@@ -419,10 +444,17 @@ def simulate(bot, px, spy=None):
             ATRP[p, j] = np.r_[a[:1], a[:-1]]                  # the ATR of the previous bar (engine: atr_v[i - 1])
         K[p, j] = np.arange(len(df))
         MOM[p, j] = df["Close"].pct_change(63).to_numpy(float)
-        for k, name in enumerate(names):
-            e, x = engine.STRATEGIES[name][0](df, **bot["strategies"][name])
-            ENT[k, p, j] = e.fillna(False).astype(bool).to_numpy()
-            EXT[k, p, j] = x.fillna(False).astype(bool).to_numpy()
+        sig = [engine.STRATEGIES[name][0](df, **bot["strategies"][name]) for name in names]
+        if combo:
+            # a strategy "agrees" while it is in its buy state (after its own buy signal, until its own sell signal);
+            # the bot buys on the day at least `need` agree and sells when fewer than `need` agree
+            cond = sum(_state(e, x) for e, x in sig) >= need
+            ENT[0, p, j] = (cond & ~cond.shift(1, fill_value=False)).to_numpy()
+            EXT[0, p, j] = (~cond).to_numpy()
+        else:
+            for k, (e, x) in enumerate(sig):
+                ENT[k, p, j] = e.fillna(False).astype(bool).to_numpy()
+                EXT[k, p, j] = x.fillna(False).astype(bool).to_numpy()
     valid = ~np.isnan(C)
     CF = pd.DataFrame(C).ffill().to_numpy()                    # last known close, to value the portfolio every day
     ENT &= live[None, :, None]                                 # no new trades before the start date
@@ -441,7 +473,7 @@ def simulate(bot, px, spy=None):
         q = pos.pop(j)
         proceeds = q["shares"] * price * (1 - fee)
         cost = q["shares"] * q["entry"] * (1 + fee)
-        trades.append({"Symbol": syms[j], "Strategy": names[q["k"]], "Entry Date": idx[q["t"]], "Entry": q["entry"],
+        trades.append({"Symbol": syms[j], "Strategy": labels[q["k"]], "Entry Date": idx[q["t"]], "Entry": q["entry"],
                        "Exit Date": idx[t], "Exit": price, "Shares": q["shares"], "P&L $": proceeds - cost,
                        "P&L %": (proceeds / cost - 1) * 100, "Bars": int(K[t, j] - q["kb"]), "Exit Reason": reason})
         cash += proceeds
@@ -502,13 +534,13 @@ def simulate(bot, px, spy=None):
     for j, q in pos.items():
         tl = int(np.flatnonzero(valid[:, j])[-1])
         c_last, basis = C[tl, j], q["entry"] * (1 + fee)
-        open_rows.append({"Symbol": syms[j], "Strategy": names[q["k"]], "Entry Date": idx[q["t"]], "Entry": q["entry"],
+        open_rows.append({"Symbol": syms[j], "Strategy": labels[q["k"]], "Entry Date": idx[q["t"]], "Entry": q["entry"],
                           "Exit Date": idx[tl], "Exit": c_last, "Shares": q["shares"], "P&L $": q["shares"] * (c_last - basis),
                           "P&L %": (c_last / basis - 1) * 100, "Bars": int(K[tl, j] - q["kb"]), "Exit Reason": "Open"})
     tr = pd.DataFrame(trades + open_rows, columns=TRADE_COLS)
     out.update(ok=True, start=start, symbols=syms, n_symbols=N, last_date=idx[-1], trades=tr, max_pos=max_pos,
-               next_buys=[(syms[j], names[k]) for j, k in pend],
-               next_sells=[(syms[j], names[q["k"]]) for j, q in pos.items() if q["exit"]],
+               next_buys=[(syms[j], labels[k]) for j, k in pend],
+               next_sells=[(syms[j], labels[q["k"]]) for j, q in pos.items() if q["exit"]],
                n_open=len(pos), in_pos=bool(pos))
     if bot["kind"] == "company":
         out["frame"] = frames[syms[0]]

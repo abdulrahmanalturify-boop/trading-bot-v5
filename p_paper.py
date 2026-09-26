@@ -35,10 +35,12 @@ RED_CSS = (f'<style>[class*="st-key-pbred"] button {{ border-color: {T.DOWN}88 !
            f'[class*="st-key-pbred"] button:hover {{ border-color: {T.DOWN} !important; background: {T.DOWN}1A !important; }}</style>')
 DEFAULTS = {"pb_name": "", "pb_capital": 100000, "pb_kind": "company", "pb_symbol": "AAPL", "pb_sector": "Technology",
             "pb_ind_sector": "Technology", "pb_industry": "Semiconductors", "pb_maxpos": 5, "pb_strats": ["SMA Crossover"],
-            "pb_fee": 0.05, "pb_stop": 2.0, "pb_atr": 0.0, "pb_tp": 0.0, "pb_trail": 0.0}
+            "pb_fee": 0.05, "pb_stop": 2.0, "pb_atr": 0.0, "pb_tp": 0.0, "pb_trail": 0.0, "pb_combine": "any"}
 
 
 def strat_name(k):
+    if k == PB.COMBO:
+        return L("Combined rule", "القاعدة المركبة")
     return L(k, engine.STRATEGY_AR.get(k, k))
 
 
@@ -59,6 +61,26 @@ def universe_label(bot, count=None):
     if count:
         txt += L(f" ({count} stocks)", f" ({count} سهم)")
     return txt
+
+
+def combo_rule(bot):
+    """'Combined: all 3 agree' / 'Combined: 2 of 3', or None when each strategy trades on its own."""
+    c, n = bot.get("combine") or {}, len(bot["strategies"])
+    if c.get("mode") != "combo":
+        return None
+    if c["min"] >= n:
+        return L(f"Combined: all {n} agree", f"مركبة: لازم تتفق الـ {n} كلها")
+    return L(f"Combined: {c['min']} of {n} agree", f"مركبة: تتفق {c['min']} من {n}")
+
+
+def how_label(bot, short=False):
+    rule = combo_rule(bot)
+    names = list(bot["strategies"])
+    if rule and short:
+        return rule
+    if rule:
+        return rule + " · " + " + ".join(strat_short(x) for x in names)
+    return strategies_label(names, short)
 
 
 def strategies_label(names, short=False):
@@ -174,7 +196,7 @@ def bot_card(rank, sim, logo):
     b = sim["bot"]
     head = (f'<div style="display:flex;justify-content:space-between;align-items:center;gap:8px">{head_html(b, logo)}'
             f'<span class="muted" style="font-weight:800">#{rank}</span></div>')
-    badges = (f'<div style="margin-top:8px">{T.badge(strategies_label(list(b["strategies"]), short=True), "vio", "smart_toy")}'
+    badges = (f'<div style="margin-top:8px">{T.badge(how_label(b, short=True), "vio", "smart_toy")}'
               f'{status_badge(sim)}</div>')
     if sim["ok"] and not sim["waiting"]:
         ret, m = sim["ret"], sim["metrics"]
@@ -247,7 +269,7 @@ def details(sims):
     names = list(b["strategies"])
     group = b["kind"] != "company"
     uni = universe_label(b, sim.get("n_symbols") if sim["ok"] else None)
-    badges = T.badge(uni, "gold", KIND_ICON[b["kind"]]) + T.badge(strategies_label(names), "vio", "smart_toy")
+    badges = T.badge(uni, "gold", KIND_ICON[b["kind"]]) + T.badge(how_label(b), "vio", "smart_toy")
     if group:
         badges += T.badge(L(f"Up to {b['max_pos']} trades at once", f"حتى {b['max_pos']} صفقات في نفس الوقت"), "neu", "stacks")
     badges += (T.badge(_risk_txt(b), "neu", "shield") + T.badge(L("Start ", "البداية ") + b["start_date"], "neu", "event")
@@ -258,7 +280,9 @@ def details(sims):
         rows = "".join(f'<div style="margin:4px 0">{T.badge(strat_name(n), "vio", "smart_toy")} '
                        f'<span class="muted">{T.esc(_params_txt(n, p))}</span></div>' for n, p in b["strategies"].items())
         ui.html(rows or "—")
-        if len(names) > 1:
+        if combo_rule(b):
+            st.caption(combo_caption(b["combine"]["min"], len(names)))
+        elif len(names) > 1:
             st.caption(L("Any of these strategies can open a trade. A trade closes on the exit signal of the strategy that opened it, "
                          "or by the stop loss, take profit or trailing stop.",
                          "أي استراتيجية منها تقدر تفتح صفقة، والصفقة تتقفل بإشارة الخروج من نفس الاستراتيجية اللي فتحتها، "
@@ -362,10 +386,11 @@ def details(sims):
                           "capital": cap})
     tdash.render(j_closed, j_open, s, cap, key=f"pb_td_{b['id']}")
 
-    if len(closed) and (group or len(names) > 1):
+    by_strat = len(names) > 1 and not combo_rule(b)
+    if len(closed) and (group or by_strat):
         ui.sec("pie_chart", "What worked", "ماذا نجح")
         c1, c2 = st.columns(2)
-        if len(names) > 1:
+        if by_strat:
             g = closed.groupby("Strategy")["P&L $"].sum().sort_values()
             ui.chart(charts.hbar([strat_short(k) for k in g.index], [float(v) for v in g.values], L("P&L by strategy ($)", "الربح حسب الاستراتيجية ($)"),
                                  max(260, 34 * len(g) + 80), suffix=""), key=f"pb_bys_{b['id']}", container=c1)
@@ -373,7 +398,7 @@ def details(sims):
             g = closed.groupby("Symbol")["P&L $"].sum()
             g = pd.concat([g.nlargest(6), g.nsmallest(6)]).groupby(level=0).first().sort_values()
             ui.chart(charts.hbar(list(g.index), [float(v) for v in g.values], L("P&L by stock, best and worst ($)", "الربح حسب السهم، الأفضل والأسوأ ($)"),
-                                 max(260, 30 * len(g) + 80), suffix=""), key=f"pb_bysym_{b['id']}", container=c2 if len(names) > 1 else c1)
+                                 max(260, 30 * len(g) + 80), suffix=""), key=f"pb_bysym_{b['id']}", container=c2 if by_strat else c1)
 
     ui.sec("table_rows", "All trades", "كل الصفقات")
     if tr.empty:
@@ -454,10 +479,19 @@ def _all_strats():
     ss["pb_strats"] = list(engine.STRATEGIES)
 
 
-def _default_name(kind, value, strats):
+def combo_caption(need, n):
+    return L(f"A strategy agrees while it is in its buy state: from its own buy signal until its own sell signal. The bot buys on the day "
+             f"at least {need} of the {n} agree, and sells when fewer than {need} agree, or by the stop loss, take profit or trailing stop.",
+             f"الاستراتيجية تعتبر موافقة ما دامها في وضع شراء: من إشارة الشراء حقها لين إشارة البيع حقها. البوت يشتري في اليوم اللي توافق فيه "
+             f"{need} على الأقل من الـ {n}، ويبيع إذا صار الموافق أقل من {need}، أو بوقف الخسارة أو جني الأرباح أو الوقف المتحرك.")
+
+
+def _default_name(kind, value, strats, need=None):
     n = len(strats)
     how = strat_short(strats[0]) if n == 1 else (L("all strategies", "كل الاستراتيجيات") if n == len(engine.STRATEGIES)
                                                   else L(f"{n} strategies", f"{n} استراتيجيات"))
+    if need:
+        how = L(f"combined {need}/{n}", f"مركبة {need}/{n}")
     what = {"company": value, "sector": sector_name(value), "industry": gics_name(value), "all": L("All companies", "كل الشركات")}[kind]
     return f"{what} · {how}"[:40]
 
@@ -519,11 +553,26 @@ def add_form(bots):
                           key="pb_strats", format_func=strat_name) or []
         st.button(L("Select all strategies", "اختر كل الاستراتيجيات"), icon=":material/done_all:", on_click=_all_strats, key="pb_allstrats")
         strats = [s for s in names if s in strats]
+        mode, need = "any", None
         if len(strats) > 1:
-            st.caption(L("Any selected strategy can open a trade; the trade closes on the exit signal of the strategy that opened it, "
-                         "or by the stop loss, take profit or trailing stop.",
-                         "أي استراتيجية مختارة تقدر تفتح صفقة، والصفقة تتقفل بإشارة الخروج من نفس الاستراتيجية اللي فتحتها، "
-                         "أو بوقف الخسارة أو جني الأرباح أو الوقف المتحرك."))
+            ui.valid("pb_combine", ["any", "combo"])
+            mode = st.segmented_control(L("How do the strategies work together?", "كيف تشتغل الاستراتيجيات مع بعض؟"), ["any", "combo"],
+                                        key="pb_combine", format_func=lambda k: {
+                                            "any": L("Each on its own", "كل وحدة لحالها"),
+                                            "combo": L("Combined (custom rule)", "مركبة (قاعدة مخصصة)")}[k]) or "any"
+            if mode == "combo":
+                n = len(strats)
+                if not isinstance(ss.get("pb_min"), int) or not 2 <= ss["pb_min"] <= n:
+                    ss["pb_min"] = n
+                q1, q2 = st.columns([1, 2], vertical_alignment="bottom")
+                need = q1.number_input(L(f"Buy only when at least … of {n} agree", f"يشتري فقط إذا اتفقت على الأقل … من {n}"), 2, n, step=1,
+                                       key="pb_min")
+                q2.caption(combo_caption(need, n))
+            else:
+                st.caption(L("Any selected strategy can open a trade; the trade closes on the exit signal of the strategy that opened it, "
+                             "or by the stop loss, take profit or trailing stop.",
+                             "أي استراتيجية مختارة تقدر تفتح صفقة، والصفقة تتقفل بإشارة الخروج من نفس الاستراتيجية اللي فتحتها، "
+                             "أو بوقف الخسارة أو جني الأرباح أو الوقف المتحرك."))
         params = {}
         with st.expander(L("Strategy settings (optional, defaults are the Strategy Lab's)", "إعدادات الاستراتيجيات (اختياري، الافتراضي نفس المختبر)"),
                          icon=":material/tune:"):
@@ -581,9 +630,11 @@ def add_form(bots):
                     st.error(L(f"No price data for {value}. Check the symbol (for example AAPL, BTC-USD, 2222.SR).",
                                f"لا توجد بيانات للرمز {value}. تأكد من الرمز (مثلاً AAPL أو BTC-USD أو 2222.SR)."))
                     return
-            name = str(ss.get("pb_name") or "").strip() or _default_name(kind, value, strats)
+            combo = mode == "combo" and len(strats) > 1
+            name = str(ss.get("pb_name") or "").strip() or _default_name(kind, value, strats, need if combo else None)
             rec = PB.make_record(name, kind, value, params, ss.get("pb_maxpos", 5), ss["pb_capital"], ss["pb_fee"], ss["pb_stop"], ss["pb_atr"],
-                                 ss["pb_tp"], ss["pb_trail"], pd.Timestamp(start).strftime("%Y-%m-%d"))
+                                 ss["pb_tp"], ss["pb_trail"], pd.Timestamp(start).strftime("%Y-%m-%d"),
+                                 {"mode": "combo", "min": int(need)} if combo else None)
             try:
                 PB.create_bot(rec)
             except PB.StoreError as e:
@@ -613,7 +664,7 @@ def delete_list(bots):
         with st.container(border=True):
             a, c = st.columns([4, 1], vertical_alignment="center")
             a.markdown(f'<b>{T.esc(b["name"])}</b> <span class="muted">· {T.esc(universe_label(b))} · '
-                       f'{T.esc(strategies_label(list(b["strategies"]), short=True))} · {L("since", "منذ")} {T.esc(b["start_date"])}</span>',
+                       f'{T.esc(how_label(b, short=True))} · {L("since", "منذ")} {T.esc(b["start_date"])}</span>',
                        unsafe_allow_html=True)
             with c.container(key=f"pbred_del_{b['id']}"):
                 st.button(L("Delete", "حذف"), icon=":material/delete:", key=f"pb_del_{b['id']}", on_click=_ask_delete, args=(b["id"],),
