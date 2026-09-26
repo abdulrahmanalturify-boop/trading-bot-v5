@@ -18,7 +18,7 @@ from theme import (ACCENT, BG, BORDER, CYAN, DOWN, GOLD, MUTED, NEG_BD, NEG_BG, 
 
 FONT_FAMILY = "Plus Jakarta Sans, Readex Pro, system-ui, sans-serif"
 GRID = "rgba(138,148,167,0.13)"
-CHART_DESIGN = "2026-09-26.1"
+CHART_DESIGN = "2026-09-26.2"
 PALETTE = [ACCENT, CYAN, VIOLET, GOLD, "#F472B6", "#34D399", ORANGE, "#60A5FA", "#A3E635", "#FB7185", "#C084FC", "#2DD4BF"]
 
 
@@ -418,50 +418,53 @@ def orb_chart(bars, trades=None, or_minutes=15, mode="Candles", words=None, heig
 
 
 def pct_bars(labels, values, title=None, height=None, hover=None):
-    """Ranked contribution bars; a dedicated value column stays legible on small screens."""
+    """Editorial contribution rows: labels above slim, consistently scaled signed bars."""
     if len(labels) != len(values) or (hover is not None and len(hover) != len(values)):
         raise ValueError("Contribution labels, values and hover details must have equal lengths")
     rows = [(str(label), float(value), str(hover[i]) if hover is not None else "")
             for i, (label, value) in enumerate(zip(labels, values))
             if value is not None and np.isfinite(float(value))]
     rows.sort(key=lambda row: row[1], reverse=True)
-    names = [row[0] for row in rows]
-    vals = [row[1] for row in rows]
-    positions = list(range(len(rows)))
-    colors = ["#34D399" if v > 0 else "#FB7185" if v < 0 else MUTED for v in vals]
+    vals = [r[1] for r in rows]
+    colors = ["#729BFF" if v > 0 else "#FB8DA4" if v < 0 else MUTED for v in vals]
+    positions = [i + 0.22 for i in range(len(rows))]
     fig = go.Figure(go.Bar(
-        x=vals, y=positions, orientation="h", width=0.42,
-        marker=dict(color=[rgba(c, 0.56) for c in colors], line=dict(color=colors, width=1)),
+        x=vals, y=positions, orientation="h", width=0.12,
+        marker=dict(color=colors, line=dict(width=0)),
         customdata=[[html.escape(name), detail] for name, _, detail in rows],
         hovertemplate="<b>%{customdata[0]}</b><br>%{x:+.2f}%<br>%{customdata[1]}<extra></extra>"))
-    style(fig, height or max(280, 36 * len(rows) + 104), title, legend=False)
+    style(fig, height or max(330, 58 * len(rows) + 116), title, legend=False)
     lo, hi = min(vals + [0]), max(vals + [0])
     span = hi - lo or 1.0
-    fig.update_xaxes(
-        domain=[0, 1], range=[lo - span * 0.06, hi + span * 0.06],
-        showgrid=True, gridcolor="rgba(138,148,167,0.09)",
-        zeroline=True, zerolinecolor="#66738C", zerolinewidth=1,
-        ticksuffix="%", nticks=4, tickfont=dict(size=10, color=MUTED), fixedrange=True)
-    fig.update_yaxes(
-        side="left", tickmode="array", tickvals=positions,
-        ticktext=["<br>".join(html.escape(rtl_text(part)) for part in
-                            ([name] if _ARABIC.search(name) else
-                             textwrap.wrap(name, 19, break_long_words=False, break_on_hyphens=False)))
-                  for name in names],
-        range=[len(rows) - 0.5, -0.5], showgrid=False, zeroline=False,
-        tickfont=dict(color="#C9D4E8", size=11), fixedrange=True)
-    for i, (value, color) in enumerate(zip(vals, colors)):
-        fig.add_shape(type="line", xref="paper", x0=0, x1=1, y0=i + 0.5, y1=i + 0.5,
-                      line=dict(color="rgba(138,148,167,0.08)", width=1), layer="below")
-        fig.add_annotation(xref="paper", x=1, xshift=76, y=i, text=f"<b>{value:+.2f}%</b>",
-                           showarrow=False, xanchor="right",
-                           font=dict(family=FONT_FAMILY, size=12, color=color))
+    fig.update_xaxes(range=[lo - span * 0.02, hi + span * 0.02],
+                     showgrid=False, zeroline=False, ticksuffix="%", nticks=5,
+                     tickfont=dict(size=10, color="#64748B"), fixedrange=True)
+    fig.update_yaxes(range=[max(len(rows), 1) - 0.35, -0.55], visible=False, fixedrange=True)
+    for i, ((name, value, _), color) in enumerate(zip(rows, colors)):
+        fig.add_shape(type="line", x0=lo, x1=hi or span, y0=i + 0.22, y1=i + 0.22,
+                      line=dict(color="#202B40", width=6), layer="below")
+        fig.add_shape(type="line", x0=0, x1=0, y0=i + 0.10, y1=i + 0.34,
+                      line=dict(color="#60718E", width=1), layer="above")
+        label = html.escape(rtl_text(name))
+        fig.add_annotation(xref="paper", x=0, y=i - 0.24,
+                           text=f"<span style='color:#64748B'>{i + 1:02d}</span>   {label}",
+                           showarrow=False, xanchor="left",
+                           font=dict(family=FONT_FAMILY, size=12, color="#DCE5F5"))
+        fig.add_annotation(xref="paper", x=1, y=i - 0.24,
+                           text=f"<b>{value:+.2f}%</b>", showarrow=False, xanchor="right",
+                           font=dict(family=FONT_FAMILY, size=14, color=color))
     if not rows:
         fig.add_annotation(xref="paper", yref="paper", x=0.5, y=0.5,
                            text="—", showarrow=False, font=dict(size=24, color=MUTED))
-    fig.update_layout(hovermode="closest", bargap=0.5,
-                      margin=dict(l=16, r=96, t=64 if title else 24, b=36))
+    arabic = bool(title and _ARABIC.search(str(title)))
+    unit = "المساهمة من رأس المال الابتدائي" if arabic else "SHARE OF STARTING CAPITAL"
+    fig.add_annotation(xref="paper", yref="paper", x=0, y=1.12,
+                       text=html.escape(rtl_text(unit)), showarrow=False, xanchor="left",
+                       font=dict(family=FONT_FAMILY, size=9, color="#8191AF"))
+    fig.update_layout(hovermode="closest", margin=dict(l=28, r=28, t=94 if title else 58, b=34),
+                      title=dict(x=0.045, y=0.95, font=dict(size=18)))
     return _bars(fig)
+
 
 # =====================================================================
 # Visualizations
@@ -1183,3 +1186,4 @@ def seasonal_path(avg, cur=None, title=None, names=("Average year", "This year")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
 BUILD = "7.9"
+

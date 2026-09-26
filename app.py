@@ -24,7 +24,7 @@ if any(m in sys.modules and getattr(sys.modules[m], "BUILD", None) != BUILD for 
 
 # Refresh this visual revision once in an already-running Streamlit process.
 # Keep the independent application BUILD contract unchanged.
-if "charts" in sys.modules and getattr(sys.modules["charts"], "CHART_DESIGN", None) != "2026-09-26.1":
+if "charts" in sys.modules and getattr(sys.modules["charts"], "CHART_DESIGN", None) != "2026-09-26.2":
     for _m in ("theme", "charts", "ui", "p_paper"):
         if _m in sys.modules:
             importlib.reload(sys.modules[_m])
@@ -357,3 +357,4 @@ except Exception as e:  # Streamlit's own rerun / page-switch signals are not Ex
                "حدث خطأ في هذه الصفحة. حدّث الصفحة أو حاول بعد دقيقة."), icon=":material/error:")
     with st.expander(L("Technical details", "تفاصيل فنية")):
         st.exception(e)
+

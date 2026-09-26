@@ -988,7 +988,7 @@ def _contrib(closed, by, cap):
 def _bars_from(g, labels, title, key, container):
     hover = [f"{sm(r.pnl)} · " + L(f"{int(r.n)} trades · win {r.wins / r.n * 100:.0f}%", f"{int(r.n)} صفقة · نجاح {r.wins / r.n * 100:.0f}%")
              for r in g.itertuples()]
-    ui.chart(charts.pct_bars(labels, list(g["pct"].values), title, max(280, 36 * len(g) + 104), hover), key=key, container=container)
+    ui.chart(charts.pct_bars(labels, list(g["pct"].values), title, max(330, 58 * len(g) + 116), hover), key=key, container=container)
 
 
 def what_worked(v):
@@ -2404,3 +2404,4 @@ def page_paper_bots():
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
 BUILD = "7.9"
+
