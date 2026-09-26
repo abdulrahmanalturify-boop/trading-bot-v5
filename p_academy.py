@@ -157,28 +157,29 @@ def _course_view(c):
     lvl = c["level"]
     mins = T.badge(L(str(c["mins"]) + " min", str(c["mins"]) + " دقائق"), "neu", "schedule")
     lessons = T.badge(L(f"{n} lessons + quiz", f"{n} دروس + اختبار"), "acc", "menu_book")
-    ui.html(f'<div class="course" style="pointer-events:none;margin-bottom:12px;--lv:{LEVEL_COLOR.get(lvl[0], T.ACCENT)}"><div class="art" style="height:170px">{A.course_art(c["art"], cid + "h")}</div>'
-            f'<div class="body"><div class="ttl" style="font-size:1.5rem">{T.esc(L(*c["title"]))}</div><div class="tag">{T.esc(L(*c["tagline"]))}</div>'
-            f'<div class="meta">{T.badge(L(*lvl), LEVEL_KIND.get(lvl[0], "neu"), "signal_cellular_alt")}{mins}'
-            f'{lessons}</div></div></div>')
+    artwork = A.course_art(c["art"], cid + "h").replace('<svg ', '<svg preserveAspectRatio="xMidYMid slice" ', 1)
+    ui.html(f'<section class="ac-course-banner"><div class="ac-course-background" aria-hidden="true">{artwork}</div>'
+            f'<div class="ac-course-copy"><h1>{T.esc(L(*c["title"]))}</h1><p>{T.esc(L(*c["tagline"]))}</p>'
+            f'<div class="ac-course-meta">{T.badge(L(*lvl), LEVEL_KIND.get(lvl[0], "neu"), "signal_cellular_alt")}{mins}{lessons}</div></div></section>')
     ui.html('<div class="steps">' + "".join(f'<span class="{"on" if i <= step else ""}"></span>' for i in range(n + 1)) + "</div>")
     rtl = " rtl" if is_ar() else ""
     if step < n:
         h_en, h_ar, b_en, b_ar, t_en, t_ar, viz = c["sections"][step]
-        ui.html(f'<div class="lesson{rtl}"><div class="muted" style="font-size:.8rem">{L(f"Lesson {step + 1} of {n}", f"الدرس {step + 1} من {n}")}</div>'
-                f'<h3>{T.esc(L(h_en, h_ar))}</h3><p>{T.esc(L(b_en, b_ar))}</p>'
-                f'<div class="take">{T.icon("lightbulb", T.CYAN)} <b>{L("Key takeaway", "الخلاصة")}:</b> {T.esc(L(t_en, t_ar))}</div></div>')
-        if viz:
-            ui.sec("touch_app", "Interactive", "تفاعلي")
-            interactive(viz)
-        a, _, b = st.columns([1, 2, 1])
-        if step > 0 and a.button(L("Back", "السابق"), icon=":material/chevron_left:", width="stretch"):
-            ss[f"step_{cid}"] = step - 1
-            st.rerun()
-        if b.button(L("Next", "التالي") if step < n - 1 else L("Take the quiz", "ابدأ الاختبار"), icon=":material/chevron_right:",
-                    type="primary", width="stretch"):
-            ss[f"step_{cid}"] = step + 1
-            st.rerun()
+        with st.container(key="academy_lesson_panel"):
+            ui.html(f'<div class="lesson{rtl}"><div class="muted" style="font-size:.8rem">{L(f"Lesson {step + 1} of {n}", f"الدرس {step + 1} من {n}")}</div>'
+                    f'<h3>{T.esc(L(h_en, h_ar))}</h3><p>{T.esc(L(b_en, b_ar))}</p>'
+                    f'<div class="take">{T.icon("lightbulb", T.CYAN)} <b>{L("Key takeaway", "الخلاصة")}:</b> {T.esc(L(t_en, t_ar))}</div></div>')
+            if viz:
+                ui.sec("touch_app", "Interactive", "تفاعلي")
+                interactive(viz)
+            a, _, b = st.columns([1, 2, 1])
+            if step > 0 and a.button(L("Back", "السابق"), icon=":material/chevron_left:", width="stretch"):
+                ss[f"step_{cid}"] = step - 1
+                st.rerun()
+            if b.button(L("Next", "التالي") if step < n - 1 else L("Take the quiz", "ابدأ الاختبار"), icon=":material/chevron_right:",
+                        type="primary", width="stretch"):
+                ss[f"step_{cid}"] = step + 1
+                st.rerun()
         return
     # ---- quiz
     st.caption(L("Pass with at least 80%. You can review and try again.", "الاجتياز من 80%. تقدر تراجع وتحاول مرة ثانية."))

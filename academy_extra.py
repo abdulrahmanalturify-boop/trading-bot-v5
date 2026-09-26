@@ -1,5 +1,5 @@
 """Twelve bilingual mini-courses; original worked examples, not investment recommendations."""
-ACADEMY_REVISION = "2026-09-27.2"
+ACADEMY_REVISION = "2026-09-27.3"
 LEVEL_AR = {"Beginner": "مبتدئ", "Essential": "أساسي", "Advanced": "متقدم"}
 EXTRA_COURSES = []
 
