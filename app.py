@@ -10,7 +10,7 @@ import streamlit as st
 # ---------------------------------------------------------------- always run the newest code
 # Streamlit Cloud re-reads app.py after every GitHub upload but can keep the other modules (theme, data, ...) from the
 # previous version in memory. Every module carries BUILD; if one in memory is older, all of them are reloaded in order.
-BUILD = "8.4"
+BUILD = "8.5"
 _ORDER = ["i18n", "flags", "mcal", "universe", "sp500", "taxonomy", "ta", "academy", "insight", "heatmap", "newsiq", "theme", "data",
           "caldata", "newsbot", "charts", "engine", "playbooks", "autotrader", "ui", "tdash", "paperbots", "p_markets", "p_research", "p_insight",
           "p_academy", "p_paper", "p_calendar", "hunter", "p_scanner"]
@@ -171,7 +171,6 @@ P.update({
     "glossary": st.Page(p_academy.page_glossary, title=L("Glossary", "قاموس المصطلحات"), icon=":material/menu_book:", url_path="glossary"),
     "paper": st.Page(p_paper.page_paper_bots, title=L("Paper Bots", "البوتات الافتراضية"), icon=":material/robot_2:", url_path="paper-bots"),
     "scanner": st.Page(p_scanner.page_scanner, title=L("Scanner", "صائد الفرص"), icon=":material/radar:", url_path="scanner"),
-    "catalyst": st.Page(p_research.page_catalyst, title="Catalyst Pro", icon=":material/bolt:", url_path="catalyst"),
 })
 SECTIONS = [
     (L("Markets", "الأسواق"), "monitoring", ["overview", "futures", "options", "economy"]),
@@ -180,7 +179,7 @@ SECTIONS = [
     (L("Calendar", "التقويم"), "calendar_month", ["earnings", "results", "econcal", "holidays", "dividends", "splits", "ipos"]),
     (L("Insight", "رؤى"), "lightbulb", ["brief", "articles", "sentiment", "seasonality"]),
     (L("Academy", "الأكاديمية"), "school", ["academy", "glossary"]),
-    (L("Trading Bot", "بوت التداول"), "smart_toy", ["paper", "scanner", "catalyst"]),
+    (L("Trading Bot", "بوت التداول"), "smart_toy", ["paper", "scanner"]),
 ]
 # the built-in menu is hidden; the bar below opens its menus on hover and navigates without reloading the site
 pg = st.navigation({label: [P[k] for k in keys] for label, _, keys in SECTIONS}, position="hidden")

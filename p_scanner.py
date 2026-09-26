@@ -23,6 +23,7 @@ import streamlit as st
 import caldata
 import charts
 import data
+import engine
 import hunter as H
 import mcal
 import paperbots as PB
@@ -32,7 +33,8 @@ import taxonomy as X
 import theme as T
 import ui
 import universe as U
-from i18n import L, is_ar, sector_name
+from i18n import L, industry_name, is_ar, sector_name
+from sp500 import gics_name
 
 ss = st.session_state
 _A, _V, _C, _G, _D, _U, _MU, _BD, _BG = T.ACCENT, T.VIOLET, T.CYAN, T.GOLD, T.DOWN, T.UP, "#8A94A7", T.BORDER, T.CARD2
@@ -99,7 +101,7 @@ CSS = f"""<style>
 .hnreg .mood.off {{ border-color:{_D}66; background:linear-gradient(135deg,rgba(239,68,68,.14),{T.CARD}); }}
 
 /* ---------- opportunity cards ---------- */
-.hnc {{ margin:0 !important; height:308px; box-sizing:border-box; display:flex; flex-direction:column; overflow:hidden; position:relative;
+.hnc {{ margin:0 !important; height:336px; box-sizing:border-box; display:flex; flex-direction:column; overflow:hidden; position:relative;
   transition:box-shadow .18s ease, border-color .18s ease; }}
 .hnc::before {{ content:""; position:absolute; left:0; right:0; top:0; height:3px; background:linear-gradient(90deg,{_A},{_V},{_C}); opacity:.35; }}
 .hnc.sel {{ border-color:{_A} !important; box-shadow:0 0 0 1px {_A}66, 0 12px 30px {_A}26; }}
@@ -135,9 +137,9 @@ CSS = f"""<style>
 .hnc .mt span {{ display:block; color:{_MU}; font-size:.6rem; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
 .hnc .mt b {{ font-size:.8rem; font-weight:800; }}
 .hnc .lv .dn {{ color:#F87171; }} .hnc .lv .up {{ color:#4ADE80; }}
-.hnc .ft {{ display:flex; flex-wrap:nowrap; gap:5px; margin-top:8px; overflow:hidden; }}
-.hnc .ft .c {{ display:inline-flex; align-items:center; gap:4px; font-size:.66rem; font-weight:700; color:#AEB7C6; background:rgba(138,148,167,.10);
-  border:1px solid {_BD}; border-radius:999px; padding:2px 8px; white-space:nowrap; }}
+.hnc .ft {{ display:flex; flex-wrap:nowrap; gap:5px; margin-top:10px; padding-bottom:2px; overflow:hidden; min-height:24px; align-items:center; }}
+.hnc .ft .c {{ display:inline-flex; align-items:center; gap:4px; font-size:.68rem; font-weight:700; color:#AEB7C6; background:rgba(138,148,167,.10);
+  border:1px solid {_BD}; border-radius:999px; padding:3px 9px; white-space:nowrap; line-height:1.3; flex:none; }}
 .hnc .ft .c b {{ color:#fff; direction:ltr; unicode-bidi:isolate; }}
 .hnc .ft .c.w {{ color:{T.YEL_FG}; background:{T.YEL_BG}; border-color:transparent; }}
 .hnc .ft .c .ms {{ font-size:.85rem; }}
@@ -184,6 +186,40 @@ CSS = f"""<style>
 [class*="st-key-hnsec_"] [data-testid="stMarkdownContainer"] {{ margin-bottom:0 !important; }}
 [class*="st-key-hnsec_"] .sec {{ margin:0 !important; }}
 [class*="st-key-hnact"] button {{ border-radius:12px !important; min-height:42px !important; }}
+/* ---------- filters: one card, modern chips ---------- */
+[class*="st-key-hnfilt"] {{ position:relative; overflow:hidden; background:linear-gradient(180deg,{_BG},{T.CARD}); border:1px solid {_BD};
+  border-radius:18px; padding:14px 18px 16px; box-shadow:0 10px 26px rgba(0,0,0,.18); gap:12px !important; }}
+[class*="st-key-hnfilt"]::before {{ content:""; position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg,{_A},{_V},{_C}); }}
+.hnfh {{ display:flex; align-items:center; gap:9px; flex-wrap:wrap; }}
+.hnfh .ms {{ color:#fff; background:linear-gradient(135deg,{_A},{_V}); border-radius:8px; padding:4px; font-size:1rem; }}
+.hnfh b {{ color:#fff; font-size:.98rem; }}
+.hnfh span:last-child {{ color:{_MU}; font-size:.78rem; font-weight:600; }}
+[class*="st-key-hnfilt"] [data-testid="stButtonGroup"] {{ gap:8px !important; flex-wrap:wrap; }}
+[class*="st-key-hnfilt"] [data-testid="stBaseButton-pills"], [class*="st-key-hnfilt"] [data-testid="stBaseButton-pillsActive"] {{
+  border-radius:999px !important; min-height:34px !important; padding:4px 14px !important; transition:all .15s ease; }}
+[class*="st-key-hnfilt"] [data-testid="stBaseButton-pills"] {{ background:rgba(61,123,255,.07) !important; border:1px solid rgba(61,123,255,.30) !important; }}
+[class*="st-key-hnfilt"] [data-testid="stBaseButton-pills"]:hover {{ background:rgba(61,123,255,.16) !important; border-color:{_A} !important; transform:translateY(-1px); }}
+[class*="st-key-hnfilt"] [data-testid="stBaseButton-pills"] p {{ color:#DCE6FF !important; font-weight:600 !important; font-size:.84rem !important; }}
+[class*="st-key-hnfilt"] [data-testid="stBaseButton-pillsActive"] {{ background:linear-gradient(95deg,{_A},{_V}) !important; border:1px solid transparent !important;
+  box-shadow:0 6px 18px rgba(61,123,255,.35); }}
+[class*="st-key-hnfilt"] [data-testid="stBaseButton-pillsActive"] p {{ color:#fff !important; font-weight:800 !important; font-size:.84rem !important; }}
+[class*="st-key-hnfilt"] [data-testid="stBaseButton-segmented_control"], [class*="st-key-hnfilt"] [data-testid="stBaseButton-segmented_controlActive"] {{
+  min-height:38px !important; padding:4px 14px !important; }}
+[class*="st-key-hnfilt"] [data-testid="stBaseButton-segmented_control"] {{ background:rgba(10,14,23,.55) !important; border-color:{_BD} !important; }}
+[class*="st-key-hnfilt"] [data-testid="stBaseButton-segmented_control"]:hover {{ background:rgba(61,123,255,.12) !important; }}
+[class*="st-key-hnfilt"] [data-testid="stBaseButton-segmented_control"] p {{ color:#C9D0DC !important; font-weight:700 !important; }}
+[class*="st-key-hnfilt"] [data-testid="stBaseButton-segmented_controlActive"] {{ background:linear-gradient(95deg,{_A},{_V}) !important; border-color:transparent !important;
+  box-shadow:0 6px 16px rgba(61,123,255,.30); z-index:1; }}
+[class*="st-key-hnfilt"] [data-testid="stBaseButton-segmented_controlActive"] p {{ color:#fff !important; font-weight:800 !important; }}
+[class*="st-key-hnfilt"] [data-testid="stCheckbox"] {{ background:rgba(10,14,23,.55); border:1px solid {_BD}; border-radius:12px; padding:8px 12px;
+  min-height:38px; display:flex; align-items:center; }}
+[class*="st-key-hnfilt"] [data-testid="stCheckbox"]:hover {{ border-color:{_A}88; }}
+[class*="st-key-hnfilt"] [data-testid="stCheckbox"] p {{ font-weight:700; font-size:.84rem; color:#DCE2EC; }}
+.hnbox {{ background:linear-gradient(180deg,{_BG},{T.CARD}); border:1px solid {_BD}; border-radius:16px; padding:12px 14px 4px; height:100%; }}
+.hnbox .check {{ font-size:.84rem; }} .hnbox .check:last-child {{ border-bottom:0; }}
+.hnbt {{ display:flex; align-items:center; gap:7px; font-weight:800; color:#fff; font-size:.92rem; margin-bottom:2px; }}
+.hnbt .ms {{ color:{_C}; font-size:1.1rem; }}
+[class*="st-key-hnsec_look"] h4 {{ margin:0 !important; padding:0 !important; }}
 </style>"""
 RTL_CSS = """<style>
 .hnhero .eb, .hnreg .tl .l, .hnc .lv span, .hnplan .p .l { letter-spacing:0; }
@@ -194,12 +230,10 @@ RTL_CSS = """<style>
 
 # ---------------------------------------------------------------- what to scan
 def universes():
-    """key -> (label, symbols)."""
+    """key -> (label, symbols). Sectors and industries narrow any of them (the hunt bar)."""
     from sp500 import SP500
     u = {"top": (L(f"Top {len(U.US_UNIVERSE)} US stocks", f"أكبر {len(U.US_UNIVERSE)} سهم أمريكي"), list(U.US_UNIVERSE)),
          "sp500": (L("S&P 500 (all, slower)", "إس آند بي 500 (كامل، أبطأ)"), sorted(set(SP500) | set(U.STOCKS)))}
-    for sec, syms in PB.sector_members().items():
-        u[f"s:{sec}"] = (f"{L('Sector', 'قطاع')} · {sector_name(sec)}", syms)
     for tk, (en, ar_, _, _) in X.THEMES.items():
         u[f"t:{tk}"] = (f"{L('Theme', 'ثيم')} · {L(en, ar_)}", X.theme_tickers(tk))
     u["wl"] = (L("My watchlist", "قائمة المتابعة"), list(ss.get("watchlist", [])))
@@ -207,14 +241,43 @@ def universes():
     return u
 
 
-def _symbols(unis):
+def sector_of(s):
+    return PB.sector_of(s) or (U.sector_of(s) if U.known(s) else "")
+
+
+def industry_of(s):
+    from sp500 import SP500
+    if s in SP500 and SP500[s][2]:
+        return SP500[s][2]
+    return U.industry_of(s) if U.known(s) else ""
+
+
+def industry_label(ind):
+    from sp500 import GICS_AR
+    return gics_name(ind) if ind in GICS_AR else industry_name(ind)
+
+
+def _base(unis):
     k = ss.get("hn_uni", "top")
     if k not in unis:
         k = "top"
     if unis[k][1] is None:
         raw = str(ss.get("hn_custom") or "").replace("،", ",").replace(" ", ",")
-        return k, tuple(dict.fromkeys(s.strip().upper() for s in raw.split(",") if s.strip()))[:200]
-    return k, tuple(unis[k][1])
+        return k, list(dict.fromkeys(s.strip().upper() for s in raw.split(",") if s.strip()))[:200]
+    return k, list(unis[k][1])
+
+
+def _narrow(base):
+    """The base list narrowed to the chosen sector and industry; also the options of the two drop-downs."""
+    secs = sorted({sector_of(s) for s in base} - {""})
+    if ss.get("hn_sec", "all") not in ["all"] + secs:
+        ss["hn_sec"] = "all"
+    pool = [s for s in base if ss["hn_sec"] == "all" or sector_of(s) == ss["hn_sec"]]
+    inds = sorted({industry_of(s) for s in pool} - {""})
+    if ss.get("hn_ind", "all") not in ["all"] + inds:
+        ss["hn_ind"] = "all"
+    pool = [s for s in pool if ss["hn_ind"] == "all" or industry_of(s) == ss["hn_ind"]]
+    return tuple(pool), secs, inds
 
 
 def _names_sectors(symbols):
@@ -222,7 +285,7 @@ def _names_sectors(symbols):
     names, secs = {}, {}
     for s in symbols:
         names[s] = U.STOCKS[s][0] if s in U.STOCKS else (SP500[s][0] if s in SP500 else U.name_of(s))
-        secs[s] = PB.sector_of(s) or U.sector_of(s)
+        secs[s] = sector_of(s)
     return names, secs
 
 
@@ -398,22 +461,34 @@ def _refresh():
     ss["hn_nonce"] = ss.get("hn_nonce", 0) + 1
 
 
-def hunt_bar(unis):
+def _look():
+    sym = str(ss.get("hn_look_in") or "").strip().upper()
+    ss["hn_look"] = sym or None
+    if sym:
+        ss["hn_sel"] = sym
+
+
+def hunt_bar(unis, secs, inds, n):
     with st.container(key="hnbar"):
-        c = st.columns([2.2, 1.1, 1, 1.1, 0.8], vertical_alignment="bottom")
-        c[0].selectbox(L("What to scan", "وش أفحص"), list(unis), key="hn_uni", format_func=lambda k: f"{unis[k][0]}"
-                       + (f"  ({len(unis[k][1])})" if unis[k][1] is not None else ""))
-        c[1].number_input(L("Account ($)", "المحفظة ($)"), 100, 100_000_000, step=1000, key="hn_acct")
-        c[2].number_input(L("Risk per trade %", "المخاطرة لكل صفقة %"), 0.1, 10.0, step=0.25, key="hn_risk")
+        c = st.columns([1.9, 1.5, 1.9, 1, 0.8], vertical_alignment="bottom")
+        c[0].selectbox(L("What to scan", "وش أفحص"), list(unis), key="hn_uni", format_func=lambda k: unis[k][0])
+        c[1].selectbox(L("Sector", "القطاع"), ["all"] + secs, key="hn_sec",
+                       format_func=lambda s: L("All sectors", "كل القطاعات") if s == "all" else sector_name(s))
+        c[2].selectbox(L("Industry", "الصناعة"), ["all"] + inds, key="hn_ind",
+                       format_func=lambda s: L("All industries", "كل الصناعات") if s == "all" else industry_label(s))
         c[3].button(L("Hunt", "ابدأ الصيد"), icon=":material/radar:", key="hn_go", on_click=_go, width="stretch")
-        c[4].button(L("Refresh", "تحديث"), icon=":material/refresh:", key="hn_refresh", on_click=_refresh, help=L("Fresh prices now", "أسعار جديدة الحين"),
-                    width="stretch")
+        c[4].button(L("Refresh", "تحديث"), icon=":material/refresh:", key="hn_refresh", on_click=_refresh,
+                    help=L("Fresh prices now", "أسعار جديدة الحين"), width="stretch")
         if ss.get("hn_uni") == "custom":
-            st.text_input(L("Symbols (comma separated)", "الرموز (مفصولة بفاصلة)"), key="hn_custom",
-                          placeholder="AAPL, MSFT, NVDA, 2222.SR")
-        if ss.get("hn_uni") == "sp500":
-            st.caption(L("The whole S&P 500 takes up to a minute the first time; then it is kept for 15 minutes.",
-                         "إس آند بي 500 كامل ياخذ لين دقيقة أول مرة، وبعدها ينحفظ 15 دقيقة."))
+            st.text_input(L("Symbols (comma separated)", "الرموز (مفصولة بفاصلة)"), key="hn_custom", placeholder="AAPL, MSFT, NVDA, 2222.SR")
+        a, b, cap = st.columns([1.9, 1, 4.2], vertical_alignment="bottom")
+        a.text_input(L("Analyze one symbol", "حلّل سهم واحد"), key="hn_look_in", placeholder="NVDA", on_change=_look)
+        b.button(L("Analyze", "حلّل"), icon=":material/manage_search:", key="hn_look_go", on_click=_look, width="stretch")
+        note = L(f"{n:,} stocks in this hunt.", f"{n:,} سهم في هذا الصيد.")
+        if ss.get("hn_uni") == "sp500" and n > 250:
+            note += L(" The whole S&P 500 takes up to a minute the first time, then it is kept for 15 minutes.",
+                      " إس آند بي 500 كامل ياخذ لين دقيقة أول مرة، وبعدها ينحفظ 15 دقيقة.")
+        cap.caption(note)
 
 
 # ---------------------------------------------------------------- market mood
@@ -457,7 +532,7 @@ def mood_html(reg):
 
 # ---------------------------------------------------------------- filters
 def _init():
-    for k, v in {"hn_uni": "top", "hn_acct": 100_000, "hn_risk": 1.0, "hn_grade": "B", "hn_sector": "all", "hn_fresh": False,
+    for k, v in {"hn_uni": "top", "hn_sec": "all", "hn_ind": "all", "hn_acct": 100_000, "hn_risk": 1.0, "hn_grade": "B", "hn_fresh": False,
                  "hn_noearn": False, "hn_minpx": 5.0, "hn_minvol": 20.0, "hn_custom": "AAPL, MSFT, NVDA, AMD, TSLA, META"}.items():
         ss.setdefault(k, v)
 
@@ -465,24 +540,20 @@ def _init():
 def filters(res):
     counts = res["Setups"].str.split(",").explode().value_counts()
     keys = [k for k in H.ORDER if counts.get(k, 0)]
-    fmt = lambda k: f"{setup_name(k)} · {int(counts.get(k, 0))}"
     if "hn_setups" in ss:
         ss["hn_setups"] = [k for k in ss["hn_setups"] if k in keys]
-    st.pills(L("Setups (tap to filter; none = all long setups)", "الفرص (اضغط للتصفية؛ بدون اختيار = كل فرص الشراء)"), keys,
-             selection_mode="multi", format_func=fmt, key="hn_setups")
-    c = st.columns([1.6, 1.4, 1, 1], vertical_alignment="bottom")
-    c[0].segmented_control(L("Grade at least", "الدرجة على الأقل"), list(MIN_GRADE), key="hn_grade",
-                           format_func=lambda g: L("All", "الكل") if g == "all" else g)
-    secs = sorted(x for x in res["Sector"].dropna().unique() if x)
-    if ss.get("hn_sector") not in ["all"] + secs:
-        ss["hn_sector"] = "all"
-    c[1].selectbox(L("Sector", "القطاع"), ["all"] + secs, key="hn_sector", format_func=lambda s: L("All sectors", "كل القطاعات") if s == "all" else sector_name(s))
-    c[2].toggle(L("New today only", "الجديدة اليوم فقط"), key="hn_fresh")
-    c[3].toggle(L("No earnings in 5 days", "بدون أرباح خلال 5 أيام"), key="hn_noearn")
-    with st.expander(L("Price and liquidity", "السعر والسيولة"), icon=":material/tune:"):
-        a, b = st.columns(2)
-        a.number_input(L("Price at least ($)", "السعر على الأقل ($)"), 0.0, 10000.0, step=1.0, key="hn_minpx")
-        b.number_input(L("Traded per day at least ($ million)", "قيمة التداول اليومية على الأقل (مليون $)"), 0.0, 10000.0, step=5.0, key="hn_minvol")
+    with st.container(key="hnfilt"):
+        ui.html(f'<div class="hnfh">{T.icon("filter_alt")}<b>{L("Filters", "التصفية")}</b>'
+                f'<span>{L("Pick setups to see only them; with none picked, every buying setup shows.", "اختر فرص عشان تشوفها بس؛ وبدون اختيار تظهر كل فرص الشراء.")}</span></div>')
+        st.pills(L("Setups", "الفرص"), keys, selection_mode="multi", key="hn_setups", label_visibility="collapsed",
+                 format_func=lambda k: f"{short_name(k)} · {int(counts.get(k, 0))}")
+        c = st.columns([1.55, 1, 1.15, 1, 1], vertical_alignment="bottom")
+        c[0].segmented_control(L("Grade at least", "الدرجة على الأقل"), list(MIN_GRADE), key="hn_grade",
+                               format_func=lambda g: L("All", "الكل") if g == "all" else g)
+        c[1].toggle(L("New today", "الجديدة اليوم"), key="hn_fresh")
+        c[2].toggle(L("No earnings ≤ 5 days", "بدون أرباح ≤ 5 أيام"), key="hn_noearn")
+        c[3].number_input(L("Price from ($)", "السعر من ($)"), 0.0, 10000.0, step=1.0, key="hn_minpx")
+        c[4].number_input(L("Traded/day from ($M)", "التداول اليومي من (مليون $)"), 0.0, 10000.0, step=5.0, key="hn_minvol")
 
 
 def apply(res):
@@ -492,9 +563,8 @@ def apply(res):
         v = v[v["Setups"].apply(lambda s: any(k in str(s).split(",") for k in picks))]
     else:
         v = v[v["Side"] > 0]
-    v = v[v["Score"] >= MIN_GRADE.get(ss.get("hn_grade") or "all", 0)] if not (picks and "breakdown" in picks) else v
-    if ss.get("hn_sector", "all") != "all":
-        v = v[v["Sector"] == ss["hn_sector"]]
+    if not (picks and "breakdown" in picks):
+        v = v[v["Score"] >= MIN_GRADE.get(ss.get("hn_grade") or "all", 0)]
     if ss.get("hn_fresh"):
         v = v[v["Status"] == "fresh"]
     if ss.get("hn_noearn"):
@@ -537,6 +607,7 @@ def card(r, det, selected):
 
 def _pick(sym):
     ss["hn_sel"] = sym
+    ss["hn_look"] = None
 
 
 def cards(view, det):
@@ -608,11 +679,167 @@ def _why(r, det):
     return out
 
 
+@st.cache_data(ttl=900, show_spinner=False, max_entries=48)
+def lookup(sym, build=None):
+    """One symbol on its own (the 'Analyze one symbol' box, or a stock the scan didn't include): (row dict, detail) or (None, None)."""
+    df = data.history(sym, "2y")
+    spy = data.history("SPY", "2y")
+    if df is None or df.empty:
+        return None, None
+    today = _today_ny()
+    names, secs = _names_sectors([sym])
+    res, det = H.hunt({sym: df}, spy if not spy.empty else None, _earnings_map(today), today, names, secs)
+    if res.empty:
+        return None, None
+    return res.iloc[0].to_dict(), det.get(sym, {})
+
+
+@st.cache_data(ttl=3600, show_spinner=False, max_entries=48)
+def catalysts(sym, build=None):
+    """The fundamental checks, the events and the news of one stock (the old Catalyst Pro)."""
+    inf = data.info(sym)
+    f = data.fundamentals(sym)
+    nws = data.news(sym, 20)
+    d, _ = _history5(sym, build)
+    fund = engine.fundamental_checks(inf, f["earnings_hist"])
+    rr = f["ratings"]
+    if isinstance(rr, pd.DataFrame) and not rr.empty:
+        rr = rr[rr.index >= pd.Timestamp.now() - pd.Timedelta(days=30)]
+    events = engine.event_checks(f["earnings_date"], rr, nws, inf, d) if d is not None else []
+    return {"fund": fund, "events": events, "news": nws, "earn": f["earnings_date"], "short": inf.get("shortName") or ""}
+
+
+def _checklist(items):
+    return "".join(f'<div class="check">{T.ico("check", "pos") if c_["Pass"] else T.ico("close", "neg")}'
+                   f'<div><b>{T.esc(L(c_["Check"], c_["Check_ar"]))}</b> <span class="muted">· {T.esc(c_["Detail"])}</span></div></div>'
+                   for c_ in items)
+
+
+def _levels(d, price):
+    lv = ta.swing_levels(d) if d is not None else []
+    sup = max([x for x in lv if x < price], default=float(d["Low"].tail(20).min()) if d is not None else np.nan)
+    res_ = min([x for x in lv if x > price], default=float(d["High"].tail(252).max()) if d is not None else np.nan)
+    return sup, res_
+
+
+def plan_section(r, det, d):
+    """The trade plan: the setup's entry, stop and target with the position size for your account and risk, the key levels,
+    when to enter and how to exit. Without a buying setup: the plain plan (wait / avoid) from the price structure."""
+    sym, k = r["Symbol"], r["Setup"]
+    head, a_, b_ = st.columns([2.6, 1, 1], vertical_alignment="bottom")
+    with head:
+        ui.sec("flag", "Trade plan", "خطة التداول")
+    a_.number_input(L("Account ($)", "المحفظة ($)"), 100, 100_000_000, step=1000, key="hn_acct")
+    b_.number_input(L("Risk per trade %", "المخاطرة لكل صفقة %"), 0.1, 10.0, step=0.25, key="hn_risk")
+    acct, risk = float(ss.get("hn_acct") or 100_000), float(ss.get("hn_risk") or 1.0)
+    price = float(r["Price"])
+    atr = float(r["ATR %"]) * price / 100
+    sup, res_ = _levels(d, price)
+    if np.isfinite(r["Entry"]) and int(r["Side"] or 0) > 0:
+        entry, stop, tgt = float(r["Entry"]), float(r["Stop"]), float(r["Target"])
+        watch = r["Status"] == "watch"
+        max_bars = H.SETUPS[k][5] or (PBK.defaults(H.PLAYBOOK_OF[k])["max_bars"] if k in H.PLAYBOOK_OF else None)
+        trig = (L(f"Buy only after a daily close above ${entry:,.2f}; the order goes in at the next open.",
+                  f"اشترِ بس بعد إغلاق يومي فوق ${entry:,.2f}، والأمر يتنفذ عند الافتتاح التالي.") if watch else
+                L(f"Buy at the next open near ${entry:,.2f}. Skip it if it opens under ${stop:,.2f} (the stop) or over ${tgt:,.2f} (the target).",
+                  f"اشترِ عند الافتتاح القادم قرب ${entry:,.2f}. وتجاهلها إذا افتتح تحت ${stop:,.2f} (الوقف) أو فوق ${tgt:,.2f} (الهدف)."))
+        exits = [L(f"Stop loss: out if the price trades at ${stop:,.2f} or lower ({_pct(entry, stop):+.1f}%).",
+                   f"وقف الخسارة: اخرج إذا وصل السعر ${stop:,.2f} أو أقل ({_pct(entry, stop):+.1f}%)."),
+                 L(f"Target: ${tgt:,.2f} ({_pct(entry, tgt):+.1f}%). Nearest resistance: ${res_:,.2f}.",
+                   f"الهدف: ${tgt:,.2f} ({_pct(entry, tgt):+.1f}%). أقرب مقاومة: ${res_:,.2f}."),
+                 L(f"After +1R (${entry + (entry - stop):,.2f}) move the stop to the entry price.",
+                   f"بعد ربح 1R (${entry + (entry - stop):,.2f}) ارفع الوقف لسعر الدخول.")]
+        if max_bars:
+            exits.append(L(f"Time limit: out after {max_bars} sessions if the target isn't reached.",
+                           f"مدة قصوى: اخرج بعد {max_bars} جلسة إذا ما وصل الهدف."))
+        n = H.size(entry, stop, acct, risk)
+        tiles = [("en", L("Buy above", "شراء فوق") if watch else L("Entry", "الدخول"), _money_px(entry),
+                  L("on a close above it", "بإغلاق فوقه") if watch else L("next open, near this price", "الافتتاح القادم، قرب هذا السعر")),
+                 ("sl", L("Stop loss", "وقف الخسارة"), _money_px(stop), f"{_pct(entry, stop):+.1f}% · {abs(entry - stop) / max(atr, 1e-9):.1f} ATR"),
+                 ("tp", L("Target", "الهدف"), _money_px(tgt), f"{_pct(entry, tgt):+.1f}%"),
+                 ("", "R:R", f"{r['R:R']:.1f} : 1" if np.isfinite(r["R:R"]) else "—", L("reward for each $1 of risk", "العائد لكل 1$ مخاطرة")),
+                 ("", L("Position size", "حجم الصفقة"), f"{n:,} {L('sh', 'سهم')}", f"{_money_px(n * entry)} · {n * entry / acct * 100:.0f}% {L('of the account', 'من المحفظة')}"),
+                 ("", L("Max loss", "أقصى خسارة"), T.money(n * abs(entry - stop)), f"{risk:g}% {L('of', 'من')} {T.money(acct)}")]
+        if max_bars:
+            tiles.append(("", L("Time limit", "المدة القصوى"), L(f"{max_bars} sessions", f"{max_bars} جلسة"), L("then out at the close", "بعدها خروج عند الإغلاق")))
+    else:
+        p = engine.trade_plan(d, acct, risk) if d is not None else None
+        if p is None:
+            return
+        st.info(L(f"No buying setup on {sym} right now: {p['bias']} ({p['setup']}).", f"ما فيه فرصة شراء على {sym} الحين: {p['bias_ar']} ({p['setup_ar']})."),
+                icon=":material/do_not_disturb_on:")
+        trig = L(p["trigger"], p["trigger_ar"])
+        exits = [L(e, a) for e, a in p["exits"][:3]]
+        tiles = [("en", L("Watch level", "مستوى المراقبة"), _money_px(p["entry"]), L("a close above it", "إغلاق فوقه")),
+                 ("sl", L("Stop if taken", "الوقف لو دخلت"), _money_px(p["stop"]), f"{_pct(p['entry'], p['stop']):+.1f}%"),
+                 ("tp", L("Target 1 (2R)", "الهدف الأول (2R)"), _money_px(p["t1"]), f"{_pct(p['entry'], p['t1']):+.1f}%")]
+    tiles += [("", "ATR (14)", _money_px(atr), f"{r['ATR %']:.1f}% {L('a day', 'يومياً')}"),
+              ("", L("Support", "الدعم"), _money_px(sup), f"{_pct(price, sup):+.1f}%"),
+              ("", L("Resistance", "المقاومة"), _money_px(res_), f"{_pct(price, res_):+.1f}%")]
+    ui.html('<div class="hnplan">' + "".join(f'<div class="p {c_}"><div class="l">{T.esc(l_)}</div><div class="v">{v_}</div>'
+                                             f'<div class="s">{T.esc(s_)}</div></div>' for c_, l_, v_, s_ in tiles) + "</div>")
+    x, y = st.columns(2, gap="medium")
+    with x:
+        items = [("flag", f"<b>{L('Trigger', 'شرط الدخول')}:</b> {T.esc(trig)}"),
+                 ("timer", L("<b>Best time:</b> skip the first 30 minutes after the 9:30 ET open (4:30 pm Riyadh); confirm on the daily close "
+                             "or after 10:00 ET with above-average volume.",
+                             "<b>أفضل وقت:</b> تجنّب أول 30 دقيقة بعد افتتاح 9:30 بتوقيت نيويورك (4:30 عصراً بتوقيت الرياض)، وأكّد على الإغلاق "
+                             "اليومي أو بعد 10:00 مع حجم أعلى من المتوسط."))]
+        if pd.notna(r.get("Earnings")) and 0 <= r["Earnings"] <= 10:
+            items.append(("warning", L(f"<b>Earnings in {int(r['Earnings'])} trading days:</b> half size, or wait until after the report.",
+                                       f"<b>أرباح بعد {int(r['Earnings'])} أيام تداول:</b> نص الحجم، أو انتظر بعد الإعلان.")))
+        if _session_live():
+            items.append(("schedule", L("<b>Market open:</b> today's candle is still moving; a signal of today is confirmed only at the close.",
+                                        "<b>السوق مفتوح:</b> شمعة اليوم لسا تتحرك، فإشارة اليوم تتأكد بس عند الإغلاق.")))
+        ui.html(f'<div class="hnbox"><div class="hnbt">{T.icon("schedule")}{L("When to enter", "متى تدخل")}</div>'
+                + "".join(f'<div class="check">{T.ico(ic, "gold")}<div>{t}</div></div>' for ic, t in items) + "</div>")
+    with y:
+        ui.html(f'<div class="hnbox"><div class="hnbt">{T.icon("logout")}{L("How to exit", "كيف تخرج")}</div>'
+                + "".join(f'<div class="check">{T.ico("logout", "acc")}<div>{T.esc(e)}</div></div>' for e in exits) + "</div>")
+
+
+def catalyst_section(sym):
+    cat = catalysts(sym, H.BUILD)
+    fund, events = cat["fund"], cat["events"]
+    fs = sum(x["Pass"] for x in fund) / len(fund) * 100 if fund else None
+    es = 50.0
+    for ev in events:
+        es += {"pos": 12, "hot": 8, "neg": -15, "warn": -5}.get(ev["Impact"], 0)
+    es = max(0.0, min(100.0, es))
+    ui.sec("bolt", "Catalysts", "المحفزات")
+    tiles = [T.kpi("request_quote", L("Fundamentals", "الأساسيات"), "—" if fs is None else f"{fs:.0f}/100",
+                   f"{sum(x['Pass'] for x in fund)}/{len(fund)} {L('checks passed', 'شروط متحققة')}" if fund else L("no data (ETF, index...)", "لا بيانات (صندوق، مؤشر...)"),
+                   None if fs is None else ("pos" if fs >= 60 else "neg" if fs < 40 else None)),
+             T.kpi("event", L("Events", "الأحداث"), f"{es:.0f}/100", L(f"{len(events)} found", f"{len(events)} حدث"),
+                   "pos" if es >= 60 else "neg" if es < 45 else None)]
+    ui.html('<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px">' + "".join(tiles) + "</div>")
+    c1, c2 = st.columns(2, gap="medium")
+    with c1:
+        ui.html(f'<div class="hnbox"><div class="hnbt">{T.icon("request_quote")}{L("Fundamental checks", "الفحص المالي")}</div>'
+                + (_checklist(fund) if fund else f'<div class="muted" style="font-size:.84rem">{L("No fundamental data (ETF, index or crypto).", "لا توجد بيانات مالية (صندوق أو مؤشر أو عملة رقمية).")}</div>')
+                + "</div>")
+    with c2:
+        rows = []
+        for e in events:
+            en, ar_, kind, ic = engine.IMPACT[e["Impact"]]
+            rows.append(f'<div class="check">{T.badge(L(en, ar_), kind, ic)}<div><b>{T.esc(L(e["Event"], e["Event_ar"]))}</b> '
+                        f'<span class="muted">· {T.esc(L(e["Detail"], e["Detail_ar"]))}</span></div></div>')
+        ui.html(f'<div class="hnbox"><div class="hnbt">{T.icon("event")}{L("Events", "الأحداث")}</div>'
+                + ("".join(rows) or f'<div class="muted" style="font-size:.84rem">{L("No special events right now.", "لا توجد أحداث خاصة حالياً.")}</div>')
+                + "</div>")
+    if cat["news"]:
+        ui.sec("newspaper", "Latest news", "آخر الأخبار")
+        ui.news_list(cat["news"], 6)
+
+
 def detail(r, det, got):
     sym = r["Symbol"]
     k = r["Setup"]
     with st.container(key=f"hnsec_head_{_key(sym)}"):
         badges = T.badge(sector_name(r["Sector"]) if r["Sector"] else "—", "gold", "category")
+        ind = industry_of(sym)
+        if ind:
+            badges += T.badge(industry_label(ind), "neu", "factory")
         for s_ in det.get("setups", []):
             badges += T.badge(setup_name(s_["key"]) + " · " + L(*H.STATUS[s_["status"]][:2]), "down" if s_["side"] < 0 else H.STATUS[s_["status"]][2],
                               H.SETUPS[s_["key"]][2])
@@ -629,13 +856,11 @@ def detail(r, det, got):
     with st.container(key=f"hnsec_body_{_key(sym)}"):
         left, right = st.columns([1.7, 1], gap="medium")
         with left:
-            if d is not None and np.isfinite(r["Entry"]):
-                levels = [(L("Entry", "دخول"), r["Entry"], _A, "solid"), (L("Stop", "وقف"), r["Stop"], _D, "dash"),
-                          (L("Target", "هدف"), r["Target"], _U, "dash")]
+            if d is not None:
+                levels = ([(L("Entry", "دخول"), r["Entry"], _A, "solid"), (L("Stop", "وقف"), r["Stop"], _D, "dash"),
+                           (L("Target", "هدف"), r["Target"], _U, "dash")] if np.isfinite(r["Entry"]) else None)
                 ui.chart(charts.price_chart(d.tail(190), "Candles", ["SMA 20", "SMA 50", "SMA 200"], [], False, levels=levels, height=470),
                          key=f"hn_chart_{_key(sym)}")
-            elif d is not None:
-                ui.chart(charts.price_chart(d.tail(190), "Candles", ["SMA 20", "SMA 50", "SMA 200"], [], False, height=470), key=f"hn_chart_{_key(sym)}")
         with right:
             ui.sec("donut_large", "Why this score", "ليش هالتقييم")
             parts = {"trend": r["Trend"], "rs": r["RS"], "volume": r["Accum"], "setup": r["SetupPts"], "risk": r["RiskPts"]}
@@ -646,32 +871,8 @@ def detail(r, det, got):
             ui.html('<div class="hnwhy">' + "".join(f'<div class="w {kd}">{T.icon(icons[kd])}<span>{T.esc(t)}</span></div>' for kd, t in _why(r, det))
                     + "</div>")
 
-    if np.isfinite(r["Entry"]):
-        with st.container(key=f"hnsec_plan_{_key(sym)}"):
-            ui.sec("flag", "Trade plan", "خطة التداول")
-            entry, stop, tgt = float(r["Entry"]), float(r["Stop"]), float(r["Target"])
-            side = int(r["Side"] or 1)
-            acct, risk = float(ss.get("hn_acct") or 100_000), float(ss.get("hn_risk") or 1.0)
-            n = H.size(entry, stop, acct, risk) if side > 0 else H.size(stop, entry, acct, risk)
-            mb = next((s_ for s_ in det.get("setups", []) if s_["key"] == k), None)
-            max_bars = H.SETUPS[k][5] or (PBK.defaults(H.PLAYBOOK_OF[k])["max_bars"] if k in H.PLAYBOOK_OF else None)
-            watch = r["Status"] == "watch"
-            tiles = [("en", L("Buy above", "شراء فوق") if watch else L("Entry", "الدخول"), _money_px(entry),
-                      L("on a close above it, next open", "بإغلاق فوقه، والتنفيذ عند الافتتاح التالي") if watch else
-                      L("next open, near this price", "الافتتاح القادم، قرب هذا السعر")),
-                     ("sl", L("Stop loss", "وقف الخسارة"), _money_px(stop), f"{_pct(entry, stop):+.1f}% · {abs(entry - stop) / max(r['ATR %'] * r['Price'] / 100, 1e-9):.1f} ATR"),
-                     ("tp", L("Target", "الهدف"), _money_px(tgt), f"{_pct(entry, tgt):+.1f}%"),
-                     ("", "R:R", f"{r['R:R']:.1f} : 1" if np.isfinite(r["R:R"]) else "—", L("reward for each $1 of risk", "العائد لكل 1$ مخاطرة")),
-                     ("", L("Position size", "حجم الصفقة"), f"{n:,} {L('sh', 'سهم')}", f"{_money_px(n * entry)} · {n * entry / acct * 100:.0f}% {L('of the account', 'من المحفظة')}"),
-                     ("", L("Max loss", "أقصى خسارة"), T.money(n * abs(entry - stop)), f"{risk:g}% {L('of', 'من')} {T.money(acct)}")]
-            if max_bars:
-                tiles.append(("", L("Time limit", "المدة القصوى"), L(f"{max_bars} sessions", f"{max_bars} جلسة"),
-                              L("exit if the target isn't reached", "اخرج إذا ما وصل الهدف")))
-            ui.html('<div class="hnplan">' + "".join(f'<div class="p {c_}"><div class="l">{T.esc(l_)}</div><div class="v">{v_}</div>'
-                                                     f'<div class="s">{T.esc(s_)}</div></div>' for c_, l_, v_, s_ in tiles) + "</div>")
-            if _session_live():
-                st.caption(L("The market is open: today's candle is still moving, so a signal of today is confirmed only at the close.",
-                             "السوق مفتوح: شمعة اليوم لسا تتحرك، فإشارة اليوم تتأكد بس عند الإغلاق."))
+    with st.container(key=f"hnsec_plan_{_key(sym)}"):
+        ui.safe(plan_section, r, det, d)
 
     if k in H.SETUPS and H.SETUPS[k][3] != "watch":
         with st.container(key=f"hnsec_edge_{_key(sym)}"):
@@ -688,7 +889,7 @@ def detail(r, det, got):
                                T.cls(e["avg_r"])),
                          T.kpi("balance", L("Profit factor", "معامل الربح"), pf, "", "pos" if e["pf"] >= 1 else "neg"),
                          T.kpi("savings", L("Total", "المجموع"), f"{e['total_r']:+.1f}R", L("in risk units", "بوحدات المخاطرة"), T.cls(e["total_r"]))]
-                ui.html('<div class="pbk" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">' + "".join(tiles) + "</div>")
+                ui.html('<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">' + "".join(tiles) + "</div>")
                 show = bt.tail(12).iloc[::-1].copy()
                 show["Entry Date"] = pd.to_datetime(show["Entry Date"]).dt.date
                 show["Exit Date"] = pd.to_datetime(show["Exit Date"]).dt.date
@@ -705,13 +906,13 @@ def detail(r, det, got):
                              "نفس الشرط ونفس الوقف والهدف والمدة؛ الدخول عند الافتتاح التالي، والوقف يُفحص أول إذا لمست الشمعة الاثنين. "
                              "نتائج الماضي على سهم واحد دليل وليست ضمان."))
 
+    with st.container(key=f"hnsec_cat_{_key(sym)}"):
+        ui.safe(catalyst_section, sym)
+
     with st.container(key=f"hnsec_act_{_key(sym)}"):
         with st.container(key="hnact", horizontal=True):
             if st.button(L("Stock page", "صفحة السهم"), icon=":material/candlestick_chart:", key="hn_open"):
                 ui.open_stock(sym)
-            if st.button("Catalyst Pro", icon=":material/bolt:", key="hn_cat"):
-                ss.symbol = sym
-                ui.goto("catalyst")
             if st.button(L("Test it in Paper Bots", "اختبرها في البوتات الافتراضية"), icon=":material/science:", key="hn_test"):
                 ss["pb_qt_sym"], ss["pb_qt_per"], ss["pb_qt_on"] = sym, "5y", True
                 if k in H.PLAYBOOK_OF:
@@ -767,11 +968,16 @@ def sector_chart(sec):
 
 
 # ---------------------------------------------------------------- page
+def _clear_look():
+    ss["hn_look"] = None
+
+
 def page_scanner():
     ui.html(CSS + (RTL_CSS if is_ar() else ""))
     _init()
     unis = universes()
-    key, symbols = _symbols(unis)
+    key, base = _base(unis)
+    symbols, secs, inds = _narrow(base)
     got = None
     if symbols:
         with st.spinner(L(f"Hunting in {len(symbols)} stocks...", f"جاري الصيد في {len(symbols)} سهم...")):
@@ -779,50 +985,72 @@ def page_scanner():
                 got = run_hunt(key, symbols, ss.get("hn_nonce", 0), H.BUILD)
             except Exception:
                 got = None
-    ui.html(hero_html(got, unis[key][0]))
-    hunt_bar(unis)
-    if not symbols:
+    label = unis[key][0] + (f" · {sector_name(ss['hn_sec'])}" if ss.get("hn_sec", "all") != "all" else "")
+    ui.html(hero_html(got, label))
+    hunt_bar(unis, secs, inds, len(symbols))
+    look = ss.get("hn_look")
+    if not symbols and not look:
         st.info(L("Type at least one symbol.", "اكتب رمز واحد على الأقل."), icon=":material/info:")
         ui.foot()
         return
-    if not got or got["res"] is None or got["res"].empty:
+    res = got["res"] if got else pd.DataFrame()
+    det = got["det"] if got else {}
+    if (res is None or res.empty) and not look:
         st.warning(L("No price data came back. Try again in a minute, or check the symbols.",
                      "ما وصلت بيانات أسعار. حاول بعد دقيقة، أو تأكد من الرموز."), icon=":material/error:")
         ui.foot()
         return
-    res, det = got["res"], got["det"]
-    with st.container(key="hnsec_mood"):
-        ui.safe(lambda: ui.html(mood_html(got["reg"])))
-        if got["n"] < 30:
-            st.caption(L("A short list: the breadth numbers and the RS rating mean more with a bigger universe (RS is measured against SPY here).",
-                         "قائمة قصيرة: أرقام الاتساع وتقييم RS أدق مع نطاق أكبر (RS هنا مقاس مقابل SPY)."))
-    with st.container(key="hnsec_filters"):
-        ui.sec("filter_alt", "Filters", "التصفية")
-        ui.safe(filters, res)
-    view = apply(res)
-    if view.empty:
-        with st.container(key="hnsec_none"):
-            st.info(L("Nothing matches these filters. Lower the grade, clear the setups, or scan a bigger universe.",
-                      "ما فيه شي يطابق هالتصفية. نزّل الدرجة، أو شيل الفرص المختارة، أو افحص نطاق أكبر."), icon=":material/search_off:")
+    if got and not res.empty:
+        with st.container(key="hnsec_mood"):
+            ui.safe(lambda: ui.html(mood_html(got["reg"])))
+            if got["n"] < 30:
+                st.caption(L("A short list: the breadth numbers and the RS rating mean more with a bigger universe (RS is measured against SPY here).",
+                             "قائمة قصيرة: أرقام الاتساع وتقييم RS أدق مع نطاق أكبر (RS هنا مقاس مقابل SPY)."))
+        with st.container(key="hnsec_filters"):
+            ui.safe(filters, res)
+        view = apply(res)
     else:
+        view = pd.DataFrame()
+    if look:                                   # one symbol analyzed on its own (it may be outside the scan)
+        row = res[res["Symbol"] == look].iloc[0].to_dict() if len(res) and look in set(res["Symbol"]) else None
+        dd = det.get(look, {}) if row else None
+        if row is None:
+            with st.spinner(L(f"Analyzing {look}...", f"جاري تحليل {look}...")):
+                row, dd = lookup(look, H.BUILD)
+        with st.container(key="hnsec_look"):
+            a, b = st.columns([5, 1], vertical_alignment="center")
+            a.markdown(f"#### {T.icon('manage_search')} " + L(f"Analysis of {look}", f"تحليل {look}"), unsafe_allow_html=True)
+            b.button(L("Close", "إغلاق"), icon=":material/close:", key="hn_look_x", on_click=_clear_look, width="stretch")
+        if row is None:
+            st.error(L(f"No data for {look}. Check the symbol (for example AAPL, BTC-USD, 2222.SR).",
+                       f"لا توجد بيانات للرمز {look}. تأكد من الرمز (مثلاً AAPL أو BTC-USD أو 2222.SR)."))
+        else:
+            ui.safe(detail, pd.Series(row), dd or {}, got)
+    if not view.empty:
         if ss.get("hn_sel") not in set(view["Symbol"]):
             ss["hn_sel"] = view["Symbol"].iloc[0]
         with st.container(key="hnsec_cards"):
             ui.sec("target", f"Best opportunities ({len(view)})", f"أفضل الفرص ({len(view)})")
             ui.safe(cards, view, det)
-        r = view[view["Symbol"] == ss["hn_sel"]].iloc[0]
-        ui.safe(detail, r, det.get(r["Symbol"], {}), got)
+        if not look:
+            r = view[view["Symbol"] == ss["hn_sel"]].iloc[0]
+            ui.safe(detail, r, det.get(r["Symbol"], {}), got)
         with st.container(key="hnsec_table"):
             ui.sec("table_rows", "Every match", "كل النتائج")
             ui.safe(table, view)
-    with st.container(key="hnsec_charts"):
-        c1, c2 = st.columns([1.15, 1], gap="medium")
-        with c1:
-            ui.safe(lambda: ui.chart(charts.hunt_map(res, L("Opportunity map: leaders sit top right", "خريطة الفرص: القادة فوق يمين"),
-                                                     (L("From 52-week high %", "البعد عن القمة السنوية %"), L("RS rating (1-99)", "تقييم RS (1-99)"),
-                                                      L("Score", "التقييم"))), key="hn_map"))
-        with c2:
-            ui.safe(sector_chart, got["sec"])
+    elif got and not res.empty:
+        with st.container(key="hnsec_none"):
+            st.info(L("Nothing matches these filters. Lower the grade, clear the setups, or scan a bigger universe.",
+                      "ما فيه شي يطابق هالتصفية. نزّل الدرجة، أو شيل الفرص المختارة، أو افحص نطاق أكبر."), icon=":material/search_off:")
+    if got and not res.empty:
+        with st.container(key="hnsec_charts"):
+            c1, c2 = st.columns([1.15, 1], gap="medium")
+            with c1:
+                ui.safe(lambda: ui.chart(charts.hunt_map(res, L("Opportunity map: leaders sit top right", "خريطة الفرص: القادة فوق يمين"),
+                                                         (L("From 52-week high %", "البعد عن القمة السنوية %"), L("RS rating (1-99)", "تقييم RS (1-99)"),
+                                                          L("Score", "التقييم"))), key="hn_map"))
+            with c2:
+                ui.safe(sector_chart, got["sec"])
     with st.expander(L("How the hunter works", "كيف يشتغل الصائد"), icon=":material/help:"):
         ui.html('<div class="hnnote">' + L(
             "<b>Setups</b> are exact rules on the daily close (the four combined strategies of the Paper Bots, breakouts, leaders, "
@@ -831,13 +1059,15 @@ def page_scanner():
             "target, and on <b>watch</b> when it is building. <b>The score</b> (0-100): trend 25%, relative strength 25% (RS 1-99: "
             "the 3-12 month return ranked against every stock scanned), accumulation 15%, the setup 20% and reward-to-risk 15%; "
             "earnings within 5 days (-8) and thin trading (-5) cost points, and a stock without a buying setup can't pass 49. "
-            "Grades: A+ from 85, A from 75, B from 65, C from 50.",
+            "Grades: A+ from 85, A from 75, B from 65, C from 50. <b>Catalysts</b> (fundamental checks, analyst actions, earnings, "
+            "news) are shown for the opened stock; they don't change the score.",
             "<b>الفرص</b> شروط دقيقة على الإغلاق اليومي (الاستراتيجيات المركّبة الأربع في البوتات الافتراضية، والاختراقات، والقادة، "
             "والتقاطع الذهبي، والتشبع البيعي، وأيام التجميع، والفجوات، والانضغاط، والكسر الهابط). الفرصة <b>جديدة اليوم</b> إذا ظهرت على آخر "
             "شمعة، و<b>نشطة</b> إذا ظهرت خلال آخر 2-3 جلسات والسعر لسا بين الوقف والهدف، و<b>مراقبة</b> إذا لسا تتكوّن. <b>التقييم</b> (من 100): "
             "الاتجاه 25%، والقوة النسبية 25% (RS من 1 إلى 99: عائد 3 إلى 12 شهر مرتب مقابل كل الأسهم المفحوصة)، والتجميع 15%، والفرصة 20%، "
             "والعائد مقابل المخاطرة 15%؛ وإعلان أرباح خلال 5 أيام (-8) وضعف السيولة (-5) ينقصون النقاط، والسهم بدون فرصة شراء ما يتعدى 49. "
-            "الدرجات: A+ من 85، وA من 75، وB من 65، وC من 50.") + "</div>")
+            "الدرجات: A+ من 85، وA من 75، وB من 65، وC من 50. <b>المحفزات</b> (الفحص المالي، وتحركات المحللين، والأرباح، والأخبار) تظهر "
+            "للسهم المفتوح وما تغيّر التقييم.") + "</div>")
     st.caption(L("Daily prices from Yahoo Finance (may be delayed). This is a research tool, not investment advice: check the chart and the news "
                  "before any trade, and never risk more than you can afford to lose.",
                  "أسعار يومية من ياهو فاينانس (قد تكون متأخرة). هذي أداة بحث وليست نصيحة استثمارية: راجع الشارت والأخبار قبل أي صفقة، "
@@ -846,4 +1076,4 @@ def page_scanner():
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "8.4"
+BUILD = "8.5"

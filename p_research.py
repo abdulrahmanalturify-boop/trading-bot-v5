@@ -711,8 +711,9 @@ def page_stock():
                 st.rerun()
         else:
             st.button(L("In watchlist", "في المتابعة"), icon=":material/star:", disabled=True, width="stretch")
-        if st.button("Catalyst Pro", icon=":material/bolt:", width="stretch"):
-            ui.goto("catalyst")
+        if st.button(L("Opportunity Hunter", "صائد الفرص"), icon=":material/radar:", width="stretch"):
+            ss["hn_look"] = ss["hn_look_in"] = sym          # the Scanner opens this stock's full analysis
+            ui.goto("scanner")
     key_stats(daily, inf)
     tabs = st.tabs([L(":material/candlestick_chart: Chart", ":material/candlestick_chart: الرسم البياني"),
                     L(":material/apartment: Company", ":material/apartment: عن الشركة"),
@@ -1423,109 +1424,5 @@ def page_screener():
 # =====================================================================
 # SCANNER
 # =====================================================================
-# =====================================================================
-# CATALYST PRO
-# =====================================================================
-def page_catalyst():
-    ui.header("bolt", "Catalyst Pro", "المحفزات الاحترافية",
-              "Technical, fundamental and event catalysts combined into one score and a complete trade plan.",
-              "تجميع المحفزات الفنية والمالية والأحداث في تقييم واحد وخطة تداول كاملة.")
-    c1, c2, c3 = st.columns([1.2, 1, 1])
-    sym = c1.text_input(L("Symbol", "الرمز"), ss.symbol).strip().upper() or "AAPL"
-    ss.symbol = sym
-    ss.acct["size"] = c2.number_input(L("Account size ($)", "حجم المحفظة ($)"), 100, 100_000_000, int(ss.acct["size"]), step=1000)
-    ss.acct["risk"] = c3.number_input(L("Risk per trade (%)", "المخاطرة لكل صفقة (%)"), 0.1, 10.0, float(ss.acct["risk"]), step=0.25)
-    with st.spinner(L(f"Analyzing {sym}...", f"جاري تحليل {sym}...")):
-        daily = data.history(sym, "2y")
-        if daily.empty or len(daily) < 60:
-            st.error(L(f"Not enough data for {sym}.", f"لا توجد بيانات كافية للرمز {sym}."))
-            return
-        d = ta.add_all(daily)
-        inf = data.info(sym)
-        f = data.fundamentals(sym)
-        nws = data.news(sym, 20)
-        tech = engine.technical_checks(d, spy_daily())
-        fund = engine.fundamental_checks(inf, f["earnings_hist"])
-        rr = f["ratings"]
-        if isinstance(rr, pd.DataFrame) and not rr.empty:
-            rr = rr[rr.index >= pd.Timestamp.now() - pd.Timedelta(days=30)]
-        events = engine.event_checks(f["earnings_date"], rr, nws, inf, d)
-        score = engine.catalyst_score(tech, fund, events)
-        p = engine.trade_plan(d, ss.acct["size"], ss.acct["risk"])
-
-    name = inf.get("shortName") or U.name_of(sym)
-    kind = "up" if score["total"] >= 55 else ("down" if score["total"] < 45 else "neu")
-    bias_kind = "up" if p["bias"].startswith("Long") else ("down" if "Avoid" in p["bias"] else "neu")
-    ui.html(f'<div class="cathead"><h3>{T.esc(name)} ({sym})</h3><div class="chips">'
-            + T.badge(L(score["label"], score["label_ar"]), kind, "insights")
-            + T.badge(f'{L("Bias", "التوجه")}: {L(p["bias"], p["bias_ar"])}', bias_kind, "explore")
-            + T.badge(f'{L("Setup", "الفرصة")}: {L(p["setup"], p["setup_ar"])}', "acc", "target") + "</div></div>")
-    g1, g2, g3, g4 = st.columns([1.3, 1, 1, 1])
-    ui.chart(charts.score_gauge(score["total"], L("Catalyst score", "تقييم المحفزات")), key="cat_gauge", container=g1)
-    scf = lambda v: "n/a" if v is None else f"{v:.0f}/100"
-    g2.metric(L("Technical (50%)", "فني (50%)"), scf(score["technical"]), f"{sum(x['Pass'] for x in tech)}/{len(tech)}", delta_color="off")
-    g3.metric(L("Fundamental (30%)", "مالي (30%)"), scf(score["fundamental"]),
-              f"{sum(x['Pass'] for x in fund)}/{len(fund)}" if fund else L("no data", "لا بيانات"), delta_color="off")
-    g4.metric(L("Events (20%)", "أحداث (20%)"), scf(score["event"]), f"{len(events)}", delta_color="off")
-
-    ui.sec("flag", "Trade plan", "خطة التداول")
-    cards = [(L("Current price", "السعر الحالي"), f"${p['price']:,.2f}", ""),
-             (L("Entry zone", "منطقة الدخول"), f"${p['zone'][0]:,.2f} – ${p['zone'][1]:,.2f}", "acc"),
-             (L("Stop loss", "وقف الخسارة"), f"${p['stop']:,.2f}", "neg"), (L("Target 1 (2R)", "الهدف الأول"), f"${p['t1']:,.2f}", "pos"),
-             (L("Target 2 (3R)", "الهدف الثاني"), f"${p['t2']:,.2f}", "pos"), (L("Risk / share", "المخاطرة للسهم"), f"${p['risk_per_share']:,.2f}", ""),
-             (L("Position size", "حجم الصفقة"), f"{p['shares']:,} {L('sh', 'سهم')}", "acc"),
-             (L("Position value", "قيمة الصفقة"), f"${p['position_value']:,.0f}", ""),
-             (L("Max loss", "أقصى خسارة"), f"${p['shares'] * p['risk_per_share']:,.0f}", "neg"),
-             ("ATR (14)", f"${p['atr']:,.2f} ({p['atr_pct']:.1f}%)", ""), (L("Support", "الدعم"), f"${p['support']:,.2f}", ""),
-             (L("Resistance", "المقاومة"), f"${p['resistance']:,.2f}", "")]
-    ui.html('<div class="plan">' + "".join(f'<div class="p {k}"><div class="l">{l}</div><div class="v">{v}</div></div>'
-                                           for l, v, k in cards) + "</div>")
-    left, right = st.columns([1.6, 1])
-    with left:
-        levels = [(L("Entry", "دخول"), p["entry"], T.ACCENT, "solid"), (L("Stop", "وقف"), p["stop"], T.DOWN, "dash"),
-                  ("T1", p["t1"], T.UP, "dot"), ("T2", p["t2"], T.UP, "dash")]
-        ui.chart(charts.price_chart(d.tail(126), "Candles", ["SMA 20", "SMA 50"], [], False, levels=levels, height=520), key="cat_chart")
-    with right:
-        ui.sec("schedule", "Entry timing", "توقيت الدخول")
-        earn = f["earnings_date"]
-        ed = (pd.Timestamp(earn).normalize() - pd.Timestamp.now().normalize()).days if earn is not None else None
-        timing = [(f"<b>{L('Trigger', 'شرط الدخول')}:</b> {T.esc(L(p['trigger'], p['trigger_ar']))}", "flag"),
-                  (f"<b>{L('Market now', 'السوق الآن')}:</b> {T.market_status(is_ar())}", "schedule"),
-                  (L("<b>Best window:</b> avoid the first 30 minutes after the 9:30 ET open; confirm on the daily close or after 10:00 ET with above-average volume.",
-                     "<b>أفضل وقت:</b> تجنّب أول 30 دقيقة بعد افتتاح 9:30 بتوقيت نيويورك (4:30 عصراً بتوقيت السعودية)، وأكّد على الإغلاق اليومي أو بعد 10:00 مع حجم أعلى من المتوسط."), "timer"),
-                  (L("<b>Holding period:</b> ", "<b>مدة الاحتفاظ:</b> ") + (L("2–6 weeks (swing)", "2–6 أسابيع (سوينغ)") if p["setup"] in ("Breakout", "Pullback to SMA20")
-                                                                          else L("1–2 weeks (short swing)", "1–2 أسبوع")), "hourglass")]
-        if ed is not None and 0 <= ed <= 14:
-            timing.append((f"<b class='dnt'>{L(f'Earnings in {ed} days', f'إعلان أرباح بعد {ed} يوم')}</b>: "
-                           f"{L('half size, or wait until after the report.', 'نصف الحجم أو انتظر بعد الإعلان.')}", "warning"))
-        ui.html("".join(f'<div class="check">{T.ico(ic, "gold")}<div>{t}</div></div>' for t, ic in timing))
-        ui.sec("logout", "Exit rules", "قواعد الخروج")
-        ui.html("".join(f'<div class="check">{T.ico("logout", "acc")}<div>{T.esc(L(e, a))}</div></div>' for e, a in p["exits"]))
-
-    def checklist(items):
-        return "".join(f'<div class="check">{T.ico("check", "pos") if c["Pass"] else T.ico("close", "neg")}'
-                       f'<div><b>{T.esc(L(c["Check"], c["Check_ar"]))}</b> <span class="muted">· {T.esc(c["Detail"])}</span></div></div>'
-                       for c in items)
-    c1, c2 = st.columns(2)
-    with c1:
-        ui.sec("query_stats", "Technical catalysts", "المحفزات الفنية")
-        ui.html(checklist(tech))
-    with c2:
-        ui.sec("request_quote", "Fundamental catalysts", "المحفزات المالية")
-        ui.html(checklist(fund)) if fund else st.caption(L("No fundamental data (ETF, index or crypto).", "لا توجد بيانات مالية (صندوق أو مؤشر أو عملة رقمية)."))
-    ui.sec("event", "Event catalysts", "محفزات الأحداث")
-    if events:
-        rows = []
-        for e in events:
-            en, ar, k, ic = engine.IMPACT[e["Impact"]]
-            rows.append(f'<div class="check">{T.badge(L(en, ar), k, ic)}<div><b>{T.esc(L(e["Event"], e["Event_ar"]))}</b> '
-                        f'<span class="muted">· {T.esc(L(e["Detail"], e["Detail_ar"]))}</span></div></div>')
-        ui.html("".join(rows))
-    else:
-        st.caption(L("No special events detected right now.", "لا توجد أحداث خاصة حالياً."))
-    ui.sec("newspaper", "Latest news", "آخر الأخبار")
-    ui.news_list(nws, 6)
-    ui.foot()
-
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "8.4"
+BUILD = "8.5"
