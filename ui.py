@@ -151,4 +151,4 @@ def multiselect_free(label, options, key, placeholder="", max_n=4):
         return st.multiselect(label, options, key=key, max_selections=max_n, placeholder=placeholder)
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "7.8"
+BUILD = "7.9"

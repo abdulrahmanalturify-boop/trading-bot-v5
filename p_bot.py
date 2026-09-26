@@ -53,7 +53,9 @@ def lab_settings():
         cfg["stop"] = pc[j].number_input(L("Stop loss %", "وقف الخسارة %"), 0.0, 50.0, float(cfg["stop"]), step=0.5, help=off)
         cfg["atr"] = pc[j + 1].number_input(L("ATR stop ×", "وقف ATR ×"), 0.0, 10.0, float(cfg["atr"]), step=0.5, help=off)
         cfg["tp"] = pc[j + 2].number_input(L("Take profit %", "جني الأرباح %"), 0.0, 500.0, float(cfg["tp"]), step=1.0, help=off)
-        cfg["trail"] = pc[j + 3].number_input(L("Trailing stop %", "الوقف المتحرك %"), 0.0, 50.0, float(cfg["trail"]), step=0.5, help=off)
+        cfg["trail"] = pc[j + 3].number_input(L("Trailing stop %", "الوقف المتحرك %"), 0.0, 50.0, float(cfg["trail"]), step=0.5,
+                                             help=L("0 = off. It follows the highest price up to the day before: a day's high raises the stop from the next day, because a daily candle doesn't show whether its high or its low came first.",
+                                                    "0 = إيقاف. يتبع أعلى سعر لين اليوم اللي قبل: قمة اليوم ترفع الوقف من اليوم اللي بعده، لأن الشمعة اليومية ما توضح أيهما صار أول: القمة أو القاع."))
     return cfg
 
 
@@ -344,7 +346,7 @@ def page_autotrader():
         c1, c2, c3 = st.columns(3)
         with c1:
             g = tr.groupby("Type")["P&L $"].sum()
-            names = {"Stock": L("Stocks", "أسهم"), "Call": L("Call options", "عقود CALL")}
+            names = {"Stock": L("Stocks", "أسهم"), "Call": L("Call options (est.)", "عقود CALL (تقديري)")}
             ui.chart(charts.pie([names.get(k, k) for k in g.index], list(tr.groupby("Type").size().values),
                                 L("Trades by type", "الصفقات حسب النوع"), [T.ACCENT, T.VIOLET], f"{len(tr)}"), key="au_type")
             ui.html("".join(f'<div class="vals" style="display:flex;justify-content:space-between;margin:4px 6px"><span>{names.get(k, k)}</span>{T.pbox(T.money(v), v)}</div>'
@@ -404,7 +406,8 @@ def page_autotrader():
                         f"إشارة: {L(*autotrader.SETUP_NAMES.get(det, ('?', '?')))} (تقييم {val:.1f})، أمر للافتتاح التالي")
                 ic = T.ico("bolt", "gold")
             elif kind == "buy":
-                txt = L(f"Bought {'call options' if typ == 'Call' else 'shares'}", f"اشترى {'عقود CALL' if typ == 'Call' else 'أسهم'}")
+                txt = L(f"Bought {'call options (estimated price)' if typ == 'Call' else 'shares'}",
+                        f"اشترى {'عقود CALL (سعر تقديري)' if typ == 'Call' else 'أسهم'}")
                 ic = T.ico("shopping_cart", "acc")
             else:
                 txt = L(f"Sold ({det})", f"باع ({autotrader.REASON_AR.get(det, det)})") + f" {T.money(val)}"
@@ -412,11 +415,13 @@ def page_autotrader():
             rows.append(f'<div class="log">{ic}<b>{T.esc(sym)}</b><span class="muted">{pd.Timestamp(d):%Y-%m-%d}</span><span>{T.esc(txt)}</span></div>')
         ui.html("".join(rows) or "—")
     st.caption(L("Simulation on real historical prices: signals on the daily close, orders at the next open, 0.05% slippage per side and "
-                 "$0.65 per option contract. Option prices come from the Black-Scholes model with the stock's own volatility, so real fills will differ. "
+                 "$0.65 per option contract. Option prices are estimates from the Black-Scholes model with the stock's own volatility (Yahoo keeps no "
+                 "option price history), so real fills will differ. "
                  "Past results do not guarantee future returns.",
                  "محاكاة على أسعار تاريخية حقيقية: الإشارة على الإغلاق اليومي، والتنفيذ عند الافتتاح التالي، مع انزلاق 0.05% لكل جهة و0.65$ لكل عقد. "
-                 "أسعار العقود محسوبة بنموذج بلاك-شولز بتذبذب السهم نفسه، لذلك التنفيذ الحقيقي يختلف. النتائج السابقة لا تضمن المستقبل."))
+                 "أسعار العقود تقديرية محسوبة بنموذج بلاك-شولز بتذبذب السهم نفسه (ياهو ما يحتفظ بتاريخ أسعار العقود)، لذلك التنفيذ الحقيقي يختلف. "
+                 "النتائج السابقة لا تضمن المستقبل."))
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "7.8"
+BUILD = "7.9"

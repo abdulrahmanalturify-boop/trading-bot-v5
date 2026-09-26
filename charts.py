@@ -647,10 +647,10 @@ def returns_bars(d, title="Performance"):
         if len(c) > n:
             labels.append(k)
             vals.append((c.iloc[-1] / c.iloc[-n - 1] - 1) * 100)
-    ytd = c[c.index.year == c.index[-1].year]
-    if len(ytd) > 1:
+    ytd = ta.ytd_change(c)                          # from the last close of the previous year
+    if pd.notna(ytd):
         labels.append("YTD")
-        vals.append((c.iloc[-1] / ytd.iloc[0] - 1) * 100)
+        vals.append(ytd)
     fill, line, txt, out = pastel(vals)
     fig = go.Figure(go.Bar(x=labels, y=vals, marker=dict(color=fill, line=dict(color=line, width=1)),
                            text=[f"{v:+.1f}%" for v in vals], textposition="auto",
@@ -1182,4 +1182,4 @@ def seasonal_path(avg, cur=None, title=None, names=("Average year", "This year")
     return fig
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "7.8"
+BUILD = "7.9"

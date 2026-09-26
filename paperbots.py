@@ -709,13 +709,16 @@ def simulate(bot, px, spy=None):
                 continue
             q = pos[key]
             if q["kind"] == "Stock":
-                q["peak"] = max(q["peak"], H[t, j])
+                # the trailing stop checked today comes from the highest high up to yesterday (or the entry price): a daily
+                # candle doesn't say whether its high or its low came first, so today's high only raises it from tomorrow
                 trail = q["peak"] * (1 - trail_pct / 100) if trail_pct else 0.0
                 eff = max(q["stop"], trail)
                 if Lo[t, j] <= eff:
                     close(key, t, min(O[t, j], eff), "Trailing Stop" if trail >= q["stop"] and trail_pct else "Stop Loss")
                 elif H[t, j] >= q["target"]:
                     close(key, t, max(O[t, j], q["target"]), "Take Profit")
+                else:
+                    q["peak"] = max(q["peak"], H[t, j])
                 continue
             t_left = (q["expiry"] - idx[t]).days
             q["value"] = _bs(q["kind"], C[t, j], q["K"], max(t_left, 0) / 365, sigma_of(HVC[t, j], q["sigma"]))
@@ -999,4 +1002,4 @@ def journal(sim):
                          "Days": tr["Bars"], "Exit Reason": tr["Exit Reason"]})
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "7.8"
+BUILD = "7.9"

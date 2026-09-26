@@ -97,6 +97,18 @@ def vwap(df):
     return pv / vol.replace(0, np.nan)
 
 
+def ytd_change(close):
+    """Year-to-date % change: the latest close against the LAST CLOSE OF THE PREVIOUS YEAR (so the first session of the year
+    counts). A stock listed this year has no previous-year close: its first close is the base. NaN without data."""
+    c = close.dropna() if close is not None else close
+    if c is None or len(c) < 2:
+        return np.nan
+    year = c.index[-1].year
+    before = c[c.index.year < year]
+    base = before.iloc[-1] if len(before) else c[c.index.year == year].iloc[0]
+    return float((c.iloc[-1] / base - 1) * 100) if base else np.nan
+
+
 def heikin_ashi(df):
     ha = pd.DataFrame(index=df.index)
     ha["Close"] = (df["Open"] + df["High"] + df["Low"] + df["Close"]) / 4
@@ -223,4 +235,4 @@ def label_for(s):
     return "Neutral"
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "7.8"
+BUILD = "7.9"

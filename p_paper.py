@@ -57,8 +57,10 @@ MODES = {"single": ("tune", "Strategies: one, several or all", "الاسترات
 PB_ICON = {PBK.TREND_PULLBACK: "trending_up", PBK.BREAKOUT_RETEST: "north_east", PBK.SQUEEZE: "compress", PBK.RANGE: "swap_vert",
            PBK.ORB: "timer"}
 INSTR_LABEL = {"stock": ("Stocks", "أسهم"), "options": ("Options", "أوبشن"), "both": ("Both", "الاثنين")}
-INSTR_CHIP = {"stock": ("show_chart", "Stocks", "أسهم"), "options": ("receipt_long", "Options", "أوبشن"),
-              "both": ("layers", "Stocks + options", "أسهم + أوبشن")}
+INSTR_CHIP = {"stock": ("show_chart", "Stocks", "أسهم"), "options": ("receipt_long", "Options · est.", "أوبشن · تقديري"),
+              "both": ("layers", "Stocks + options · est.", "أسهم + أوبشن · تقديري")}
+# option prices are never real quotes: Yahoo keeps no option price history, so every premium is a Black-Scholes estimate
+EST = ("est.", "تقديري")
 OTYPE_LABEL = {"call": ("Calls (buy signals)", "Call (إشارات الشراء)"), "put": ("Puts (sell signals)", "Put (إشارات البيع)"),
                "both": ("Calls + Puts", "Call + Put")}
 STRIKE_LABEL = {-10: ("10% in the money", "داخل السعر 10%"), -5: ("5% in the money", "داخل السعر 5%"), 0: ("At the money", "عند السعر"),
@@ -242,6 +244,7 @@ PAGE_CSS = f"""<style>
 .pbt .as b {{ font-size:.84rem; }} .pbt .as:hover b {{ color:#7EA6FF; }}
 .pbt .m {{ color:{_MU}; font-size:.72rem; font-weight:600; }}
 .pbt .up {{ color:#4ADE80; font-weight:700; }} .pbt .dn {{ color:#F87171; font-weight:700; }}
+.pbt .est {{ color:{_G}; border:1px solid {_G}55; border-radius:6px; padding:0 5px; margin-inline-start:6px; font-size:.64rem; }}
 .pbt .badge {{ margin:0; padding:2px 9px; font-size:.64rem; }}
 .pbt .pbox {{ padding:1px 9px; font-size:.76rem; border-radius:999px; margin-left:8px; }}
 a.pblink {{ display:inline-flex; align-items:center; gap:4px; color:#7EA6FF !important; font-weight:800; font-size:.8rem;
@@ -1019,6 +1022,8 @@ def dashboard(v):
     else:
         ui.sec("space_dashboard", "Dashboard", "لوحة الأداء")
     ui.html(kpi_row(v))
+    if v["multi"] and v["opts"]:
+        st.caption(L(OPT_EST_EN, OPT_EST_AR))
     ui.html(tdash.kpi_cards(view_stats(v), v["cap"]))
     what_worked(v)
 
@@ -1122,12 +1127,13 @@ def open_panel(v, lg):
         value = float(val.loc[i])
         w = value / v["final"] * 100 if v["final"] > 0 else 0.0
         qty = L(f'{int(r["Shares"])} contracts', f'{int(r["Shares"])} عقد') if opt else L(f'{r["Shares"]:,.2f} sh', f'{r["Shares"]:,.2f} سهم')
-        tip = f' title="{L("stock", "السهم")} {_fp(r["Stock Entry"])} → {_fp(r["Stock Exit"])}"' if opt else ""
+        tip = f' title="{_est_tip(r)}"' if opt else ""
+        est = f' <span class="m est">{L(*EST)}</span>' if opt else ""
         who = f'<td><span class="m">{T.esc(r["Bot"])}</span></td>' if v["multi"] else ""
         intra = _intra(r)
         rows.append(f'<tr><td>{_asset(r, lg)}</td><td>{type_badge(r["Type"])}</td>{who}<td>{T.esc(strat_short(r["Strategy"]))}</td>'
                     f'<td>{_when(r["Entry Date"], intra)} <span class="m">· {_held(int(r["Bars"]), intra)}</span></td>'
-                    f'<td{tip}>{_fp(r["Entry"])} → <b>{_fp(r["Exit"])}</b> {_chg(r["Entry"], r["Exit"])}</td>'
+                    f'<td{tip}>{_fp(r["Entry"])} → <b>{_fp(r["Exit"])}</b> {_chg(r["Entry"], r["Exit"])}{est}</td>'
                     f'<td>{qty} <span class="m">· {T.money(value)} · {w:.1f}%</span></td><td>{_plan(r)}</td>{_pnl_cell(r)}</tr>')
     heads = ([L("Asset", "الأصل"), L("Type", "النوع")] + ([L("Bot", "البوت")] if v["multi"] else [])
              + [L("Strategy", "الاستراتيجية"), L("Opened", "الفتح"), L("Entry → now", "الدخول ← الآن"), L("Size", "الحجم"),
@@ -1154,14 +1160,15 @@ def recent_panel(v, lg, n=10):
     rows = []
     for _, r in closed.head(n).iterrows():
         opt = r["Type"] in ("Call", "Put")
-        tip = f' title="{L("stock", "السهم")} {_fp(r["Stock Entry"])} → {_fp(r["Stock Exit"])}"' if opt else ""
+        tip = f' title="{_est_tip(r)}"' if opt else ""
+        est = f' <span class="m est">{L(*EST)}</span>' if opt else ""
         who = f'<td><span class="m">{T.esc(r["Bot"])}</span></td>' if v["multi"] else ""
         intra = _intra(r)
         span = (f'{_when(r["Entry Date"], True)} → {pd.Timestamp(r["Exit Date"]):%H:%M}' if intra
                 else f'{_when(r["Entry Date"])} → {_when(r["Exit Date"])}')
         rows.append(f'<tr><td>{_asset(r, lg)}</td><td>{type_badge(r["Type"])}</td>{who}<td>{T.esc(strat_short(r["Strategy"]))}</td>'
                     f'<td>{span} <span class="m">· {_held(int(r["Bars"]), intra)}</span></td>'
-                    f'<td{tip}>{_fp(r["Entry"])} → <b>{_fp(r["Exit"])}</b></td><td>{exit_badge(r["Exit Reason"])}</td>{_pnl_cell(r)}</tr>')
+                    f'<td{tip}>{_fp(r["Entry"])} → <b>{_fp(r["Exit"])}</b>{est}</td><td>{exit_badge(r["Exit Reason"])}</td>{_pnl_cell(r)}</tr>')
     heads = ([L("Asset", "الأصل"), L("Type", "النوع")] + ([L("Bot", "البوت")] if v["multi"] else [])
              + [L("Strategy", "الاستراتيجية"), L("Held", "المدة"), L("Entry → exit", "الدخول ← الخروج"), L("Exit reason", "سبب الخروج"), "P&amp;L"])
     ui.html(f'<div class="pbp">{head}{_table(heads, rows)}</div>')
@@ -1412,10 +1419,11 @@ def all_trades(v, file_name):
          "Type": L("Type", "النوع"), "Contract": L("Contract", "العقد"), "Stock Entry": L("Stock at entry", "السهم عند الدخول"),
          "Stock Exit": L("Stock at exit / now", "السهم عند الخروج / الحالي")}
     if only_opt:
-        N.update({"Entry": L("Premium in", "سعر العقد دخول"), "Exit": L("Premium out / now", "سعر العقد خروج / الحالي"),
+        N.update({"Entry": L("Premium in (est.)", "سعر العقد دخول (تقديري)"), "Exit": L("Premium out / now (est.)", "سعر العقد خروج / الحالي (تقديري)"),
                   "Shares": L("Contracts", "العقود")})
     elif opts:
-        N.update({"Entry": L("Entry (share / premium)", "الدخول (سهم / عقد)"), "Exit": L("Exit / now (share / premium)", "الخروج / الحالي (سهم / عقد)"),
+        N.update({"Entry": L("Entry (share / est. premium)", "الدخول (سهم / عقد تقديري)"),
+                  "Exit": L("Exit / now (share / est. premium)", "الخروج / الحالي (سهم / عقد تقديري)"),
                   "Shares": L("Shares / contracts", "أسهم / عقود")})
     show = show.rename(columns=N)
     st.dataframe(show.iloc[::-1].style.map(T.color_style, subset=[N["P&L %"], N["P&L $"]]).format(
@@ -1453,6 +1461,7 @@ def bot_header(sim):
         badges += T.badge(_stock_risk(b), "neu", "shield")
     if ins != "stock":
         badges += T.badge(_options_txt(b["options"]), "neu", "receipt_long")
+        badges += T.badge(L("Option prices estimated (Black-Scholes)", "أسعار الأوبشن تقديرية (بلاك-شولز)"), "gold", "info")
     badges += (T.badge(L("Start ", "البداية ") + iso(since_of(sim) if sim["ok"] else b["start_date"]), "neu", "event")
                + T.badge(L("Capital ", "رأس المال ") + iso(T.money(b["capital"])), "neu", "account_balance_wallet"))
     if ins != "options":
@@ -1558,6 +1567,8 @@ def _details_head(sim):
                   f"البوت يبدأ مع أول جلسة أمريكية من تاريخ {b['start_date']}. بعد إغلاق الجلسة يفحص الاستراتيجيات، وأي أمر يتنفذ عند الافتتاح التالي."),
                 icon=":material/schedule:")
         return
+    if instrument(b) != "stock":
+        st.caption(L(OPT_EST_EN, OPT_EST_AR))
     if sim.get("intraday"):
         first = iso(since_of(sim))
         st.caption(L(f"Yahoo keeps 5-minute prices for 60 days, so this bot shows its trades from {first} (the first 5 sessions only build the "
@@ -1802,11 +1813,22 @@ def combo_caption(need, n):
 
 def options_caption():
     return L("Calls are bought on buy signals and puts on sell signals; each position is closed on the opposite signal of the same rule, at "
-             "the option's take profit or stop loss (checked at the close), or 5 days before expiry. Option prices are estimated with the "
-             "Black-Scholes model from each stock's own volatility, plus $0.65 per contract, so real prices will differ.",
+             "the option's take profit or stop loss (checked at the close), or 5 days before expiry. " + OPT_EST_EN,
              "عقود Call تنشرى مع إشارات الشراء، وعقود Put مع إشارات البيع. كل عقد يتقفل بالإشارة المعاكسة من نفس القاعدة، أو عند هدف الربح أو "
-             "وقف الخسارة للعقد (يُفحص عند الإغلاق)، أو قبل الانتهاء بـ 5 أيام. أسعار العقود تقديرية بنموذج بلاك-شولز من تذبذب السهم نفسه، "
-             "مع 0.65$ لكل عقد، فالأسعار الحقيقية تختلف.")
+             "وقف الخسارة للعقد (يُفحص عند الإغلاق)، أو قبل الانتهاء بـ 5 أيام. " + OPT_EST_AR)
+
+
+OPT_EST_EN = ("Option prices are ESTIMATES, not real quotes: Yahoo Finance keeps no price history for option contracts, so every premium "
+              "is computed with the Black-Scholes model from the stock's own 20-day volatility (+10%), a 4% rate and $0.65 per contract. "
+              "Real fills (bid/ask spreads, implied volatility) would differ.")
+OPT_EST_AR = ("أسعار الأوبشن تقديرية وليست أسعار حقيقية: ياهو فاينانس ما يحتفظ بتاريخ أسعار العقود، فكل سعر عقد محسوب بنموذج بلاك-شولز "
+              "من تذبذب السهم نفسه لآخر 20 يوم (+10%)، وفائدة 4%، و0.65$ لكل عقد. التنفيذ الحقيقي (فرق العرض والطلب والتذبذب الضمني) يختلف.")
+
+
+def _est_tip(r):
+    """Hover text of an option row: the stock's move and a reminder that the premium is an estimate."""
+    return T.esc(f'{L("stock", "السهم")} {_fp(r["Stock Entry"])} → {_fp(r["Stock Exit"])} · '
+                 + L("estimated premium (Black-Scholes)", "سعر عقد تقديري (بلاك-شولز)"))
 
 
 def both_caption():
@@ -2062,6 +2084,11 @@ def _picker(way, kind):
     return strats, mode_, need, win
 
 
+def _trail_help():
+    return L("0 = off. It follows the highest price up to the day before: a day's high raises the stop from the next day, because a daily candle doesn't show whether its high or its low came first.",
+             "0 = إيقاف. يتبع أعلى سعر لين اليوم اللي قبل: قمة اليوم ترفع الوقف من اليوم اللي بعده، لأن الشمعة اليومية ما توضح أيهما صار أول: القمة أو القاع.")
+
+
 def bot_form(mode, bot=None):
     """The add / edit form (inside a dialog): a banner, then six numbered cards with space between them."""
     _init_form()
@@ -2168,7 +2195,7 @@ def bot_form(mode, bot=None):
             r[0].number_input(L("Fee % / side", "العمولة %"), 0.0, 1.0, step=0.01, key="pb_fee")
             if not orb:
                 r[1].number_input(L("Trailing stop % (optional)", "الوقف المتحرك % (اختياري)"), 0.0, 50.0, step=0.5,
-                                  help=L("0 = off", "0 = إيقاف"), key="pb_trail")
+                                  help=_trail_help(), key="pb_trail")
             st.caption(L("Stop, target and time stop come from each strategy (press its ?).", "الوقف والهدف والوقف الزمني من كل استراتيجية (اضغط ? جنبها).")
                        if not orb else L("Stop and target come from the opening range (press ?).", "الوقف والهدف من نطاق الافتتاح (اضغط ?)."))
         else:
@@ -2181,7 +2208,7 @@ def bot_form(mode, bot=None):
                 r[1].number_input(L("Stop loss %", "وقف الخسارة %"), 0.0, 50.0, step=0.5, help=off, key="pb_stop")
                 r[2].number_input(L("ATR stop ×", "وقف ATR ×"), 0.0, 10.0, step=0.5, help=off, key="pb_atr")
                 r[3].number_input(L("Take profit %", "جني الأرباح %"), 0.0, 500.0, step=1.0, help=off, key="pb_tp")
-                r[4].number_input(L("Trailing stop %", "الوقف المتحرك %"), 0.0, 50.0, step=0.5, help=off, key="pb_trail")
+                r[4].number_input(L("Trailing stop %", "الوقف المتحرك %"), 0.0, 50.0, step=0.5, help=_trail_help(), key="pb_trail")
             if instr != "stock":
                 ui.html(f'<div class="pbfs">{T.icon("receipt_long")}{L("Option filters", "فلاتر الأوبشن")}</div>')
                 o1, o2, o3 = st.columns(3)
@@ -2376,4 +2403,4 @@ def page_paper_bots():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "7.8"
+BUILD = "7.9"
