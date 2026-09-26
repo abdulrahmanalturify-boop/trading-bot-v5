@@ -121,29 +121,6 @@ def page_lab():
     if st.button(L("Open trade journal", "افتح سجل الصفقات"), icon=":material/receipt_long:"):
         ui.goto("trades")
 
-    with st.expander(L("Parameter optimizer (heatmap)", "محسّن الإعدادات (خريطة حرارية)"), icon=":material/tune:"):
-        spec = engine.STRATEGIES[cfg["strategy"]][1]
-        keys = [s[0] for s in spec]
-        labels = {s[0]: L(s[1], engine.PARAM_AR.get(s[1], s[1])) for s in spec}
-        o1, o2, o3 = st.columns(3)
-        px_ = o1.selectbox(L("X parameter", "المحور الأفقي"), keys, index=0, format_func=labels.get)
-        py_ = o2.selectbox(L("Y parameter", "المحور الرأسي"), keys, index=min(1, len(keys) - 1), format_func=labels.get)
-        metric = o3.selectbox(L("Optimize", "المعيار"), list(METRIC_AR), format_func=lambda k: L(k, METRIC_AR[k]))
-        if st.button(L("Run optimizer", "شغّل المحسّن"), icon=":material/play_arrow:"):
-            def rng(key):
-                s = next(x for x in spec if x[0] == key)
-                vals = np.linspace(s[2], s[3], 6)
-                return [round(float(v), 1) if isinstance(s[5], float) else int(v) for v in vals]
-            if px_ == py_:
-                st.warning(L("Pick two different parameters.", "اختر إعدادين مختلفين."))
-            else:
-                with st.spinner(L("Running 36 backtests...", "جاري تشغيل 36 اختبار...")):
-                    grid = engine.optimize(df, cfg["strategy"], px_, rng(px_), py_, rng(py_), cfg["params"][cfg["strategy"]],
-                                           cfg["capital"], cfg["fee"] / 100, metric, **risk_kwargs(cfg))
-                ui.chart(charts.optimizer_heatmap(grid, labels[px_], labels[py_], L(metric, METRIC_AR[metric])), key="lab_opt")
-                st.caption(L("The best cell in the past is often overfit. Prefer stable regions.",
-                             "أفضل خانة في الماضي غالباً تكون مبالغة؛ فضّل المناطق المستقرة."))
-
     ui.foot()
 
 
@@ -408,4 +385,4 @@ def page_autotrader():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "8.1"
+BUILD = "8.2"

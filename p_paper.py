@@ -1977,6 +1977,222 @@ def compare_section(sims):
 
 
 # =====================================================================
+# test one strategy on one symbol + the parameter optimizer (moved here from the Strategy Lab)
+# =====================================================================
+QT_PERIODS = {"1y": (365, "2y", "1 year", "سنة"), "2y": (730, "5y", "2 years", "سنتين"), "5y": (1826, "10y", "5 years", "5 سنوات"),
+              "10y": (3652, "max", "10 years", "10 سنوات")}
+QT_METRICS = {"Total Return %": "العائد الكلي %", "Sharpe": "شارب", "Max Drawdown %": "أقصى تراجع %", "Win Rate %": "نسبة النجاح %",
+              "CAGR %": "العائد السنوي المركب %"}
+MONTHS_AR = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"]
+
+
+def _qt_names():
+    return [n for n in PB.ALL_STRATEGIES if n != PBK.ORB]
+
+
+def _param_label(name, label):
+    return L(label, (PBK.PARAM_AR if PB.is_playbook(name) else engine.PARAM_AR).get(label, label))
+
+
+def _qt_key(name, k):
+    return f"pb_qt_p_{_slug(name)}_{k}"
+
+
+def _qt_bot(sym, name, params, cfg, start):
+    return {"id": 0, "name": "test", "kind": "company", "value": sym, "symbol": sym, "strategies": {name: PB.clean_params(name, params)},
+            "combine": {"mode": "any"}, "instrument": "stock", "options": None, "max_pos": 1, "capital": float(cfg["capital"]),
+            "fee": float(cfg["fee"]), "stop_pct": float(cfg["stop"]), "atr_mult": float(cfg["atr"]), "tp_pct": float(cfg["tp"]),
+            "trail_pct": float(cfg["trail"]), "start_date": start, "valid": True}
+
+
+@st.cache_data(ttl=600, show_spinner=False)
+def _qt_prices(sym, per):
+    days, load, _, _ = QT_PERIODS[per]
+    df = data.history(sym, load)
+    if df is None or df.empty or len(df) < 260:
+        return None
+    spy = data.history("SPY", load)
+    first = max(pd.Timestamp(df.index[-1]).tz_localize(None).normalize() - pd.Timedelta(days=days),
+                pd.Timestamp(df.index[min(200, len(df) - 1)]).tz_localize(None).normalize())
+    return df, spy, f"{first:%Y-%m-%d}"
+
+
+def _qt_settings():
+    """The inputs: symbol, period, strategy and its numbers, capital, fee and the exits."""
+    names = _qt_names()
+    for k, v in {"pb_qt_sym": "AAPL", "pb_qt_per": "2y", "pb_qt_strat": names[0], "pb_qt_cap": 100_000, "pb_qt_fee": 0.05,
+                 "pb_qt_stop": 0.0, "pb_qt_atr": 0.0, "pb_qt_tp": 0.0, "pb_qt_trail": 0.0}.items():
+        ss.setdefault(k, v)
+    if ss["pb_qt_strat"] not in names:
+        ss["pb_qt_strat"] = names[0]
+    c = st.columns([1, 1.5, 1.8, 1.1, 0.9], vertical_alignment="bottom")
+    c[0].text_input(L("Symbol", "الرمز"), key="pb_qt_sym")
+    c[1].segmented_control(L("Period", "المدة"), list(QT_PERIODS), key="pb_qt_per", format_func=lambda k: L(*QT_PERIODS[k][2:4]))
+    c[2].selectbox(L("Strategy", "الاستراتيجية"), names, key="pb_qt_strat", format_func=strat_name)
+    c[3].number_input(L("Capital ($)", "رأس المال ($)"), 100, 100_000_000, step=1000, key="pb_qt_cap")
+    c[4].number_input(L("Fee % / side", "العمولة %"), 0.0, 1.0, step=0.01, key="pb_qt_fee")
+    name = ss["pb_qt_strat"]
+    spec = PB.spec_of(name)[1]
+    book = PB.is_playbook(name)
+    params = {}
+    per_row = 5
+    for r in range(0, len(spec), per_row):
+        cols = st.columns(per_row)
+        for col, (k, label, lo, hi, dflt, step) in zip(cols, spec[r:r + per_row]):
+            key = _qt_key(name, k)
+            if isinstance(step, float):
+                ss.setdefault(key, float(dflt))
+                params[k] = col.number_input(_param_label(name, label), float(lo), float(hi), step=float(step), key=key)
+            else:
+                ss.setdefault(key, int(dflt))
+                params[k] = col.number_input(_param_label(name, label), int(lo), int(hi), step=int(step), key=key)
+    off = L("0 = off", "0 = إيقاف")
+    if book:
+        cfg_risk = {"stop": 0.0, "atr": 0.0, "tp": 0.0}
+        d = st.columns(4)
+        d[0].number_input(L("Trailing stop %", "الوقف المتحرك %"), 0.0, 50.0, step=0.5, key="pb_qt_trail", help=_trail_help())
+        st.caption(L("A combined strategy brings its own stop, target and time stop (its rules); only a trailing stop can be added.",
+                     "الاستراتيجية المركّبة فيها وقفها وهدفها ووقفها الزمني (من شروطها)، وتقدر تضيف وقف متحرك بس."))
+    else:
+        d = st.columns(4)
+        d[0].number_input(L("Stop loss %", "وقف الخسارة %"), 0.0, 50.0, step=0.5, key="pb_qt_stop", help=off)
+        d[1].number_input(L("ATR stop ×", "وقف ATR ×"), 0.0, 10.0, step=0.5, key="pb_qt_atr", help=off)
+        d[2].number_input(L("Take profit %", "جني الأرباح %"), 0.0, 500.0, step=1.0, key="pb_qt_tp", help=off)
+        d[3].number_input(L("Trailing stop %", "الوقف المتحرك %"), 0.0, 50.0, step=0.5, key="pb_qt_trail", help=_trail_help())
+        cfg_risk = {"stop": ss["pb_qt_stop"], "atr": ss["pb_qt_atr"], "tp": ss["pb_qt_tp"]}
+    cfg = {"sym": str(ss.get("pb_qt_sym") or "").strip().upper(), "per": ss.get("pb_qt_per") or "2y", "name": name, "params": params,
+           "capital": ss["pb_qt_cap"], "fee": ss["pb_qt_fee"], "trail": ss["pb_qt_trail"], **cfg_risk}
+    return cfg
+
+
+def _qt_backtest(cfg, got):
+    df, spy, start = got
+    name = cfg["name"]
+    p = PB.clean_params(name, cfg["params"])
+    if "fast" in p and "slow" in p and p["fast"] >= p["slow"]:
+        st.error(L("The fast period must be smaller than the slow period.", "الفترة السريعة لازم تكون أصغر من البطيئة."))
+        return
+    sim = PB.simulate(_qt_bot(cfg["sym"], name, p, cfg, start), {cfg["sym"]: df}, spy)
+    if not sim["ok"] or sim["waiting"]:
+        st.error(L("Not enough data for this test.", "البيانات ما تكفي لهذا الاختبار."))
+        return
+    m, tr = sim["metrics"], sim["trades"]
+    op = tr[tr["Exit Reason"] == "Open"]
+    if len(op):
+        o = op.iloc[0]
+        st.success(L(f"In a trade since {pd.Timestamp(o['Entry Date']):%Y-%m-%d} at ${o['Entry']:,.2f} · open P&L {o['P&L %']:+.2f}%",
+                     f"في صفقة منذ {pd.Timestamp(o['Entry Date']):%Y-%m-%d} بسعر ${o['Entry']:,.2f} · الربح الحالي {o['P&L %']:+.2f}%"),
+                   icon=":material/trending_up:")
+    else:
+        st.info(L("Not in a trade at the last close.", "ما فيه صفقة مفتوحة عند آخر إغلاق."), icon=":material/pause_circle:")
+    pf = "∞" if m["Profit Factor"] == np.inf else f"{m['Profit Factor']:.2f}"
+    kp = [("trending_up", L("Total return", "العائد الكلي"), f"{m['Total Return %']:+.1f}%", f"B&H {m['Buy & Hold %']:+.1f}%", T.cls(m["Total Return %"])),
+          ("speed", L("CAGR", "العائد السنوي"), f"{m['CAGR %']:+.1f}%", "", T.cls(m["CAGR %"])),
+          ("insights", L("Sharpe", "شارب"), f"{m['Sharpe']:.2f}", "", "pos" if m["Sharpe"] >= 1 else ("neg" if m["Sharpe"] < 0 else None)),
+          ("south_east", L("Max drawdown", "أقصى تراجع"), f"{m['Max Drawdown %']:.1f}%", "", "neg" if m["Max Drawdown %"] < -0.05 else None),
+          ("target", L("Win rate", "نسبة النجاح"), f"{m['Win Rate %']:.0f}%", L(f"{m['Trades']} trades", f"{m['Trades']} صفقة"),
+           "pos" if m["Win Rate %"] >= 50 else "neg"),
+          ("balance", L("Profit factor", "معامل الربح"), pf, "", "pos" if m["Profit Factor"] >= 1 else "neg")]
+    ui.html('<div class="pbk">' + "".join(T.kpi(*k) for k in kp) + "</div>")
+    d = ta.add_all(df[df.index >= df.index[0]])
+    d = d[pd.DatetimeIndex(d.index).tz_localize(None) >= pd.Timestamp(start)] if getattr(d.index, "tz", None) is not None else d[d.index >= pd.Timestamp(start)]
+    ui.chart(charts.price_chart(d, "Candles" if len(d) <= 800 else "Line", OVERLAYS.get(name, []), PANELS.get(name, []), False, trades=tr),
+             key="pb_qt_price")
+    ui.chart(charts.equity_chart(sim["equity"], sim["group"], (L("Strategy", "الاستراتيجية"), L("Buy & Hold", "شراء واحتفاظ"),
+                                                              L("Drawdown %", "التراجع %"))), key="pb_qt_eq")
+    ui.chart(charts.monthly_heatmap(engine.monthly_returns(sim["equity"]), L("Monthly returns", "العوائد الشهرية"),
+                                    MONTHS_AR if is_ar() else None), key="pb_qt_month")
+    if len(tr):
+        show = tr[["Entry Date", "Entry", "Exit Date", "Exit", "Shares", "P&L $", "P&L %", "Bars", "Exit Reason"]].copy()
+        show["Entry Date"] = pd.to_datetime(show["Entry Date"]).dt.date
+        show["Exit Date"] = pd.to_datetime(show["Exit Date"]).dt.date
+        show["Exit Reason"] = show["Exit Reason"].map(lambda x: L(x, EXIT_AR.get(x, x)))
+        N = {"Entry Date": L("Entry date", "تاريخ الدخول"), "Entry": L("Entry", "سعر الدخول"), "Exit Date": L("Exit date", "تاريخ الخروج"),
+             "Exit": L("Exit", "سعر الخروج"), "Shares": L("Shares", "الأسهم"), "P&L $": L("P&L $", "الربح $"), "P&L %": L("P&L %", "الربح %"),
+             "Bars": L("Days", "الأيام"), "Exit Reason": L("Exit reason", "سبب الخروج")}
+        show = show.rename(columns=N)
+        st.dataframe(show.iloc[::-1].style.map(T.color_style, subset=[N["P&L %"], N["P&L $"]]).format(
+            {N["Entry"]: "{:,.2f}", N["Exit"]: "{:,.2f}", N["Shares"]: "{:,.2f}", N["P&L $"]: "{:+,.2f}", N["P&L %"]: "{:+.2f}%"}),
+            hide_index=True, height=min(420, 38 + 35 * len(show)))
+        st.download_button(L("Export CSV", "تصدير CSV"), show.to_csv(index=False).encode("utf-8-sig"), f"test_{cfg['sym']}.csv",
+                           "text/csv", icon=":material/download:", key="pb_qt_csv")
+
+
+def _qt_values(name, key):
+    lo, hi, step = next((s_[2], s_[3], s_[5]) for s_ in PB.spec_of(name)[1] if s_[0] == key)
+    vals = np.linspace(lo, hi, 6)
+    out = [round(float(v), 2) if isinstance(step, float) else int(round(v)) for v in vals]
+    return list(dict.fromkeys(out))
+
+
+def _qt_optimizer(cfg, got):
+    df, spy, start = got
+    name = cfg["name"]
+    spec = PB.spec_of(name)[1]
+    keys = [s_[0] for s_ in spec]
+    labels = {s_[0]: _param_label(name, s_[1]) for s_ in spec}
+    if len(keys) < 2:
+        st.caption(L("This strategy has fewer than two settings to try.", "هذه الاستراتيجية فيها أقل من إعدادين للتجربة."))
+        return
+    ss.setdefault("pb_qt_ox", keys[0])
+    ss.setdefault("pb_qt_oy", keys[1])
+    if ss["pb_qt_ox"] not in keys:
+        ss["pb_qt_ox"] = keys[0]
+    if ss["pb_qt_oy"] not in keys:
+        ss["pb_qt_oy"] = keys[1]
+    ss.setdefault("pb_qt_om", "Total Return %")
+    o1, o2, o3, o4 = st.columns([1.3, 1.3, 1.3, 1], vertical_alignment="bottom")
+    o1.selectbox(L("X setting", "المحور الأفقي"), keys, key="pb_qt_ox", format_func=labels.get)
+    o2.selectbox(L("Y setting", "المحور الرأسي"), keys, key="pb_qt_oy", format_func=labels.get)
+    o3.selectbox(L("Optimize", "المعيار"), list(QT_METRICS), key="pb_qt_om", format_func=lambda k: L(k, QT_METRICS[k]))
+    run = o4.button(L("Run optimizer", "شغّل المحسّن"), icon=":material/play_arrow:", key="pb_qt_orun", width="stretch")
+    px_, py_, metric = ss["pb_qt_ox"], ss["pb_qt_oy"], ss["pb_qt_om"]
+    if run:
+        if px_ == py_:
+            st.warning(L("Pick two different settings.", "اختر إعدادين مختلفين."))
+            return
+        xs, ys = _qt_values(name, px_), _qt_values(name, py_)
+        grid = pd.DataFrame(index=ys, columns=xs, dtype=float)
+        with st.spinner(L(f"Running {len(xs) * len(ys)} backtests...", f"جاري تشغيل {len(xs) * len(ys)} اختبار...")):
+            for y in ys:
+                for x in xs:
+                    p = PB.clean_params(name, dict(cfg["params"], **{px_: x, py_: y}))
+                    if "fast" in p and "slow" in p and p["fast"] >= p["slow"]:
+                        continue
+                    r = PB.simulate(_qt_bot(cfg["sym"], name, p, cfg, start), {cfg["sym"]: df}, spy)
+                    if r["ok"] and not r["waiting"] and r.get("metrics"):
+                        grid.loc[y, x] = float(r["metrics"][metric])
+        ss["pb_qt_grid"] = (cfg["sym"], cfg["per"], name, px_, py_, metric, grid)
+    g = ss.get("pb_qt_grid")
+    if g and g[:6] == (cfg["sym"], cfg["per"], name, px_, py_, metric):
+        ui.chart(charts.optimizer_heatmap(g[6], labels[px_], labels[py_], L(metric, QT_METRICS[metric])), key="pb_qt_opt")
+        st.caption(L("The best cell in the past is often overfit. Prefer stable regions.",
+                     "أفضل خانة في الماضي غالباً تكون مبالغة؛ فضّل المناطق المستقرة."))
+
+
+def test_section():
+    """One strategy on one symbol, with your numbers: its results, charts and trades, and the parameter optimizer."""
+    with st.expander(L("Test a strategy on a symbol", "اختبر استراتيجية على سهم"), icon=":material/science:"):
+        cfg = _qt_settings()
+        if st.button(L("Run the test", "شغّل الاختبار"), type="primary", icon=":material/play_arrow:", key="pb_qt_run"):
+            ss["pb_qt_on"] = True                    # from then on the results follow the inputs
+        if not cfg["sym"] or not ss.get("pb_qt_on"):
+            return
+        got = _qt_prices(cfg["sym"], cfg["per"])
+        if got is None:
+            st.error(L(f"Not enough price data for {cfg['sym']}. Check the symbol (for example AAPL, BTC-USD, 2222.SR).",
+                       f"لا توجد بيانات كافية للرمز {cfg['sym']}. تأكد من الرمز (مثلاً AAPL أو BTC-USD أو 2222.SR)."))
+            return
+        st.caption(L(f"From {got[2]} · signals on the close, orders at the next open, stops checked during the day (the bots' engine).",
+                     f"من {got[2]} · الإشارة على الإغلاق، والتنفيذ عند الافتتاح التالي، والوقف يُفحص خلال اليوم (محرك البوتات)."))
+        t1, t2 = st.tabs([L("Backtest", "الاختبار"), L("Parameter optimizer", "محسّن الإعدادات")])
+        with t1:
+            ui.safe(_qt_backtest, cfg, got)
+        with t2:
+            ui.safe(_qt_optimizer, cfg, got)
+
+
+# =====================================================================
 # dialogs: unlock · add / edit · delete
 # =====================================================================
 def _unlock():
@@ -2783,6 +2999,7 @@ def page_paper_bots():
         else:
             ui.safe(portfolio, chosen, spy, shown)
 
+    ui.safe(test_section)
     ui.safe(compare_section, sims)
     st.caption(L("Virtual trading on real daily prices (dividend-adjusted, may be delayed); the Opening Range Breakout uses 5-minute prices from "
                  "the last 60 days. Forward tests are saved session by session after each US close and never recalculated; historical "
@@ -2794,4 +3011,4 @@ def page_paper_bots():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "8.1"
+BUILD = "8.2"
