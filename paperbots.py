@@ -34,10 +34,13 @@ import pandas as pd
 import requests
 import streamlit as st
 
+from math import exp
+
 import data
 import engine
 import ta
 import universe as U
+from autotrader import bs_call, strike_for
 
 MAX_BOTS = 5
 MAX_POS_LIMIT = 20
@@ -237,6 +240,23 @@ def _num(v, default=0.0):
         return default
 
 
+OPTION_DEFAULTS = {"type": "call", "dte": 30, "strike": 0, "alloc": 5.0, "tp": 100.0, "sl": 50.0}
+OPTION_TYPES = ("call", "put", "both")
+STRIKES = (-10, -5, 0, 5, 10)            # % out of the money (negative = in the money)
+OPT_FEE = 0.65                           # $ per contract, each side (same as the Auto Trader)
+TIME_EXIT_DAYS = 5                       # options are sold when this few calendar days are left
+
+
+def clean_options(o):
+    o = {**OPTION_DEFAULTS, **(o or {})}
+    return {"type": o["type"] if o["type"] in OPTION_TYPES else "call",
+            "dte": int(min(max(_num(o["dte"], 30), 7), 180)),
+            "strike": int(min(STRIKES, key=lambda k: abs(k - _num(o["strike"], 0)))),
+            "alloc": float(min(max(_num(o["alloc"], 5.0), 0.5), 50.0)),
+            "tp": float(min(max(_num(o["tp"], 100.0), 5.0), 2000.0)),
+            "sl": float(min(max(_num(o["sl"], 50.0), 5.0), 95.0))}
+
+
 def clean_params(strategy, params):
     """Strategy parameters clipped to the Strategy Lab ranges (missing ones get the defaults)."""
     out = {}
@@ -260,10 +280,11 @@ def _norm(r):
             kind, value = str(uni.get("kind") or "company"), str(uni.get("value") or "")
             raw, max_pos = params.get("strategies") or {}, int(_num(params.get("max_pos"), 5))
             comb = params.get("combine") or {}
+            instrument, opts = params.get("instrument") or "stock", params.get("options")
         else:
             kind, value = "company", str(r["symbol"])
             raw, max_pos = {str(r["strategy"]): params}, 1
-            comb = {}
+            comb, instrument, opts = {}, "stock", None
         if kind not in KINDS:
             kind, value = "company", str(r.get("symbol") or "")
         if kind == "company":
@@ -276,6 +297,7 @@ def _norm(r):
                    "min": min(max(int(_num(comb.get("min"), len(strategies))), 1), max(len(strategies), 1)) if combo else 1}
         return {"id": r["id"], "name": str(r.get("name") or value)[:40], "kind": kind, "value": value,
                 "symbol": value if kind == "company" else None, "strategies": strategies, "combine": combine,
+                "instrument": "options" if instrument == "options" else "stock", "options": clean_options(opts),
                 "max_pos": min(max(max_pos, 1), MAX_POS_LIMIT),
                 "capital": max(_num(r.get("capital"), 10000.0), 1.0), "fee": max(_num(r.get("fee")), 0.0),
                 "stop_pct": max(_num(r.get("stop_pct")), 0.0), "atr_mult": max(_num(r.get("atr_mult")), 0.0),
@@ -286,7 +308,8 @@ def _norm(r):
         return None
 
 
-def make_record(name, kind, value, strategies, max_pos, capital, fee, stop_pct, atr_mult, tp_pct, trail_pct, start_date, combine=None):
+def make_record(name, kind, value, strategies, max_pos, capital, fee, stop_pct, atr_mult, tp_pct, trail_pct, start_date, combine=None,
+                instrument="stock", options=None):
     """Settings from the form -> a row for the table (FIELDS).
     combine: None / {'mode': 'any'} = any strategy opens its own trades; {'mode': 'combo', 'min': n} = buy only when at least
     n of the strategies agree (see simulate)."""
@@ -304,7 +327,8 @@ def make_record(name, kind, value, strategies, max_pos, capital, fee, stop_pct, 
     joiner = " & " if combine["mode"] == "combo" else " + "
     return {"name": str(name)[:40], "symbol": sym[:120], "strategy": joiner.join(strategies)[:250],
             "params": {"v": 2, "universe": {"kind": kind, "value": value}, "strategies": strategies,
-                       "max_pos": int(min(max(int(max_pos), 1), MAX_POS_LIMIT)), "combine": combine},
+                       "max_pos": int(min(max(int(max_pos), 1), MAX_POS_LIMIT)), "combine": combine,
+                       "instrument": "options" if instrument == "options" else "stock", "options": clean_options(options)},
             "capital": float(capital), "fee": float(fee), "stop_pct": float(stop_pct), "atr_mult": float(atr_mult),
             "tp_pct": float(tp_pct), "trail_pct": float(trail_pct), "start_date": str(start_date)[:10]}
 
@@ -330,6 +354,23 @@ def create_bot(rec):
             rec["id"] = max([int(x.get("id", 0)) for x in rows] + [0]) + 1
             rec["created_at"] = pd.Timestamp.now(tz="UTC").strftime("%Y-%m-%dT%H:%M:%S")
             rows.append(rec)
+            _local_write(rows)
+    _list_raw.clear()
+
+
+def update_bot(bot_id, rec):
+    """Replace a bot's settings (a row from make_record); its history is replayed from its start date with the new settings."""
+    rec = json.loads(json.dumps({k: rec[k] for k in FIELDS}, default=float))
+    if backend() == "supabase":
+        url, h = _sb()
+        r = _request("PATCH", url, headers={**h, "Prefer": "return=minimal"}, params={"id": f"eq.{int(bot_id)}"}, data=json.dumps(rec))
+        _check(r)
+    else:
+        with _LOCK:
+            rows = _local_read()
+            for x in rows:
+                if str(x.get("id")) == str(bot_id):
+                    x.update(rec)
             _local_write(rows)
     _list_raw.clear()
 
@@ -394,6 +435,15 @@ def _state(entries, exits):
 
 
 TRADE_COLS = ["Symbol", "Strategy", "Entry Date", "Entry", "Exit Date", "Exit", "Shares", "P&L $", "P&L %", "Bars", "Exit Reason"]
+EXTRA_COLS = ["Type", "Contract", "Stock Entry", "Stock Exit", "Fees"]   # Type: Stock / Call / Put; option prices are per share
+
+
+def _bs(kind, S, K, T, sigma):
+    """Black-Scholes price of a call or put (the Auto Trader's model: the stock's own volatility, 4% rate)."""
+    c = bs_call(S, K, T, sigma)
+    if kind == "Call":
+        return c
+    return max(K - S, 0.0) if T <= 0 or sigma <= 0 else max(c - S + K * exp(-0.04 * T), 0.0)
 
 
 def simulate(bot, px, spy=None):
@@ -430,11 +480,18 @@ def simulate(bot, px, spy=None):
     labels = [COMBO] if combo else names        # what opens a trade: each strategy, or the combined rule
     S = len(labels)
     atr_on = bool(bot["atr_mult"])
+    options = bot.get("instrument") == "options"
+    oc = bot.get("options") or OPTION_DEFAULTS
+    want_long = not options or oc["type"] in ("call", "both")          # stocks, or calls on buy signals
+    want_put = options and oc["type"] in ("put", "both")               # puts on sell signals
+    long_kind = "Call" if options else "Stock"
 
     # wide arrays (dates x stocks); each stock's indicators and signals come from its own history, exactly like the lab
     O, H, Lo, C = (np.full((T, N), np.nan) for _ in range(4))
     ATRP, K, MOM = (np.full((T, N), np.nan) for _ in range(3))
+    HVP, HVC = (np.full((T, N), np.nan) for _ in range(2))
     ENT, EXT = np.zeros((S, T, N), bool), np.zeros((S, T, N), bool)
+    PENT, PEXT = (np.zeros((S, T, N), bool) for _ in range(2)) if want_put else (None, None)
     for j, s in enumerate(syms):
         df = frames[s]
         p = idx.get_indexer(df.index)
@@ -442,6 +499,9 @@ def simulate(bot, px, spy=None):
         if atr_on:
             a = ta.atr(df).to_numpy(float)
             ATRP[p, j] = np.r_[a[:1], a[:-1]]                  # the ATR of the previous bar (engine: atr_v[i - 1])
+        if options:
+            hv = (df["Close"].pct_change().rolling(20).std() * np.sqrt(252)).to_numpy(float)
+            HVC[p, j], HVP[p, j] = hv, np.r_[np.nan, hv[:-1]]
         K[p, j] = np.arange(len(df))
         MOM[p, j] = df["Close"].pct_change(63).to_numpy(float)
         sig = [engine.STRATEGIES[name][0](df, **bot["strategies"][name]) for name in names]
@@ -451,14 +511,23 @@ def simulate(bot, px, spy=None):
             cond = sum(_state(e, x) for e, x in sig) >= need
             ENT[0, p, j] = (cond & ~cond.shift(1, fill_value=False)).to_numpy()
             EXT[0, p, j] = (~cond).to_numpy()
+            if want_put:                                   # puts: bought when the rule breaks, sold when it is met again
+                PENT[0, p, j] = (~cond & cond.shift(1, fill_value=False)).to_numpy()
+                PEXT[0, p, j] = cond.to_numpy()
         else:
             for k, (e, x) in enumerate(sig):
                 ENT[k, p, j] = e.fillna(False).astype(bool).to_numpy()
                 EXT[k, p, j] = x.fillna(False).astype(bool).to_numpy()
+                if want_put:                               # puts: bought on the strategy's sell signal, sold on its buy signal
+                    PENT[k, p, j] = EXT[k, p, j]
+                    PEXT[k, p, j] = ENT[k, p, j]
     valid = ~np.isnan(C)
     CF = pd.DataFrame(C).ffill().to_numpy()                    # last known close, to value the portfolio every day
     ENT &= live[None, :, None]                                 # no new trades before the start date
     ENT &= valid[None, :, :]
+    if want_put:
+        PENT &= live[None, :, None]
+        PENT &= valid[None, :, :]
 
     fee, cap = bot["fee"] / 100, float(bot["capital"])
     max_pos = 1 if bot["kind"] == "company" else int(bot["max_pos"])
@@ -468,63 +537,118 @@ def simulate(bot, px, spy=None):
     pos, pend, trades = {}, [], []
     equity, invested, npos = np.empty(T), np.empty(T), np.zeros(T, int)
 
-    def close(j, t, price, reason):
+    def sigma_of(hv, fallback=0.35):
+        return float(np.clip((hv if np.isfinite(hv) else fallback) * 1.1, 0.15, 1.5))
+
+    def close(j, t, price, reason, under=None):
         nonlocal cash
         q = pos.pop(j)
-        proceeds = q["shares"] * price * (1 - fee)
-        cost = q["shares"] * q["entry"] * (1 + fee)
+        if q["kind"] == "Stock":
+            proceeds = q["shares"] * price * (1 - fee)
+            cost = q["shares"] * q["entry"] * (1 + fee)
+            fees = q["shares"] * (q["entry"] + price) * fee
+            under = price
+        else:
+            proceeds = q["shares"] * 100 * price - q["shares"] * OPT_FEE
+            cost = q["shares"] * 100 * q["entry"] + q["shares"] * OPT_FEE
+            fees = 2 * q["shares"] * OPT_FEE
         trades.append({"Symbol": syms[j], "Strategy": labels[q["k"]], "Entry Date": idx[q["t"]], "Entry": q["entry"],
                        "Exit Date": idx[t], "Exit": price, "Shares": q["shares"], "P&L $": proceeds - cost,
-                       "P&L %": (proceeds / cost - 1) * 100, "Bars": int(K[t, j] - q["kb"]), "Exit Reason": reason})
+                       "P&L %": (proceeds / cost - 1) * 100, "Bars": int(K[t, j] - q["kb"]), "Exit Reason": reason,
+                       "Type": q["kind"], "Contract": q["contract"], "Stock Entry": q["s0"], "Stock Exit": under, "Fees": fees})
         cash += proceeds
 
     for t in range(T):
         # 1) yesterday's exit signals: sell at today's open
         for j in [j for j, q in pos.items() if q["exit"] and valid[t, j]]:
-            close(j, t, O[t, j], "Signal")
-        # 2) yesterday's entry signals: buy at today's open, best first, one equal slot each
-        for j, k in pend:
+            q = pos[j]
+            if q["kind"] == "Stock":
+                close(j, t, O[t, j], "Signal")
+            else:
+                t_left = max((q["expiry"] - idx[t]).days, 0)
+                close(j, t, _bs(q["kind"], O[t, j], q["K"], t_left / 365, sigma_of(HVP[t, j], q["sigma"])), "Signal", O[t, j])
+        # 2) yesterday's entry signals: buy at today's open, best first
+        for j, k, kind in pend:
             if j in pos or not valid[t, j] or len(pos) >= max_pos:
                 continue
-            alloc = min(cash, eq_prev / max_pos)
-            if alloc <= 0:
-                continue
             o = O[t, j]
-            shares = alloc / (o * (1 + fee))
-            cash -= shares * o * (1 + fee)
-            stops = []
-            if stop_pct:
-                stops.append(o * (1 - stop_pct / 100))
-            if atr_mult and not np.isnan(ATRP[t, j]):
-                stops.append(o - atr_mult * ATRP[t, j])
-            pos[j] = {"shares": shares, "entry": o, "t": t, "kb": K[t, j], "peak": o, "stop": max(stops) if stops else 0.0,
-                      "target": o * (1 + tp_pct / 100) if tp_pct else np.inf, "k": k, "exit": False}
+            if kind == "Stock":                                # one equal slot of the balance
+                alloc = min(cash, eq_prev / max_pos)
+                if alloc <= 0:
+                    continue
+                shares = alloc / (o * (1 + fee))
+                cash -= shares * o * (1 + fee)
+                stops = []
+                if stop_pct:
+                    stops.append(o * (1 - stop_pct / 100))
+                if atr_mult and not np.isnan(ATRP[t, j]):
+                    stops.append(o - atr_mult * ATRP[t, j])
+                pos[j] = {"kind": "Stock", "shares": shares, "entry": o, "t": t, "kb": K[t, j], "peak": o,
+                          "stop": max(stops) if stops else 0.0, "target": o * (1 + tp_pct / 100) if tp_pct else np.inf, "k": k,
+                          "exit": False, "contract": syms[j], "s0": o}
+            else:                                              # options: a % of the balance, priced with Black-Scholes
+                sigma = sigma_of(HVP[t, j])
+                strike = strike_for(o * (1 + oc["strike"] / 100) if kind == "Call" else o * (1 - oc["strike"] / 100))
+                prem = _bs(kind, o, strike, oc["dte"] / 365, sigma)
+                if prem < 0.05:
+                    continue
+                n = int(min(cash, eq_prev * oc["alloc"] / 100) // (prem * 100 + OPT_FEE))
+                if n < 1:
+                    continue
+                cash -= n * (prem * 100 + OPT_FEE)
+                expiry = idx[t] + pd.Timedelta(days=oc["dte"])
+                pos[j] = {"kind": kind, "shares": n, "entry": prem, "t": t, "kb": K[t, j], "k": k, "exit": False, "K": strike,
+                          "expiry": expiry, "sigma": sigma, "value": prem, "s0": o,
+                          "contract": f"{syms[j]} {strike:g}{kind[0]} {expiry:%Y-%m-%d}"}
         pend = []
-        # 3) stop loss / trailing stop / take profit during the day
+        # 3) stocks: stop loss / trailing stop / take profit during the day · options: value at the close, take profit / stop / time
         for j in list(pos):
             if not valid[t, j]:
                 continue
             q = pos[j]
-            q["peak"] = max(q["peak"], H[t, j])
-            trail = q["peak"] * (1 - trail_pct / 100) if trail_pct else 0.0
-            eff = max(q["stop"], trail)
-            if Lo[t, j] <= eff:
-                close(j, t, min(O[t, j], eff), "Trailing Stop" if trail >= q["stop"] and trail_pct else "Stop Loss")
-            elif H[t, j] >= q["target"]:
-                close(j, t, max(O[t, j], q["target"]), "Take Profit")
-        # 4) signals at the close: the strategy that opened a trade decides its exit; new signals fill the free slots
+            if q["kind"] == "Stock":
+                q["peak"] = max(q["peak"], H[t, j])
+                trail = q["peak"] * (1 - trail_pct / 100) if trail_pct else 0.0
+                eff = max(q["stop"], trail)
+                if Lo[t, j] <= eff:
+                    close(j, t, min(O[t, j], eff), "Trailing Stop" if trail >= q["stop"] and trail_pct else "Stop Loss")
+                elif H[t, j] >= q["target"]:
+                    close(j, t, max(O[t, j], q["target"]), "Take Profit")
+                continue
+            t_left = (q["expiry"] - idx[t]).days
+            q["value"] = _bs(q["kind"], C[t, j], q["K"], max(t_left, 0) / 365, sigma_of(HVC[t, j], q["sigma"]))
+            why = None
+            if q["value"] >= q["entry"] * (1 + oc["tp"] / 100):
+                why = "Take Profit"
+            elif q["value"] <= q["entry"] * (1 - oc["sl"] / 100):
+                why = "Stop Loss"
+            elif t_left <= TIME_EXIT_DAYS:
+                why = "Time Exit"
+            if why:
+                close(j, t, q["value"], why, C[t, j])
+        # 4) signals at the close: the rule that opened a trade decides its exit; new signals fill the free slots
         for j, q in pos.items():
-            if valid[t, j] and EXT[q["k"], t, j]:
+            if valid[t, j] and (PEXT if q["kind"] == "Put" else EXT)[q["k"], t, j]:
                 q["exit"] = True
         free = max_pos - sum(1 for q in pos.values() if not q["exit"])
         if free > 0 and live[t]:
-            row = ENT[:, t, :]
-            cand = [j for j in np.flatnonzero(row.any(axis=0)) if j not in pos]
-            if cand:
-                cand.sort(key=lambda j: (-MOM[t, j] if not np.isnan(MOM[t, j]) else np.inf, syms[j]))
-                pend = [(int(j), int(np.argmax(row[:, j]))) for j in cand[:free]]
+            cand = {}
+            if want_long:
+                row = ENT[:, t, :]
+                for j in np.flatnonzero(row.any(axis=0)):
+                    if j not in pos:
+                        m_ = MOM[t, j]
+                        cand[j] = ((-m_ if not np.isnan(m_) else np.inf, syms[j]), int(np.argmax(row[:, j])), long_kind)
+            if want_put:                                       # puts: the weakest of the last 3 months first
+                row = PENT[:, t, :]
+                for j in np.flatnonzero(row.any(axis=0)):
+                    if j not in pos and j not in cand:
+                        m_ = MOM[t, j]
+                        cand[j] = ((m_ if not np.isnan(m_) else np.inf, syms[j]), int(np.argmax(row[:, j])), "Put")
+            order = sorted(cand, key=lambda j: cand[j][0])
+            pend = [(int(j), cand[j][1], cand[j][2]) for j in order[:free]]
         # 5) value at the close
-        mv = float(sum(q["shares"] * CF[t, j] for j, q in pos.items()))
+        mv = float(sum(q["shares"] * CF[t, j] if q["kind"] == "Stock" else q["shares"] * 100 * q["value"] for j, q in pos.items()))
         equity[t] = cash + mv
         invested[t] = mv / equity[t] if equity[t] > 0 else 0.0
         npos[t] = len(pos)
@@ -533,14 +657,23 @@ def simulate(bot, px, spy=None):
     open_rows = []
     for j, q in pos.items():
         tl = int(np.flatnonzero(valid[:, j])[-1])
-        c_last, basis = C[tl, j], q["entry"] * (1 + fee)
+        c_last = C[tl, j]
+        if q["kind"] == "Stock":
+            basis = q["entry"] * (1 + fee)
+            pnl, pct, exit_px = q["shares"] * (c_last - basis), (c_last / basis - 1) * 100, c_last
+            fees = q["shares"] * q["entry"] * fee
+        else:
+            cost = q["shares"] * 100 * q["entry"] + q["shares"] * OPT_FEE
+            pnl = q["shares"] * 100 * q["value"] - cost
+            pct, exit_px, fees = pnl / cost * 100, q["value"], q["shares"] * OPT_FEE
         open_rows.append({"Symbol": syms[j], "Strategy": labels[q["k"]], "Entry Date": idx[q["t"]], "Entry": q["entry"],
-                          "Exit Date": idx[tl], "Exit": c_last, "Shares": q["shares"], "P&L $": q["shares"] * (c_last - basis),
-                          "P&L %": (c_last / basis - 1) * 100, "Bars": int(K[tl, j] - q["kb"]), "Exit Reason": "Open"})
-    tr = pd.DataFrame(trades + open_rows, columns=TRADE_COLS)
+                          "Exit Date": idx[tl], "Exit": exit_px, "Shares": q["shares"], "P&L $": pnl, "P&L %": pct,
+                          "Bars": int(K[tl, j] - q["kb"]), "Exit Reason": "Open", "Type": q["kind"], "Contract": q["contract"],
+                          "Stock Entry": q["s0"], "Stock Exit": c_last, "Fees": fees})
+    tr = pd.DataFrame(trades + open_rows, columns=TRADE_COLS + EXTRA_COLS)
     out.update(ok=True, start=start, symbols=syms, n_symbols=N, last_date=idx[-1], trades=tr, max_pos=max_pos,
-               next_buys=[(syms[j], labels[k]) for j, k in pend],
-               next_sells=[(syms[j], labels[q["k"]]) for j, q in pos.items() if q["exit"]],
+               next_buys=[(syms[j], labels[k], kind) for j, k, kind in pend],
+               next_sells=[(syms[j], labels[q["k"]], q["kind"]) for j, q in pos.items() if q["exit"]],
                n_open=len(pos), in_pos=bool(pos))
     if bot["kind"] == "company":
         out["frame"] = frames[syms[0]]
@@ -586,22 +719,24 @@ def _run_cached(bot_json):
 
 def run_all(bots):
     """Every bot replayed (each result cached for 10 minutes, like the prices) + SPY for the comparison chart."""
-    sims = [_run_cached(json.dumps(b, sort_keys=True, default=str)) for b in bots]
+    sims = []
+    for b in bots:
+        sim = dict(_run_cached(json.dumps(b, sort_keys=True, default=str)))
+        sim["bot"] = b                       # the saved settings as they are (the cache key sorts the JSON)
+        sims.append(sim)
     period = max((period_for(b["start_date"]) for b in bots), key=PERIODS.index) if bots else "2y"
     return sims, data.history("SPY", period)
 
 
 def journal(sim):
     """Trades in the Trade Journal / Auto Trader format (for tdash.render and autotrader.stats)."""
-    bot, tr = sim["bot"], sim["trades"]
-    fee = bot["fee"] / 100
-    return pd.DataFrame({"Symbol": tr["Symbol"].astype(str), "Type": "Stock", "Contract": tr["Symbol"].astype(str), "Setup": 0,
+    tr = sim["trades"]
+    return pd.DataFrame({"Symbol": tr["Symbol"].astype(str), "Type": tr["Type"].astype(str), "Contract": tr["Contract"].astype(str), "Setup": 0,
                          "Sector": [sector_of(s) for s in tr["Symbol"]],
                          "Entry Date": pd.to_datetime(tr["Entry Date"]), "Entry": tr["Entry"].astype(float),
                          "Exit Date": pd.to_datetime(tr["Exit Date"]), "Exit": tr["Exit"].astype(float), "Qty": tr["Shares"].astype(float),
-                         "P&L $": tr["P&L $"].astype(float), "P&L %": tr["P&L %"].astype(float),
-                         "Fees": ((tr["Entry"] + tr["Exit"]) * tr["Shares"] * fee).astype(float), "Days": tr["Bars"],
-                         "Exit Reason": tr["Exit Reason"]})
+                         "P&L $": tr["P&L $"].astype(float), "P&L %": tr["P&L %"].astype(float), "Fees": tr["Fees"].astype(float),
+                         "Days": tr["Bars"], "Exit Reason": tr["Exit Reason"]})
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "7.2"
+BUILD = "7.3"

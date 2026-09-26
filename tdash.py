@@ -114,7 +114,7 @@ def recent_html(tr, lg, n=8):
         return f'<div class="muted">{L("No closed trades yet.", "لا توجد صفقات مغلقة بعد.")}</div>'
     rows = []
     for _, r in tr.sort_values("Exit Date", ascending=False).head(n).iterrows():
-        side = T.badge("CALL", "acc") if r["Type"] == "Call" else T.badge("LONG", "up")
+        side = {"Call": T.badge("CALL", "acc"), "Put": T.badge("PUT", "vio")}.get(r["Type"], T.badge("LONG", "up"))
         rows.append(f'<tr><td><a href="{ui.href(r["Symbol"])}" target="_self" style="display:flex;align-items:center;gap:6px">'
                     f'{T.logo_circle(r["Symbol"], lg.get(r["Symbol"]), 22)}{T.esc(r["Symbol"])}</a></td><td>{side}</td>'
                     f'<td class="muted">{pd.Timestamp(r["Exit Date"]):%Y-%m-%d}</td><td>{T.pbox(T.money(r["P&L $"]), r["P&L $"])}</td></tr>')
@@ -127,7 +127,7 @@ def open_html(op, lg):
         return f'<div class="muted">{L("No open positions.", "لا توجد مراكز مفتوحة.")}</div>'
     items = []
     for _, r in op.iterrows():
-        what = r["Contract"] if r["Type"] == "Call" else f'{int(r["Qty"])} {L("shares", "سهم")}'
+        what = r["Contract"] if r["Type"] in ("Call", "Put") else f'{int(r["Qty"])} {L("shares", "سهم")}'
         items.append(f'<div class="o"><div>{T.company(r["Symbol"], "", lg.get(r["Symbol"]), 26, sub=what, href=ui.href(r["Symbol"]))}'
                      f'<div class="m">{L("since", "منذ")} {pd.Timestamp(r["Entry Date"]):%Y-%m-%d} · {T.fmt_price(r["Entry"])} → {T.fmt_price(r["Exit"])}</div></div>'
                      f'<div style="text-align:right">{T.pbox(T.money(r["P&L $"]), r["P&L $"])}<div class="m">{r["P&L %"]:+.1f}%</div></div></div>')
@@ -174,4 +174,4 @@ def render(tr, op, s, capital, key="td"):
                 f'<span class="muted">{n_open} {L("positions", "مراكز")}</span></div>{open_html(op, lg)}</div>')
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "7.2"
+BUILD = "7.3"
