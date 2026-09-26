@@ -1622,7 +1622,7 @@ def can_edit():
     return False
 
 
-FORM_KEYS = list(DEFAULTS) + ["pb_min", "pb_pbmin", "pb_start", "pb_edit_id"]
+FORM_KEYS = list(DEFAULTS) + ["pb_min", "pb_pbmin", "pb_start", "pb_edit_id", "pb_capital_txt", "pb_cap_bad", "pb_maxpos_keep"]
 FORM_PREFIXES = ("pb_strats_", "pb_pp_", "pb_ms_")
 
 
@@ -1632,9 +1632,15 @@ def _reset_form():
 
 
 def _init_form():
+    if "pb_maxpos" not in ss and "pb_maxpos_keep" in ss:       # hidden while one company was chosen: bring the number back
+        ss["pb_maxpos"] = ss["pb_maxpos_keep"]
     for k, v in DEFAULTS.items():
         if k not in ss:
             ss[k] = list(v) if isinstance(v, list) else v
+    if not isinstance(ss.get("pb_capital"), int) or not 100 <= ss["pb_capital"] <= 100_000_000:
+        ss["pb_capital"] = DEFAULTS["pb_capital"]
+    if "pb_capital_txt" not in ss:
+        ss["pb_capital_txt"] = f"{ss['pb_capital']:,}"
     if ss.get("pb_kind") not in PB.KINDS:          # clicking the selected option again clears it
         ss["pb_kind"] = DEFAULTS["pb_kind"]
     if ss.get("pb_mode") not in MODES:
@@ -1647,6 +1653,28 @@ def _init_form():
         ss["pb_start"] = today
 
 
+_DIGITS = str.maketrans("٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹", "01234567890123456789")
+
+
+def _capital_changed():
+    """The capital box: read "1,000,000", "1000000" or Arabic digits, keep it between 100 and 100,000,000, show it with commas."""
+    raw = str(ss.get("pb_capital_txt") or "").translate(_DIGITS)
+    raw = "".join(ch for ch in raw if ch.isdigit() or ch == ".")
+    try:
+        v = int(round(float(raw)))
+        ok = 100 <= v <= 100_000_000
+    except ValueError:
+        v, ok = 0, False
+    if ok:
+        ss["pb_capital"] = v
+    ss["pb_cap_bad"] = not ok
+    ss["pb_capital_txt"] = f"{ss.get('pb_capital', DEFAULTS['pb_capital']):,}" if ok else ss.get("pb_capital_txt", "")
+
+
+def _keep_maxpos():
+    ss["pb_maxpos_keep"] = ss.get("pb_maxpos")
+
+
 def _clip(v, lo, hi, cast=float):
     return cast(min(max(cast(v), lo), hi))
 
@@ -1656,7 +1684,9 @@ def _load_form(bot):
     _reset_form()
     k, v = bot["kind"], bot["value"]
     books = [s for s in PBK.PLAYBOOKS if s in bot["strategies"]]
-    ss.update({"pb_edit_id": bot["id"], "pb_name": bot["name"], "pb_capital": _clip(round(bot["capital"]), 100, 100_000_000, int),
+    cap = _clip(round(bot["capital"]), 100, 100_000_000, int)
+    ss["pb_capital_txt"] = f"{cap:,}"
+    ss.update({"pb_edit_id": bot["id"], "pb_name": bot["name"], "pb_capital": cap,
                "pb_kind": k, "pb_mode": "combo" if books else "single",
                # the bot's own way keeps exactly its strategies (none when they no longer exist); the other way gets its default
                "pb_store": list(DEFAULTS["pb_store"]) if books else [s for s in engine.STRATEGIES if s in bot["strategies"]],
@@ -1976,7 +2006,8 @@ def together(way, strats):
     if not isinstance(ss.get(nk), int) or not 2 <= ss[nk] <= n:
         ss[nk] = n
     with st.container(key="pbq_together"):
-        with st.popover(L("How they work together", "كيف تشتغل مع بعض") + " · " + together_label(way, n), icon=":material/join_inner:"):
+        with st.popover(L("How they work together", "كيف تشتغل مع بعض") + " · " + together_label(way, n), icon=":material/join_inner:",
+                        width="stretch"):
             mode_ = st.segmented_control(L("How do the strategies work together?", "كيف تشتغل الاستراتيجيات مع بعض؟"), ["any", "combo"],
                                          key=mk, format_func=lambda k: {"any": L("Each on its own", "كل وحدة لحالها"),
                                                                          "combo": L("Agreement rule (custom)", "قاعدة اتفاق (مخصصة)")}[k]) or "any"
@@ -2042,7 +2073,10 @@ def bot_form(mode, bot=None):
         a, c = st.columns([2, 1])
         a.text_input(L("Bot name (optional)", "اسم البوت (اختياري)"), key="pb_name", max_chars=40,
                      placeholder=L("e.g. Tech momentum", "مثال: بوت التقنية"))
-        c.number_input(L("Virtual capital ($)", "رأس المال الوهمي ($)"), 100, 100_000_000, step=10_000, key="pb_capital")
+        c.text_input(L("Virtual capital ($)", "رأس المال الوهمي ($)"), key="pb_capital_txt", on_change=_capital_changed,
+                     help=L("From 100 to 100,000,000. Commas are optional.", "من 100 إلى 100,000,000، والفواصل اختيارية."))
+        if ss.get("pb_cap_bad"):
+            c.caption(L("Type a number from 100 to 100,000,000.", "اكتب رقم من 100 إلى 100,000,000."))
 
     # 2) what it trades
     with st.container(key="pbf_2"):
@@ -2109,7 +2143,8 @@ def bot_form(mode, bot=None):
             st.caption(instrument_caption(instr))
         if kind != "company":
             m1, m2 = st.columns([1, 2], vertical_alignment="bottom")
-            maxpos = m1.number_input(L("Max open trades", "أقصى عدد صفقات مفتوحة"), 1, PB.MAX_POS_LIMIT, step=1, key="pb_maxpos")
+            maxpos = m1.number_input(L("Max open trades", "أقصى عدد صفقات مفتوحة"), 1, PB.MAX_POS_LIMIT, step=1, key="pb_maxpos",
+                                     on_change=_keep_maxpos)
             share = {"stock": L(f"1/{maxpos} of the balance", f"1/{maxpos} من الرصيد"),
                      "options": L("a set % of the balance (below)", "نسبة ثابتة من الرصيد (تحت)"),
                      "both": L(f"1/{maxpos} of the balance (stocks) or a set % (options), and stocks and options have {maxpos} places each",
@@ -2178,6 +2213,9 @@ def bot_form(mode, bot=None):
         pressed = st.button(label, type="primary", icon=":material/play_arrow:" if mode == "add" else ":material/save:", key="pb_create",
                             width="stretch")
     if not pressed:
+        return
+    if ss.get("pb_cap_bad"):
+        st.error(L("Type a capital from 100 to 100,000,000.", "اكتب رأس مال من 100 إلى 100,000,000."))
         return
     if not strats:
         st.error(L("Pick at least one strategy.", "اختر استراتيجية وحدة على الأقل."))
@@ -2338,4 +2376,4 @@ def page_paper_bots():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "7.7"
+BUILD = "7.8"
