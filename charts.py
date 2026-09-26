@@ -616,6 +616,30 @@ def scan_scatter(res, title="Momentum map: 1-month return vs RSI (bubble = volum
     return fig
 
 
+def hunt_map(res, title=None, words=("From 52-week high %", "RS rating (1-99)", "Score")):
+    """Opportunity map: distance from the 52-week high (x) vs relative strength (y); color = score, bubble = trading value.
+    Leaders sit top right."""
+    d = res.dropna(subset=["From high %", "RS"])
+    if d.empty:
+        return style(go.Figure(), 460, title, legend=False)
+    size = np.clip(np.log10(d["$Vol"].clip(lower=1e6).astype(float)) - 5.5, 0.6, 4.0) * 7
+    top = set(d.nlargest(18, "Score")["Symbol"])
+    fig = go.Figure(go.Scatter(
+        x=d["From high %"], y=d["RS"], mode="markers+text", text=[s if s in top else "" for s in d["Symbol"]], customdata=d[["Symbol", "Score"]],
+        textposition="top center", textfont=dict(size=9, color="#C7CFDD"),
+        marker=dict(size=size, color=d["Score"], cmin=20, cmax=95, colorscale=[[0, DOWN], [0.45, GOLD], [0.7, CYAN], [1, UP]], showscale=True,
+                    colorbar=dict(title=words[2], thickness=10), line=dict(width=0.5, color="rgba(255,255,255,.25)"), opacity=0.9),
+        hovertemplate="<b>%{customdata[0]}</b><br>" + words[1] + ": %{y:.0f}<br>" + words[0] + ": %{x:.1f}%<br>" + words[2]
+                      + ": %{customdata[1]:.0f}<extra></extra>"))
+    fig.add_shape(type="rect", x0=-8, x1=0.5, y0=80, y1=100, fillcolor=rgba(UP, 0.07), line_width=0, layer="below")
+    fig.add_hline(y=50, line=dict(color=MUTED, dash="dot", width=0.8))
+    style(fig, 460, title, legend=False)
+    fig.update_layout(hovermode="closest")
+    fig.update_xaxes(title_text=words[0], showgrid=True, gridcolor=GRID)
+    fig.update_yaxes(title_text=words[1], side="left", range=[0, 102])
+    return fig
+
+
 def returns_bars(d, title="Performance"):
     c = d["Close"]
     periods = {"1W": 5, "1M": 21, "3M": 63, "6M": 126, "1Y": 252}
@@ -1159,4 +1183,4 @@ def seasonal_path(avg, cur=None, title=None, names=("Average year", "This year")
     return fig
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "8.3"
+BUILD = "8.4"

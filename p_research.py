@@ -1423,80 +1423,6 @@ def page_screener():
 # =====================================================================
 # SCANNER
 # =====================================================================
-def page_scanner():
-    ui.header("radar", "Opportunity Scanner", "صائد الفرص",
-              "The bot scans US stocks for technical setups and builds a trade plan (entry, stop, target) for each.",
-              "البوت يفحص الأسهم الأمريكية بحثاً عن فرص فنية ويبني لكل فرصة خطة: دخول ووقف وهدف.")
-    bysec = U.by_sector()
-    universes = {"all": (L("Top 175 US stocks", "أكبر 175 سهم أمريكي"), U.US_UNIVERSE),
-                 **{f"s:{k}": (f"{L('Sector', 'قطاع')}: {sector_name(k)}", v) for k, v in bysec.items()},
-                 "wl": (L("My watchlist", "قائمة المتابعة"), ss.watchlist), "custom": (L("Custom list", "قائمة مخصصة"), None)}
-    c1, c2, c3 = st.columns([1.4, 1, 1])
-    uk = c1.selectbox(L("Universe", "نطاق البحث"), list(universes), format_func=lambda k: universes[k][0])
-    preset = c2.selectbox(L("Setup filter", "نوع الفرصة"), list(engine.SCAN_PRESETS),
-                          format_func=lambda k: L(engine.SCAN_PRESETS[k][0], engine.SCAN_PRESETS[k][1]))
-    if universes[uk][1] is None:
-        txt = c3.text_input(L("Symbols (comma separated)", "الرموز (مفصولة بفاصلة)"), "AAPL, MSFT, NVDA, TSLA, AMD")
-        symbols = [s.strip().upper() for s in txt.split(",") if s.strip()]
-    else:
-        symbols = universes[uk][1]
-        c3.metric(L("Symbols", "عدد الرموز"), len(symbols))
-    if st.button(L("Run scan", "ابدأ البحث"), type="primary", icon=":material/radar:"):
-        with st.spinner(L(f"Scanning {len(symbols)} symbols...", f"جاري فحص {len(symbols)} رمز...")):
-            dmap = data.history_many(tuple(symbols), "1y")
-            ss.scan = {"res": engine.scan(dmap, spy_daily()), "time": datetime.now(), "count": len(dmap)}
-    sc = ss.get("scan")
-    if not sc:
-        st.info(L("Choose a universe and press Run scan.", "اختر النطاق واضغط ابدأ البحث."), icon=":material/info:")
-        return
-    res = sc["res"]
-    if res.empty:
-        st.warning(L("No data returned. Try again in a minute.", "لم تصل بيانات. حاول بعد دقيقة."))
-        return
-    tag = engine.SCAN_PRESETS[preset][2]
-    view = res[res["_tags"].str.contains(tag)] if tag else res
-    m = st.columns(5)
-    m[0].metric(L("Scanned", "تم فحصها"), sc["count"])
-    m[1].metric(L("Bullish (score ≥ 3)", "إيجابية (نقاط ≥ 3)"), int((res["Score"] >= 3).sum()))
-    m[2].metric(L("Bearish (score < 0)", "سلبية (نقاط < 0)"), int((res["Score"] < 0).sum()))
-    m[3].metric(L("Matches", "مطابقة"), len(view))
-    m[4].metric(L("Scan time", "وقت البحث"), f"{sc['time']:%H:%M}")
-    lo, hi = int(res["Score"].min()), int(res["Score"].max())
-    min_score = st.slider(L("Minimum score", "أقل عدد نقاط"), lo, hi, max(lo, min(2, hi))) if hi > lo else lo
-    view = view[view["Score"] >= min_score].copy()
-    view["Sector"] = view["Sector"].map(sector_name)
-    view["Setup"] = view["Setup_ar"] if is_ar() else view["Setup"]
-    view["Signals"] = view["Signals_ar"] if is_ar() else view["Signals"]
-    view["Trend"] = view["Trend"].map(lambda t: L(t, {"Up": "صاعد", "Down": "هابط", "Mixed": "متذبذب"}[t]))
-    cols = ["Symbol", "Sector", "Price", "Chg %", "1M %", "3M %", "RSI", "ADX", "Vol ×", "Trend", "Score", "Setup",
-            "Entry", "Stop", "Target", "R:R", "Signals"]
-    N = {"Symbol": L("Ticker", "الرمز"), "Sector": L("Sector", "القطاع"), "Price": L("Price", "السعر"), "Chg %": L("Chg %", "التغير %"),
-         "1M %": L("1M %", "شهر %"), "3M %": L("3M %", "3 أشهر %"), "Vol ×": L("Vol ×", "الحجم ×"), "Trend": L("Trend", "الاتجاه"),
-         "Score": L("Score", "النقاط"), "Setup": L("Setup", "نوع الفرصة"), "Entry": L("Entry", "الدخول"), "Stop": L("Stop", "الوقف"),
-         "Target": L("Target", "الهدف"), "Signals": L("Signals", "الإشارات")}
-    show = view[cols].rename(columns=N)
-    st.dataframe(show.style.map(T.color_style, subset=[N["Chg %"], N["1M %"], N["3M %"]]).format(
-        {N["Price"]: "{:,.2f}", N["Chg %"]: "{:+.2f}%", N["1M %"]: "{:+.1f}%", N["3M %"]: "{:+.1f}%", "RSI": "{:.0f}",
-         "ADX": "{:.0f}", N["Vol ×"]: "{:.1f}", N["Entry"]: "{:,.2f}", N["Stop"]: "{:,.2f}", N["Target"]: "{:,.2f}", "R:R": "{:.1f}"},
-        na_rep="—"), hide_index=True, height=440)
-    a, b, c = st.columns([2, 1, 1])
-    pick = a.selectbox(L("Selected symbol", "الرمز المختار"), view["Symbol"].tolist() or res["Symbol"].tolist())
-    if b.button(L("Open chart", "افتح الرسم"), icon=":material/candlestick_chart:"):
-        ui.open_stock(pick)
-    if c.button("Catalyst Pro", icon=":material/bolt:", key="scan_cat"):
-        ss.symbol = pick
-        ui.goto("catalyst")
-    v1, v2 = st.columns([1.6, 1])
-    ui.chart(charts.scan_scatter(res, L("Momentum map: 1-month return vs RSI (bubble = volume, color = score)",
-                                        "خريطة الزخم: عائد الشهر مقابل RSI (الحجم = حجم التداول، اللون = النقاط)")), key="scan_sc", container=v1)
-    by_sec = res.groupby("Sector")["Score"].mean().sort_values()
-    ui.chart(charts.hbar([sector_name(s) for s in by_sec.index], list(by_sec.values),
-                         L("Average score by sector", "متوسط النقاط حسب القطاع"), 460, suffix=""), key="scan_sec", container=v2)
-    st.download_button(L("Export CSV", "تصدير CSV"), res.drop(columns=["_tags"]).to_csv(index=False).encode(), "scan.csv",
-                       "text/csv", icon=":material/download:")
-    ui.foot()
-
-
 # =====================================================================
 # CATALYST PRO
 # =====================================================================
@@ -1602,4 +1528,4 @@ def page_catalyst():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "8.3"
+BUILD = "8.4"

@@ -10,10 +10,10 @@ import streamlit as st
 # ---------------------------------------------------------------- always run the newest code
 # Streamlit Cloud re-reads app.py after every GitHub upload but can keep the other modules (theme, data, ...) from the
 # previous version in memory. Every module carries BUILD; if one in memory is older, all of them are reloaded in order.
-BUILD = "8.3"
+BUILD = "8.4"
 _ORDER = ["i18n", "flags", "mcal", "universe", "sp500", "taxonomy", "ta", "academy", "insight", "heatmap", "newsiq", "theme", "data",
           "caldata", "newsbot", "charts", "engine", "playbooks", "autotrader", "ui", "tdash", "paperbots", "p_markets", "p_research", "p_insight",
-          "p_academy", "p_paper", "p_calendar"]
+          "p_academy", "p_paper", "p_calendar", "hunter", "p_scanner"]
 if any(m in sys.modules and getattr(sys.modules[m], "BUILD", None) != BUILD for m in _ORDER):
     for _m in _ORDER:
         if _m in sys.modules:
@@ -30,6 +30,7 @@ import p_insight
 import p_markets
 import p_paper
 import p_research
+import p_scanner
 import theme as T
 import ui
 import universe as U
@@ -163,7 +164,7 @@ P.update({
     "academy": st.Page(p_academy.page_academy, title=L("Courses", "الدورات"), icon=":material/school:", url_path="academy"),
     "glossary": st.Page(p_academy.page_glossary, title=L("Glossary", "قاموس المصطلحات"), icon=":material/menu_book:", url_path="glossary"),
     "paper": st.Page(p_paper.page_paper_bots, title=L("Paper Bots", "البوتات الافتراضية"), icon=":material/robot_2:", url_path="paper-bots"),
-    "scanner": st.Page(p_research.page_scanner, title=L("Scanner", "صائد الفرص"), icon=":material/radar:", url_path="scanner"),
+    "scanner": st.Page(p_scanner.page_scanner, title=L("Scanner", "صائد الفرص"), icon=":material/radar:", url_path="scanner"),
     "catalyst": st.Page(p_research.page_catalyst, title="Catalyst Pro", icon=":material/bolt:", url_path="catalyst"),
 })
 SECTIONS = [
