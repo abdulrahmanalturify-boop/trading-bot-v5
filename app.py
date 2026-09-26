@@ -25,7 +25,7 @@ if any(m in sys.modules and getattr(sys.modules[m], "BUILD", None) != BUILD for 
 import data
 import newsbot
 # Reload the academy revision once for already-running sessions.
-if "academy" in sys.modules and getattr(sys.modules["academy"], "ACADEMY_REVISION", None) != "2026-09-26.1":
+if "academy" in sys.modules and getattr(sys.modules["academy"], "ACADEMY_REVISION", None) != "2026-09-27.2":
     for _ac in ("academy_extra", "academy_visuals", "academy_labs", "academy", "p_academy"):
         if _ac in sys.modules:
             importlib.reload(sys.modules[_ac])
