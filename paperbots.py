@@ -288,6 +288,11 @@ def tidy(strategies, instrument, kind):
     return strategies, instrument if instrument in INSTRUMENTS else "stock", True
 
 
+def window_of(comb):
+    """Combined strategies agree when their buy signals fall within this many sessions (1 = the same day)."""
+    return int(min(max(_num((comb or {}).get("window"), 5), 1), 20))
+
+
 def clean_params(strategy, params):
     """Strategy parameters clipped to their ranges (missing ones get the defaults)."""
     out = {}
@@ -330,9 +335,11 @@ def _norm(r):
             value = "all"
         strategies = {s: clean_params(s, raw[s]) for s in ALL_STRATEGIES if s in raw}
         strategies, instrument, allowed = tidy(strategies, instrument, kind)
-        combo = comb.get("mode") == "combo" and len(strategies) > 1 and not any(map(is_playbook, strategies))
+        combo = comb.get("mode") == "combo" and len(strategies) > 1
         combine = {"mode": "combo" if combo else "any",
                    "min": min(max(int(_num(comb.get("min"), len(strategies))), 1), max(len(strategies), 1)) if combo else 1}
+        if combo and all(map(is_playbook, strategies)):
+            combine["window"] = window_of(comb)
         return {"id": r["id"], "name": str(r.get("name") or value)[:40], "kind": kind, "value": value,
                 "symbol": value if kind == "company" else None, "strategies": strategies, "combine": combine,
                 "instrument": instrument, "options": clean_options(opts),
@@ -354,8 +361,10 @@ def make_record(name, kind, value, strategies, max_pos, capital, fee, stop_pct, 
     strategies = {s: clean_params(s, p) for s, p in strategies.items() if s in ALL_STRATEGIES}
     strategies, instrument, _ = tidy(strategies, instrument, kind)
     combine = combine or {}
-    if combine.get("mode") == "combo" and len(strategies) > 1 and not any(map(is_playbook, strategies)):
-        combine = {"mode": "combo", "min": int(min(max(int(combine.get("min") or len(strategies)), 1), len(strategies)))}
+    if combine.get("mode") == "combo" and len(strategies) > 1:
+        books = all(map(is_playbook, strategies))
+        combine = {"mode": "combo", "min": int(min(max(int(combine.get("min") or len(strategies)), 1), len(strategies))),
+                   **({"window": window_of(combine)} if books else {})}
     else:
         combine = {"mode": "any"}
     if kind == "company":
@@ -514,9 +523,13 @@ def simulate(bot, px, spy=None):
     live = np.asarray(idx >= start)
     names = [s for s in ALL_STRATEGIES if s in bot["strategies"]]        # fixed order: the first one wins a tie
     comb = bot.get("combine") or {}
-    combo = comb.get("mode") == "combo" and len(names) > 1 and not any(map(is_playbook, names))
+    books_only = bool(names) and all(map(is_playbook, names))
+    combo = comb.get("mode") == "combo" and len(names) > 1 and (books_only or not any(map(is_playbook, names)))
     need = min(max(int(comb.get("min") or len(names)), 1), len(names)) if combo else 1
-    labels = [COMBO] if combo else names        # what opens a trade: each strategy, or the combined rule
+    # combined strategies that must agree: a buy signal counts only when at least `need` of them signalled within the last
+    # `window` sessions; the trade then follows the plan of the strategy whose signal it is
+    pb_combo = combo and books_only
+    labels = [COMBO] if combo and not pb_combo else names      # what opens a trade: each strategy, or the combined rule
     S = len(labels)
     atr_on = bool(bot["atr_mult"])
     instrument = bot.get("instrument") if bot.get("instrument") in INSTRUMENTS else "stock"
@@ -566,7 +579,14 @@ def simulate(bot, px, spy=None):
                 sig.append((e, x))
             else:
                 sig.append(engine.STRATEGIES[name][0](df, **bot["strategies"][name]))
-        if combo:
+        if pb_combo:
+            win = window_of(comb)
+            recent = [e.fillna(False).astype(bool).astype(float).rolling(win, min_periods=1).max() > 0 for e, _ in sig]
+            agree = (sum(r_.astype(int) for r_ in recent) >= need).to_numpy()
+            for k, (e, x) in enumerate(sig):
+                ENT[k, p, j] = e.fillna(False).astype(bool).to_numpy() & agree
+                EXT[k, p, j] = x.fillna(False).astype(bool).to_numpy()
+        elif combo:
             # a strategy "agrees" while it is in its buy state (after its own buy signal, until its own sell signal);
             # the bot buys on the day at least `need` agree and sells when fewer than `need` agree
             cond = sum(_state(e, x) for e, x in sig) >= need
@@ -979,4 +999,4 @@ def journal(sim):
                          "Days": tr["Bars"], "Exit Reason": tr["Exit Reason"]})
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "7.6"
+BUILD = "7.7"

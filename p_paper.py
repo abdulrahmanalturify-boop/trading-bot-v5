@@ -75,7 +75,7 @@ DEFAULTS = {"pb_name": "", "pb_capital": 1_000_000, "pb_kind": "all", "pb_symbol
             "pb_ind_sector": "Technology", "pb_industry": "Semiconductors", "pb_maxpos": 10, "pb_store": ["SMA Crossover"],
             "pb_fee": 0.05, "pb_stop": 2.0, "pb_atr": 0.0, "pb_tp": 0.0, "pb_trail": 0.0, "pb_combine": "any", "pb_instr": "stock",
             "pb_otype": "call", "pb_dte": 30, "pb_strike": 0, "pb_oalloc": 5.0, "pb_otp": 100.0, "pb_osl": 50.0,
-            "pb_mode": "single", "pb_store_pb": [PBK.TREND_PULLBACK]}
+            "pb_mode": "single", "pb_store_pb": [PBK.TREND_PULLBACK], "pb_pbmode": "any", "pb_pbwin": 5}
 
 _A, _V, _C, _D, _G, _BG, _BD, _MU = T.ACCENT, T.VIOLET, T.CYAN, T.DOWN, T.GOLD, T.CARD2, T.BORDER, T.MUTED
 _CARD_H = 352          # every card in the leaderboard (bots and "Add Bot") has this height
@@ -132,7 +132,9 @@ PAGE_CSS = f"""<style>
 .pbc .rk .ms {{ font-size:1.05rem; }}
 .pbc .rk.r1 {{ color:{_G}; }} .pbc .rk.r2 {{ color:#C7CEDB; }} .pbc .rk.r3 {{ color:#D9925F; }}
 .pbc .co .tk {{ display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; white-space:normal; line-height:1.25; }}
-.pbc .bdg {{ margin-top:10px; max-height:60px; overflow:hidden; }}
+.pbc .bdg {{ margin-top:10px; max-height:64px; overflow:hidden; display:flex; flex-direction:column; align-items:flex-start; gap:4px; }}
+.pbc .bdg .badge {{ max-width:100%; margin:0; white-space:nowrap; min-width:0; }}
+.pbc .bdg .badge .bt {{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }}
 .pbc .body {{ margin-top:auto; }}
 .pbc .spk {{ margin:0 -2px 8px; height:52px; }}
 .pbc .spk svg {{ width:100%; height:52px; display:block; overflow:visible; }}
@@ -294,8 +296,8 @@ a.pblink .ms {{ font-size:1rem; }}
 .pbfb .pbstp i {{ font-style:normal; width:17px; height:17px; border-radius:50%; display:grid; place-items:center; font-size:.62rem; font-weight:800;
   color:#fff; background:linear-gradient(135deg,{_A},{_V}); }}
 [class*="st-key-pbf_"] {{ position:relative; overflow:hidden; background:linear-gradient(180deg,{_BG},{T.CARD}); border:1px solid {_BD};
-  border-radius:18px; padding:14px 18px 16px 21px; margin-top:16px; box-shadow:0 10px 26px rgba(0,0,0,.18); }}
-[class*="st-key-pbf_"]::before {{ content:""; position:absolute; top:0; bottom:0; left:0; width:3px; background:linear-gradient(180deg,{_A},{_V},{_C}); }}
+  border-radius:18px; padding:16px 18px 16px; margin-top:16px; box-shadow:0 10px 26px rgba(0,0,0,.18); }}
+[class*="st-key-pbf_"]::before {{ content:""; position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg,{_A},{_V},{_C}); }}
 [class*="st-key-pbf_"] [data-testid="stMarkdownContainer"] {{ margin-bottom:0 !important; }}
 .pbfh {{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:2px; }}
 .pbfh .n {{ width:28px; height:28px; border-radius:9px; display:grid; place-items:center; font-weight:800; font-size:.84rem; color:#fff; flex:none;
@@ -305,25 +307,47 @@ a.pblink .ms {{ font-size:1rem; }}
 .pbfh .h {{ color:{_MU}; font-size:.76rem; font-weight:600; margin-inline-start:auto; }}
 .pbfs {{ display:flex; align-items:center; gap:6px; font-weight:800; font-size:.74rem; color:#AEB7C6; letter-spacing:.08em; text-transform:uppercase; }}
 .pbfs .ms {{ color:{_C}; font-size:1rem; }}
-/* the two ways to pick strategies: two tiles, the chosen one lit */
-[class*="st-key-pbmode_"] {{ position:relative; height:100%; transition:transform .16s ease; }}
-[class*="st-key-pbmode_"]:hover {{ transform:translateY(-2px); }}
+/* the two ways to pick strategies: one full-width switch in the brand colours, the chosen half lit */
+[class*="st-key-pbswitch"] {{ background:rgba(10,14,23,.55); border:1px solid {_BD}; border-radius:16px; padding:5px; }}
+[class*="st-key-pbswitch"] [data-testid="stHorizontalBlock"] {{ gap:5px !important; flex-wrap:nowrap !important; }}
+[class*="st-key-pbswitch"] [data-testid="stColumn"] {{ min-width:0 !important; }}
+[class*="st-key-pbmode_"] {{ position:relative; }}
 [class*="st-key-pbmode_"] [data-testid="stElementContainer"] {{ position:static !important; }}
 [class*="st-key-pbmode_"] [class*="st-key-pb_mode_"] {{ position:absolute !important; inset:0; z-index:4; margin:0 !important; width:auto !important; }}
 [class*="st-key-pbmode_"] [class*="st-key-pb_mode_"] .stButton, [class*="st-key-pbmode_"] [class*="st-key-pb_mode_"] button
   {{ width:100% !important; height:100% !important; opacity:0; cursor:pointer; }}
-.pbmode {{ min-height:138px; box-sizing:border-box; border-radius:16px; padding:13px 15px; border:1.5px solid {_BD};
-  background:linear-gradient(180deg,rgba(255,255,255,.025),rgba(255,255,255,0)); transition:border-color .16s, box-shadow .16s, background .16s; }}
-[class*="st-key-pbmode_"]:hover .pbmode {{ border-color:{_A}99; }}
-.pbmode.on {{ border-color:{_A}; box-shadow:0 0 0 1px {_A}55, 0 12px 28px rgba(61,123,255,.22);
-  background:radial-gradient(120% 90% at 0% 0%,rgba(61,123,255,.22),transparent 62%),linear-gradient(180deg,rgba(139,92,246,.10),rgba(34,211,238,.04)); }}
-.pbmode .top {{ display:flex; justify-content:space-between; align-items:center; }}
-.pbmode .i .ms {{ font-size:1.15rem; color:#fff; background:linear-gradient(135deg,{_A},{_V}); border-radius:10px; padding:6px; }}
-.pbmode .ck .ms {{ font-size:1.35rem; color:{_MU}; }}
-.pbmode.on .ck .ms {{ color:{_C}; }}
-.pbmode .nm {{ font-weight:800; color:#fff; font-size:.98rem; margin-top:10px; }}
-.pbmode .ds {{ color:#AEB7C6; font-size:.78rem; line-height:1.5; margin-top:4px; }}
-.pbmode .ct {{ display:inline-block; margin-top:8px; font-size:.66rem; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:#9CC3FF; }}
+.pbmode {{ display:flex; align-items:center; gap:10px; min-height:58px; box-sizing:border-box; border-radius:12px; padding:9px 14px;
+  color:#AEB7C6; transition:background .18s, color .18s, box-shadow .18s; }}
+[class*="st-key-pbmode_"]:hover .pbmode:not(.on) {{ background:rgba(61,123,255,.10); color:#fff; }}
+.pbmode.on {{ background:linear-gradient(100deg,{_A},{_V} 70%,#6D5CF6); color:#fff; box-shadow:0 10px 26px rgba(61,123,255,.30), inset 0 1px 0 rgba(255,255,255,.18); }}
+.pbmode .i .ms {{ font-size:1.2rem; color:{_C}; background:rgba(34,211,238,.12); border-radius:10px; padding:6px; }}
+.pbmode.on .i .ms {{ color:#fff; background:rgba(255,255,255,.18); }}
+.pbmode .nm {{ font-weight:800; font-size:.95rem; line-height:1.25; }}
+.pbmode .ct {{ margin-inline-start:auto; font-size:.72rem; font-weight:800; min-width:26px; height:22px; padding:0 8px; border-radius:999px;
+  display:inline-grid; place-items:center; background:rgba(138,148,167,.16); color:#C9D0DC; }}
+.pbmode.on .ct {{ background:rgba(255,255,255,.22); color:#fff; }}
+/* a '?' next to every chosen strategy (it opens the strategy's rules), and the "work together" pop-out, last */
+[class*="st-key-pbq_row"] {{ flex-wrap:wrap !important; gap:8px !important; }}
+[class*="st-key-pbq_row"] button {{ border-radius:999px !important; border:1px solid {_A}55 !important; background:{_A}14 !important;
+  min-height:34px !important; padding:3px 14px 3px 10px !important; }}
+[class*="st-key-pbq_row"] button:hover {{ border-color:{_A} !important; background:{_A}2A !important; }}
+[class*="st-key-pbq_row"] button p {{ font-weight:700 !important; font-size:.84rem !important; color:#DCE6FF !important; }}
+[class*="st-key-pbq_row"] button [data-testid="stIconMaterial"] {{ color:{_C} !important; }}
+[class*="st-key-pbq_together"] [data-testid="stPopover"], [class*="st-key-pbq_together"] [data-testid="stPopover"] > div,
+[class*="st-key-pbq_together"] button {{ width:100% !important; }}
+[class*="st-key-pbq_together"] button {{ justify-content:flex-start !important; min-height:44px !important; border-radius:12px !important;
+  border:1px dashed {_A}88 !important; background:rgba(61,123,255,.07) !important; }}
+[class*="st-key-pbq_together"] button:hover {{ border-style:solid !important; background:rgba(61,123,255,.14) !important; }}
+[class*="st-key-pbq_together"] button p {{ font-weight:700 !important; color:#DCE6FF !important; }}
+[class*="st-key-pbq_together"] button [data-testid="stIconMaterial"] {{ color:{_C} !important; }}
+[data-testid="stPopoverBody"] {{ min-width:min(760px, 92vw); }}
+/* the big button at the end of the form */
+[class*="st-key-pb_create"] button {{ min-height:54px !important; border:0 !important; border-radius:14px !important;
+  background:linear-gradient(95deg,{_A} 0%,{_V} 62%,{_C} 130%) !important; box-shadow:0 12px 30px rgba(61,123,255,.35), inset 0 1px 0 rgba(255,255,255,.2);
+  transition:transform .15s ease, box-shadow .15s ease, filter .15s ease; }}
+[class*="st-key-pb_create"] button:hover {{ transform:translateY(-2px); filter:brightness(1.08); box-shadow:0 16px 36px rgba(61,123,255,.45); }}
+[class*="st-key-pb_create"] button p {{ font-size:1.05rem !important; font-weight:800 !important; color:#fff !important; letter-spacing:.01em; }}
+[class*="st-key-pb_create"] button [data-testid="stIconMaterial"] {{ color:#fff !important; }}
 /* the chosen strategies inside the drop-downs, in the brand colours */
 [class*="st-key-pb_ms_"] [data-baseweb="tag"] {{ background:linear-gradient(135deg,rgba(61,123,255,.30),rgba(139,92,246,.30)) !important;
   border:1px solid {_A}66 !important; border-radius:10px !important; }}
@@ -356,10 +380,12 @@ a.pblink .ms {{ font-size:1rem; }}
 # Arabic: no letter-spacing (it breaks the joined letters) and the accent bars move to the right edge
 PAGE_RTL_CSS = """<style>
 .pbhero .eb, .pbc .it, .pbmh, .pbt th, .pbfb .eb, .pbfs, .pbmode .ct, .pbrl .gt { letter-spacing:0; }
-.pbp::before, .pbid::before, [class*="st-key-pbf_"]::before { left:auto; right:0; }
+.pbp::before, .pbid::before { left:auto; right:0; }
 .pbp { padding:14px 19px 8px 16px; }
-[class*="st-key-pbf_"] { padding:14px 21px 16px 18px; }
-.pbmode.on { background:radial-gradient(120% 90% at 100% 0%,rgba(61,123,255,.22),transparent 62%),linear-gradient(180deg,rgba(139,92,246,.10),rgba(34,211,238,.04)); }
+[class*="st-key-pbf_"]::before { background:linear-gradient(270deg,#3D7BFF,#8B5CF6,#22D3EE); }
+.pbmode.on { background:linear-gradient(260deg,#3D7BFF,#8B5CF6 70%,#6D5CF6); }
+[class*="st-key-pb_create"] button { background:linear-gradient(265deg,#3D7BFF 0%,#8B5CF6 62%,#22D3EE 130%) !important; }
+[class*="st-key-pbq_row"] button { padding:3px 10px 3px 14px !important; }
 </style>"""
 
 
@@ -402,6 +428,9 @@ def combo_rule(bot):
     c, n = bot.get("combine") or {}, len(bot["strategies"])
     if c.get("mode") != "combo":
         return None
+    if "window" in c:                             # combined strategies: n of them within w sessions
+        w = c["window"]
+        return L(f"Agreement: {c['min']} of {n} within {w} sessions", f"اتفاق: {c['min']} من {n} خلال {w} جلسات")
     if c["min"] >= n:
         return L(f"Agreement: all {n} agree", f"اتفاق: لازم تتفق الـ {n} كلها")
     return L(f"Agreement: {c['min']} of {n} agree", f"اتفاق: تتفق {c['min']} من {n}")
@@ -412,8 +441,8 @@ def how_label(bot, short=False):
     names = list(bot["strategies"])
     if is_combined(bot):
         if short:
-            return strat_short(names[0]) if len(names) == 1 else L(f"{len(names)} combined strategies", f"{len(names)} استراتيجيات مركّبة")
-        return L("Combined: ", "مركّبة: ") + " + ".join(strat_short(x) for x in names)
+            return rule or (strat_short(names[0]) if len(names) == 1 else L(f"{len(names)} combined strategies", f"{len(names)} استراتيجيات مركّبة"))
+        return (rule + " · " if rule else L("Combined: ", "مركّبة: ")) + " + ".join(strat_short(x) for x in names)
     if rule and short:
         return rule
     if rule:
@@ -622,29 +651,34 @@ def hero_html(sims, n_bots):
 # =====================================================================
 # cards: leaderboard with hover actions, selection and "Add Bot"
 # =====================================================================
-def status_badge(sim):
+def cbadge(text, kind="neu", ic=None):
+    """A badge that stays on one line (a long text ends with …; the whole text shows on hover), for the bot cards."""
+    return f'<span class="badge b-{kind}" title="{T.esc(text)}">{T.icon(ic) if ic else ""}<span class="bt">{T.esc(text)}</span></span>'
+
+
+def status_badge(sim, mk=T.badge):
     if not sim["ok"]:
-        return T.badge(L("Unavailable", "غير متاح"), "neu", "error")
+        return mk(L("Unavailable", "غير متاح"), "neu", "error")
     if sim["waiting"]:
-        return T.badge(L("Starts next session", "يبدأ الجلسة القادمة"), "neu", "schedule")
+        return mk(L("Starts next session", "يبدأ الجلسة القادمة"), "neu", "schedule")
     nb, ns = len(sim["next_buys"]), len(sim["next_sells"])
     if sim.get("intraday") and nb:
-        return T.badge(L("Enters at the next 5-min candle", "يدخل مع شمعة الـ 5 دقائق القادمة"), "gold", "bolt")
+        return mk(L("Enters at the next 5-min candle", "يدخل مع شمعة الـ 5 دقائق القادمة"), "gold", "bolt")
     if sim["bot"]["kind"] == "company":
         if nb:
-            return T.badge(L("Buys at next open", "يشتري عند الافتتاح القادم"), "gold", "bolt")
+            return mk(L("Buys at next open", "يشتري عند الافتتاح القادم"), "gold", "bolt")
         if ns:
-            return T.badge(L("Sells at next open", "يبيع عند الافتتاح القادم"), "gold", "bolt")
+            return mk(L("Sells at next open", "يبيع عند الافتتاح القادم"), "gold", "bolt")
     elif nb + ns == 1:
-        return T.badge(L("1 order at next open", "أمر عند الافتتاح القادم"), "gold", "bolt")
+        return mk(L("1 order at next open", "أمر عند الافتتاح القادم"), "gold", "bolt")
     elif nb + ns:
-        return T.badge(L(f"{nb + ns} orders at next open", f"{nb + ns} أوامر عند الافتتاح القادم"), "gold", "bolt")
+        return mk(L(f"{nb + ns} orders at next open", f"{nb + ns} أوامر عند الافتتاح القادم"), "gold", "bolt")
     n = sim["n_open"]
     if n == 1:
-        return T.badge(L("In a trade", "في صفقة"), "acc", "trending_up")
+        return mk(L("In a trade", "في صفقة"), "acc", "trending_up")
     if n > 1:
-        return T.badge(L(f"{n} open trades", f"{n} صفقات مفتوحة"), "acc", "trending_up")
-    return T.badge(L("Waiting for a signal", "ينتظر إشارة"), "neu", "hourglass_empty")
+        return mk(L(f"{n} open trades", f"{n} صفقات مفتوحة"), "acc", "trending_up")
+    return mk(L("Waiting for a signal", "ينتظر إشارة"), "neu", "hourglass_empty")
 
 
 def head_html(b, logo=None):
@@ -675,7 +709,7 @@ def bot_card(rank, sim, logo, selected=False):
     ic, en, ar_ = card_chip(b)
     medal = T.icon("emoji_events") if rank == 1 else ""
     top = f'<div class="top"><span class="it">{T.icon(ic)}{T.esc(L(en, ar_))}</span><span class="rk r{rank}">{medal}#{rank}</span></div>'
-    badges = f'<div class="bdg">{T.badge(how_label(b, short=True), "vio", "smart_toy")}{status_badge(sim)}</div>'
+    badges = f'<div class="bdg">{cbadge(how_label(b, short=True), "vio", "smart_toy")}{status_badge(sim, cbadge)}</div>'
     if sim["ok"] and not sim["waiting"]:
         ret, m = sim["ret"], sim["metrics"]
         spx = "" if sim["bench_ret"] is None else f'<div class="muted" style="font-size:.7rem;margin-top:4px;direction:ltr">S&amp;P 500 {sim["bench_ret"]:+.2f}%</div>'
@@ -1428,7 +1462,13 @@ def bot_header(sim):
     with st.expander(L("How this bot trades", "طريقة تداول البوت"), icon=":material/tune:"):
         if is_combined(b):
             ui.html("".join(rules_html(n, p) for n, p in b["strategies"].items()))
-            if len(names) > 1:
+            c = b.get("combine") or {}
+            if c.get("mode") == "combo":
+                st.caption(L(f"Agreement: a buy signal counts only when at least {c['min']} of the {len(names)} strategies gave a buy signal "
+                             f"within the last {c.get('window', 5)} sessions; the trade follows the plan of the strategy whose signal it is.",
+                             f"اتفاق: إشارة الشراء تنحسب فقط إذا أعطت {c['min']} على الأقل من الـ {len(names)} إشارة شراء خلال آخر "
+                             f"{c.get('window', 5)} جلسات، والصفقة تمشي على خطة الاستراتيجية صاحبة الإشارة."))
+            elif len(names) > 1:
                 st.caption(L("Any of these strategies can open a trade; each trade follows the plan of the strategy that opened it "
                              "(its stop, target and time stop).",
                              "أي استراتيجية منها تقدر تفتح صفقة، وكل صفقة تمشي على خطة الاستراتيجية اللي فتحتها (وقفها وهدفها ووقفها الزمني)."))
@@ -1582,7 +1622,7 @@ def can_edit():
     return False
 
 
-FORM_KEYS = list(DEFAULTS) + ["pb_min", "pb_start", "pb_edit_id"]
+FORM_KEYS = list(DEFAULTS) + ["pb_min", "pb_pbmin", "pb_start", "pb_edit_id"]
 FORM_PREFIXES = ("pb_strats_", "pb_pp_", "pb_ms_")
 
 
@@ -1627,7 +1667,11 @@ def _load_form(bot):
                "pb_trail": _clip(bot["trail_pct"], 0.0, 50.0), "pb_start": pd.Timestamp(bot["start_date"]).date()})
     for s in books:
         _pp_seed(s, bot["strategies"][s])
-    if bot["combine"]["mode"] == "combo":
+    if books:                                     # the agreement rule of combined strategies has its own keys
+        ss.update({"pb_combine": "any", "pb_pbmode": bot["combine"]["mode"]})
+        if bot["combine"]["mode"] == "combo":
+            ss.update({"pb_pbmin": int(bot["combine"]["min"]), "pb_pbwin": int(bot["combine"].get("window", 5))})
+    elif bot["combine"]["mode"] == "combo":
         ss["pb_min"] = int(bot["combine"]["min"])
     o = bot.get("options") or PB.OPTION_DEFAULTS
     ss.update({"pb_otype": o["type"], "pb_dte": int(o["dte"]), "pb_strike": int(o["strike"]), "pb_oalloc": float(o["alloc"]),
@@ -1719,25 +1763,6 @@ def rules_html(name, params=None):
             f'<div class="cs">{chip_html}</div></div><div class="gr">{groups}</div></div>')
 
 
-def _pp_inputs(name):
-    """The numbers of one combined strategy, editable (they are clipped to their ranges when the bot is saved)."""
-    with st.expander(L("Adjust the numbers", "عدّل الأرقام"), icon=":material/tune:"):
-        cols = st.columns(4)
-        for i, (k, lab, lo, hi, dflt, step) in enumerate(PBK.PLAYBOOKS[name][1]):
-            key, label, c = _pp_key(name, k), L(lab, PBK.PARAM_AR.get(lab, lab)), cols[i % 4]
-            if k == "shorts":
-                c.toggle(L("Short breakdowns", "بيع مكشوف عند الكسر"), key=key)
-            elif k == "or_minutes":
-                ui.valid(key, [15, 30])
-                c.selectbox(label, [15, 30], key=key)
-            elif isinstance(step, float):
-                c.number_input(label, float(lo), float(hi), step=float(step), key=key, format="%.2f")
-            else:
-                c.number_input(label, int(lo), int(hi), step=int(step), key=key)
-        st.button(L("Back to the defaults", "رجّع الأرقام الافتراضية"), key=f"pb_ppdef_{_slug(name)}", icon=":material/restart_alt:",
-                  on_click=_pp_reset, args=(name,))
-
-
 def combo_caption(need, n):
     return L(f"A strategy agrees while it is in its buy state: from its own buy signal until its own sell signal. The bot buys on the day "
              f"at least {need} of the {n} agree, and sells when fewer than {need} agree, or by the stop loss, take profit or trailing stop.",
@@ -1824,90 +1849,186 @@ def form_head(n, ic, en, ar_, hint_en="", hint_ar=""):
 
 
 def mode_tile(m, on):
-    ic, en, ar_, den, dar = MODES[m]
+    """One half of the full-width switch between the two ways of picking strategies."""
+    ic, en, ar_, _, _ = MODES[m]
     count = len(engine.STRATEGIES) if m == "single" else len(PBK.PLAYBOOKS)
-    return (f'<div class="pbmode{" on" if on else ""}"><div class="top"><span class="i">{T.icon(ic)}</span>'
-            f'<span class="ck">{T.icon("check_circle" if on else "radio_button_unchecked")}</span></div>'
-            f'<div class="nm">{T.esc(L(en, ar_))}</div><div class="ds">{T.esc(L(den, dar))}</div>'
-            f'<div class="ct">{count} {L("strategies", "استراتيجيات")}</div></div>')
+    return (f'<div class="pbmode{" on" if on else ""}"><span class="i">{T.icon(ic)}</span>'
+            f'<span class="nm">{T.esc(L(en, ar_))}</span><span class="ct">{count}</span></div>')
 
 
-def _classic_picker():
-    """Way 1: the Strategy Lab strategies in a drop-down, with select all / clear and how they work together."""
-    names = list(engine.STRATEGIES)
-    ss["pb_ms_single"] = [s for s in dict.fromkeys(ss.get("pb_store", [])) if s in names]       # in the order they were picked
-    st.multiselect(L("Strategies", "الاستراتيجيات"), names, key="pb_ms_single", format_func=strat_name, on_change=_ms_changed,
-                   args=("pb_ms_single", "pb_store"), placeholder=L("Choose one or more strategies", "اختر استراتيجية أو أكثر"))
-    strats = [s for s in names if s in ss.get("pb_store", [])]
-    s1, s2, s3 = st.columns([1.2, 1, 3], vertical_alignment="center")
-    s1.button(L("Select all", "تحديد الكل"), icon=":material/done_all:", on_click=_set_store, args=("pb_store", names), key="pb_allstrats",
-              width="stretch", type="primary" if len(strats) < len(names) else "secondary")
-    s2.button(L("Clear", "مسح"), icon=":material/close:", on_click=_set_store, args=("pb_store", []), key="pb_nostrats", width="stretch",
-              disabled=not strats)
-    s3.caption(L(f"{len(strats)} of {len(names)} selected", f"{len(strats)} من {len(names)} مختارة"))
-    mode_, need = "any", None
-    if len(strats) > 1:
-        ui.valid("pb_combine", ["any", "combo"])
-        mode_ = st.segmented_control(L("How do the strategies work together?", "كيف تشتغل الاستراتيجيات مع بعض؟"), ["any", "combo"],
-                                     key="pb_combine", format_func=lambda k: {
-                                         "any": L("Each on its own", "كل وحدة لحالها"),
-                                         "combo": L("Agreement rule (custom)", "قاعدة اتفاق (مخصصة)")}[k]) or "any"
-        if mode_ == "combo":
-            n = len(strats)
-            if not isinstance(ss.get("pb_min"), int) or not 2 <= ss["pb_min"] <= n:
-                ss["pb_min"] = n
-            q1, q2 = st.columns([1, 2], vertical_alignment="bottom")
-            need = q1.number_input(L(f"Buy only when at least … of {n} agree", f"يشتري فقط إذا اتفقت على الأقل … من {n}"), 2, n, step=1,
-                                   key="pb_min")
-            q2.caption(combo_caption(need, n))
+# ---------------------------------------------------------------- the "?" next to each chosen strategy
+def _classic_rules(name, p):
+    """(buy rule, sell rule) of a Strategy Lab strategy in words, with its numbers: [(en, ar), (en, ar)]."""
+    g = lambda k: f"{p[k]:g}"
+    if name in ("SMA Crossover", "Golden Cross (50/200)"):
+        return [(f"SMA {g('fast')} crosses above SMA {g('slow')}", f"{iso('SMA ' + g('fast'))} يقطع فوق {iso('SMA ' + g('slow'))}"),
+                (f"SMA {g('fast')} crosses below SMA {g('slow')}", f"{iso('SMA ' + g('fast'))} يقطع تحت {iso('SMA ' + g('slow'))}")]
+    if name == "EMA Crossover":
+        return [(f"EMA {g('fast')} crosses above EMA {g('slow')}", f"{iso('EMA ' + g('fast'))} يقطع فوق {iso('EMA ' + g('slow'))}"),
+                (f"EMA {g('fast')} crosses below EMA {g('slow')}", f"{iso('EMA ' + g('fast'))} يقطع تحت {iso('EMA ' + g('slow'))}")]
+    if name == "RSI Mean Reversion":
+        return [(f"RSI {g('period')} crosses back above {g('buy_below')} while the close is above SMA 200",
+                 f"{iso('RSI ' + g('period'))} يرجع فوق {g('buy_below')} والإغلاق فوق {iso('SMA 200')}"),
+                (f"RSI {g('period')} is above {g('sell_above')}", f"{iso('RSI ' + g('period'))} فوق {g('sell_above')}")]
+    if name == "MACD Crossover":
+        return [(f"MACD ({g('fast')}, {g('slow')}) crosses above its {g('signal')}-day signal line",
+                 f"{iso('MACD')} ({iso(g('fast') + ', ' + g('slow'))}) يقطع فوق خط الإشارة {g('signal')}"),
+                ("MACD crosses below its signal line", f"{iso('MACD')} يقطع تحت خط الإشارة")]
+    if name == "Bollinger Breakout":
+        return [(f"The close crosses above the upper band (Bollinger {g('period')} / {g('std')})",
+                 f"الإغلاق يقطع فوق النطاق العلوي (بولنجر {iso(g('period') + ' / ' + g('std'))})"),
+                ("The close crosses below the middle band", "الإغلاق يقطع تحت الخط الأوسط")]
+    if name == "Donchian Breakout (Turtle)":
+        return [(f"The close is above the highest high of the {g('entry')} days before", f"الإغلاق فوق أعلى قمة في الـ {g('entry')} يوم اللي قبله"),
+                (f"The close is under the lowest low of the {g('exit')} days before", f"الإغلاق تحت أدنى قاع في الـ {g('exit')} يوم اللي قبله")]
+    if name == "OBV Trend (Volume)":
+        return [(f"OBV crosses above its {g('obv_ma')}-day average while the close is above SMA {g('trend')}",
+                 f"{iso('OBV')} يقطع فوق متوسطه {g('obv_ma')} يوم والإغلاق فوق {iso('SMA ' + g('trend'))}"),
+                ("OBV crosses below its average", f"{iso('OBV')} يقطع تحت متوسطه")]
+    if name == "Volume Breakout":
+        return [(f"The close is above the {g('lookback')}-day high with volume at least {g('vol_mult')} x its {g('lookback')}-day average",
+                 f"الإغلاق فوق قمة {g('lookback')} يوم والحجم {g('vol_mult')} × متوسطه أو أكثر"),
+                (f"The close is under the {g('exit')}-day low", f"الإغلاق تحت قاع {g('exit')} يوم")]
+    if name == "VWMA Crossover (Volume)":
+        return [(f"The close crosses above VWMA {g('period')}", f"الإغلاق يقطع فوق {iso('VWMA ' + g('period'))}"),
+                (f"The close crosses below VWMA {g('period')}", f"الإغلاق يقطع تحت {iso('VWMA ' + g('period'))}")]
+    if name == "MFI Money Flow (Volume)":
+        return [(f"MFI {g('period')} crosses back above {g('buy_below')} while the close is above SMA 200",
+                 f"{iso('MFI ' + g('period'))} يرجع فوق {g('buy_below')} والإغلاق فوق {iso('SMA 200')}"),
+                (f"MFI {g('period')} is above {g('sell_above')}", f"{iso('MFI ' + g('period'))} فوق {g('sell_above')}")]
+    return [("—", "—"), ("—", "—")]
+
+
+def classic_rules_html(name, params=None):
+    """A Strategy Lab strategy as a small card: its buy rule and its sell rule, with its numbers."""
+    p = PB.clean_params(name, params or {})
+    (be, ba), (se, sa) = _classic_rules(name, p)
+    groups = [("Buy (on the close)", "الشراء (عند الإغلاق)", [(be + "; the order is filled at the next open", ba + "، والأمر يتنفذ عند الافتتاح التالي")]),
+              ("Sell", "البيع", [(se, sa), ("Or the stop loss, take profit or trailing stop you set below",
+                                            "أو وقف الخسارة أو جني الأرباح أو الوقف المتحرك اللي تحطها تحت")])]
+    gh = "".join(f'<div class="g"><div class="gt"><span class="k">{i}</span>{T.esc(L(ge, ga))}</div><ul>'
+                 + "".join(f"<li>{_rule_txt(L(en, ar_))}</li>" for en, ar_ in items) + "</ul></div>"
+                 for i, (ge, ga, items) in enumerate(groups, 1))
+    return (f'<div class="pbrl"><div class="hd"><span class="i">{T.icon("insights")}</span>'
+            f'<div class="nm"><b>{T.esc(strat_name(name))}</b><span>{T.esc(L("Daily candles · Strategy Lab", "شموع يومية · مختبر الاستراتيجيات"))}</span></div>'
+            f'</div><div class="gr">{gh}</div></div>')
+
+
+def help_row(strats):
+    """A '?' next to every chosen strategy: it opens that strategy's rules (and, for a combined strategy, its numbers)."""
+    if not strats:
+        return
+    with st.container(key="pbq_row", horizontal=True):
+        for s in strats:
+            with st.popover(strat_short(s), icon=":material/help:"):
+                if PB.is_playbook(s):
+                    _pp_seed(s)
+                    ui.html(rules_html(s, _pp_params(s)))
+                    _pp_inputs(s)
+                    st.caption(R_CAPTION())
+                    if s == PBK.ORB:
+                        st.caption(L("5-minute candles: Yahoo keeps them for 60 days, so this bot shows about the last 60 days (the first 5 "
+                                     "sessions only build the relative volume).",
+                                     "شموع 5 دقائق: ياهو يحتفظ فيها 60 يوم، فهذا البوت يعرض آخر 60 يوم تقريباً (أول 5 جلسات تبني الحجم النسبي فقط)."))
+                else:
+                    ui.html(classic_rules_html(s))
+
+
+def _pp_inputs(name):
+    """The numbers of one combined strategy, editable (they are clipped to their ranges when the bot is saved)."""
+    ui.html(f'<div class="pbfs">{T.icon("tune")}{L("Adjust the numbers", "عدّل الأرقام")}</div>')
+    cols = st.columns(4)
+    for i, (k, lab, lo, hi, dflt, step) in enumerate(PBK.PLAYBOOKS[name][1]):
+        key, label, c = _pp_key(name, k), L(lab, PBK.PARAM_AR.get(lab, lab)), cols[i % 4]
+        if k == "shorts":
+            c.toggle(L("Short breakdowns", "بيع مكشوف عند الكسر"), key=key)
+        elif k == "or_minutes":
+            ui.valid(key, [15, 30])
+            c.selectbox(label, [15, 30], key=key)
+        elif isinstance(step, float):
+            c.number_input(label, float(lo), float(hi), step=float(step), key=key, format="%.2f")
         else:
-            st.caption(L("Any selected strategy can open a trade; the trade closes on the exit signal of the strategy that opened it, "
-                         "or by the stop loss, take profit or trailing stop.",
-                         "أي استراتيجية مختارة تقدر تفتح صفقة، والصفقة تتقفل بإشارة الخروج من نفس الاستراتيجية اللي فتحتها، "
-                         "أو بوقف الخسارة أو جني الأرباح أو الوقف المتحرك."))
-    return strats, mode_, need
+            c.number_input(label, int(lo), int(hi), step=int(step), key=key)
+    st.button(L("Back to the defaults", "رجّع الأرقام الافتراضية"), key=f"pb_ppdef_{_slug(name)}", icon=":material/restart_alt:",
+              on_click=_pp_reset, args=(name,))
 
 
-def _combined_picker(kind):
-    """Way 2: the combined strategies in a drop-down, each shown with its exact rules and its numbers."""
-    names = list(PBK.PLAYBOOKS)
-    ss["pb_ms_combo"] = [s for s in dict.fromkeys(ss.get("pb_store_pb", [])) if s in names]
-    st.multiselect(L("Combined strategies", "الاستراتيجيات المركّبة"), names, key="pb_ms_combo", format_func=strat_name,
-                   on_change=_ms_changed, args=("pb_ms_combo", "pb_store_pb"),
-                   placeholder=L("Choose one or more combined strategies", "اختر استراتيجية مركّبة أو أكثر"))
-    strats = [s for s in names if s in ss.get("pb_store_pb", [])]
+# ---------------------------------------------------------------- how the chosen strategies work together (last, in a pop-out)
+def together_label(way, n):
+    if way == "combo":
+        mode_, need, win = ss.get("pb_pbmode", "any"), ss.get("pb_pbmin", n), ss.get("pb_pbwin", 5)
+        if mode_ == "combo":
+            return L(f"Agreement: {need} of {n} within {win} sessions", f"اتفاق: {need} من {n} خلال {win} جلسات")
+    else:
+        mode_, need = ss.get("pb_combine", "any"), ss.get("pb_min", n)
+        if mode_ == "combo":
+            return L(f"Agreement: {need} of {n} agree", f"اتفاق: تتفق {need} من {n}")
+    return L("Each on its own", "كل وحدة لحالها")
+
+
+def together(way, strats):
+    """Each strategy on its own, or an agreement rule (n must agree). Returns (mode, need, window)."""
+    n = len(strats)
+    if n < 2 or (way == "combo" and PBK.ORB in strats):
+        return "any", None, None
+    mk, nk = ("pb_pbmode", "pb_pbmin") if way == "combo" else ("pb_combine", "pb_min")
+    ui.valid(mk, ["any", "combo"])
+    if not isinstance(ss.get(nk), int) or not 2 <= ss[nk] <= n:
+        ss[nk] = n
+    with st.container(key="pbq_together"):
+        with st.popover(L("How they work together", "كيف تشتغل مع بعض") + " · " + together_label(way, n), icon=":material/join_inner:"):
+            mode_ = st.segmented_control(L("How do the strategies work together?", "كيف تشتغل الاستراتيجيات مع بعض؟"), ["any", "combo"],
+                                         key=mk, format_func=lambda k: {"any": L("Each on its own", "كل وحدة لحالها"),
+                                                                         "combo": L("Agreement rule (custom)", "قاعدة اتفاق (مخصصة)")}[k]) or "any"
+            need = win = None
+            if mode_ == "combo":
+                q1, q2 = st.columns(2)
+                need = q1.number_input(L(f"Buy only when at least … of {n} agree", f"يشتري فقط إذا اتفقت على الأقل … من {n}"), 2, n, step=1,
+                                       key=nk)
+                if way == "combo":
+                    win = q2.number_input(L("…within (sessions)", "…خلال (جلسات)"), 1, 20, step=1, key="pb_pbwin")
+                    st.caption(L(f"A buy signal counts only when at least {need} of the {n} strategies gave a buy signal within the last {win} "
+                                 "sessions (1 = the same day). The trade follows the plan of the strategy whose signal it is: its stop, target "
+                                 "and time stop.",
+                                 f"إشارة الشراء تنحسب فقط إذا أعطت {need} على الأقل من الـ {n} إشارة شراء خلال آخر {win} جلسات (1 = نفس اليوم). "
+                                 "والصفقة تمشي على خطة الاستراتيجية صاحبة الإشارة: وقفها وهدفها ووقفها الزمني."))
+                else:
+                    st.caption(combo_caption(need, n))
+            else:
+                st.caption(L("Any of them can open a trade; each trade closes by the rules of the strategy that opened it.",
+                             "أي وحدة منها تقدر تفتح صفقة، وكل صفقة تتقفل بقواعد الاستراتيجية اللي فتحتها."))
+    return mode_, need, win
+
+
+def _picker(way, kind):
+    """One way of picking strategies: its drop-down, select all / clear, a '?' next to each chosen strategy, and (last) how they
+    work together. Returns (strategies, mode, need, window)."""
+    classic = way == "single"
+    names = list(engine.STRATEGIES) if classic else list(PBK.PLAYBOOKS)
+    store, wkey = ("pb_store", "pb_ms_single") if classic else ("pb_store_pb", "pb_ms_combo")
+    ss[wkey] = [s for s in dict.fromkeys(ss.get(store, [])) if s in names]       # in the order they were picked
+    st.multiselect(L("Strategies", "الاستراتيجيات") if classic else L("Combined strategies", "الاستراتيجيات المركّبة"), names, key=wkey,
+                   format_func=strat_name, on_change=_ms_changed, args=(wkey, store),
+                   placeholder=L("Choose one or more strategies", "اختر استراتيجية أو أكثر"))
+    strats = [s for s in names if s in ss.get(store, [])]
+    every = names if classic else PBK.DAILY
     s1, s2, s3 = st.columns([1.2, 1, 3], vertical_alignment="center")
-    s1.button(L("Select all", "تحديد الكل"), icon=":material/done_all:", on_click=_set_store, args=("pb_store_pb", PBK.DAILY), key="pb_allbooks",
-              width="stretch", type="primary" if set(strats) != set(PBK.DAILY) else "secondary",
-              help=L("The four daily ones. The Opening Range Breakout runs alone.", "الأربع اليومية. اختراق نطاق الافتتاح يشتغل لحاله."))
-    s2.button(L("Clear", "مسح"), icon=":material/close:", on_click=_set_store, args=("pb_store_pb", []), key="pb_nobooks", width="stretch",
-              disabled=not strats)
+    s1.button(L("Select all", "تحديد الكل"), icon=":material/done_all:", on_click=_set_store, args=(store, every),
+              key="pb_allstrats" if classic else "pb_allbooks", width="stretch",
+              type="primary" if set(strats) != set(every) else "secondary",
+              help=None if classic else L("The four daily ones. The Opening Range Breakout runs alone.", "الأربع اليومية. اختراق نطاق الافتتاح يشتغل لحاله."))
+    s2.button(L("Clear", "مسح"), icon=":material/close:", on_click=_set_store, args=(store, []), key="pb_nostrats" if classic else "pb_nobooks",
+              width="stretch", disabled=not strats)
     s3.caption(L(f"{len(strats)} of {len(names)} selected", f"{len(strats)} من {len(names)} مختارة"))
-    if PBK.ORB in strats and len(strats) > 1:
-        st.warning(L("The Opening Range Breakout runs alone: it trades 5-minute candles and closes every trade the same day. Keep it on its "
-                     "own, or remove it to run the others together.",
-                     "اختراق نطاق الافتتاح يشتغل لحاله: يتداول على شموع 5 دقائق ويقفل كل صفقة في نفس اليوم. خلّه لحاله، أو شيله عشان تشغّل الباقي مع بعض."),
+    if not classic and PBK.ORB in strats and len(strats) > 1:
+        st.warning(L("The Opening Range Breakout runs alone. Keep it on its own, or remove it.", "اختراق نطاق الافتتاح يشتغل لحاله. خلّه لحاله أو شيله."),
                    icon=":material/error:")
-    elif PBK.ORB in strats:
-        if kind == "all":
-            st.warning(L("The Opening Range Breakout can't run on all companies (5-minute prices for 500+ stocks are too much to download). "
-                         "Pick one company, a sector or an industry.",
-                         "اختراق نطاق الافتتاح ما يشتغل على كل الشركات (أسعار 5 دقائق لأكثر من 500 سهم ثقيلة جداً). اختر شركة أو قطاع أو صناعة."),
-                       icon=":material/error:")
-        st.info(L("5-minute candles: Yahoo keeps them for 60 days, so this bot shows about the last 60 days (the first 5 sessions only build "
-                  "the relative volume). It buys upside breakouts, shorts downside ones, and closes everything the same day.",
-                  "شموع 5 دقائق: ياهو يحتفظ فيها 60 يوم، فهذا البوت يعرض آخر 60 يوم تقريباً (أول 5 جلسات تبني الحجم النسبي فقط). "
-                  "يشتري الاختراق للأعلى، ويبيع على المكشوف الكسر للأسفل، ويقفل كل شي في نفس اليوم."), icon=":material/timer:")
-    elif len(strats) > 1:
-        st.caption(L("Any of them can open a trade; each trade follows the plan of the strategy that opened it (its stop, target and time stop).",
-                     "أي وحدة منها تقدر تفتح صفقة، وكل صفقة تمشي على خطة الاستراتيجية اللي فتحتها (وقفها وهدفها ووقفها الزمني)."))
-    for s in strats:
-        _pp_seed(s)
-        ui.html(rules_html(s, _pp_params(s)))
-        _pp_inputs(s)
-    if strats:
-        st.caption(R_CAPTION())
-    return strats
+    elif not classic and PBK.ORB in strats and kind == "all":
+        st.warning(L("The Opening Range Breakout can't run on all companies. Pick one company, a sector or an industry.",
+                     "اختراق نطاق الافتتاح ما يشتغل على كل الشركات. اختر شركة أو قطاع أو صناعة."), icon=":material/error:")
+    help_row(strats)
+    mode_, need, win = together(way, strats)
+    return strats, mode_, need, win
 
 
 def bot_form(mode, bot=None):
@@ -1958,19 +2079,17 @@ def bot_form(mode, bot=None):
 
     # 3) strategies: two ways, each a drop-down
     with st.container(key="pbf_3"):
-        form_head(3, "filter_alt", "Stock filter strategies", "فلتر استراتيجيات الأسهم", "Choose a way, then pick from its list",
-                  "اختر الطريقة، ثم اختر من قائمتها")
+        form_head(3, "filter_alt", "Stock filter strategies", "فلتر استراتيجيات الأسهم", "Press ? next to a strategy to see how it works",
+                  "اضغط ? جنب الاستراتيجية عشان تشوف طريقتها")
         way = ss["pb_mode"] if ss.get("pb_mode") in MODES else "single"
-        t1, t2 = st.columns(2, gap="small")
-        for col, m in ((t1, "single"), (t2, "combo")):
-            with col:
-                with st.container(key=f"pbmode_{m}"):
-                    ui.html(mode_tile(m, m == way))
-                    st.button(L(*MODES[m][1:3]), key=f"pb_mode_{m}", on_click=_set_mode, args=(m,), width="stretch")
-        if way == "single":
-            strats, mode_, need = _classic_picker()
-        else:
-            strats, mode_, need = _combined_picker(kind), "any", None
+        with st.container(key="pbswitch"):
+            t1, t2 = st.columns(2, gap="small")
+            for col, m in ((t1, "single"), (t2, "combo")):
+                with col:
+                    with st.container(key=f"pbmode_{m}"):
+                        ui.html(mode_tile(m, m == way))
+                        st.button(L(*MODES[m][1:3]), key=f"pb_mode_{m}", on_click=_set_mode, args=(m,), width="stretch")
+        strats, mode_, need, win = _picker(way, kind)
     combined = way == "combo"
     orb = combined and PBK.ORB in strats
 
@@ -1983,8 +2102,6 @@ def bot_form(mode, bot=None):
             chips = T.badge(L("Stocks", "أسهم"), "acc", "show_chart") + (T.badge(L("Long and short", "شراء وبيع مكشوف"), "vio", "swap_vert")
                                                                          if orb else T.badge(L("Long", "شراء"), "vio", "trending_up"))
             ui.html(f'<div>{chips}</div>')
-            st.caption(L("Combined strategies trade shares: every rule, stop and target is written for the stock's price.",
-                         "الاستراتيجيات المركّبة تتداول أسهم: كل الشروط والوقف والهدف مكتوبة على سعر السهم."))
         else:
             ui.valid("pb_instr", list(PB.INSTRUMENTS))
             instr = st.segmented_control(L("What does the bot buy?", "وش يشتري البوت؟"), list(PB.INSTRUMENTS), key="pb_instr",
@@ -2017,12 +2134,8 @@ def bot_form(mode, bot=None):
             if not orb:
                 r[1].number_input(L("Trailing stop % (optional)", "الوقف المتحرك % (اختياري)"), 0.0, 50.0, step=0.5,
                                   help=L("0 = off", "0 = إيقاف"), key="pb_trail")
-            st.caption(L("The stop, the target and the time stop come from each strategy's rules above; a trailing stop, if you set one, "
-                         "is added on top.",
-                         "الوقف والهدف والوقف الزمني جايين من شروط كل استراتيجية فوق، والوقف المتحرك (إذا حطيته) ينضاف فوقها.")
-                       if not orb else
-                       L("The stop and the target come from the opening range; whatever is still open is closed at the day's last candle.",
-                         "الوقف والهدف من نطاق الافتتاح، وأي صفقة باقية تتقفل مع آخر شمعة في اليوم."))
+            st.caption(L("Stop, target and time stop come from each strategy (press its ?).", "الوقف والهدف والوقف الزمني من كل استراتيجية (اضغط ? جنبها).")
+                       if not orb else L("Stop and target come from the opening range (press ?).", "الوقف والهدف من نطاق الافتتاح (اضغط ?)."))
         else:
             if instr != "options":
                 if instr == "both":
@@ -2079,6 +2192,10 @@ def bot_form(mode, bot=None):
                        "اختراق نطاق الافتتاح ما يشتغل على كل الشركات. اختر شركة أو قطاع أو صناعة."))
             return
         params = {s: _pp_params(s) for s in strats}
+        if mode_ == "combo" and len(strats) > 1:
+            if not 2 <= int(need or 0) <= len(strats):
+                st.error(L("Pick how many strategies must agree.", "اختر كم استراتيجية لازم تتفق."))
+                return
     else:
         keep = (bot or {}).get("strategies", {})
         params = {s: keep.get(s, {}) for s in strats}                     # an edited bot keeps its own strategy settings
@@ -2100,7 +2217,7 @@ def bot_form(mode, bot=None):
             st.error(L(f"No price data for {value}. Check the symbol (for example AAPL, BTC-USD, 2222.SR).",
                        f"لا توجد بيانات للرمز {value}. تأكد من الرمز (مثلاً AAPL أو BTC-USD أو 2222.SR)."))
             return
-    combo = mode_ == "combo" and len(strats) > 1 and not combined
+    combo = mode_ == "combo" and len(strats) > 1 and not orb
     name = str(ss.get("pb_name") or "").strip() or _default_name(kind, value, strats, need if combo else None, instr)
     options = {"type": ss["pb_otype"], "dte": ss["pb_dte"], "strike": ss["pb_strike"], "alloc": ss["pb_oalloc"], "tp": ss["pb_otp"],
                "sl": ss["pb_osl"]} if instr != "stock" else None
@@ -2109,7 +2226,8 @@ def bot_form(mode, bot=None):
     else:
         risk = (0.0, 0.0, 0.0, 0.0) if instr == "options" else (ss["pb_stop"], ss["pb_atr"], ss["pb_tp"], ss["pb_trail"])
     rec = PB.make_record(name, kind, value, params, ss.get("pb_maxpos", DEFAULTS["pb_maxpos"]), ss["pb_capital"], ss["pb_fee"], *risk,
-                         pd.Timestamp(start).strftime("%Y-%m-%d"), {"mode": "combo", "min": int(need)} if combo else None,
+                         pd.Timestamp(start).strftime("%Y-%m-%d"),
+                         ({"mode": "combo", "min": int(need), **({"window": int(win)} if combined else {})} if combo else None),
                          instrument=instr, options=options)
     try:
         if mode == "add":
@@ -2220,4 +2338,4 @@ def page_paper_bots():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "7.6"
+BUILD = "7.7"
