@@ -782,7 +782,8 @@ def page_trending():
                 bg, fg, bd = newsiq.colors(iq["score"])
                 lv = newsiq.level(iq["score"])
                 score = (f'<span class="iqs" style="background:{bg};color:{fg};border-color:{bd}">{iq["score"]}/10 · {T.esc(L(*lv))}</span>')
-            col.markdown(f'<div class="story{" rtl" if is_ar() else ""}"><div class="rank">0{i + 1}</div><a class="t" href="{T.esc(n["link"])}" target="_blank">{T.esc(t)}</a>'
+            col.markdown(f'<div class="story{" rtl" if is_ar() else ""}">{T.news_thumb(n, big=True)}<div class="rank">0{i + 1}</div>'
+                         f'<a class="t" href="{T.esc(n["link"])}" target="_blank">{T.esc(t)}</a>'
                          f'<div class="muted" style="font-size:.78rem;margin-top:6px">{T.esc(n["source"])} · {T.time_ago(n["time"], is_ar())}</div>'
                          f'<div style="margin-top:8px">{score}</div>' + (T.kw_chips(iq, is_ar(), 3) if iq else "") +
                          f'<div class="aff"><span class="lbl" style="width:100%">{L("Affected companies", "الشركات المتأثرة")}</span>{ch}</div></div>',
@@ -969,3 +970,6 @@ def page_news():
         return
     ui.news_list(items, count, translate=translate)
     ui.foot()
+
+# version stamp: app.py reloads any module still in memory from an older version of the site
+BUILD = "7.1"

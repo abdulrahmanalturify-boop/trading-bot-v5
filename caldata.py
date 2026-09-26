@@ -251,14 +251,19 @@ def splits(start, end):
 
 
 # ---------------------------------------------------------------- economic events
-HIGH = re.compile(r"(\bcpi\b|consumer price|core pce|\bpce\b|nonfarm|non-farm|payrolls|unemployment rate|fomc|fed(?:eral)? (?:funds|interest rate)|"
-                  r"interest rate decision|\bgdp\b|retail sales|ism (?:manufacturing|services|non-manufacturing)|\bppi\b|producer price)", re.I)
-MEDIUM = re.compile(r"(jobless claims|initial claims|continuing claims|consumer confidence|michigan|durable goods|housing starts|building permits|"
-                    r"new home sales|existing home|pending home|industrial production|jolts|job openings|adp|trade balance|personal income|"
-                    r"personal spending|empire state|philadelphia fed|philly fed|chicago pmi|pmi|factory orders|beige book|crude oil inventories|"
-                    r"powell|fed chair|fomc minutes|treasury|auction|import prices|export prices|productivity|labor costs|wholesale|business inventories|"
-                    r"case-shiller|house price|construction spending|capacity utilization|nfib|employment cost)", re.I)
-LOWER_IS_BETTER = re.compile(r"(unemployment|jobless|claims|inventories|deficit)", re.I)
+# Yahoo's calendar uses Reuters-style short names ("Build Permits R Chg MM*", "Initial Jobless Clm", "U Mich Sentiment Final",
+# "Core PCE Price Index MM", "ISM N-Mfg PMI", "Non-Farm Payrolls"), so the patterns cover both the short and the long forms.
+HIGH = re.compile(r"(\bcpi\b|consumer price|\bpce\b|non-?farm|payrolls|unemployment rate|fomc|fed(?:eral)? funds|fed interest rate|"
+                  r"interest rate decision|rate decision|\bgdp\b|retail sales|\bism\b.*(?:manuf|mfg|services|pmi)|\bppi\b|producer price)", re.I)
+MEDIUM = re.compile(r"(jobless|initial claims|continuing claims|durable goods|\bu\.? ?mich|michigan|consumer confidence|conf(?:erence)? board|"
+                    r"housing starts|build(?:ing)? permits|new home sales|existing home|pending home|industrial production|ind(?:ustrial)? prod|"
+                    r"capacity util|mfg output|manufacturing output|\badp\b|jolts|job openings|trade balance|goods trade|intl trade|international trade|"
+                    r"personal income|consumption|personal spending|phil(?:ly|adelphia)? fed|empire state|ny fed manufacturing|chicago pmi|\bpmi\b|"
+                    r"factory orders|business inventories|retail inventories|wholesale inv|import prices|export prices|productivity|labor costs|"
+                    r"employment cost|\beci\b|corporate profits|current account|construction spending|beige book|powell|fed chair|fomc minutes|"
+                    r"average earnings|avg earnings|avg hourly|core capex|nondef|case.?shiller|house price|fhfa|federal budget|treasury budget|"
+                    r"crude oil inventories|\beia\b|consumer credit|gdpnow)", re.I)
+LOWER_IS_BETTER = re.compile(r"(unemployment|jobless|claims|\bclm\b|inventor|invt|deficit)", re.I)
 
 
 def importance(name):
@@ -386,3 +391,6 @@ def dividends(start, end):
     if "Price" not in df.columns:
         df["Price"] = np.nan
     return df.drop_duplicates(["Symbol", "ExDate"]).sort_values(["ExDate", "Symbol"]).reset_index(drop=True), src
+
+# version stamp: app.py reloads any module still in memory from an older version of the site
+BUILD = "7.1"

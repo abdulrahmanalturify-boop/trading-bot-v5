@@ -107,6 +107,7 @@ ALIAS = {"the wall street journal": "WSJ", "wsj": "WSJ", "financial times": "Fin
 NOISE = re.compile(r"\b(cd rates?|savings (?:account )?rates?|mortgage (?:and refinance )?rates? today|best (?:high-yield )?savings|credit cards? (?:of|for)|"
                    r"horoscope|price prediction|sweepstakes|promo code|coupon|grand prix|nfl|nba|mlb|nhl|wwe|aew|super bowl|recipe)\b", re.I)
 _TAG = re.compile(r"<[^>]+>")
+_IMG = re.compile(r"""<img[^>]+?src=["']([^"']+)["']""", re.I)
 _WS = re.compile(r"\s+")
 _EXCH = re.compile(r"\((?:NYSE(?:\s*American)?|NASDAQ|Nasdaq|NasdaqGS|NasdaqGM|NasdaqCM|AMEX|NYSEAMERICAN|NYSE MKT|CBOE|OTCQX|OTCQB|OTC)\s*:\s*([A-Z]{1,5}(?:\.[A-Z])?)\)")
 _BAD_XML = re.compile(rb"[\x00-\x08\x0b\x0c\x0e-\x1f]")
@@ -179,10 +180,21 @@ def parse_feed(content):
             elif n in ("pubdate", "published", "updated", "date", "issued", "modified"):
                 d["time"] = d["time"] or parse_time(txt)
             elif n in ("content", "thumbnail") and ch.get("url"):
-                d["img"] = d["img"] or ch.get("url")
+                if (ch.get("medium") or "image") == "image" and not str(ch.get("type") or "image").startswith(("video", "audio")):
+                    d["img"] = d["img"] or ch.get("url")
             elif n in ("description", "summary", "content", "encoded"):
+                raw_html = "".join(ch.itertext()) or txt
+                if not d["img"]:
+                    m = _IMG.search(raw_html)
+                    if m:
+                        d["img"] = _html.unescape(m.group(1))
                 if not d["summary"]:
-                    d["summary"] = clean("".join(ch.itertext()) or txt)
+                    d["summary"] = clean(raw_html)
+            elif n == "group":                                  # <media:group><media:content url=...>
+                for g in ch:
+                    if _local(g.tag) in ("content", "thumbnail") and g.get("url") and not d["img"]:
+                        if (g.get("medium") or "image") == "image" and not str(g.get("type") or "image").startswith("video"):
+                            d["img"] = g.get("url")
             elif n == "enclosure" and (ch.get("type") or "").startswith("image"):
                 d["img"] = d["img"] or ch.get("url") or ""
             elif n == "source":
@@ -256,6 +268,8 @@ class NewsBot:
         self.updated = None       # time of the last finished round
         self.rounds = 0
         self.thread = None
+        self.build = BUILD
+        self.stopped = False
 
     # ---- one feed
     def fetch(self, feed):
@@ -393,7 +407,7 @@ class NewsBot:
             self.first.set()
 
     def _loop(self):
-        while True:
+        while not self.stopped:
             try:
                 self.collect()
             except Exception:
@@ -401,6 +415,8 @@ class NewsBot:
             time.sleep(INTERVAL)
 
     def start(self):
+        if self.stopped:
+            return
         if self.thread is None or not self.thread.is_alive():
             self.thread = threading.Thread(target=self._loop, name="news-bot", daemon=True)
             self.thread.start()
@@ -454,6 +470,13 @@ def _shared_bot():
 def bot(wait=True, timeout=14):
     """The shared bot. wait=True: the very first time, wait (a few seconds) for its first round."""
     b = _shared_bot()
+    if getattr(b, "build", None) != BUILD:        # a bot from an older version of the site: retire it, start the new one
+        try:
+            b.stopped = True
+            _shared_bot.clear()
+        except Exception:
+            pass
+        b = _shared_bot()
     b.start()                  # restarts the loop if it ever stopped
     if b.updated and time.time() - b.updated > 3 * INTERVAL:
         threading.Thread(target=b.collect, daemon=True).start()   # the loop looks stuck: refresh now, in the background
@@ -467,3 +490,6 @@ def headlines(hours=48):
         return bot().items(hours)
     except Exception:
         return []
+
+# version stamp: app.py reloads any module still in memory from an older version of the site
+BUILD = "7.1"

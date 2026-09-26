@@ -220,3 +220,6 @@ def rank(items):
     """Most important first, newest first among equal scores."""
     zero = pd.Timestamp("1970-01-01", tz="UTC")
     return sorted(items, key=lambda n: ((n.get("iq") or {}).get("raw", 0), n["time"] if pd.notna(n.get("time")) else zero), reverse=True)
+
+# version stamp: app.py reloads any module still in memory from an older version of the site
+BUILD = "7.1"

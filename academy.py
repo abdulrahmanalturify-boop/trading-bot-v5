@@ -367,3 +367,6 @@ CANDLE_ANATOMY = """<svg viewBox="0 0 520 240" xmlns="http://www.w3.org/2000/svg
 <g stroke="#8A94A7" stroke-dasharray="3 3"><line x1="145" y1="20" x2="170" y2="20"/><line x1="165" y1="60" x2="170" y2="60"/><line x1="165" y1="170" x2="170" y2="170"/><line x1="145" y1="220" x2="170" y2="220"/>
 <line x1="365" y1="20" x2="390" y2="20"/><line x1="385" y1="60" x2="390" y2="60"/><line x1="385" y1="170" x2="390" y2="170"/><line x1="365" y1="220" x2="390" y2="220"/></g>
 </svg>"""
+
+# version stamp: app.py reloads any module still in memory from an older version of the site
+BUILD = "7.1"

@@ -271,8 +271,19 @@ def parse_news(items):
         ts = (pd.to_datetime(pub, unit="s", utc=True) if isinstance(pub, (int, float))
               else pd.to_datetime(pub, utc=True, errors="coerce"))
         out.append({"title": title, "link": link, "source": source, "time": ts,
-                    "summary": c.get("summary") or c.get("description") or "", "tickers": _tickers_of(it, c, title)})
+                    "summary": c.get("summary") or c.get("description") or "", "tickers": _tickers_of(it, c, title), "img": _thumb(c, it)})
     return out
+
+
+def _thumb(c, it):
+    """Best picture of a Yahoo news item (about 400 px wide)."""
+    th = c.get("thumbnail") or it.get("thumbnail") or {}
+    if not isinstance(th, dict):
+        return ""
+    res = [r for r in (th.get("resolutions") or []) if isinstance(r, dict) and r.get("url")]
+    if res:
+        return min(res, key=lambda r: abs((r.get("width") or 0) - 420)).get("url", "")
+    return th.get("originalUrl") or th.get("url") or ""
 
 
 @st.cache_data(ttl=1200, show_spinner=False)
@@ -1148,3 +1159,6 @@ def revenues(symbols, limit=100):
         for s, v in ex.map(one, syms):
             out[s] = v
     return out
+
+# version stamp: app.py reloads any module still in memory from an older version of the site
+BUILD = "7.1"

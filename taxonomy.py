@@ -257,3 +257,70 @@ INDUSTRY_AR = {
     "Utilities - Regulated Gas": "مرافق الغاز المنظمة", "Utilities - Regulated Water": "مرافق المياه المنظمة", "Utilities - Renewable": "الطاقة المتجددة",
     "Other": "أخرى",
 }
+
+
+# ---------------------------------------------------------------- segment revenue
+# When a company has several businesses, only the business that belongs to the chosen theme / industry is counted.
+# share = that business's part of total revenue, rounded, from the companies' latest annual reports (fiscal 2025).
+# Companies not listed are counted in full (their whole business is in the group).
+_DC, _DCA = ("Data Center", "مراكز البيانات")
+_IC = (0.38, "Intelligent Cloud (Azure)", "السحابة الذكية (Azure)")
+_GC = (0.14, "Google Cloud", "جوجل كلاود")
+_OCI = (0.2, "Oracle Cloud Infrastructure", "سحابة أوراكل")
+_AUTO = (0.75, "Automotive", "السيارات")
+SEGMENTS = {
+    ("ai", "chips"): {"NVDA": (0.89, _DC, _DCA), "AMD": (0.48, _DC, _DCA), "AVGO": (0.31, "AI semiconductors", "رقائق الذكاء الاصطناعي"),
+                      "MRVL": (0.74, _DC, _DCA), "TSM": (0.58, "High-performance computing", "الحوسبة عالية الأداء"),
+                      "INTC": (0.32, "Data Center & AI", "مراكز البيانات والذكاء الاصطناعي")},
+    ("ai", "infra"): {"DELL": (0.5, "Infrastructure Solutions (servers)", "حلول البنية التحتية (الخوادم)"), "ORCL": _OCI},
+    ("ai", "software"): {"MSFT": _IC, "GOOGL": _GC},
+    ("cloud", "hyper"): {"AMZN": (0.18, "AWS", "خدمات أمازون السحابية AWS"), "MSFT": _IC, "GOOGL": _GC, "ORCL": _OCI},
+    ("semis", "foundry"): {"INTC": (0.33, "Intel Foundry", "مسبك إنتل")},
+    ("semis", "equip"): {"TER": (0.73, "Semiconductor Test", "اختبار أشباه الموصلات")},
+    ("ev", "makers"): {"TSLA": _AUTO},
+    ("ev", "auto"): {"TSLA": _AUTO, "GOOGL": (0.004, "Other Bets (Waymo)", "مشاريع أخرى (Waymo)"), "UBER": (0.45, "Mobility", "التنقل")},
+    ("power", "nuclear"): {"CCJ": (0.7, "Uranium", "اليورانيوم")},
+    ("power", "grid"): {"GEV": (0.24, "Electrification", "الكهربة"), "ETN": (0.66, "Electrical", "المعدات الكهربائية")},
+    ("crypto", "exch"): {"HOOD": (0.25, "Crypto trading", "تداول العملات الرقمية")},
+    ("ecom", "retail"): {"AMZN": (0.57, "Online stores & marketplace", "المتجر الإلكتروني والسوق"), "MELI": (0.55, "Commerce", "التجارة"),
+                         "BABA": (0.45, "Commerce", "التجارة")},
+    ("media", "stream"): {"DIS": (0.26, "Streaming (Disney+, Hulu)", "البث (ديزني+ وهولو)"), "WBD": (0.27, "Streaming (Max)", "البث (Max)")},
+    ("media", "social"): {"META": (0.99, "Family of Apps", "تطبيقات ميتا")},
+    ("health", "glp1"): {"LLY": (0.56, "Mounjaro & Zepbound", "مونجارو وزيباوند"), "NVO": (0.72, "Ozempic, Wegovy & Rybelsus", "أوزمبيك وويغوفي وريبلسس"),
+                         "AMGN": (0.0, "No GLP-1 sales yet", "لا مبيعات GLP-1 بعد")},
+    ("health", "medtech"): {"ABT": (0.45, "Medical Devices", "الأجهزة الطبية")},
+    ("defense", "primes"): {"RTX": (0.32, "Raytheon (defense)", "رايثيون (الدفاع)"), "GD": (0.76, "Defense", "الدفاع")},
+    ("defense", "dtech"): {"PLTR": (0.54, "Government", "القطاع الحكومي")},
+    ("robotics", "robots"): {"TER": (0.1, "Robotics", "الروبوتات")},
+    ("robotics", "quantum"): {"IBM": (0.0, "No separate quantum revenue", "لا إيرادات منفصلة للحوسبة الكمية"),
+                              "GOOGL": (0.0, "No separate quantum revenue", "لا إيرادات منفصلة للحوسبة الكمية")},
+}
+# the same idea for Yahoo industries (company listed in the industry but with other big businesses)
+INDUSTRY_SEGMENTS = {
+    "Internet Retail": {"AMZN": (0.57, "Online stores & marketplace", "المتجر الإلكتروني والسوق"), "MELI": (0.55, "Commerce", "التجارة"),
+                        "BABA": (0.45, "Commerce", "التجارة")},
+    "Auto Manufacturers": {"TSLA": _AUTO},
+    "Internet Content & Information": {"GOOGL": (0.86, "Google Services (Search, YouTube)", "خدمات جوجل (البحث ويوتيوب)")},
+    "Entertainment": {"DIS": (0.44, "Entertainment", "الترفيه")},
+}
+
+
+def segment_of(sym, theme=None, sub=None, industry=None):
+    """(share, english name, arabic name) of the company's business that belongs to the chosen group, or None (count it all).
+    With a whole theme chosen (no sub-theme), the company's segment in any of the theme's sub-themes is used."""
+    if theme and theme != "Any":
+        if sub and sub != "Any":
+            hit = SEGMENTS.get((theme, sub), {}).get(sym)
+            if hit:
+                return hit
+        else:
+            for (t, _), m in SEGMENTS.items():
+                if t == theme and sym in m:
+                    return m[sym]
+    if industry and industry != "Any":
+        return INDUSTRY_SEGMENTS.get(industry, {}).get(sym)
+    return None
+
+
+# version stamp: app.py reloads any module still in memory from an older version of the site
+BUILD = "7.1"

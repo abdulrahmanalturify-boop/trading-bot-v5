@@ -172,3 +172,6 @@ def render(tr, op, s, capital, key="td"):
         n_open = 0 if op is None else len(op)
         ui.html(f'<div class="tdp"><div class="tt"><span><span style="color:{T.GOLD}">●</span> {L("Open positions", "المراكز المفتوحة")}</span>'
                 f'<span class="muted">{n_open} {L("positions", "مراكز")}</span></div>{open_html(op, lg)}</div>')
+
+# version stamp: app.py reloads any module still in memory from an older version of the site
+BUILD = "7.1"

@@ -221,3 +221,6 @@ def label_for(s):
     if s < -0.1:
         return "Sell"
     return "Neutral"
+
+# version stamp: app.py reloads any module still in memory from an older version of the site
+BUILD = "7.1"

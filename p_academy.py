@@ -285,3 +285,6 @@ def page_glossary():
         f'<div class="d">{T.esc(L(den, dar))}</div></div>' for en, ar, den, dar in items) + "</div>"
         if items else f'<div class="muted">{L("No matching terms.", "لا توجد مصطلحات مطابقة.")}</div>')
     ui.foot()
+
+# version stamp: app.py reloads any module still in memory from an older version of the site
+BUILD = "7.1"

@@ -403,7 +403,7 @@ a.lnk {{ color:inherit !important; text-decoration:none !important; }} a.lnk:hov
 .evt.key {{ border-color: rgba(245,185,74,.45); }} .evt.key .d {{ background:{YEL_BG}; color:{YEL_FG}; }}
 /* ---------- insight: articles ---------- */
 .acard {{ background:{CARD}; border:1px solid {BORDER}; border-radius:18px; overflow:hidden; height:100%; transition: transform .18s, box-shadow .18s, border-color .18s; }}
-.acard .aart {{ position:relative; height:140px; overflow:hidden; }} .acard .aart svg {{ width:100%; height:100%; display:block; }}
+.acard .aart {{ position:relative; height:176px; overflow:hidden; }} .acard .aart svg {{ width:100%; height:100%; display:block; }}
 .acard .aicon {{ position:absolute; left:50%; top:46%; transform:translate(-50%,-50%); width:66px; height:66px; border-radius:50%; display:flex; align-items:center;
   justify-content:center; background:rgba(255,255,255,.16); border:1.5px solid rgba(255,255,255,.45); }}
 .acard .aicon .ms {{ font-size:2rem; color:#fff; }}
@@ -426,7 +426,7 @@ a.lnk {{ color:inherit !important; text-decoration:none !important; }} a.lnk:hov
 .article .ah {{ font-size:1.3rem; font-weight:800; margin:26px 0 6px; color:#fff; }}
 .article p, .article li {{ line-height:1.95; color:#D5DBE6; font-size:1.02rem; }}
 .article ul {{ padding-inline-start:22px; margin:6px 0; }} .article li {{ margin:5px 0; }}
-.acover {{ position:relative; height:180px; border-radius:18px; overflow:hidden; margin:6px 0 4px; }} .acover svg {{ width:100%; height:100%; display:block; }}
+.acover {{ position:relative; aspect-ratio:16/6; max-height:360px; border-radius:18px; overflow:hidden; margin:6px 0 4px; }} .acover svg {{ width:100%; height:100%; display:block; }}
 .tkw {{ background: linear-gradient(135deg, rgba(34,211,238,.1), rgba(61,123,255,.08)); border:1px solid rgba(34,211,238,.28); border-radius:16px; padding:14px 18px; margin:16px 0 8px; }}
 .tkw .h {{ font-weight:800; font-size:.78rem; letter-spacing:.1em; text-transform:uppercase; color:{CYAN}; margin-bottom:4px; display:flex; gap:6px; align-items:center; }}
 .tkw .t {{ display:flex; gap:10px; align-items:flex-start; margin:6px 0; line-height:1.75; color:#E2E8F0; }} .tkw .t .ms {{ color:#4ADE80; margin-top:4px; }}
@@ -756,6 +756,29 @@ a.lnk {{ color:inherit !important; text-decoration:none !important; }} a.lnk:hov
 .cathead h3 {{ margin:0 !important; padding:0 !important; line-height:1.3; }}
 .cathead .chips {{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; }}
 .cathead .chips .badge {{ margin:0; }}
+/* ---------- news pictures ---------- */
+.news .nwrap {{ display:flex; gap:16px; align-items:flex-start; }}
+.news .nbody {{ flex:1; min-width:0; }}
+.nth {{ position:relative; flex:none; display:flex; align-items:center; justify-content:center; width:176px; height:118px; border-radius:14px; overflow:hidden;
+  background:var(--g); box-shadow:0 8px 20px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.08); }}
+.nth::before {{ content:""; position:absolute; inset:0; z-index:0; opacity:.5; background:
+  radial-gradient(circle at 18% 22%, rgba(255,255,255,.28), transparent 42%),
+  repeating-linear-gradient(90deg, rgba(255,255,255,.07) 0 1px, transparent 1px 22px),
+  repeating-linear-gradient(0deg, rgba(255,255,255,.05) 0 1px, transparent 1px 22px); }}
+.nth img {{ position:relative; z-index:1; display:block; width:100%; height:100%; object-fit:cover; background:#161D2B; }}
+.nth img::after {{ content:attr(data-ic); position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  font-family:'Material Symbols Rounded'; font-size:48px; color:rgba(255,255,255,.95); background:var(--g); }}
+.nth.fb .ms {{ position:relative; z-index:1; font-size:50px; color:#fff; text-shadow:0 6px 18px rgba(0,0,0,.3); }}
+.nth.fb em {{ position:absolute; z-index:1; inset-inline-start:10px; bottom:8px; font-style:normal; font-size:.64rem; font-weight:800; letter-spacing:.08em;
+  text-transform:uppercase; color:rgba(255,255,255,.9); }}
+.nth.fb em::after {{ content:attr(data-en); }}
+.nth .nlg {{ position:absolute; z-index:2; inset-inline-end:8px; bottom:8px; display:flex; border-radius:11px; box-shadow:0 4px 12px rgba(0,0,0,.45); }}
+.nth.big {{ width:100%; height:150px; border-radius:14px; margin-bottom:12px; }}
+.story .nth.big {{ margin:-4px 0 12px; }}
+@media (max-width: 640px) {{ .news .nwrap {{ flex-direction:column; }} .news .nth {{ width:100%; height:170px; }} }}
+.story:has(.nth) .rank {{ top:24px; inset-inline-end:auto; inset-inline-start:28px; z-index:3; font-size:.9rem; color:#fff; background:rgba(10,14,23,.55);
+  padding:2px 10px; border-radius:10px; backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); }}
+.story:has(.nth) a.t {{ margin-inline-end:0; }}
 /* ---------- news bot ---------- */
 .news .meta .also {{ display:inline-block; margin-inline-start:4px; padding:0 6px; border-radius:8px; background:rgba(61,123,255,.18); color:#BFD3FB; font-weight:800;
   font-size:.66rem; cursor:help; }}
@@ -787,6 +810,7 @@ html, body, .stApp, .stMarkdown, button, input, textarea, select, label, [data-b
 [class*="st-key-navon_"] [data-testid="stPageLink"] a {{ box-shadow: inset -3px 0 0 {ACCENT}; }}
 [class*="st-key-navdd_"] [data-testid="stPageLink"] a:hover {{ transform: translateX(-2px); }}
 .st-key-langdd {{ right:auto; left:0; transform-origin: top left; }}
+.nth.fb em::after {{ content:attr(data-ar); }} .nth.fb em {{ letter-spacing:0; font-size:.72rem; }}
 </style>
 """
 
@@ -1020,6 +1044,45 @@ def iq_legend(ar=False):
     return (f'<div class="iqleg"><span class="muted">{esc(lo)}</span><span class="sc">{cells}</span><span class="muted">{esc(hi)}</span></div>')
 
 
+# topic -> (gradient, english label, arabic label) for news pictures when the story has no photo
+_TG = {"macro": "linear-gradient(135deg,#1D4ED8 0%,#4F46E5 55%,#7C3AED 100%)", "world": "linear-gradient(135deg,#B45309 0%,#EA580C 55%,#DC2626 100%)",
+       "company": "linear-gradient(135deg,#047857 0%,#0D9488 55%,#0891B2 100%)", "deal": "linear-gradient(135deg,#7C3AED 0%,#A21CAF 55%,#DB2777 100%)",
+       "risk": "linear-gradient(135deg,#991B1B 0%,#BE123C 60%,#E11D48 100%)", "tech": "linear-gradient(135deg,#0369A1 0%,#2563EB 55%,#06B6D4 100%)",
+       "crypto": "linear-gradient(135deg,#C2410C 0%,#EA580C 50%,#F59E0B 100%)", "commod": "linear-gradient(135deg,#854D0E 0%,#CA8A04 55%,#EAB308 100%)",
+       "market": "linear-gradient(135deg,#1E3A8A 0%,#2563EB 50%,#0EA5E9 100%)"}
+_TOPIC_GROUP = {"fed": "macro", "inflation": "macro", "jobs": "macro", "economy": "macro", "bonds": "macro", "trade": "world", "geo": "world",
+                "policy": "world", "earnings": "company", "guidance": "company", "analyst": "company", "payout": "company", "mna": "deal", "ipo": "deal",
+                "legal": "risk", "distress": "risk", "layoffs": "risk", "health": "tech", "ai": "tech", "product": "tech", "crypto": "crypto",
+                "oil": "commod", "metals": "commod", "fx": "commod", "move": "market", "street": "market"}
+
+
+def _safe_img(url):
+    u = str(url or "").strip()
+    if not u or not u.startswith(("http://", "https://")) or any(x in u.lower() for x in ("1x1", "pixel", "spacer", "blank.gif")):
+        return ""
+    return "https://" + u[7:] if u.startswith("http://") else u
+
+
+def news_thumb(n, big=False):
+    """Picture for a story: the outlet's photo when there is one, otherwise a topic picture (never a broken-image icon:
+    if the photo cannot load, the topic picture is drawn in its place). The first affected company's logo sits in the corner."""
+    import newsiq
+    iq = n.get("iq") or {}
+    topic = next((t for t in iq.get("topics", []) if t in _TOPIC_GROUP), "street")
+    ic = newsiq.TOPIC_ICON.get(topic, "show_chart")
+    grad = _TG[_TOPIC_GROUP.get(topic, "market")]
+    lab = next(((en, ar) for key, en, ar, *_ in newsiq.TOPICS if key == topic), ("Markets", "الأسواق"))
+    tick = [t for t in (n.get("tickers") or []) if t][:1]
+    lg = f'<span class="nlg">{logo_obj(tick[0], 34 if big else 30)}</span>' if tick else ""
+    url = _safe_img(n.get("img"))
+    cls = "nth big" if big else "nth"
+    if url:
+        return (f'<span class="{cls}" style="--g:{grad}"><img src="{esc(url)}" alt="" loading="lazy" referrerpolicy="no-referrer" '
+                f'data-ic="{ic}">{lg}</span>')
+    return (f'<span class="{cls} fb" style="--g:{grad}"><span class="ms">{ic}</span>'
+            f'<em data-en="{esc(lab[0])}" data-ar="{esc(lab[1])}"></em>{lg}</span>')
+
+
 def also_badge(also, ar=False):
     """'+3' next to the outlet: the same story was also reported by other outlets (names on hover)."""
     also = [a for a in (also or []) if a]
@@ -1040,12 +1103,13 @@ def news_card(n, title, summary, chips="", aff_label="", ar=False, tag=None, iq=
     rtl = " rtl" if ar else ""
     head = (f'<div class="nb">{tag_html}<a class="t" href="{esc(n["link"])}" target="_blank">{esc(title)}</a>'
             f'<div class="meta">{icon("schedule")} {esc(n["source"])}{also_badge(n.get("also"), ui_ar)} · {time_ago(n["time"], ar)}</div></div>')
+    pic = news_thumb(n)
     if iq:
         edge = newsiq.colors(iq["score"])[2]
-        return (f'<div class="news hasiq{rtl}" style="--iqd:{edge}"><div class="nh">{head}{iq_badge(iq, ui_ar)}</div>'
-                + (f'<div class="sum">{short}</div>' if short else "") + kw_chips(iq, ui_ar) + aff + "</div>")
-    return (f'<div class="news{rtl}"><div class="nh">{head}</div>'
-            + (f'<div class="sum">{short}</div>' if short else "") + aff + "</div>")
+        return (f'<div class="news hasiq{rtl}" style="--iqd:{edge}"><div class="nwrap">{pic}<div class="nbody"><div class="nh">{head}{iq_badge(iq, ui_ar)}</div>'
+                + (f'<div class="sum">{short}</div>' if short else "") + kw_chips(iq, ui_ar) + aff + "</div></div></div>")
+    return (f'<div class="news{rtl}"><div class="nwrap">{pic}<div class="nbody"><div class="nh">{head}</div>'
+            + (f'<div class="sum">{short}</div>' if short else "") + aff + "</div></div></div>")
 
 
 def market_status(ar=False):
@@ -1326,3 +1390,6 @@ def fg_gauge(v, ar=False, sub=""):
             f'<text x="{cx}" y="{cy + 84}" text-anchor="middle" font-size="15" font-weight="800" fill="#fff" font-family="{FONT}">{esc(label)}</text>'
             + (f'<text x="{cx}" y="{cy + 102}" text-anchor="middle" font-size="11" fill="{MUTED}" font-family="{FONT}">{esc(sub)}</text>' if sub else "")
             + "</svg>")
+
+# version stamp: app.py reloads any module still in memory from an older version of the site
+BUILD = "7.1"

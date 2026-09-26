@@ -172,3 +172,6 @@ def legend(rng=3.0):
     steps = [-1, -2 / 3, -1 / 3, 0, 1 / 3, 2 / 3, 1]
     cells = "".join(f'<span style="background:{color(s * rng, rng)}">{s * rng:+.0f}%</span>'.replace("+0%", "0%") for s in steps)
     return f'<div class="hmlegend">{cells}</div>'
+
+# version stamp: app.py reloads any module still in memory from an older version of the site
+BUILD = "7.1"

@@ -238,3 +238,6 @@ def stats(res):
     out["open_pnl"] = open_pnl
     out["exposure"] = float((res["positions"] > 0).mean() * 100) if len(res["positions"]) else 0.0
     return out
+
+# version stamp: app.py reloads any module still in memory from an older version of the site
+BUILD = "7.1"

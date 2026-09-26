@@ -801,7 +801,7 @@ def compare_bars(labels, series_map, title=None, kind="money", height=380):
                              text=None if many else txt, textposition="outside", textfont=dict(size=10, color=MUTED),
                              customdata=txt, hovertemplate=f"<b>{name}</b> · %{{x}}: %{{customdata}}<extra></extra>"))
     style(fig, height, title)
-    fig.update_layout(barmode="group", bargap=0.24, bargroupgap=0.06, hovermode="x unified")
+    fig.update_layout(barmode="group", bargap=0.24 if len(series_map) > 1 else 0.42, bargroupgap=0.06, hovermode="x unified")
     fig.update_xaxes(type="category")
     fig.update_yaxes(side="left", zeroline=True, zerolinecolor="#3A4458",
                      tickprefix="$" if kind in ("money", "eps") else "", ticksuffix="B" if kind == "money" else ("%" if kind == "pct" else ""))
@@ -940,3 +940,6 @@ def seasonal_path(avg, cur=None, title=None, names=("Average year", "This year")
     fig.update_xaxes(title_text=xlab, title_font=dict(size=11, color=MUTED))
     fig.update_layout(hovermode="x unified")
     return fig
+
+# version stamp: app.py reloads any module still in memory from an older version of the site
+BUILD = "7.1"

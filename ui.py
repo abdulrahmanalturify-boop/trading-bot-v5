@@ -145,3 +145,6 @@ def multiselect_free(label, options, key, placeholder="", max_n=4):
         if isinstance(st.session_state.get(key), list):
             st.session_state[key] = [v for v in st.session_state[key] if v in options]
         return st.multiselect(label, options, key=key, max_selections=max_n, placeholder=placeholder)
+
+# version stamp: app.py reloads any module still in memory from an older version of the site
+BUILD = "7.1"

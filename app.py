@@ -2,7 +2,25 @@
 app.py - A.Alturaifi Pro · US Markets platform (entry point).
 Run locally:  streamlit run app.py
 """
+import importlib
+import sys
+
 import streamlit as st
+
+# ---------------------------------------------------------------- always run the newest code
+# Streamlit Cloud re-reads app.py after every GitHub upload but can keep the other modules (theme, data, ...) from the
+# previous version in memory. Every module carries BUILD; if one in memory is older, all of them are reloaded in order.
+BUILD = "7.1"
+_ORDER = ["i18n", "flags", "mcal", "universe", "sp500", "taxonomy", "ta", "academy", "insight", "heatmap", "newsiq", "theme", "data",
+          "caldata", "newsbot", "charts", "engine", "autotrader", "ui", "tdash", "p_markets", "p_research", "p_insight", "p_academy",
+          "p_bot", "p_calendar"]
+if any(m in sys.modules and getattr(sys.modules[m], "BUILD", None) != BUILD for m in _ORDER):
+    for _m in _ORDER:
+        if _m in sys.modules:
+            try:
+                importlib.reload(sys.modules[_m])
+            except Exception:
+                sys.modules.pop(_m, None)       # imported fresh below
 
 import data
 import newsbot

@@ -357,3 +357,144 @@ def art_svg(cat, uid, h=150):
             + f'<polyline points="0,{h - 30} 60,{h - 48} 110,{h - 38} 170,{h - 70} 230,{h - 58} 290,{h - 92} 340,{h - 80} 400,{h - 112}" fill="none" '
               f'stroke="#fff" stroke-width="3" opacity=".35" stroke-linejoin="round"/>'
             + "</svg>")
+
+
+# ---------------------------------------------------------------- one picture per article (drawn scenes, no outside images needed)
+def _bg(uid, c1, c2):
+    grid = "".join(f'<line x1="{x}" y1="0" x2="{x}" y2="220" stroke="#fff" stroke-opacity=".06"/>' for x in range(0, 401, 40))
+    grid += "".join(f'<line x1="0" y1="{y}" x2="400" y2="{y}" stroke="#fff" stroke-opacity=".05"/>' for y in range(0, 221, 40))
+    return (f'<defs><linearGradient id="bg{uid}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="{c1}"/><stop offset="1" stop-color="{c2}"/></linearGradient>'
+            f'<radialGradient id="gl{uid}" cx=".78" cy=".12" r=".7"><stop offset="0" stop-color="#fff" stop-opacity=".28"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>'
+            f'<linearGradient id="wf{uid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset="1" stop-color="#fff" stop-opacity=".78"/></linearGradient>'
+            f'</defs><rect width="400" height="220" fill="url(#bg{uid})"/><rect width="400" height="220" fill="url(#gl{uid})"/>{grid}')
+
+
+def _scene_fed(u):          # the central bank building, a rate dial and arrows
+    cols = "".join(f'<rect x="{x}" y="92" width="11" height="70" rx="2" fill="url(#wf{u})"/>' for x in range(136, 265, 24))
+    return (f'<polygon points="118,88 200,48 282,88" fill="url(#wf{u})"/><rect x="118" y="86" width="164" height="8" fill="#fff" opacity=".9"/>{cols}'
+            f'<rect x="110" y="162" width="180" height="8" rx="2" fill="#fff" opacity=".9"/><rect x="98" y="170" width="204" height="9" rx="2" fill="#fff" opacity=".7"/>'
+            f'<circle cx="200" cy="70" r="9" fill="none" stroke="#1E3A8A" stroke-width="3" opacity=".6"/>'
+            f'<g transform="translate(318 70)"><circle r="30" fill="#fff" opacity=".18"/><circle r="30" fill="none" stroke="#fff" stroke-width="3" opacity=".85"/>'
+            f'<text y="11" text-anchor="middle" font-family="Arial, sans-serif" font-size="30" font-weight="800" fill="#fff">%</text></g>'
+            f'<path d="M318 118 v38 M306 144 l12 12 l12 -12" stroke="#FCA5A5" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>'
+            f'<path d="M62 150 v-40 M50 122 l12 -12 l12 12" stroke="#86EFAC" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>'
+            f'<polyline points="20,196 80,188 140,192 200,176 260,182 320,160 380,166" fill="none" stroke="#fff" stroke-width="2.5" opacity=".35"/>')
+
+
+def _scene_curve(u):        # normal vs inverted yield curve on a chart
+    return (f'<rect x="70" y="36" width="260" height="150" rx="14" fill="#0B1020" opacity=".35"/>'
+            f'<line x1="92" y1="166" x2="312" y2="166" stroke="#fff" stroke-width="2" opacity=".7"/><line x1="92" y1="56" x2="92" y2="166" stroke="#fff" stroke-width="2" opacity=".7"/>'
+            f'<path d="M100 150 C150 110 210 92 305 84" fill="none" stroke="#86EFAC" stroke-width="4" stroke-dasharray="8 7" stroke-linecap="round"/>'
+            f'<path d="M100 76 C150 92 220 124 305 136" fill="none" stroke="#FCA5A5" stroke-width="5" stroke-linecap="round"/>'
+            + "".join(f'<circle cx="{x}" cy="{y}" r="6" fill="#fff" stroke="#EF4444" stroke-width="3"/>' for x, y in ((100, 76), (185, 104), (305, 136)))
+            + f'<text x="100" y="186" font-family="Arial" font-size="12" font-weight="700" fill="#fff" opacity=".85">3M</text>'
+              f'<text x="178" y="186" font-family="Arial" font-size="12" font-weight="700" fill="#fff" opacity=".85">2Y</text>'
+              f'<text x="290" y="186" font-family="Arial" font-size="12" font-weight="700" fill="#fff" opacity=".85">10Y</text>'
+              f'<g transform="translate(346 56)"><rect x="-22" y="-18" width="44" height="54" rx="6" fill="url(#wf{u})"/>'
+              f'<line x1="-12" y1="-4" x2="12" y2="-4" stroke="#1D4ED8" stroke-width="3"/><line x1="-12" y1="6" x2="12" y2="6" stroke="#1D4ED8" stroke-width="3" opacity=".6"/>'
+              f'<line x1="-12" y1="16" x2="4" y2="16" stroke="#1D4ED8" stroke-width="3" opacity=".6"/></g>')
+
+
+def _scene_inflation(u):    # a shopping cart with rising price tags
+    tags = "".join(f'<g transform="translate({x} {y}) rotate({r})"><path d="M0 0 h38 l10 12 l-10 12 h-38 z" fill="url(#wf{u})"/>'
+                   f'<circle cx="38" cy="12" r="3" fill="#B45309"/><text x="17" y="17" text-anchor="middle" font-family="Arial" font-size="13" font-weight="800" '
+                   f'fill="#B91C1C">{t}</text></g>' for x, y, r, t in ((250, 50, -12, "$4"), (292, 84, -8, "$7"), (236, 104, 6, "$9")))
+    return (f'<path d="M70 70 h26 l22 78 h112 l18 -58 h-138" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>'
+            f'<rect x="112" y="98" width="30" height="34" rx="4" fill="#fff" opacity=".85"/><rect x="148" y="86" width="26" height="46" rx="4" fill="#FDE68A"/>'
+            f'<rect x="180" y="104" width="34" height="28" rx="4" fill="#fff" opacity=".7"/>'
+            f'<circle cx="130" cy="170" r="11" fill="#fff"/><circle cx="214" cy="170" r="11" fill="#fff"/>{tags}'
+            f'<path d="M318 170 L352 128 L372 144 L386 110" fill="none" stroke="#FCA5A5" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>'
+            f'<path d="M372 110 h14 v14" fill="none" stroke="#FCA5A5" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>')
+
+
+def _scene_earnings(u):     # a quarterly report with bars, a magnifier and a "beat" check
+    bars = "".join(f'<rect x="{x}" y="{y}" width="18" height="{150 - y}" rx="3" fill="{c}"/>'
+                   for x, y, c in ((142, 118, "#93C5FD"), (166, 104, "#93C5FD"), (190, 96, "#93C5FD"), (214, 78, "#34D399")))
+    return (f'<rect x="120" y="34" width="150" height="160" rx="12" fill="url(#wf{u})"/>'
+            f'<rect x="138" y="50" width="70" height="8" rx="4" fill="#0F766E"/><rect x="138" y="64" width="46" height="6" rx="3" fill="#94A3B8"/>'
+            f'<line x1="138" y1="150" x2="248" y2="150" stroke="#CBD5E1" stroke-width="2"/>{bars}'
+            f'<text x="138" y="176" font-family="Arial" font-size="13" font-weight="800" fill="#0F766E">EPS  +12%</text>'
+            f'<g transform="translate(292 118)"><circle r="34" fill="#fff" opacity=".15"/><circle r="26" fill="none" stroke="#fff" stroke-width="7"/>'
+            f'<line x1="19" y1="19" x2="44" y2="44" stroke="#fff" stroke-width="9" stroke-linecap="round"/></g>'
+            f'<g transform="translate(88 70)"><circle r="24" fill="#22C55E"/><path d="M-11 0 l7 8 l14 -15" fill="none" stroke="#fff" stroke-width="5" '
+            f'stroke-linecap="round" stroke-linejoin="round"/></g>')
+
+
+def _scene_drawdowns(u):    # a market fall, the shaded drawdown and the recovery
+    pts = "20,70 70,60 110,76 150,64 190,150 220,172 250,160 290,120 330,96 380,58"
+    return (f'<path d="M150 64 L190 150 L220 172 L250 160 L290 120 L330 96 L352 64 L150 64 Z" fill="#EF4444" opacity=".25"/>'
+            f'<line x1="150" y1="64" x2="372" y2="64" stroke="#fff" stroke-width="2" stroke-dasharray="6 6" opacity=".7"/>'
+            f'<polyline points="{pts}" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>'
+            f'<line x1="220" y1="70" x2="220" y2="164" stroke="#FCA5A5" stroke-width="3"/><path d="M212 154 l8 12 l8 -12" fill="#FCA5A5"/>'
+            f'<rect x="232" y="100" width="62" height="26" rx="13" fill="#B91C1C"/><text x="263" y="118" text-anchor="middle" font-family="Arial" font-size="14" '
+            f'font-weight="800" fill="#fff">-34%</text><circle cx="380" cy="58" r="8" fill="#22C55E" stroke="#fff" stroke-width="3"/>'
+            f'<text x="316" y="46" font-family="Arial" font-size="12" font-weight="800" fill="#fff" opacity=".9">RECOVERY</text>')
+
+
+def _scene_vix(u):          # a fear gauge and volatility spikes
+    wave = "M20 150 L60 146 L80 132 L96 160 L112 118 L128 170 L146 96 L164 176 L180 126 L200 144 L230 140 L260 146"
+    return (f'<path d="{wave}" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" opacity=".9"/>'
+            f'<g transform="translate(316 138)"><path d="M-64 0 A64 64 0 0 1 64 0" fill="none" stroke="#22C55E" stroke-width="14" stroke-dasharray="67 300" />'
+            f'<path d="M-64 0 A64 64 0 0 1 64 0" fill="none" stroke="#F59E0B" stroke-width="14" stroke-dasharray="0 67 67 300"/>'
+            f'<path d="M-64 0 A64 64 0 0 1 64 0" fill="none" stroke="#EF4444" stroke-width="14" stroke-dasharray="0 134 68 300"/>'
+            f'<line x1="0" y1="0" x2="42" y2="-38" stroke="#fff" stroke-width="6" stroke-linecap="round"/><circle r="10" fill="#fff"/>'
+            f'<text y="30" text-anchor="middle" font-family="Arial" font-size="16" font-weight="800" fill="#fff">VIX</text></g>')
+
+
+def _scene_diversify(u):    # a portfolio donut with many slices and a shield
+    import math
+    segs, a0 = [], -90.0
+    for share, col in ((28, "#60A5FA"), (22, "#34D399"), (18, "#FBBF24"), (14, "#F472B6"), (10, "#A78BFA"), (8, "#F87171")):
+        a1 = a0 + share * 3.6
+        r, x0, y0 = 58, 150 + 58 * math.cos(math.radians(a0)), 112 + 58 * math.sin(math.radians(a0))
+        x1, y1 = 150 + r * math.cos(math.radians(a1 - 1.5)), 112 + r * math.sin(math.radians(a1 - 1.5))
+        segs.append(f'<path d="M{x0:.1f} {y0:.1f} A{r} {r} 0 {1 if share > 50 else 0} 1 {x1:.1f} {y1:.1f}" fill="none" stroke="{col}" stroke-width="30"/>')
+        a0 = a1
+    legend = "".join(f'<rect x="236" y="{y}" width="90" height="10" rx="5" fill="#fff" opacity=".{o}"/><circle cx="226" cy="{y + 5}" r="5" fill="{c}"/>'
+                     for y, o, c in ((70, 85, "#60A5FA"), (92, 7, "#34D399"), (114, 6, "#FBBF24"), (136, 5, "#F472B6")))
+    return ("".join(segs) + '<circle cx="150" cy="112" r="30" fill="#fff" opacity=".15"/>' + legend
+            + f'<g transform="translate(350 62)"><path d="M0 -22 L20 -14 V2 C20 16 10 24 0 28 C-10 24 -20 16 -20 2 V-14 Z" fill="url(#wf{u})"/>'
+              f'<path d="M-8 2 l6 6 l11 -12" fill="none" stroke="#7C2D12" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></g>')
+
+
+def _scene_dca(u):          # a calendar and coin stacks that grow every month
+    cells = "".join(f'<rect x="{46 + (i % 4) * 22}" y="{84 + (i // 4) * 20}" width="16" height="14" rx="3" fill="#fff" opacity="{.95 if i in (2, 7, 11) else .45}"/>'
+                    for i in range(12))
+    stacks = ""
+    for j, n in enumerate((2, 3, 5, 7, 9)):
+        x = 180 + j * 40
+        for k in range(n):
+            stacks += f'<ellipse cx="{x}" cy="{178 - k * 10}" rx="15" ry="6" fill="#FCD34D" stroke="#B45309" stroke-width="2"/>'
+    return (f'<rect x="34" y="52" width="104" height="124" rx="12" fill="#fff" opacity=".2"/><rect x="34" y="52" width="104" height="24" rx="12" fill="#fff" opacity=".85"/>'
+            f'<rect x="54" y="42" width="8" height="18" rx="4" fill="#fff"/><rect x="110" y="42" width="8" height="18" rx="4" fill="#fff"/>{cells}{stacks}'
+            f'<path d="M176 92 L220 76 L262 70 L302 50 L344 36" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".85"/>'
+            f'<path d="M332 34 h14 v14" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" opacity=".85"/>')
+
+
+def _scene_mistakes(u):     # a warning sign over a falling chart and a checklist of don'ts
+    candles = "".join(f'<line x1="{x}" y1="{y - 14}" x2="{x}" y2="{y + h + 14}" stroke="#fff" stroke-width="2" opacity=".6"/>'
+                      f'<rect x="{x - 7}" y="{y}" width="14" height="{h}" rx="2" fill="{c}"/>'
+                      for x, y, h, c in ((40, 80, 30, "#34D399"), (66, 92, 34, "#F87171"), (92, 112, 30, "#F87171"), (118, 128, 34, "#F87171"),
+                                         (144, 150, 22, "#F87171")))
+    lst = "".join(f'<rect x="258" y="{y}" width="92" height="10" rx="5" fill="#fff" opacity=".85"/><g transform="translate(244 {y + 5})">'
+                  f'<circle r="8" fill="#EF4444"/><path d="M-4 -4 l8 8 M4 -4 l-8 8" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></g>'
+                  for y in (70, 98, 126, 154))
+    return (candles + f'<g transform="translate(196 104)"><path d="M0 -50 L48 36 H-48 Z" fill="#FBBF24" stroke="#fff" stroke-width="5" stroke-linejoin="round"/>'
+            f'<rect x="-5" y="-22" width="10" height="34" rx="5" fill="#7C2D12"/><circle cy="24" r="6" fill="#7C2D12"/></g>'
+            f'<rect x="230" y="54" width="136" height="128" rx="12" fill="#fff" opacity=".16"/>{lst}')
+
+
+SCENES = {"fed": _scene_fed, "curve": _scene_curve, "inflation": _scene_inflation, "earnings": _scene_earnings, "drawdowns": _scene_drawdowns,
+          "vix": _scene_vix, "diversify": _scene_diversify, "dca": _scene_dca, "mistakes": _scene_mistakes}
+
+
+def art_scene(aid, cat, uid):
+    """The article's own picture: its category colours with a drawing of the topic (the Fed building, the yield curve, a shopping cart...)."""
+    c1, c2 = CATEGORIES[cat][2], CATEGORIES[cat][3]
+    draw = SCENES.get(aid)
+    body = draw(uid) if draw else ""
+    return (f'<svg viewBox="0 0 400 220" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" role="img">{_bg(uid, c1, c2)}{body}</svg>')
+
+
+# version stamp: app.py reloads any module still in memory from an older version of the site
+BUILD = "7.1"

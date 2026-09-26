@@ -572,3 +572,6 @@ GICS_AR = {
 
 def gics_name(sub):
     return L(sub, GICS_AR.get(sub, sub)) if sub else "—"
+
+# version stamp: app.py reloads any module still in memory from an older version of the site
+BUILD = "7.1"

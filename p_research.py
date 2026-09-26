@@ -388,7 +388,8 @@ def financials_tab(sym, inf):
             if missing:
                 st.caption(L("No data for: ", "لا توجد بيانات لـ: ") + ", ".join(missing))
         else:
-            ui.chart(charts.metric_bars(labels_, vals, L(en, ar) + note, kind), key="fin_chart")
+            # same design as the comparison chart (value on every bar, $ axis, company legend), even for one company
+            ui.chart(charts.compare_bars(labels_, {sym: vals}, L(en, ar) + note, kind), key="fin_chart")
             last_v = vals[-1]
             prev_v = vals[-2] if len(vals) > 1 else np.nan
             yoy_v = vals[-5] if freq == "q" and len(vals) > 4 else (prev_v if freq == "a" else np.nan)
@@ -745,55 +746,183 @@ def _o(en, ar, *filters):
     return (en, ar, list(filters))
 
 
-F = {  # key -> (en, ar, group, [options])
+F = {  # key -> (en, ar, group, [options]); groups: desc / fund / tech = Yahoo's live screener, l* = computed here after the screen
+    # ---------------- descriptive
     "mcap": ("Market cap", "القيمة السوقية", "desc", [_o("Any", "الكل"), _o("Mega (>200B)", "عملاقة (>200 مليار)", ("gt", "intradaymarketcap", 2e11)),
              _o("Large (10–200B)", "كبيرة (10–200 مليار)", ("btwn", "intradaymarketcap", 1e10, 2e11)),
              _o("Mid (2–10B)", "متوسطة (2–10 مليار)", ("btwn", "intradaymarketcap", 2e9, 1e10)),
              _o("Small (0.3–2B)", "صغيرة (0.3–2 مليار)", ("btwn", "intradaymarketcap", 3e8, 2e9)),
-             _o("Micro (<300M)", "متناهية الصغر (<300 مليون)", ("lt", "intradaymarketcap", 3e8))]),
+             _o("Micro (<300M)", "متناهية الصغر (<300 مليون)", ("lt", "intradaymarketcap", 3e8)),
+             _o("+Large (over 10B)", "+كبيرة (أكثر من 10 مليار)", ("gt", "intradaymarketcap", 1e10)),
+             _o("+Mid (over 2B)", "+متوسطة (أكثر من 2 مليار)", ("gt", "intradaymarketcap", 2e9)),
+             _o("+Small (over 300M)", "+صغيرة (أكثر من 300 مليون)", ("gt", "intradaymarketcap", 3e8)),
+             _o("-Small (under 2B)", "-صغيرة (أقل من 2 مليار)", ("lt", "intradaymarketcap", 2e9))]),
+    "exch": ("Exchange", "البورصة", "desc", [_o("Any", "الكل"), _o("NASDAQ", "ناسداك", ("eq", "exchange", "NMS")), _o("NYSE", "بورصة نيويورك", ("eq", "exchange", "NYQ")),
+             _o("NYSE American", "نيويورك أمريكان", ("eq", "exchange", "ASE"))]),
+    "index": ("Index", "المؤشر", "ldesc", [_o("Any", "الكل"), _o("S&P 500", "إس آند بي 500"), _o("Dow Jones 30", "داو جونز 30"), _o("Not in S&P 500", "خارج إس آند بي 500")]),
     "price": ("Price", "السعر", "desc", [_o("Any", "الكل"), _o("Under $5", "أقل من 5$", ("lt", "intradayprice", 5)),
               _o("$5–20", "5–20$", ("btwn", "intradayprice", 5, 20)), _o("$20–50", "20–50$", ("btwn", "intradayprice", 20, 50)),
-              _o("$50–100", "50–100$", ("btwn", "intradayprice", 50, 100)), _o("Over $100", "أكثر من 100$", ("gt", "intradayprice", 100))]),
+              _o("$50–100", "50–100$", ("btwn", "intradayprice", 50, 100)), _o("Over $100", "أكثر من 100$", ("gt", "intradayprice", 100)),
+              _o("Under $1", "أقل من 1$", ("lt", "intradayprice", 1)), _o("Under $10", "أقل من 10$", ("lt", "intradayprice", 10)),
+              _o("Over $10", "أكثر من 10$", ("gt", "intradayprice", 10)), _o("Over $20", "أكثر من 20$", ("gt", "intradayprice", 20)),
+              _o("Over $50", "أكثر من 50$", ("gt", "intradayprice", 50)), _o("Over $500", "أكثر من 500$", ("gt", "intradayprice", 500))]),
     "avgvol": ("Avg volume", "متوسط الحجم", "desc", [_o("Any", "الكل"), _o("Over 100K", "أكثر من 100 ألف", ("gt", "avgdailyvol3m", 1e5)),
                _o("Over 500K", "أكثر من 500 ألف", ("gt", "avgdailyvol3m", 5e5)), _o("Over 1M", "أكثر من مليون", ("gt", "avgdailyvol3m", 1e6)),
-               _o("Over 5M", "أكثر من 5 ملايين", ("gt", "avgdailyvol3m", 5e6))]),
+               _o("Over 5M", "أكثر من 5 ملايين", ("gt", "avgdailyvol3m", 5e6)), _o("Under 100K", "أقل من 100 ألف", ("lt", "avgdailyvol3m", 1e5)),
+               _o("Over 2M", "أكثر من 2 مليون", ("gt", "avgdailyvol3m", 2e6)), _o("Over 10M", "أكثر من 10 ملايين", ("gt", "avgdailyvol3m", 1e7))]),
+    "curvol": ("Current volume", "حجم اليوم", "desc", [_o("Any", "الكل"), _o("Over 100K", "أكثر من 100 ألف", ("gt", "dayvolume", 1e5)),
+               _o("Over 500K", "أكثر من 500 ألف", ("gt", "dayvolume", 5e5)), _o("Over 1M", "أكثر من مليون", ("gt", "dayvolume", 1e6)),
+               _o("Over 5M", "أكثر من 5 ملايين", ("gt", "dayvolume", 5e6)), _o("Over 10M", "أكثر من 10 ملايين", ("gt", "dayvolume", 1e7))]),
+    "relvol": ("Relative volume", "الحجم النسبي", "ldesc", [_o("Any", "الكل"), _o("Over 1.5", "أكثر من 1.5"), _o("Over 2", "أكثر من 2"), _o("Over 3", "أكثر من 3"),
+               _o("Under 0.5", "أقل من 0.5")]),
     "div": ("Dividend yield", "عائد التوزيعات", "desc", [_o("Any", "الكل"), _o("None (0%)", "بدون توزيعات", ("lt", "forward_dividend_yield", 0.01)),
             _o("Positive (>0%)", "يوزع (>0%)", ("gt", "forward_dividend_yield", 0)), _o("Over 2%", "أكثر من 2%", ("gt", "forward_dividend_yield", 2)),
-            _o("Over 4%", "أكثر من 4%", ("gt", "forward_dividend_yield", 4))]),
+            _o("Over 4%", "أكثر من 4%", ("gt", "forward_dividend_yield", 4)), _o("Over 1%", "أكثر من 1%", ("gt", "forward_dividend_yield", 1)),
+            _o("Over 3%", "أكثر من 3%", ("gt", "forward_dividend_yield", 3)), _o("Over 5%", "أكثر من 5%", ("gt", "forward_dividend_yield", 5)),
+            _o("Over 8%", "أكثر من 8%", ("gt", "forward_dividend_yield", 8))]),
+    "divgrow": ("Dividend growth (years)", "سنوات نمو التوزيعات", "desc", [_o("Any", "الكل"),
+                _o("5+ years", "5 سنوات أو أكثر", ("gt", "consecutive_years_of_dividend_growth_count", 4)),
+                _o("10+ years", "10 سنوات أو أكثر", ("gt", "consecutive_years_of_dividend_growth_count", 9)),
+                _o("25+ years (aristocrats)", "25 سنة أو أكثر (الأرستقراطيون)", ("gt", "consecutive_years_of_dividend_growth_count", 24))]),
     "beta": ("Beta", "بيتا", "desc", [_o("Any", "الكل"), _o("Under 0.5", "أقل من 0.5", ("lt", "beta", 0.5)),
-             _o("0.5–1", "0.5–1", ("btwn", "beta", 0.5, 1)), _o("1–1.5", "1–1.5", ("btwn", "beta", 1, 1.5)), _o("Over 1.5", "أكثر من 1.5", ("gt", "beta", 1.5))]),
+             _o("0.5–1", "0.5–1", ("btwn", "beta", 0.5, 1)), _o("1–1.5", "1–1.5", ("btwn", "beta", 1, 1.5)), _o("Over 1.5", "أكثر من 1.5", ("gt", "beta", 1.5)),
+             _o("Over 2", "أكثر من 2", ("gt", "beta", 2))]),
     "short": ("Short float", "البيع على المكشوف", "desc", [_o("Any", "الكل"), _o("Over 5%", "أكثر من 5%", ("gt", "short_percentage_of_float.value", 5)),
               _o("Over 10%", "أكثر من 10%", ("gt", "short_percentage_of_float.value", 10)),
-              _o("Over 20%", "أكثر من 20%", ("gt", "short_percentage_of_float.value", 20))]),
+              _o("Over 20%", "أكثر من 20%", ("gt", "short_percentage_of_float.value", 20)),
+              _o("Low (<5%)", "منخفض (<5%)", ("lt", "short_percentage_of_float.value", 5)),
+              _o("Over 15%", "أكثر من 15%", ("gt", "short_percentage_of_float.value", 15)),
+              _o("Over 30%", "أكثر من 30%", ("gt", "short_percentage_of_float.value", 30))]),
+    "dtc": ("Days to cover", "أيام التغطية", "desc", [_o("Any", "الكل"), _o("Over 3", "أكثر من 3", ("gt", "days_to_cover_short.value", 3)),
+            _o("Over 5", "أكثر من 5", ("gt", "days_to_cover_short.value", 5)), _o("Over 10", "أكثر من 10", ("gt", "days_to_cover_short.value", 10))]),
+    "insider": ("Insider ownership", "ملكية المطلعين", "desc", [_o("Any", "الكل"), _o("Over 10%", "أكثر من 10%", ("gt", "pctheldinsider", 10)),
+                _o("Over 30%", "أكثر من 30%", ("gt", "pctheldinsider", 30)), _o("Over 50%", "أكثر من 50%", ("gt", "pctheldinsider", 50)),
+                _o("Under 1%", "أقل من 1%", ("lt", "pctheldinsider", 1))]),
+    "inst": ("Institutional ownership", "ملكية المؤسسات", "desc", [_o("Any", "الكل"), _o("Over 50%", "أكثر من 50%", ("gt", "pctheldinst", 50)),
+             _o("Over 70%", "أكثر من 70%", ("gt", "pctheldinst", 70)), _o("Over 90%", "أكثر من 90%", ("gt", "pctheldinst", 90)),
+             _o("Under 10%", "أقل من 10%", ("lt", "pctheldinst", 10))]),
+    "recom": ("Analyst recom.", "توصية المحللين", "ldesc", [_o("Any", "الكل"), _o("Strong Buy (≤1.5)", "شراء قوي (≤1.5)"), _o("Buy or better (≤2)", "شراء أو أفضل (≤2)"),
+              _o("Hold or better (≤3)", "احتفاظ أو أفضل (≤3)"), _o("Sell or worse (>3.5)", "بيع أو أسوأ (>3.5)")]),
+    # ---------------- fundamental
     "pe": ("P/E", "مكرر الربحية", "fund", [_o("Any", "الكل"), _o("Low (0–15)", "منخفض (0–15)", ("btwn", "peratio.lasttwelvemonths", 0, 15)),
            _o("15–25", "15–25", ("btwn", "peratio.lasttwelvemonths", 15, 25)), _o("25–50", "25–50", ("btwn", "peratio.lasttwelvemonths", 25, 50)),
-           _o("High (>50)", "مرتفع (>50)", ("gt", "peratio.lasttwelvemonths", 50))]),
+           _o("High (>50)", "مرتفع (>50)", ("gt", "peratio.lasttwelvemonths", 50)), _o("Profitable (>0)", "رابح (>0)", ("gt", "peratio.lasttwelvemonths", 0)),
+           _o("Under 10", "أقل من 10", ("btwn", "peratio.lasttwelvemonths", 0, 10)), _o("Under 20", "أقل من 20", ("btwn", "peratio.lasttwelvemonths", 0, 20)),
+           _o("Under 30", "أقل من 30", ("btwn", "peratio.lasttwelvemonths", 0, 30)), _o("Over 30", "أكثر من 30", ("gt", "peratio.lasttwelvemonths", 30))]),
+    "fpe": ("Forward P/E", "المكرر المستقبلي", "lfund", [_o("Any", "الكل"), _o("Profitable (>0)", "رابح (>0)"), _o("Under 10", "أقل من 10"), _o("Under 15", "أقل من 15"),
+            _o("Under 20", "أقل من 20"), _o("Under 30", "أقل من 30"), _o("Over 30", "أكثر من 30"), _o("Over 50", "أكثر من 50")]),
     "peg": ("PEG", "PEG", "fund", [_o("Any", "الكل"), _o("Under 1", "أقل من 1", ("btwn", "pegratio_5y", 0, 1)),
-            _o("1–2", "1–2", ("btwn", "pegratio_5y", 1, 2)), _o("Over 2", "أكثر من 2", ("gt", "pegratio_5y", 2))]),
+            _o("1–2", "1–2", ("btwn", "pegratio_5y", 1, 2)), _o("Over 2", "أكثر من 2", ("gt", "pegratio_5y", 2)), _o("Under 2", "أقل من 2", ("btwn", "pegratio_5y", 0, 2))]),
+    "ps": ("P/S", "السعر/المبيعات", "fund", [_o("Any", "الكل"), _o("Under 1", "أقل من 1", ("btwn", "lastclosemarketcaptotalrevenue.lasttwelvemonths", 0, 1)),
+           _o("Under 2", "أقل من 2", ("btwn", "lastclosemarketcaptotalrevenue.lasttwelvemonths", 0, 2)),
+           _o("Under 5", "أقل من 5", ("btwn", "lastclosemarketcaptotalrevenue.lasttwelvemonths", 0, 5)),
+           _o("Under 10", "أقل من 10", ("btwn", "lastclosemarketcaptotalrevenue.lasttwelvemonths", 0, 10)),
+           _o("Over 10", "أكثر من 10", ("gt", "lastclosemarketcaptotalrevenue.lasttwelvemonths", 10))]),
     "pb": ("P/B", "السعر/القيمة الدفترية", "fund", [_o("Any", "الكل"), _o("Under 1", "أقل من 1", ("btwn", "pricebookratio.quarterly", 0, 1)),
-           _o("1–3", "1–3", ("btwn", "pricebookratio.quarterly", 1, 3)), _o("Over 3", "أكثر من 3", ("gt", "pricebookratio.quarterly", 3))]),
+           _o("1–3", "1–3", ("btwn", "pricebookratio.quarterly", 1, 3)), _o("Over 3", "أكثر من 3", ("gt", "pricebookratio.quarterly", 3)),
+           _o("Under 2", "أقل من 2", ("btwn", "pricebookratio.quarterly", 0, 2)), _o("Over 5", "أكثر من 5", ("gt", "pricebookratio.quarterly", 5))]),
+    "evebitda": ("EV/EBITDA", "قيمة المنشأة/EBITDA", "fund", [_o("Any", "الكل"), _o("Under 5", "أقل من 5", ("btwn", "lastclosetevebitda.lasttwelvemonths", 0, 5)),
+                 _o("Under 10", "أقل من 10", ("btwn", "lastclosetevebitda.lasttwelvemonths", 0, 10)),
+                 _o("Under 15", "أقل من 15", ("btwn", "lastclosetevebitda.lasttwelvemonths", 0, 15)),
+                 _o("Over 20", "أكثر من 20", ("gt", "lastclosetevebitda.lasttwelvemonths", 20))]),
     "roe": ("ROE", "العائد على الملكية", "fund", [_o("Any", "الكل"), _o("Over 10%", "أكثر من 10%", ("gt", "returnonequity.lasttwelvemonths", 10)),
-            _o("Over 20%", "أكثر من 20%", ("gt", "returnonequity.lasttwelvemonths", 20)), _o("Negative", "سالب", ("lt", "returnonequity.lasttwelvemonths", 0))]),
+            _o("Over 20%", "أكثر من 20%", ("gt", "returnonequity.lasttwelvemonths", 20)), _o("Negative", "سالب", ("lt", "returnonequity.lasttwelvemonths", 0)),
+            _o("Positive", "إيجابي", ("gt", "returnonequity.lasttwelvemonths", 0)), _o("Over 30%", "أكثر من 30%", ("gt", "returnonequity.lasttwelvemonths", 30))]),
+    "roa": ("ROA", "العائد على الأصول", "fund", [_o("Any", "الكل"), _o("Positive", "إيجابي", ("gt", "returnonassets.lasttwelvemonths", 0)),
+            _o("Over 5%", "أكثر من 5%", ("gt", "returnonassets.lasttwelvemonths", 5)), _o("Over 10%", "أكثر من 10%", ("gt", "returnonassets.lasttwelvemonths", 10)),
+            _o("Over 15%", "أكثر من 15%", ("gt", "returnonassets.lasttwelvemonths", 15)), _o("Negative", "سالب", ("lt", "returnonassets.lasttwelvemonths", 0))]),
+    "roi": ("ROIC", "العائد على رأس المال", "fund", [_o("Any", "الكل"), _o("Positive", "إيجابي", ("gt", "returnontotalcapital.lasttwelvemonths", 0)),
+            _o("Over 10%", "أكثر من 10%", ("gt", "returnontotalcapital.lasttwelvemonths", 10)),
+            _o("Over 15%", "أكثر من 15%", ("gt", "returnontotalcapital.lasttwelvemonths", 15)),
+            _o("Over 20%", "أكثر من 20%", ("gt", "returnontotalcapital.lasttwelvemonths", 20))]),
     "epsg": ("EPS growth (TTM)", "نمو ربحية السهم", "fund", [_o("Any", "الكل"), _o("Positive", "إيجابي", ("gt", "epsgrowth.lasttwelvemonths", 0)),
-             _o("Over 10%", "أكثر من 10%", ("gt", "epsgrowth.lasttwelvemonths", 10)), _o("Over 25%", "أكثر من 25%", ("gt", "epsgrowth.lasttwelvemonths", 25))]),
+             _o("Over 10%", "أكثر من 10%", ("gt", "epsgrowth.lasttwelvemonths", 10)), _o("Over 25%", "أكثر من 25%", ("gt", "epsgrowth.lasttwelvemonths", 25)),
+             _o("Negative", "سالب", ("lt", "epsgrowth.lasttwelvemonths", 0)), _o("Over 50%", "أكثر من 50%", ("gt", "epsgrowth.lasttwelvemonths", 50))]),
+    "sales1y": ("Sales growth (1Y)", "نمو المبيعات (سنة)", "fund", [_o("Any", "الكل"), _o("Positive", "إيجابي", ("gt", "totalrevenues1yrgrowth.lasttwelvemonths", 0)),
+                _o("Over 5%", "أكثر من 5%", ("gt", "totalrevenues1yrgrowth.lasttwelvemonths", 5)),
+                _o("Over 10%", "أكثر من 10%", ("gt", "totalrevenues1yrgrowth.lasttwelvemonths", 10)),
+                _o("Over 20%", "أكثر من 20%", ("gt", "totalrevenues1yrgrowth.lasttwelvemonths", 20)),
+                _o("Over 30%", "أكثر من 30%", ("gt", "totalrevenues1yrgrowth.lasttwelvemonths", 30)),
+                _o("Negative", "سالب", ("lt", "totalrevenues1yrgrowth.lasttwelvemonths", 0))]),
     "revg": ("Revenue growth (Q)", "نمو الإيرادات الفصلي", "fund", [_o("Any", "الكل"), _o("Positive", "إيجابي", ("gt", "quarterlyrevenuegrowth.quarterly", 0)),
-             _o("Over 10%", "أكثر من 10%", ("gt", "quarterlyrevenuegrowth.quarterly", 10)), _o("Over 25%", "أكثر من 25%", ("gt", "quarterlyrevenuegrowth.quarterly", 25))]),
+             _o("Over 10%", "أكثر من 10%", ("gt", "quarterlyrevenuegrowth.quarterly", 10)), _o("Over 25%", "أكثر من 25%", ("gt", "quarterlyrevenuegrowth.quarterly", 25)),
+             _o("Negative", "سالب", ("lt", "quarterlyrevenuegrowth.quarterly", 0))]),
+    "nig": ("Net income growth (1Y)", "نمو صافي الربح (سنة)", "fund", [_o("Any", "الكل"), _o("Positive", "إيجابي", ("gt", "netincome1yrgrowth.lasttwelvemonths", 0)),
+            _o("Over 10%", "أكثر من 10%", ("gt", "netincome1yrgrowth.lasttwelvemonths", 10)),
+            _o("Over 25%", "أكثر من 25%", ("gt", "netincome1yrgrowth.lasttwelvemonths", 25)),
+            _o("Negative", "سالب", ("lt", "netincome1yrgrowth.lasttwelvemonths", 0))]),
+    "fcfg": ("FCF growth (1Y)", "نمو التدفق النقدي الحر", "fund", [_o("Any", "الكل"),
+             _o("Positive", "إيجابي", ("gt", "leveredfreecashflow1yrgrowth.lasttwelvemonths", 0)),
+             _o("Over 20%", "أكثر من 20%", ("gt", "leveredfreecashflow1yrgrowth.lasttwelvemonths", 20))]),
+    "gm": ("Gross margin", "الهامش الإجمالي", "fund", [_o("Any", "الكل"), _o("Positive", "إيجابي", ("gt", "grossprofitmargin.lasttwelvemonths", 0)),
+           _o("Over 20%", "أكثر من 20%", ("gt", "grossprofitmargin.lasttwelvemonths", 20)), _o("Over 40%", "أكثر من 40%", ("gt", "grossprofitmargin.lasttwelvemonths", 40)),
+           _o("Over 60%", "أكثر من 60%", ("gt", "grossprofitmargin.lasttwelvemonths", 60)), _o("Over 80%", "أكثر من 80%", ("gt", "grossprofitmargin.lasttwelvemonths", 80))]),
+    "ebitdam": ("EBITDA margin", "هامش EBITDA", "fund", [_o("Any", "الكل"), _o("Positive", "إيجابي", ("gt", "ebitdamargin.lasttwelvemonths", 0)),
+                _o("Over 10%", "أكثر من 10%", ("gt", "ebitdamargin.lasttwelvemonths", 10)), _o("Over 20%", "أكثر من 20%", ("gt", "ebitdamargin.lasttwelvemonths", 20)),
+                _o("Over 30%", "أكثر من 30%", ("gt", "ebitdamargin.lasttwelvemonths", 30)), _o("Negative", "سالب", ("lt", "ebitdamargin.lasttwelvemonths", 0))]),
     "margin": ("Net margin", "صافي الهامش", "fund", [_o("Any", "الكل"), _o("Positive", "إيجابي", ("gt", "netincomemargin.lasttwelvemonths", 0)),
-               _o("Over 10%", "أكثر من 10%", ("gt", "netincomemargin.lasttwelvemonths", 10)), _o("Over 20%", "أكثر من 20%", ("gt", "netincomemargin.lasttwelvemonths", 20))]),
+               _o("Over 10%", "أكثر من 10%", ("gt", "netincomemargin.lasttwelvemonths", 10)), _o("Over 20%", "أكثر من 20%", ("gt", "netincomemargin.lasttwelvemonths", 20)),
+               _o("Negative", "سالب", ("lt", "netincomemargin.lasttwelvemonths", 0)), _o("Over 30%", "أكثر من 30%", ("gt", "netincomemargin.lasttwelvemonths", 30))]),
     "de": ("Debt/Equity", "الديون/الملكية", "fund", [_o("Any", "الكل"), _o("Under 50%", "أقل من 50%", ("lt", "totaldebtequity.lasttwelvemonths", 50)),
-           _o("Under 100%", "أقل من 100%", ("lt", "totaldebtequity.lasttwelvemonths", 100)), _o("Over 100%", "أكثر من 100%", ("gt", "totaldebtequity.lasttwelvemonths", 100))]),
+           _o("Under 100%", "أقل من 100%", ("lt", "totaldebtequity.lasttwelvemonths", 100)), _o("Over 100%", "أكثر من 100%", ("gt", "totaldebtequity.lasttwelvemonths", 100)),
+           _o("Under 10%", "أقل من 10%", ("lt", "totaldebtequity.lasttwelvemonths", 10)), _o("Over 200%", "أكثر من 200%", ("gt", "totaldebtequity.lasttwelvemonths", 200))]),
+    "ltde": ("LT Debt/Equity", "الديون طويلة الأجل/الملكية", "fund", [_o("Any", "الكل"), _o("Under 10%", "أقل من 10%", ("lt", "ltdebtequity.lasttwelvemonths", 10)),
+             _o("Under 50%", "أقل من 50%", ("lt", "ltdebtequity.lasttwelvemonths", 50)), _o("Under 100%", "أقل من 100%", ("lt", "ltdebtequity.lasttwelvemonths", 100)),
+             _o("Over 100%", "أكثر من 100%", ("gt", "ltdebtequity.lasttwelvemonths", 100))]),
+    "cr": ("Current ratio", "نسبة التداول", "fund", [_o("Any", "الكل"), _o("Under 1", "أقل من 1", ("lt", "currentratio.lasttwelvemonths", 1)),
+           _o("Over 1", "أكثر من 1", ("gt", "currentratio.lasttwelvemonths", 1)), _o("Over 1.5", "أكثر من 1.5", ("gt", "currentratio.lasttwelvemonths", 1.5)),
+           _o("Over 2", "أكثر من 2", ("gt", "currentratio.lasttwelvemonths", 2)), _o("Over 3", "أكثر من 3", ("gt", "currentratio.lasttwelvemonths", 3))]),
+    "qr": ("Quick ratio", "النسبة السريعة", "fund", [_o("Any", "الكل"), _o("Under 0.5", "أقل من 0.5", ("lt", "quickratio.lasttwelvemonths", 0.5)),
+           _o("Over 1", "أكثر من 1", ("gt", "quickratio.lasttwelvemonths", 1)), _o("Over 1.5", "أكثر من 1.5", ("gt", "quickratio.lasttwelvemonths", 1.5)),
+           _o("Over 2", "أكثر من 2", ("gt", "quickratio.lasttwelvemonths", 2))]),
+    "ndebt": ("Net debt/EBITDA", "صافي الدين/EBITDA", "fund", [_o("Any", "الكل"), _o("Net cash (<0)", "نقد صافٍ (<0)", ("lt", "netdebtebitda.lasttwelvemonths", 0)),
+              _o("Under 1", "أقل من 1", ("lt", "netdebtebitda.lasttwelvemonths", 1)), _o("Under 2", "أقل من 2", ("lt", "netdebtebitda.lasttwelvemonths", 2)),
+              _o("Under 3", "أقل من 3", ("lt", "netdebtebitda.lasttwelvemonths", 3)), _o("Over 3", "أكثر من 3", ("gt", "netdebtebitda.lasttwelvemonths", 3))]),
+    "icov": ("Interest coverage", "تغطية الفوائد", "fund", [_o("Any", "الكل"), _o("Over 3×", "أكثر من 3 مرات", ("gt", "ebitinterestexpense.lasttwelvemonths", 3)),
+             _o("Over 5×", "أكثر من 5 مرات", ("gt", "ebitinterestexpense.lasttwelvemonths", 5)),
+             _o("Over 10×", "أكثر من 10 مرات", ("gt", "ebitinterestexpense.lasttwelvemonths", 10)),
+             _o("Under 1.5× (weak)", "أقل من 1.5 مرة (ضعيف)", ("lt", "ebitinterestexpense.lasttwelvemonths", 1.5))]),
+    "altman": ("Altman Z-score", "مؤشر ألتمان Z", "fund", [_o("Any", "الكل"),
+               _o("Safe (>3)", "آمن (>3)", ("gt", "altmanzscoreusingtheaveragestockinformationforaperiod.lasttwelvemonths", 3)),
+               _o("Grey zone (1.8–3)", "منطقة رمادية (1.8–3)", ("btwn", "altmanzscoreusingtheaveragestockinformationforaperiod.lasttwelvemonths", 1.8, 3)),
+               _o("Distress (<1.8)", "خطر (<1.8)", ("lt", "altmanzscoreusingtheaveragestockinformationforaperiod.lasttwelvemonths", 1.8))]),
+    "fcf": ("Free cash flow", "التدفق النقدي الحر", "fund", [_o("Any", "الكل"), _o("Positive", "إيجابي", ("gt", "leveredfreecashflow.lasttwelvemonths", 0)),
+            _o("Negative", "سالب", ("lt", "leveredfreecashflow.lasttwelvemonths", 0)), _o("Over $1B", "أكثر من مليار$", ("gt", "leveredfreecashflow.lasttwelvemonths", 1e9))]),
+    # ---------------- technical
     "chg": ("Change today", "التغير اليوم", "tech", [_o("Any", "الكل"), _o("Up", "صاعد", ("gt", "percentchange", 0)), _o("Up > 3%", "صاعد > 3%", ("gt", "percentchange", 3)),
             _o("Up > 5%", "صاعد > 5%", ("gt", "percentchange", 5)), _o("Down", "نازل", ("lt", "percentchange", 0)),
-            _o("Down > 3%", "نازل > 3%", ("lt", "percentchange", -3)), _o("Down > 5%", "نازل > 5%", ("lt", "percentchange", -5))]),
+            _o("Down > 3%", "نازل > 3%", ("lt", "percentchange", -3)), _o("Down > 5%", "نازل > 5%", ("lt", "percentchange", -5)),
+            _o("Up > 10%", "صاعد > 10%", ("gt", "percentchange", 10)), _o("Down > 10%", "نازل > 10%", ("lt", "percentchange", -10))]),
     "perf52": ("52W performance", "أداء 52 أسبوع", "tech", [_o("Any", "الكل"), _o("Up", "صاعد", ("gt", "fiftytwowkpercentchange", 0)),
                _o("Over +20%", "أكثر من +20%", ("gt", "fiftytwowkpercentchange", 20)), _o("Over +50%", "أكثر من +50%", ("gt", "fiftytwowkpercentchange", 50)),
-               _o("Down", "نازل", ("lt", "fiftytwowkpercentchange", 0))]),
+               _o("Down", "نازل", ("lt", "fiftytwowkpercentchange", 0)), _o("Over +100%", "أكثر من +100%", ("gt", "fiftytwowkpercentchange", 100)),
+               _o("Down > 20%", "نازل > 20%", ("lt", "fiftytwowkpercentchange", -20)), _o("Down > 50%", "نازل > 50%", ("lt", "fiftytwowkpercentchange", -50))]),
+    "perfw": ("Performance (week)", "الأداء (أسبوع)", "local", [_o("Any", "الكل"), _o("Up", "صاعد"), _o("Up > 5%", "صاعد > 5%"), _o("Up > 10%", "صاعد > 10%"),
+              _o("Down", "نازل"), _o("Down > 5%", "نازل > 5%"), _o("Down > 10%", "نازل > 10%")]),
+    "perfm": ("Performance (month)", "الأداء (شهر)", "local", [_o("Any", "الكل"), _o("Up", "صاعد"), _o("Up > 10%", "صاعد > 10%"), _o("Up > 20%", "صاعد > 20%"),
+              _o("Down", "نازل"), _o("Down > 10%", "نازل > 10%"), _o("Down > 20%", "نازل > 20%")]),
+    "perfq": ("Performance (quarter)", "الأداء (ربع سنة)", "local", [_o("Any", "الكل"), _o("Up", "صاعد"), _o("Up > 20%", "صاعد > 20%"), _o("Up > 50%", "صاعد > 50%"),
+              _o("Down", "نازل"), _o("Down > 20%", "نازل > 20%")]),
+    "perfytd": ("Performance (YTD)", "الأداء منذ بداية العام", "local", [_o("Any", "الكل"), _o("Up", "صاعد"), _o("Up > 20%", "صاعد > 20%"), _o("Up > 50%", "صاعد > 50%"),
+                _o("Down", "نازل"), _o("Down > 20%", "نازل > 20%")]),
+    "volat": ("Volatility (annual)", "التذبذب (سنوي)", "local", [_o("Any", "الكل"), _o("Under 20%", "أقل من 20%"), _o("20–40%", "20–40%"), _o("Over 40%", "أكثر من 40%"),
+              _o("Over 60%", "أكثر من 60%")]),
+    "atr": ("ATR (% of price)", "متوسط المدى الحقيقي (% من السعر)", "local", [_o("Any", "الكل"), _o("Under 2%", "أقل من 2%"), _o("Over 2%", "أكثر من 2%"),
+            _o("Over 4%", "أكثر من 4%"), _o("Over 6%", "أكثر من 6%")]),
+    "gap": ("Gap today", "فجوة اليوم", "local", [_o("Any", "الكل"), _o("Gap up", "فجوة صاعدة"), _o("Gap up > 3%", "فجوة صاعدة > 3%"), _o("Gap down", "فجوة هابطة"),
+            _o("Gap down > 3%", "فجوة هابطة > 3%")]),
+    "sma20": ("SMA 20", "متوسط 20", "local", [_o("Any", "الكل"), _o("Price above", "السعر فوقه"), _o("Price below", "السعر تحته")]),
     "sma50": ("SMA 50", "متوسط 50", "local", [_o("Any", "الكل"), _o("Price above", "السعر فوقه"), _o("Price below", "السعر تحته")]),
     "sma200": ("SMA 200", "متوسط 200", "local", [_o("Any", "الكل"), _o("Price above", "السعر فوقه"), _o("Price below", "السعر تحته")]),
-    "high52": ("52W high", "القمة السنوية", "local", [_o("Any", "الكل"), _o("Within 5%", "ضمن 5%"), _o("Within 10%", "ضمن 10%"), _o("More than 30% below", "أقل منها بأكثر من 30%")]),
+    "cross": ("SMA 50 vs SMA 200", "متوسط 50 مقابل 200", "local", [_o("Any", "الكل"), _o("50 above 200 (uptrend)", "50 فوق 200 (اتجاه صاعد)"),
+              _o("50 below 200 (downtrend)", "50 تحت 200 (اتجاه هابط)")]),
+    "high52": ("52W high", "القمة السنوية", "local", [_o("Any", "الكل"), _o("Within 5%", "ضمن 5%"), _o("Within 10%", "ضمن 10%"), _o("More than 30% below", "أقل منها بأكثر من 30%"),
+               _o("New high (within 1%)", "قمة جديدة (ضمن 1%)")]),
+    "low52": ("52W low", "القاع السنوي", "local", [_o("Any", "الكل"), _o("Within 5%", "ضمن 5%"), _o("Within 10%", "ضمن 10%"), _o("More than 50% above", "أعلى منه بأكثر من 50%")]),
     "rsi": ("RSI (14)", "RSI (14)", "local", [_o("Any", "الكل"), _o("Oversold (<30)", "تشبع بيعي (<30)"), _o("Overbought (>70)", "تشبع شرائي (>70)"),
-            _o("Neutral (40–60)", "محايد (40–60)")]),
+            _o("Neutral (40–60)", "محايد (40–60)"), _o("Under 40", "أقل من 40"), _o("Over 60", "أكثر من 60")]),
 }
+LOCAL_GROUPS = ("local", "ldesc", "lfund")          # filters computed here (not by Yahoo's screener)
 SORTS = {"intradaymarketcap": ("Market cap", "القيمة السوقية", False), "percentchange": ("Change %", "التغير %", False),
          "dayvolume": ("Volume", "الحجم", False), "peratio.lasttwelvemonths": ("P/E (low first)", "مكرر الربحية (الأقل)", True),
          "forward_dividend_yield": ("Dividend yield", "عائد التوزيعات", False),
@@ -871,6 +1000,16 @@ def _local_screen(filters, sort, asc, size):
     return df.head(size).reset_index(drop=True), list(dict.fromkeys(skipped))
 
 
+def _reset_filters():
+    """Every filter back to 'Any' and a fresh screen."""
+    for k in F:
+        ss[f"sf_{k}"] = 0
+    ss["sf_sector"], ss["sf_industry"], ss["sf_theme"], ss["sf_subtheme"] = "Any", "Any", "Any", "Any"
+    ss["sc_preset"] = "custom"
+    ss["sc_q"] = ""
+    ss.pop("screen", None)
+
+
 def _apply_preset():
     p = PRESETS[ss.sc_preset][2]
     for k in F:
@@ -879,16 +1018,87 @@ def _apply_preset():
     ss["sf_subtheme"] = "Any"
 
 
-def _local_filters(df):
-    s = {k: ss.get(f"sf_{k}", 0) for k in ("sma50", "sma200", "high52")}
-    if s["sma50"] and "SMA50" in df:
-        df = df[(df["Price"] > df["SMA50"]) if s["sma50"] == 1 else (df["Price"] < df["SMA50"])]
-    if s["sma200"] and "SMA200" in df:
-        df = df[(df["Price"] > df["SMA200"]) if s["sma200"] == 1 else (df["Price"] < df["SMA200"])]
-    if s["high52"] and "52W High" in df:
-        dist = df["Price"] / df["52W High"] - 1
-        df = df[{1: dist >= -0.05, 2: dist >= -0.10, 3: dist < -0.30}[s["high52"]]]
-    return df
+def _num(df, col):
+    return pd.to_numeric(df[col], errors="coerce") if col in df else pd.Series(np.nan, index=df.index)
+
+
+def _rating_value(v):
+    """'1.9 - Buy' -> 1.9"""
+    try:
+        return float(str(v).split("-")[0].strip())
+    except (TypeError, ValueError):
+        return np.nan
+
+
+def _pre_filters(df):
+    """Filters answered from the screen's own columns (index membership, relative volume, analyst rating, forward P/E,
+    moving averages and 52-week range) - they work on every row."""
+    from sp500 import DOW30, SP500
+    g = lambda k: ss.get(f"sf_{k}", 0)
+    px = _num(df, "Price")
+    keep = pd.Series(True, index=df.index)
+    if g("index"):
+        member = df["Symbol"].isin(set(SP500)) if g("index") in (1, 3) else df["Symbol"].isin(set(DOW30))
+        keep &= ~member if g("index") == 3 else member
+    if g("relvol"):
+        rv = _num(df, "Volume") / _num(df, "Avg Vol")
+        keep &= {1: rv > 1.5, 2: rv > 2, 3: rv > 3, 4: rv < 0.5}[g("relvol")].fillna(False)
+    if g("recom"):
+        r = df["Rating"].map(_rating_value) if "Rating" in df else pd.Series(np.nan, index=df.index)
+        keep &= {1: r <= 1.5, 2: r <= 2, 3: r <= 3, 4: r > 3.5}[g("recom")].fillna(False)
+    if g("fpe"):
+        f = _num(df, "Fwd P/E")
+        keep &= {1: f > 0, 2: f.between(0, 10), 3: f.between(0, 15), 4: f.between(0, 20), 5: f.between(0, 30), 6: f > 30, 7: f > 50}[g("fpe")].fillna(False)
+    for k, col in (("sma50", "SMA50"), ("sma200", "SMA200")):
+        if g(k) and col in df:
+            m = _num(df, col)
+            keep &= ((px > m) if g(k) == 1 else (px < m)).fillna(False)
+    if g("cross") and "SMA50" in df and "SMA200" in df:
+        keep &= ((_num(df, "SMA50") > _num(df, "SMA200")) if g("cross") == 1 else (_num(df, "SMA50") < _num(df, "SMA200"))).fillna(False)
+    if g("high52") and "52W High" in df:
+        dist = px / _num(df, "52W High") - 1
+        keep &= {1: dist >= -0.05, 2: dist >= -0.10, 3: dist < -0.30, 4: dist >= -0.01}[g("high52")].fillna(False)
+    if g("low52") and "52W Low" in df:
+        up = px / _num(df, "52W Low") - 1
+        keep &= {1: up <= 0.05, 2: up <= 0.10, 3: up > 0.50}[g("low52")].fillna(False)
+    return df[keep]
+
+
+def _local_filters(df):   # kept for compatibility with older saved state
+    return _pre_filters(df)
+
+
+TECH_KEYS = ("perfw", "perfm", "perfq", "perfytd", "volat", "atr", "gap", "sma20", "rsi")
+
+
+def _post_filters(df):
+    """Filters that need price history (performance, volatility, ATR, gap, SMA 20, RSI)."""
+    g = lambda k: ss.get(f"sf_{k}", 0)
+    keep = pd.Series(True, index=df.index)
+    perf = {"perfw": ("Perf W", {1: (0, None), 2: (5, None), 3: (10, None), 4: (None, 0), 5: (None, -5), 6: (None, -10)}),
+            "perfm": ("Perf M", {1: (0, None), 2: (10, None), 3: (20, None), 4: (None, 0), 5: (None, -10), 6: (None, -20)}),
+            "perfq": ("Perf 3M", {1: (0, None), 2: (20, None), 3: (50, None), 4: (None, 0), 5: (None, -20)}),
+            "perfytd": ("Perf YTD", {1: (0, None), 2: (20, None), 3: (50, None), 4: (None, 0), 5: (None, -20)})}
+    for k, (col, rules) in perf.items():
+        if g(k) and col in df:
+            lo, hi = rules[g(k)]
+            v = _num(df, col)
+            keep &= ((v > lo) if lo is not None else (v < hi)).fillna(False)
+    if g("volat") and "Volatility" in df:
+        v = _num(df, "Volatility")
+        keep &= {1: v < 20, 2: v.between(20, 40), 3: v > 40, 4: v > 60}[g("volat")].fillna(False)
+    if g("atr") and "ATR %" in df:
+        v = _num(df, "ATR %")
+        keep &= {1: v < 2, 2: v > 2, 3: v > 4, 4: v > 6}[g("atr")].fillna(False)
+    if g("gap") and "Gap %" in df:
+        v = _num(df, "Gap %")
+        keep &= {1: v > 0, 2: v > 3, 3: v < 0, 4: v < -3}[g("gap")].fillna(False)
+    if g("sma20") and "SMA20" in df:
+        keep &= ((_num(df, "Last") > _num(df, "SMA20")) if g("sma20") == 1 else (_num(df, "Last") < _num(df, "SMA20"))).fillna(False)
+    if g("rsi") and "RSI" in df:
+        v = _num(df, "RSI")
+        keep &= {1: v < 30, 2: v > 70, 3: v.between(40, 60), 4: v < 40, 5: v > 60}[g("rsi")].fillna(False)
+    return df[keep]
 
 
 def _technicals(symbols):
@@ -901,9 +1111,16 @@ def _technicals(symbols):
         perf = lambda n: (c.iloc[-1] / c.iloc[-n - 1] - 1) * 100 if len(c) > n else np.nan
         ytd = c[c.index.year == c.index[-1].year]
         vol = c.pct_change().tail(21).std() * np.sqrt(252) * 100
+        atr, gap = np.nan, np.nan
+        if {"High", "Low"} <= set(df.columns):
+            tr = pd.concat([df["High"] - df["Low"], (df["High"] - c.shift()).abs(), (df["Low"] - c.shift()).abs()], axis=1).max(axis=1)
+            atr = float(tr.tail(14).mean() / c.iloc[-1] * 100)
+        if "Open" in df.columns and len(c) > 1:
+            gap = float((df["Open"].iloc[-1] / c.iloc[-2] - 1) * 100)
         rows.append({"Symbol": s, "Perf W": perf(5), "Perf M": perf(21), "Perf 3M": perf(63),
                      "Perf YTD": (c.iloc[-1] / ytd.iloc[0] - 1) * 100 if len(ytd) > 1 else np.nan,
-                     "RSI": float(ta.rsi(c).iloc[-1]), "Volatility": vol, "_spark": c.tail(60).values})
+                     "RSI": float(ta.rsi(c).iloc[-1]), "Volatility": vol, "ATR %": atr, "Gap %": gap,
+                     "SMA20": float(c.tail(20).mean()), "Last": float(c.iloc[-1]), "_spark": c.tail(60).values})
     return pd.DataFrame(rows)
 
 
@@ -947,13 +1164,15 @@ def page_screener():
     ui.header("filter_alt", "Stock Screener", "فلتر الأسهم",
               "Filter the entire US market by sector, industry, investment theme, valuation, growth, dividends, short interest and technicals.",
               "فلترة السوق الأمريكي كامل حسب القطاع والصناعة والثيم الاستثماري والتقييم والنمو والتوزيعات والبيع على المكشوف والتحليل الفني.")
-    top = st.columns([1.4, 1, 1, 0.8])
+    # one row: preset · order · results · [Screen] [Reset] - the buttons sit on the same line as the boxes
+    top = st.columns([1.35, 1.0, 0.7, 1.25, 0.72, 0.78], vertical_alignment="bottom")
     top[0].selectbox(L("Preset", "قالب جاهز"), list(PRESETS), key="sc_preset", on_change=_apply_preset,
                      format_func=lambda k: L(PRESETS[k][0], PRESETS[k][1]))
-    sort = top[1].selectbox(L("Order by", "ترتيب حسب"), list(SORTS), format_func=lambda k: L(SORTS[k][0], SORTS[k][1]))
-    size = top[2].selectbox(L("Results", "عدد النتائج"), [50, 100, 250], index=1)
-    top[3].write("")
-    run = top[3].button(L("Screen", "ابحث"), type="primary", icon=":material/search:", width="stretch")
+    sort = top[1].selectbox(L("Order by", "ترتيب حسب"), list(SORTS), key="sc_sort", format_func=lambda k: L(SORTS[k][0], SORTS[k][1]))
+    size = top[2].selectbox(L("Results", "عدد النتائج"), [50, 100, 250], index=1, key="sc_size")
+    find = top[3].text_input(L("Find in results", "ابحث في النتائج"), key="sc_q", placeholder=L("Symbol or company…", "رمز أو اسم شركة…")).strip()
+    run = top[4].button(L("Screen", "ابحث"), type="primary", icon=":material/search:", width="stretch", key="sc_run")
+    top[5].button(L("Reset", "إعادة ضبط"), icon=":material/restart_alt:", width="stretch", key="sc_reset", on_click=_reset_filters)
 
     # ---- classification row (always visible): sector · industry · theme · sub-theme
     c = st.columns(4)
@@ -975,15 +1194,20 @@ def page_screener():
                    format_func=lambda k: L("Any", "الكل") if k == "Any" else theme_name(th, k))
 
     groups = {"desc": L("Descriptive", "وصفية"), "fund": L("Fundamental", "أساسية"), "tech": L("Technical", "فنية")}
-    tabs = st.tabs(list(groups.values()))
+    alias = {"tech": "local", "desc": "ldesc", "fund": "lfund"}
+    keys_of = {g: [k for k, v in F.items() if v[2] in (g, alias[g])] for g in groups}
+    for k in F:
+        ss.setdefault(f"sf_{k}", 0)
+        if not isinstance(ss.get(f"sf_{k}"), int) or not 0 <= ss[f"sf_{k}"] < len(F[k][3]):
+            ss[f"sf_{k}"] = 0
+    n_on = {g: sum(1 for k in keys_of[g] if ss.get(f"sf_{k}", 0)) for g in groups}
+    tabs = st.tabs([f"{name} · {n_on[g]}" if n_on[g] else name for g, name in groups.items()])
     for tab, g in zip(tabs, groups):
         with tab:
-            keys = [k for k, v in F.items() if v[2] == g or (g == "tech" and v[2] == "local")]
-            cols = st.columns(4)
-            for i, k in enumerate(keys):
+            cols = st.columns(5)
+            for i, k in enumerate(keys_of[g]):
                 en, ar, _, opts = F[k]
-                ss.setdefault(f"sf_{k}", 0)
-                cols[i % 4].selectbox(L(en, ar), list(range(len(opts))), key=f"sf_{k}", format_func=lambda i_, o=opts: L(o[i_][0], o[i_][1]))
+                cols[i % 5].selectbox(L(en, ar), list(range(len(opts))), key=f"sf_{k}", format_func=lambda i_, o=opts: L(o[i_][0], o[i_][1]))
 
     active = [(k, ss.get(f"sf_{k}", 0)) for k in F if ss.get(f"sf_{k}", 0)]
     chips = [T.badge(f"{L(F[k][0], F[k][1])}: {L(F[k][3][v][0], F[k][3][v][1])}", "acc", "filter_alt") for k, v in active]
@@ -1001,7 +1225,7 @@ def page_screener():
         filters = []
         for k in F:
             v = ss.get(f"sf_{k}", 0)
-            if v and F[k][2] != "local":
+            if v and F[k][2] not in LOCAL_GROUPS:
                 filters += [list(f) for f in F[k][3][v][2]]
         if sec != "Any":
             filters.append(["eq", "sector", sec])
@@ -1040,7 +1264,12 @@ def page_screener():
         ss.screen = {"df": df, "err": err, "source": source, "skipped": skipped}
 
     res = ss.screen
-    df = _local_filters(res["df"].copy()) if not res["df"].empty else res["df"]
+    df = _pre_filters(res["df"].copy()) if not res["df"].empty else res["df"]
+    if find and not df.empty:
+        f_ = find.upper()
+        df = df[df["Symbol"].astype(str).str.upper().str.contains(f_, regex=False, na=False)
+                | df["Name"].fillna("").astype(str).str.upper().str.contains(f_, regex=False) if "Name" in df else
+                df["Symbol"].astype(str).str.upper().str.contains(f_, regex=False, na=False)]
     if res["source"] == "local":
         st.info(L("Yahoo's live screener isn't answering our server right now, so these results are filtered from our own data "
                   "(S&P 500 + top 175 US stocks, live prices). Everything else on the page works normally.",
@@ -1055,11 +1284,18 @@ def page_screener():
     if df.empty:
         st.info(L("No stocks match these filters.", "لا توجد أسهم تطابق هذه الفلاتر."))
         return
-    tech = _technicals(df["Symbol"].head(150).tolist())
+    tech = _technicals(df["Symbol"].head(200).tolist())
     if not tech.empty:
         df = df.merge(tech, on="Symbol", how="left")
-        if ss.get("sf_rsi", 0):
-            df = df[{1: df["RSI"] < 30, 2: df["RSI"] > 70, 3: df["RSI"].between(40, 60)}[ss.sf_rsi]]
+        if any(ss.get(f"sf_{k}", 0) for k in TECH_KEYS):
+            n_before = len(df)
+            df = _post_filters(df)
+            if n_before > 200:
+                st.caption(L("Price-history filters (performance, RSI, volatility, ATR, gap, SMA 20) are checked on the first 200 results.",
+                             "فلاتر التاريخ السعري (الأداء وRSI والتذبذب وATR والفجوة ومتوسط 20) تُطبق على أول 200 نتيجة."))
+    if df.empty:
+        st.info(L("No stocks match these filters.", "لا توجد أسهم تطابق هذه الفلاتر."))
+        return
     # ---- classification columns
     with st.spinner(L("Classifying companies...", "جاري تصنيف الشركات...")):
         cls_map = data.classify(df["Symbol"].tolist(), limit=40)
@@ -1078,7 +1314,14 @@ def page_screener():
         order = df.sort_values("Mkt Cap", ascending=False)["Symbol"].tolist() if "Mkt Cap" in df else df["Symbol"].tolist()
         with st.spinner(L("Loading company revenues...", "جاري تحميل إيرادات الشركات...")):
             rv = data.revenues(order, limit=60)
-        df["Revenue"] = pd.to_numeric(df["Symbol"].map(rv), errors="coerce")
+        df["Revenue (company)"] = pd.to_numeric(df["Symbol"].map(rv), errors="coerce")
+        # a company with several businesses only counts the business that belongs to this group (e.g. AWS for Amazon in Cloud)
+        sub_, ind_ = ss.get("sf_subtheme", "Any"), ss.get("sf_industry", "Any")
+        segs = {s_: X.segment_of(s_, th, sub_, ind_) for s_ in df["Symbol"]}
+        df["Revenue"] = df["Revenue (company)"] * df["Symbol"].map(lambda s_: segs[s_][0] if segs.get(s_) else 1.0)
+        df["Segment"] = df["Symbol"].map(lambda s_: f"{L(segs[s_][1], segs[s_][2])} · {segs[s_][0] * 100:.0f}%" if segs.get(s_)
+                                         else L("Whole company", "الشركة كاملة"))
+        n_seg = int(sum(1 for s_, v in segs.items() if v and pd.notna(df.loc[df["Symbol"] == s_, "Revenue (company)"]).any()))
         covered = int(df["Revenue"].notna().sum())
         tot_rev = float(df["Revenue"].sum()) if covered else np.nan
         df["Rev share"] = df["Revenue"] / tot_rev * 100 if covered else np.nan
@@ -1092,10 +1335,20 @@ def page_screener():
           T.kpi("price_check", L("Median P/E", "وسيط مكرر الربحية"), f"{df['P/E'].median():.1f}" if "P/E" in df and df["P/E"].notna().any() else "—"),
           T.kpi("account_balance", L("Total market cap", "إجمالي القيمة السوقية"), T.fmt_big(df["Mkt Cap"].sum()) if "Mkt Cap" in df else "—")]
     if group:
-        kp.append(T.kpi("payments", L("Total revenue (TTM)", "مجموع الإيرادات (آخر 12 شهر)"), ("$" + T.fmt_big(tot_rev)) if covered else "—",
-                        L(f"{covered} of {len(df)} companies", f"{covered} من {len(df)} شركة"), "acc"))
+        sub_txt = L(f"{covered} of {len(df)} companies", f"{covered} من {len(df)} شركة")
+        if covered and n_seg:
+            sub_txt += L(f" · {n_seg} by business segment", f" · {n_seg} حسب النشاط")
+        kp.append(T.kpi("payments", L("Revenue in this group (TTM)", "إيرادات هذه المجموعة (آخر 12 شهر)"), ("$" + T.fmt_big(tot_rev)) if covered else "—",
+                        sub_txt, "acc"))
     for col, k in zip(st.columns(len(kp)), kp):
         col.markdown(k, unsafe_allow_html=True)
+    if group and covered and n_seg:
+        st.caption(L(f"For {n_seg} companies with several businesses, only the business that belongs to this group is counted "
+                     "(e.g. AWS for Amazon in Cloud, Data Center for Nvidia in AI chips). Their shares come from the latest annual reports "
+                     "and are rounded; see the “Counted business” column.",
+                     f"لـ {n_seg} شركات لديها أكثر من نشاط، نحتسب فقط إيرادات النشاط الذي ينتمي لهذه المجموعة "
+                     "(مثل AWS لأمازون في الحوسبة السحابية، ومراكز البيانات لإنفيديا في رقائق الذكاء الاصطناعي). النسب من آخر تقارير سنوية "
+                     "ومقرّبة، وتجدها في عمود «النشاط المحتسب»."))
     if group and not covered:
         st.caption(L("Revenue data isn't available from the data source right now.", "بيانات الإيرادات غير متاحة من المصدر حالياً."))
     elif group and len(df) > 60:
@@ -1108,8 +1361,8 @@ def page_screener():
          "P/B": "P/B", "EPS": "EPS", "Div %": L("Dividend", "التوزيعات"), "52W %": L("52W perf", "أداء سنوي"), "Rating": L("Analyst rating", "تقييم المحللين"),
          "Perf W": L("Perf week", "أسبوع"), "Perf M": L("Perf month", "شهر"), "Perf 3M": L("Perf quarter", "3 أشهر"), "Perf YTD": L("Perf YTD", "منذ بداية العام"),
          "RSI": "RSI", "Volatility": L("Volatility", "التذبذب"), "Logo": "Logo", "Revenue": L("Revenue (TTM)", "الإيرادات"),
-         "Rev share": L("Market share (revenue)", "الحصة السوقية (إيرادات)")}
-    rev_cols = ["Revenue", "Rev share"] if group else []
+         "Rev share": L("Market share (revenue)", "الحصة السوقية (إيرادات)"), "Segment": L("Counted business", "النشاط المحتسب")}
+    rev_cols = ["Revenue", "Segment", "Rev share"] if group else []
     views = {L("Overview", "نظرة عامة"): ["Logo", "Symbol", "Name", "Sector", "Industry"] + rev_cols + ["Mkt Cap", "P/E", "Price", "Chg %", "Volume"],
              L("Classification", "التصنيف"): ["Logo", "Symbol", "Name", "Sector", "Industry", "Theme", "Sub-theme"] + rev_cols,
              L("Valuation", "التقييم"): ["Logo", "Symbol", "Mkt Cap", "P/E", "Fwd P/E", "P/B", "EPS", "Div %", "Rating"],
@@ -1349,3 +1602,6 @@ def page_catalyst():
     ui.sec("newspaper", "Latest news", "آخر الأخبار")
     ui.news_list(nws, 6)
     ui.foot()
+
+# version stamp: app.py reloads any module still in memory from an older version of the site
+BUILD = "7.1"

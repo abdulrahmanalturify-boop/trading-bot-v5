@@ -299,3 +299,6 @@ FUTURES_NAMES = {s: v for g in FUTURES.values() for s, v in g.items()}
 # options market: the most traded underlyings
 OPTION_UNDERLYINGS = ["SPY", "QQQ", "IWM", "NVDA", "TSLA", "AAPL", "AMZN", "META", "MSFT", "AMD", "GOOGL", "PLTR"]
 VIX_CURVE = {"^VIX9D": ("9 days", "9 أيام"), "^VIX": ("30 days", "30 يوم"), "^VIX3M": ("3 months", "3 أشهر"), "^VIX6M": ("6 months", "6 أشهر")}
+
+# version stamp: app.py reloads any module still in memory from an older version of the site
+BUILD = "7.1"

@@ -661,3 +661,6 @@ def page_ipos():
     st.caption(L("Price = the final IPO price, or the expected range before pricing. Deal size = shares × price. Dates can move. Source: Yahoo Finance IPO calendar.",
                  "السعر = سعر الطرح النهائي، أو النطاق المتوقع قبل التسعير. حجم الطرح = عدد الأسهم × السعر. قد تتغير المواعيد. المصدر: تقويم الاكتتابات في ياهو فاينانس."))
     ui.foot()
+
+# version stamp: app.py reloads any module still in memory from an older version of the site
+BUILD = "7.1"

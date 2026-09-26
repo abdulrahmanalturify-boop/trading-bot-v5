@@ -126,3 +126,6 @@ def prev_trading_day(d):
     while not is_trading_day(d):
         d -= timedelta(days=1)
     return d
+
+# version stamp: app.py reloads any module still in memory from an older version of the site
+BUILD = "7.1"

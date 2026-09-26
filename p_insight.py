@@ -412,8 +412,8 @@ def _card(a, feat=False):
     cat = I.CATEGORIES[a["cat"]]
     live = sum(1 for b in a["body"] if b[0] == "chart")
     meta = T.badge(L(f"{_mins(a)} min read", f"قراءة {_mins(a)} دقائق"), "neu", "schedule") + (T.badge(L("Live chart", "رسم مباشر"), "acc", "monitoring") if live else "")
-    return (f'<div class="acard{" feat" if feat else ""}"><div class="aart">{I.art_svg(a["cat"], a["id"] + ("f" if feat else ""), 260 if feat else 140)}'
-            f'<div class="aicon">{T.icon(a["icon"])}</div></div><div class="abody"><span class="acat">{T.esc(L(cat[0], cat[1]))}</span>'
+    return (f'<div class="acard{" feat" if feat else ""}"><div class="aart">{I.art_scene(a["id"], a["cat"], a["id"] + ("f" if feat else "c"))}'
+            f'</div><div class="abody"><span class="acat">{T.esc(L(cat[0], cat[1]))}</span>'
             f'<div class="attl">{T.esc(L(*a["title"]))}</div><div class="adek">{T.esc(L(*a["dek"]))}</div><div class="ameta">{meta}</div></div></div>')
 
 
@@ -509,7 +509,7 @@ def _article_view(a):
         cat = I.CATEGORIES[a["cat"]]
         rtl = " rtl" if is_ar() else ""
         live = any(b[0] == "chart" for b in a["body"])
-        ui.html(f'<div class="acover">{I.art_svg(a["cat"], a["id"] + "c", 180)}</div>'
+        ui.html(f'<div class="acover">{I.art_scene(a["id"], a["cat"], a["id"] + "v")}</div>'
                 f'<div class="article{rtl}"><span class="acat">{T.esc(L(cat[0], cat[1]))}</span><div class="at">{T.esc(L(*a["title"]))}</div>'
                 f'<div class="dek">{T.esc(L(*a["dek"]))}</div><div class="ameta" style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">'
                 f'{T.badge(L(f"{_mins(a)} min read", f"قراءة {_mins(a)} دقائق"), "neu", "schedule")}'
@@ -677,3 +677,6 @@ def page_seasonality():
         ui.chart(charts.monthly_heatmap(recent, L("Monthly returns, recent years", "العوائد الشهرية في السنوات الأخيرة"), months=mon), key="se_heat")
     ui.html(f'<div class="anote">{T.icon("lightbulb")}<span>{T.esc(L("Seasonality shows tendencies, not guarantees: a month that was positive 70% of the time was still negative in 3 years out of 10. Use it as context next to trend, valuation and news, never as a trading signal on its own.", "الموسمية تُظهر ميولاً وليست ضمانات: الشهر الذي كان إيجابياً 70% من الوقت كان سلبياً في 3 سنوات من كل 10. استخدمها كسياق بجانب الاتجاه والتقييم والأخبار، وليس كإشارة تداول وحدها."))}</span></div>')
     ui.foot()
+
+# version stamp: app.py reloads any module still in memory from an older version of the site
+BUILD = "7.1"
