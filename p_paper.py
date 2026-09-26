@@ -451,20 +451,6 @@ def _all_strats():
     ss["pb_strats"] = list(engine.STRATEGIES)
 
 
-def _from_lab():
-    lab = ss.get("lab_cfg") or {}
-    ss["pb_kind"] = "company"
-    ss["pb_symbol"] = str(lab.get("symbol") or "AAPL")
-    strat = lab.get("strategy")
-    if strat in engine.STRATEGIES:
-        ss["pb_strats"] = [strat]
-        for k, v in PB.clean_params(strat, (lab.get("params") or {}).get(strat, {})).items():
-            ss[_pkey(strat, k)] = v
-    ss["pb_capital"] = int(min(max(int(lab.get("capital", 10000)), 100), 100_000_000))
-    for key, lk, hi in (("pb_fee", "fee", 1.0), ("pb_stop", "stop", 50.0), ("pb_atr", "atr", 10.0), ("pb_tp", "tp", 500.0), ("pb_trail", "trail", 50.0)):
-        ss[key] = float(min(max(float(lab.get(lk, DEFAULTS[key]) or 0.0), 0.0), hi))
-
-
 def _default_name(kind, value, strats):
     n = len(strats)
     how = strat_short(strats[0]) if n == 1 else (L("all strategies", "كل الاستراتيجيات") if n == len(engine.STRATEGIES)
@@ -480,8 +466,6 @@ def add_form(bots):
                   f"عندك {PB.MAX_BOTS} بوتات، وهذا الحد الأعلى. احذف واحد عشان تضيف غيره."), icon=":material/block:")
         return
     _init_form()
-    st.button(L("Copy my Strategy Lab settings", "انسخ إعدادات مختبر الاستراتيجيات"), icon=":material/content_copy:", on_click=_from_lab,
-              key="pb_copylab")
     with st.container(border=True):
         a, c = st.columns([2, 1])
         a.text_input(L("Bot name (optional)", "اسم البوت (اختياري)"), key="pb_name", max_chars=40,
