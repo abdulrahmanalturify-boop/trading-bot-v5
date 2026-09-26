@@ -985,7 +985,7 @@ def _contrib(closed, by, cap):
 def _bars_from(g, labels, title, key, container):
     hover = [f"{sm(r.pnl)} · " + L(f"{int(r.n)} trades · win {r.wins / r.n * 100:.0f}%", f"{int(r.n)} صفقة · نجاح {r.wins / r.n * 100:.0f}%")
              for r in g.itertuples()]
-    ui.chart(charts.pct_bars(labels, list(g["pct"].values), title, max(250, 30 * len(g) + 80), hover), key=key, container=container)
+    ui.chart(charts.pct_bars(labels, list(g["pct"].values), title, max(280, 36 * len(g) + 104), hover), key=key, container=container)
 
 
 def what_worked(v):

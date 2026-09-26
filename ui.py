@@ -11,7 +11,11 @@ import theme as T
 from i18n import L, is_ar, lang
 
 PAGES = {}   # filled by app.py: key -> st.Page
-CHART_CONFIG = {"displaylogo": False, "modeBarButtonsToRemove": ["lasso2d", "select2d", "autoScale2d"]}
+CHART_CONFIG = {
+    "displaylogo": False, "responsive": True, "scrollZoom": False,
+    "modeBarButtonsToRemove": ["lasso2d", "select2d", "autoScale2d"],
+    "toImageButtonOptions": {"format": "png", "filename": "alturaifi-chart", "scale": 2},
+}
 
 
 def goto(key):
