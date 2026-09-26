@@ -1,8 +1,10 @@
 """
-charts.py - All Plotly figures, one unified theme (site font, transparent cards, pastel up/down bars).
-Rule used everywhere: positive = light-green fill + dark-green text, negative = light-red fill + dark-red text.
+charts.py - Shared dark chart system for Alturaifi Pro.
+Blue/violet branding, restrained grids, and emerald/rose signed data.
 """
 import re
+import html
+import textwrap
 
 import numpy as np
 import pandas as pd
@@ -16,6 +18,7 @@ from theme import (ACCENT, BG, BORDER, CYAN, DOWN, GOLD, MUTED, NEG_BD, NEG_BG, 
 
 FONT_FAMILY = "Plus Jakarta Sans, Readex Pro, system-ui, sans-serif"
 GRID = "rgba(138,148,167,0.13)"
+CHART_DESIGN = "2026-09-26.1"
 PALETTE = [ACCENT, CYAN, VIOLET, GOLD, "#F472B6", "#34D399", ORANGE, "#60A5FA", "#A3E635", "#FB7185", "#C084FC", "#2DD4BF"]
 
 
@@ -28,11 +31,11 @@ def rgba(hex_color, alpha):
 pio.templates["alturaifi"] = go.layout.Template(layout=dict(
     font=dict(family=FONT_FAMILY, color=TEXT, size=12),
     paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", colorway=PALETTE,
-    hoverlabel=dict(bgcolor="#161D2B", bordercolor="#2B3548", font=dict(family=FONT_FAMILY, color=TEXT, size=12)),
+    hoverlabel=dict(bgcolor="#161D2B", bordercolor=ACCENT, align="left", font=dict(family=FONT_FAMILY, color=TEXT, size=12)),
     xaxis=dict(gridcolor=GRID, zeroline=False, linecolor="#222B3B", tickfont=dict(color=MUTED)),
     yaxis=dict(gridcolor=GRID, zeroline=False, linecolor="#222B3B", tickfont=dict(color=MUTED)),
     legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(color="#B8C0CE")),
-    title=dict(font=dict(size=15, color="#FFFFFF", family=FONT_FAMILY), x=0.01, xanchor="left"),
+    title=dict(font=dict(size=15, color="#FFFFFF", family=FONT_FAMILY), x=0.025, xanchor="left"),
 ))
 TEMPLATE = "plotly_dark+alturaifi"
 pio.templates.default = TEMPLATE
@@ -48,20 +51,20 @@ _ARABIC = re.compile("[\u0600-\u06FF]")
 
 def rtl_text(t):
     """Arabic titles mixed with numbers or Latin words keep their reading order inside Plotly's left-to-right SVG
-    (the whole title becomes a right-to-left isolate)."""
-    return f"\u2067{t}\u2069" if t and _ARABIC.search(str(t)) else t
+    (an explicit embedding also works in older static-image renderers)."""
+    return f"\u202b{t}\u202c" if t and _ARABIC.search(str(t)) else t
 
 
 def style(fig, height=420, title=None, legend=True):
-    top = (84 if legend else 48) if title else 14
+    top = (88 if legend else 62) if title else 24
     title = rtl_text(title)
     fig.update_layout(
-        template=TEMPLATE, height=height, margin=dict(l=8, r=8, t=top, b=8), hovermode="x unified",
-        title=dict(text=f"<b>{title}</b>", yref="container", y=0.985, yanchor="top") if title else None,
+        template=TEMPLATE, height=height, margin=dict(l=20, r=24, t=top, b=24), hovermode="x unified",
+        title=dict(text=f"<b>{title}</b>", yref="container", y=0.96, yanchor="top") if title else None,
         showlegend=legend, legend=dict(orientation="h", y=1.02, x=0, yanchor="bottom", traceorder="normal"),
     )
-    fig.update_xaxes(showgrid=False, zeroline=False, rangeslider_visible=False)
-    fig.update_yaxes(gridcolor=GRID, zeroline=False, side="right")
+    fig.update_xaxes(showgrid=False, zeroline=False, rangeslider_visible=False, automargin=True)
+    fig.update_yaxes(gridcolor=GRID, zeroline=False, side="right", automargin=True)
     return fig
 
 
@@ -72,9 +75,9 @@ def pastel(values, neutral=False):
         if v is None or (isinstance(v, float) and np.isnan(v)) or (neutral and v == 0):
             fill.append("#2A3142"); line.append("#3A4458"); txt.append(TEXT); out.append(MUTED)
         elif v >= 0:
-            fill.append(POS_BG); line.append(POS_BD); txt.append(POS_FG); out.append(POS_BD)
+            fill.append("#164C43"); line.append("#34D399"); txt.append("#D1FAE5"); out.append("#6EE7B7")
         else:
-            fill.append(NEG_BG); line.append(NEG_BD); txt.append(NEG_FG); out.append(NEG_BD)
+            fill.append("#532A3A"); line.append("#FB7185"); txt.append("#FFE4E6"); out.append("#FDA4AF")
     return fill, line, txt, out
 
 
@@ -415,30 +418,50 @@ def orb_chart(bars, trades=None, or_minutes=15, mode="Candles", words=None, heig
 
 
 def pct_bars(labels, values, title=None, height=None, hover=None):
-    """Signed percentages as horizontal bars in the dark theme: emerald for gains, rose for losses, rounded, the stronger
-    bars more opaque, the value printed at the bar's end."""
-    order = np.argsort(values)
-    labels = [labels[i] for i in order]
-    values = [float(values[i]) for i in order]
-    hover = [hover[i] for i in order] if hover is not None else None
-    top = max((abs(v) for v in values), default=0) or 1.0
-    pos, neg = "#34D399", "#FB7185"
-    fills = [rgba(pos if v >= 0 else neg, 0.38 + 0.57 * abs(v) / top) for v in values]
-    edges = [pos if v >= 0 else neg for v in values]
+    """Ranked contribution bars; a dedicated value column stays legible on small screens."""
+    if len(labels) != len(values) or (hover is not None and len(hover) != len(values)):
+        raise ValueError("Contribution labels, values and hover details must have equal lengths")
+    rows = [(str(label), float(value), str(hover[i]) if hover is not None else "")
+            for i, (label, value) in enumerate(zip(labels, values))
+            if value is not None and np.isfinite(float(value))]
+    rows.sort(key=lambda row: row[1], reverse=True)
+    names = [row[0] for row in rows]
+    vals = [row[1] for row in rows]
+    positions = list(range(len(rows)))
+    colors = ["#34D399" if v > 0 else "#FB7185" if v < 0 else MUTED for v in vals]
     fig = go.Figure(go.Bar(
-        x=values, y=labels, orientation="h", marker=dict(color=fills, line=dict(color=edges, width=1)),
-        text=[f"<b>{v:+.2f}%</b>" for v in values], textposition="outside", cliponaxis=False,
-        textfont=dict(color=edges, size=12, family=FONT_FAMILY),
-        hovertext=hover or [f"{v:+.2f}%" for v in values], hovertemplate="<b>%{y}</b><br>%{hovertext}<extra></extra>"))
-    style(fig, height or max(260, 30 * len(values) + 80), title, legend=False)
-    span = max(abs(min(values + [0])), abs(max(values + [0]))) or 1.0
-    lo, hi = min(values + [0]), max(values + [0])
-    fig.update_xaxes(showgrid=True, gridcolor="rgba(138,148,167,0.08)", zeroline=True, zerolinecolor="#4B5568", zerolinewidth=1.5,
-                     ticksuffix="%", range=[lo - span * (0.28 if lo < 0 else 0.04), hi + span * (0.28 if hi > 0 else 0.04)])
-    fig.update_yaxes(side="left", gridcolor="rgba(0,0,0,0)", tickfont=dict(color="#C9D0DC", size=12))
-    fig.update_layout(hovermode="closest", bargap=0.38)
+        x=vals, y=positions, orientation="h", width=0.42,
+        marker=dict(color=[rgba(c, 0.56) for c in colors], line=dict(color=colors, width=1)),
+        customdata=[[html.escape(name), detail] for name, _, detail in rows],
+        hovertemplate="<b>%{customdata[0]}</b><br>%{x:+.2f}%<br>%{customdata[1]}<extra></extra>"))
+    style(fig, height or max(280, 36 * len(rows) + 104), title, legend=False)
+    lo, hi = min(vals + [0]), max(vals + [0])
+    span = hi - lo or 1.0
+    fig.update_xaxes(
+        domain=[0, 1], range=[lo - span * 0.06, hi + span * 0.06],
+        showgrid=True, gridcolor="rgba(138,148,167,0.09)",
+        zeroline=True, zerolinecolor="#66738C", zerolinewidth=1,
+        ticksuffix="%", nticks=4, tickfont=dict(size=10, color=MUTED), fixedrange=True)
+    fig.update_yaxes(
+        side="left", tickmode="array", tickvals=positions,
+        ticktext=["<br>".join(html.escape(rtl_text(part)) for part in
+                            ([name] if _ARABIC.search(name) else
+                             textwrap.wrap(name, 19, break_long_words=False, break_on_hyphens=False)))
+                  for name in names],
+        range=[len(rows) - 0.5, -0.5], showgrid=False, zeroline=False,
+        tickfont=dict(color="#C9D4E8", size=11), fixedrange=True)
+    for i, (value, color) in enumerate(zip(vals, colors)):
+        fig.add_shape(type="line", xref="paper", x0=0, x1=1, y0=i + 0.5, y1=i + 0.5,
+                      line=dict(color="rgba(138,148,167,0.08)", width=1), layer="below")
+        fig.add_annotation(xref="paper", x=1, xshift=76, y=i, text=f"<b>{value:+.2f}%</b>",
+                           showarrow=False, xanchor="right",
+                           font=dict(family=FONT_FAMILY, size=12, color=color))
+    if not rows:
+        fig.add_annotation(xref="paper", yref="paper", x=0.5, y=0.5,
+                           text="—", showarrow=False, font=dict(size=24, color=MUTED))
+    fig.update_layout(hovermode="closest", bargap=0.5,
+                      margin=dict(l=16, r=96, t=64 if title else 24, b=36))
     return _bars(fig)
-
 
 # =====================================================================
 # Visualizations

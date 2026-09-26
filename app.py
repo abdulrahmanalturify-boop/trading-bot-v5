@@ -22,6 +22,13 @@ if any(m in sys.modules and getattr(sys.modules[m], "BUILD", None) != BUILD for 
             except Exception:
                 sys.modules.pop(_m, None)       # imported fresh below
 
+# Refresh this visual revision once in an already-running Streamlit process.
+# Keep the independent application BUILD contract unchanged.
+if "charts" in sys.modules and getattr(sys.modules["charts"], "CHART_DESIGN", None) != "2026-09-26.1":
+    for _m in ("theme", "charts", "ui", "p_paper"):
+        if _m in sys.modules:
+            importlib.reload(sys.modules[_m])
+
 import data
 import newsbot
 import p_academy

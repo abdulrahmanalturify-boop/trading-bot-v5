@@ -47,6 +47,19 @@ FLAG_US, FLAG_SA = flags.US, flags.SA
 
 CSS = f"""
 <style>
+/* Chart cards share the logo's blue/violet accent without recoloring financial meaning. */
+[data-testid="stPlotlyChart"] {{
+  border: 1px solid #25314A; border-radius: 18px;
+  background: radial-gradient(ellipse at 0% 0%, rgba(61,123,255,.075), transparent 55%),
+              linear-gradient(145deg, #111A29, #101622 70%);
+  box-shadow: 0 8px 28px rgba(0,0,0,.14); overflow: hidden;
+}}
+[data-testid="stPlotlyChart"] .modebar {{
+  background: #161D2B !important; border: 1px solid #2B3852;
+  border-radius: 8px; margin: 6px;
+}}
+[data-testid="stPlotlyChart"] .modebar-btn path {{ fill: #8A9CB8 !important; }}
+[data-testid="stPlotlyChart"] .modebar-btn:hover path {{ fill: #A78BFA !important; }}
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Readex+Pro:wght@300;400;500;600;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..600,0..1,0&display=block');
 html, body, .stApp, .stMarkdown, button, input, textarea, select, label, [data-testid="stMetricValue"], [data-baseweb] {{
