@@ -270,7 +270,7 @@ def dashboard():
 
 def _academy_hero():
     count = len(A.COURSES)
-    ui.html(f'<section class="ac-hero"><div><div class="ac-eyebrow">{T.brand("1em", "acb", pro=None, color="currentColor")} / ACADEMY</div>'
+    ui.html(f'<section class="ac-hero"><div class="ac-brand-lockup" dir="ltr">{T.brand(None, "acb", pro=None, color="#F2F5FF", label="Alturaifi")}<span>ACADEMY</span></div><div dir="auto">'
             f'<h1>{L("Build knowledge.<br>Invest with understanding.", "ابنِ معرفتك.<br>واستثمر بفهم.")}</h1>'
             f'<p>{L("Your learning space for markets, investing and trading. Follow a path, explore a lesson and test the idea yourself.", "مساحتك لتعلّم الأسواق والاستثمار والتداول. اختر مسارك، افهم الفكرة، وجرّبها بنفسك.")}</p>'
             f'<div class="ac-meta"><span>{count} {L("courses", "دورة")}</span>'
@@ -339,7 +339,7 @@ def _video_library():
 
 
 def page_academy():
-    st.logo(AV.WORDMARK, icon_image=AV.MARK, size="large")
+    st.logo(AV.academy_wordmark(T.brand(None, "acsidebar", pro=None)), icon_image=AV.MARK, size="large")
     ui.html(AV.CSS)
     with st.container(key="academy_root"):
         cid = ss.get("course") or st.query_params.get("course")
@@ -347,6 +347,7 @@ def page_academy():
         if c:
             ss["course"] = c["id"]
             _course_view(c)
+            st.caption(L("Course photography: Unsplash · illustrative images.", "صور الدورات: Unsplash · صور توضيحية."))
             with st.expander(L("Further learning", "قراءات إضافية")):
                 for label, url in A.COURSE_SOURCES.get(c["id"], []):
                     st.markdown(f"[{label}]({url})")
@@ -387,6 +388,10 @@ def page_academy():
             else: st.info(L("No matching courses. Try another search or level.","ما فيه دورات تطابق الاختيار. غيّر البحث أو المستوى."))
         with videos:
             _video_library()
+        with catalog:
+            with st.expander(L("Photo credits", "مصادر الصور")):
+                for photo in AV.PHOTOS.values():
+                    st.markdown(f'[{photo["credit"]} · Unsplash]({photo["page"]})')
         with path:
             _learning_path()
         with labs:

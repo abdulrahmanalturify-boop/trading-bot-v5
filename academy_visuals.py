@@ -1,12 +1,12 @@
 """Local vector artwork and scoped academy styling; no remote image dependency."""
 from html import escape
 import hashlib
-ACADEMY_REVISION = "2026-09-27.5"
+ACADEMY_REVISION = "2026-09-27.6"
 MARK = '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="Academy university emblem"><defs><linearGradient id="acmark" x2="1" y2="1"><stop stop-color="#3D7BFF"/><stop offset="1" stop-color="#8B5CF6"/></linearGradient></defs><rect x="2" y="2" width="92" height="92" rx="25" fill="url(#acmark)"/><path d="M20 36 48 20 76 36M24 40H72M29 43V63M42 43V59M54 43V59M67 43V63M20 73H76" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M25 63Q37 58 48 65Q59 58 71 63V78Q59 73 48 80Q37 73 25 78ZM48 65V80" fill="#102347" stroke="#79E6F3" stroke-width="2.5" stroke-linejoin="round"/></svg>'''
 WORDMARK = MARK.replace('viewBox="0 0 96 96"','viewBox="0 0 420 96"').replace('</svg>','<text x="114" y="43" fill="#EDF2FF" font-family="Arial,sans-serif" font-size="25" font-weight="700">ALTURAIFI</text><text x="114" y="72" fill="#A9BFFF" font-family="Arial,sans-serif" font-size="20" letter-spacing="5">ACADEMY</text></svg>')
 
 
-def cover(kind, uid="course"):
+def vector_cover(kind, uid="course"):
     """Topic-specific, original SVG covers in a unified blue/violet palette."""
     token=hashlib.sha1(uid.encode()).hexdigest()[:10]
     shapes={
@@ -78,5 +78,80 @@ CSS = '''<style>
 @media(max-width:650px){.st-key-academy_root .ac-course-banner{min-height:300px;}.st-key-academy_root .ac-course-copy{padding:22px;}.st-key-academy_root .st-key-academy_lesson_panel{padding:18px;}}
 .st-key-academy_root .st-key-academy_lesson_navigation {padding-top:24px!important;}
 .st-key-academy_root .st-key-academy_start_here {padding:22px;border:1px solid #405381;border-radius:18px;background:linear-gradient(115deg,#183458,#262040);margin-bottom:20px;}
+.st-key-academy_root .ac-brand-lockup {grid-column:1/-1;direction:ltr!important;text-align:left!important;justify-self:start;display:flex;flex-direction:column;align-items:flex-start;gap:14px;width:100%;margin-bottom:8px;}
+.st-key-academy_root .ac-brand-lockup .brand {height:clamp(30px,4.4vw,64px);width:auto;max-width:100%;filter:drop-shadow(0 0 16px rgba(91,140,255,.35));}
+.st-key-academy_root .ac-brand-lockup span {font-family:Arial,sans-serif;font-size:14px;letter-spacing:6px;font-weight:700;color:#91BCFF;}
+.st-key-academy_root .ac-hero {direction:ltr!important;}
+
+.st-key-academy_root .ac-photo-cover {position:relative;width:100%;height:100%;overflow:hidden;background:#132747;}
+.st-key-academy_root .ac-photo-cover img {position:absolute;inset:0;display:block;width:100%!important;height:100%!important;max-width:none;object-fit:cover;}
+.st-key-academy_root .ac-photo-fallback {position:absolute;inset:0;}
+.st-key-academy_root .ac-photo-fallback svg {width:100%;height:100%;}
+.st-key-academy_root .course .art {overflow:hidden;}
+@media(max-width:650px){.st-key-academy_root .ac-brand-lockup{padding-right:50px;}.st-key-academy_root .ac-brand-lockup span{font-size:11px;letter-spacing:4px;}}
 </style>'''
 
+
+
+PHOTOS = {
+  "savings": {
+    "id": "photo-1633158829875-e5316a358c6f",
+    "credit": "Towfiqu barbhuiya",
+    "page": "https://unsplash.com/photos/joqWSI9u_XM",
+    "alt": "Savings jar with coins and a growing plant"
+  },
+  "budget": {
+    "id": "photo-1725258080098-727051947997",
+    "credit": "Jakub Żerdzicki",
+    "page": "https://unsplash.com/photos/zR7nFjjIAWE",
+    "alt": "Calculator, receipts and money for financial planning"
+  },
+  "chart": {
+    "id": "photo-1616261167032-b16d2df8333b",
+    "credit": "Markus Spiske",
+    "page": "https://unsplash.com/photos/jgOkEjVw-KM",
+    "alt": "Stock market line chart on a screen"
+  },
+  "trading": {
+    "id": "photo-1768055105681-7d2096c5165f",
+    "credit": "Jakub Żerdzicki",
+    "page": "https://unsplash.com/photos/j_hho1mE47s",
+    "alt": "Investor analysing financial charts on multiple screens"
+  },
+  "planning": {
+    "id": "photo-1740220321128-b06e20bd28a5",
+    "credit": "Jakub Żerdzicki",
+    "page": "https://unsplash.com/photos/Bb5Q2ImiJGM",
+    "alt": "Money and calculator for financial planning"
+  },
+  "growth": {
+    "id": "photo-1579621970563-ebec7560ff3e",
+    "credit": "micheile henderson",
+    "page": "https://unsplash.com/photos/lZ_4nPFKcV8",
+    "alt": "Plant growing from coins"
+  }
+}
+
+PHOTO_TOPICS = {
+    "plan":"planning", "growth":"growth", "fund":"savings", "orders":"trading",
+    "statements":"budget", "inflation":"budget", "mind":"planning",
+    "allocation":"savings", "quality":"budget", "bonds":"savings",
+    "valuation":"chart", "research":"trading", "market":"trading",
+    "candles":"trading", "levels":"chart", "ma":"chart", "osc":"chart",
+    "risk":"planning", "value":"budget", "options":"trading", "macro":"budget",
+}
+def cover(kind, uid="course"):
+    photo = PHOTOS[PHOTO_TOPICS.get(kind, "planning")]
+    source = "https://images.unsplash.com/" + photo["id"] + "?auto=format&fit=crop&w=1600&q=80"
+    # Local artwork stays underneath while loading or if an external host fails.
+    return ('<div class="ac-photo-cover"><div class="ac-photo-fallback" aria-hidden="true">'
+            + vector_cover(kind, uid) + '</div><img src="' + escape(source, quote=True)
+            + '" alt="' + escape(photo["alt"], quote=True)
+            + '" loading="lazy" decoding="async" referrerpolicy="no-referrer"/></div>')
+
+def academy_wordmark(brand):
+    mark = MARK.replace('<svg ', '<svg x="0" y="12" width="96" height="96" ', 1)
+    letters = brand.replace('<svg ', '<svg x="116" y="25" width="470" height="50" ', 1)
+    return ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 610 130">'
+            + mark + letters + '<text x="116" y="108" fill="#A9BFFF" font-family="Arial,sans-serif" '
+            'font-size="22" letter-spacing="7">ACADEMY</text></svg>')
