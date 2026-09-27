@@ -260,11 +260,35 @@ CSS = f"""<style>
 .hnrate .rl b {{ color:#fff; font-weight:700; direction:ltr; unicode-bidi:isolate; }}
 .hnrate .mr {{ text-align:center; color:#B9C1D3; font-size:.8rem; margin-top:12px; }}
 .hnrate .mr b {{ color:#fff; direction:ltr; unicode-bidi:isolate; }} .hnrate .mr span {{ color:{_MU}; }}
+/* ---------- analysts: the rating card as tall as the tiles + the targets card next to it ---------- */
+.hnang {{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.25fr); gap:16px; align-items:stretch; }}
+@media (max-width: 900px) {{ .hnang {{ grid-template-columns:1fr; }} }}
+.hnang .hnal {{ display:flex; min-width:0; }}
+.hnang .hnal .hnrate {{ flex:1; display:flex; flex-direction:column; }}
+.hnang .hnal .hnrate .g {{ margin-top:auto; max-width:420px; width:100%; }} .hnang .hnal .hnrate .mr {{ margin-bottom:auto; }}
+.hnang .hnar {{ display:flex; flex-direction:column; gap:12px; min-width:0; }}
+.hnang .hnar .hntgt {{ margin-top:0; flex:1; }}
+.hnang .kts {{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }}
+.hnkt {{ position:relative; overflow:hidden; border-radius:14px; padding:12px 14px; border:1px solid {_BD};
+  background:linear-gradient(160deg,rgba(61,123,255,.16),rgba(139,92,246,.08) 55%,{T.CARD});
+  transition:border-color .18s ease, box-shadow .18s ease, transform .18s ease; }}
+.hnkt::after {{ content:""; position:absolute; inset:auto 0 0 0; height:2px; background:linear-gradient(90deg,{_A},{_V},{_C}); opacity:0;
+  transition:opacity .18s ease; }}
+.hnkt:hover {{ border-color:rgba(126,166,255,.45); box-shadow:0 12px 28px rgba(61,123,255,.16); transform:translateY(-2px); }}
+.hnkt:hover::after {{ opacity:.9; }}
+.hnkt .l {{ display:flex; align-items:center; gap:7px; color:#C9D0DC; font-size:.7rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }}
+.hnkt .l .ms {{ color:#7EA6FF; font-size:1.02rem; }}
+.hnkt .v {{ color:#fff; font-size:1.25rem; font-weight:800; margin-top:6px; direction:ltr; unicode-bidi:isolate; white-space:nowrap; overflow:hidden;
+  text-overflow:ellipsis; }}
+.hnkt .s {{ color:{_MU}; font-size:.76rem; margin-top:2px; }}
+.hnkt.ok .s {{ color:#4ADE80; font-weight:700; }} .hnkt.bad .s {{ color:#F87171; font-weight:700; }}
+.hnkt.ok .v {{ color:#E8FFF0; }}
 </style>"""
 RTL_CSS = """<style>
 .hnhero .eb, .hnreg .tl .l, .hnc .lv span, .hnplan .p .l { letter-spacing:0; }
 .hndh::before { left:auto; right:0; }
 .hnparts .r { grid-template-columns:120px 1fr 44px; }
+.hnbt, .hnkt .l { letter-spacing:0; }
 </style>"""
 
 
@@ -1101,23 +1125,23 @@ def analyst_section(sym, price):
     if len(rr) and "Action" in rr:
         recent = rr[rr.index >= pd.Timestamp.now() - pd.Timedelta(days=30)]
         ups, downs = int((recent["Action"] == "up").sum()), int((recent["Action"] == "down").sum())
+    def tile(ic, label, value, sub, good=None):
+        cls = "" if good is None else (" ok" if good else " bad")
+        return (f'<div class="hnkt{cls}"><div class="l">{T.icon(ic)}<span>{T.esc(label)}</span></div><div class="v">{value}</div>'
+                f'<div class="s">{T.esc(sub)}</div></div>')
     tiles = []
     if mean_t and price:
         up = (mean_t / price - 1) * 100
-        tiles.append(T.kpi("flag", L("Mean price target", "متوسط السعر المستهدف"), _money_px(mean_t), L(f"{up:+.1f}% from now", f"{up:+.1f}% من السعر الحالي"), T.cls(up)))
+        tiles.append(tile("flag", L("Mean price target", "متوسط السعر المستهدف"), _money_px(mean_t), L(f"{up:+.1f}% from now", f"\u2066{up:+.1f}%\u2069 من السعر الحالي"), up >= 0))
     if lo_t and hi_t:
-        tiles.append(T.kpi("straighten", L("Target range", "مدى الأهداف"), f"{_money_px(lo_t)} – {_money_px(hi_t)}",
-                           L(f"low {_pct(price, lo_t):+.0f}% · high {_pct(price, hi_t):+.0f}%", f"الأدنى {_pct(price, lo_t):+.0f}% · الأعلى {_pct(price, hi_t):+.0f}%"), None))
-    tiles.append(T.kpi("swap_vert", L("Rating changes (30 days)", "تغييرات التقييم (30 يوم)"), f"↑{ups} · ↓{downs}",
-                       L("upgrades · downgrades", "ترقيات · تخفيضات"), "pos" if ups > downs else "neg" if downs > ups else None))
-    tiles.append(T.kpi("groups", L("Analysts", "المحللون"), f"{n}", L("covering the stock", "يغطون السهم"), None))
-    c1, c2 = st.columns([1, 1.25], gap="medium")
-    with c1:
-        ui.html(card)
-    with c2:
-        ui.html('<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">' + "".join(tiles) + "</div>")
-        if tg and price:
-            ui.html(target_card(price, tg))
+        tiles.append(tile("straighten", L("Target range", "مدى الأهداف"), f"{_money_px(lo_t)} – {_money_px(hi_t)}",
+                          L(f"low {_pct(price, lo_t):+.0f}% · high {_pct(price, hi_t):+.0f}%",
+                            f"الأدنى \u2066{_pct(price, lo_t):+.0f}%\u2069 · الأعلى \u2066{_pct(price, hi_t):+.0f}%\u2069")))
+    tiles.append(tile("swap_vert", L("Rating changes (30 days)", "تغييرات التقييم (30 يوم)"), f"↑{ups} · ↓{downs}",
+                      L("upgrades · downgrades", "ترقيات · تخفيضات"), None if ups == downs else ups > downs))
+    tiles.append(tile("groups", L("Analysts", "المحللون"), f"{n}", L("covering the stock", "يغطون السهم")))
+    right = f'<div class="kts">{"".join(tiles)}</div>' + (target_card(price, tg) if tg and price else "")
+    ui.html(f'<div class="hnang"><div class="hnal">{card}</div><div class="hnar">{right}</div></div>')
     ui.html(f'<div class="hnbt" style="margin-top:6px">{T.icon("table_rows")}{L("Analysts and their ratings (90 days)", "المحللون وتوصياتهم (90 يوم)")}</div>')
     if not len(rr):
         st.caption(L("No rating changes in the last 90 days.", "لا توجد تغييرات تقييم خلال آخر 90 يوم."))
@@ -1402,4 +1426,4 @@ def page_scanner():
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "8.8"
+BUILD = "8.9"
