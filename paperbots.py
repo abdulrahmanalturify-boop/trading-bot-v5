@@ -558,6 +558,8 @@ def params_of(bot):
     return {"v": 2, "universe": {"kind": bot["kind"], "value": bot["value"]}, "strategies": bot["strategies"], "max_pos": bot["max_pos"],
             "combine": bot["combine"], "instrument": bot["instrument"], "options": bot["options"], "fwd": bot.get("fwd"),
             **({"risk_pct": bot["risk_pct"]} if bot.get("risk_pct") else {}),
+            **({"regime": int(bot["regime"])} if bot.get("regime") else {}),
+            **({"trend_filter": 1} if bot.get("trend_filter") else {}),
             "fwd_prev": bot.get("fwd_prev") or []}
 
 
@@ -1372,4 +1374,4 @@ def journal(sim):
                          "Days": tr["Bars"], "Exit Reason": tr["Exit Reason"]})
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "10.0"
+BUILD = "10.0.1"
