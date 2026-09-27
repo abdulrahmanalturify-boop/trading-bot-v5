@@ -161,7 +161,7 @@ FLAG_US, FLAG_SA = flags.US, flags.SA
 # static/bg_globe.jpg (the globe with the candles). Streamlit serves it itself once static serving is on (config.toml,
 # after one reboot); until then the same file comes from the public repository through the jsDelivr CDN.
 BG_FILE = "bg_globe.jpg"
-BG_CDN = f"https://cdn.jsdelivr.net/gh/abdulrahmanalturify-boop/trading-bot-v5@main/static/{BG_FILE}"
+BG_CDN = f"https://cdn.jsdelivr.net/gh/abdulrahmanalturify-boop/trading-bot-v5@fe0f68de01ac1dfcb9f274d5f029a2af215e1bd4/static/{BG_FILE}"   # pinned: never stale
 BG_VEIL = "linear-gradient(180deg, rgba(4,8,16,.50) 0%, rgba(4,8,16,.58) 38%, rgba(4,8,16,.80) 100%)"
 
 
@@ -1628,4 +1628,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "9.8"
+BUILD = "9.8.1"
