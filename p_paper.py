@@ -86,9 +86,13 @@ DEFAULTS = {"pb_name": "", "pb_capital": 1_000_000, "pb_kind": "all", "pb_symbol
             "pb_ind_sector": "Technology", "pb_industry": "Semiconductors", "pb_maxpos": 10, "pb_store": ["SMA Crossover"],
             "pb_fee": 0.05, "pb_stop": 2.0, "pb_atr": 0.0, "pb_tp": 0.0, "pb_trail": 0.0, "pb_combine": "any", "pb_instr": "stock",
             "pb_otype": "call", "pb_dte": 30, "pb_strike": 0, "pb_oalloc": 5.0, "pb_otp": 100.0, "pb_osl": 50.0,
-            "pb_mode": "single", "pb_store_pb": [PBK.TREND_PULLBACK], "pb_pbmode": "any", "pb_pbwin": 5, "pb_riskpt": 0.0}
+            "pb_mode": "single", "pb_store_pb": [PBK.TREND_PULLBACK], "pb_pbmode": "any", "pb_pbwin": 5, "pb_riskpt": 0.0, "pb_regime": 0, "pb_trend": False}
 
 _A, _V, _C, _D, _G, _BG, _BD, _MU = T.ACCENT, T.VIOLET, T.CYAN, T.DOWN, T.GOLD, T.CARD2, T.BORDER, T.MUTED
+REGIME_LABEL = {0: ("Off", "إيقاف"),
+                1: ("No new buys while the S&P 500 is under its 200-day average", "لا شراء جديد والسوق تحت متوسط 200 يوم"),
+                2: ("No new buys under the 200-day average, and sell when the market drops under it",
+                    "لا شراء جديد تحت متوسط 200 يوم، وبيع لما ينزل السوق تحته")}
 TABLE_ROWS = 400            # rows shown in a long table (the CSV export has them all)
 _CARD_H = 352          # every card in the leaderboard (bots and "Add Bot") has this height
 PAGE_CSS = f"""<style>
@@ -1617,6 +1621,10 @@ def bot_header(sim):
         badges += T.badge(_stock_risk(b), "neu", "shield")
         if b.get("risk_pct"):
             badges += T.badge(L("Risk ", "المخاطرة ") + iso(f"{b['risk_pct']:g}%") + L(" per trade", " لكل صفقة"), "gold", "balance")
+    if b.get("regime"):
+        badges += T.badge(L(*REGIME_LABEL[int(b["regime"])]), "acc", "filter_alt")
+    if b.get("trend_filter"):
+        badges += T.badge(L("Only stocks above their 200-day average", "فقط الأسهم فوق متوسط 200 يوم"), "acc", "trending_up")
     if ins != "stock":
         badges += T.badge(_options_txt(b["options"]), "neu", "receipt_long")
         badges += T.badge(L("Option prices estimated (Black-Scholes)", "أسعار الأوبشن تقديرية (بلاك-شولز)"), "gold", "info")
@@ -2328,7 +2336,8 @@ def _load_form(bot):
                "pb_instr": instrument(bot), "pb_fee": _clip(bot["fee"], 0.0, 1.0), "pb_stop": _clip(bot["stop_pct"], 0.0, 50.0),
                "pb_atr": _clip(bot["atr_mult"], 0.0, 10.0), "pb_tp": _clip(bot["tp_pct"], 0.0, 500.0),
                "pb_trail": _clip(bot["trail_pct"], 0.0, 50.0), "pb_start": pd.Timestamp(bot["start_date"]).date(),
-               "pb_riskpt": _clip(bot.get("risk_pct") or 0.0, 0.0, 10.0)})
+               "pb_riskpt": _clip(bot.get("risk_pct") or 0.0, 0.0, 10.0), "pb_regime": int(bot.get("regime") or 0),
+               "pb_trend": bool(bot.get("trend_filter"))})
     for s in books:
         _pp_seed(s, bot["strategies"][s])
     if books:                                     # the agreement rule of combined strategies has its own keys
@@ -2820,6 +2829,16 @@ def bot_form(mode, bot=None):
                          "مع نسبة مخاطرة، يتحدد حجم كل صفقة أسهم بحيث لو ضرب الوقف يخسر البوت هالنسبة من رصيده (وما يتعدى مكانها). "
                          "تحتاج وقف: وقف الخسارة أو وقف ATR (في الخروج تحت) أو وقف الاستراتيجية المركّبة. "
                          "0 = كل صفقة تاخذ مكانها بالتساوي."))
+        if not orb:
+            f1, f2 = st.columns([1.3, 1], vertical_alignment="bottom")
+            ui.valid("pb_regime", [0, 1, 2])
+            f1.selectbox(L("Market filter (S&P 500 vs its 200-day average)", "فلتر السوق (S&P 500 مقابل متوسط 200 يوم)"), [0, 1, 2],
+                         key="pb_regime", format_func=lambda k: L(*REGIME_LABEL[k]))
+            f2.toggle(L("Buy only stocks above their own 200-day average", "اشترِ فقط الأسهم اللي فوق متوسط 200 يوم"), key="pb_trend")
+            st.caption(L("Both filters only hold back new buys (calls too); the second market option also sells the shares when the "
+                         "S&P 500 closes under its 200-day average. They are checked at the close, like the signals.",
+                         "الفلترين يمنعون الشراء الجديد بس (والـ Call كذلك)؛ والخيار الثاني لفلتر السوق يبيع الأسهم كمان لما يقفل "
+                         "S&P 500 تحت متوسط 200 يوم. ينفحصون عند الإغلاق مثل الإشارات."))
 
     # 5) exits and costs
     with st.container(key="pbf_5"):
@@ -2937,7 +2956,8 @@ def bot_form(mode, bot=None):
     rec = PB.make_record(name, kind, value, params, ss.get("pb_maxpos", DEFAULTS["pb_maxpos"]), ss["pb_capital"], ss["pb_fee"], *risk,
                          pd.Timestamp(start).strftime("%Y-%m-%d"),
                          ({"mode": "combo", "min": int(need), **({"window": int(win)} if combined else {})} if combo else None),
-                         instrument=instr, options=options, risk_pct=0.0 if instr == "options" else float(ss.get("pb_riskpt") or 0.0))
+                         instrument=instr, options=options, risk_pct=0.0 if instr == "options" else float(ss.get("pb_riskpt") or 0.0),
+                         regime=0 if orb else int(ss.get("pb_regime") or 0), trend_filter=0 if orb else int(bool(ss.get("pb_trend"))))
     try:
         if mode == "add":
             PB.create_bot(rec)

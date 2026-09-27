@@ -1,0 +1,27 @@
+# Records every Paper Bot's closed sessions right after the US close (30 minutes after 4 pm New York time, in summer and
+# winter), so the forward tests never wait for someone to open the site. Needs the repository secrets SUPABASE_URL and
+# SUPABASE_KEY (Settings > Secrets and variables > Actions); without them it does nothing.
+name: record sessions
+on:
+  schedule:
+    - cron: "40 20 * * 1-5"
+    - cron: "40 21 * * 1-5"
+  workflow_dispatch:
+concurrency:
+  group: record-sessions
+  cancel-in-progress: false
+jobs:
+  record:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: python scripts/record_sessions.py
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
