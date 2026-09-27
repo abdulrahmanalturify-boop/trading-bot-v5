@@ -46,7 +46,14 @@ def main():
         from huggingface_hub import HfApi
         api = HfApi(token=token)
         space = os.environ.get("HF_SPACE", "").strip() or f"{api.whoami()['name']}/alturaifi-pro"
-        api.create_repo(space, repo_type="space", space_sdk="docker", private=False, exist_ok=True)
+        try:
+            api.create_repo(space, repo_type="space", space_sdk="docker", private=False, exist_ok=True)
+        except Exception as e:
+            if "402" in str(e):             # Hugging Face hosts Docker Spaces on its free hardware only for PRO accounts
+                print("::warning title=Hugging Face sync::Hugging Face asks for a PRO subscription to host a Docker Space; "
+                      "nothing was copied. The site keeps running on Streamlit.")
+                return 0
+            raise
         for k in SECRETS:
             v = os.environ.get(k, "").strip()
             if v:
