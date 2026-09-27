@@ -219,6 +219,8 @@ CSS = f"""<style>
 .hnbox .check {{ font-size:.84rem; }} .hnbox .check:last-child {{ border-bottom:0; }}
 .hnbt {{ display:flex; align-items:center; gap:7px; font-weight:800; color:#fff; font-size:.92rem; margin-bottom:2px; }}
 .hnbt .ms {{ color:{_C}; font-size:1.1rem; }}
+.hnbt .sc {{ margin-inline-start:auto; font-size:.72rem; font-weight:800; color:#DCE6FF; background:rgba(61,123,255,.16); border:1px solid {_A}44;
+  border-radius:999px; padding:2px 9px; direction:ltr; unicode-bidi:isolate; }}
 [class*="st-key-hnsec_look"] h4 {{ margin:0 !important; padding:0 !important; }}
 </style>"""
 RTL_CSS = """<style>
@@ -650,33 +652,61 @@ def _edge(sym, key, build=None):
     return H.edge(bt), bt
 
 
-def _why(r, det):
-    """The reasons behind the score: (kind ok / no / info, text)."""
+def tech_checks(r, det, d, spy=None):
+    """One technical checklist: the Hunter's own reasons merged with the checks of the old Catalyst Pro (no repeats).
+    [{'Pass', 'Check', 'Check_ar', 'Detail', 'warn'}]"""
     out = []
-    ok = lambda c, en, ar_: out.append(("ok" if c else "no", L(en, ar_)))
-    p = r["Price"]
-    s50, s200 = det.get("sma50", np.nan), det.get("sma200", np.nan)
-    ok(np.isfinite(s200) and p > s200, f"Above its 200-day average (${s200:,.2f})" if np.isfinite(s200) else "No 200-day average yet",
-       f"فوق متوسط 200 يوم (${s200:,.2f})" if np.isfinite(s200) else "ما فيه متوسط 200 يوم للحين")
-    ok(p > s50, f"Above its 50-day average (${s50:,.2f})", f"فوق متوسط 50 يوم (${s50:,.2f})")
+
+    def add(ok, en, ar_, detail="", warn=False):
+        out.append({"Pass": bool(ok), "Check": en, "Check_ar": ar_, "Detail": detail, "warn": warn})
+
+    p = float(r["Price"])
+    last = d.iloc[-1] if d is not None and len(d) else None
+    s20, s50, s200 = det.get("sma20", np.nan), det.get("sma50", np.nan), det.get("sma200", np.nan)
+    add(np.isfinite(s200) and p > s200, "Primary trend up (above the 200-day average)", "الاتجاه الرئيسي صاعد (فوق متوسط 200 يوم)",
+        f"{p:,.2f} vs {s200:,.2f}" if np.isfinite(s200) else "n/a")
+    add(p > s50, "Above the 50-day average", "فوق متوسط 50 يوم", f"{p:,.2f} vs {s50:,.2f}")
+    add(np.isfinite(s200) and s20 > s50 > s200, "Bullish average stack (20 > 50 > 200)", "ترتيب متوسطات إيجابي (20 > 50 > 200)",
+        f"SMA20 {s20:,.2f} · SMA50 {s50:,.2f}")
+    if last is not None:
+        rsi = float(last["RSI"])
+        add(50 <= rsi <= 70, "Healthy momentum (RSI 50-70)", "زخم صحي (RSI بين 50 و70)", f"RSI {rsi:.0f}")
+        add(last["MACD"] > last["MACD_signal"], "MACD above its signal line", "الماكد فوق خط الإشارة", f"hist {last['MACD_hist']:.3f}")
+        adx = last["ADX"]
+        add(pd.notna(adx) and adx > 20 and last["DI_plus"] > last["DI_minus"], "Trend strength (ADX > 20, +DI > -DI)",
+            "قوة الاتجاه (ADX > 20 و+DI فوق -DI)", f"ADX {adx:.0f}" if pd.notna(adx) else "n/a")
     rs = int(r["RS"])
-    ok(rs >= 70, f"Relative strength {rs}: stronger than {rs}% of the scanned stocks over 3-12 months",
-       f"القوة النسبية {rs}: أقوى من {rs}% من الأسهم المفحوصة خلال 3 إلى 12 شهر")
+    rs3 = ""
+    if spy is not None and d is not None and len(spy) > 64 and len(d) > 64:
+        x = (d["Close"].iloc[-1] / d["Close"].iloc[-64] - 1) - (spy["Close"].iloc[-1] / spy["Close"].iloc[-64] - 1)
+        rs3 = f" · vs S&P 500 (3M) {x * 100:+.1f}%"
+    add(rs >= 70, f"Relative strength: RS {rs} (stronger than {rs}% of the list)", f"القوة النسبية: RS {rs} (أقوى من {rs}% من القائمة)", rs3.strip(" ·"))
     ud = det.get("ud", 1.0)
-    ok(ud >= 1.1, f"Volume on up days is {ud:.2f}x the volume on down days (50 days): {'buyers in control' if ud >= 1.1 else 'no accumulation'}",
-       f"حجم أيام الصعود {ud:.2f} ضعف حجم أيام النزول (50 يوم): {'المشترين مسيطرين' if ud >= 1.1 else 'ما فيه تجميع'}")
+    obv = ""
+    if d is not None and "OBV" in d and len(d) > 21:
+        obv = " · OBV " + ("↑" if d["OBV"].iloc[-1] > d["OBV"].iloc[-21] else "↓")
+    add(ud >= 1.1, "Accumulation (volume on up days > down days, 50 days)", "تجميع (حجم أيام الصعود أكبر من أيام النزول، 50 يوم)",
+        f"{ud:.2f}×{obv}")
+    rv = r.get("RVOL")
+    add(pd.notna(rv) and rv >= 1.5, "Volume confirmation today (≥ 1.5× average)", "تأكيد بالحجم اليوم (≥ 1.5 ضعف المتوسط)",
+        f"{rv:.1f}×" if pd.notna(rv) else "n/a")
+    dh = float(r["From high %"])
+    add(dh >= -5, "Within 5% of the 52-week high", "ضمن 5% من القمة السنوية", f"{dh:+.1f}% · ${det.get('hi52', np.nan):,.2f}")
+    bw = det.get("bw_pct", np.nan)
+    add(np.isfinite(bw) and bw <= 0.2, "Volatility squeeze (coiling)", "انضغاط التذبذب (تجميع قبل حركة)",
+        L("bands narrow", "النطاق ضيق") if np.isfinite(bw) and bw <= 0.2 else L("normal", "طبيعي"))
     if np.isfinite(r["R:R"]):
-        ok(r["R:R"] >= 2, f"Reward to risk {r['R:R']:.1f} to 1 to the target", f"العائد مقابل المخاطرة {r['R:R']:.1f} إلى 1 حتى الهدف")
-    dh = r["From high %"]
-    out.append(("in", L(f"{abs(dh):.1f}% under its 52-week high (${det.get('hi52', np.nan):,.2f})",
-                        f"تحت قمته السنوية بـ {abs(dh):.1f}% (${det.get('hi52', np.nan):,.2f})")))
+        add(r["R:R"] >= 2, "Reward to risk at least 2 to 1", "العائد مقابل المخاطرة 2 إلى 1 على الأقل", f"{r['R:R']:.1f} : 1")
     if det.get("ext", 0) > 3:
-        out.append(("no", L(f"Stretched: {det['ext']:.1f} ATR above its 20-day average; better on a pullback",
-                            f"ممتد: {det['ext']:.1f} ATR فوق متوسط 20؛ الأفضل تنتظر تراجع")))
-    if pd.notna(r["Earnings"]) and 0 <= r["Earnings"] <= 10:
-        out.append(("no" if r["Earnings"] <= 5 else "in", L(f"Earnings in {int(r['Earnings'])} trading days: a gap can jump the stop",
-                                                            f"إعلان أرباح بعد {int(r['Earnings'])} أيام تداول: الفجوة ممكن تقفز فوق الوقف")))
+        add(False, "Not stretched above the 20-day average", "غير ممتد فوق متوسط 20 يوم",
+            L(f"{det['ext']:.1f} ATR above: better on a pullback", f"{det['ext']:.1f} ATR فوق: الأفضل تنتظر تراجع"), warn=True)
     return out
+
+
+def _checklist2(items):
+    return "".join(f'<div class="check">{T.ico("check", "pos") if c_["Pass"] else T.ico("priority_high" if c_.get("warn") else "close", "gold" if c_.get("warn") else "neg")}'
+                   f'<div><b>{T.esc(L(c_["Check"], c_["Check_ar"]))}</b>'
+                   + (f' <span class="muted">· {T.esc(c_["Detail"])}</span>' if c_["Detail"] else "") + '</div></div>' for c_ in items)
 
 
 @st.cache_data(ttl=900, show_spinner=False, max_entries=48)
@@ -706,7 +736,10 @@ def catalysts(sym, build=None):
     if isinstance(rr, pd.DataFrame) and not rr.empty:
         rr = rr[rr.index >= pd.Timestamp.now() - pd.Timedelta(days=30)]
     events = engine.event_checks(f["earnings_date"], rr, nws, inf, d) if d is not None else []
-    return {"fund": fund, "events": events, "news": nws, "earn": f["earnings_date"], "short": inf.get("shortName") or ""}
+    an = {k: inf.get(k) for k in ("recommendationKey", "recommendationMean", "numberOfAnalystOpinions", "targetMeanPrice", "targetHighPrice",
+                                  "targetLowPrice", "targetMedianPrice", "currentPrice", "regularMarketPrice")}
+    return {"fund": fund, "events": events, "news": nws, "earn": f["earnings_date"], "short": inf.get("shortName") or "", "an": an,
+            "targets": f.get("targets") or {}, "rec": f.get("rec_summary"), "ratings": f.get("ratings")}
 
 
 def _checklist(items):
@@ -798,7 +831,14 @@ def plan_section(r, det, d):
                 + "".join(f'<div class="check">{T.ico("logout", "acc")}<div>{T.esc(e)}</div></div>' for e in exits) + "</div>")
 
 
+REC = {"strong_buy": ("Strong buy", "شراء قوي", "up"), "buy": ("Buy", "شراء", "up"), "hold": ("Hold", "احتفاظ", "gold"),
+       "underperform": ("Underperform", "أداء أقل من السوق", "down"), "sell": ("Sell", "بيع", "down"), "strong_sell": ("Strong sell", "بيع قوي", "down")}
+ACTION = {"up": ("Upgrade", "ترقية", "up"), "down": ("Downgrade", "تخفيض", "down"), "init": ("Initiated", "بداية تغطية", "acc"),
+          "main": ("Maintained", "تثبيت", "neu"), "reit": ("Reiterated", "تأكيد", "neu")}
+
+
 def catalyst_section(sym):
+    """Fundamental checks and events, side by side (right under 'Why this score')."""
     cat = catalysts(sym, H.BUILD)
     fund, events = cat["fund"], cat["events"]
     fs = sum(x["Pass"] for x in fund) / len(fund) * 100 if fund else None
@@ -806,17 +846,11 @@ def catalyst_section(sym):
     for ev in events:
         es += {"pos": 12, "hot": 8, "neg": -15, "warn": -5}.get(ev["Impact"], 0)
     es = max(0.0, min(100.0, es))
-    ui.sec("bolt", "Catalysts", "المحفزات")
-    tiles = [T.kpi("request_quote", L("Fundamentals", "الأساسيات"), "—" if fs is None else f"{fs:.0f}/100",
-                   f"{sum(x['Pass'] for x in fund)}/{len(fund)} {L('checks passed', 'شروط متحققة')}" if fund else L("no data (ETF, index...)", "لا بيانات (صندوق، مؤشر...)"),
-                   None if fs is None else ("pos" if fs >= 60 else "neg" if fs < 40 else None)),
-             T.kpi("event", L("Events", "الأحداث"), f"{es:.0f}/100", L(f"{len(events)} found", f"{len(events)} حدث"),
-                   "pos" if es >= 60 else "neg" if es < 45 else None)]
-    ui.html('<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px">' + "".join(tiles) + "</div>")
     c1, c2 = st.columns(2, gap="medium")
     with c1:
-        ui.html(f'<div class="hnbox"><div class="hnbt">{T.icon("request_quote")}{L("Fundamental checks", "الفحص المالي")}</div>'
-                + (_checklist(fund) if fund else f'<div class="muted" style="font-size:.84rem">{L("No fundamental data (ETF, index or crypto).", "لا توجد بيانات مالية (صندوق أو مؤشر أو عملة رقمية).")}</div>')
+        sc = "" if fs is None else f'<span class="sc">{fs:.0f}/100 · {sum(x["Pass"] for x in fund)}/{len(fund)}</span>'
+        ui.html(f'<div class="hnbox"><div class="hnbt">{T.icon("request_quote")}{L("Fundamental analysis", "التحليل الأساسي")}{sc}</div>'
+                + (_checklist(fund) if fund else f'<div class="muted" style="font-size:.84rem;padding:6px 0 10px">{L("No fundamental data (ETF, index or crypto).", "لا توجد بيانات مالية (صندوق أو مؤشر أو عملة رقمية).")}</div>')
                 + "</div>")
     with c2:
         rows = []
@@ -824,9 +858,61 @@ def catalyst_section(sym):
             en, ar_, kind, ic = engine.IMPACT[e["Impact"]]
             rows.append(f'<div class="check">{T.badge(L(en, ar_), kind, ic)}<div><b>{T.esc(L(e["Event"], e["Event_ar"]))}</b> '
                         f'<span class="muted">· {T.esc(L(e["Detail"], e["Detail_ar"]))}</span></div></div>')
-        ui.html(f'<div class="hnbox"><div class="hnbt">{T.icon("event")}{L("Events", "الأحداث")}</div>'
-                + ("".join(rows) or f'<div class="muted" style="font-size:.84rem">{L("No special events right now.", "لا توجد أحداث خاصة حالياً.")}</div>')
+        ui.html(f'<div class="hnbox"><div class="hnbt">{T.icon("event")}{L("Events", "الأحداث")}<span class="sc">{es:.0f}/100</span></div>'
+                + ("".join(rows) or f'<div class="muted" style="font-size:.84rem;padding:6px 0 10px">{L("No special events right now.", "لا توجد أحداث خاصة حالياً.")}</div>')
                 + "</div>")
+
+
+def analyst_section(sym, price):
+    """The analysts: consensus, price targets, the recommendation trend and the latest rating changes."""
+    cat = catalysts(sym, H.BUILD)
+    an, tg = cat["an"], cat["targets"] or {}
+    n = an.get("numberOfAnalystOpinions") or 0
+    mean_t = tg.get("mean") or an.get("targetMeanPrice")
+    lo_t, hi_t = tg.get("low") or an.get("targetLowPrice"), tg.get("high") or an.get("targetHighPrice")
+    rec_k = str(an.get("recommendationKey") or "").lower()
+    rr = cat["ratings"] if isinstance(cat["ratings"], pd.DataFrame) else pd.DataFrame()
+    if not (n or mean_t or rec_k in REC or len(rr)):
+        return
+    ui.sec("groups", "Analysts", "المحللون")
+    ups = downs = 0
+    if len(rr) and "Action" in rr:
+        recent = rr[rr.index >= pd.Timestamp.now() - pd.Timedelta(days=30)]
+        ups, downs = int((recent["Action"] == "up").sum()), int((recent["Action"] == "down").sum())
+    en, ar_, kind = REC.get(rec_k, ("—", "—", None))
+    tiles = [T.kpi("how_to_vote", L("Consensus", "الإجماع"), L(en, ar_), (f"{an['recommendationMean']:.2f} / 5 · " if an.get("recommendationMean") else "")
+                   + L(f"{n} analysts", f"{n} محلل"), {"up": "pos", "down": "neg"}.get(kind))]
+    if mean_t and price:
+        up = (mean_t / price - 1) * 100
+        tiles.append(T.kpi("flag", L("Mean target", "متوسط الهدف"), _money_px(mean_t), L(f"{up:+.1f}% from now", f"{up:+.1f}% من السعر الحالي"), T.cls(up)))
+    if lo_t and hi_t:
+        tiles.append(T.kpi("straighten", L("Target range", "مدى الأهداف"), f"{_money_px(lo_t)} – {_money_px(hi_t)}",
+                           L(f"low {_pct(price, lo_t):+.0f}% · high {_pct(price, hi_t):+.0f}%", f"الأدنى {_pct(price, lo_t):+.0f}% · الأعلى {_pct(price, hi_t):+.0f}%"), None))
+    tiles.append(T.kpi("swap_vert", L("Rating changes (30 days)", "تغييرات التقييم (30 يوم)"), f"↑{ups} · ↓{downs}",
+                       L("upgrades · downgrades", "ترقيات · تخفيضات"), "pos" if ups > downs else "neg" if downs > ups else None))
+    ui.html('<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px">' + "".join(tiles) + "</div>")
+    c1, c2 = st.columns(2, gap="medium")
+    rec = cat["rec"]
+    with c1:
+        if isinstance(rec, pd.DataFrame) and not rec.empty:
+            ui.chart(charts.rec_chart(rec, L("Recommendations by month", "التوصيات حسب الشهر")), key=f"hn_rec_{_key(sym)}")
+        elif tg:
+            ui.chart(charts.target_chart(price, tg, L("12-month price targets", "السعر المستهدف (12 شهر)")), key=f"hn_tgt_{_key(sym)}")
+    with c2:
+        rows = []
+        for dt, x in rr.head(7).iterrows():
+            a_en, a_ar, a_k = ACTION.get(str(x.get("Action", "")), (str(x.get("Action", "")), str(x.get("Action", "")), "neu"))
+            frm, to = str(x.get("FromGrade") or ""), str(x.get("ToGrade") or "")
+            grade_txt = f"{frm} → {to}" if frm and frm != "nan" else to
+            rows.append(f'<div class="check">{T.badge(L(a_en, a_ar), a_k)}<div><b>{T.esc(str(x.get("Firm", "")))}</b> '
+                        f'<span class="muted">· {T.esc(grade_txt)} · {pd.Timestamp(dt):%Y-%m-%d}</span></div></div>')
+        ui.html(f'<div class="hnbox"><div class="hnbt">{T.icon("swap_vert")}{L("Latest rating changes", "آخر تغييرات التقييم")}</div>'
+                + ("".join(rows) or f'<div class="muted" style="font-size:.84rem;padding:6px 0 10px">{L("No rating changes in the last 90 days.", "لا توجد تغييرات خلال آخر 90 يوم.")}</div>')
+                + "</div>")
+
+
+def news_section(sym):
+    cat = catalysts(sym, H.BUILD)
     if cat["news"]:
         ui.sec("newspaper", "Latest news", "آخر الأخبار")
         ui.news_list(cat["news"], 6)
@@ -867,9 +953,14 @@ def detail(r, det, got):
             ui.html('<div class="hnparts">' + "".join(
                 f'<div class="r"><span>{T.esc(L(*H.PARTS[p]))} <span class="w">· {int(H.WEIGHTS[p] * 100)}%</span></span>'
                 f'<div class="bar"><i style="width:{float(v):.0f}%"></i></div><b>{float(v):.0f}</b></div>' for p, v in parts.items()) + "</div>")
-            icons = {"ok": "check_circle", "no": "cancel", "in": "info"}
-            ui.html('<div class="hnwhy">' + "".join(f'<div class="w {kd}">{T.icon(icons[kd])}<span>{T.esc(t)}</span></div>' for kd, t in _why(r, det))
-                    + "</div>")
+            tc = tech_checks(r, det, d, spy5)
+            ui.html(f'<div class="hnbox" style="margin-top:12px"><div class="hnbt">{T.icon("query_stats")}{L("Technical checks", "الفحص الفني")}'
+                    f'<span class="sc">{sum(c_["Pass"] for c_ in tc)}/{len(tc)}</span></div>{_checklist2(tc)}</div>')
+
+    with st.container(key=f"hnsec_cat_{_key(sym)}"):
+        ui.safe(catalyst_section, sym)
+    with st.container(key=f"hnsec_an_{_key(sym)}"):
+        ui.safe(analyst_section, sym, float(r["Price"]))
 
     with st.container(key=f"hnsec_plan_{_key(sym)}"):
         ui.safe(plan_section, r, det, d)
@@ -906,9 +997,6 @@ def detail(r, det, got):
                              "نفس الشرط ونفس الوقف والهدف والمدة؛ الدخول عند الافتتاح التالي، والوقف يُفحص أول إذا لمست الشمعة الاثنين. "
                              "نتائج الماضي على سهم واحد دليل وليست ضمان."))
 
-    with st.container(key=f"hnsec_cat_{_key(sym)}"):
-        ui.safe(catalyst_section, sym)
-
     with st.container(key=f"hnsec_act_{_key(sym)}"):
         with st.container(key="hnact", horizontal=True):
             if st.button(L("Stock page", "صفحة السهم"), icon=":material/candlestick_chart:", key="hn_open"):
@@ -924,6 +1012,9 @@ def detail(r, det, got):
             elif st.button(L("Add to watchlist", "أضف للمتابعة"), icon=":material/star:", key="hn_wl"):
                 wl.append(sym)
                 st.toast(L(f"{sym} added to your watchlist", f"انضاف {sym} لقائمة المتابعة"), icon=":material/star:")
+
+    with st.container(key=f"hnsec_news_{_key(sym)}"):
+        ui.safe(news_section, sym)
 
 
 # ---------------------------------------------------------------- the table and the charts
@@ -964,7 +1055,7 @@ def sector_chart(sec):
     top = sec.head(12).iloc[::-1]
     labels = [f"{sector_name(s)} · {int(o)}" for s, o in zip(top.index, top["opp"])]
     ui.chart(charts.hbar(labels, [float(x) for x in top["rs"]], L("Sectors by strength (average RS · opportunities)",
-                                                                  "القطاعات حسب القوة (متوسط RS · عدد الفرص)"), 460, suffix=""), key="hn_sec")
+                                                                  "القطاعات حسب القوة (متوسط RS · عدد الفرص)"), 460, suffix=""), key="hn_secchart")
 
 
 # ---------------------------------------------------------------- page
@@ -1076,4 +1167,4 @@ def page_scanner():
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "8.5"
+BUILD = "8.6"
