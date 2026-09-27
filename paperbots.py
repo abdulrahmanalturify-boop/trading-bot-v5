@@ -755,7 +755,7 @@ def simulate(bot, px, spy=None, record=None):
                 MB[i] = int(plan["max_bars"] or 0)
                 sig.append((e, x))
             else:
-                sig.append(engine.STRATEGIES[name][0](df, **bot["strategies"][name]))
+                sig.append(engine.signals(name, df, bot["strategies"][name], spy))
         if pb_combo:
             win = window_of(comb)
             recent = [e.fillna(False).astype(bool).astype(float).rolling(win, min_periods=1).max() > 0 for e, _ in sig]
@@ -1402,4 +1402,4 @@ def journal(sim):
                          "Days": tr["Bars"], "Exit Reason": tr["Exit Reason"]})
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "10.1"
+BUILD = "11.0"

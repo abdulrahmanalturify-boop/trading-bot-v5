@@ -172,12 +172,15 @@ PAGE_CSS = f"""<style>
 [class*="st-key-pbcard_"] [class*="st-key-pb_pick_"] .stButton, [class*="st-key-pbcard_"] [class*="st-key-pb_pick_"] button
   {{ width:100% !important; height:100% !important; opacity:0; cursor:pointer; }}
 [class*="st-key-pbcard_"] [class*="st-key-pb_edit_"], [class*="st-key-pbcard_"] [class*="st-key-pb_trash_"]
-  {{ position:absolute !important; top:9px; z-index:6; width:auto !important; margin:0 !important; opacity:0; transition:opacity .15s ease; }}
-[class*="st-key-pbcard_"] [class*="st-key-pb_edit_"] {{ right:9px; left:auto; }}
-[class*="st-key-pbcard_"] [class*="st-key-pb_trash_"] {{ left:9px; right:auto; }}
+  {{ position:absolute !important; top:12px; z-index:6; width:auto !important; margin:0 !important; opacity:0; transition:opacity .15s ease; }}
+[class*="st-key-pbcard_"] [class*="st-key-pb_edit_"] {{ right:14px; left:auto; }}
+[class*="st-key-pbcard_"] [class*="st-key-pb_trash_"] {{ left:14px; right:auto; }}
 [class*="st-key-pbcard_"]:hover [class*="st-key-pb_edit_"], [class*="st-key-pbcard_"]:hover [class*="st-key-pb_trash_"] {{ opacity:1; }}
-[class*="st-key-pb_edit_"] button, [class*="st-key-pb_trash_"] button {{ min-height:0 !important; padding:3px 8px !important; border-radius:10px !important;
-  background:{_BG} !important; }}
+[class*="st-key-pb_edit_"] button, [class*="st-key-pb_trash_"] button {{ min-height:0 !important; height:24px !important; width:34px !important;
+  padding:0 !important; display:grid !important; place-items:center !important; border-radius:8px !important; background:{_BG} !important; }}
+[class*="st-key-pb_edit_"] button [data-testid="stIconMaterial"], [class*="st-key-pb_trash_"] button [data-testid="stIconMaterial"]
+  {{ font-size:16px !important; margin:0 !important; }}
+[class*="st-key-pb_edit_"] button > div, [class*="st-key-pb_trash_"] button > div {{ gap:0 !important; }}
 [class*="st-key-pb_edit_"] button {{ border:1.5px solid {_A} !important; }}
 [class*="st-key-pb_edit_"] button span {{ color:{_A} !important; }}
 [class*="st-key-pb_trash_"] button {{ border:1.5px solid {_D} !important; }}
@@ -197,25 +200,25 @@ PAGE_CSS = f"""<style>
 .phg.live::before {{ content:""; width:6px; height:6px; border-radius:50%; background:currentColor; animation:pbtw 2s ease-in-out infinite; }}
 .phg.sim {{ background:{T.YEL_BG}; color:{T.YEL_FG}; }}
 [class*="st-key-pbcard_"]:hover .pbc .rt {{ opacity:0; }}
-[class*="st-key-pbphase"] {{ background:{T.BOX_BG}; border:1px solid {_BD}; border-radius:16px; padding:5px; margin-bottom:2px; }}
-[class*="st-key-pbphase"] [data-testid="stHorizontalBlock"] {{ gap:5px !important; flex-wrap:nowrap !important; }}
+[class*="st-key-pbphase"] {{ margin-bottom:2px; }}
+[class*="st-key-pbphase"] [data-testid="stHorizontalBlock"] {{ gap:12px !important; flex-wrap:nowrap !important; align-items:stretch !important; }}
 [class*="st-key-pbphase"] [data-testid="stColumn"] {{ min-width:0 !important; }}
 [class*="st-key-pbph_"] {{ position:relative; }}
 [class*="st-key-pbph_"] [data-testid="stElementContainer"] {{ position:static !important; }}
 [class*="st-key-pbph_"] [class*="st-key-pb_ph_"] {{ position:absolute !important; inset:0; z-index:4; margin:0 !important; width:auto !important; }}
 [class*="st-key-pbph_"] [class*="st-key-pb_ph_"] .stButton, [class*="st-key-pbph_"] [class*="st-key-pb_ph_"] button
   {{ width:100% !important; height:100% !important; opacity:0; cursor:pointer; }}
-.pbph {{ display:flex; align-items:center; gap:11px; min-height:60px; box-sizing:border-box; border-radius:12px; padding:9px 14px;
-  color:#AEB7C6; transition:background .18s, color .18s, box-shadow .18s; }}
-[class*="st-key-pbph_"]:hover .pbph:not(.on) {{ background:rgba(61,123,255,.10); color:#fff; }}
-.pbph.on {{ background:linear-gradient(100deg,{_A},{_V} 70%,#6D5CF6); color:#fff; box-shadow:0 10px 26px rgba(61,123,255,.30), inset 0 1px 0 rgba(255,255,255,.18); }}
+.pbph {{ position:relative; overflow:hidden; display:flex; align-items:center; gap:11px; height:66px; box-sizing:border-box; border-radius:14px;
+  padding:10px 16px; color:#AEB7C6; background:{T.BOX_BG}; border:1px solid {_BD}; transition:background .18s, color .18s, border-color .18s; }}
+[class*="st-key-pbph_"]:hover .pbph:not(.on) {{ border-color:{_A}66; color:#fff; }}
+.pbph.on {{ color:#fff; border-color:{_A}88; background:{T.TOP}, linear-gradient(135deg,rgba(61,123,255,.20),rgba(139,92,246,.14) 70%,{T.CARD});
+  box-shadow:0 8px 22px rgba(61,123,255,.14); }}
 .pbph .i .ms {{ font-size:1.2rem; color:{_C}; background:rgba(34,211,238,.12); border-radius:10px; padding:6px; }}
-.pbph.on .i .ms {{ color:#fff; background:rgba(255,255,255,.18); }}
+.pbph.on .i .ms {{ color:#fff; background:rgba(61,123,255,.35); }}
 .pbph .nm {{ display:flex; flex-direction:column; line-height:1.25; min-width:0; }}
 .pbph .nm b {{ font-weight:800; font-size:.95rem; }}
 .pbph .nm span {{ font-size:.72rem; font-weight:600; opacity:.8; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
 .pbph .phg {{ margin-inline-start:auto; }}
-.pbph.on .phg {{ background:rgba(255,255,255,.22); color:#fff; }}
 .pbrec {{ display:flex; flex-wrap:wrap; gap:7px; margin:2px 0 10px; }}
 .pbrec .c {{ display:inline-flex; align-items:center; gap:6px; background:rgba(138,148,167,.10); border:1px solid {_BD}; border-radius:999px;
   padding:4px 12px; font-size:.75rem; font-weight:700; color:#AEB7C6; white-space:nowrap; }}
@@ -251,6 +254,32 @@ PAGE_CSS = f"""<style>
 .pbid .bdgs {{ margin-top:10px; }}
 .pbk {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px; }}
 .pbsub {{ display:flex; align-items:center; gap:8px; font-weight:800; font-size:.98rem; color:#fff; margin:8px 0 0; }}
+/* what worked: three panels of the same size, a centred bar per row (loss to the left, gain to the right) */
+.wwg {{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; margin:10px 0 6px; }}
+@media (max-width: 900px) {{ .wwg {{ grid-template-columns:1fr; }} }}
+.wwc {{ position:relative; overflow:hidden; background:{T.BOX_BG}; border:1px solid {_BD}; border-radius:18px; padding:14px 14px 10px;
+  height:500px; box-sizing:border-box; display:flex; flex-direction:column; }}
+.wwh {{ display:flex; align-items:center; gap:10px; margin-bottom:10px; }}
+.wwh .i .ms {{ font-size:1.05rem; color:#fff; background:linear-gradient(135deg,{_A},{_V}); border-radius:9px; padding:6px; }}
+.wwh b {{ display:block; color:#fff; font-size:.95rem; font-weight:800; }}
+.wwh span:not(.i):not(.ms) {{ display:block; color:{_MU}; font-size:.72rem; font-weight:600; }}
+.wwb {{ flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:5px; padding-inline-end:2px; scrollbar-width:thin; }}
+.wwr {{ display:grid; grid-template-columns:minmax(0,1.15fr) minmax(0,1fr) 62px; align-items:center; gap:8px; padding:0 9px; height:31px; flex:none;
+  border-radius:11px; background:rgba(255,255,255,.028); border:1px solid rgba(255,255,255,.04); }}
+.wwr:hover {{ background:rgba(61,123,255,.09); border-color:{_A}44; }}
+.wwn {{ display:flex; flex-direction:column; min-width:0; line-height:1.25; }}
+.wwl {{ display:inline-flex; align-items:center; gap:7px; min-width:0; color:#fff !important; text-decoration:none !important; }}
+.wwl b {{ font-size:.8rem; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
+.wwl .lg {{ width:20px !important; height:20px !important; font-size:8px !important; flex:none; }}
+.wwi {{ color:{_MU}; font-size:.66rem; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
+.wwt {{ display:grid; grid-template-columns:1fr 1fr; height:10px; direction:ltr; }}
+.wwt .h {{ display:flex; height:10px; background:rgba(138,148,167,.10); }}
+.wwt .n {{ justify-content:flex-end; border-radius:6px 0 0 6px; border-right:1px solid #4B5568; }}
+.wwt .p {{ justify-content:flex-start; border-radius:0 6px 6px 0; }}
+.wwt .n i {{ display:block; height:100%; border-radius:6px 0 0 6px; background:linear-gradient(270deg,#FB7185,#E11D48); }}
+.wwt .p i {{ display:block; height:100%; border-radius:0 6px 6px 0; background:linear-gradient(90deg,#10B981,#34D399); }}
+.wwv {{ text-align:end; font-size:.8rem; font-weight:800; font-variant-numeric:tabular-nums; direction:ltr; }}
+.wwv.up {{ color:#34D399; }} .wwv.dn {{ color:#FB7185; }}
 .pbsub .ms {{ color:#fff; background:linear-gradient(135deg,{_A},{_V}); border-radius:8px; padding:4px; font-size:1rem; }}
 .pbsub .muted {{ font-size:.76rem; font-weight:600; }}
 .pbsel {{ display:flex; flex-wrap:wrap; gap:8px; }}
@@ -365,21 +394,21 @@ a.pblink .ms {{ font-size:1rem; }}
 .pbfh .h {{ color:{_MU}; font-size:.76rem; font-weight:600; margin-inline-start:auto; }}
 .pbfs {{ display:flex; align-items:center; gap:6px; font-weight:800; font-size:.74rem; color:#AEB7C6; letter-spacing:.08em; text-transform:uppercase; }}
 .pbfs .ms {{ color:{_C}; font-size:1rem; }}
-/* the two ways to pick strategies: one full-width switch in the brand colours, the chosen half lit */
-[class*="st-key-pbswitch"] {{ background:{T.BOX_BG}; border:1px solid {_BD}; border-radius:16px; padding:5px; }}
-[class*="st-key-pbswitch"] [data-testid="stHorizontalBlock"] {{ gap:5px !important; flex-wrap:nowrap !important; }}
+/* the two ways to pick strategies: two separate tiles, the chosen one softly lit */
+[class*="st-key-pbswitch"] [data-testid="stHorizontalBlock"] {{ gap:12px !important; flex-wrap:nowrap !important; align-items:stretch !important; }}
 [class*="st-key-pbswitch"] [data-testid="stColumn"] {{ min-width:0 !important; }}
 [class*="st-key-pbmode_"] {{ position:relative; }}
 [class*="st-key-pbmode_"] [data-testid="stElementContainer"] {{ position:static !important; }}
 [class*="st-key-pbmode_"] [class*="st-key-pb_mode_"] {{ position:absolute !important; inset:0; z-index:4; margin:0 !important; width:auto !important; }}
 [class*="st-key-pbmode_"] [class*="st-key-pb_mode_"] .stButton, [class*="st-key-pbmode_"] [class*="st-key-pb_mode_"] button
   {{ width:100% !important; height:100% !important; opacity:0; cursor:pointer; }}
-.pbmode {{ display:flex; align-items:center; gap:10px; min-height:58px; box-sizing:border-box; border-radius:12px; padding:9px 14px;
-  color:#AEB7C6; transition:background .18s, color .18s, box-shadow .18s; }}
-[class*="st-key-pbmode_"]:hover .pbmode:not(.on) {{ background:rgba(61,123,255,.10); color:#fff; }}
-.pbmode.on {{ background:linear-gradient(100deg,{_A},{_V} 70%,#6D5CF6); color:#fff; box-shadow:0 10px 26px rgba(61,123,255,.30), inset 0 1px 0 rgba(255,255,255,.18); }}
+.pbmode {{ position:relative; overflow:hidden; display:flex; align-items:center; gap:10px; height:62px; box-sizing:border-box; border-radius:14px;
+  padding:9px 15px; color:#AEB7C6; background:{T.BOX_BG}; border:1px solid {_BD}; transition:background .18s, color .18s, border-color .18s; }}
+[class*="st-key-pbmode_"]:hover .pbmode:not(.on) {{ border-color:{_A}66; color:#fff; }}
+.pbmode.on {{ color:#fff; border-color:{_A}88; background:{T.TOP}, linear-gradient(135deg,rgba(61,123,255,.20),rgba(139,92,246,.14) 70%,{T.CARD});
+  box-shadow:0 8px 22px rgba(61,123,255,.14); }}
 .pbmode .i .ms {{ font-size:1.2rem; color:{_C}; background:rgba(34,211,238,.12); border-radius:10px; padding:6px; }}
-.pbmode.on .i .ms {{ color:#fff; background:rgba(255,255,255,.18); }}
+.pbmode.on .i .ms {{ color:#fff; background:rgba(61,123,255,.35); }}
 .pbmode .nm {{ font-weight:800; font-size:.95rem; line-height:1.25; }}
 .pbmode .ct {{ margin-inline-start:auto; font-size:.72rem; font-weight:800; min-width:26px; height:22px; padding:0 8px; border-radius:999px;
   display:inline-grid; place-items:center; background:rgba(138,148,167,.16); color:#C9D0DC; }}
@@ -433,6 +462,45 @@ a.pblink .ms {{ font-size:1rem; }}
   border:1px solid {_BD}; background:rgba(138,148,167,.08); color:#C9D0DC; }}
 .aiday span.go {{ border-color:rgba(34,197,94,.5); background:rgba(34,197,94,.12); color:#BBF7D0; }}
 .aiday span b {{ color:#fff; }}
+/* name ideas under the name */
+[class*="st-key-pbnames"] {{ flex-wrap:wrap !important; gap:6px !important; align-items:center !important; margin-top:-4px; }}
+.pbni {{ display:inline-flex; align-items:center; gap:4px; font-size:.72rem; font-weight:800; color:{_G}; }}
+.pbni .ms {{ font-size:1rem; }}
+[class*="st-key-pbnames"] button {{ min-height:30px !important; padding:2px 12px !important; border-radius:999px !important;
+  border:1px dashed {_A}77 !important; background:rgba(61,123,255,.06) !important; }}
+[class*="st-key-pbnames"] button:hover {{ border-style:solid !important; background:rgba(61,123,255,.16) !important; }}
+[class*="st-key-pbnames"] button p {{ font-size:.78rem !important; font-weight:700 !important; color:#DCE6FF !important; }}
+.pbfs2 {{ margin-top:12px; }}
+/* the kinds of strategy: tiles; pointing at one drops down its strategies */
+[class*="st-key-pbf_"] {{ overflow:visible !important; }}
+[class*="st-key-pbf_"]::before {{ border-radius:18px 18px 0 0; }}
+[class*="st-key-pbkinds_"] [data-testid="stHorizontalBlock"] {{ gap:8px !important; margin-bottom:8px; }}
+[class*="st-key-pbkind_"] {{ position:relative; }}
+.pbkd {{ display:flex; flex-direction:column; align-items:flex-start; gap:5px; height:92px; box-sizing:border-box; border:1px solid {_BD};
+  border-radius:14px; background:{T.BOX_BG}; padding:10px 12px; cursor:default; transition:border-color .15s, background .15s; }}
+.pbkd .i .ms {{ color:{_C}; background:rgba(34,211,238,.12); border-radius:9px; padding:5px; font-size:1.05rem; }}
+.pbkd .nm {{ font-weight:800; font-size:.84rem; color:#fff; line-height:1.2; }}
+.pbkd .ct {{ display:flex; align-items:center; gap:2px; font-size:.68rem; color:{_MU}; font-weight:700; margin-top:auto; }}
+.pbkd .ct .ms {{ font-size:1rem; transition:transform .15s; }}
+.pbkd.has {{ border-color:{_A}77; background:{T.TOP_THIN}, linear-gradient(135deg,rgba(61,123,255,.14),rgba(139,92,246,.08) 70%,{T.CARD}); }}
+.pbkd.has .ct {{ color:#9CC3FF; }}
+[class*="st-key-pbkind_"]:hover .pbkd {{ border-color:{_A}; }}
+[class*="st-key-pbkind_"]:hover .pbkd .ct .ms {{ transform:rotate(180deg); }}
+[class*="st-key-pbkindl_"] {{ display:none !important; position:absolute !important; top:100%; inset-inline-start:0; z-index:80; min-width:260px;
+  width:max-content !important; max-width:340px; gap:3px !important; padding:6px !important; margin-top:0 !important; background:#0B1530;
+  border:1px solid {_A}55; border-radius:14px; box-shadow:0 22px 44px rgba(0,0,0,.55); }}
+[class*="st-key-pbkindl_"][class*="_R"] {{ inset-inline-start:auto; inset-inline-end:0; }}
+[class*="st-key-pbkind_"]:hover [class*="st-key-pbkindl_"], [class*="st-key-pbkind_"]:focus-within [class*="st-key-pbkindl_"] {{ display:flex !important; }}
+[class*="st-key-pbkindl_"] button {{ justify-content:flex-start !important; min-height:36px !important; border-radius:10px !important;
+  border:1px solid transparent !important; background:transparent !important; box-shadow:none !important; }}
+[class*="st-key-pbkindl_"] button:hover {{ background:rgba(61,123,255,.14) !important; }}
+[class*="st-key-pbkindl_"] button p {{ font-size:.84rem !important; font-weight:700 !important; color:#DCE2EC !important; text-align:start; }}
+[class*="st-key-pbkindl_"] button [data-testid="stIconMaterial"] {{ color:{_MU} !important; }}
+[class*="st-key-pbkindl_"] button[kind="primary"], [class*="st-key-pbkindl_"] button[data-testid="stBaseButton-primary"] {{
+  background:rgba(61,123,255,.18) !important; border-color:{_A}55 !important; }}
+[class*="st-key-pbkindl_"] button[kind="primary"] [data-testid="stIconMaterial"],
+[class*="st-key-pbkindl_"] button[data-testid="stBaseButton-primary"] [data-testid="stIconMaterial"] {{ color:{_C} !important; }}
+@media (max-width: 640px) {{ [class*="st-key-pbkindl_"] {{ min-width:220px; }} }}
 /* the lab panel between the strategies and what the bot buys */
 [class*="st-key-pblab"] {{ margin-top:16px; }}
 [class*="st-key-pblab"] .xtp {{ margin-bottom:8px; }}
@@ -485,7 +553,6 @@ PAGE_RTL_CSS = """<style>
 .pbp::before, .pbid::before { left:auto; right:0; }
 .pbp { padding:14px 19px 8px 16px; }
 [class*="st-key-pbf_"]::before { background:linear-gradient(270deg,#3D7BFF,#8B5CF6,#22D3EE); }
-.pbmode.on { background:linear-gradient(260deg,#3D7BFF,#8B5CF6 70%,#6D5CF6); }
 [class*="st-key-pb_create"] button { background:linear-gradient(265deg,#3D7BFF 0%,#8B5CF6 62%,#22D3EE 130%) !important; }
 [class*="st-key-pbq_row"] button { padding:3px 10px 3px 14px !important; }
 </style>"""
@@ -1180,10 +1247,27 @@ def _contrib(closed, by, cap):
     return g
 
 
-def _bars_from(g, labels, title, key, container):
-    hover = [f"{sm(r.pnl)} · " + L(f"{int(r.n)} trades · win {r.wins / r.n * 100:.0f}%", f"{int(r.n)} صفقة · نجاح {r.wins / r.n * 100:.0f}%")
-             for r in g.itertuples()]
-    ui.chart(charts.pct_bars(labels, list(g["pct"].values), title, max(250, 30 * len(g) + 80), hover), key=key, container=container)
+def _ww_card(title, sub, icon, g, labels, logos=None, syms=None):
+    """One 'what worked' panel: a row per group with a bar that grows left (loss) or right (gain) from the middle, its share of
+    the return, and its trades and win rate. Best first."""
+    g = g.assign(_lab=labels).sort_values("pct", ascending=False)
+    top = float(g["pct"].abs().max() or 1.0)
+    rows = []
+    for key, r in g.iterrows():
+        w = abs(float(r["pct"])) / top * 100
+        pos = r["pct"] >= 0
+        lead = ""
+        if syms is not None:
+            lead = T.logo_circle(str(key), (logos or {}).get(str(key)), 20)
+        name = (f'<a class="wwl" href="{T.esc(ui.href(str(key)))}" target="_self">{lead}<b>{T.esc(r["_lab"])}</b></a>' if syms is not None
+                else f'<span class="wwl"><b>{T.esc(r["_lab"])}</b></span>')
+        info = L(f"{int(r['n'])} trades · win {r['wins'] / r['n'] * 100:.0f}%", f"{int(r['n'])} صفقة · نجاح {r['wins'] / r['n'] * 100:.0f}%")
+        bar = f'<i style="width:{w:.1f}%"></i>'
+        rows.append(f'<div class="wwr" title="{T.esc(sm(r["pnl"]) + " · " + info)}"><div class="wwn">{name}</div>'
+                    f'<div class="wwt"><span class="h n">{"" if pos else bar}</span><span class="h p">{bar if pos else ""}</span></div>'
+                    f'<b class="wwv {"up" if pos else "dn"}">{r["pct"]:+.2f}%</b></div>')
+    return (f'<div class="wwc"><div class="wwh"><span class="i">{T.icon(icon)}</span><div><b>{T.esc(title)}</b>'
+            f'<span>{T.esc(sub)}</span></div></div><div class="wwb">{"".join(rows)}</div></div>')
 
 
 def what_worked(v):
@@ -1194,19 +1278,28 @@ def what_worked(v):
     if closed.empty:
         st.caption(L("This part fills in after the first closed trade.", "هذا الجزء يمتلئ بعد أول صفقة مغلقة."))
         return
-    c1, c2 = st.columns(2, gap="medium")
+    cards = []
     if v["group"]:
         g = _contrib(closed, "Symbol", v["cap"])
         g = g.loc[list(dict.fromkeys(list(g["pct"].nlargest(6).index) + list(g["pct"].nsmallest(6).index)))]
-        _bars_from(g, list(g.index), L("By stock, best and worst", "حسب السهم، الأفضل والأسوأ"), f"pb_ww_{v['key']}", c1)
+        cards.append(_ww_card(L("By stock", "حسب السهم"), L("The 6 best and the 6 worst", "أفضل 6 وأسوأ 6"), "show_chart", g, list(g.index),
+                              data.logos(list(g.index)), syms=True))
     else:
         g = _contrib(closed, "Exit Reason", v["cap"])
-        _bars_from(g, [L(x, EXIT_AR.get(x, x)) for x in g.index], L("By exit reason", "حسب سبب الخروج"), f"pb_ww_{v['key']}", c1)
+        cards.append(_ww_card(L("By exit reason", "حسب سبب الخروج"), L("How the trades ended", "كيف انتهت الصفقات"), "logout", g,
+                              [L(x, EXIT_AR.get(x, x)) for x in g.index]))
     g = _contrib(closed, "Strategy", v["cap"])
-    _bars_from(g, [strat_short(k) for k in g.index], L("By strategy", "حسب الاستراتيجية"), f"pb_wws_{v['key']}", c2)
+    cards.append(_ww_card(L("By strategy", "حسب الاستراتيجية"), L("Which rules paid", "أي القواعد ربّحت"), "smart_toy", g,
+                          [strat_short(k) for k in g.index]))
     g = _contrib(closed, "Type", v["cap"])
     if len(g) > 1:
-        _bars_from(g, [L(*TYPE_NAME.get(k, (k, k))) for k in g.index], L("By type", "حسب النوع"), f"pb_wwt_{v['key']}", c2)
+        cards.append(_ww_card(L("By type", "حسب النوع"), L("Stocks and options", "أسهم وأوبشن"), "category", g,
+                              [L(*TYPE_NAME.get(k, (k, k))) for k in g.index]))
+    else:
+        g = _contrib(closed.assign(Side=np.where(closed["P&L $"] > 0, "win", "loss")), "Side", v["cap"])
+        cards.append(_ww_card(L("Wins and losses", "الرابحة والخاسرة"), L("Their share of the return", "نصيبها من العائد"), "balance", g,
+                              [L("Winning trades", "صفقات رابحة") if k == "win" else L("Losing trades", "صفقات خاسرة") for k in g.index]))
+    ui.html(f'<div class="wwg">{"".join(cards)}</div>')
 
 
 def dashboard(v):
@@ -2084,7 +2177,7 @@ def compare_section(sims):
         st.caption(L(f"{sym_r} · from {start} · buy & hold {bh:+.1f}% · sorted by Sharpe",
                      f"{sym_r} · من {start} · الشراء والاحتفاظ {bh:+.1f}% · مرتبة حسب شارب"))
         tr_col, cagr = col["Total Return %"], col["CAGR %"]
-        ui.table(comp, pills={tr_col}, signed={cagr}, height=600,
+        ui.table(comp, pills={tr_col}, signed={cagr, col["Max Drawdown %"]}, height=600,
                  fmt={tr_col: "{:+.1f}%", cagr: "{:+.1f}%", col["Sharpe"]: "{:.2f}", col["Max Drawdown %"]: "{:.1f}%", col["Win Rate %"]: "{:.0f}%",
                       tr_c: "{:,.0f}"})
         ui.chart(charts.hbar(list(comp[name_c]), list(comp[tr_col]), L("Total return by strategy", "العائد الكلي حسب الاستراتيجية"),
@@ -2186,11 +2279,16 @@ def _qt_settings():
     return cfg
 
 
+def _bad_periods(p):
+    """Fast / (middle /) slow periods out of order."""
+    return ("fast" in p and "slow" in p and p["fast"] >= p["slow"]) or ("mid" in p and not p["fast"] < p["mid"] < p["slow"])
+
+
 def _qt_backtest(cfg, got):
     df, spy, start = got
     name = cfg["name"]
     p = PB.clean_params(name, cfg["params"])
-    if "fast" in p and "slow" in p and p["fast"] >= p["slow"]:
+    if _bad_periods(p):
         st.error(L("The fast period must be smaller than the slow period.", "الفترة السريعة لازم تكون أصغر من البطيئة."))
         return
     sim = PB.simulate(_qt_bot(cfg["sym"], name, p, cfg, start), {cfg["sym"]: df}, spy)
@@ -2291,7 +2389,7 @@ def _qt_optimizer(cfg, got):
             for y in ys:
                 for x in xs:
                     p = PB.clean_params(name, dict(cfg["params"], **{px_: x, py_: y}))
-                    if "fast" in p and "slow" in p and p["fast"] >= p["slow"]:
+                    if _bad_periods(p):
                         continue
                     r = PB.simulate(_qt_bot(cfg["sym"], name, p, cfg, start), {cfg["sym"]: df}, spy)
                     if r["ok"] and not r["waiting"] and r.get("metrics"):
@@ -2575,6 +2673,53 @@ def instrument_caption(instr):
             "both": both_caption()}[instr]
 
 
+NAME_IDEAS = {"trend": [("Trend Rider", "راكب الاتجاه"), ("Wave Surfer", "راكب الموجة")],
+              "momentum": [("Momentum Hunter", "صياد الزخم"), ("Rocket Picks", "صواريخ السوق")],
+              "volatility": [("Breakout Scout", "كشّاف الاختراقات"), ("Range Breaker", "كاسر النطاق")],
+              "volume": [("Volume Tracker", "متتبع السيولة"), ("Smart Money", "الأموال الذكية")],
+              "reversion": [("Dip Buyer", "قنّاص النزول"), ("Bounce Catcher", "صياد الارتداد")],
+              "stat": [("Stat Arb Desk", "مكتب المراجحة"), ("Market Neutral", "محايد السوق")],
+              "multi": [("Smart Blend", "المزيج الذكي"), ("Signal Council", "مجلس الإشارات")]}
+
+
+def _set_name(txt):
+    ss["pb_name"] = txt
+
+
+def name_ideas(way):
+    """A few names that fit what the form says the bot does (they update as the choices change)."""
+    store = "pb_store_pb" if way == "combo" else "pb_store"
+    strats = [x for x in (ss.get(store) or []) if x in PB.ALL_STRATEGIES]
+    kind = ss.get("pb_kind") if ss.get("pb_kind") in PB.KINDS else DEFAULTS["pb_kind"]
+    value = {"company": str(ss.get("pb_symbol") or "").strip().upper() or "AAPL", "sector": ss.get("pb_sector") or "",
+             "industry": ss.get("pb_industry") or "", "all": "all"}[kind]
+    where = {"company": value, "sector": sector_name(value) if value else "", "industry": gics_name(value) if value else "",
+             "all": L("Market", "السوق")}[kind]
+    kinds = [engine.KIND_OF.get(x) for x in strats if engine.KIND_OF.get(x)]
+    main = max(set(kinds), key=kinds.count) if kinds else "trend"
+    out = []
+    for en, ar_ in NAME_IDEAS.get(main, NAME_IDEAS["trend"]):
+        out.append(L(en, ar_))
+    if where:
+        out.append(f"{where} · {L(*NAME_IDEAS.get(main, NAME_IDEAS['trend'])[0])}"[:40])
+    if strats:
+        try:
+            out.append(_default_name(kind, value, strats, None, ss.get("pb_instr") if way != "combo" else "stock"))
+        except (KeyError, IndexError):
+            pass
+    return list(dict.fromkeys(x for x in out if x))[:4]
+
+
+def name_ideas_row(way):
+    ideas = name_ideas(way)
+    if not ideas:
+        return
+    with st.container(key="pbnames", horizontal=True):
+        ui.html(f'<span class="pbni">{T.icon("lightbulb")}{L("Ideas", "أفكار")}</span>')
+        for i, txt in enumerate(ideas):
+            st.button(txt, key=f"pb_nm_{i}", on_click=_set_name, args=(txt,))
+
+
 def _default_name(kind, value, strats, need=None, instr="stock"):
     n = len(strats)
     if n > 1 and all(PB.is_playbook(s) for s in strats):
@@ -2676,7 +2821,86 @@ def _classic_rules(name, p):
         return [(f"MFI {g('period')} crosses back above {g('buy_below')} while the close is above SMA 200",
                  f"{iso('MFI ' + g('period'))} يرجع فوق {g('buy_below')} والإغلاق فوق {iso('SMA 200')}"),
                 (f"MFI {g('period')} is above {g('sell_above')}", f"{iso('MFI ' + g('period'))} فوق {g('sell_above')}")]
+    if name == "Trend Following":
+        return [(f"The trend switches on: close above SMA {g('fast')}, SMA {g('fast')} above SMA {g('slow')}, and ADX above {g('adx_min')}",
+                 f"الاتجاه يبدأ: الإغلاق فوق {iso('SMA ' + g('fast'))}، و{iso('SMA ' + g('fast'))} فوق {iso('SMA ' + g('slow'))}، و{iso('ADX')} فوق {g('adx_min')}"),
+                (f"The close crosses below SMA {g('fast')}", f"الإغلاق يقطع تحت {iso('SMA ' + g('fast'))}")]
+    if name == "Moving Average Crossover":
+        return [(f"EMA {g('fast')} crosses above EMA {g('mid')} while EMA {g('mid')} is above EMA {g('slow')}",
+                 f"{iso('EMA ' + g('fast'))} يقطع فوق {iso('EMA ' + g('mid'))} و{iso('EMA ' + g('mid'))} فوق {iso('EMA ' + g('slow'))}"),
+                (f"EMA {g('fast')} crosses below EMA {g('mid')}", f"{iso('EMA ' + g('fast'))} يقطع تحت {iso('EMA ' + g('mid'))}")]
+    if name == "Momentum Strategy":
+        return [(f"The return of the last {g('lookback')} days rises above {g('min_ret')}% and the last month is up",
+                 f"عائد آخر {g('lookback')} يوم يصير فوق {g('min_ret')}% وآخر شهر طالع"),
+                (f"The return of the last {g('exit_lookback')} days is negative", f"عائد آخر {g('exit_lookback')} يوم سالب")]
+    if name == "Breakout Strategy":
+        return [(f"The close breaks above the highest high of the {g('n')} days before, above SMA 200",
+                 f"الإغلاق يخترق أعلى قمة في الـ {g('n')} يوم اللي قبله، وفوق {iso('SMA 200')}"),
+                (f"The close crosses below SMA {g('exit_ma')}", f"الإغلاق يقطع تحت {iso('SMA ' + g('exit_ma'))}")]
+    if name == "Volatility Breakout":
+        return [(f"A day closes more than {g('k')} x ATR {g('atr')} above the day before, near its high",
+                 f"يوم يقفل فوق اليوم اللي قبله بأكثر من {g('k')} × {iso('ATR ' + g('atr'))}، وقريب من قمته"),
+                (f"The close crosses below EMA {g('exit_ema')}", f"الإغلاق يقطع تحت {iso('EMA ' + g('exit_ema'))}")]
+    if name == "Mean Reversion":
+        return [(f"The close falls more than {g('z_in')} standard deviations under its {g('period')}-day average, above SMA 200",
+                 f"الإغلاق ينزل أكثر من {g('z_in')} انحراف معياري تحت متوسط {g('period')} يوم، وفوق {iso('SMA 200')}"),
+                (f"It comes back to the average (z above {g('z_out')})", f"يرجع للمتوسط ({iso('z')} فوق {g('z_out')})")]
+    if name == "VWAP Mean Reversion":
+        return [(f"The close falls more than {g('dev')}% under the {g('period')}-day VWAP, above SMA 200",
+                 f"الإغلاق ينزل أكثر من {g('dev')}% تحت {iso('VWAP')} {g('period')} يوم، وفوق {iso('SMA 200')}"),
+                ("The close is back at the VWAP", f"الإغلاق يرجع لـ {iso('VWAP')}")]
+    if name == "VWAP Reclaim / Pullback":
+        return [(f"Above SMA {g('trend')}, the price dipped under the {g('period')}-day VWAP in the last {g('lookback')} days and closes back above it",
+                 f"فوق {iso('SMA ' + g('trend'))}، السعر نزل تحت {iso('VWAP')} {g('period')} يوم خلال آخر {g('lookback')} أيام ويقفل فوقه من جديد"),
+                (f"The close falls {g('exit_pct')}% under the VWAP, or crosses below SMA {g('trend')}",
+                 f"الإغلاق ينزل {g('exit_pct')}% تحت {iso('VWAP')}، أو يقطع تحت {iso('SMA ' + g('trend'))}")]
+    if name == "Relative Strength Strategy":
+        return [(f"The stock / S&P 500 line makes a new {g('lookback')}-day high while the close is above SMA 50",
+                 f"خط السهم ÷ {iso('S&P 500')} يسوي قمة جديدة لـ {g('lookback')} يوم والإغلاق فوق {iso('SMA 50')}"),
+                (f"The line crosses below its {g('rs_ma')}-day average", f"الخط يقطع تحت متوسطه {g('rs_ma')} يوم")]
+    if name == "Pairs Trading":
+        return [(f"The stock / S&P 500 ratio falls more than {g('z_in')} standard deviations under its {g('period')}-day average "
+                 "(cheap against the market); this bot buys the stock only",
+                 f"نسبة السهم ÷ {iso('S&P 500')} تنزل أكثر من {g('z_in')} انحراف معياري تحت متوسط {g('period')} يوم (رخيص مقابل السوق)؛ "
+                 "البوت يشتري السهم بس"),
+                (f"The ratio comes back to its average (z above {g('z_out')})", f"النسبة ترجع لمتوسطها ({iso('z')} فوق {g('z_out')})")]
+    if name == "Statistical Arbitrage":
+        return [(f"The stock's move of the last {g('lookback')} days, after what the market explains (beta x S&P 500), is under "
+                 f"-{g('z_in')} standard deviations of its last {g('window')} days, above SMA 200",
+                 f"حركة السهم آخر {g('lookback')} أيام، بعد شيل اللي يفسّره السوق (بيتا × {iso('S&P 500')})، تحت -{g('z_in')} انحراف معياري "
+                 f"من آخر {g('window')} يوم، وفوق {iso('SMA 200')}"),
+                (f"It recovers (z above 0), or after {g('hold')} sessions", f"يتعافى ({iso('z')} فوق 0)، أو بعد {g('hold')} جلسات")]
+    if name == "Multi-Factor Strategy":
+        return [(f"The average of four factors (momentum, trend, low volatility, small dip), each against the stock's last "
+                 f"{g('window')} days, crosses above {g('entry')}",
+                 f"متوسط أربع عوامل (الزخم، الاتجاه، الهدوء، النزول البسيط)، كل واحد مقابل آخر {g('window')} يوم للسهم، يقطع فوق {g('entry')}"),
+                (f"The average drops under {g('exit')}", f"المتوسط ينزل تحت {g('exit')}")]
+    if name == "Regime-Based Strategy":
+        return [(f"Trending (ADX above {g('adx_min')}, above SMA 200): the close crosses above EMA {g('fast')}. Ranging: RSI(2) falls under 10",
+                 f"اتجاه ({iso('ADX')} فوق {g('adx_min')}، وفوق {iso('SMA 200')}): الإغلاق يقطع فوق {iso('EMA ' + g('fast'))}. "
+                 f"تذبذب: {iso('RSI(2)')} ينزل تحت 10"),
+                (f"The close crosses below EMA {g('slow')}, a range trade's RSI(2) is above 80, or the close is under SMA 200",
+                 f"الإغلاق يقطع تحت {iso('EMA ' + g('slow'))}، أو {iso('RSI(2)')} فوق 80 لصفقة تذبذب، أو الإغلاق تحت {iso('SMA 200')}")]
+    if name == "Machine Learning Signal Combination":
+        return [(f"Six indicators vote up or down; each vote is weighted by how often it was right on this stock over the last "
+                 f"{g('window')} days ({g('horizon')} days later). The weighted vote crosses above {g('threshold')}",
+                 f"ست مؤشرات تصوّت طالع أو نازل، وكل صوت يوزن بكم مرة صدق على هالسهم خلال آخر {g('window')} يوم (بعد {g('horizon')} أيام). "
+                 f"التصويت الموزون يقطع فوق {g('threshold')}"),
+                ("The weighted vote turns negative", "التصويت الموزون يصير سالب")]
+    if name == "Portfolio-Level Strategy":
+        return [(f"On the first session of the month: the {g('lookback')}-day return is positive and the close is above SMA {g('trend')} "
+                 "(the bot fills its places with the strongest first)",
+                 f"أول جلسة في الشهر: عائد {g('lookback')} يوم موجب والإغلاق فوق {iso('SMA ' + g('trend'))} (البوت يعبّي أماكنه بالأقوى أول)"),
+                ("At a monthly check it no longer qualifies", "في الفحص الشهري ما عاد يستوفي الشرط")]
     return [("—", "—"), ("—", "—")]
+
+
+def _classic_sub(name):
+    k = engine.KINDS.get(engine.KIND_OF.get(name, ""), ("", ""))
+    sub = L("Daily candles", "شموع يومية") + (" · " + L(k[0], k[1]) if k[0] else "")
+    if name in engine.NEEDS_MARKET:
+        sub += " · " + L("compared with the S&P 500 · buys only", "مقارنة بـ S&P 500 · شراء فقط")
+    return sub
 
 
 def classic_rules_html(name, params=None):
@@ -2690,7 +2914,7 @@ def classic_rules_html(name, params=None):
                  + "".join(f"<li>{_rule_txt(L(en, ar_))}</li>" for en, ar_ in items) + "</ul></div>"
                  for i, (ge, ga, items) in enumerate(groups, 1))
     return (f'<div class="pbrl"><div class="hd"><span class="i">{T.icon("insights")}</span>'
-            f'<div class="nm"><b>{T.esc(strat_name(name))}</b><span>{T.esc(L("Daily candles · classic", "شموع يومية · كلاسيكية"))}</span></div>'
+            f'<div class="nm"><b>{T.esc(strat_name(name))}</b><span>{T.esc(_classic_sub(name))}</span></div>'
             f'</div><div class="gr">{gh}</div></div>')
 
 
@@ -2781,16 +3005,52 @@ def together(way, strats):
     return mode_, need, win
 
 
+def _toggle_strat(store, name):
+    cur = list(ss.get(store) or [])
+    ss[store] = [x for x in cur if x != name] if name in cur else cur + [name]
+
+
+def kind_picker(way, names, store):
+    """The kinds of strategy (trend, momentum, volatility...) as tiles; pointing at one drops down its strategies, and a
+    click adds or removes one."""
+    chosen = set(ss.get(store) or [])
+    kinds = [k for k in engine.KINDS if any(engine.KIND_OF.get(n) == k for n in names)]
+    per_row = 4
+    ui.html(f'<div class="pbfs">{T.icon("category")}{L("Kind of strategy", "نوع الاستراتيجية")}</div>')
+    with st.container(key=f"pbkinds_{way}"):
+        for r0 in range(0, len(kinds), per_row):
+            row = kinds[r0:r0 + per_row]
+            cols = st.columns(per_row, gap="small")
+            for i, (col, k) in enumerate(zip(cols, row)):
+                en, ar_, ic = engine.KINDS[k]
+                items = [n for n in names if engine.KIND_OF.get(n) == k]
+                n_on = sum(n in chosen for n in items)
+                end = "_R" if i >= per_row // 2 else ""
+                with col:
+                    with st.container(key=f"pbkind_{way}_{k}"):
+                        ui.html(f'<div class="pbkd{" has" if n_on else ""}"><span class="i">{T.icon(ic)}</span>'
+                                f'<span class="nm">{T.esc(L(en, ar_))}</span>'
+                                f'<span class="ct">{L(f"{n_on} of {len(items)} chosen", f"{n_on} من {len(items)} مختارة") if n_on else L(f"{len(items)} strategies", f"{len(items)} استراتيجيات")}'
+                                f'{T.icon("expand_more")}</span></div>')
+                        with st.container(key=f"pbkindl_{way}_{k}{end}"):
+                            for n in items:
+                                on = n in chosen
+                                st.button(strat_name(n), key=f"pb_tg_{way}_{_slug(n)}", on_click=_toggle_strat, args=(store, n),
+                                          icon=":material/check_circle:" if on else ":material/add_circle_outline:",
+                                          type="primary" if on else "secondary", width="stretch")
+
+
 def _picker(way, kind):
     """One way of picking strategies: its drop-down, select all / clear, a '?' next to each chosen strategy, and (last) how they
     work together. Returns (strategies, mode, need, window)."""
     classic = way == "single"
     names = list(engine.STRATEGIES) if classic else list(PBK.PLAYBOOKS)
     store, wkey = ("pb_store", "pb_ms_single") if classic else ("pb_store_pb", "pb_ms_combo")
+    kind_picker(way, names, store)
     ss[wkey] = [s for s in dict.fromkeys(ss.get(store, [])) if s in names]       # in the order they were picked
-    st.multiselect(L("Strategies", "الاستراتيجيات") if classic else L("Combined strategies", "الاستراتيجيات المركّبة"), names, key=wkey,
-                   format_func=strat_name, on_change=_ms_changed, args=(wkey, store),
-                   placeholder=L("Choose one or more strategies", "اختر استراتيجية أو أكثر"))
+    st.multiselect(L("Chosen strategies", "الاستراتيجيات المختارة") if classic else L("Chosen combined strategies", "الاستراتيجيات المركّبة المختارة"),
+                   names, key=wkey, format_func=strat_name, on_change=_ms_changed, args=(wkey, store),
+                   placeholder=L("Point at a kind above, or type a name", "مرّر الماوس على نوع فوق، أو اكتب اسم"))
     strats = [s for s in names if s in ss.get(store, [])]
     every = names if classic else PBK.DAILY
     s1, s2, s3 = st.columns([1.2, 1, 3], vertical_alignment="center")
@@ -2878,7 +3138,7 @@ def lab_panel(kind, strats, combined):
             row(L("Holding the 100 stocks", "الاحتفاظ بالـ 100 سهم") if view == "company" else
                 L("Holding all the stocks", "الاحتفاظ بكل الأسهم"), bh, bh=True)
             chips = ui.table_chip(L("Strategy", "الاستراتيجية"), f"<b>{T.esc(strat_name(s))}</b>") + chips + per
-            ui.table(pd.DataFrame(rows), fmt=fmt, signed=(c_yr,), title=L("Tested on real prices", "مجرّب على أسعار حقيقية"),
+            ui.table(pd.DataFrame(rows), fmt=fmt, signed=(c_yr, c_dd), title=L("Tested on real prices", "مجرّب على أسعار حقيقية"),
                      icon="science", chips=chips, wrap=(L("Settings", "الإعدادات"),))
             note = lab.verdict(s, view, d)
             if view == "company":
@@ -2905,7 +3165,7 @@ def lab_panel(kind, strats, combined):
                 rows.append({L("Strategy", "الاستراتيجية"): _rtl(strat_name(s)), L("Your settings", "إعداداتك"): r_m[3] if r_m else None,
                              L("Lab pick", "اختيار المختبر"): _rtl(_lab_label(rec)), c_out: r_r[3] if r_r else None,
                              c_yr: r_r[4] if r_r else None, c_dd: r_r[5] if r_r else None})
-            ui.table(pd.DataFrame(rows), fmt={**fmt, L("Your settings", "إعداداتك"): "{:.2f}"}, signed=(c_yr,),
+            ui.table(pd.DataFrame(rows), fmt={**fmt, L("Your settings", "إعداداتك"): "{:.2f}"}, signed=(c_yr, c_dd),
                      title=L("Tested on real prices", "مجرّب على أسعار حقيقية"), icon="science", chips=chips + per,
                      wrap=(L("Lab pick", "اختيار المختبر"),))
             st.caption(L(f"Each strategy was tested on its own. \"Your settings\" = its Sharpe {y2} with the settings in this form"
@@ -2921,7 +3181,7 @@ def lab_panel(kind, strats, combined):
                 rank = [x for x in rank if x[0] in engine.STRATEGIES]
             ui.table(pd.DataFrame([{L("Strategy", "الاستراتيجية"): _rtl(strat_name(s)), L("Lab pick", "اختيار المختبر"): _rtl(_lab_label(v)),
                                     c_in: r[0], c_out: r[3], c_yr: r[4], c_dd: r[5]} for s, v, r in rank]),
-                     fmt=fmt, signed=(c_yr,), wrap=(L("Lab pick", "اختيار المختبر"),))
+                     fmt=fmt, signed=(c_yr, c_dd), wrap=(L("Lab pick", "اختيار المختبر"),))
             bh = (d.get("buy_hold") or {}).get("company" if view == "company" else "all") or [None] * 6
             st.caption(L(f"Every strategy went through this site's bot engine on real daily prices: {y1} (where ideas come from) and "
                          f"{y2} (the test). Holding the stocks {y2}: Sharpe {lab.sharpe(bh[3])}, {lab.pct(bh[4])} a year, max drop "
@@ -2938,21 +3198,40 @@ def bot_form(mode, bot=None):
     _init_form()
     ui.html(form_banner(mode, bot))
 
+    way = ss["pb_mode"] if ss.get("pb_mode") in MODES else "single"
+    combined = way == "combo"
+    orb = combined and PBK.ORB in (ss.get("pb_store_pb") or [])
+
     # 1) basics
     with st.container(key="pbf_1"):
         form_head(1, "badge", "Basics", "الأساسيات", "A name and the virtual money it starts with", "الاسم والمبلغ الوهمي اللي يبدأ فيه")
         a, c = st.columns([2, 1])
-        a.text_input(L("Bot name (optional)", "اسم البوت (اختياري)"), key="pb_name", max_chars=40,
-                     placeholder=L("e.g. Tech momentum", "مثال: بوت التقنية"))
+        a.text_input(L("Bot name *", "اسم البوت *"), key="pb_name", max_chars=40,
+                     placeholder=L("Type a name or pick an idea below", "اكتب اسم أو اختر فكرة من تحت"))
         c.text_input(L("Virtual capital ($)", "رأس المال الوهمي ($)"), key="pb_capital_txt", on_change=_capital_changed,
                      help=L("From 100 to 100,000,000. Commas are optional.", "من 100 إلى 100,000,000، والفواصل اختيارية."))
         if ss.get("pb_cap_bad"):
             c.caption(L("Type a number from 100 to 100,000,000.", "اكتب رقم من 100 إلى 100,000,000."))
+        name_ideas_row(way)
 
-    # 2) what it trades
+    # 2) what it buys and what it trades
     with st.container(key="pbf_2"):
-        form_head(2, "public", "What does the bot trade?", "وش يتداول البوت؟", "One company or a whole group of stocks",
-                  "شركة وحدة أو مجموعة أسهم كاملة")
+        form_head(2, "shopping_bag", "What does the bot buy and trade?", "وش يشتري البوت ووش يتداول؟",
+                  "What it buys, then which stocks it watches", "وش يشتري، وبعدها أي أسهم يراقب")
+        ui.html(f'<div class="pbfs">{T.icon("shopping_bag")}{L("What it buys", "وش يشتري")}</div>')
+        if combined:
+            instr = "stock"
+            chips = T.badge(L("Stocks", "أسهم"), "acc", "show_chart") + (T.badge(L("Long and short", "شراء وبيع مكشوف"), "vio", "swap_vert")
+                                                                         if orb else T.badge(L("Long", "شراء"), "vio", "trending_up"))
+            ui.html(f'<div>{chips}</div>')
+            st.caption(L("The combined strategies trade shares (each plans its own stop and target).",
+                         "الاستراتيجيات المركّبة تتداول أسهم (كل وحدة تخطط وقفها وهدفها)."))
+        else:
+            ui.valid("pb_instr", list(PB.INSTRUMENTS))
+            instr = st.segmented_control(L("What does the bot buy?", "وش يشتري البوت؟"), list(PB.INSTRUMENTS), key="pb_instr",
+                                         format_func=lambda k: L(*INSTR_LABEL[k]), label_visibility="collapsed") or "stock"
+            st.caption(instrument_caption(instr))
+        ui.html(f'<div class="pbfs pbfs2">{T.icon("public")}{L("What it trades", "وش يتداول")}</div>')
         ui.valid("pb_kind", PB.KINDS)
         kind = st.segmented_control(L("What does the bot trade?", "وش يتداول البوت؟"), list(PB.KINDS), key="pb_kind",
                                     format_func=lambda k: L(*KIND_LABEL[k]), label_visibility="collapsed") or DEFAULTS["pb_kind"]
@@ -2982,11 +3261,10 @@ def bot_form(mode, bot=None):
                          f"{count} شركة أمريكية: إس آند بي 500 وأكبر الشركات في الموقع. أول تحميل ياخذ وقت أطول (لين دقيقة) "
                          "لأنه يحمّل تاريخ كل الأسهم."))
 
-    # 3) strategies: two ways, each a drop-down
+    # 3) strategies: two ways; the kinds, then their strategies
     with st.container(key="pbf_3"):
-        form_head(3, "filter_alt", "Stock filter strategies", "فلتر استراتيجيات الأسهم", "Press ? next to a strategy to see how it works",
-                  "اضغط ? جنب الاستراتيجية عشان تشوف طريقتها")
-        way = ss["pb_mode"] if ss.get("pb_mode") in MODES else "single"
+        form_head(3, "filter_alt", "Stock filter strategies", "فلتر استراتيجيات الأسهم",
+                  "Point at a kind to see its strategies · ? explains each one", "مرّر الماوس على النوع عشان تشوف استراتيجياته · ? يشرح كل وحدة")
         with st.container(key="pbswitch"):
             t1, t2 = st.columns(2, gap="small")
             for col, m in ((t1, "single"), (t2, "combo")):
@@ -2995,25 +3273,14 @@ def bot_form(mode, bot=None):
                         ui.html(mode_tile(m, m == way))
                         st.button(L(*MODES[m][1:3]), key=f"pb_mode_{m}", on_click=_set_mode, args=(m,), width="stretch")
         strats, mode_, need, win = _picker(way, kind)
-    combined = way == "combo"
     orb = combined and PBK.ORB in strats
     if not orb:
         ui.safe(lab_panel, kind, strats, combined)
 
-    # 4) what it buys and how much per trade
+    # 4) how many trades, how much each, and the filters
     with st.container(key="pbf_4"):
-        form_head(4, "shopping_bag", "What does the bot buy?", "وش يشتري البوت؟", "And how much goes into each trade",
-                  "وكم يحط في كل صفقة")
-        if combined:
-            instr = "stock"
-            chips = T.badge(L("Stocks", "أسهم"), "acc", "show_chart") + (T.badge(L("Long and short", "شراء وبيع مكشوف"), "vio", "swap_vert")
-                                                                         if orb else T.badge(L("Long", "شراء"), "vio", "trending_up"))
-            ui.html(f'<div>{chips}</div>')
-        else:
-            ui.valid("pb_instr", list(PB.INSTRUMENTS))
-            instr = st.segmented_control(L("What does the bot buy?", "وش يشتري البوت؟"), list(PB.INSTRUMENTS), key="pb_instr",
-                                         format_func=lambda k: L(*INSTR_LABEL[k]), label_visibility="collapsed") or "stock"
-            st.caption(instrument_caption(instr))
+        form_head(4, "tune", "Trades and filters", "الصفقات والفلاتر", "How many at once, how much in each, and when not to buy",
+                  "كم صفقة مع بعض، وكم في كل وحدة، ومتى ما يشتري")
         if kind != "company":
             m1, m2 = st.columns([1, 2], vertical_alignment="bottom")
             maxpos = m1.number_input(L("Max open trades", "أقصى عدد صفقات مفتوحة"), 1, PB.MAX_POS_LIMIT, step=1, key="pb_maxpos",
@@ -3053,6 +3320,8 @@ def bot_form(mode, bot=None):
                          "S&P 500 closes under its 200-day average. They are checked at the close, like the signals.",
                          "الفلترين يمنعون الشراء الجديد بس (والـ Call كذلك)؛ والخيار الثاني لفلتر السوق يبيع الأسهم كمان لما يقفل "
                          "S&P 500 تحت متوسط 200 يوم. ينفحصون عند الإغلاق مثل الإشارات."))
+        elif kind == "company":
+            st.caption(L("One company: one trade at a time, with the whole balance.", "شركة وحدة: صفقة وحدة كل مرة بكامل الرصيد."))
 
     # 5) exits and costs
     with st.container(key="pbf_5"):
@@ -3143,7 +3412,7 @@ def bot_form(mode, bot=None):
         params = {s: keep.get(s, {}) for s in strats}                     # an edited bot keeps its own strategy settings
         for s in strats:
             p = PB.clean_params(s, params[s])
-            if "fast" in p and "slow" in p and p["fast"] >= p["slow"]:
+            if _bad_periods(p):
                 st.error(L(f"{strat_name(s)}: the fast period must be smaller than the slow period.",
                            f"{strat_name(s)}: الفترة السريعة لازم تكون أصغر من البطيئة."))
                 return
@@ -3160,7 +3429,10 @@ def bot_form(mode, bot=None):
                        f"لا توجد بيانات للرمز {value}. تأكد من الرمز (مثلاً AAPL أو BTC-USD أو 2222.SR)."))
             return
     combo = mode_ == "combo" and len(strats) > 1 and not orb
-    name = str(ss.get("pb_name") or "").strip() or _default_name(kind, value, strats, need if combo else None, instr)
+    name = str(ss.get("pb_name") or "").strip()
+    if not name:
+        st.error(L("Give the bot a name (type one, or pick an idea under the name).", "اكتب اسم للبوت (أو اختر فكرة تحت خانة الاسم)."))
+        return
     options = {"type": ss["pb_otype"], "dte": ss["pb_dte"], "strike": ss["pb_strike"], "alloc": ss["pb_oalloc"], "tp": ss["pb_otp"],
                "sl": ss["pb_osl"]} if instr != "stock" else None
     if combined:
@@ -3259,7 +3531,7 @@ def _ai_card(mid, r, have):
         if not x:
             return f'<tr class="{cls}"><td>{T.esc(name)}</td><td>—</td><td>—</td><td>—</td></tr>'
         return (f'<tr class="{cls}"><td>{T.esc(name)}</td><td>{x["sharpe"]:.2f}</td>'
-                f'<td class="{"up" if x["cagr"] > 0 else "dn"}">{x["cagr"] * 100:+.0f}%</td><td>{x["maxdd"] * 100:.0f}%</td></tr>')
+                f'<td class="{"up" if x["cagr"] > 0 else "dn"}">{x["cagr"] * 100:+.0f}%</td><td class="dn">{x["maxdd"] * 100:.0f}%</td></tr>')
     table = (f'<table><thead><tr><th>{L("2020 → now", "من 2020 لين اليوم")}</th>'
              f'<th>{L("Sharpe", "شارب")}</th><th>{L("Yearly", "سنوياً")}</th><th>{L("Max drop", "أكبر هبوط")}</th></tr></thead><tbody>'
              + row(L("With AI", "مع الذكاء"), t.get("ai"), "ai") + row(L("Without AI", "بدون الذكاء"), t.get("plain")) + "</tbody></table>")
@@ -3322,7 +3594,7 @@ def _ready_card(mid, r, have):
         if not x or x.get("sharpe") is None:
             return f'<tr class="{cls}"><td>{T.esc(name)}</td><td>—</td><td>—</td><td>—</td></tr>'
         return (f'<tr class="{cls}"><td>{T.esc(name)}</td><td>{x["sharpe"]:.2f}</td>'
-                f'<td class="{"up" if x["cagr"] > 0 else "dn"}">{x["cagr"] * 100:+.0f}%</td><td>{x["maxdd"] * 100:.0f}%</td></tr>')
+                f'<td class="{"up" if x["cagr"] > 0 else "dn"}">{x["cagr"] * 100:+.0f}%</td><td class="dn">{x["maxdd"] * 100:.0f}%</td></tr>')
     table = (f'<table><thead><tr><th>{L("2020 → now", "من 2020 لين اليوم")}</th><th>{L("Sharpe", "شارب")}</th>'
              f'<th>{L("Yearly", "سنوياً")}</th><th>{L("Max drop", "أكبر هبوط")}</th></tr></thead><tbody>'
              + row(L("This bot", "هالبوت"), t, "ai") + row(L("Holding all the stocks", "الاحتفاظ بكل الأسهم"), bh) + "</tbody></table>")
@@ -3598,4 +3870,4 @@ def page_paper_bots():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "10.1"
+BUILD = "11.0"

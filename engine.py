@@ -91,6 +91,230 @@ def strat_mfi(df, period=14, buy_below=20, sell_above=70):
     return _cross_up(m, pd.Series(float(buy_below), index=m.index)) & trend, m > float(sell_above)
 
 
+# ---- more strategies (daily candles, long only: a buy signal opens a trade, a sell signal closes it)
+def _first(cond):
+    """The first day of each run of True (a state that turns on becomes one buy signal)."""
+    cond = cond.fillna(False).astype(bool)
+    return cond & ~cond.shift(1, fill_value=False)
+
+
+def _market_close(market, index):
+    """The S&P 500 (SPY) close on the stock's own days (the last known close on a day SPY didn't trade), or None."""
+    if market is None or getattr(market, "empty", True):
+        return None
+    m = market["Close"].astype(float)
+    m = m[~m.index.duplicated(keep="last")].sort_index()
+    ix = index
+    if getattr(m.index, "tz", None) is not None:
+        m.index = m.index.tz_localize(None)
+    if getattr(ix, "tz", None) is not None:
+        ix = ix.tz_localize(None)
+    out = m.reindex(m.index.union(ix)).ffill().reindex(ix)
+    out.index = index
+    return out
+
+
+def _none(df):
+    f = pd.Series(False, index=df.index)
+    return f, f.copy()
+
+
+def strat_trend_following(df, fast=50, slow=200, adx_min=20):
+    """Trend following: the trend switches on (close above the fast average, fast above the slow average, and ADX showing a
+    real trend) -> buy; the close crosses back below the fast average -> sell."""
+    c = df["Close"]
+    f, s_ = ta.sma(c, int(fast)), ta.sma(c, int(slow))
+    a = ta.adx(df, 14)[0]
+    return _first((c > f) & (f > s_) & (a > float(adx_min))), _cross_down(c, f)
+
+
+def strat_ma_cross(df, fast=10, mid=30, slow=100):
+    """Moving-average crossover with three lines: the fast EMA crosses above the middle one while the middle one is above
+    the slow one (the long trend agrees) -> buy; the fast crosses back below the middle one -> sell."""
+    c = df["Close"]
+    f, m, s_ = ta.ema(c, int(fast)), ta.ema(c, int(mid)), ta.ema(c, int(slow))
+    return _cross_up(f, m) & (m > s_), _cross_down(f, m)
+
+
+def strat_momentum(df, lookback=126, min_ret=10.0, exit_lookback=63):
+    """Momentum: the return of the last N days is above the minimum and the last month is up -> buy; the return of the
+    shorter exit window turns negative -> sell."""
+    c = df["Close"]
+    r, r1 = c.pct_change(int(lookback)) * 100, c.pct_change(21)
+    return _first((r > float(min_ret)) & (r1 > 0)), c.pct_change(int(exit_lookback)) < 0
+
+
+def strat_breakout(df, n=55, exit_ma=50):
+    """Breakout: the close breaks above the highest high of the N days before while the stock is above its 200-day
+    average -> buy; the close falls below the exit average -> sell."""
+    c = df["Close"]
+    hh = df["High"].rolling(int(n)).max().shift(1)
+    sma200 = ta.sma(c, 200)
+    return (c > hh) & ((c > sma200) | sma200.isna()), _cross_down(c, ta.sma(c, int(exit_ma)))
+
+
+def strat_volatility_breakout(df, k=1.0, atr=14, exit_ema=10):
+    """Volatility breakout: a day that closes more than k x ATR above the day before, near its high -> buy (the range is
+    expanding upward); the close falls below the short EMA -> sell."""
+    c = df["Close"]
+    a = ta.atr(df, int(atr)).shift(1)
+    rng = (df["High"] - df["Low"]).replace(0, np.nan)
+    near_high = (c - df["Low"]) / rng >= 0.7
+    return (c > c.shift(1) + float(k) * a) & near_high, _cross_down(c, ta.ema(c, int(exit_ema)))
+
+
+def strat_mean_reversion(df, period=20, z_in=2.0, z_out=0.0):
+    """Mean reversion: the close falls more than z standard deviations under its N-day average while the stock is above
+    its 200-day average -> buy the dip; it comes back to the average (z above the exit level) -> sell."""
+    c = df["Close"]
+    m, sd = ta.sma(c, int(period)), c.rolling(int(period)).std()
+    z = (c - m) / sd.replace(0, np.nan)
+    sma200 = ta.sma(c, 200)
+    return _cross_down(z, pd.Series(-float(z_in), index=z.index)) & ((c > sma200) | sma200.isna()), z > float(z_out)
+
+
+def _rolling_vwap(df, n):
+    v = _vol(df)
+    tp = (df["High"] + df["Low"] + df["Close"]) / 3
+    return (tp * v).rolling(int(n)).sum() / v.rolling(int(n)).sum().replace(0, np.nan)
+
+
+def strat_vwap_reversion(df, period=20, dev=5.0):
+    """VWAP mean reversion: the close falls more than dev % under the N-day volume-weighted average price while the stock
+    is above its 200-day average -> buy; the close is back at the VWAP -> sell."""
+    c = df["Close"]
+    vw = _rolling_vwap(df, period)
+    d = (c / vw - 1) * 100
+    sma200 = ta.sma(c, 200)
+    return _cross_down(d, pd.Series(-float(dev), index=d.index)) & ((c > sma200) | sma200.isna()), c >= vw
+
+
+def strat_vwap_reclaim(df, period=20, trend=50, lookback=5, exit_pct=3.0):
+    """VWAP reclaim / pullback: in an uptrend (close above its trend average) the price dipped under the N-day VWAP in the
+    last few days and closes back above it -> buy; the close falls exit % under the VWAP or under the trend average -> sell."""
+    c = df["Close"]
+    vw = _rolling_vwap(df, period)
+    t = ta.sma(c, int(trend))
+    dipped = (c < vw).astype(float).rolling(int(lookback)).max().shift(1) > 0
+    return _cross_up(c, vw) & dipped & (c > t), (c < vw * (1 - float(exit_pct) / 100)) | _cross_down(c, t)
+
+
+def strat_relative_strength(df, market=None, lookback=63, rs_ma=50):
+    """Relative strength against the S&P 500: the stock / SPY line makes a new N-day high while the stock is above its
+    50-day average -> buy (it is leading the market); the line falls under its own average -> sell. Long only."""
+    m = _market_close(market, df.index)
+    if m is None:
+        return _none(df)
+    c = df["Close"]
+    rs = c / m
+    hi = rs.rolling(int(lookback)).max().shift(1)
+    return _first((rs > hi) & (c > ta.sma(c, 50))), _cross_down(rs, ta.sma(rs, int(rs_ma)))
+
+
+def strat_pairs(df, market=None, period=60, z_in=2.0, z_out=0.0):
+    """Pairs trading, one leg (this bot only buys): the stock against the S&P 500 (SPY). When the stock / SPY ratio falls
+    more than z standard deviations under its N-day average, the stock is cheap against the market -> buy; the ratio comes
+    back to its average -> sell."""
+    m = _market_close(market, df.index)
+    if m is None:
+        return _none(df)
+    ratio = np.log(df["Close"] / m)
+    mu, sd = ratio.rolling(int(period)).mean(), ratio.rolling(int(period)).std()
+    z = (ratio - mu) / sd.replace(0, np.nan)
+    return _cross_down(z, pd.Series(-float(z_in), index=z.index)), z > float(z_out)
+
+
+def strat_stat_arb(df, market=None, lookback=5, window=120, z_in=2.0, hold=10):
+    """Statistical arbitrage, one leg (long only): the stock's own move of the last few days, after taking out what the
+    market explains (beta x SPY), is unusually weak for this stock (z under -z_in) while it is above its 200-day average ->
+    buy the overreaction; it recovers (z above 0) or the holding time runs out -> sell."""
+    m = _market_close(market, df.index)
+    if m is None:
+        return _none(df)
+    c = df["Close"]
+    rs, rm = c.pct_change(), m.pct_change()
+    w = int(window)
+    beta = (rs.rolling(w).cov(rm) / rm.rolling(w).var().replace(0, np.nan)).clip(-3, 3)
+    k = int(lookback)
+    resid = c.pct_change(k) - beta * m.pct_change(k)
+    z = (resid - resid.rolling(w).mean()) / resid.rolling(w).std().replace(0, np.nan)
+    sma200 = ta.sma(c, 200)
+    ent = _cross_down(z, pd.Series(-float(z_in), index=z.index)) & ((c > sma200) | sma200.isna())
+    since = ent.astype(int).groupby(ent.cumsum()).cumcount()                  # sessions since the last buy signal
+    return ent, (z > 0) | ((since >= int(hold)) & (ent.cumsum() > 0))
+
+
+def _roll_z(x, w):
+    return (x - x.rolling(w, min_periods=w // 2).mean()) / x.rolling(w, min_periods=w // 2).std().replace(0, np.nan)
+
+
+def strat_multi_factor(df, window=252, entry=0.5, exit=0.0):
+    """Multi-factor: four price factors, each measured against the stock's own last year (a z-score): momentum (6 months),
+    trend (distance from the 200-day average), low volatility (calm is good) and short-term pullback (a small dip is good).
+    Their average crosses above the entry level -> buy; it drops under the exit level -> sell."""
+    c = df["Close"]
+    w = int(window)
+    mom = _roll_z(c.pct_change(126), w)
+    trd = _roll_z(c / ta.sma(c, 200) - 1, w)
+    vol = -_roll_z(c.pct_change().rolling(20).std(), w)
+    rev = -_roll_z(c.pct_change(5), w)
+    score = pd.concat([mom, trd, vol, 0.5 * rev], axis=1).mean(axis=1, skipna=False)
+    return _cross_up(score, pd.Series(float(entry), index=score.index)), score < float(exit)
+
+
+def strat_regime(df, adx_min=25, fast=20, slow=50):
+    """Regime-based: first it reads the regime. Trending (ADX above the level, close above the 200-day average): buy when
+    the close crosses above the fast EMA. Ranging (ADX under the level, still above the 200-day): buy the dip when RSI(2)
+    falls under 10. Sell when the close crosses under the slow EMA, when a range trade's RSI(2) is back above 80, or under
+    the 200-day average."""
+    c = df["Close"]
+    a = ta.adx(df, 14)[0]
+    sma200 = ta.sma(c, 200)
+    up = (c > sma200) | sma200.isna()
+    trend, rng = (a > float(adx_min)) & up, (a <= float(adx_min)) & up
+    r2 = ta.rsi(c, 2)
+    ent = (trend & _cross_up(c, ta.ema(c, int(fast)))) | (rng & _cross_down(r2, pd.Series(10.0, index=c.index)))
+    ext = _cross_down(c, ta.ema(c, int(slow))) | (~trend & (r2 > 80)) | (c < sma200)
+    return ent, ext
+
+
+def strat_ml_combo(df, window=120, horizon=10, threshold=0.3):
+    """Machine-learning signal combination (online learning): six indicators each vote up or down (trend, MACD, RSI, VWMA,
+    OBV, 3-month momentum). Every day each vote is weighted by how often it was right on this stock over the last N days
+    (was the price higher `horizon` days after it voted?), using only results already known that day. The weighted vote
+    crosses above the threshold -> buy; it turns negative -> sell."""
+    c, v = df["Close"], _vol(df)
+    line, sig, _ = ta.macd(c)
+    vwma = (c * v).rolling(20).sum() / v.rolling(20).sum().replace(0, np.nan)
+    obv = (np.sign(c.diff()).fillna(0) * v).cumsum()
+    votes = [c > ta.sma(c, 50), line > sig, ta.rsi(c, 14) > 50, c > vwma, obv > obv.rolling(20).mean(), c.pct_change(63) > 0]
+    h, w = int(horizon), int(window)
+    moved = np.sign(c / c.shift(h) - 1)                                        # known on day t: the move of the last h days
+    num = pd.Series(0.0, index=c.index)
+    den = pd.Series(0.0, index=c.index)
+    for x in votes:
+        s_ = x.astype(float) * 2 - 1                                           # +1 up, -1 down
+        hit = (s_.shift(h) * moved).rolling(w, min_periods=w // 2).mean()      # its vote h days ago against what happened
+        wgt = hit.clip(lower=0).fillna(0)
+        num += wgt * s_
+        den += wgt
+    score = num / den.replace(0, np.nan)
+    return _cross_up(score, pd.Series(float(threshold), index=c.index)), score < 0
+
+
+def strat_rotation(df, lookback=126, trend=200):
+    """Portfolio-level rotation: on the first session of every month each stock is checked; it qualifies when its return
+    over the lookback is positive and it is above its trend average. Qualifying stocks are bought (the bot fills its places
+    with the strongest of the last 3 months first); a held stock that no longer qualifies at the monthly check is sold."""
+    c = df["Close"]
+    ix = pd.Series(df.index, index=df.index)
+    per = ix.dt.to_period("M") if getattr(df.index, "tz", None) is None else ix.dt.tz_localize(None).dt.to_period("M")
+    first = per != per.shift(1)
+    first.iloc[0] = False
+    ok = (c.pct_change(int(lookback)) > 0) & (c > ta.sma(c, int(trend)))
+    return first & ok, first & ~ok
+
+
 STRATEGIES = {
     "SMA Crossover": (strat_sma, [("fast", "Fast SMA", 5, 100, 20, 1), ("slow", "Slow SMA", 10, 250, 50, 1)]),
     "EMA Crossover": (strat_ema, [("fast", "Fast EMA", 3, 50, 9, 1), ("slow", "Slow EMA", 5, 200, 21, 1)]),
@@ -113,7 +337,65 @@ STRATEGIES = {
     "MFI Money Flow (Volume)": (strat_mfi, [("period", "MFI period", 2, 30, 14, 1),
                                             ("buy_below", "Buy when MFI crosses up", 5, 50, 20, 1),
                                             ("sell_above", "Sell when MFI above", 50, 95, 70, 1)]),
+    "Trend Following": (strat_trend_following, [("fast", "Fast SMA", 10, 100, 50, 1), ("slow", "Slow SMA", 100, 300, 200, 1),
+                                                ("adx_min", "Minimum ADX", 10, 40, 20, 1)]),
+    "Moving Average Crossover": (strat_ma_cross, [("fast", "Fast EMA", 3, 50, 10, 1), ("mid", "Middle EMA", 10, 100, 30, 1),
+                                                  ("slow", "Slow EMA", 50, 250, 100, 1)]),
+    "Momentum Strategy": (strat_momentum, [("lookback", "Momentum window (days)", 20, 252, 126, 1),
+                                           ("min_ret", "Minimum return %", 0.0, 50.0, 10.0, 1.0),
+                                           ("exit_lookback", "Exit window (days)", 10, 126, 63, 1)]),
+    "Breakout Strategy": (strat_breakout, [("n", "Breakout high (days)", 20, 252, 55, 1), ("exit_ma", "Exit SMA", 10, 100, 50, 1)]),
+    "Volatility Breakout": (strat_volatility_breakout, [("k", "ATR multiple", 0.5, 3.0, 1.0, 0.1), ("atr", "ATR period", 5, 30, 14, 1),
+                                                        ("exit_ema", "Exit EMA", 5, 50, 10, 1)]),
+    "Mean Reversion": (strat_mean_reversion, [("period", "Period", 5, 60, 20, 1), ("z_in", "Buy under z", 1.0, 3.5, 2.0, 0.1),
+                                              ("z_out", "Sell above z", -1.0, 2.0, 0.0, 0.1)]),
+    "VWAP Mean Reversion": (strat_vwap_reversion, [("period", "VWAP period (days)", 5, 60, 20, 1),
+                                                   ("dev", "Buy under VWAP by %", 1.0, 20.0, 5.0, 0.5)]),
+    "VWAP Reclaim / Pullback": (strat_vwap_reclaim, [("period", "VWAP period (days)", 5, 60, 20, 1), ("trend", "Trend SMA", 10, 200, 50, 1),
+                                                     ("lookback", "Dip within (days)", 2, 15, 5, 1),
+                                                     ("exit_pct", "Sell under VWAP by %", 1.0, 10.0, 3.0, 0.5)]),
+    "Relative Strength Strategy": (strat_relative_strength, [("lookback", "New high of the RS line (days)", 20, 252, 63, 1),
+                                                             ("rs_ma", "RS line average", 10, 200, 50, 1)]),
+    "Pairs Trading": (strat_pairs, [("period", "Period", 20, 250, 60, 1), ("z_in", "Buy under z", 1.0, 3.5, 2.0, 0.1),
+                                    ("z_out", "Sell above z", -1.0, 2.0, 0.0, 0.1)]),
+    "Statistical Arbitrage": (strat_stat_arb, [("lookback", "Move over (days)", 2, 20, 5, 1), ("window", "History (days)", 40, 250, 120, 1),
+                                               ("z_in", "Buy under z", 1.0, 3.5, 2.0, 0.1), ("hold", "Hold at most (days)", 2, 40, 10, 1)]),
+    "Multi-Factor Strategy": (strat_multi_factor, [("window", "History (days)", 100, 500, 252, 1),
+                                                   ("entry", "Buy above score", 0.0, 2.0, 0.5, 0.1),
+                                                   ("exit", "Sell under score", -1.0, 1.0, 0.0, 0.1)]),
+    "Regime-Based Strategy": (strat_regime, [("adx_min", "Trend when ADX above", 15, 40, 25, 1), ("fast", "Fast EMA", 5, 50, 20, 1),
+                                             ("slow", "Slow EMA", 20, 150, 50, 1)]),
+    "Machine Learning Signal Combination": (strat_ml_combo, [("window", "Learning window (days)", 40, 500, 120, 1),
+                                                             ("horizon", "Judged after (days)", 2, 40, 10, 1),
+                                                             ("threshold", "Buy above score", 0.05, 0.9, 0.3, 0.05)]),
+    "Portfolio-Level Strategy": (strat_rotation, [("lookback", "Momentum window (days)", 21, 252, 126, 1),
+                                                  ("trend", "Trend SMA", 50, 300, 200, 1)]),
 }
+NEEDS_MARKET = {"Relative Strength Strategy", "Pairs Trading", "Statistical Arbitrage"}   # these compare the stock with SPY
+
+# the kind of each strategy (the bot form groups them by kind); the combined strategies of playbooks.py are in KIND_OF too
+KINDS = {"trend": ("Trend", "الاتجاه", "trending_up"), "momentum": ("Momentum", "الزخم", "rocket_launch"),
+         "volatility": ("Volatility & breakout", "التذبذب والاختراق", "bolt"), "volume": ("Volume", "الحجم", "equalizer"),
+         "reversion": ("Mean reversion", "الارتداد للمتوسط", "sync_alt"), "stat": ("Statistical & relative", "إحصائية ونسبية", "functions"),
+         "multi": ("Multi-signal & adaptive", "متعددة الإشارات وذكية", "hub")}
+KIND_OF = {"SMA Crossover": "trend", "EMA Crossover": "trend", "Golden Cross (50/200)": "trend", "MACD Crossover": "trend",
+           "Trend Following": "trend", "Moving Average Crossover": "trend",
+           "Momentum Strategy": "momentum", "Relative Strength Strategy": "momentum", "Portfolio-Level Strategy": "momentum",
+           "Bollinger Breakout": "volatility", "Donchian Breakout (Turtle)": "volatility", "Breakout Strategy": "volatility",
+           "Volatility Breakout": "volatility",
+           "OBV Trend (Volume)": "volume", "Volume Breakout": "volume", "VWMA Crossover (Volume)": "volume",
+           "MFI Money Flow (Volume)": "volume", "VWAP Reclaim / Pullback": "volume",
+           "RSI Mean Reversion": "reversion", "Mean Reversion": "reversion", "VWAP Mean Reversion": "reversion",
+           "Pairs Trading": "stat", "Statistical Arbitrage": "stat",
+           "Multi-Factor Strategy": "multi", "Regime-Based Strategy": "multi", "Machine Learning Signal Combination": "multi",
+           "Trend Pullback": "trend", "Breakout & Retest": "volatility", "Squeeze Breakout": "volatility",
+           "Range Reversion": "reversion", "Opening Range Breakout": "volatility"}
+
+
+def signals(name, df, params, market=None):
+    """(buy signals, sell signals) of a strategy on df; the strategies of NEEDS_MARKET also get the S&P 500 (SPY)."""
+    fn = STRATEGIES[name][0]
+    return fn(df, market=market, **params) if name in NEEDS_MARKET else fn(df, **params)
 
 
 # =====================================================================
@@ -227,9 +509,8 @@ def metrics(res, df, capital):
     }
 
 
-def run_strategy(df, name, params, capital=10000, fee=0.0005, **risk):
-    fn = STRATEGIES[name][0]
-    entries, exits = fn(df, **params)
+def run_strategy(df, name, params, capital=10000, fee=0.0005, market=None, **risk):
+    entries, exits = signals(name, df, params, market)
     res = backtest(df, entries, exits, capital, fee, **risk)
     res["metrics"] = metrics(res, df, capital)
     return res
@@ -245,7 +526,7 @@ def monthly_returns(equity):
     return table.reindex(columns=range(1, 13))
 
 
-def optimize(df, name, px, xs, py, ys, base_params, capital=10000, fee=0.0005, metric="Total Return %",
+def optimize(df, name, px, xs, py, ys, base_params, capital=10000, fee=0.0005, metric="Total Return %", market=None,
              **risk):
     grid = pd.DataFrame(index=ys, columns=xs, dtype=float)
     for y in ys:
@@ -253,7 +534,7 @@ def optimize(df, name, px, xs, py, ys, base_params, capital=10000, fee=0.0005, m
             p = dict(base_params, **{px: x, py: y})
             if "fast" in p and "slow" in p and p["fast"] >= p["slow"]:
                 continue
-            grid.loc[y, x] = run_strategy(df, name, p, capital, fee, **risk)["metrics"][metric]
+            grid.loc[y, x] = run_strategy(df, name, p, capital, fee, market=market, **risk)["metrics"][metric]
     return grid
 
 
@@ -265,14 +546,30 @@ STRATEGY_AR = {"SMA Crossover": "تقاطع المتوسطات البسيطة", 
                "MACD Crossover": "تقاطع الماكد", "Bollinger Breakout": "اختراق بولنجر",
                "Donchian Breakout (Turtle)": "اختراق دونشيان (السلحفاة)", "OBV Trend (Volume)": "اتجاه حجم التداول OBV",
                "Volume Breakout": "اختراق بحجم تداول عالي", "VWMA Crossover (Volume)": "تقاطع المتوسط المرجّح بالحجم VWMA",
-               "MFI Money Flow (Volume)": "تدفق الأموال MFI"}
+               "MFI Money Flow (Volume)": "تدفق الأموال MFI", "Trend Following": "تتبع الاتجاه",
+               "Moving Average Crossover": "تقاطع المتوسطات الثلاثة", "Momentum Strategy": "استراتيجية الزخم",
+               "Breakout Strategy": "استراتيجية الاختراق", "Volatility Breakout": "اختراق التذبذب",
+               "Mean Reversion": "الارتداد للمتوسط", "VWAP Mean Reversion": "الارتداد لـ VWAP",
+               "VWAP Reclaim / Pullback": "استعادة VWAP بعد التراجع", "Relative Strength Strategy": "القوة النسبية",
+               "Pairs Trading": "تداول الأزواج", "Statistical Arbitrage": "المراجحة الإحصائية",
+               "Multi-Factor Strategy": "متعددة العوامل", "Regime-Based Strategy": "حسب حالة السوق",
+               "Machine Learning Signal Combination": "دمج الإشارات بالتعلّم الآلي", "Portfolio-Level Strategy": "التدوير الشهري للمحفظة"}
 PARAM_AR = {"Fast SMA": "المتوسط السريع", "Slow SMA": "المتوسط البطيء", "Fast EMA": "الأسي السريع",
             "Slow EMA": "الأسي البطيء", "RSI Period": "فترة RSI", "Buy when RSI crosses up": "شراء عند صعود RSI فوق",
             "Sell when RSI above": "بيع عندما RSI فوق", "Fast": "السريع", "Slow": "البطيء", "Signal": "الإشارة",
             "Period": "الفترة", "Std Dev": "الانحراف المعياري", "Entry High (days)": "قمة الدخول (أيام)",
             "Exit Low (days)": "قاع الخروج (أيام)", "OBV average (days)": "متوسط OBV (أيام)", "Trend SMA": "متوسط الاتجاه",
             "Breakout high (days)": "قمة الاختراق (أيام)", "Volume x average": "الحجم × المتوسط", "VWMA period": "فترة المتوسط المرجّح",
-            "MFI period": "فترة MFI", "Buy when MFI crosses up": "شراء عند صعود MFI فوق", "Sell when MFI above": "بيع عندما MFI فوق"}
+            "MFI period": "فترة MFI", "Buy when MFI crosses up": "شراء عند صعود MFI فوق", "Sell when MFI above": "بيع عندما MFI فوق",
+            "Minimum ADX": "أقل ADX", "Middle EMA": "الأسي الأوسط", "Momentum window (days)": "نافذة الزخم (أيام)",
+            "Minimum return %": "أقل عائد %", "Exit window (days)": "نافذة الخروج (أيام)", "Exit SMA": "متوسط الخروج",
+            "ATR multiple": "مضاعف ATR", "ATR period": "فترة ATR", "Exit EMA": "الأسي للخروج", "Buy under z": "شراء تحت z",
+            "Sell above z": "بيع فوق z", "VWAP period (days)": "فترة VWAP (أيام)", "Buy under VWAP by %": "شراء تحت VWAP بنسبة %",
+            "Dip within (days)": "نزول خلال (أيام)", "Sell under VWAP by %": "بيع تحت VWAP بنسبة %",
+            "New high of the RS line (days)": "قمة جديدة لخط القوة النسبية (أيام)", "RS line average": "متوسط خط القوة النسبية",
+            "Move over (days)": "الحركة خلال (أيام)", "History (days)": "التاريخ (أيام)", "Hold at most (days)": "أقصى مدة (أيام)",
+            "Buy above score": "شراء فوق الدرجة", "Sell under score": "بيع تحت الدرجة", "Trend when ADX above": "اتجاه إذا ADX فوق",
+            "Learning window (days)": "نافذة التعلّم (أيام)", "Judged after (days)": "يُقيَّم بعد (أيام)"}
 SETUP_AR = {"Breakout": "اختراق", "Pullback to SMA20": "ارتداد لمتوسط 20", "Oversold Bounce": "ارتداد من تشبع بيعي",
             "Downtrend": "اتجاه هابط", "Range / Wait": "تذبذب / انتظار"}
 BIAS_AR = {"Long": "شراء", "Long (aggressive)": "شراء (مغامر)", "Avoid / No Long": "تجنّب", "Neutral": "محايد"}
@@ -598,4 +895,4 @@ def catalyst_score(tech, fund, events):
             return {"total": total, "technical": t, "fundamental": f, "event": e, "label": en, "label_ar": ar}
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "10.1"
+BUILD = "11.0"

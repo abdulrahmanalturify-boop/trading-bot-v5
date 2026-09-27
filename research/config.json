@@ -1,8 +1,37 @@
 {
   "experiments": [
-    "site_default", "stop_5", "trend_market_exit", "trend_atr_3"
+    "baseline",
+    "site_default",
+    "trend_filter",
+    "market_exit",
+    "market_filter",
+    "market_and_trend",
+    "atr_stop_3",
+    "trend_atr_3",
+    "trend_market_exit",
+    "stop_5",
+    "stop_8",
+    "risk_1_atr_3",
+    "trailing_10"
   ],
   "company_bots": 100,
   "sectors": "all",
-  "all_bots": true
+  "all_bots": true,
+  "strategies": [
+    "Trend Following",
+    "Moving Average Crossover",
+    "Momentum Strategy",
+    "Breakout Strategy",
+    "Volatility Breakout",
+    "Mean Reversion",
+    "VWAP Mean Reversion",
+    "VWAP Reclaim / Pullback",
+    "Relative Strength Strategy",
+    "Pairs Trading",
+    "Statistical Arbitrage",
+    "Multi-Factor Strategy",
+    "Regime-Based Strategy",
+    "Machine Learning Signal Combination",
+    "Portfolio-Level Strategy"
+  ]
 }

@@ -57,8 +57,11 @@ VARIANTS = {
 }
 
 
+ONLY = None                     # config.json "strategies": run only these (the others keep their last results)
+
+
 def strategies():
-    return [s for s in PB.ALL_STRATEGIES if s != PB.PB.ORB]
+    return [s for s in PB.ALL_STRATEGIES if s != PB.PB.ORB and (ONLY is None or s in ONLY)]
 
 
 def bot(strategy, kind, value, start, **extra):
@@ -214,12 +217,21 @@ def report(variant, rows, curves, bh_curves, n_company, sectors, secs_took):
         lines.append("")
         js["periods"][period] = {"strategies": per, "buy_hold": bh}
     os.makedirs(OUT, exist_ok=True)
+    path = os.path.join(OUT, f"{variant}.json")
+    if ONLY is not None and os.path.exists(path):             # a partial run: keep the other strategies' last results
+        old = json.load(open(path))
+        for period, p_ in js["periods"].items():
+            kept = (old.get("periods", {}).get(period) or {}).get("strategies") or {}
+            p_["strategies"] = {**{k: v for k, v in kept.items() if k not in p_["strategies"]}, **p_["strategies"]}
+            p_["buy_hold"] = p_.get("buy_hold") or (old.get("periods", {}).get(period) or {}).get("buy_hold")
     open(os.path.join(OUT, f"{variant}.md"), "w").write("\n".join(lines) + "\n")
-    json.dump(js, open(os.path.join(OUT, f"{variant}.json"), "w"), indent=1, default=float)
+    json.dump(js, open(path, "w"), indent=1, default=float)
 
 
 def main():
+    global ONLY
     cfg = json.load(open(os.path.join(HERE, "config.json")))
+    ONLY = set(cfg["strategies"]) if cfg.get("strategies") else None
     n = int(cfg.get("company_bots", 100))
     companies = [s for s, _ in sorted(U.STOCKS.items(), key=lambda kv: -kv[1][3])][:n]
     sectors = cfg.get("sectors", [])
