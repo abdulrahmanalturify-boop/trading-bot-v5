@@ -30,11 +30,12 @@ jobs:
           key: prices-${{ steps.day.outputs.d }}
           restore-keys: prices-
       - run: python research/run.py
+      - run: python research/compact.py
       - name: Save the reports
         run: |
           git config user.name "research-lab"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add research/results
+          git add research/results lab_results.json
           git commit -m "lab results [skip ci]" || exit 0
           git pull --rebase -q origin research
           git push -q origin HEAD:research

@@ -33,6 +33,7 @@ import engine
 import mcal
 import paperbots as PB
 import playbooks as PBK
+import lab
 import ta
 import tdash
 import theme as T
@@ -84,7 +85,7 @@ EXIT_AR = {**engine.EXIT_REASON_AR, "Time Exit": "خروج قبل الانتها
 MONTHS_EN = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 DEFAULTS = {"pb_name": "", "pb_capital": 1_000_000, "pb_kind": "all", "pb_symbol": "AAPL", "pb_sector": "Technology",
             "pb_ind_sector": "Technology", "pb_industry": "Semiconductors", "pb_maxpos": 10, "pb_store": ["SMA Crossover"],
-            "pb_fee": 0.05, "pb_stop": 2.0, "pb_atr": 0.0, "pb_tp": 0.0, "pb_trail": 0.0, "pb_combine": "any", "pb_instr": "stock",
+            "pb_fee": 0.05, "pb_stop": 0.0, "pb_atr": 3.0, "pb_tp": 0.0, "pb_trail": 0.0, "pb_combine": "any", "pb_instr": "stock",
             "pb_otype": "call", "pb_dte": 30, "pb_strike": 0, "pb_oalloc": 5.0, "pb_otp": 100.0, "pb_osl": 50.0,
             "pb_mode": "single", "pb_store_pb": [PBK.TREND_PULLBACK], "pb_pbmode": "any", "pb_pbwin": 5, "pb_riskpt": 0.0, "pb_regime": 0, "pb_trend": False}
 
@@ -397,6 +398,15 @@ a.pblink .ms {{ font-size:1rem; }}
 [class*="st-key-pbq_together"] button p {{ font-weight:700 !important; color:#DCE6FF !important; }}
 [class*="st-key-pbq_together"] button [data-testid="stIconMaterial"] {{ color:{_C} !important; }}
 [data-testid="stPopoverBody"] {{ min-width:min(760px, 92vw); }}
+/* the lab panel between the strategies and what the bot buys */
+[class*="st-key-pblab"] {{ margin-top:16px; }}
+[class*="st-key-pblab"] .xtp {{ margin-bottom:8px; }}
+[class*="st-key-pb_uselab"] button {{ min-height:42px !important; border-radius:12px !important; border:1px solid {_C}88 !important;
+  background:linear-gradient(95deg,rgba(34,211,238,.16),rgba(139,92,246,.18)) !important; }}
+[class*="st-key-pb_uselab"] button:hover {{ border-color:{_C} !important; filter:brightness(1.1); }}
+[class*="st-key-pb_uselab"] button p {{ font-weight:800 !important; color:#fff !important; }}
+[class*="st-key-pb_uselab"] button [data-testid="stIconMaterial"] {{ color:{_C} !important; }}
+[class*="st-key-pblab"] [data-testid="stExpander"] details {{ background:{T.BOX_BG}; border:1px solid {_BD} !important; border-radius:14px !important; }}
 /* the big button at the end of the form */
 [class*="st-key-pb_create"] {{ margin-top:8px; }}
 [class*="st-key-pb_create"] button {{ min-height:54px !important; border:0 !important; border-radius:14px !important;
@@ -1601,6 +1611,37 @@ def _order_txt(item):
     return f"{sym} ({strat_short(label)}{extra})"
 
 
+def lab_check(b):
+    """The lab's view of a saved bot: (a badge when it runs on the lab's pick, a note when the pick did clearly better)."""
+    names = list(b.get("strategies") or {})
+    if len(names) != 1 or is_orb(b) or instrument(b) == "options":
+        return "", None
+    d = lab.data()
+    s, combined = names[0], is_combined(b)
+    if not d or not lab.cell(s, "all20", "baseline", d):
+        return "", None
+    keys = ("regime", "trend_filter", "trail_pct") if combined else tuple(lab.FIELDS)
+    mine = lab.variant_of({k: b.get(k) or 0 for k in keys}, d)
+    view = lab.view_of(b["kind"], b.get("max_pos"))
+    rec = lab.recommend(s, view, filters_only=combined, lab=d)
+    if not mine or not rec:
+        return "", None
+    if mine == rec:
+        return T.badge(L("Lab-tested settings", "إعدادات مجرّبة في المختبر"), "up", "science"), None
+    a, r = lab.cell(s, view, mine, d), lab.cell(s, view, rec, d)
+    if not a or not r or r[3] < a[3] + 0.10:
+        return "", None
+    y = d["periods"][1]
+    return "", L(f"Lab check: {strat_name(s)} on {L(*lab.VIEW_LABEL[view])} with this bot's settings ({_lab_label(mine)}) scored "
+                 f"Sharpe {lab.sharpe(a[3])} and {lab.pct(a[4])} a year from {y.replace('-now', '')} to now; with the lab's pick "
+                 f"({_lab_label(rec)}) it scored {lab.sharpe(r[3])} and {lab.pct(r[4])} a year. Edit the bot and press \"Use the lab's "
+                 "pick\" to switch (that starts a new forward test and keeps the old record).",
+                 f"فحص المختبر: {strat_name(s)} على {L(*lab.VIEW_LABEL[view])} بإعدادات هالبوت ({_lab_label(mine)}) سجّل شارب "
+                 f"{lab.sharpe(a[3])} و{lab.pct(a[4])} سنوياً من 2020 لين اليوم؛ وباختيار المختبر ({_lab_label(rec)}) سجّل "
+                 f"{lab.sharpe(r[3])} و{lab.pct(r[4])} سنوياً. عدّل البوت واضغط \"استخدم اختيار المختبر\" عشان تبدّل "
+                 "(هذا يبدأ تجربة أمامية جديدة ويحفظ السجل القديم).")
+
+
 def bot_header(sim):
     b = sim["bot"]
     names = list(b["strategies"])
@@ -1632,8 +1673,15 @@ def bot_header(sim):
                + T.badge(L("Capital ", "رأس المال ") + iso(T.money(b["capital"])), "neu", "account_balance_wallet"))
     if ins != "options":
         badges += T.badge(L("Fee ", "العمولة ") + iso(f"{b['fee']:g}%") + L(" / side", " لكل جهة"), "neu", "receipt")
+    try:
+        lab_badge, lab_note = lab_check(b)
+    except Exception:                                   # the lab is a hint: never let it break the bot's page
+        lab_badge, lab_note = "", None
+    badges += lab_badge
     logo = data.logos([b["value"]]).get(b["value"]) if b["kind"] == "company" else None
     ui.html(f'<div class="card pbid">{head_html(b, logo)}<div class="bdgs">{badges}</div></div>')
+    if lab_note:
+        st.info(lab_note, icon=":material/science:")
     with st.expander(L("How this bot trades", "طريقة تداول البوت"), icon=":material/tune:"):
         if is_combined(b):
             ui.html("".join(rules_html(n, p) for n, p in b["strategies"].items()))
@@ -2721,6 +2769,122 @@ def _trail_help():
              "0 = إيقاف. يتبع أعلى سعر لين اليوم اللي قبل: قمة اليوم ترفع الوقف من اليوم اللي بعده، لأن الشمعة اليومية ما توضح أيهما صار أول: القمة أو القاع.")
 
 
+def _form_settings(combined):
+    """The form's current exit / filter settings, in the lab's terms."""
+    s = {"regime": ss.get("pb_regime") or 0, "trend_filter": bool(ss.get("pb_trend")), "trail_pct": ss.get("pb_trail") or 0}
+    if not combined:
+        s.update({"stop_pct": ss.get("pb_stop") or 0, "atr_mult": ss.get("pb_atr") or 0, "tp_pct": ss.get("pb_tp") or 0,
+                  "risk_pct": ss.get("pb_riskpt") or 0})
+    return s
+
+
+def _use_lab(values):
+    for k, v in values.items():
+        ss[k] = v
+
+
+def _lab_label(v):
+    return L(*lab.LABEL.get(v, (v, v)))
+
+
+def _rtl(t):
+    """Arabic text inside a left-to-right table cell: keep its words and numbers in reading order."""
+    return f"\u2067{t}\u2069" if is_ar() else t
+
+
+def lab_panel(kind, strats, combined):
+    """How the chosen strategy did in the lab on real prices, with these settings and with the lab's pick, next to simply
+    holding the stocks; a button puts the lab's pick into the form."""
+    d = lab.data()
+    tested = [s for s in strats if lab.cell(s, "all20", "baseline", d)] if d else []
+    if not tested or ss.get("pb_instr") == "options" and not combined:
+        return
+    view = lab.view_of(kind, ss.get("pb_maxpos", DEFAULTS["pb_maxpos"]))
+    mine = lab.variant_of(_form_settings(combined), d)
+    y1, y2 = d["periods"]
+    c_in, c_out = L(f"Sharpe {y1}", f"شارب {y1}"), L(f"Sharpe {y2}", f"شارب {y2.replace('now', 'اليوم')}")
+    c_yr, c_dd, c_bt = L("Yearly", "سنوياً"), L("Max drop", "أكبر هبوط"), L("Beat holding", "تفوّق على الاحتفاظ")
+    fmt = {c_in: "{:.2f}", c_out: "{:.2f}", c_yr: lambda v: f"{v * 100:+.0f}%", c_dd: lambda v: f"{v * 100:.0f}%",
+           c_bt: lambda v: f"{v * 100:.0f}%"}
+    chips = ui.table_chip(L("Bot", "البوت"), f"<b>{T.esc(L(*lab.VIEW_LABEL[view]))}</b>")
+    per = ui.table_chip(L("Yearly and max drop", "السنوي وأكبر هبوط"), f"<b>{T.esc(L(y2.replace('-', ' → '), 'من 2020 لين اليوم'))}</b>")
+    with st.container(key="pblab"):
+        if len(tested) == 1:
+            s = tested[0]
+            rec = lab.recommend(s, view, filters_only=combined, lab=d)
+            rows = []
+
+            def row(name, r, bh=False):
+                out = {L("Settings", "الإعدادات"): _rtl(name)}
+                out.update({c_in: r[0] if r else None, c_out: r[3] if r else None, c_yr: r[4] if r else None, c_dd: r[5] if r else None})
+                if view == "company":
+                    out[c_bt] = None if bh or not r else r[9]
+                rows.append(out)
+            if mine and mine != rec:
+                row(L("Your settings: ", "إعداداتك: ") + _lab_label(mine), lab.cell(s, view, mine, d))
+            elif not mine:
+                row(L("Your settings: not tested in the lab", "إعداداتك: ما انجرّبت في المختبر"), None)
+            row(("★ " + L("Lab pick (your settings): ", "اختيار المختبر (إعداداتك): ") if rec == mine else
+                 "★ " + L("Lab pick: ", "اختيار المختبر: ")) + _lab_label(rec), lab.cell(s, view, rec, d))
+            bh = (d.get("buy_hold") or {}).get("company" if view == "company" else "all")
+            row(L("Holding the 100 stocks", "الاحتفاظ بالـ 100 سهم") if view == "company" else
+                L("Holding all the stocks", "الاحتفاظ بكل الأسهم"), bh, bh=True)
+            chips = ui.table_chip(L("Strategy", "الاستراتيجية"), f"<b>{T.esc(strat_name(s))}</b>") + chips + per
+            ui.table(pd.DataFrame(rows), fmt=fmt, signed=(c_yr,), title=L("Tested on real prices", "مجرّب على أسعار حقيقية"),
+                     icon="science", chips=chips, wrap=(L("Settings", "الإعدادات"),))
+            note = lab.verdict(s, view, d)
+            if view == "company":
+                med = (lab.cell(s, view, rec, d) or [None] * 10)[8]
+                note += " " + L(f"The rows are the 100 company bots held together; one company alone swings much more (its typical "
+                                f"Sharpe {y2}: {lab.sharpe(med)}).",
+                                f"الأرقام لـ 100 بوت شركة مع بعض؛ الشركة الوحدة لحالها تتذبذب أكثر بكثير (الشارب المعتاد لها "
+                                f"2020-اليوم: {lab.sharpe(med)}).")
+            b1, b2 = st.columns([1.25, 2], vertical_alignment="center")
+            if rec != mine:
+                vals = lab.form_values(rec, d)
+                if combined:
+                    vals = {k: v for k, v in vals.items() if k in ("pb_regime", "pb_trend")}
+                b1.button(L("Use the lab's pick", "استخدم اختيار المختبر"), icon=":material/science:", key="pb_uselab",
+                          on_click=_use_lab, args=(vals,), width="stretch")
+            else:
+                b1.markdown(T.badge(L("You're on the lab's pick", "أنت على اختيار المختبر"), "up", "verified"), unsafe_allow_html=True)
+            b2.caption(note.strip())
+        else:
+            rows = []
+            for s in tested:
+                rec = lab.recommend(s, view, filters_only=combined, lab=d)
+                r_m, r_r = (lab.cell(s, view, mine, d) if mine else None), lab.cell(s, view, rec, d)
+                rows.append({L("Strategy", "الاستراتيجية"): _rtl(strat_name(s)), L("Your settings", "إعداداتك"): r_m[3] if r_m else None,
+                             L("Lab pick", "اختيار المختبر"): _rtl(_lab_label(rec)), c_out: r_r[3] if r_r else None,
+                             c_yr: r_r[4] if r_r else None, c_dd: r_r[5] if r_r else None})
+            ui.table(pd.DataFrame(rows), fmt={**fmt, L("Your settings", "إعداداتك"): "{:.2f}"}, signed=(c_yr,),
+                     title=L("Tested on real prices", "مجرّب على أسعار حقيقية"), icon="science", chips=chips + per,
+                     wrap=(L("Lab pick", "اختيار المختبر"),))
+            st.caption(L(f"Each strategy was tested on its own. \"Your settings\" = its Sharpe {y2} with the settings in this form"
+                         " (— when that mix wasn't tested). Pick one strategy to get a button that applies the lab's pick.",
+                         "كل استراتيجية انجرّبت لحالها. \"إعداداتك\" = الشارب 2020-اليوم بالإعدادات اللي في النموذج "
+                         "(— إذا ما انجرّبت). اختر استراتيجية وحدة عشان يطلع لك زر يطبّق اختيار المختبر."))
+        with st.expander(L("Which strategies held up best for this kind of bot", "أي الاستراتيجيات صمدت أكثر لهالنوع من البوتات"),
+                         icon=":material/leaderboard:"):
+            rank = lab.ranking(view, filters_only=combined, lab=d)
+            if combined:
+                rank = [x for x in rank if x[0] in PBK.PLAYBOOKS]
+            else:
+                rank = [x for x in rank if x[0] in engine.STRATEGIES]
+            ui.table(pd.DataFrame([{L("Strategy", "الاستراتيجية"): _rtl(strat_name(s)), L("Lab pick", "اختيار المختبر"): _rtl(_lab_label(v)),
+                                    c_in: r[0], c_out: r[3], c_yr: r[4], c_dd: r[5]} for s, v, r in rank]),
+                     fmt=fmt, signed=(c_yr,), wrap=(L("Lab pick", "اختيار المختبر"),))
+            bh = (d.get("buy_hold") or {}).get("company" if view == "company" else "all") or [None] * 6
+            st.caption(L(f"Every strategy went through this site's bot engine on real daily prices: {y1} (where ideas come from) and "
+                         f"{y2} (the test). Holding the stocks {y2}: Sharpe {lab.sharpe(bh[3])}, {lab.pct(bh[4])} a year, max drop "
+                         f"{lab.pct(bh[5])}. The lists are today's large companies, so every number is on the high side: compare rows "
+                         "with each other. Past results don't promise future ones.",
+                         f"كل استراتيجية مرّت على محرّك البوتات نفسه في الموقع بأسعار يومية حقيقية: {y1} (فترة الأفكار) و"
+                         f"2020-اليوم (فترة الاختبار). الاحتفاظ بالأسهم 2020-اليوم: شارب {lab.sharpe(bh[3])}، و{lab.pct(bh[4])} سنوياً، "
+                         f"وأكبر هبوط {lab.pct(bh[5])}. القوائم هي الشركات الكبيرة اليوم، فكل الأرقام مرتفعة شوي: قارن الصفوف ببعض. "
+                         "النتائج السابقة ما تضمن اللي جاي."))
+
+
 def bot_form(mode, bot=None):
     """The add / edit form (inside a dialog): a banner, then six numbered cards with space between them."""
     _init_form()
@@ -2785,6 +2949,8 @@ def bot_form(mode, bot=None):
         strats, mode_, need, win = _picker(way, kind)
     combined = way == "combo"
     orb = combined and PBK.ORB in strats
+    if not orb:
+        ui.safe(lab_panel, kind, strats, combined)
 
     # 4) what it buys and how much per trade
     with st.container(key="pbf_4"):
@@ -3076,4 +3242,4 @@ def page_paper_bots():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "9.9"
+BUILD = "10.0"

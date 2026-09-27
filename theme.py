@@ -959,7 +959,8 @@ a.lnk {{ color:inherit !important; text-decoration:none !important; }} a.lnk:hov
 .xtbl td:last-child {{ border-right:1px solid rgba(255,255,255,.045) !important; border-radius:0 10px 10px 0; }}
 .xtbl tbody tr:hover td {{ background:rgba(61,123,255,.10) !important; }}
 .xtbl .r {{ text-align:right; font-variant-numeric:tabular-nums; }}
-.xtbl td.w {{ white-space:normal; min-width:200px; max-width:420px; }}
+.xtbl td.w {{ white-space:normal; min-width:180px; max-width:420px; }}
+.xtp .xtsc {{ direction:ltr; }}   /* the table reads left to right in Arabic too: start the scroll at its first column */
 .xtbl b {{ color:#fff; font-weight:800; }}
 .xtbl .as {{ display:inline-flex; align-items:center; gap:8px; color:#fff !important; text-decoration:none !important; }}
 .xtbl .as .lg {{ width:22px !important; height:22px !important; font-size:9px !important; }}
@@ -1656,4 +1657,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "9.9"
+BUILD = "10.0"
