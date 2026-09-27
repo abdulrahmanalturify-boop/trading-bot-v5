@@ -36,11 +36,20 @@ CACHE = os.path.join(HERE, ".cache")
 OUT = os.path.join(HERE, "results")
 PERIODS = {"in-sample 2012-2019": ("2012-01-03", "2019-12-31"), "out-of-sample 2020-now": ("2020-01-02", None)}
 CAP = 10000.0
+ALL_MAX = (10, 20)              # the all-companies bot with up to 10 / 20 open trades
 FEE = 0.05                      # % per side, the site's default
 
 # ---------------------------------------------------------------- experiments: bot settings on top of each strategy's defaults
 VARIANTS = {
     "baseline": {},
+    "market_filter": {"regime": 1},                        # no new buys while SPY is under its 200-day average
+    "market_exit": {"regime": 2},                          # ... and sell when it drops under it
+    "trend_filter": {"trend_filter": 1},                   # no new buys while the stock is under its own 200-day average
+    "market_and_trend": {"regime": 1, "trend_filter": 1},
+    "atr_stop_3": {"atr_mult": 3.0},                       # a stop 3 ATR under the entry
+    "trailing_10": {"trail_pct": 10.0},                    # a 10% trailing stop
+    "stop_8": {"stop_pct": 8.0},
+    "risk_1_atr_3": {"atr_mult": 3.0, "risk_pct": 1.0},    # size each trade so the 3-ATR stop loses 1% of the balance
 }
 
 
@@ -49,9 +58,12 @@ def strategies():
 
 
 def bot(strategy, kind, value, start, **extra):
+    max_pos = 1 if kind == "company" else 5
+    if kind == "all":                                      # value "all:10" = the all-companies bot with up to 10 trades
+        max_pos, value = int(str(value).split(":")[1]), "all"
     b = {"id": 0, "name": "lab", "kind": kind, "value": value, "symbol": value if kind == "company" else None,
          "strategies": {strategy: PB.clean_params(strategy, {})}, "combine": {"mode": "any"}, "instrument": "stock",
-         "options": PB.clean_options(None), "max_pos": 1 if kind == "company" else 5, "capital": CAP, "fee": FEE,
+         "options": PB.clean_options(None), "max_pos": max_pos, "capital": CAP, "fee": FEE,
          "stop_pct": 0.0, "atr_mult": 0.0, "tp_pct": 0.0, "trail_pct": 0.0, "start_date": start, "valid": True,
          "risk_pct": 0.0, "fwd": None, "fwd_prev": []}
     b.update(extra)
@@ -140,7 +152,7 @@ _MEM = {}
 def _members(kind, value):
     key = (kind, value)
     if key not in _MEM:
-        _MEM[key] = set(PB.members(kind, value))
+        _MEM[key] = set(PB.members(kind, "all" if kind == "all" else value))
     return _MEM[key]
 
 
@@ -171,8 +183,9 @@ def report(variant, rows, curves, bh_curves, n_company, sectors, secs_took):
     js = {"variant": variant, "settings": VARIANTS[variant], "periods": {}}
     for period in PERIODS:
         lines += [f"## {period}", "",
-                  "| Strategy | All stocks CAGR | Sharpe | Max DD | Median stock Sharpe | Beat B&H | Trades / yr / stock | Win % | Sector CAGR | Sector Sharpe | Sector Max DD |",
-                  "|---|---|---|---|---|---|---|---|---|---|---|"]
+                  "| Strategy | All stocks CAGR | Sharpe | Max DD | Median stock Sharpe | Beat B&H | Trades / yr / stock | Win % | Sector CAGR | Sector Sharpe | Sector Max DD |"
+                  + "".join(f" All-companies bot, {m} trades: CAGR · Sharpe · Max DD |" for m in ALL_MAX),
+                  "|---|---|---|---|---|---|---|---|---|---|---|" + "---|" * len(ALL_MAX)]
         bh = curve_stats(bh_curves.get(period, []))
         per = {}
         for s in strategies():
@@ -186,11 +199,14 @@ def report(variant, rows, curves, bh_curves, n_company, sectors, secs_took):
             tpy = float(np.mean([r["trades_yr"] for r in comp]))
             win = float(np.nanmean([r["win"] for r in comp]))
             sc = {k: float(np.mean([r[k] for r in sect])) for k in ("cagr", "sharpe", "maxdd")} if sect else {}
-            per[s] = {"all": cs, "median_sharpe": med_sh, "beat_bh": beat, "trades_yr": tpy, "win": win, "sector": sc}
+            allb = {m: rows.get((variant, s, "all", f"all:{m}", period)) for m in ALL_MAX}
+            per[s] = {"all": cs, "median_sharpe": med_sh, "beat_bh": beat, "trades_yr": tpy, "win": win, "sector": sc,
+                      "all_bot": {str(m): v for m, v in allb.items() if v}}
             lines.append(f"| {s} | {pct(cs['cagr'])} | {num(cs['sharpe'])} | {pct(cs['maxdd'])} | {num(med_sh)} | {beat * 100:.0f}% | "
-                         f"{tpy:.1f} | {win * 100:.0f}% | {pct(sc.get('cagr'))} | {num(sc.get('sharpe'))} | {pct(sc.get('maxdd'))} |")
+                         f"{tpy:.1f} | {win * 100:.0f}% | {pct(sc.get('cagr'))} | {num(sc.get('sharpe'))} | {pct(sc.get('maxdd'))} |"
+                         + "".join(f" {pct(v['cagr'])} · {num(v['sharpe'])} · {pct(v['maxdd'])} |" if v else " — |" for v in allb.values()))
         if bh:
-            lines.append(f"| **Buy & hold (same stocks)** | {pct(bh['cagr'])} | {num(bh['sharpe'])} | {pct(bh['maxdd'])} | | | | | | | |")
+            lines.append(f"| **Buy & hold (same stocks)** | {pct(bh['cagr'])} | {num(bh['sharpe'])} | {pct(bh['maxdd'])} | | | | | | | |" + " |" * len(ALL_MAX))
         lines.append("")
         js["periods"][period] = {"strategies": per, "buy_hold": bh}
     os.makedirs(OUT, exist_ok=True)
@@ -208,6 +224,8 @@ def main():
     need = set(companies) | {"SPY"}
     for sec in sectors:
         need |= set(PB.members("sector", sec))
+    if cfg.get("all_bots", True):
+        need |= set(PB.members("all", "all"))
     t0 = time.time()
     px = load_prices(sorted(need))
     print(f"prices: {len(px)} of {len(need)} symbols in {time.time() - t0:.0f} s", flush=True)
@@ -216,6 +234,8 @@ def main():
         t1 = time.time()
         jobs = [(variant, s, "company", c, p) for s in strategies() for c in companies for p in PERIODS]
         jobs += [(variant, s, "sector", sec, p) for s in strategies() for sec in sectors for p in PERIODS]
+        if cfg.get("all_bots", True):
+            jobs = [(variant, s, "all", f"all:{m}", p) for s in strategies() for m in ALL_MAX for p in PERIODS] + jobs
         rows, curves, bh = {}, {}, {}
         with ProcessPoolExecutor(max_workers=os.cpu_count() or 2, initializer=_init, initargs=(px,)) as ex:
             for job, st_, eq in ex.map(run_one, jobs, chunksize=8):
@@ -237,5 +257,37 @@ def main():
         print(f"{variant}: {len(jobs)} runs in {time.time() - t1:.0f} s", flush=True)
 
 
+def summary():
+    """One table per period: each experiment against the baseline, for the three views of every strategy."""
+    runs = {}
+    for f in sorted(os.listdir(OUT)):
+        if f.endswith(".json") and f != "summary.json":
+            j = json.load(open(os.path.join(OUT, f)))
+            runs[j["variant"]] = j
+    if "baseline" not in runs:
+        return
+    order = ["baseline"] + [v for v in VARIANTS if v in runs and v != "baseline"]
+    lines = ["# Lab summary · every experiment against the baseline", "",
+             "Each cell: Sharpe (CAGR, max drawdown). Views: **stocks** = the 100 company bots averaged, **all-20** = one "
+             "all-companies bot with up to 20 trades. Decide on out-of-sample; in-sample is where ideas were found.", ""]
+    for period in PERIODS:
+        lines += [f"## {period}", "", "| Strategy | View | " + " | ".join(order) + " |", "|---|---|" + "---|" * len(order)]
+        base = runs["baseline"]["periods"].get(period, {}).get("strategies", {})
+        for s in base:
+            for view in ("stocks", "all-20"):
+                cells = []
+                for v in order:
+                    st_ = runs[v]["periods"].get(period, {}).get("strategies", {}).get(s)
+                    x = (st_ or {}).get("all") if view == "stocks" else ((st_ or {}).get("all_bot") or {}).get("20")
+                    cells.append(f"{x['sharpe']:.2f} ({x['cagr'] * 100:+.0f}%, {x['maxdd'] * 100:.0f}%)" if x else "—")
+                lines.append(f"| {s} | {view} | " + " | ".join(cells) + " |")
+        bh = runs["baseline"]["periods"].get(period, {}).get("buy_hold")
+        if bh:
+            lines.append(f"| Buy & hold | stocks | {bh['sharpe']:.2f} ({bh['cagr'] * 100:+.0f}%, {bh['maxdd'] * 100:.0f}%) |" + " |" * (len(order) - 1))
+        lines.append("")
+    open(os.path.join(OUT, "summary.md"), "w").write("\n".join(lines) + "\n")
+
+
 if __name__ == "__main__":
     main()
+    summary()

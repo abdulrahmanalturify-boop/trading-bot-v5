@@ -1,5 +1,6 @@
 {
-  "experiments": ["baseline"],
+  "experiments": ["baseline", "market_filter", "market_exit", "trend_filter", "market_and_trend", "atr_stop_3", "trailing_10", "stop_8", "risk_1_atr_3"],
   "company_bots": 100,
-  "sectors": "all"
+  "sectors": "all",
+  "all_bots": true
 }

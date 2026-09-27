@@ -358,6 +358,8 @@ def _norm(r):
                 "start_date": str(r.get("start_date"))[:10], "created_at": str(r.get("created_at") or "")[:19],
                 "valid": bool(strategies) and allowed and bool(members(kind, value)),
                 "risk_pct": min(max(_num(params.get("risk_pct")) if isinstance(params, dict) else 0.0, 0.0), 10.0),
+                "regime": int(min(max(_num(params.get("regime")) if isinstance(params, dict) else 0, 0), 2)),
+                "trend_filter": int(bool(_num(params.get("trend_filter")))) if isinstance(params, dict) else 0,
                 "fwd": params.get("fwd") if isinstance(params, dict) and isinstance(params.get("fwd"), dict) else None,
                 "fwd_prev": list(params.get("fwd_prev") or []) if isinstance(params, dict) else []}
     except Exception:
@@ -365,7 +367,7 @@ def _norm(r):
 
 
 def make_record(name, kind, value, strategies, max_pos, capital, fee, stop_pct, atr_mult, tp_pct, trail_pct, start_date, combine=None,
-                instrument="stock", options=None, risk_pct=0.0):
+                instrument="stock", options=None, risk_pct=0.0, regime=0, trend_filter=0):
     """Settings from the form -> a row for the table (FIELDS).
     combine: None / {'mode': 'any'} = any strategy opens its own trades; {'mode': 'combo', 'min': n} = buy only when at least
     n of the strategies agree (see simulate)."""
@@ -388,7 +390,9 @@ def make_record(name, kind, value, strategies, max_pos, capital, fee, stop_pct, 
            "params": {"v": 2, "universe": {"kind": kind, "value": value}, "strategies": strategies,
                       "max_pos": int(min(max(int(max_pos), 1), MAX_POS_LIMIT)), "combine": combine,
                       "instrument": instrument if instrument in INSTRUMENTS else "stock", "options": clean_options(options),
-                      **({"risk_pct": round(min(max(float(risk_pct or 0), 0.0), 10.0), 4)} if risk_pct else {})},
+                      **({"risk_pct": round(min(max(float(risk_pct or 0), 0.0), 10.0), 4)} if risk_pct else {}),
+                      **({"regime": int(min(max(int(regime), 0), 2))} if regime else {}),
+                      **({"trend_filter": 1} if trend_filter else {})},
            "capital": float(capital), "fee": float(fee), "stop_pct": float(stop_pct), "atr_mult": float(atr_mult),
            "tp_pct": float(tp_pct), "trail_pct": float(trail_pct), "start_date": str(start_date)[:10]}
     rec["params"]["fwd"] = new_record(_settings_of_record(rec))
@@ -499,6 +503,7 @@ def _settings_of_record(rec):
     p = rec["params"]
     return {"kind": p["universe"]["kind"], "value": p["universe"]["value"], "strategies": p["strategies"], "combine": p["combine"],
             "max_pos": p["max_pos"], "instrument": p["instrument"], "options": p["options"], "risk_pct": p.get("risk_pct", 0.0),
+            "regime": p.get("regime", 0), "trend_filter": p.get("trend_filter", 0),
             **{k: rec[k] for k in ("capital", "fee", "stop_pct", "atr_mult", "tp_pct", "trail_pct")}}
 
 
@@ -512,7 +517,9 @@ def settings_of(bot):
          "max_pos": 1 if bot["kind"] == "company" else int(bot["max_pos"]), "instrument": ins,
          "options": bot.get("options") if ins != "stock" else None,
          **{k: round(float(bot[k]), 6) for k in ("capital", "fee", "stop_pct", "atr_mult", "tp_pct", "trail_pct")},
-         **({"risk_pct": round(float(bot["risk_pct"]), 6)} if bot.get("risk_pct") else {})}, default=float))
+         **({"risk_pct": round(float(bot["risk_pct"]), 6)} if bot.get("risk_pct") else {}),
+         **({"regime": int(bot["regime"])} if bot.get("regime") else {}),
+         **({"trend_filter": 1} if bot.get("trend_filter") else {})}, default=float))
 
 
 def settings_hash(bot):
@@ -602,6 +609,18 @@ def load_prices(symbols, period, interval="1d"):
     return px
 
 
+def market_ok(spy, idx):
+    """True on the days the S&P 500 (SPY) closed above its 200-day average (or had too little history to tell), on idx."""
+    sc = spy["Close"].astype(float)
+    sc = sc[~sc.index.duplicated(keep="last")].sort_index()
+    if getattr(sc.index, "tz", None) is not None:
+        sc.index = sc.index.tz_localize(None)
+    sma = sc.rolling(200, min_periods=200).mean()
+    ok = (sc > sma) | sma.isna()
+    ix = idx.tz_localize(None) if getattr(idx, "tz", None) is not None else idx
+    return ok.reindex(ix, method="ffill").fillna(True).to_numpy(bool)
+
+
 def _prep(df):
     df = df.dropna(subset=["Open", "High", "Low", "Close"]).sort_index()
     return df[~df.index.duplicated(keep="last")]
@@ -683,6 +702,8 @@ def simulate(bot, px, spy=None, record=None):
 
     # wide arrays (dates x stocks); each stock's indicators and signals come from its own history, exactly like the lab
     O, H, Lo, C = (np.full((T, N), np.nan) for _ in range(4))
+    regime, trend_on = int(bot.get("regime") or 0), bool(bot.get("trend_filter"))
+    TRD = np.ones((T, N), bool)
     ATRP, K, MOM = (np.full((T, N), np.nan) for _ in range(3))
     HVP, HVC = (np.full((T, N), np.nan) for _ in range(2))
     ENT, EXT = np.zeros((S, T, N), bool), np.zeros((S, T, N), bool)
@@ -706,6 +727,9 @@ def simulate(bot, px, spy=None, record=None):
             HVC[p, j], HVP[p, j] = hv, np.r_[np.nan, hv[:-1]]
         K[p, j] = np.arange(len(df))
         MOM[p, j] = df["Close"].pct_change(63).to_numpy(float)
+        if trend_on:                                       # the stock above its own 200-day average (unknown = allowed)
+            sma = df["Close"].rolling(200, min_periods=200).mean()
+            TRD[p, j] = ((df["Close"] > sma) | sma.isna()).to_numpy(bool)
         sig, ind = [], (PB.Ind(df, spy) if PIDX and max(PIDX) >= 0 else None)     # indicators shared by the playbooks
         for k, name in enumerate(names):
             if is_playbook(name):
@@ -749,6 +773,15 @@ def simulate(bot, px, spy=None, record=None):
     CF = pd.DataFrame(C).ffill().to_numpy()                    # last known close, to value the portfolio every day
     ENT &= live[None, :, None]                                 # no new trades before the start date
     ENT &= valid[None, :, :]
+    # entry filters (off unless the bot turns them on): new buys only while the stock is above its 200-day average, and/or
+    # only while the market (SPY) is above its 200-day average; regime 2 also sells the shares when the market drops below it
+    if trend_on:
+        ENT &= TRD[None, :, :]
+    if regime and spy is not None and not spy.empty:
+        okm = market_ok(spy, idx)
+        ENT &= okm[None, :, None]
+        if regime == 2:
+            EXT |= (~okm)[None, :, None] & valid[None, :, :]
     if want_put:
         PENT &= live[None, :, None]
         PENT &= valid[None, :, :]
