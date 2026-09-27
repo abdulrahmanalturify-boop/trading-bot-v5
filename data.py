@@ -5,6 +5,7 @@ so a temporary error doesn't stick for hours.
 """
 import io
 import json
+import os
 import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, timedelta
@@ -710,9 +711,10 @@ def option_chain(symbol, exp):
 # ---------------------------------------------------------------- economy
 def _fred_key():
     try:
-        return st.secrets.get("FRED_API_KEY")
-    except Exception:
-        return None
+        v = st.secrets.get("FRED_API_KEY")
+    except Exception:                      # no secrets file (a Hugging Face Space passes secrets as environment variables)
+        v = None
+    return v or os.environ.get("FRED_API_KEY") or None
 
 
 @st.cache_data(ttl=43200, show_spinner=False)
