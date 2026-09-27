@@ -357,6 +357,7 @@ def _norm(r):
                 "tp_pct": max(_num(r.get("tp_pct")), 0.0), "trail_pct": max(_num(r.get("trail_pct")), 0.0),
                 "start_date": str(r.get("start_date"))[:10], "created_at": str(r.get("created_at") or "")[:19],
                 "valid": bool(strategies) and allowed and bool(members(kind, value)),
+                "risk_pct": min(max(_num(params.get("risk_pct")) if isinstance(params, dict) else 0.0, 0.0), 10.0),
                 "fwd": params.get("fwd") if isinstance(params, dict) and isinstance(params.get("fwd"), dict) else None,
                 "fwd_prev": list(params.get("fwd_prev") or []) if isinstance(params, dict) else []}
     except Exception:
@@ -364,7 +365,7 @@ def _norm(r):
 
 
 def make_record(name, kind, value, strategies, max_pos, capital, fee, stop_pct, atr_mult, tp_pct, trail_pct, start_date, combine=None,
-                instrument="stock", options=None):
+                instrument="stock", options=None, risk_pct=0.0):
     """Settings from the form -> a row for the table (FIELDS).
     combine: None / {'mode': 'any'} = any strategy opens its own trades; {'mode': 'combo', 'min': n} = buy only when at least
     n of the strategies agree (see simulate)."""
@@ -386,7 +387,8 @@ def make_record(name, kind, value, strategies, max_pos, capital, fee, stop_pct, 
     rec = {"name": str(name)[:40], "symbol": sym[:120], "strategy": joiner.join(strategies)[:250],
            "params": {"v": 2, "universe": {"kind": kind, "value": value}, "strategies": strategies,
                       "max_pos": int(min(max(int(max_pos), 1), MAX_POS_LIMIT)), "combine": combine,
-                      "instrument": instrument if instrument in INSTRUMENTS else "stock", "options": clean_options(options)},
+                      "instrument": instrument if instrument in INSTRUMENTS else "stock", "options": clean_options(options),
+                      **({"risk_pct": round(min(max(float(risk_pct or 0), 0.0), 10.0), 4)} if risk_pct else {})},
            "capital": float(capital), "fee": float(fee), "stop_pct": float(stop_pct), "atr_mult": float(atr_mult),
            "tp_pct": float(tp_pct), "trail_pct": float(trail_pct), "start_date": str(start_date)[:10]}
     rec["params"]["fwd"] = new_record(_settings_of_record(rec))
@@ -496,7 +498,7 @@ def last_closed_session(now=None, settle=30):
 def _settings_of_record(rec):
     p = rec["params"]
     return {"kind": p["universe"]["kind"], "value": p["universe"]["value"], "strategies": p["strategies"], "combine": p["combine"],
-            "max_pos": p["max_pos"], "instrument": p["instrument"], "options": p["options"],
+            "max_pos": p["max_pos"], "instrument": p["instrument"], "options": p["options"], "risk_pct": p.get("risk_pct", 0.0),
             **{k: rec[k] for k in ("capital", "fee", "stop_pct", "atr_mult", "tp_pct", "trail_pct")}}
 
 
@@ -509,7 +511,8 @@ def settings_of(bot):
         {"kind": bot["kind"], "value": bot["value"], "strategies": bot["strategies"], "combine": comb,
          "max_pos": 1 if bot["kind"] == "company" else int(bot["max_pos"]), "instrument": ins,
          "options": bot.get("options") if ins != "stock" else None,
-         **{k: round(float(bot[k]), 6) for k in ("capital", "fee", "stop_pct", "atr_mult", "tp_pct", "trail_pct")}}, default=float))
+         **{k: round(float(bot[k]), 6) for k in ("capital", "fee", "stop_pct", "atr_mult", "tp_pct", "trail_pct")},
+         **({"risk_pct": round(float(bot["risk_pct"]), 6)} if bot.get("risk_pct") else {})}, default=float))
 
 
 def settings_hash(bot):
@@ -547,6 +550,7 @@ def params_of(bot):
     """The params JSON of a saved bot (list_bots form), for writing it back."""
     return {"v": 2, "universe": {"kind": bot["kind"], "value": bot["value"]}, "strategies": bot["strategies"], "max_pos": bot["max_pos"],
             "combine": bot["combine"], "instrument": bot["instrument"], "options": bot["options"], "fwd": bot.get("fwd"),
+            **({"risk_pct": bot["risk_pct"]} if bot.get("risk_pct") else {}),
             "fwd_prev": bot.get("fwd_prev") or []}
 
 
@@ -764,6 +768,7 @@ def simulate(bot, px, spy=None, record=None):
 
     fee, cap = bot["fee"] / 100, float(bot["capital"])
     max_pos = 1 if bot["kind"] == "company" else int(bot["max_pos"])
+    risk_pct = float(bot.get("risk_pct") or 0.0)
     rk = risk_kwargs(bot)
     stop_pct, atr_mult, tp_pct, trail_pct = rk["stop_pct"], rk["atr_mult"], rk["tp_pct"], rk["trail_pct"]
     cash, eq_prev = cap, cap
@@ -946,12 +951,14 @@ def simulate(bot, px, spy=None, record=None):
                 alloc = min(cash, eq_prev / max_pos)
                 if alloc <= 0:
                     continue
-                shares = alloc / (o * (1 + fee))
-                cash -= shares * o * (1 + fee)
                 if stop_pct:
                     stops.append(o * (1 - stop_pct / 100))
                 if atr_mult and not np.isnan(ATRP[t, j]):
                     stops.append(o - atr_mult * ATRP[t, j])
+                shares = alloc / (o * (1 + fee))
+                if risk_pct and stops and o > max(stops) > 0:  # sized by risk: a stop-out loses risk_pct of the balance (at most the slot)
+                    shares = min(shares, eq_prev * risk_pct / 100 / (o - max(stops)))
+                cash -= shares * o * (1 + fee)
                 if tp_pct:
                     target = min(target, o * (1 + tp_pct / 100))
                 pos[(j, "S")] = {"kind": "Stock", "shares": shares, "entry": o, "t": t, "kb": K[t, j], "peak": o,
@@ -1112,6 +1119,7 @@ def simulate_orb(bot, px5, pxd, spy=None, now=None, record=None):
     events, eq_rows = [], {}
     cap, fee = float(bot["capital"]), bot["fee"] / 100
     max_pos = 1 if bot["kind"] == "company" else int(bot["max_pos"])
+    risk_pct = float(bot.get("risk_pct") or 0.0)
     cand = [dict(r, Symbol=s) for s in syms for r in sig[s].to_dict("records") if r["Day"] >= start]
     five = pd.Timedelta(minutes=5)
     for r in cand:                                         # a pending order would enter at the next candle's open
@@ -1160,6 +1168,8 @@ def simulate_orb(bot, px5, pxd, spy=None, now=None, record=None):
             busy.append(r["Exit Bar"])
             entry = float(r["Entry"])
             shares = alloc / (entry * (1 + fee))
+            if risk_pct and abs(entry - float(r["Stop"])) > 0:  # sized by risk (at most the slot)
+                shares = min(shares, equity * risk_pct / 100 / abs(entry - float(r["Stop"])))
             cost = shares * entry * (1 + fee)
             days5.setdefault(f'{r["Symbol"]}|{d:%Y-%m-%d}', True)
             row = {"Symbol": r["Symbol"], "Strategy": PB.ORB, "Entry Date": r["Entry Time"], "Entry": entry, "Shares": shares,
@@ -1328,4 +1338,4 @@ def journal(sim):
                          "Days": tr["Bars"], "Exit Reason": tr["Exit Reason"]})
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "9.0"
+BUILD = "9.1"

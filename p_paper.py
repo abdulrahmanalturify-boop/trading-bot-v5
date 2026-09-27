@@ -86,7 +86,7 @@ DEFAULTS = {"pb_name": "", "pb_capital": 1_000_000, "pb_kind": "all", "pb_symbol
             "pb_ind_sector": "Technology", "pb_industry": "Semiconductors", "pb_maxpos": 10, "pb_store": ["SMA Crossover"],
             "pb_fee": 0.05, "pb_stop": 2.0, "pb_atr": 0.0, "pb_tp": 0.0, "pb_trail": 0.0, "pb_combine": "any", "pb_instr": "stock",
             "pb_otype": "call", "pb_dte": 30, "pb_strike": 0, "pb_oalloc": 5.0, "pb_otp": 100.0, "pb_osl": 50.0,
-            "pb_mode": "single", "pb_store_pb": [PBK.TREND_PULLBACK], "pb_pbmode": "any", "pb_pbwin": 5}
+            "pb_mode": "single", "pb_store_pb": [PBK.TREND_PULLBACK], "pb_pbmode": "any", "pb_pbwin": 5, "pb_riskpt": 0.0}
 
 _A, _V, _C, _D, _G, _BG, _BD, _MU = T.ACCENT, T.VIOLET, T.CYAN, T.DOWN, T.GOLD, T.CARD2, T.BORDER, T.MUTED
 _CARD_H = 352          # every card in the leaderboard (bots and "Add Bot") has this height
@@ -1605,6 +1605,8 @@ def bot_header(sim):
                           + (L(" (each: stocks, options)", " (لكل من الأسهم والأوبشن)") if ins == "both" else ""), "neu", "stacks")
     if ins != "options":
         badges += T.badge(_stock_risk(b), "neu", "shield")
+        if b.get("risk_pct"):
+            badges += T.badge(L("Risk ", "المخاطرة ") + iso(f"{b['risk_pct']:g}%") + L(" per trade", " لكل صفقة"), "gold", "balance")
     if ins != "stock":
         badges += T.badge(_options_txt(b["options"]), "neu", "receipt_long")
         badges += T.badge(L("Option prices estimated (Black-Scholes)", "أسعار الأوبشن تقديرية (بلاك-شولز)"), "gold", "info")
@@ -2002,7 +2004,7 @@ def _qt_bot(sym, name, params, cfg, start):
     return {"id": 0, "name": "test", "kind": "company", "value": sym, "symbol": sym, "strategies": {name: PB.clean_params(name, params)},
             "combine": {"mode": "any"}, "instrument": "stock", "options": None, "max_pos": 1, "capital": float(cfg["capital"]),
             "fee": float(cfg["fee"]), "stop_pct": float(cfg["stop"]), "atr_mult": float(cfg["atr"]), "tp_pct": float(cfg["tp"]),
-            "trail_pct": float(cfg["trail"]), "start_date": start, "valid": True}
+            "trail_pct": float(cfg["trail"]), "start_date": start, "valid": True, "risk_pct": float(cfg.get("riskpt") or 0.0)}
 
 
 @st.cache_data(ttl=600, show_spinner=False)
@@ -2021,16 +2023,20 @@ def _qt_settings():
     """The inputs: symbol, period, strategy and its numbers, capital, fee and the exits."""
     names = _qt_names()
     for k, v in {"pb_qt_sym": "AAPL", "pb_qt_per": "2y", "pb_qt_strat": names[0], "pb_qt_cap": 100_000, "pb_qt_fee": 0.05,
-                 "pb_qt_stop": 0.0, "pb_qt_atr": 0.0, "pb_qt_tp": 0.0, "pb_qt_trail": 0.0}.items():
+                 "pb_qt_stop": 0.0, "pb_qt_atr": 0.0, "pb_qt_tp": 0.0, "pb_qt_trail": 0.0, "pb_qt_riskpt": 0.0}.items():
         ss.setdefault(k, v)
     if ss["pb_qt_strat"] not in names:
         ss["pb_qt_strat"] = names[0]
-    c = st.columns([1, 1.5, 1.8, 1.1, 0.9], vertical_alignment="bottom")
+    c = st.columns([1, 1.5, 1.8, 1.1, 1.1, 0.9], vertical_alignment="bottom")
     c[0].text_input(L("Symbol", "الرمز"), key="pb_qt_sym")
     c[1].segmented_control(L("Period", "المدة"), list(QT_PERIODS), key="pb_qt_per", format_func=lambda k: L(*QT_PERIODS[k][2:4]))
     c[2].selectbox(L("Strategy", "الاستراتيجية"), names, key="pb_qt_strat", format_func=strat_name)
-    c[3].number_input(L("Capital ($)", "رأس المال ($)"), 100, 100_000_000, step=1000, key="pb_qt_cap")
-    c[4].number_input(L("Fee % / side", "العمولة %"), 0.0, 1.0, step=0.01, key="pb_qt_fee")
+    c[3].number_input(L("Account ($)", "المحفظة ($)"), 100, 100_000_000, step=1000, key="pb_qt_cap")
+    c[4].number_input(L("Risk per trade %", "المخاطرة لكل صفقة %"), 0.0, 10.0, step=0.25, key="pb_qt_riskpt",
+                      help=L("0 = the whole account in each trade. Above 0: each trade is sized so that hitting its stop loses this % of "
+                             "the account (it needs a stop).",
+                             "0 = المحفظة كاملة في كل صفقة. أكثر من 0: حجم كل صفقة بحيث لو ضرب الوقف تخسر هالنسبة من المحفظة (يحتاج وقف)."))
+    c[5].number_input(L("Fee % / side", "العمولة %"), 0.0, 1.0, step=0.01, key="pb_qt_fee")
     name = ss["pb_qt_strat"]
     spec = PB.spec_of(name)[1]
     book = PB.is_playbook(name)
@@ -2061,7 +2067,7 @@ def _qt_settings():
         d[3].number_input(L("Trailing stop %", "الوقف المتحرك %"), 0.0, 50.0, step=0.5, key="pb_qt_trail", help=_trail_help())
         cfg_risk = {"stop": ss["pb_qt_stop"], "atr": ss["pb_qt_atr"], "tp": ss["pb_qt_tp"]}
     cfg = {"sym": str(ss.get("pb_qt_sym") or "").strip().upper(), "per": ss.get("pb_qt_per") or "2y", "name": name, "params": params,
-           "capital": ss["pb_qt_cap"], "fee": ss["pb_qt_fee"], "trail": ss["pb_qt_trail"], **cfg_risk}
+           "capital": ss["pb_qt_cap"], "fee": ss["pb_qt_fee"], "trail": ss["pb_qt_trail"], "riskpt": ss.get("pb_qt_riskpt") or 0.0, **cfg_risk}
     return cfg
 
 
@@ -2094,6 +2100,19 @@ def _qt_backtest(cfg, got):
            "pos" if m["Win Rate %"] >= 50 else "neg"),
           ("balance", L("Profit factor", "معامل الربح"), pf, "", "pos" if m["Profit Factor"] >= 1 else "neg")]
     ui.html('<div class="pbk">' + "".join(T.kpi(*k) for k in kp) + "</div>")
+    if len(tr):
+        size = (tr["Shares"] * tr["Entry"]).astype(float)
+        rp = float(cfg.get("riskpt") or 0)
+        txt = (L(f"Position sizing: {rp:g}% of the account at risk per trade · average position ${size.mean():,.0f} "
+                 f"({size.mean() / float(cfg['capital']) * 100:.0f}% of the start)",
+                 f"حجم الصفقات: مخاطرة {rp:g}% من المحفظة لكل صفقة · متوسط حجم الصفقة ${size.mean():,.0f} "
+                 f"({size.mean() / float(cfg['capital']) * 100:.0f}% من البداية)") if rp else
+               L(f"Position sizing: the whole account in each trade · average position ${size.mean():,.0f}",
+                 f"حجم الصفقات: المحفظة كاملة في كل صفقة · متوسط حجم الصفقة ${size.mean():,.0f}"))
+        if rp and not (cfg["stop"] or cfg["atr"] or PB.is_playbook(name)):
+            txt += L(" · no stop is set, so the risk % can't be applied: add a stop loss or an ATR stop.",
+                     " · ما فيه وقف، فنسبة المخاطرة ما تنطبق: أضف وقف خسارة أو وقف ATR.")
+        st.caption(txt)
     d = ta.add_all(df[df.index >= df.index[0]])
     d = d[pd.DatetimeIndex(d.index).tz_localize(None) >= pd.Timestamp(start)] if getattr(d.index, "tz", None) is not None else d[d.index >= pd.Timestamp(start)]
     ui.chart(charts.price_chart(d, "Candles" if len(d) <= 800 else "Line", OVERLAYS.get(name, []), PANELS.get(name, []), False, trades=tr),
@@ -2297,7 +2316,8 @@ def _load_form(bot):
                "pb_maxpos": _clip(bot["max_pos"] if k != "company" else DEFAULTS["pb_maxpos"], 1, PB.MAX_POS_LIMIT, int),
                "pb_instr": instrument(bot), "pb_fee": _clip(bot["fee"], 0.0, 1.0), "pb_stop": _clip(bot["stop_pct"], 0.0, 50.0),
                "pb_atr": _clip(bot["atr_mult"], 0.0, 10.0), "pb_tp": _clip(bot["tp_pct"], 0.0, 500.0),
-               "pb_trail": _clip(bot["trail_pct"], 0.0, 50.0), "pb_start": pd.Timestamp(bot["start_date"]).date()})
+               "pb_trail": _clip(bot["trail_pct"], 0.0, 50.0), "pb_start": pd.Timestamp(bot["start_date"]).date(),
+               "pb_riskpt": _clip(bot.get("risk_pct") or 0.0, 0.0, 10.0)})
     for s in books:
         _pp_seed(s, bot["strategies"][s])
     if books:                                     # the agreement rule of combined strategies has its own keys
@@ -2779,6 +2799,17 @@ def bot_form(mode, bot=None):
                              f"كل صفقة تاخذ {share}. بعد كل إغلاق يفحص البوت كل الـ {count} سهم، "
                              "وإذا أعطت أسهم إشارات أكثر من الأماكن الفاضية، يشتري الأقوى أداءً آخر 3 أشهر أولاً (والـ Put الأضعف)."))
 
+        if instr != "options":
+            r1, r2 = st.columns([1, 2], vertical_alignment="bottom")
+            r1.number_input(L("Risk per trade % (0 = off)", "المخاطرة لكل صفقة % (0 = إيقاف)"), 0.0, 10.0, step=0.25, key="pb_riskpt",
+                            help=L("The account is the capital above.", "المحفظة هي رأس المال فوق."))
+            r2.caption(L("With a risk %, each stock trade is sized so that hitting its stop loses that % of the balance (never more than "
+                         "its slot). It needs a stop: the stop loss or ATR stop (exits below) or the combined strategy's own stop. "
+                         "0 = each trade simply gets its slot.",
+                         "مع نسبة مخاطرة، يتحدد حجم كل صفقة أسهم بحيث لو ضرب الوقف يخسر البوت هالنسبة من رصيده (وما يتعدى مكانها). "
+                         "تحتاج وقف: وقف الخسارة أو وقف ATR (في الخروج تحت) أو وقف الاستراتيجية المركّبة. "
+                         "0 = كل صفقة تاخذ مكانها بالتساوي."))
+
     # 5) exits and costs
     with st.container(key="pbf_5"):
         form_head(5, "shield", "Exits and costs", "الخروج والتكاليف")
@@ -2892,7 +2923,7 @@ def bot_form(mode, bot=None):
     rec = PB.make_record(name, kind, value, params, ss.get("pb_maxpos", DEFAULTS["pb_maxpos"]), ss["pb_capital"], ss["pb_fee"], *risk,
                          pd.Timestamp(start).strftime("%Y-%m-%d"),
                          ({"mode": "combo", "min": int(need), **({"window": int(win)} if combined else {})} if combo else None),
-                         instrument=instr, options=options)
+                         instrument=instr, options=options, risk_pct=0.0 if instr == "options" else float(ss.get("pb_riskpt") or 0.0))
     try:
         if mode == "add":
             PB.create_bot(rec)
@@ -3011,4 +3042,4 @@ def page_paper_bots():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "9.0"
+BUILD = "9.1"
