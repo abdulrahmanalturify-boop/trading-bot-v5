@@ -952,6 +952,85 @@ a.lnk {{ color:inherit !important; text-decoration:none !important; }} a.lnk:hov
 .srcc .d {{ width:9px; height:9px; border-radius:50%; flex:none; background:#22C55E; }} .srcc.bad .d {{ background:#EF4444; }} .srcc.wait .d {{ background:#64748B; }}
 .srcc b {{ color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
 .srcc span {{ margin-inline-start:auto; color:{MUTED}; white-space:nowrap; font-size:.72rem; }}
+/* ---------- one table look everywhere (the Recent-trades panel): rounded rows, muted header, numbers on the right ---------- */
+.xtp {{ position:relative; overflow:hidden; background:{BOX_BG}; border:1px solid {BORDER}; border-radius:18px; padding:12px 14px 8px 18px; margin:4px 0 12px; }}
+.xtp::before {{ content:""; position:absolute; top:0; bottom:0; left:0; width:3px; background:linear-gradient(180deg,{ACCENT},{VIOLET},{CYAN}); }}
+.xtp .hd {{ display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin:2px 0 8px; }}
+.xtp .tt {{ display:flex; align-items:center; gap:8px; font-weight:800; font-size:1.02rem; color:#fff; }}
+.xtp .tt .ms {{ color:#fff; background:linear-gradient(135deg,{ACCENT},{VIOLET}); border-radius:8px; padding:4px; font-size:1rem; }}
+.xtp .sum {{ display:flex; flex-wrap:wrap; gap:7px; align-items:center; }}
+.xtp .sum .c {{ display:inline-flex; align-items:center; gap:7px; background:rgba(138,148,167,.10); border:1px solid {BORDER}; border-radius:999px;
+  padding:4px 12px; font-size:.75rem; font-weight:700; color:#AEB7C6; line-height:1.4; white-space:nowrap; }}
+.xtp .sum .c b {{ color:#fff; direction:ltr; unicode-bidi:isolate; }}
+.xtsc {{ overflow:auto; scrollbar-width:thin; }}
+.xtbl {{ width:100%; border-collapse:separate !important; border-spacing:0 4px !important; font-size:.8rem; direction:ltr;
+  border:none !important; margin:-4px 0 0 !important; background:none !important; display:table !important; }}
+.xtbl thead tr, .xtbl tbody tr {{ background:none !important; border:none !important; }}
+.xtbl th {{ position:sticky; top:0; z-index:1; background:#0F1639 !important; color:{MUTED}; font-size:.6rem; letter-spacing:.09em; text-transform:uppercase;
+  text-align:left; padding:8px 12px 5px !important; font-weight:800; white-space:nowrap; border:none !important; }}
+.xtbl td {{ padding:7px 12px !important; white-space:nowrap; vertical-align:middle; text-align:left; line-height:1.35; color:#DCE2EC;
+  background:rgba(255,255,255,.028) !important; border:none !important; border-top:1px solid rgba(255,255,255,.045) !important;
+  border-bottom:1px solid rgba(255,255,255,.045) !important; transition:background .15s ease; }}
+.xtbl td:first-child {{ border-left:1px solid rgba(255,255,255,.045) !important; border-radius:10px 0 0 10px; }}
+.xtbl td:last-child {{ border-right:1px solid rgba(255,255,255,.045) !important; border-radius:0 10px 10px 0; }}
+.xtbl tbody tr:hover td {{ background:rgba(61,123,255,.10) !important; }}
+.xtbl .r {{ text-align:right; font-variant-numeric:tabular-nums; }}
+.xtbl td.w {{ white-space:normal; min-width:200px; max-width:420px; }}
+.xtbl b {{ color:#fff; font-weight:800; }}
+.xtbl .as {{ display:inline-flex; align-items:center; gap:8px; color:#fff !important; text-decoration:none !important; }}
+.xtbl .as .lg {{ width:22px !important; height:22px !important; font-size:9px !important; }}
+.xtbl .as:hover b {{ color:#7EA6FF; }}
+.xtbl .m {{ color:{MUTED}; font-size:.72rem; font-weight:600; }}
+.xtbl .up {{ color:#4ADE80; font-weight:700; }} .xtbl .dn {{ color:#F87171; font-weight:700; }}
+.xtbl .pbox {{ padding:1px 9px; font-size:.76rem; border-radius:999px; }}
+.xtbl a {{ color:#7EA6FF; }}
+.xtbl .xbar {{ display:inline-block; width:64px; height:6px; border-radius:6px; background:rgba(138,148,167,.18); overflow:hidden;
+  vertical-align:middle; margin-right:8px; }}
+.xtbl .xbar i {{ display:block; height:100%; border-radius:6px; background:linear-gradient(90deg,{ACCENT},{VIOLET},{CYAN}); }}
+.xtbl .xgr {{ display:inline-block; min-width:30px; text-align:center; padding:1px 8px; border-radius:999px; font-weight:800; font-size:.74rem;
+  color:var(--g); border:1px solid var(--g); background:rgba(255,255,255,.04); }}
+/* ---------- the hand-built tables in the same look: a box with the brand bar on its left, rounded rows, muted header ---------- */
+.chainwrap, .etab, .iplist {{ position:relative; background:{BOX_BG} !important; border:1px solid {BORDER}; border-radius:18px; padding:8px 12px 8px 17px; }}
+.chainwrap::before, .etab::before, .iplist::before, .evday::before {{ content:""; position:absolute; top:0; bottom:0; left:0; width:3px; z-index:2;
+  background:linear-gradient(180deg,{ACCENT},{VIOLET},{CYAN}); }}
+.evday {{ position:relative; }}
+.chain {{ border-collapse:separate !important; border-spacing:0 4px !important; margin:-4px 0 0 !important; }}
+.chain th {{ background:#0F1639 !important; border:none !important; font-size:.62rem; font-weight:800; letter-spacing:.07em; text-transform:uppercase; padding:8px 8px 5px; }}
+.chain td {{ color:#DCE2EC; background:rgba(255,255,255,.028); border:none !important; border-top:1px solid rgba(255,255,255,.045) !important;
+  border-bottom:1px solid rgba(255,255,255,.045) !important; padding:7px 8px; }}
+.chain td:first-child {{ border-left:1px solid rgba(255,255,255,.045) !important; border-radius:10px 0 0 10px; }}
+.chain td:last-child {{ border-right:1px solid rgba(255,255,255,.045) !important; border-radius:0 10px 10px 0; }}
+.chain td.k {{ background:rgba(61,123,255,.12) !important; }}
+.chain tr.atm td {{ border-top:2px solid {ACCENT} !important; }}
+.chain td.itm-c {{ background:rgba(34,197,94,.09); }} .chain td.itm-p {{ background:rgba(239,68,68,.09); }}
+.chain tr:hover td {{ background:rgba(61,123,255,.10); }}
+.erow:not(.eh), .drow:not(.th), .iprow:not(.ih) {{ border:1px solid rgba(255,255,255,.045) !important; border-radius:10px; background:rgba(255,255,255,.028);
+  margin:4px 0; transition:background .15s ease; }}
+.erow:not(.eh):hover, .drow:not(.th):hover, .iprow:not(.ih):hover, .evr:not(.eh):hover {{ background:rgba(61,123,255,.10); }}
+.erow.eh, .drow.th, .iprow.ih {{ background:transparent !important; border:none !important; padding-top:6px; padding-bottom:4px; }}
+.evday .evr {{ margin:4px 10px 4px 14px; border:1px solid rgba(255,255,255,.045); border-radius:10px; background:rgba(255,255,255,.028); }}
+.evday .evr.eh {{ background:transparent; border:none; margin-top:6px; margin-bottom:0; }}
+.evday .evr.s3 {{ background:rgba(239,68,68,.07); border-color:rgba(239,68,68,.25); }}
+.evday > :last-child {{ margin-bottom:10px; }}
+.rtab {{ border-collapse:separate !important; border-spacing:0 4px !important; }}
+.rtab th {{ border:none !important; font-size:.6rem; font-weight:800; padding:6px 10px 3px; }}
+.rtab td {{ background:rgba(255,255,255,.028); border:none !important; border-top:1px solid rgba(255,255,255,.045) !important;
+  border-bottom:1px solid rgba(255,255,255,.045) !important; padding:7px 10px; }}
+.rtab td:first-child {{ border-left:1px solid rgba(255,255,255,.045) !important; border-radius:10px 0 0 10px; }}
+.rtab td:last-child {{ border-right:1px solid rgba(255,255,255,.045) !important; border-radius:0 10px 10px 0; }}
+.rtab tr:hover td {{ background:rgba(61,123,255,.10); }}
+/* ---------- every chart sits in a box (never straight on the night sky); boxes in one row share one height ---------- */
+[data-testid="stPlotlyChart"] {{ background:{BOX_BG}; border:1px solid {BORDER}; border-radius:16px; padding:10px 12px 6px; box-sizing:border-box;
+  overflow:hidden; }}
+:is([class*="st-key-pbcalbox_"], [class*="st-key-pbf_"], [class*="st-key-hnbar"], [class*="st-key-pbmg_"], .st-key-czhero) [data-testid="stPlotlyChart"]
+  {{ background:none; border:none; padding:0; }}
+[data-testid="stColumn"] > [data-testid="stVerticalBlock"] > [data-testid="stElementContainer"]:only-child,
+[data-testid="stColumn"] > [data-testid="stVerticalBlock"] > [data-testid="stElementContainer"]:only-child > .stMarkdown,
+[data-testid="stColumn"] > [data-testid="stVerticalBlock"] > [data-testid="stElementContainer"]:only-child [data-testid="stMarkdownContainer"],
+[data-testid="stColumn"] > [data-testid="stVerticalBlock"] > [data-testid="stElementContainer"]:only-child [data-testid="stMarkdownContainer"] > div:only-child
+  {{ height:100%; }}
+[data-testid="stColumn"] > [data-testid="stVerticalBlock"] > [data-testid="stElementContainer"]:only-child [data-testid="stMarkdownContainer"] > div:only-child
+  > :is(.card,.kpi,.tile,.mcard,.story,.fgc,.dcard,.tdc,.tdp,.lc,.rmeter):only-child {{ height:100%; box-sizing:border-box; }}
 /* ---------- coloured boxes keep their colour: green ones get green edges and a green line on top, red ones red ---------- */
 .botbar {{ background:{UP_LINE}, linear-gradient(90deg, rgba(34,197,94,.1), rgba(61,123,255,.08)); border-color:{UP_EDGE}; }}
 :is(.card,.tile,.kpi,.stat,.mx .m,.opos .o,.perfrow .pc2,.sigs .sg,.lr,.evt,.fgc,.prof .it,.plan .p,.mcard,.lc,.tdc,.tdp,.dcard,.cal .d,.story,.news).pos
@@ -983,6 +1062,7 @@ html, body, .stApp, .stMarkdown, button, input, textarea, select, label, [data-b
 [class*="st-key-navdd_"] [data-testid="stPageLink"] a:hover {{ transform: translateX(-2px); }}
 .st-key-langdd {{ right:auto; left:0; transform-origin: top left; }}
 .nth.fb em::after {{ content:attr(data-ar); }} .nth.fb em {{ letter-spacing:0; font-size:.72rem; }}
+.xtbl th {{ letter-spacing:0; font-size:.7rem; }}
 </style>
 """
 
@@ -1564,4 +1644,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "9.6"
+BUILD = "9.7"

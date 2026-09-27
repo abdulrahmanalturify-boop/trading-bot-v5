@@ -141,7 +141,7 @@ def interactive(key):
                 (("Fed cuts rates", "الفيدرالي يخفض الفائدة"), ("Usually positive for stocks, weaker dollar", "إيجابي عادة للأسهم وضعف الدولار")),
                 (("GDP beats", "الناتج المحلي أفضل من المتوقع"), ("Cyclicals and small caps benefit", "استفادة القطاعات الدورية والشركات الصغيرة"))]
         df = pd.DataFrame([{L("Data surprise", "المفاجأة"): L(*a), L("Typical reaction", "رد الفعل المعتاد"): L(*b)} for a, b in rows])
-        st.dataframe(df, hide_index=True)
+        ui.table(df, wrap=set(df.columns))
         return
 
 
@@ -349,5 +349,5 @@ def page_glossary():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "9.6"
+BUILD = "9.7"
 

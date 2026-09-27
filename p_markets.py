@@ -498,9 +498,8 @@ def page_options():
             N = {"Symbol": L("Symbol", "الرمز"), "Type": L("Type", "النوع"), "Strike": L("Strike", "التنفيذ"), "Expiry": L("Expiry", "الانتهاء"),
                  "Volume": L("Volume", "الحجم"), "OI": L("Open int.", "العقود المفتوحة"), "Last": L("Last", "آخر سعر"), "IV %": "IV %", "Vol/OI": "Vol/OI"}
             show = un.rename(columns=N)
-            st.dataframe(show.style.map(lambda v: T.signal_style(v, "CALL", "PUT"), subset=[N["Type"]]).format(
-                {N["Strike"]: "{:,.2f}", N["Volume"]: "{:,.0f}", N["OI"]: "{:,.0f}", N["Last"]: "{:,.2f}", "IV %": "{:.1f}%", "Vol/OI": "{:.1f}×"}, na_rep="—"),
-                hide_index=True, height=420, column_config={"Logo": st.column_config.ImageColumn(" ", width="small")})
+            ui.table(show, sym=N["Symbol"], words={N["Type"]: ("CALL", "PUT")}, height=460,
+                     fmt={N["Strike"]: "{:,.2f}", N["Volume"]: "{:,.0f}", N["OI"]: "{:,.0f}", N["Last"]: "{:,.2f}", "IV %": "{:.1f}%", "Vol/OI": "{:.1f}×"})
             st.caption(L("Unusual = contracts trading more today than their total open interest (at least 500 contracts): often new positions.",
                          "غير معتاد = عقود تداولها اليوم أكبر من إجمالي العقود المفتوحة (500 عقد على الأقل): غالباً مراكز جديدة."))
     ui.sec("table_rows", "Option chain explorer", "مستعرض سلسلة الخيارات")
@@ -652,7 +651,7 @@ def calendar_section():
             if df.empty:
                 st.caption("—")
             else:
-                st.dataframe(df.rename(columns=ar_cols) if is_ar() else df, hide_index=True, height=min(460, 38 + 35 * len(df)))
+                ui.table(df.rename(columns=ar_cols) if is_ar() else df, height=480, wrap={L("Event", "الحدث")})
 
 
 def page_economy():
@@ -821,8 +820,8 @@ def page_trending():
             N = {"Symbol": L("Symbol", "الرمز"), "Name": L("Company", "الشركة"), "Price": L("Price", "السعر"), "Chg %": L("Change %", "التغير %"),
                  "Volume": L("Volume", "الحجم"), "Rel Vol": L("Rel. volume", "الحجم النسبي"), "Mkt Cap": L("Market cap", "القيمة السوقية")}
             show = show.rename(columns=N)
-            st.dataframe(show.style.map(T.color_style, subset=[N["Chg %"]]).format({N["Price"]: "{:,.2f}", N["Chg %"]: "{:+.2f}%", N["Rel Vol"]: "{:.1f}×"}, na_rep="—"),
-                         hide_index=True, height=420, column_config={"Logo": st.column_config.ImageColumn(" ", width="small")})
+            ui.table(show, sym=N["Symbol"], pills={N["Chg %"]}, height=480,
+                     fmt={N["Price"]: "{:,.2f}", N["Chg %"]: "{:+.2f}%", N["Rel Vol"]: "{:.1f}×"})
             if fallback:
                 st.caption(L("Computed from the top 175 US stocks (screener source unavailable).", "محسوبة من أكبر 175 سهم أمريكي (مصدر القوائم غير متاح حالياً)."))
             ui.open_picker(df["Symbol"].tolist(), f"tr_{kind}", "Open a stock", "افتح سهماً")
@@ -970,4 +969,4 @@ def page_news():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "9.6"
+BUILD = "9.7"

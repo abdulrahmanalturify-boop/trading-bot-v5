@@ -475,40 +475,40 @@ def financials_tab(sym, inf):
                 raw = [i for i in num.index if any(w in str(i) for w in ("EPS", "Per Share", "Rate"))]
                 show.loc[raw] = num.loc[raw]
                 show.columns = _period_labels(pd.to_datetime(show.columns, errors="coerce"), f2)
-                st.dataframe(show.style.format("{:,.2f}", na_rep="—"), height=420)
+                show.index = [str(i) for i in show.index]
+                show.index.name = L("Line item", "البند")
+                ui.table(show, index=True, height=520, fmt={c: "{:,.2f}" for c in show.columns})
                 st.caption(L("Values in billions of USD (EPS and rates as reported).", "القيم بالمليار دولار (ربحية السهم والنسب كما هي)."))
 
 
+def _optc():
+    """Readable option-table column names in the current language."""
+    return {"Type": L("Type", "النوع"), "contractSymbol": L("Contract", "العقد"), "strike": L("Strike", "التنفيذ"), "lastPrice": L("Last", "آخر سعر"),
+                "bid": L("Bid", "الطلب"), "ask": L("Ask", "العرض"), "percentChange": L("Change %", "التغير %"), "volume": L("Volume", "الحجم"),
+                "openInterest": L("Open int.", "العقود المفتوحة"), "impliedVolatility": L("IV %", "التذبذب الضمني %"), "inTheMoney": L("In the money", "داخل السعر")}
+
+
 def analysts_tab(sym, inf, price):
+    """The same analyst view as the Opportunity Hunter: the rating gauge, the price targets, every rating change of the last
+    90 days, then earnings (estimate vs actual, the next date) and the insider transactions."""
+    import p_scanner as S
+    ui.html(S.CSS + (S.RTL_CSS if is_ar() else ""))
+    S.analyst_section(sym, price)
     f = data.fundamentals(sym)
-    c1, c2 = st.columns(2)
-    with c1:
-        if f["targets"]:
-            ui.chart(charts.target_chart(price, f["targets"], L("12-month price targets", "السعر المستهدف (12 شهر)")), key="an_tgt")
-            mean = f["targets"].get("mean")
-            if mean:
-                up = (mean / price - 1) * 100
-                ui.html(T.kpi("flag", L("Upside to mean target", "مساحة الصعود للهدف"), f"{up:+.1f}%",
-                              f"{inf.get('numberOfAnalystOpinions', 0) or 0} {L('analysts', 'محلل')}", T.cls(up)))
-        rec = f["rec_summary"]
-        if isinstance(rec, pd.DataFrame) and not rec.empty:
-            ui.chart(charts.rec_chart(rec, L("Analyst recommendations", "توصيات المحللين")), key="an_rec")
-    with c2:
-        eh = f["earnings_hist"]
-        if isinstance(eh, pd.DataFrame) and not eh.empty:
-            fig = charts.eps_chart(eh, L("EPS: estimate vs actual", "ربحية السهم: المتوقع مقابل الفعلي"))
-            if fig is not None:
-                ui.chart(fig, key="an_eps")
+    eh = f["earnings_hist"]
+    fig = charts.eps_chart(eh, L("EPS: estimate vs actual", "ربحية السهم: المتوقع مقابل الفعلي")) if isinstance(eh, pd.DataFrame) and not eh.empty else None
+    if fig is not None or f["earnings_date"] is not None:
+        ui.sec("request_quote", "Earnings", "الأرباح")
+        c1, c2 = st.columns([2.2, 1])
+        if fig is not None:
+            ui.chart(fig, key="an_eps", container=c1)
         if f["earnings_date"] is not None:
-            days = (pd.Timestamp(f["earnings_date"]).normalize() - pd.Timestamp.now().normalize()).days
-            st.metric(L("Next earnings", "إعلان الأرباح القادم"), f"{pd.Timestamp(f['earnings_date']):%Y-%m-%d}",
-                      L(f"in {days} days", f"بعد {days} يوم"), delta_color="off")
-    ui.sec("swap_vert", "Upgrades & downgrades (90 days)", "الترقيات والتخفيضات (90 يوم)")
-    r = f["ratings"]
-    st.dataframe(r, height=260) if isinstance(r, pd.DataFrame) and not r.empty else st.caption("—")
-    ui.sec("badge", "Insider transactions", "تعاملات المطّلعين")
-    ins = f["insiders"]
-    st.dataframe(ins.head(15), hide_index=True, height=300) if isinstance(ins, pd.DataFrame) and not ins.empty else st.caption("—")
+            nd = pd.Timestamp(f["earnings_date"])
+            days = (nd.normalize() - pd.Timestamp.now().normalize()).days
+            c2.markdown(T.kpi("event_upcoming", L("Next earnings", "إعلان الأرباح القادم"), f"{nd:%Y-%m-%d}",
+                              L(f"in {days} days", f"بعد {days} يوم") if days >= 0 else L("date not confirmed yet", "الموعد لم يتأكد بعد"), "acc"),
+                        unsafe_allow_html=True)
+    S.insider_section(sym)
 
 
 def company_tab(sym):
@@ -549,7 +549,7 @@ def company_tab(sym):
         ui.sec("badge", "Key executives", "كبار التنفيذيين")
         off = pd.DataFrame([{L("Name", "الاسم"): o.get("name"), L("Title", "المنصب"): o.get("title"),
                              L("Age", "العمر"): o.get("age")} for o in p["officers"]])
-        st.dataframe(off, hide_index=True)
+        ui.table(off, fmt={L("Age", "العمر"): "{:,.0f}"}, wrap={L("Title", "المنصب")})
     if p["industry"]:
         peers = [s for s, v in U.STOCKS.items() if v[2] == p["industry"] and s != sym][:8]
         if peers:
@@ -675,9 +675,10 @@ def _options_tab(sym, price):
             pos = df.index.get_loc(i)
             df = df.iloc[max(0, pos - rng): pos + rng + 1]
         df["impliedVolatility"] = df["impliedVolatility"] * 100
-        st.dataframe(df.style.map(T.color_style, subset=["percentChange"]).format(
-            {"strike": "{:,.2f}", "lastPrice": "{:,.2f}", "bid": "{:,.2f}", "ask": "{:,.2f}", "percentChange": "{:+.1f}%", "impliedVolatility": "{:.1f}%",
-             "volume": "{:,.0f}", "openInterest": "{:,.0f}"}, na_rep="—"), hide_index=True, height=520)
+        OPT_COLS = _optc()
+        ui.table(df.rename(columns=OPT_COLS), pills={OPT_COLS["percentChange"]}, height=560,
+                 fmt={OPT_COLS[k]: v for k, v in {"strike": "{:,.2f}", "lastPrice": "{:,.2f}", "bid": "{:,.2f}", "ask": "{:,.2f}", "percentChange": "{:+.1f}%",
+                                                   "impliedVolatility": "{:.1f}%", "volume": "{:,.0f}", "openInterest": "{:,.0f}"}.items()})
     a, b = st.columns(2)
     win = lambda d: d[(d["strike"] > price * 0.7) & (d["strike"] < price * 1.3)]
     ui.chart(charts.oi_by_strike(win(calls), win(puts), price, L("Open interest by strike", "العقود المفتوحة حسب سعر التنفيذ"),
@@ -688,9 +689,10 @@ def _options_tab(sym, price):
     act = pd.concat([calls.assign(Type="CALL"), puts.assign(Type="PUT")], ignore_index=True)
     act = act.sort_values("volume", ascending=False).head(10)[["Type", "contractSymbol", "strike", "lastPrice", "percentChange", "volume", "openInterest", "impliedVolatility"]]
     act["impliedVolatility"] = act["impliedVolatility"] * 100
-    st.dataframe(act.style.map(T.color_style, subset=["percentChange"]).format(
-        {"strike": "{:,.2f}", "lastPrice": "{:,.2f}", "percentChange": "{:+.1f}%", "impliedVolatility": "{:.1f}%", "volume": "{:,.0f}",
-         "openInterest": "{:,.0f}"}, na_rep="—"), hide_index=True)
+    OPT_COLS = _optc()
+    ui.table(act.rename(columns=OPT_COLS), pills={OPT_COLS["percentChange"]}, words={OPT_COLS["Type"]: ("CALL", "PUT")},
+             fmt={OPT_COLS[k]: v for k, v in {"strike": "{:,.2f}", "lastPrice": "{:,.2f}", "percentChange": "{:+.1f}%", "impliedVolatility": "{:.1f}%",
+                                               "volume": "{:,.0f}", "openInterest": "{:,.0f}"}.items()})
 
 
 def page_stock():
@@ -1393,11 +1395,13 @@ def page_screener():
                 fmt[N["Volatility"]] = "{:.1f}%"
             if "Rev share" in cols:
                 fmt[N["Rev share"]] = "{:.1f}%"
-            cc = {"Logo": st.column_config.ImageColumn(" ", width="small")}
+            cell = {}
             if "Rev share" in cols:
-                cc[N["Rev share"]] = st.column_config.ProgressColumn(N["Rev share"], format="%.1f%%", min_value=0.0, max_value=max(max_share, 1.0))
-            st.dataframe(show.style.map(T.color_style, subset=[N[c_] for c_ in pct_cols]).format(fmt, na_rep="—"), hide_index=True, height=540,
-                         column_config=cc)
+                top_ = max(max_share, 1.0)
+                cell[N["Rev share"]] = lambda v, r, top_=top_: (ui.score_bar(v, top_).replace(f"<b>{float(v):.0f}</b>", f"<b>{float(v):.1f}%</b>")
+                                                               if pd.notna(v) else '<span class="m">—</span>')
+            ui.table(show, sym=N["Symbol"] if N.get("Symbol") in show else None, pills={N[c_] for c_ in pct_cols[:1]},
+                     signed={N[c_] for c_ in pct_cols[1:]}, fmt=fmt, cell=cell, height=600, wrap={N[c_] for c_ in ("Name",) if c_ in cols})
     if share_tab:
         with vt[len(views)]:
             ui.safe(_share_view, df, tot_rev, group_name)
@@ -1425,4 +1429,4 @@ def page_screener():
 # SCANNER
 # =====================================================================
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "9.6"
+BUILD = "9.7"

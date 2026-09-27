@@ -95,7 +95,9 @@ def render(key, namespace="lesson"):
         rates=[rate-1,rate,rate+1]; gs=[growth-1,growth,growth+1]
         frame=pd.DataFrame({f"{g:.1f}%":[perpetuity(cash,r,g) for r in rates] for g in gs},index=[f"{r:.1f}%" for r in rates])
         st.caption(L("Rows: discount rate · columns: perpetual growth. Invalid combinations are blank.","الصفوف: معدل الخصم · الأعمدة: النمو الدائم. التركيبات غير الصالحة فارغة."))
-        st.dataframe(frame.style.format('{:,.2f}',na_rep='—'),width="stretch")
+        frame.index.name=L("Discount rate", "معدل الخصم")
+        import ui
+        ui.table(frame, index=True, fmt={c:'{:,.2f}' for c in frame.columns})
         st.caption(L("Constant-growth perpetuity; no explicit forecast period, debt adjustment or share count. Not a full company valuation.","تدفق دائم بنمو ثابت؛ بدون فترة توقع صريحة أو تعديل ديون أو عدد أسهم. مو تقييم كامل لشركة."))
     elif key=="journal":
         thesis=st.text_area(L("My thesis", "فرضيتي"),key=k('thesis'))

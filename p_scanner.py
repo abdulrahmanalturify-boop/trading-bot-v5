@@ -1160,15 +1160,7 @@ def analyst_section(sym, price):
     if "priorPriceTarget" in t:
         out[L("Prior target", "الهدف السابق")] = pd.to_numeric(t["priorPriceTarget"], errors="coerce").replace(0, np.nan).values
     fmt = {c: "${:,.2f}" for c in out.columns if c in (L("Price target", "السعر المستهدف"), L("Prior target", "الهدف السابق"))}
-
-    def color(v):
-        if v in (L("Upgrade", "ترقية"),):
-            return f"color:{T.POS_FG};background-color:{T.POS_BG};font-weight:700"
-        if v in (L("Downgrade", "تخفيض"),):
-            return f"color:{T.NEG_FG};background-color:{T.NEG_BG};font-weight:700"
-        return ""
-    st.dataframe(out.style.map(color, subset=[L("Action", "الإجراء")]).format(fmt, na_rep="—"), hide_index=True,
-                 height=min(420, 38 + 35 * len(out)))
+    ui.table(out, fmt=fmt, words={L("Action", "الإجراء"): (L("Upgrade", "ترقية"), L("Downgrade", "تخفيض"))}, height=460)
 
 
 # ---------------------------------------------------------------- insiders
@@ -1247,15 +1239,8 @@ def insider_section(sym):
     show["Kind"] = show["Kind"].map(lambda k: L(*INS_KIND[k][:2]))
     show["Ownership"] = show["Ownership"].map(lambda o: L(o, {"Direct": "مباشرة", "Indirect": "غير مباشرة"}.get(o, o)) if o else "—")
     show = show.rename(columns=N)
-
-    def color(v):
-        if v == L("Buy", "شراء"):
-            return f"color:{T.POS_FG};background-color:{T.POS_BG};font-weight:700"
-        if v == L("Sale", "بيع"):
-            return f"color:{T.NEG_FG};background-color:{T.NEG_BG};font-weight:700"
-        return ""
-    st.dataframe(show.style.map(color, subset=[N["Kind"]]).format({N["Shares"]: "{:,.0f}", N["Value"]: "${:,.0f}"}, na_rep="—"),
-                 hide_index=True, height=min(460, 38 + 35 * len(show)))
+    ui.table(show, words={N["Kind"]: (L("Buy", "شراء"), L("Sale", "بيع"))}, fmt={N["Shares"]: "{:,.0f}", N["Value"]: "${:,.0f}"},
+             wrap={N["Details"]}, height=500)
     st.download_button(L("Export CSV", "تصدير CSV"), show.to_csv(index=False).encode("utf-8-sig"), f"insiders_{sym}.csv", "text/csv",
                        icon=":material/download:", key=f"hn_ins_csv_{_key(sym)}")
 
@@ -1341,9 +1326,8 @@ def detail(r, det, got):
                 N = {"Entry Date": L("Entry", "الدخول"), "Entry": L("Price", "السعر"), "Exit Date": L("Exit", "الخروج"), "Exit": L("Exit price", "سعر الخروج"),
                      "Ret %": L("Return %", "العائد %"), "Bars": L("Days", "الأيام"), "Reason": L("Exit by", "الخروج بـ")}
                 show = show[["Entry Date", "Entry", "Exit Date", "Exit", "R", "Ret %", "Bars", "Reason"]].rename(columns=N)
-                st.dataframe(show.style.map(T.color_style, subset=["R", N["Ret %"]]).format(
-                    {N["Entry"]: "{:,.2f}", N["Exit"]: "{:,.2f}", "R": "{:+.2f}", N["Ret %"]: "{:+.1f}%"}), hide_index=True,
-                    height=min(420, 38 + 35 * len(show)))
+                ui.table(show, pills={"R"}, signed={N["Ret %"]}, height=460,
+                         fmt={N["Entry"]: "{:,.2f}", N["Exit"]: "{:,.2f}", "R": "{:+.2f}", N["Ret %"]: "{:+.1f}%", N["Bars"]: "{:,.0f}"})
                 st.caption(L("Same rule, same stop, target and time limit; entry at the next open, the stop checked first when a candle "
                              "touches both. Past results on one stock are a guide, not a promise.",
                              "نفس الشرط ونفس الوقف والهدف والمدة؛ الدخول عند الافتتاح التالي، والوقف يُفحص أول إذا لمست الشمعة الاثنين. "
@@ -1380,14 +1364,12 @@ def table(view):
          "From high %": L("From 52W high %", "عن القمة السنوية %"), "Entry": L("Entry", "الدخول"), "Stop": L("Stop", "الوقف"),
          "Target": L("Target", "الهدف"), "R:R": "R:R", "Earnings": L("Earnings in (days)", "الأرباح بعد (أيام)")}
     show = show.rename(columns=N)
-    st.dataframe(show, hide_index=True, height=min(560, 38 + 35 * len(show)),
-                 column_config={N["Score"]: st.column_config.ProgressColumn(N["Score"], min_value=0, max_value=100, format="%.0f"),
-                                N["Price"]: st.column_config.NumberColumn(format="%.2f"), N["Chg %"]: st.column_config.NumberColumn(format="%+.2f%%"),
-                                N["1M %"]: st.column_config.NumberColumn(format="%+.1f%%"), N["3M %"]: st.column_config.NumberColumn(format="%+.1f%%"),
-                                "RVOL": st.column_config.NumberColumn(format="%.1f×"), N["From high %"]: st.column_config.NumberColumn(format="%.1f%%"),
-                                N["Entry"]: st.column_config.NumberColumn(format="%.2f"), N["Stop"]: st.column_config.NumberColumn(format="%.2f"),
-                                N["Target"]: st.column_config.NumberColumn(format="%.2f"), "R:R": st.column_config.NumberColumn(format="%.1f"),
-                                N["Earnings"]: st.column_config.NumberColumn(format="%d")})
+    grade = lambda v, r: (f'<span class="xgr" style="--g:{GRADE_COLOR.get(v, _MU)}">{T.esc(v)}</span>' if isinstance(v, str) else "—")
+    ui.table(show, sym=N["Symbol"], height=600, pills={N["Chg %"]}, signed={N["1M %"], N["3M %"]},
+             cell={N["Score"]: lambda v, r: ui.score_bar(v), N["Grade"]: grade},
+             fmt={N["Price"]: "{:,.2f}", N["Chg %"]: "{:+.2f}%", N["1M %"]: "{:+.1f}%", N["3M %"]: "{:+.1f}%", "RS": "{:,.0f}", "RVOL": "{:.1f}×",
+                  N["From high %"]: "{:.1f}%", N["Entry"]: "{:,.2f}", N["Stop"]: "{:,.2f}", N["Target"]: "{:,.2f}", "R:R": "{:.1f}",
+                  N["Earnings"]: "{:,.0f}"})
     a, b, _ = st.columns([1, 1.3, 3])
     a.download_button(L("Export CSV", "تصدير CSV"), show.to_csv(index=False).encode("utf-8-sig"), "opportunities.csv", "text/csv",
                       icon=":material/download:", key="hn_csv", width="stretch")
@@ -1520,4 +1502,4 @@ def page_scanner():
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "9.6"
+BUILD = "9.7"

@@ -89,6 +89,7 @@ DEFAULTS = {"pb_name": "", "pb_capital": 1_000_000, "pb_kind": "all", "pb_symbol
             "pb_mode": "single", "pb_store_pb": [PBK.TREND_PULLBACK], "pb_pbmode": "any", "pb_pbwin": 5, "pb_riskpt": 0.0}
 
 _A, _V, _C, _D, _G, _BG, _BD, _MU = T.ACCENT, T.VIOLET, T.CYAN, T.DOWN, T.GOLD, T.CARD2, T.BORDER, T.MUTED
+TABLE_ROWS = 400            # rows shown in a long table (the CSV export has them all)
 _CARD_H = 352          # every card in the leaderboard (bots and "Add Bot") has this height
 PAGE_CSS = f"""<style>
 /* ---------- red actions (delete dialog) ---------- */
@@ -1572,10 +1573,14 @@ def all_trades(v, file_name):
                   "Exit": L("Exit / now (share / est. premium)", "الخروج / الحالي (سهم / عقد تقديري)"),
                   "Shares": L("Shares / contracts", "أسهم / عقود")})
     show = show.rename(columns=N)
-    st.dataframe(show.iloc[::-1].style.map(T.color_style, subset=[N["P&L %"], N["P&L $"]]).format(
-        {N["Entry"]: "{:,.2f}", N["Exit"]: "{:,.2f}", N["Shares"]: "{:,.0f}" if only_opt else "{:,.2f}", N["P&L $"]: "{:+,.2f}",
-         N["P&L %"]: "{:+.2f}%", **({N["Stock Entry"]: "{:,.2f}", N["Stock Exit"]: "{:,.2f}"} if opts else {})}),
-        hide_index=True, height=min(460, 38 + 35 * len(show)))
+    shown = show.iloc[::-1].head(TABLE_ROWS)
+    ui.table(shown, sym=N["Symbol"] if N["Symbol"] in shown else None, pills={N["P&L $"]}, signed={N["P&L %"]}, height=520,
+             fmt={N["Entry"]: "{:,.2f}", N["Exit"]: "{:,.2f}", N["Shares"]: "{:,.0f}" if only_opt else "{:,.2f}", N["P&L $"]: "{:+,.2f}",
+                  N["P&L %"]: "{:+.2f}%", "#": "{:,.0f}", N.get("Bars"): "{:,.0f}", N.get("Minutes"): "{:,.0f}",
+                  **({N["Stock Entry"]: "{:,.2f}", N["Stock Exit"]: "{:,.2f}"} if opts else {})})
+    if len(show) > TABLE_ROWS:
+        st.caption(L(f"The latest {TABLE_ROWS} of {len(show)} trades. Export the CSV for the whole list.",
+                     f"آخر {TABLE_ROWS} صفقة من {len(show)}. صدّر ملف CSV للقائمة كاملة."))
     st.download_button(L("Export CSV", "تصدير CSV"), show.to_csv(index=False).encode("utf-8-sig"), file_name,
                        "text/csv", icon=":material/download:", key=f"pb_csv_{v['key']}")
 
@@ -1743,7 +1748,8 @@ def record_panel(sim):
         cols = [L("Session", "الجلسة"), L("Event", "الحدث"), L("Symbol", "الرمز"), L("Type", "النوع"), L("Strategy", "الاستراتيجية"),
                 L("Price", "السعر"), L("Quantity", "الكمية"), L("Note", "ملاحظة"), L("Engine", "المحرك")]
         df = pd.DataFrame(rows[:1000], columns=cols)
-        st.dataframe(df, hide_index=True, height=min(420, 38 + 35 * len(df)))
+        ui.table(df.head(TABLE_ROWS), sym=L("Symbol", "الرمز"), height=460, wrap={L("Note", "ملاحظة")},
+                 fmt={L("Price", "السعر"): "{:,.2f}", L("Quantity", "الكمية"): lambda q: f"{q:,.4g}"})
     else:
         ui.html(f'<div class="pbempty">{T.icon("hourglass_empty")}'
                 f'{L("Nothing traded yet in the saved sessions.", "ما فيه تداول في الجلسات المحفوظة للحين.")}</div>')
@@ -1971,9 +1977,9 @@ def compare_section(sims):
         st.caption(L(f"{sym_r} · from {start} · buy & hold {bh:+.1f}% · sorted by Sharpe",
                      f"{sym_r} · من {start} · الشراء والاحتفاظ {bh:+.1f}% · مرتبة حسب شارب"))
         tr_col, cagr = col["Total Return %"], col["CAGR %"]
-        st.dataframe(comp.style.map(T.color_style, subset=[tr_col, cagr]).format(
-            {tr_col: "{:+.1f}%", cagr: "{:+.1f}%", col["Sharpe"]: "{:.2f}", col["Max Drawdown %"]: "{:.1f}%", col["Win Rate %"]: "{:.0f}%"}),
-            hide_index=True, height=min(560, 38 + 35 * len(comp)))
+        ui.table(comp, pills={tr_col}, signed={cagr}, height=600,
+                 fmt={tr_col: "{:+.1f}%", cagr: "{:+.1f}%", col["Sharpe"]: "{:.2f}", col["Max Drawdown %"]: "{:.1f}%", col["Win Rate %"]: "{:.0f}%",
+                      tr_c: "{:,.0f}"})
         ui.chart(charts.hbar(list(comp[name_c]), list(comp[tr_col]), L("Total return by strategy", "العائد الكلي حسب الاستراتيجية"),
                              max(320, 28 * len(comp) + 80)), key="pb_cmp_chart")
         st.caption(L("Past results on one symbol don't promise the same in the future; a strategy that tops one stock can trail on another.",
@@ -2132,9 +2138,9 @@ def _qt_backtest(cfg, got):
              "Exit": L("Exit", "سعر الخروج"), "Shares": L("Shares", "الأسهم"), "P&L $": L("P&L $", "الربح $"), "P&L %": L("P&L %", "الربح %"),
              "Bars": L("Days", "الأيام"), "Exit Reason": L("Exit reason", "سبب الخروج")}
         show = show.rename(columns=N)
-        st.dataframe(show.iloc[::-1].style.map(T.color_style, subset=[N["P&L %"], N["P&L $"]]).format(
-            {N["Entry"]: "{:,.2f}", N["Exit"]: "{:,.2f}", N["Shares"]: "{:,.2f}", N["P&L $"]: "{:+,.2f}", N["P&L %"]: "{:+.2f}%"}),
-            hide_index=True, height=min(420, 38 + 35 * len(show)))
+        ui.table(show.iloc[::-1].head(TABLE_ROWS), pills={N["P&L $"]}, signed={N["P&L %"]}, height=460,
+                 fmt={N["Entry"]: "{:,.2f}", N["Exit"]: "{:,.2f}", N["Shares"]: "{:,.2f}", N["P&L $"]: "{:+,.2f}", N["P&L %"]: "{:+.2f}%",
+                      N["Bars"]: "{:,.0f}"})
         st.download_button(L("Export CSV", "تصدير CSV"), show.to_csv(index=False).encode("utf-8-sig"), f"test_{cfg['sym']}.csv",
                            "text/csv", icon=":material/download:", key="pb_qt_csv")
 
@@ -3044,4 +3050,4 @@ def page_paper_bots():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "9.6"
+BUILD = "9.7"

@@ -2,6 +2,8 @@
 ui.py - Shared page helpers: routing, headers, sections, charts, error boundaries,
 company rows with logos (click to open), news with affected companies.
 """
+import re
+
 import pandas as pd
 import streamlit as st
 
@@ -38,6 +40,119 @@ def sec(ic, en, ar):
 
 def html(s):
     st.markdown(s, unsafe_allow_html=True)
+
+
+def _cell_text(v, f):
+    if f is None:
+        if isinstance(v, bool):
+            return L("Yes", "نعم") if v else L("No", "لا")
+        if isinstance(v, (int,)) and not isinstance(v, bool):
+            return f"{v:,}"
+        if isinstance(v, float):
+            return f"{v:,.2f}"
+        if isinstance(v, pd.Timestamp):
+            return f"{v:%Y-%m-%d}" if (v.hour, v.minute) == (0, 0) else f"{v:%Y-%m-%d %H:%M}"
+        return str(v)
+    if callable(f):
+        try:
+            return str(f(v))
+        except (ValueError, TypeError):
+            return str(v)
+    try:
+        return f.format(v)
+    except (ValueError, TypeError):
+        return str(v)
+
+
+_NUMLIKE = re.compile(r"^[\$\-+−]?\$?[\d,]+(\.\d+)?\s?[%×xKMBT]?$")
+
+
+def _numlike(s):
+    """Text columns that hold numbers (1.2B, $30.5M, 4.1×) line up on the right like numbers."""
+    v = [str(x).strip() for x in s.dropna() if str(x).strip() not in ("", "—", "-")]
+    return bool(v) and sum(bool(_NUMLIKE.match(x)) for x in v) >= 0.8 * len(v)
+
+
+def table_html(df, fmt=None, pills=(), signed=(), cell=None, sym=None, words=None, height=None, title=None, icon="table_rows",
+               chips="", min_width=None, wrap=(), index=False, logos=None):
+    """A numbers table in the site's one table look (the Recent-trades panel): a box with the brand bar on its left, a muted
+    header, rounded rows, numbers on the right, green / red values.
+    fmt {col: '{:,.2f}' or fn}; pills: columns shown as green / red pills; signed: columns whose text is green / red by sign;
+    cell {col: fn(value, row) -> html}; sym: the symbol column (logo + link to its page); words {col: (good, bad)} colours a
+    text column (CALL / PUT, Buy / Sell); wrap: text columns allowed to wrap; height: scroll inside past this many px."""
+    fmt, cell, words = fmt or {}, cell or {}, words or {}
+    df = df.copy()
+    if index:
+        df = df.reset_index()
+    if "Logo" in df.columns:
+        if sym and logos is None:
+            logos = dict(zip(df[sym], df["Logo"]))
+        df = df.drop(columns=["Logo"])
+    if sym and logos is None:
+        try:
+            logos = data.logos([s for s in df[sym].astype(str)])
+        except Exception:
+            logos = {}
+    cols = list(df.columns)
+    num = {c for c in cols if c in pills or c in signed or c in cell and c != sym
+           or pd.api.types.is_numeric_dtype(df[c]) and not pd.api.types.is_bool_dtype(df[c]) or _numlike(df[c])}
+    head = "".join(f'<th class="{"r" if c in num else ""}">{T.esc(str(c))}</th>' for c in cols)
+    rows = []
+    for _, r in df.iterrows():
+        tds = []
+        for c in cols:
+            v = r[c]
+            miss = v is None or (not isinstance(v, (str, list, dict)) and pd.isna(v))
+            k = ["r"] if c in num else []
+            if c in wrap:
+                k.append("w")
+            if c in cell:
+                h = cell[c](v, r)
+            elif miss:
+                h = '<span class="m">—</span>'
+            elif c == sym:
+                s = str(v)
+                h = (f'<a class="as" href="{T.esc(href(s))}" target="_self">{T.logo_circle(s, (logos or {}).get(s), 22)}'
+                     f'<b>{T.esc(s)}</b></a>')
+            else:
+                t = T.esc(_cell_text(v, fmt.get(c)))
+                if c in pills:
+                    h = T.pbox(t, v if isinstance(v, (int, float)) else None)
+                elif c in signed:
+                    try:
+                        h = f'<span class="{"up" if v > 0 else "dn" if v < 0 else ""}">{t}</span>'
+                    except TypeError:
+                        h = t
+                elif c in words:
+                    good, bad = words[c]
+                    h = (T.pbox(t, kind="pos") if str(v) == good else T.pbox(t, kind="neg") if str(v) == bad else t)
+                else:
+                    h = t
+            tds.append(f'<td{" class=" + chr(34) + " ".join(k) + chr(34) if k else ""}>{h}</td>')
+        rows.append("<tr>" + "".join(tds) + "</tr>")
+    mw = f' style="min-width:{int(min_width)}px"' if min_width else ""
+    sc = f' style="max-height:{int(height)}px"' if height else ""
+    hd = (f'<div class="hd"><div class="tt">{T.icon(icon)}{T.esc(title)}</div><div class="sum">{chips}</div></div>' if title else "")
+    return (f'<div class="xtp">{hd}<div class="xtsc"{sc}><table class="xtbl"{mw}><thead><tr>{head}</tr></thead>'
+            f'<tbody>{"".join(rows)}</tbody></table></div></div>')
+
+
+def table(df, **kw):
+    """Show a numbers table (see table_html)."""
+    html(table_html(df, **kw))
+
+
+def score_bar(v, top=100):
+    """A 0-100 score as a short bar with its number (for tables)."""
+    try:
+        f = max(0.0, min(1.0, float(v) / top))
+    except (TypeError, ValueError):
+        return '<span class="m">—</span>'
+    return f'<span class="xbar"><i style="width:{f * 100:.0f}%"></i></span><b>{float(v):.0f}</b>'
+
+
+def table_chip(label, value_html):
+    return f'<span class="c">{T.esc(label)} {value_html}</span>'
 
 
 def chart(fig, key=None, container=None):
@@ -147,4 +262,4 @@ def multiselect_free(label, options, key, placeholder="", max_n=4):
         return st.multiselect(label, options, key=key, max_selections=max_n, placeholder=placeholder)
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "9.6"
+BUILD = "9.7"
