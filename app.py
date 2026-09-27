@@ -10,7 +10,7 @@ import streamlit as st
 # ---------------------------------------------------------------- always run the newest code
 # Streamlit Cloud re-reads app.py after every GitHub upload but can keep the other modules (theme, data, ...) from the
 # previous version in memory. Every module carries BUILD; if one in memory is older, all of them are reloaded in order.
-BUILD = "9.7"
+BUILD = "9.8"
 _ORDER = ["i18n", "flags", "mcal", "universe", "sp500", "taxonomy", "ta", "academy", "insight", "heatmap", "newsiq", "theme", "data",
           "caldata", "newsbot", "charts", "engine", "playbooks", "autotrader", "ui", "tdash", "paperbots", "p_markets", "p_research", "p_insight",
           "p_academy", "p_paper", "p_calendar", "hunter", "p_scanner", "home"]
@@ -71,7 +71,11 @@ try:
 except Exception:
     pass
 
-st.markdown('<span class="css-anchor"></span>' + T.CSS + (T.RTL_CSS if ss.lang == "ar" else ""), unsafe_allow_html=True)
+try:
+    _static = bool(st.get_option("server.enableStaticServing"))
+except Exception:
+    _static = False
+st.markdown('<span class="css-anchor"></span>' + T.CSS + T.background_css(_static) + (T.RTL_CSS if ss.lang == "ar" else ""), unsafe_allow_html=True)
 st.logo(T.LOGO_WORDMARK, icon_image=T.LOGO_ICON, size="large")
 
 ETF_NAMES = {"SPY": "SPDR S&P 500 ETF", "QQQ": "Invesco QQQ · Nasdaq 100", "IWM": "iShares Russell 2000", "DIA": "SPDR Dow Jones",

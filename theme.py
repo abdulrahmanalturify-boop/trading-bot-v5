@@ -16,7 +16,7 @@ import flags
 import mcal
 
 # ---------------------------------------------------------------- palette
-BG, CARD, CARD2, BORDER = "#050817", "#0C1230", "#111940", "#232E5A"
+BG, CARD, CARD2, BORDER = "#040810", "#0B1530", "#12203F", "#22355F"
 TEXT, MUTED = "#E9EDF5", "#8A94A7"
 UP, DOWN = "#22C55E", "#EF4444"                     # chart strokes on dark surfaces
 ACCENT, VIOLET, CYAN, GOLD, ORANGE, PURPLE = "#3D7BFF", "#8B5CF6", "#22D3EE", "#F5B94A", "#F97316", "#A78BFA"
@@ -157,30 +157,26 @@ FONT_LATIN, FONT_AR = "'Plus Jakarta Sans'", "'Readex Pro'"
 FLAG_US, FLAG_SA = flags.US, flags.SA
 
 
-# ---------------------------------------------------------------- night sky behind every page
-def _stars(w, h, n, seed):
-    """A tile of small stars (the same every run), repeated over the whole page."""
-    x, dots = seed, []
-
-    def nxt():
-        nonlocal x
-        x = (x * 16807) % 2147483647
-        return x / 2147483647
-    for _ in range(n):
-        a, b, c = nxt(), nxt(), nxt()
-        r = 1.3 if c > .9 else (.9 if c > .6 else .6)
-        dots.append(f'<circle cx="{a * w:.0f}" cy="{b * h:.0f}" r="{r}" fill="#D6DEFF" fill-opacity="{.22 + c * .6:.2f}"/>')
-    svg = f'<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}">{"".join(dots)}</svg>'
-    return "data:image/svg+xml;base64," + base64.b64encode(svg.encode()).decode()
+# ---------------------------------------------------------------- the photo behind every page
+# static/bg_globe.jpg (the globe with the candles). Streamlit serves it itself once static serving is on (config.toml,
+# after one reboot); until then the same file comes from the public repository through the jsDelivr CDN.
+BG_FILE = "bg_globe.jpg"
+BG_CDN = f"https://cdn.jsdelivr.net/gh/abdulrahmanalturify-boop/trading-bot-v5@main/static/{BG_FILE}"
+BG_VEIL = "linear-gradient(180deg, rgba(4,8,16,.50) 0%, rgba(4,8,16,.58) 38%, rgba(4,8,16,.80) 100%)"
 
 
-STARS_A, STARS_B = _stars(1200, 800, 90, 7), _stars(700, 520, 34, 11)
+def background_css(static_ok=False):
+    """The page background: the photo under a dark veil (readable text), fixed while the page scrolls, cover on any screen."""
+    url = f"app/static/{BG_FILE}" if static_ok else BG_CDN
+    return (f'<style>.stApp::before {{ background: {BG_VEIL}, url("{url}") center 32% / cover no-repeat, '
+            f'radial-gradient(1500px 720px at 50% -14%, #122A5C 0%, #081127 42%, {BG} 100%); }}</style>')
+
 
 # ---------------------------------------------------------------- boxes: the hunt-bar colours with the brand line on top
 LINE = f"linear-gradient(90deg,{ACCENT},{VIOLET},{CYAN})"
 TOP = f"{LINE} top / 100% 3px no-repeat"                      # the brand line along the top edge of every box
 TOP_THIN = f"{LINE} top / 100% 2px no-repeat"                 # the same on small boxes inside a box
-BOX_BG = f"{TOP}, linear-gradient(180deg,{CARD2},{CARD})"     # every plain box
+BOX_BG = f"{TOP}, linear-gradient(180deg,rgba(18,32,63,.90),rgba(11,21,48,.92))"   # every plain box (the photo shows faintly through)
 UP_EDGE, DN_EDGE = "#22C55E", "#EF4444"                        # a green box keeps its colour, with green edges and line (red the same)
 UP_LINE = "linear-gradient(90deg,#16A34A,#4ADE80) top / 100% 3px no-repeat"
 DN_LINE = "linear-gradient(90deg,#DC2626,#F87171) top / 100% 3px no-repeat"
@@ -191,31 +187,19 @@ CSS = f"""
 @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..600,0..1,0&display=block');
 html, body, .stApp, .stMarkdown, button, input, textarea, select, label, [data-testid="stMetricValue"], [data-baseweb] {{
   font-family: {FONT_LATIN}, {FONT_AR}, system-ui, sans-serif; }}
-/* night sky: deep navy, a light from the top with one soft beam, and small stars */
-.stApp {{ background: radial-gradient(1500px 720px at 50% -14%, #10205E 0%, #070C24 42%, {BG} 100%) {BG}; }}
+/* the photo sits in .stApp::before (background_css); a soft dark edge frames it */
+.stApp {{ background: {BG}; }}
 .stApp::before {{ content:""; position:fixed; inset:0; z-index:0; pointer-events:none;
-  background: radial-gradient(820px 440px at 52% -10%, rgba(72,96,255,.40), rgba(52,60,210,.10) 55%, transparent 75%),
-              conic-gradient(from 198deg at 64% -4%, transparent 0deg, rgba(140,160,255,.15) 7deg, rgba(140,160,255,.05) 13deg, transparent 20deg);
-  -webkit-mask-image: radial-gradient(1100px 760px at 58% 0%, #000 30%, transparent 78%);
-  mask-image: radial-gradient(1100px 760px at 58% 0%, #000 30%, transparent 78%);
-  animation: aurora 22s ease-in-out infinite alternate; }}
+  background: radial-gradient(1500px 720px at 50% -14%, #122A5C 0%, #081127 42%, {BG} 100%); }}
 .stApp::after {{ content:""; position:fixed; inset:0; z-index:0; pointer-events:none;
-  background-image: url("{STARS_A}"), url("{STARS_B}"),
-    radial-gradient(900px 520px at 6% -10%, rgba(61,123,255,.12), transparent 60%),
-    radial-gradient(760px 480px at 96% -6%, rgba(139,92,246,.14), transparent 60%),
-    radial-gradient(900px 600px at 50% 115%, rgba(34,211,238,.05), transparent 60%);
-  background-size: 1200px 800px, 700px 520px, auto, auto, auto;
-  background-position: 0 0, 310px 170px, 0 0, 0 0, 0 0;
-  animation: skyglow 9s ease-in-out infinite alternate; }}
+  background: radial-gradient(ellipse at 50% 38%, transparent 52%, rgba(2,4,10,.55) 100%); }}
 @keyframes aurora {{ 0% {{ transform: translate3d(0,0,0) scale(1); }} 100% {{ transform: translate3d(-2%,1.5%,0) scale(1.05); }} }}
-@keyframes skyglow {{ 0% {{ opacity:.8; }} 100% {{ opacity:1; }} }}
-@media (prefers-reduced-motion: reduce) {{ .stApp::before, .stApp::after {{ animation:none; }} }}
-[data-testid="stSidebar"] {{ background: linear-gradient(180deg, rgba(12,18,52,.94), rgba(5,8,23,.96)) !important;
+[data-testid="stSidebar"] {{ background: linear-gradient(180deg, rgba(10,20,44,.94), rgba(4,8,16,.96)) !important;
   border-right: 1px solid rgba(130,150,255,.14); }}
 [data-testid="stSidebar"] > div {{ background: transparent !important; }}
 [data-testid="stAppViewContainer"] {{ z-index: 1; }}
-header[data-testid="stHeader"] {{ background: rgba(5,8,26,.84); backdrop-filter: blur(18px) saturate(150%); -webkit-backdrop-filter: blur(18px) saturate(150%);
-  border-bottom: 1px solid rgba(44,56,104,.85); box-shadow: 0 10px 28px rgba(0,0,0,.25); }}
+header[data-testid="stHeader"] {{ background: rgba(4,8,18,.84); backdrop-filter: blur(18px) saturate(150%); -webkit-backdrop-filter: blur(18px) saturate(150%);
+  border-bottom: 1px solid rgba(43,65,114,.85); box-shadow: 0 10px 28px rgba(0,0,0,.25); }}
 header[data-testid="stHeader"]::after {{ content:""; position:absolute; left:0; right:0; bottom:-1px; height:1px; pointer-events:none;
   background: linear-gradient(90deg, transparent, rgba(61,123,255,.55), rgba(139,92,246,.45), transparent); }}
 [data-testid="stToolbarActions"], [data-testid="stAppDeployButton"], [data-testid="stStatusWidget"], [data-testid="stDecoration"] {{ display:none !important; }}
@@ -275,15 +259,15 @@ h2, h3 {{ font-weight: 750 !important; letter-spacing: -.01em; }}
 @keyframes sky {{ 0% {{ background-position:0% 50%; }} 50% {{ background-position:100% 50%; }} 100% {{ background-position:0% 50%; }} }}
 .hero svg.city {{ position:absolute; left:0; right:0; bottom:0; width:100%; height:100%; }}
 .hero .content {{ position:absolute; inset:0; padding:30px 34px; display:flex; flex-direction:column;
-  background: linear-gradient(90deg, rgba(5,8,23,.88) 0%, rgba(5,8,23,.35) 55%, rgba(5,8,23,0) 100%); }}
-.rtl .hero .content {{ background: linear-gradient(270deg, rgba(5,8,23,.88) 0%, rgba(5,8,23,.35) 55%, rgba(5,8,23,0) 100%); }}
+  background: linear-gradient(90deg, rgba(4,8,16,.88) 0%, rgba(4,8,16,.35) 55%, rgba(4,8,16,0) 100%); }}
+.rtl .hero .content {{ background: linear-gradient(270deg, rgba(4,8,16,.88) 0%, rgba(4,8,16,.35) 55%, rgba(4,8,16,0) 100%); }}
 .hero .eyebrow {{ color:{CYAN}; font-weight:700; letter-spacing:.2em; font-size:.74rem; text-transform:uppercase; }}
 .hero .title {{ font-size:2.45rem; font-weight:800; line-height:1.1; margin:8px 0 6px; color:#fff; letter-spacing:-.02em; }}
 .hero .title b {{ background: linear-gradient(90deg,{ACCENT},{VIOLET},{CYAN}); -webkit-background-clip:text; background-clip:text; color:transparent; }}
 .hero .tagline {{ color:#C7CFDD; max-width:560px; font-size:.98rem; line-height:1.65; }}
 .hero .chips {{ display:flex; gap:10px; flex-wrap:wrap; margin-top:16px; direction:ltr; }}
 .rtl .hero .chips {{ justify-content:flex-end; }}
-.hero .chip {{ background:rgba(12,18,48,.8); border:1px solid {BORDER}; backdrop-filter: blur(6px); border-radius:10px; padding:6px 10px; font-size:.82rem;
+.hero .chip {{ background:rgba(11,21,48,.8); border:1px solid {BORDER}; backdrop-filter: blur(6px); border-radius:10px; padding:6px 10px; font-size:.82rem;
   font-variant-numeric: tabular-nums; display:inline-flex; align-items:center; gap:7px; }}
 .hero .chip b {{ color:#fff; }} .hero .chip .pill {{ min-width:0; padding:2px 7px; font-size:.75rem; }}
 /* ticker tape */
@@ -424,7 +408,7 @@ a.lnk {{ color:inherit !important; text-decoration:none !important; }} a.lnk:hov
 .chain {{ width:100%; border-collapse:separate; border-spacing:0; font-size:.8rem; direction:ltr; font-variant-numeric: tabular-nums; }}
 .chain th {{ position:sticky; top:0; background:{CARD2}; color:{MUTED}; font-weight:650; padding:7px 6px; text-align:right; border-bottom:1px solid {BORDER}; }}
 .chain th.side {{ text-align:center; font-size:.84rem; }}
-.chain td {{ padding:6px 6px; text-align:right; border-bottom:1px solid rgba(35,46,90,.6); }}
+.chain td {{ padding:6px 6px; text-align:right; border-bottom:1px solid rgba(34,53,95,.6); }}
 .chain td.k {{ text-align:center; font-weight:800; color:#fff; background:{CARD2}; }}
 .chain tr:hover td {{ background:rgba(61,123,255,.08); }}
 .chain td.itm-c {{ background:rgba(209,231,221,.10); }} .chain td.itm-p {{ background:rgba(248,215,218,.10); }}
@@ -500,7 +484,7 @@ a.lnk {{ color:inherit !important; text-decoration:none !important; }} a.lnk:hov
 .tdp .tt .muted {{ font-size:.78rem; font-weight:600; }}
 .rtab {{ width:100%; border-collapse:collapse; font-size:.84rem; direction:ltr; }}
 .rtab th {{ color:{MUTED}; font-size:.66rem; letter-spacing:.08em; text-transform:uppercase; text-align:left; padding:6px 4px; border-bottom:1px solid {BORDER}; }}
-.rtab td {{ padding:7px 4px; border-bottom:1px solid rgba(35,46,90,.6); font-weight:700; }}
+.rtab td {{ padding:7px 4px; border-bottom:1px solid rgba(34,53,95,.6); font-weight:700; }}
 .rtab td:last-child, .rtab th:last-child {{ text-align:right; }}
 .rtab tr:hover td {{ background:rgba(61,123,255,.06); }}
 .rtab a {{ color:#fff !important; text-decoration:none !important; }} .rtab a:hover {{ color:#7EA6FF !important; }}
@@ -625,8 +609,8 @@ a.lnk {{ color:inherit !important; text-decoration:none !important; }} a.lnk:hov
 /* menus: open on hover (mouse) or keyboard focus only - a clicked menu never stays open over the next one */
 [class*="st-key-navdd_"], .st-key-langdd {{ position:absolute !important; top: calc(100% + 8px); left:0; width: 264px !important; min-width: 264px !important;
   max-width: none !important; z-index: 1000; gap: 2px !important; box-sizing: border-box;
-  padding: 10px 8px 8px; background: rgba(12,18,48,.985); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
-  border: 1px solid #2C3868; border-radius: 16px; box-shadow: 0 24px 50px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.02) inset;
+  padding: 10px 8px 8px; background: rgba(11,21,48,.985); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+  border: 1px solid #2B4172; border-radius: 16px; box-shadow: 0 24px 50px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.02) inset;
   opacity: 0; visibility: hidden; transform: translateY(6px); transform-origin: top left; pointer-events: none;
   transition: opacity .1s ease, transform .1s ease, visibility 0s linear .1s; }}
 [class*="st-key-navdd_"]::before, .st-key-langdd::before {{ content:""; position:absolute; left:0; right:0; top:-12px; height:12px; }}
@@ -651,7 +635,7 @@ a.lnk {{ color:inherit !important; text-decoration:none !important; }} a.lnk:hov
   box-shadow: inset 3px 0 0 {ACCENT}; }}
 [class*="st-key-navon_"] {{ gap: 0 !important; }}
 .st-key-navright .status {{ display:inline-flex; align-items:center; height:38px; box-sizing:border-box; padding: 0 12px; font-size: .76rem; white-space: nowrap;
-  background: rgba(12,18,48,.75); }}
+  background: rgba(11,21,48,.75); }}
 /* search: wide type-ahead box, same height as the buttons */
 .st-key-navsearch [data-testid="stSelectbox"], .st-key-navsearch [data-testid="stTextInput"] {{ position: relative; }}
 .st-key-navsearch [data-testid="stSelectbox"]::before, .st-key-navsearch [data-testid="stTextInput"]::before {{ content: "search";
@@ -659,7 +643,7 @@ a.lnk {{ color:inherit !important; text-decoration:none !important; }} a.lnk:hov
   font-size: 1.2rem; line-height: 1; color: #8A94A7; pointer-events: none; }}
 .st-key-navsearch input {{ padding-inline-start: 38px !important; font-size: .88rem !important; }}
 .st-key-navsearch [role="group"], .st-key-navsearch [data-baseweb="select"] > div, .st-key-navsearch [data-baseweb="input"] {{ height: 38px !important;
-  min-height: 38px !important; box-sizing: border-box; border-radius: 12px !important; background: rgba(17,25,64,.92) !important; border-color: #2C3868 !important;
+  min-height: 38px !important; box-sizing: border-box; border-radius: 12px !important; background: rgba(18,32,63,.92) !important; border-color: #2B4172 !important;
   transition: border-color .15s, box-shadow .15s; }}
 .st-key-navsearch [role="group"]:hover, .st-key-navsearch [data-baseweb="select"] > div:hover, .st-key-navsearch [data-baseweb="input"]:hover {{ border-color: rgba(96,140,255,.55) !important; }}
 .st-key-navsearch [role="group"][data-focus-within], .st-key-navsearch [data-baseweb="select"]:focus-within > div, .st-key-navsearch [data-baseweb="input"]:focus-within {{
@@ -672,8 +656,8 @@ a.lnk {{ color:inherit !important; text-decoration:none !important; }} a.lnk:hov
 .flag.us {{ background-image:url("{FLAG_US}"); }}
 .flag.sa {{ background-image:url("{FLAG_SA}"); }}
 .st-key-langsec {{ position: relative; gap: 0 !important; }}
-.langbtn {{ display:flex; align-items:center; gap:7px; height:38px; box-sizing:border-box; padding:0 8px 0 10px; border-radius:11px; border:1px solid #2C3868;
-  background: rgba(17,25,64,.9); color:#E9EDF5; cursor:pointer; white-space:nowrap; user-select:none; outline:none; line-height:1;
+.langbtn {{ display:flex; align-items:center; gap:7px; height:38px; box-sizing:border-box; padding:0 8px 0 10px; border-radius:11px; border:1px solid #2B4172;
+  background: rgba(18,32,63,.9); color:#E9EDF5; cursor:pointer; white-space:nowrap; user-select:none; outline:none; line-height:1;
   transition: border-color .18s, background .18s; }}
 .langbtn .flag {{ width:26px; height:19px; }}
 .langbtn .chev {{ font-size:1rem; color:{MUTED}; transition: transform .2s ease; }}
@@ -713,7 +697,7 @@ a.lnk {{ color:inherit !important; text-decoration:none !important; }} a.lnk:hov
 @container topnav (min-width: 1900px) {{ [data-testid="stLayoutWrapper"]:has(> .st-key-navsearch), .st-key-topnav > .st-key-navsearch {{ flex-basis: 600px !important; }} }}
 /* tablets and phones: a card under the top line, menus open full width */
 @media (max-width: 1023.98px) {{
-  .st-key-topnav {{ position: relative; z-index: 60; flex-wrap: wrap !important; padding: 6px 8px; margin-bottom: 6px; background: rgba(8,12,34,.86);
+  .st-key-topnav {{ position: relative; z-index: 60; flex-wrap: wrap !important; padding: 6px 8px; margin-bottom: 6px; background: rgba(7,12,28,.86);
     border: 1px solid {BORDER}; border-radius: 16px; }}
   .st-key-navleft {{ flex-wrap: wrap !important; }}
   [data-testid="stLayoutWrapper"]:has(> .st-key-navsearch), .st-key-topnav > .st-key-navsearch {{ flex: 1 1 100% !important; order: 3; margin: 0 !important; }}
@@ -831,7 +815,7 @@ a.lnk {{ color:inherit !important; text-decoration:none !important; }} a.lnk:hov
 .ecard .px .pill {{ margin-top:3px; }}
 .ecard .rx {{ font-size:.7rem; color:{MUTED}; margin-top:5px; white-space:nowrap; }}
 .ecard .rx .pos {{ color:#4ADE80; font-weight:800; }} .ecard .rx .neg {{ color:#F87171; font-weight:800; }}
-.ecard table.res {{ display:table; width:100%; margin:0 !important; border-collapse:separate; border-spacing:0; font-size:.84rem; background:rgba(5,8,23,.5);
+.ecard table.res {{ display:table; width:100%; margin:0 !important; border-collapse:separate; border-spacing:0; font-size:.84rem; background:rgba(4,8,16,.5);
   border:1px solid {BORDER}; border-radius:12px; overflow:hidden; }}
 .ecard table.res tr {{ border:none; }}
 .ecard table.res th {{ font-size:.64rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:{MUTED}; padding:7px 8px; text-align:center; border:none; }}
@@ -924,7 +908,7 @@ a.lnk {{ color:inherit !important; text-decoration:none !important; }} a.lnk:hov
   radial-gradient(circle at 18% 22%, rgba(255,255,255,.28), transparent 42%),
   repeating-linear-gradient(90deg, rgba(255,255,255,.07) 0 1px, transparent 1px 22px),
   repeating-linear-gradient(0deg, rgba(255,255,255,.05) 0 1px, transparent 1px 22px); }}
-.nth img {{ position:relative; z-index:1; display:block; width:100%; height:100%; object-fit:cover; background:#111940; }}
+.nth img {{ position:relative; z-index:1; display:block; width:100%; height:100%; object-fit:cover; background:#12203F; }}
 .nth img::after {{ content:attr(data-ic); position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
   font-family:'Material Symbols Rounded'; font-size:48px; color:rgba(255,255,255,.95); background:var(--g); }}
 .nth.fb .ms {{ position:relative; z-index:1; font-size:50px; color:#fff; text-shadow:0 6px 18px rgba(0,0,0,.3); }}
@@ -935,7 +919,7 @@ a.lnk {{ color:inherit !important; text-decoration:none !important; }} a.lnk:hov
 .nth.big {{ width:100%; height:150px; border-radius:14px; margin-bottom:12px; }}
 .story .nth.big {{ margin:-4px 0 12px; }}
 @media (max-width: 640px) {{ .news .nwrap {{ flex-direction:column; }} .news .nth {{ width:100%; height:170px; }} }}
-.story:has(.nth) .rank {{ top:24px; inset-inline-end:auto; inset-inline-start:28px; z-index:3; font-size:.9rem; color:#fff; background:rgba(5,8,23,.55);
+.story:has(.nth) .rank {{ top:24px; inset-inline-end:auto; inset-inline-start:28px; z-index:3; font-size:.9rem; color:#fff; background:rgba(4,8,16,.55);
   padding:2px 10px; border-radius:10px; backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); }}
 .story:has(.nth) a.t {{ margin-inline-end:0; }}
 /* ---------- news bot ---------- */
@@ -966,7 +950,7 @@ a.lnk {{ color:inherit !important; text-decoration:none !important; }} a.lnk:hov
 .xtbl {{ width:100%; border-collapse:separate !important; border-spacing:0 4px !important; font-size:.8rem; direction:ltr;
   border:none !important; margin:-4px 0 0 !important; background:none !important; display:table !important; }}
 .xtbl thead tr, .xtbl tbody tr {{ background:none !important; border:none !important; }}
-.xtbl th {{ position:sticky; top:0; z-index:1; background:#0F1639 !important; color:{MUTED}; font-size:.6rem; letter-spacing:.09em; text-transform:uppercase;
+.xtbl th {{ position:sticky; top:0; z-index:1; background:#0F1B38 !important; color:{MUTED}; font-size:.6rem; letter-spacing:.09em; text-transform:uppercase;
   text-align:left; padding:8px 12px 5px !important; font-weight:800; white-space:nowrap; border:none !important; }}
 .xtbl td {{ padding:7px 12px !important; white-space:nowrap; vertical-align:middle; text-align:left; line-height:1.35; color:#DCE2EC;
   background:rgba(255,255,255,.028) !important; border:none !important; border-top:1px solid rgba(255,255,255,.045) !important;
@@ -995,7 +979,7 @@ a.lnk {{ color:inherit !important; text-decoration:none !important; }} a.lnk:hov
   background:linear-gradient(180deg,{ACCENT},{VIOLET},{CYAN}); }}
 .evday {{ position:relative; }}
 .chain {{ border-collapse:separate !important; border-spacing:0 4px !important; margin:-4px 0 0 !important; }}
-.chain th {{ background:#0F1639 !important; border:none !important; font-size:.62rem; font-weight:800; letter-spacing:.07em; text-transform:uppercase; padding:8px 8px 5px; }}
+.chain th {{ background:#0F1B38 !important; border:none !important; font-size:.62rem; font-weight:800; letter-spacing:.07em; text-transform:uppercase; padding:8px 8px 5px; }}
 .chain td {{ color:#DCE2EC; background:rgba(255,255,255,.028); border:none !important; border-top:1px solid rgba(255,255,255,.045) !important;
   border-bottom:1px solid rgba(255,255,255,.045) !important; padding:7px 8px; }}
 .chain td:first-child {{ border-left:1px solid rgba(255,255,255,.045) !important; border-radius:10px 0 0 10px; }}
@@ -1644,4 +1628,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "9.7"
+BUILD = "9.8"

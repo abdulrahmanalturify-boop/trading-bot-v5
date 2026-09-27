@@ -57,14 +57,14 @@ CSS = f"""<style>
 .hnhero .art svg {{ width:100%; height:100%; display:block; }}
 .hnhero.rtl .art {{ right:auto; left:0; }}
 .hnhero .txt {{ position:relative; z-index:2; padding:26px 30px 24px; max-width:640px;
-  background:linear-gradient(90deg,rgba(5,8,23,.8) 0%,rgba(5,8,23,.35) 72%,rgba(5,8,23,0) 100%); }}
-.hnhero.rtl .txt {{ margin-left:auto; background:linear-gradient(270deg,rgba(5,8,23,.8) 0%,rgba(5,8,23,.35) 72%,rgba(5,8,23,0) 100%); }}
+  background:linear-gradient(90deg,rgba(4,8,16,.8) 0%,rgba(4,8,16,.35) 72%,rgba(4,8,16,0) 100%); }}
+.hnhero.rtl .txt {{ margin-left:auto; background:linear-gradient(270deg,rgba(4,8,16,.8) 0%,rgba(4,8,16,.35) 72%,rgba(4,8,16,0) 100%); }}
 .hnhero .eb {{ color:{_C}; font-weight:800; letter-spacing:.2em; font-size:.72rem; text-transform:uppercase; display:flex; align-items:center; gap:8px; }}
 .hnhero .t {{ font-size:2.4rem; font-weight:800; line-height:1.08; margin:8px 0 6px; color:#fff; letter-spacing:-.02em; }}
 .hnhero .t b {{ background:linear-gradient(90deg,{_A},{_V},{_C}); -webkit-background-clip:text; background-clip:text; color:transparent; }}
 .hnhero .tg {{ color:#C7CFDD; font-size:.94rem; line-height:1.6; max-width:540px; }}
 .hnhero .chips {{ display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }}
-.hnhero .chip {{ background:rgba(12,18,48,.8); border:1px solid {_BD}; backdrop-filter:blur(6px); border-radius:10px; padding:6px 10px;
+.hnhero .chip {{ background:rgba(11,21,48,.8); border:1px solid {_BD}; backdrop-filter:blur(6px); border-radius:10px; padding:6px 10px;
   font-size:.8rem; display:inline-flex; align-items:center; gap:7px; color:#C9D0DC; }}
 .hnhero .chip b {{ color:#fff; unicode-bidi:isolate; direction:ltr; }} .hnhero .chip .ms {{ color:{_C}; font-size:1rem; }}
 .hnhero .st {{ margin-top:12px; }}
@@ -210,13 +210,13 @@ CSS = f"""<style>
 [class*="st-key-hnfilt"] [data-testid="stBaseButton-pillsActive"] p {{ color:#fff !important; font-weight:800 !important; font-size:.84rem !important; }}
 [class*="st-key-hnfilt"] [data-testid="stBaseButton-segmented_control"], [class*="st-key-hnfilt"] [data-testid="stBaseButton-segmented_controlActive"] {{
   min-height:38px !important; padding:4px 14px !important; }}
-[class*="st-key-hnfilt"] [data-testid="stBaseButton-segmented_control"] {{ background:rgba(5,8,23,.55) !important; border-color:{_BD} !important; }}
+[class*="st-key-hnfilt"] [data-testid="stBaseButton-segmented_control"] {{ background:rgba(4,8,16,.55) !important; border-color:{_BD} !important; }}
 [class*="st-key-hnfilt"] [data-testid="stBaseButton-segmented_control"]:hover {{ background:rgba(61,123,255,.12) !important; }}
 [class*="st-key-hnfilt"] [data-testid="stBaseButton-segmented_control"] p {{ color:#C9D0DC !important; font-weight:700 !important; }}
 [class*="st-key-hnfilt"] [data-testid="stBaseButton-segmented_controlActive"] {{ background:linear-gradient(95deg,{_A},{_V}) !important; border-color:transparent !important;
   box-shadow:0 6px 16px rgba(61,123,255,.30); z-index:1; }}
 [class*="st-key-hnfilt"] [data-testid="stBaseButton-segmented_controlActive"] p {{ color:#fff !important; font-weight:800 !important; }}
-[class*="st-key-hnfilt"] [data-testid="stCheckbox"] {{ background:rgba(5,8,23,.55); border:1px solid {_BD}; border-radius:12px; padding:8px 12px;
+[class*="st-key-hnfilt"] [data-testid="stCheckbox"] {{ background:rgba(4,8,16,.55); border:1px solid {_BD}; border-radius:12px; padding:8px 12px;
   min-height:38px; display:flex; align-items:center; }}
 [class*="st-key-hnfilt"] [data-testid="stCheckbox"]:hover {{ border-color:{_A}88; }}
 [class*="st-key-hnfilt"] [data-testid="stCheckbox"] p {{ font-weight:700; font-size:.84rem; color:#DCE2EC; }}
@@ -248,7 +248,7 @@ CSS = f"""<style>
   background:linear-gradient(90deg,rgba(61,123,255,.10),rgba(139,92,246,.05) 60%,transparent); }}
 .hntgt .sv svg {{ width:100%; height:auto; display:block; }}
 .hntgt .cs {{ display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; direction:ltr; }}
-.hntgt .cs .c {{ display:inline-flex; align-items:center; gap:6px; font-size:.74rem; color:#AEB7C6; background:rgba(5,8,23,.45); border:1px solid {_BD};
+.hntgt .cs .c {{ display:inline-flex; align-items:center; gap:6px; font-size:.74rem; color:#AEB7C6; background:rgba(4,8,16,.45); border:1px solid {_BD};
   border-radius:999px; padding:3px 10px; }}
 .hntgt .cs .c i {{ width:8px; height:8px; border-radius:50%; }}
 .hntgt .cs .c b {{ color:#fff; }} .hntgt .cs .c em {{ font-style:normal; font-weight:800; }}
@@ -971,12 +971,12 @@ def target_card(price, tg):
         ty = y0 - 18 - row * 30
         anchor = "start" if xx < 60 else ("end" if xx > W - 60 else "middle")
         svg.append(f'<line x1="{xx:.1f}" y1="{y0 - 7}" x2="{xx:.1f}" y2="{ty + 6}" stroke="{col}" stroke-opacity=".45" stroke-width="1"/>'
-                   f'<circle cx="{xx:.1f}" cy="{y0}" r="8" fill="{col}" stroke="#050817" stroke-width="2.5" filter="url(#hntgl)"/>'
+                   f'<circle cx="{xx:.1f}" cy="{y0}" r="8" fill="{col}" stroke="#040810" stroke-width="2.5" filter="url(#hntgl)"/>'
                    f'<text x="{xx:.1f}" y="{ty - 8}" text-anchor="{anchor}" font-size="11" fill="#9AA4B6" font-family="{T.FONT}">{T.esc(L(en, ar_))}</text>'
                    f'<text x="{xx:.1f}" y="{ty + 4}" text-anchor="{anchor}" font-size="13" font-weight="800" fill="#fff" font-family="{T.FONT}">${v:,.0f}</text>')
     xp = x(price)
     anchor = "start" if xp < 60 else ("end" if xp > W - 60 else "middle")
-    svg.append(f'<path d="M{xp:.1f} {y0 - 10} L{xp + 10:.1f} {y0} L{xp:.1f} {y0 + 10} L{xp - 10:.1f} {y0} Z" fill="#fff" stroke="#050817" stroke-width="2"/>'
+    svg.append(f'<path d="M{xp:.1f} {y0 - 10} L{xp + 10:.1f} {y0} L{xp:.1f} {y0 + 10} L{xp - 10:.1f} {y0} Z" fill="#fff" stroke="#040810" stroke-width="2"/>'
                f'<text x="{xp:.1f}" y="{y0 + 30}" text-anchor="{anchor}" font-size="11" fill="#9AA4B6" font-family="{T.FONT}">{L("Now", "الحالي")}</text>'
                f'<text x="{xp:.1f}" y="{y0 + 45}" text-anchor="{anchor}" font-size="13" font-weight="800" fill="#fff" font-family="{T.FONT}">${price:,.2f}</text>')
     top = min((y0 - 18 - r_ * 30 - 22 for _, r_ in placed), default=0)
@@ -1080,7 +1080,7 @@ def rating_gauge(counts, label, color):
         parts.append(f'<path d="M{cx - ro} {cy} A{ro} {ro} 0 0 1 {cx + ro} {cy} L{cx + ri} {cy} A{ri} {ri} 0 0 0 {cx - ri} {cy} Z" fill="rgba(138,148,167,.25)"/>')
     return (f'<svg viewBox="0 0 340 176" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'
             f'<defs><radialGradient id="hnrg2" cx="50%" cy="100%" r="80%"><stop offset="0" stop-color="#8B5CF6" stop-opacity=".22"/>'
-            f'<stop offset="1" stop-color="#050817" stop-opacity=".0"/></radialGradient></defs>{"".join(parts)}'
+            f'<stop offset="1" stop-color="#040810" stop-opacity=".0"/></radialGradient></defs>{"".join(parts)}'
             f'<path d="M{cx - ri + 12} {cy} A{ri - 12} {ri - 12} 0 0 1 {cx + ri - 12} {cy} Z" fill="url(#hnrg2)"/>'
             f'<text x="{cx}" y="{cy - 16}" text-anchor="middle" font-size="{min(38, 148 / max(len(label) * 0.6, 1)):.0f}" font-weight="800" '
             f'fill="{color}" font-family="{T.FONT}">{T.esc(label)}</text></svg>')
@@ -1502,4 +1502,4 @@ def page_scanner():
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "9.7"
+BUILD = "9.8"

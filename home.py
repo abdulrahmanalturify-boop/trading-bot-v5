@@ -10,7 +10,7 @@ import theme as T
 import ui
 from i18n import L, is_ar
 
-BUILD = "9.7"
+BUILD = "9.8"
 
 _LINE = "rgba(130,150,255,"
 CSS = f"""
@@ -46,7 +46,7 @@ CSS = f"""
 .cztop .cztag {{ position:relative; margin-top:18px; font-size:.8rem; font-weight:600; letter-spacing:.26em; text-transform:uppercase; color:#93A3DA; }}
 .cztop.ar .cztag {{ letter-spacing:0; font-size:.95rem; }}
 .cztop .czchips {{ position:relative; display:flex; justify-content:center; gap:10px; flex-wrap:wrap; margin-top:18px; direction:ltr; }}
-.cztop .czchips .chip {{ display:inline-flex; align-items:center; gap:7px; background:rgba(12,18,48,.72); border:1px solid {_LINE}.22);
+.cztop .czchips .chip {{ display:inline-flex; align-items:center; gap:7px; background:rgba(11,21,48,.72); border:1px solid {_LINE}.22);
   backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); border-radius:999px; padding:6px 8px 6px 13px; font-size:.8rem; color:#C9D2F2;
   font-variant-numeric:tabular-nums; }}
 .cztop .czchips .chip b {{ color:#fff; font-weight:700; letter-spacing:.04em; }}
@@ -60,11 +60,11 @@ CSS = f"""
 [class*="st-key-czcard_"] [class*="st-key-czgo_"] {{ position:absolute !important; inset:0; z-index:4; margin:0 !important; width:auto !important; }}
 [class*="st-key-czcard_"] [class*="st-key-czgo_"] .stButton, [class*="st-key-czcard_"] [class*="st-key-czgo_"] button
   {{ width:100% !important; height:100% !important; opacity:0; cursor:pointer; }}
-.czframe {{ padding:7px; border-radius:26px; border:1px solid {_LINE}.24); background:rgba(8,12,34,.55);
+.czframe {{ padding:7px; border-radius:26px; border:1px solid {_LINE}.24); background:rgba(7,12,28,.55);
   transition:transform .25s ease, box-shadow .25s ease, border-color .25s ease; }}
 [class*="st-key-czcard_"]:hover .czframe {{ transform:translateY(-6px); border-color:{_LINE}.45); box-shadow:0 30px 80px -30px rgba(79,107,255,.6); }}
 .czcard {{ box-sizing:border-box; border-radius:20px; border:1px solid {_LINE}.18);
-  background:{T.TOP}, linear-gradient(180deg,#0B1234 0%,#070B22 55%,#050818 100%); box-shadow:inset 0 1px 0 rgba(255,255,255,.06);
+  background:{T.TOP}, linear-gradient(180deg,#0B1733 0%,#081127 55%,#050A18 100%); box-shadow:inset 0 1px 0 rgba(255,255,255,.06);
   padding:14px 20px 18px; display:flex; flex-direction:column; gap:9px; }}
 .czcard svg.czill {{ display:block; width:100%; max-width:330px; height:auto; margin:0 auto; overflow:visible; }}
 .czcard .czt {{ margin:0 0 6px; text-align:center; font-size:1.9rem; font-weight:500; letter-spacing:-.01em; line-height:1.14; color:#fff; }}
