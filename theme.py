@@ -162,7 +162,7 @@ FLAG_US, FLAG_SA = flags.US, flags.SA
 # after one reboot); until then the same file comes from the public repository through the jsDelivr CDN.
 BG_FILE = "bg_globe.jpg"
 BG_CDN = f"https://cdn.jsdelivr.net/gh/abdulrahmanalturify-boop/trading-bot-v5@fe0f68de01ac1dfcb9f274d5f029a2af215e1bd4/static/{BG_FILE}"   # pinned: never stale
-BG_VEIL = "linear-gradient(180deg, rgba(4,8,16,.50) 0%, rgba(4,8,16,.58) 38%, rgba(4,8,16,.80) 100%)"
+BG_VEIL = "linear-gradient(180deg, rgba(4,8,16,.56) 0%, rgba(4,8,16,.64) 38%, rgba(4,8,16,.84) 100%)"
 
 
 def background_css(static_ok=False):
@@ -176,7 +176,7 @@ def background_css(static_ok=False):
 LINE = f"linear-gradient(90deg,{ACCENT},{VIOLET},{CYAN})"
 TOP = f"{LINE} top / 100% 3px no-repeat"                      # the brand line along the top edge of every box
 TOP_THIN = f"{LINE} top / 100% 2px no-repeat"                 # the same on small boxes inside a box
-BOX_BG = f"{TOP}, linear-gradient(180deg,rgba(18,32,63,.90),rgba(11,21,48,.92))"   # every plain box (the photo shows faintly through)
+BOX_BG = f"{TOP}, linear-gradient(180deg,{CARD2},{CARD})"     # every plain box: solid, so the photo never shows through
 UP_EDGE, DN_EDGE = "#22C55E", "#EF4444"                        # a green box keeps its colour, with green edges and line (red the same)
 UP_LINE = "linear-gradient(90deg,#16A34A,#4ADE80) top / 100% 3px no-repeat"
 DN_LINE = "linear-gradient(90deg,#DC2626,#F87171) top / 100% 3px no-repeat"
@@ -1015,6 +1015,9 @@ a.lnk {{ color:inherit !important; text-decoration:none !important; }} a.lnk:hov
   {{ height:100%; }}
 [data-testid="stColumn"] > [data-testid="stVerticalBlock"] > [data-testid="stElementContainer"]:only-child [data-testid="stMarkdownContainer"] > div:only-child
   > :is(.card,.kpi,.tile,.mcard,.story,.fgc,.dcard,.tdc,.tdp,.lc,.rmeter):only-child {{ height:100%; box-sizing:border-box; }}
+/* ---------- boxes with a see-through tint get a solid dark base, so the background photo never shows through them ---------- */
+:is(.pulse,.brief,.hnbox,.hnrate,.hntgt,.hnkt,.hnplan .p,.tkw,.botbar,.ecard,.ac-hero,.ac-note,.lr.now,.hndh,.hnnote,.pbrl,.story,.news)
+  {{ background-color:{CARD} !important; }}
 /* ---------- coloured boxes keep their colour: green ones get green edges and a green line on top, red ones red ---------- */
 .botbar {{ background:{UP_LINE}, linear-gradient(90deg, rgba(34,197,94,.1), rgba(61,123,255,.08)); border-color:{UP_EDGE}; }}
 :is(.card,.tile,.kpi,.stat,.mx .m,.opos .o,.perfrow .pc2,.sigs .sg,.lr,.evt,.fgc,.prof .it,.plan .p,.mcard,.lc,.tdc,.tdp,.dcard,.cal .d,.story,.news).pos
@@ -1628,4 +1631,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "9.8.1"
+BUILD = "9.8.2"
