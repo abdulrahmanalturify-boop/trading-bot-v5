@@ -793,13 +793,14 @@ def simulate(bot, px, spy=None, record=None):
         ENT &= okm[None, :, None]
         if regime == 2:
             EXT |= (~okm)[None, :, None] & valid[None, :, :]
-    # an AI bot: a buy signal counts only when its model gives the trade at least the model's chance of a win, and the
-    # highest chances fill the free slots first
+    # an AI bot: a buy signal counts only when its model gives the trade at least the model's chance of a win (and, for a
+    # model with rank, the highest chances fill the free slots first)
     SCORE = None
     if model is not None:
-        PR = MLB.scores(model, frames, syms, idx, spy, ENT)
+        PR = MLB.scores(model, frames, syms, idx, spy, ENT, labels)
         ENT &= np.nan_to_num(PR, nan=-1.0) >= float(model.get("threshold", 0.0))
-        SCORE = np.where(ENT, np.nan_to_num(PR, nan=-1.0), -1.0).max(axis=0)
+        if model.get("rank"):
+            SCORE = np.where(ENT, np.nan_to_num(PR, nan=-1.0), -1.0).max(axis=0)
         last = PR[:, -1, :]
         out["ml_last"] = {"day": str(idx[-1])[:10], "threshold": float(model.get("threshold", 0.0)),
                           "signals": sorted(((syms[j], float(np.nanmax(last[:, j]))) for j in np.flatnonzero(~np.isnan(last).all(axis=0))),

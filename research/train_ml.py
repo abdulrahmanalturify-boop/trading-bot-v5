@@ -1,18 +1,19 @@
 """
-research/train_ml.py - Trains the AI bots' models (mlbots.py) on real prices, and tests them on years they never saw.
+research/train_ml.py - Trains the AI bots' model (mlbots.py) on real prices, and tests it on years it never saw.
 
-For each AI bot (AI_BOTS):
- 1. Labelled signals. Every stock of the all-companies list runs the bot's strategies on its own (a one-company bot with the
-    same exits and filters) over 2012-2019. Each closed trade is one example: the features on its signal day (the close
-    before the entry, mlbots.FEATURES) and whether it ended in a win.
- 2. The model. Gradient-boosted trees (scikit-learn HistGradientBoostingClassifier, small and regularised). How many of the
-    signals to keep (all of them, or the best 80 / 60 / 50 / 40 %) is chosen by training on 2012-2016 and looking at
-    2017-2019 only. Then the model is trained again on all of 2012-2019 and saved as models/<id>.json; the site predicts
-    with numpy (mlbots.predict), checked here to give the same numbers as scikit-learn.
- 3. The test: 2020 to today. The signals of every stock are scored (win rate and average trade of the signals the model
-    keeps and of those it drops, AUC), and the whole bot (all companies, the site's portfolio engine) runs with and
-    without its model.
-Results: research/results/ml_<id>.json, research/results/ml_summary.md, and ml_results.json at the top (for the site).
+ 1. Labelled signals. Every stock of the all-companies list runs every strategy of the site on its own (a one-company bot)
+    over 2012-2019. Each closed trade is one example: the features on its signal day (the close before the entry,
+    mlbots.FEATURES, with the strategy's code) and whether it ended in a win. One model learns from all of them together
+    (far more examples than one strategy has).
+ 2. The model: gradient-boosted trees (scikit-learn HistGradientBoostingClassifier, small and regularised), first trained on
+    2012-2016 only. For each AI bot (AI_BOTS: a strategy with its exits and filters), its own signals of 2017-2019 decide how
+    many to keep (all of them, or the best 80 / 60 / 50 / 40 %): the share whose trades did best. Then the model is trained
+    again on all of 2012-2019 and saved for each bot with its threshold (models/<id>.json). The model only filters: the free
+    slots still go to the strongest 3 months, as in every bot. The site predicts with numpy (mlbots.predict), checked here
+    to give the same numbers as scikit-learn, from the same features (checked too).
+ 3. The test: 2020 to today. The bot's signals of every stock are scored (win rate and average trade of the signals kept
+    and dropped, AUC), and the whole bot (all companies, the site's portfolio engine) runs with and without its model.
+Results: research/results/ml_summary.md, and ml_results.json at the top (for the site).
 The stock list is today's large companies (survivorship bias): compare the bot with and without its model, not with zero.
 """
 import json
@@ -40,8 +41,10 @@ TRAIN = ("2012-01-03", "2019-12-31")
 FIT_END = "2016-12-31"          # the model that picks how many signals to keep learns up to here and is checked on 2017-2019
 TEST = "2020-01-02"
 KEEP = (1.0, 0.8, 0.6, 0.5, 0.4)
-HGB = dict(learning_rate=0.05, max_iter=200, max_depth=3, min_samples_leaf=100, l2_regularization=1.0, early_stopping=False,
+HGB = dict(learning_rate=0.05, max_iter=250, max_depth=3, min_samples_leaf=200, l2_regularization=1.0, early_stopping=False,
            random_state=0)
+POOL = [s for s in PB.ALL_STRATEGIES if s != PB.PB.ORB]          # every daily strategy of the site
+STRAT_IDS = {s: i for i, s in enumerate(POOL)}
 AI_BOTS = {
     "ai_sma": {"name": ["AI · SMA Crossover", "ذكاء · تقاطع المتوسطات البسيطة"], "strategies": ["SMA Crossover"],
                "max_pos": 10, "atr_mult": 3.0},
@@ -58,7 +61,7 @@ SETTINGS = ("stop_pct", "atr_mult", "tp_pct", "trail_pct", "risk_pct", "regime",
 
 
 def make_bot(mid, kind, value, start, ml=None):
-    c = AI_BOTS[mid]
+    c = {"strategies": [mid[5:]], "max_pos": 1} if mid.startswith("pool:") else AI_BOTS[mid]
     b = {"id": 0, "name": mid, "kind": kind, "value": value, "symbol": value if kind == "company" else None,
          "strategies": {s: PB.clean_params(s, {}) for s in c["strategies"]}, "combine": {"mode": "any"}, "instrument": "stock",
          "options": PB.clean_options(None), "max_pos": 1 if kind == "company" else c["max_pos"], "capital": R.CAP, "fee": R.FEE,
@@ -97,14 +100,13 @@ def label_job(job):
     if not len(tr):
         return job, None
     d = PB._prep(df)
-    names = [s for s in PB.ALL_STRATEGIES if s in b["strategies"]]
     f = MLB.stock_features(d)
     pos = [d.index.get_loc(pd.Timestamp(x)) - 1 for x in tr["Entry Date"]]
     keep = [i for i, p in enumerate(pos) if p >= 0]
     rows = f.iloc[[pos[i] for i in keep]][MLB.STOCK].reset_index(drop=True)
     rows["date"] = [d.index[pos[i]] for i in keep]
     rows["sym"] = sym
-    rows["strat"] = [float(names.index(tr["Strategy"].iloc[i])) if tr["Strategy"].iloc[i] in names else 0.0 for i in keep]
+    rows["strat"] = [float(STRAT_IDS.get(tr["Strategy"].iloc[i], -1)) for i in keep]
     rows["pnl"] = tr["P&L %"].to_numpy(float)[keep]
     rows["y"] = (rows["pnl"] > 0).astype(int)
     return job, rows
@@ -141,14 +143,24 @@ def tstat(x):
     return float(x.mean() / x.std(ddof=1) * np.sqrt(len(x))) if len(x) > 30 and x.std(ddof=1) > 0 else -np.inf
 
 
-def train(mid, D):
+def fit_pool(P):
+    """The pooled model: first on 2012-2016 (to choose each bot's threshold on 2017-2019), then on all of 2012-2019."""
     from sklearn.ensemble import HistGradientBoostingClassifier
     from sklearn.metrics import roc_auc_score
+    X, y = P[MLB.FEATURES].to_numpy(float), P["y"].to_numpy(int)
+    fit = (P["date"] <= pd.Timestamp(FIT_END)).to_numpy()
+    clf1 = HistGradientBoostingClassifier(**HGB).fit(X[fit], y[fit])
+    auc_val = float(roc_auc_score(y[~fit], clf1.predict_proba(X[~fit])[:, 1]))
+    clf = HistGradientBoostingClassifier(**HGB).fit(X, y)
+    return clf1, clf, {"n": int(len(y)), "win": float(y.mean()), "auc_2017_2019": auc_val}
+
+
+def bot_model(mid, D, clf1, clf, pool_info):
+    """One AI bot: how many of its own signals to keep (chosen on 2017-2019 with the 2012-2016 model), and its model file."""
     import sklearn
     X, y, pnl = D[MLB.FEATURES].to_numpy(float), D["y"].to_numpy(int), D["pnl"].to_numpy(float)
     fit = (D["date"] <= pd.Timestamp(FIT_END)).to_numpy()
     val = ~fit
-    clf1 = HistGradientBoostingClassifier(**HGB).fit(X[fit], y[fit])
     p_fit, p_val = clf1.predict_proba(X[fit])[:, 1], clf1.predict_proba(X[val])[:, 1]
     choice = []
     for q in KEEP:
@@ -156,17 +168,17 @@ def train(mid, D):
         k = p_val >= thr
         choice.append({"keep": q, "n": int(k.sum()), "win": float(y[val][k].mean()) if k.any() else None,
                        "avg": float(pnl[val][k].mean()) if k.any() else None, "t": tstat(pnl[val][k])})
+    base_t = choice[0]["t"]
     best = max(choice, key=lambda c: (c["t"], c["keep"]))
-    clf = HistGradientBoostingClassifier(**HGB).fit(X, y)
+    if best["t"] < base_t + 0.25:                   # a filter must clearly beat taking every signal, or it keeps them all
+        best = choice[0]
     p_all = clf.predict_proba(X)[:, 1]
     thr = 0.0 if best["keep"] >= 1 else float(np.quantile(p_all, 1 - best["keep"]))
-    auc_val = float(roc_auc_score(y[val], p_val)) if len(set(y[val])) == 2 else None
     c = AI_BOTS[mid]
-    model = MLB.export_hgb(clf, MLB.FEATURES, id=mid, name=c["name"], threshold=thr, keep=best["keep"],
-                           bot={k: v for k, v in c.items() if k != "name"}, trained=f"{TRAIN[0]}..{TRAIN[1]}",
-                           n_train=int(len(y)), win_train=float(y.mean()), auc_2017_2019=auc_val, choice=choice,
-                           sklearn=sklearn.__version__, made=f"{date.today():%Y-%m-%d}")
-    return clf, model
+    return MLB.export_hgb(clf, MLB.FEATURES, id=mid, name=c["name"], threshold=thr, keep=best["keep"], rank=False,
+                          strat_ids=STRAT_IDS, bot={k: v for k, v in c.items() if k != "name"}, trained=f"{TRAIN[0]}..{TRAIN[1]}",
+                          n_train=pool_info["n"], n_bot=int(len(y)), win_train=float(y.mean()), auc_2017_2019=pool_info["auc_2017_2019"],
+                          choice=choice, sklearn=sklearn.__version__, made=f"{date.today():%Y-%m-%d}")
 
 
 def run_bot(job):
@@ -194,7 +206,8 @@ def main():
     uni = [s for s in syms if s in px and s != "SPY"]
     rank, mk = market_and_rank(px, uni)
     os.makedirs(MLB.MODELS, exist_ok=True)
-    jobs = [(mid, s, part) for mid in AI_BOTS for s in uni for part in ("train", "test")]
+    jobs = [("pool:" + st_, s, part) for st_ in POOL for s in uni for part in ("train", "test")]
+    jobs += [(mid, s, part) for mid in AI_BOTS for s in uni for part in ("train", "test")]
     ex_rows = {}
     with ProcessPoolExecutor(max_workers=os.cpu_count() or 2, initializer=_init, initargs=(px,)) as ex:
         for (mid, s, part), rows in ex.map(label_job, jobs, chunksize=16):
@@ -203,14 +216,31 @@ def main():
             elif rows is not None and len(rows):
                 ex_rows.setdefault((mid, part), []).append(rows)
     print(f"labelled signals in {time.time() - t0:.0f} s", flush=True)
+    from sklearn.metrics import roc_auc_score
+    P = assemble(pd.concat([r for (k, part), v in ex_rows.items() if k.startswith("pool:") and part == "train" for r in v],
+                           ignore_index=True), rank, mk)
+    PT = assemble(pd.concat([r for (k, part), v in ex_rows.items() if k.startswith("pool:") and part == "test" for r in v],
+                            ignore_index=True), rank, mk)
+    clf1, clf, pool_info = fit_pool(P)
+    pool_info["n_test"] = int(len(PT))
+    pool_info["auc_test"] = float(roc_auc_score(PT["y"], clf.predict_proba(PT[MLB.FEATURES].to_numpy(float))[:, 1]))
+    pool_info["by_strategy_test"] = {}
+    pt = clf.predict_proba(PT[MLB.FEATURES].to_numpy(float))[:, 1]
+    for name, i in STRAT_IDS.items():
+        m_ = (PT["strat"] == i).to_numpy()
+        if m_.sum() > 50 and PT["y"][m_].nunique() == 2:
+            pool_info["by_strategy_test"][name] = {"n": int(m_.sum()), "auc": float(roc_auc_score(PT["y"][m_], pt[m_]))}
+    print(f"pooled model: {pool_info['n']} signals, AUC 2017-2019 {pool_info['auc_2017_2019']:.3f}, AUC 2020-now {pool_info['auc_test']:.3f}",
+          flush=True)
     results = {}
+    frames = {s: PB._prep(px[s]) for s in uni}
     for mid in list(AI_BOTS):
         if len(ex_rows.get((mid, "train"), [])) == 0 or sum(map(len, ex_rows[(mid, "train")])) < 300 or not ex_rows.get((mid, "test")):
-            print(f"{mid}: too few signals to learn from, skipped", flush=True)
+            print(f"{mid}: too few signals, skipped", flush=True)
             continue
         tr_ = assemble(pd.concat(ex_rows[(mid, "train")], ignore_index=True), rank, mk)
         te_ = assemble(pd.concat(ex_rows[(mid, "test")], ignore_index=True), rank, mk)
-        clf, model = train(mid, tr_)
+        model = bot_model(mid, tr_, clf1, clf, pool_info)
         path = os.path.join(MLB.MODELS, f"{mid}.json")
         with open(path, "w", encoding="utf-8") as f:
             json.dump(model, f, separators=(",", ":"))
@@ -220,7 +250,6 @@ def main():
         assert np.abs(p_np - p_sk).max() < 1e-9, "numpy and scikit-learn disagree"
         # the site computes the same features (a sample, through mlbots.features_at on the whole list)
         smp = te_.sample(min(40, len(te_)), random_state=1)
-        frames = {s: PB._prep(px[s]) for s in uni}
         idx = rank.index
         pos = {s: j for j, s in enumerate(uni)}
         Xs = MLB.features_at(frames, uni, idx, px["SPY"], [idx.get_loc(d) for d in smp["date"]], [pos[s] for s in smp["sym"]],
@@ -241,7 +270,7 @@ def main():
                 print("error", mid, part, ml, st_["error"], flush=True)
                 st_ = None
             results[mid].setdefault("bot_" + part, {})["ai" if ml else "plain"] = st_
-    out = {"updated": f"{date.today():%Y-%m-%d}", "train": list(TRAIN), "test_from": TEST, "bots": results}
+    out = {"updated": f"{date.today():%Y-%m-%d}", "train": list(TRAIN), "test_from": TEST, "pool": pool_info, "bots": results}
     os.makedirs(R.OUT, exist_ok=True)
     with open(os.path.join(ROOT, "ml_results.json"), "w", encoding="utf-8") as f:
         json.dump(out, f, indent=1, default=float, ensure_ascii=False)
@@ -255,6 +284,8 @@ def summary(out):
     wp = lambda v: "—" if v is None else f"{v * 100:.0f}%"
     lines = ["# AI bots · with and without the model", "",
              f"Trained on signals of {out['train'][0]}..{out['train'][1]}; tested from {out['test_from']} (never seen).", "",
+             f"Pooled model: {out['pool']['n']} signals of {len(POOL)} strategies; AUC 2017-2019 {out['pool']['auc_2017_2019']:.3f} "
+             f"(model of 2012-2016), AUC 2020-now {out['pool']['auc_test']:.3f} on {out['pool']['n_test']} signals (0.5 = a coin flip).", "",
              "| Bot | Keeps | Test AUC | Test win % kept / dropped | Test avg trade kept / dropped | Bot 2020-now plain: Sharpe (CAGR, max DD) | Bot 2020-now AI |",
              "|---|---|---|---|---|---|---|"]
     for mid, r in out["bots"].items():

@@ -1,9 +1,10 @@
 """
 mlbots.py - The AI part of the Paper Bots. Each AI bot has its own model: it learned, from every buy signal its strategies
 gave on 500+ US stocks in 2012-2019 and how each of those trades ended, which signals tend to end in a win. In a bot with a
-model ('ml' = the model's id), a buy signal only counts when the model's chance of a win is at least the model's threshold,
-and when more stocks signal than there are free slots, the highest chances are bought first (instead of the strongest 3
-months).
+model ('ml' = the model's id), a buy signal only counts when the model's chance of a win is at least the model's threshold.
+A model with rank = true also fills the free slots with the highest chances first (otherwise the strongest 3 months go
+first, as in every bot). A released model file never changes: a retrained model gets a new id, so a running forward test
+always keeps the model it started with.
 
 The models are gradient-boosted decision trees trained with scikit-learn in the lab (research/train_ml.py) and saved as
 plain JSON (models/<id>.json), so the site needs no machine-learning library: a prediction is a walk down each tree in
@@ -130,6 +131,32 @@ def load(model_id):
         return None
 
 
+RESULTS = os.path.join(HERE, "ml_results.json")
+
+
+@lru_cache(maxsize=4)
+def _results(path, mtime):
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def results():
+    """The lab's report on the AI bots (research/train_ml.py): {'bots': {id: {...}}, ...}, or None before the first training."""
+    try:
+        return _results(RESULTS, os.path.getmtime(RESULTS))
+    except (OSError, ValueError):
+        return None
+
+
+def verdict(r, margin=0.05):
+    """'up' when the model raised the bot's 2020-now Sharpe by at least `margin`, 'down' when it lowered it, else 'flat'."""
+    t = (r or {}).get("bot_test") or {}
+    a, p = (t.get("ai") or {}).get("sharpe"), (t.get("plain") or {}).get("sharpe")
+    if a is None or p is None:
+        return None
+    return "up" if a >= p + margin else "down" if a <= p - margin else "flat"
+
+
 def available():
     try:
         return sorted(f[:-5] for f in os.listdir(MODELS) if f.endswith(".json"))
@@ -158,14 +185,22 @@ def predict(model, X):
     return 1.0 / (1.0 + np.exp(-raw))
 
 
-def scores(model, frames, syms, idx, spy, ENT):
+def strat_codes(model, labels):
+    """The 'strat' feature of each of the bot's strategies: the model's own code for it (a model that learned from many
+    strategies), or its place in the bot."""
+    ids = model.get("strat_ids")
+    return np.array([float(ids.get(n, -1)) if ids else float(k) for k, n in enumerate(labels)])
+
+
+def scores(model, frames, syms, idx, spy, ENT, labels=None):
     """The model's chance of a win for every buy signal of ENT (strategies x dates x stocks); NaN where there is none."""
     S, T, N = ENT.shape
     out = np.full((S, T, N), np.nan)
     if not ENT.any():
         return out
     ks, ts, js = np.nonzero(ENT)
-    out[ks, ts, js] = predict(model, features_at(frames, syms, idx, spy, ts, js, ks.astype(float)))
+    codes = strat_codes(model, labels or [str(k) for k in range(S)])
+    out[ks, ts, js] = predict(model, features_at(frames, syms, idx, spy, ts, js, codes[ks]))
     return out
 
 

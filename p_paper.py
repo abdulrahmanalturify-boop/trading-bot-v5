@@ -34,6 +34,7 @@ import mcal
 import paperbots as PB
 import playbooks as PBK
 import lab
+import mlbots as MLB
 import ta
 import tdash
 import theme as T
@@ -398,6 +399,40 @@ a.pblink .ms {{ font-size:1rem; }}
 [class*="st-key-pbq_together"] button p {{ font-weight:700 !important; color:#DCE6FF !important; }}
 [class*="st-key-pbq_together"] button [data-testid="stIconMaterial"] {{ color:{_C} !important; }}
 [data-testid="stPopoverBody"] {{ min-width:min(760px, 92vw); }}
+/* AI bots: five ready bots, each with its own model */
+.aihd {{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:22px 0 6px; }}
+.aihd .i .ms {{ font-size:1.25rem; color:#fff; background:linear-gradient(135deg,{_V},{_C}); border-radius:11px; padding:7px; }}
+.aihd .t {{ font-weight:800; font-size:1.18rem; color:#fff; }}
+.aihd .s {{ color:{_MU}; font-size:.8rem; font-weight:600; width:100%; margin-top:-4px; }}
+[class*="st-key-aicard_"] {{ position:relative; overflow:hidden; background:{T.BOX_BG}; border:1px solid {_BD}; border-radius:18px;
+  padding:14px 15px 12px; height:100%; }}
+[class*="st-key-aicard_"]:has(.aic.up) {{ border-color:rgba(34,197,94,.45); }}
+[class*="st-key-aicard_"]:has(.aic.down) {{ border-color:rgba(239,68,68,.40); }}
+.aic .hd {{ display:flex; align-items:flex-start; gap:9px; }}
+.aic .hd .i .ms {{ font-size:1.05rem; color:#fff; background:linear-gradient(135deg,{_A},{_V}); border-radius:9px; padding:5px; }}
+.aic .nm {{ font-weight:800; color:#fff; font-size:.98rem; line-height:1.25; }}
+.aic .sub {{ color:{_MU}; font-size:.74rem; font-weight:600; margin-top:2px; line-height:1.4; }}
+.aic .hd .tx {{ flex:1; min-width:0; }}
+.aic .cs .badge {{ margin:0; }}
+.aic .cs {{ display:flex; flex-wrap:wrap; gap:5px; margin:9px 0 8px; }}
+.aic .cs > span:not(.badge) {{ font-size:.68rem; font-weight:700; color:#C9D0DC; background:rgba(138,148,167,.10); border:1px solid {_BD}; border-radius:999px;
+  padding:2px 9px; white-space:nowrap; }}
+.aic table {{ width:100%; border-collapse:separate; border-spacing:0 3px; font-size:.78rem; direction:ltr; }}
+.aic th {{ color:{_MU}; font-size:.6rem; letter-spacing:.07em; text-transform:uppercase; font-weight:800; text-align:right; padding:0 6px 2px; }}
+.aic th:first-child, .aic td:first-child {{ text-align:left; }}
+.aic td {{ background:rgba(255,255,255,.035); padding:5px 6px; text-align:right; color:#DCE2EC; font-variant-numeric:tabular-nums; }}
+.aic td:first-child {{ border-radius:8px 0 0 8px; font-weight:700; color:#fff; }}
+.aic td:last-child {{ border-radius:0 8px 8px 0; }}
+.aic tr.ai td {{ background:linear-gradient(90deg,rgba(139,92,246,.20),rgba(34,211,238,.10)); }}
+.aic .up {{ color:#4ADE80; }} .aic .dn {{ color:#F87171; }}
+.aic .nt {{ color:#AEB7C6; font-size:.74rem; line-height:1.5; margin-top:7px; }}
+[class*="st-key-aicard_"] button {{ border-radius:12px !important; min-height:40px !important; margin-top:4px; }}
+[class*="st-key-aicard_"] [data-testid="stElementContainer"] {{ width:100%; }}
+.aiday {{ display:flex; flex-wrap:wrap; gap:6px; }}
+.aiday span {{ display:inline-flex; align-items:center; gap:6px; font-size:.76rem; font-weight:700; border-radius:999px; padding:3px 10px;
+  border:1px solid {_BD}; background:rgba(138,148,167,.08); color:#C9D0DC; }}
+.aiday span.go {{ border-color:rgba(34,197,94,.5); background:rgba(34,197,94,.12); color:#BBF7D0; }}
+.aiday span b {{ color:#fff; }}
 /* the lab panel between the strategies and what the bot buys */
 [class*="st-key-pblab"] {{ margin-top:16px; }}
 [class*="st-key-pblab"] .xtp {{ margin-bottom:8px; }}
@@ -1614,7 +1649,7 @@ def _order_txt(item):
 def lab_check(b):
     """The lab's view of a saved bot: (a badge when it runs on the lab's pick, a note when the pick did clearly better)."""
     names = list(b.get("strategies") or {})
-    if len(names) != 1 or is_orb(b) or instrument(b) == "options":
+    if len(names) != 1 or is_orb(b) or instrument(b) == "options" or b.get("ml"):
         return "", None
     d = lab.data()
     s, combined = names[0], is_combined(b)
@@ -1666,6 +1701,13 @@ def bot_header(sim):
         badges += T.badge(L(*REGIME_LABEL[int(b["regime"])]), "acc", "filter_alt")
     if b.get("trend_filter"):
         badges += T.badge(L("Only stocks above their 200-day average", "فقط الأسهم فوق متوسط 200 يوم"), "acc", "trending_up")
+    if b.get("ml"):
+        mdl = MLB.load(b["ml"]) or {}
+        kp = float(mdl.get("keep") or 1.0)
+        badges += T.badge(L("AI model", "نموذج ذكاء اصطناعي") + (L(f" · takes the best {kp * 100:.0f}% of signals",
+                                                                    f" · ياخذ أفضل {kp * 100:.0f}% من الإشارات") if kp < 1 else
+                                                                  L(" · picks the best signals first", " · يختار أفضل الإشارات أول")),
+                          "vio", "psychology")
     if ins != "stock":
         badges += T.badge(_options_txt(b["options"]), "neu", "receipt_long")
         badges += T.badge(L("Option prices estimated (Black-Scholes)", "أسعار الأوبشن تقديرية (بلاك-شولز)"), "gold", "info")
@@ -1682,6 +1724,8 @@ def bot_header(sim):
     ui.html(f'<div class="card pbid">{head_html(b, logo)}<div class="bdgs">{badges}</div></div>')
     if lab_note:
         st.info(lab_note, icon=":material/science:")
+    if b.get("ml"):
+        ai_today(sim)
     with st.expander(L("How this bot trades", "طريقة تداول البوت"), icon=":material/tune:"):
         if is_combined(b):
             ui.html("".join(rules_html(n, p) for n, p in b["strategies"].items()))
@@ -3123,7 +3167,8 @@ def bot_form(mode, bot=None):
                          pd.Timestamp(start).strftime("%Y-%m-%d"),
                          ({"mode": "combo", "min": int(need), **({"window": int(win)} if combined else {})} if combo else None),
                          instrument=instr, options=options, risk_pct=0.0 if instr == "options" else float(ss.get("pb_riskpt") or 0.0),
-                         regime=0 if orb else int(ss.get("pb_regime") or 0), trend_filter=0 if orb else int(bool(ss.get("pb_trend"))))
+                         regime=0 if orb else int(ss.get("pb_regime") or 0), trend_filter=0 if orb else int(bool(ss.get("pb_trend"))),
+                         ml=(bot or {}).get("ml") if mode == "edit" and set(params) == set((bot or {}).get("strategies") or {}) else None)
     try:
         if mode == "add":
             PB.create_bot(rec)
@@ -3172,6 +3217,161 @@ def _delete_body(bot):
             st.rerun()
 
 
+# =====================================================================
+# AI bots: five ready bots, each with a model trained in the lab (mlbots.py, research/train_ml.py)
+# =====================================================================
+AI_VERDICT = {"up": (("AI helped", "الذكاء حسّن"), "up", "trending_up"), "flat": (("About the same", "تقريباً نفسه"), "neu", "drag_handle"),
+              "down": (("AI did worse", "الذكاء كان أضعف"), "down", "trending_down")}
+
+
+def _ai_settings(c):
+    out = []
+    if c.get("atr_mult"):
+        out.append(L(f"ATR stop ×{c['atr_mult']:g}", f"وقف ATR ×{c['atr_mult']:g}"))
+    if c.get("stop_pct"):
+        out.append(L(f"Stop loss {c['stop_pct']:g}%", f"وقف خسارة {c['stop_pct']:g}%"))
+    if c.get("trend_filter"):
+        out.append(L("Stock above its 200-day average", "السهم فوق متوسط 200 يوم"))
+    if c.get("regime") == 2:
+        out.append(L("Market filter: no buys, and sell", "فلتر السوق: بدون شراء ويبيع"))
+    elif c.get("regime") == 1:
+        out.append(L("Market filter: no new buys", "فلتر السوق: بدون شراء جديد"))
+    return out
+
+
+def _ai_card(mid, r, have):
+    c = r.get("bot") or {}
+    v = MLB.verdict(r)
+    vd = ""
+    if v:
+        (en, ar_), kind, ic = AI_VERDICT[v]
+        vd = T.badge(L(en, ar_), kind, ic)
+    strats = " + ".join(strat_name(x) for x in c.get("strategies", []))
+    sub = L(f"All companies · up to {c.get('max_pos', 10)} trades", f"كل الشركات · لين {c.get('max_pos', 10)} صفقة")
+    chips = "".join(f"<span>{T.esc(x)}</span>" for x in [strats] + _ai_settings(c))
+    t = r.get("bot_test") or {}
+
+    def row(name, x, cls=""):
+        if not x:
+            return f'<tr class="{cls}"><td>{T.esc(name)}</td><td>—</td><td>—</td><td>—</td></tr>'
+        return (f'<tr class="{cls}"><td>{T.esc(name)}</td><td>{x["sharpe"]:.2f}</td>'
+                f'<td class="{"up" if x["cagr"] > 0 else "dn"}">{x["cagr"] * 100:+.0f}%</td><td>{x["maxdd"] * 100:.0f}%</td></tr>')
+    table = (f'<table><thead><tr><th>{L("2020 → now", "من 2020 لين اليوم")}</th>'
+             f'<th>{L("Sharpe", "شارب")}</th><th>{L("Yearly", "سنوياً")}</th><th>{L("Max drop", "أكبر هبوط")}</th></tr></thead><tbody>'
+             + row(L("With AI", "مع الذكاء"), t.get("ai"), "ai") + row(L("Without AI", "بدون الذكاء"), t.get("plain")) + "</tbody></table>")
+    sig = (r.get("signals_test") or {})
+    kp, dr = sig.get("kept") or {}, sig.get("dropped") or {}
+    keep = float(r.get("keep") or 1.0)
+    if keep >= 1 or not dr.get("n"):
+        note = L("Takes every signal of its strategy; the AI only decides which stocks to buy first when there are more signals than "
+                 "free places.",
+                 "ياخذ كل إشارات استراتيجيته؛ والذكاء يقرر بس أي الأسهم يشتري أول لما تكون الإشارات أكثر من الأماكن الفاضية.")
+    else:
+        note = L(f"Takes only the best {keep * 100:.0f}% of its strategy's signals. From 2020 to now, {kp.get('win', 0) * 100:.0f}% of the "
+                 f"signals it took were winners, against {dr.get('win', 0) * 100:.0f}% of those it skipped.",
+                 f"ياخذ بس أفضل {keep * 100:.0f}% من إشارات استراتيجيته. من 2020 لين اليوم، {kp.get('win', 0) * 100:.0f}% من الإشارات اللي "
+                 f"أخذها ربحت، مقابل {dr.get('win', 0) * 100:.0f}% من اللي تركها.")
+    if have:
+        note += " " + L("Already running.", "شغّال عندك.")
+    return (f'<div class="aic {v or ""}"><div class="hd"><span class="i">{T.icon("psychology")}</span><div class="tx"><div class="nm">'
+            f'{T.esc(L(*r.get("name", [mid, mid])))}</div><div class="sub">{T.esc(sub)}</div></div></div>'
+            f'<div class="cs">{vd}{chips}</div>{table}<div class="nt">{T.esc(note)}</div></div>')
+
+
+def _open_ai(mid):
+    ss["pb_open"] = ("ai", mid)
+
+
+def ai_section(bots, can_add):
+    """The five AI bots with their test (2020 to now, years their models never saw) and a button to add each one."""
+    res = MLB.results()
+    ids = [m for m in (res or {}).get("bots", {}) if MLB.load(m) is not None]
+    if not ids:
+        return
+    have = {b.get("ml") for b in bots}
+    y0, y1 = res["train"][0][:4], res["train"][1][:4]
+    sub = L(f"Each one has its own model, trained on every buy signal its strategy gave on 500+ US stocks from {y0} to {y1} and how "
+            "each trade ended. Tested on 2020 to now, years it never saw.",
+            f"كل بوت له نموذج خاص، تدرّب على كل إشارة شراء أعطتها استراتيجيته على أكثر من 500 سهم أمريكي من {y0} لين {y1} وعلى "
+            "نتيجة كل صفقة. ومختبر على 2020 لين اليوم، سنين ما شافها.")
+    ui.html(f'<div class="aihd"><span class="i">{T.icon("psychology")}</span><span class="t">{L("AI bots", "بوتات الذكاء الاصطناعي")}</span>'
+            f'<span class="s">{T.esc(sub)}</span></div>')
+    order = sorted(ids, key=lambda m: -(((res["bots"][m].get("bot_test") or {}).get("ai") or {}).get("sharpe") or -9))
+    for i in range(0, len(order), 3):
+        cols = st.columns(3)
+        for col, mid in zip(cols, order[i:i + 3]):
+            with col:
+                with st.container(key=f"aicard_{mid}"):
+                    ui.html(_ai_card(mid, res["bots"][mid], mid in have))
+                    st.button(L("Add this bot", "أضف هالبوت"), key=f"pb_ai_{mid}", icon=":material/add:", width="stretch",
+                              on_click=_open_ai, args=(mid,), disabled=not can_add or mid in have,
+                              type="primary" if MLB.verdict(res["bots"][mid]) == "up" else "secondary")
+    st.caption(L("The numbers are for the whole bot on all companies, with the settings shown, run by this site's bot engine. The stock "
+                 "list is today's large companies, so every number is on the high side: compare \"with\" and \"without\" AI. Past "
+                 "results don't promise future ones.",
+                 "الأرقام للبوت كامل على كل الشركات بالإعدادات المكتوبة، ومحسوبة بمحرّك البوتات نفسه في الموقع. قائمة الأسهم هي الشركات "
+                 "الكبيرة اليوم، فكل الأرقام مرتفعة شوي: قارن \"مع\" و\"بدون\" الذكاء. النتائج السابقة ما تضمن اللي جاي."))
+
+
+def _ai_body(mid, bots):
+    if not can_edit():
+        return
+    if len(bots) >= PB.MAX_BOTS:
+        st.info(L(f"You have {PB.MAX_BOTS} bots, the maximum. Delete one to add another.",
+                  f"عندك {PB.MAX_BOTS} بوتات، وهذا الحد الأعلى. احذف واحد عشان تضيف غيره."), icon=":material/block:")
+        return
+    res = MLB.results() or {}
+    r = (res.get("bots") or {}).get(mid)
+    if not r or MLB.load(mid) is None:
+        st.error(L("This AI bot isn't available.", "هالبوت غير متاح."))
+        return
+    ui.html(_ai_card(mid, r, False))
+    c = r["bot"]
+    a, b = st.columns(2)
+    a.number_input(L("Virtual capital ($)", "رأس المال الوهمي ($)"), 100, 100_000_000, value=1_000_000, step=10_000, key="pb_ai_cap")
+    today = PB.today_ny()
+    b.selectbox(L("Start", "البداية"), [0, 365], key="pb_ai_start",
+                format_func=lambda d: L("Today (forward test only)", "اليوم (تجربة أمامية فقط)") if d == 0 else
+                L("A year ago (adds a one-year simulation)", "قبل سنة (يضيف محاكاة سنة)"))
+    if not st.button(L("Start the AI bot", "شغّل بوت الذكاء"), type="primary", icon=":material/play_arrow:", key="pb_ai_go", width="stretch"):
+        return
+    start = today - timedelta(days=int(ss.get("pb_ai_start") or 0))
+    rec = PB.make_record(L(*r["name"]), "all", "all", {x: {} for x in c["strategies"]}, c["max_pos"], float(ss.get("pb_ai_cap") or 1_000_000),
+                         0.05, c.get("stop_pct", 0.0), c.get("atr_mult", 0.0), c.get("tp_pct", 0.0), c.get("trail_pct", 0.0),
+                         pd.Timestamp(start).strftime("%Y-%m-%d"), instrument="stock", risk_pct=c.get("risk_pct", 0.0),
+                         regime=c.get("regime", 0), trend_filter=c.get("trend_filter", 0), ml=mid)
+    try:
+        PB.create_bot(rec)
+    except PB.StoreError as e:
+        storage_notice(e)
+        return
+    new = [x for x in PB.list_bots() if x.get("ml") == mid]
+    if new:
+        ss["pb_selected"] = [new[-1]["id"]]
+    st.toast(L("AI bot started.", "بدأ بوت الذكاء."), icon=":material/psychology:")
+    st.rerun()
+
+
+def ai_today(sim):
+    """What an AI bot's model made of the last session's buy signals (its chance of a win, and which pass)."""
+    info = sim.get("ml_last")
+    if not info:
+        return
+    with st.expander(L("What the AI sees today", "وش يشوف الذكاء اليوم"), icon=":material/psychology:"):
+        sig = info.get("signals") or []
+        if not sig:
+            st.caption(L(f"No buy signals at the close of {info['day']}.", f"ما فيه إشارات شراء عند إغلاق {info['day']}."))
+            return
+        thr = float(info.get("threshold") or 0)
+        ui.html('<div class="aiday">' + "".join(
+            f'<span class="{"go" if p >= thr else ""}">{T.icon("check" if p >= thr else "close")}<b>{T.esc(s_)}</b> {p * 100:.0f}%</span>'
+            for s_, p in sig) + "</div>")
+        st.caption(L(f"The buy signals of {info['day']} with the model's chance of a winning trade. Green = at least {thr * 100:.0f}%, so "
+                     "the bot may buy it at the next open if it has a free place (highest chances first).",
+                     f"إشارات الشراء في {info['day']} مع احتمال نجاح الصفقة عند النموذج. الأخضر = {thr * 100:.0f}% أو أكثر، فممكن البوت يشتريه "
+                     "عند الافتتاح القادم إذا عنده مكان فاضي (الأعلى احتمالاً أول)."))
+
+
 def open_dialog(op, bots):
     mode, bid = op
     bot = next((b for b in bots if b["id"] == bid), None)
@@ -3181,6 +3381,8 @@ def open_dialog(op, bots):
         st.dialog(L("Edit bot", "تعديل البوت"), width="large")(_bot_dialog_body)("edit", bot, len(bots))
     elif mode == "add":
         st.dialog(L("Add a bot", "أضف بوت"), width="large")(_bot_dialog_body)("add", None, len(bots))
+    elif mode == "ai":
+        st.dialog(L("Add an AI bot", "أضف بوت ذكاء اصطناعي"), width="large")(_ai_body)(bid, bots)
 
 
 # =====================================================================
@@ -3230,6 +3432,7 @@ def page_paper_bots():
         else:
             ui.safe(portfolio, chosen, spy, shown)
 
+    ui.safe(ai_section, bots, err is None and len(bots) < PB.MAX_BOTS)
     ui.safe(test_section)
     ui.safe(compare_section, sims)
     st.caption(L("Virtual trading on real daily prices (dividend-adjusted, may be delayed); the Opening Range Breakout uses 5-minute prices from "
