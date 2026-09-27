@@ -287,6 +287,8 @@ CSS = f"""<style>
 .hnkt .s {{ color:{_MU}; font-size:.76rem; margin-top:2px; }}
 .hnkt.ok .s {{ color:#4ADE80; font-weight:700; }} .hnkt.bad .s {{ color:#F87171; font-weight:700; }}
 .hnkt.ok .v {{ color:#E8FFF0; }}
+.hnkts4 {{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin-bottom:12px; }}
+@media (max-width: 900px) {{ .hnkts4 {{ grid-template-columns:repeat(2,minmax(0,1fr)); }} }}
 </style>"""
 RTL_CSS = """<style>
 .hnhero .eb, .hnreg .tl .l, .hnc .lv span, .hnplan .p .l { letter-spacing:0; }
@@ -805,7 +807,7 @@ def catalysts(sym, build=None):
     an = {k: inf.get(k) for k in ("recommendationKey", "recommendationMean", "numberOfAnalystOpinions", "targetMeanPrice", "targetHighPrice",
                                   "targetLowPrice", "targetMedianPrice", "currentPrice", "regularMarketPrice")}
     return {"fund": fund, "events": events, "news": nws, "earn": f["earnings_date"], "short": inf.get("shortName") or "", "an": an,
-            "targets": f.get("targets") or {}, "rec": f.get("rec_summary"), "ratings": f.get("ratings")}
+            "targets": f.get("targets") or {}, "rec": f.get("rec_summary"), "ratings": f.get("ratings"), "insiders": f.get("insiders")}
 
 
 def _checklist(items):
@@ -1168,6 +1170,95 @@ def analyst_section(sym, price):
                  height=min(420, 38 + 35 * len(out)))
 
 
+# ---------------------------------------------------------------- insiders
+INS_KIND = {"buy": ("Buy", "شراء", "up"), "sell": ("Sale", "بيع", "down"), "option": ("Option exercise", "تنفيذ خيارات", "acc"),
+            "award": ("Award / grant", "منحة", "vio"), "gift": ("Gift", "هدية", "neu"), "other": ("Other", "أخرى", "neu")}
+
+
+def _ins_kind(text, trans=""):
+    t = f"{trans} {text}".lower()
+    if "purchase" in t or " buy" in f" {t}":
+        return "buy"
+    if "sale" in t or "sold" in t or " sell" in f" {t}":
+        return "sell"
+    if "option" in t or "exercise" in t or "conversion" in t:
+        return "option"
+    if "award" in t or "grant" in t:
+        return "award"
+    if "gift" in t:
+        return "gift"
+    return "other"
+
+
+def insider_table(ins):
+    """Yahoo's insider transactions, cleaned: Date, Insider, Position, Type, Shares, Value, Ownership, Details (newest first)."""
+    if not isinstance(ins, pd.DataFrame) or ins.empty:
+        return pd.DataFrame()
+    col = lambda *names: next((ins[n] for n in names if n in ins), pd.Series([""] * len(ins), index=ins.index))
+    date = pd.to_datetime(col("Start Date", "Date", "startDate"), errors="coerce")
+    text = col("Text", "Transaction Text").astype(str).replace("nan", "")
+    trans = col("Transaction").astype(str).replace("nan", "")
+    out = pd.DataFrame({"Date": date, "Insider": col("Insider", "Filer Name").astype(str).str.title(),
+                        "Position": col("Position", "Relation", "Filer Relation").astype(str).replace("nan", ""),
+                        "Kind": [_ins_kind(t, tr) for t, tr in zip(text, trans)],
+                        "Shares": pd.to_numeric(col("Shares"), errors="coerce"), "Value": pd.to_numeric(col("Value"), errors="coerce"),
+                        "Ownership": col("Ownership").astype(str).map({"D": "Direct", "I": "Indirect"}).fillna(""),
+                        "Details": text})
+    return out.sort_values("Date", ascending=False, na_position="last").reset_index(drop=True)
+
+
+def insider_section(sym):
+    """Insider transactions: the last 6 months in four tiles (buys, sales, net, the latest) and every transaction in a table."""
+    cat = catalysts(sym, H.BUILD)
+    t = insider_table(cat.get("insiders"))
+    ui.sec("badge", "Insider transactions", "تعاملات المطّلعين")
+    if t.empty:
+        st.caption(L("Yahoo Finance has no insider transactions for this stock right now.",
+                     "ياهو فاينانس ما عنده تعاملات مطّلعين لهذا السهم حالياً."))
+        return
+    recent = t[t["Date"] >= pd.Timestamp.now() - pd.Timedelta(days=183)]
+    buys, sells = recent[recent["Kind"] == "buy"], recent[recent["Kind"] == "sell"]
+    bv, sv = float(buys["Value"].fillna(0).sum()), float(sells["Value"].fillna(0).sum())
+    net = bv - sv
+
+    def tile(ic, label, value, sub, good=None):
+        cls = "" if good is None else (" ok" if good else " bad")
+        return (f'<div class="hnkt{cls}"><div class="l">{T.icon(ic)}<span>{T.esc(label)}</span></div><div class="v">{value}</div>'
+                f'<div class="s">{T.esc(sub)}</div></div>')
+    last = t.iloc[0]
+    lk = INS_KIND[last["Kind"]]
+    tiles = [tile("shopping_cart", L("Insider buys (6 months)", "شراء المطّلعين (6 أشهر)"), T.money(bv, short=True) if bv else "$0",
+                  L(f"{len(buys)} transactions · {buys['Shares'].fillna(0).sum():,.0f} shares", f"{len(buys)} عملية · {buys['Shares'].fillna(0).sum():,.0f} سهم"),
+                  True if len(buys) else None),
+             tile("sell", L("Insider sales (6 months)", "بيع المطّلعين (6 أشهر)"), T.money(sv, short=True) if sv else "$0",
+                  L(f"{len(sells)} transactions · {sells['Shares'].fillna(0).sum():,.0f} shares", f"{len(sells)} عملية · {sells['Shares'].fillna(0).sum():,.0f} سهم"),
+                  False if len(sells) else None),
+             tile("balance", L("Net (buys − sales)", "الصافي (شراء − بيع)"), ("+" if net > 0 else "") + T.money(net, short=True),
+                  L("insiders bought more" if net > 0 else "insiders sold more" if net < 0 else "balanced",
+                    "المطّلعين اشتروا أكثر" if net > 0 else "المطّلعين باعوا أكثر" if net < 0 else "متوازن"), None if net == 0 else net > 0),
+             tile("event", L("Latest", "الأحدث"), f"{last['Date']:%Y-%m-%d}" if pd.notna(last["Date"]) else "—",
+                  f"{L(*lk[:2])} · {last['Insider']}", None)]
+    ui.html(f'<div class="hnkts4">{"".join(tiles)}</div>')
+    N = {"Date": L("Date", "التاريخ"), "Insider": L("Insider", "المطّلع"), "Position": L("Position", "المنصب"), "Kind": L("Type", "النوع"),
+         "Shares": L("Shares", "الأسهم"), "Value": L("Value ($)", "القيمة ($)"), "Ownership": L("Ownership", "الملكية"), "Details": L("Details", "التفاصيل")}
+    show = t.copy()
+    show["Date"] = show["Date"].dt.date
+    show["Kind"] = show["Kind"].map(lambda k: L(*INS_KIND[k][:2]))
+    show["Ownership"] = show["Ownership"].map(lambda o: L(o, {"Direct": "مباشرة", "Indirect": "غير مباشرة"}.get(o, o)) if o else "—")
+    show = show.rename(columns=N)
+
+    def color(v):
+        if v == L("Buy", "شراء"):
+            return f"color:{T.POS_FG};background-color:{T.POS_BG};font-weight:700"
+        if v == L("Sale", "بيع"):
+            return f"color:{T.NEG_FG};background-color:{T.NEG_BG};font-weight:700"
+        return ""
+    st.dataframe(show.style.map(color, subset=[N["Kind"]]).format({N["Shares"]: "{:,.0f}", N["Value"]: "${:,.0f}"}, na_rep="—"),
+                 hide_index=True, height=min(460, 38 + 35 * len(show)))
+    st.download_button(L("Export CSV", "تصدير CSV"), show.to_csv(index=False).encode("utf-8-sig"), f"insiders_{sym}.csv", "text/csv",
+                       icon=":material/download:", key=f"hn_ins_csv_{_key(sym)}")
+
+
 def news_section(sym):
     cat = catalysts(sym, H.BUILD)
     if cat["news"]:
@@ -1219,6 +1310,8 @@ def detail(r, det, got):
 
     with st.container(key=f"hnsec_an_{_key(sym)}"):
         ui.safe(analyst_section, sym, float(r["Price"]))
+    with st.container(key=f"hnsec_ins_{_key(sym)}"):
+        ui.safe(insider_section, sym)
 
     with st.container(key=f"hnsec_plan_{_key(sym)}"):
         ui.safe(plan_section, r, det, d)
@@ -1426,4 +1519,4 @@ def page_scanner():
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "9.1"
+BUILD = "9.2"
