@@ -598,4 +598,4 @@ def catalyst_score(tech, fund, events):
             return {"total": total, "technical": t, "fundamental": f, "event": e, "label": en, "label_ar": ar}
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "9.3"
+BUILD = "9.4"

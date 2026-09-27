@@ -30,12 +30,28 @@ NEU_BG, NEU_FG = "#E2E8F0", "#334155"
 FONT = "Plus Jakarta Sans, Readex Pro, system-ui, sans-serif"
 
 # ---------------------------------------------------------------- logo
-_MARK = """<defs><linearGradient id="bgA" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3D7BFF"/><stop offset="1" stop-color="#8B5CF6"/></linearGradient></defs>
-<rect x="0" y="0" width="64" height="64" rx="16" fill="url(#bgA)"/>
-<path d="M17 48 L29.5 15.5 Q32 11 34.5 15.5 L47 48" fill="none" stroke="#fff" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M22 37 L30 31 L35 34 L48 24" fill="none" stroke="#22D3EE" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M43 23.2 L48.6 23.6 L48.2 29.2" fill="none" stroke="#22D3EE" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>"""
+LOGO_BOX = "100 50 865 590"          # the mark's own drawing area (wider than tall)
 
+
+def logo_parts(p="lg"):
+    """The mark: a rising zigzag, an arrow shooting up and the leg of an A, in blue to cyan (ids prefixed with p)."""
+    return (f'<defs><linearGradient id="{p}z" gradientUnits="userSpaceOnUse" x1="100" y1="0" x2="700" y2="0">'
+            f'<stop offset="0" stop-color="#3D68C6"/><stop offset="1" stop-color="#4AA2E2"/></linearGradient>'
+            f'<clipPath id="{p}c"><rect x="0" y="0" width="1100" height="635"/></clipPath></defs>'
+            f'<g clip-path="url(#{p}c)">'
+            f'<polyline points="125,690 310,362 457,597 660,252" fill="none" stroke="url(#{p}z)" stroke-width="80" stroke-linejoin="round" stroke-linecap="round"/>'
+            f'<line x1="558" y1="690" x2="862" y2="197" stroke="#2DB6EB" stroke-width="86"/>'
+            f'<polygon points="765,180 940,55 960,215" fill="#2DB6EB"/>'
+            f'<polygon points="775,537 823,452 940,635 836,635" fill="#56C5EE"/></g>')
+
+
+def logo_mark(p="lg", cls=""):
+    """The mark as inline SVG (give each copy on a page its own p)."""
+    c = f' class="{cls}"' if cls else ""
+    return f'<svg{c} viewBox="{LOGO_BOX}" aria-hidden="true">{logo_parts(p)}</svg>'
+
+
+_MARK = f'<svg x="2" y="10" width="60" height="44" viewBox="{LOGO_BOX}">{logo_parts("mk")}</svg>'
 LOGO_ICON = f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">{_MARK}</svg>'
 LOGO_WORDMARK = f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 64" width="300" height="64">{_MARK}
 <defs><linearGradient id="tx" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#5B8CFF"/><stop offset="1" stop-color="#A78BFA"/></linearGradient></defs>
@@ -1423,4 +1439,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "9.3"
+BUILD = "9.4"

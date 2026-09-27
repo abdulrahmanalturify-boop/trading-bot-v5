@@ -1,13 +1,16 @@
 """
-home.py - The opening of the home page: the logo in a night sky and three glass cards
-(Paper Bots · Opportunity Hunter · Markets & Research) that open their pages.
+home.py - The opening of the home page: the logo in a night sky, three glass cards (Paper Bots · Opportunity Hunter ·
+Markets & Research) and under them two wide ones (the two most important headlines · the Academy). Each card opens its page.
 """
 import streamlit as st
 
+import data
+import newsiq
+import theme as T
 import ui
 from i18n import L, is_ar
 
-BUILD = "9.3"
+BUILD = "9.4"
 
 _LINE = "rgba(130,150,255,"
 CSS = f"""
@@ -38,7 +41,7 @@ CSS = f"""
   line-height:1; color:transparent; -webkit-text-stroke:1px {_LINE}.12); pointer-events:none; direction:ltr; user-select:none; }}
 .cztop .czlogo {{ position:relative; display:flex; justify-content:center; align-items:center; gap:clamp(12px,1.6vw,24px); direction:ltr;
   margin-top:clamp(18px,3.4vw,58px); }}
-.cztop .czlogo svg {{ width:clamp(50px,5.6vw,84px); height:auto; filter:drop-shadow(0 0 26px rgba(91,108,255,.75)); }}
+.cztop .czlogo svg {{ width:clamp(72px,7.6vw,122px); height:auto; filter:drop-shadow(0 0 22px rgba(45,182,235,.55)); }}
 .cztop .czword {{ display:flex; align-items:flex-start; gap:clamp(8px,1vw,16px); font-size:clamp(42px,5.6vw,84px); font-weight:700;
   letter-spacing:-.035em; line-height:1; color:#fff; }}
 .cztop .czpro {{ font-size:.36em; font-weight:800; letter-spacing:.14em; margin-top:.2em;
@@ -63,30 +66,61 @@ CSS = f"""
 .czframe {{ padding:7px; border-radius:26px; border:1px solid {_LINE}.24); background:rgba(8,12,34,.55);
   transition:transform .25s ease, box-shadow .25s ease, border-color .25s ease; }}
 [class*="st-key-czcard_"]:hover .czframe {{ transform:translateY(-6px); border-color:{_LINE}.45); box-shadow:0 30px 80px -30px rgba(79,107,255,.6); }}
-.czcard {{ box-sizing:border-box; min-height:590px; border-radius:20px; border:1px solid {_LINE}.18);
+.czcard {{ box-sizing:border-box; border-radius:20px; border:1px solid {_LINE}.18);
   background:linear-gradient(180deg,#0B1234 0%,#070B22 55%,#050818 100%); box-shadow:inset 0 1px 0 rgba(255,255,255,.06);
-  padding:16px 20px 20px; display:flex; flex-direction:column; gap:10px; }}
-.czcard svg.czill {{ display:block; width:100%; max-width:392px; height:auto; margin:0 auto; }}
-.czcard .czt {{ margin:2px 0 10px; text-align:center; font-size:1.9rem; font-weight:500; letter-spacing:-.01em; line-height:1.14; color:#fff; }}
+  padding:14px 20px 18px; display:flex; flex-direction:column; gap:9px; }}
+.czcard svg.czill {{ display:block; width:100%; max-width:330px; height:auto; margin:0 auto; overflow:visible; }}
+.czcard .czt {{ margin:0 0 6px; text-align:center; font-size:1.9rem; font-weight:500; letter-spacing:-.01em; line-height:1.14; color:#fff; }}
 .czcard .czem {{ font-family:'Instrument Serif',Georgia,serif; font-style:italic; font-weight:400; font-size:1.2em; letter-spacing:0; }}
 .czcard.ar .czt {{ font-weight:600; letter-spacing:0; line-height:1.4; }}
 .czcard.ar .czem {{ font-family:'Readex Pro',sans-serif; font-style:normal; font-weight:600; font-size:1em;
   background:linear-gradient(90deg,#8FB0FF,#B9A6FF 60%,#67E8F9); -webkit-background-clip:text; background-clip:text; color:transparent; }}
-.czcard .czp {{ padding:14px 18px; border-radius:12px; border:1px solid {_LINE}.24);
-  background:linear-gradient(90deg,rgba(40,60,170,.18),rgba(96,74,230,.32)); text-align:center; font-size:.9rem; line-height:1.6; color:#BCC6EA;
+.czcard .czp {{ padding:12px 16px; border-radius:12px; border:1px solid {_LINE}.24);
+  background:linear-gradient(90deg,rgba(40,60,170,.18),rgba(96,74,230,.32)); text-align:center; font-size:.88rem; line-height:1.55; color:#BCC6EA;
   transition:border-color .2s ease, background .2s ease; }}
 [class*="st-key-czcard_"]:hover .czp {{ border-color:{_LINE}.4); }}
-.czcard .czgo {{ margin-top:auto; padding-top:8px; display:flex; justify-content:center; align-items:center; gap:6px; font-size:.84rem; font-weight:700;
+.czcard .czgo {{ margin-top:auto; padding-top:4px; display:flex; justify-content:center; align-items:center; gap:6px; font-size:.84rem; font-weight:700;
   color:#9CB4FF; letter-spacing:.02em; }}
 .czcard .czgo .ms {{ transition:transform .2s ease; }}
 [class*="st-key-czcard_"]:hover .czgo {{ color:#fff; }}
 [class*="st-key-czcard_"]:hover .czgo .ms {{ transform:translateX(4px); }}
 .czcard.ar .czgo .ms {{ transform:scaleX(-1); }}
 [class*="st-key-czcard_"]:hover .czcard.ar .czgo .ms {{ transform:scaleX(-1) translateX(4px); }}
-@media (min-width: 900px) {{ .st-key-czcard_hunt {{ margin-top:110px; }} }}
+@media (min-width: 900px) {{ .st-key-czcard_hunt {{ margin-top:80px; }} }}
+
+/* the two wide cards under them: news and the academy */
+.st-key-czrow2 {{ margin-top:30px; }}
+[class*="st-key-czcard_"]:hover .czframe.czwide {{ transform:none; }}
+.czframe.czwide {{ container-type:inline-size; }}
+.czwide .czcard {{ display:grid; grid-template-columns:minmax(200px,34%) minmax(0,1fr); gap:12px 22px; align-items:center; padding:16px 20px; }}
+.czwide .czside {{ display:flex; flex-direction:column; align-items:center; gap:2px; }}
+.czwide svg.czill {{ max-width:250px; }}
+.czwide .czt {{ font-size:1.65rem; margin:0 0 2px; }}
+.czwide .czgo {{ margin-top:2px; padding-top:0; }}
+.czwide .czlist {{ display:flex; flex-direction:column; gap:10px; }}
+.czn {{ position:relative; z-index:5; display:flex; gap:12px; align-items:center; padding:9px 11px; border-radius:12px; text-decoration:none !important;
+  border:1px solid {_LINE}.24); background:linear-gradient(90deg,rgba(40,60,170,.18),rgba(96,74,230,.32)); transition:border-color .2s ease, background .2s ease; }}
+.czn:hover {{ border-color:{_LINE}.6); background:linear-gradient(90deg,rgba(52,76,200,.26),rgba(110,84,240,.42)); }}
+.czn .nth {{ width:88px; height:62px; border-radius:10px; }}
+.czn .nth.fb .ms {{ font-size:30px; }} .czn .nth.fb em, .czn .nth .nlg {{ display:none; }}
+.czn .nb {{ flex:1; min-width:0; display:flex; flex-direction:column; gap:3px; }}
+.czn .t {{ color:#EEF2FF; font-weight:650; font-size:.9rem; line-height:1.5; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+  overflow:hidden; text-align:start; }}
+.czn:hover .t {{ color:#fff; }}
+.czn .meta {{ color:#8E9BC8; font-size:.74rem; display:flex; align-items:center; gap:4px; }}
+.czn .meta .ms {{ font-size:.9rem; }}
+.czn .sc {{ flex:none; min-width:46px; text-align:center; border-radius:10px; padding:5px 6px 4px; font-weight:800; font-size:1rem; line-height:1.1;
+  background:var(--iqb); color:var(--iqf); border:1px solid var(--iqd); direction:ltr; font-variant-numeric:tabular-nums; }}
+.czn .sc small {{ display:block; font-size:.58rem; font-weight:800; opacity:.75; margin-top:1px; }}
+/* a narrow wide card (small screens, open sidebar): picture and title on top, the two boxes under them */
+@container (max-width: 640px) {{
+  .czwide .czcard {{ grid-template-columns:minmax(0,1fr); }}
+  .czwide svg.czill {{ max-width:230px; }}
+}}
 @media (max-width: 899.98px) {{
   .st-key-czhero::before, .cztop .czarc {{ display:none; }}
   .czcard {{ min-height:0; }}
+  .czwide .czcard {{ grid-template-columns:minmax(0,1fr); }}
 }}
 @media (max-width: 640px) {{
   .cztop {{ padding:34px 0 22px; }}
@@ -96,18 +130,12 @@ CSS = f"""
     -webkit-mask-image:linear-gradient(90deg,#000 88%,transparent); mask-image:linear-gradient(90deg,#000 88%,transparent); }}
   .cztop .czchips::-webkit-scrollbar {{ display:none; }}
   .cztop .czchips .chip {{ flex:none; font-size:.74rem; padding:5px 7px 5px 11px; }}
-  .czcard .czt {{ font-size:1.65rem; }}
+  .czcard .czt {{ font-size:1.6rem; }}
+  .czn .nth {{ width:78px; height:58px; }}
 }}
 @media (prefers-reduced-motion: reduce) {{ .cztop .czglint {{ animation:none; }} }}
 </style>
 """
-
-_MARK = ('<svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="czMarkBg" x1="0" y1="0" x2="1" y2="1">'
-         '<stop offset="0" stop-color="#3D7BFF"/><stop offset="1" stop-color="#8B5CF6"/></linearGradient></defs>'
-         '<rect x="0" y="0" width="64" height="64" rx="16" fill="url(#czMarkBg)"/>'
-         '<path d="M17 48 L29.5 15.5 Q32 11 34.5 15.5 L47 48" fill="none" stroke="#fff" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>'
-         '<path d="M22 37 L30 31 L35 34 L48 24" fill="none" stroke="#22D3EE" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>'
-         '<path d="M43 23.2 L48.6 23.6 L48.2 29.2" fill="none" stroke="#22D3EE" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>')
 
 _GLINT = ('<svg class="czglint" viewBox="0 0 64 64" aria-hidden="true"><defs><radialGradient id="czGlintHalo" cx="50%" cy="50%" r="50%">'
           '<stop offset="0" stop-color="#7EA0FF" stop-opacity=".9"/><stop offset="1" stop-color="#3D5BFF" stop-opacity="0"/></radialGradient></defs>'
@@ -132,7 +160,7 @@ def _grid(p):
 
 
 def _svg(body):
-    return f'<svg class="czill" viewBox="0 0 392 250" aria-hidden="true">{body}</svg>'
+    return f'<svg class="czill" viewBox="0 40 392 188" aria-hidden="true">{body}</svg>'
 
 
 _W = 'fill="#FFFFFF"'
@@ -186,11 +214,47 @@ ILL_RESEARCH = _svg(
     '<circle cx="270" cy="78" r="3.6" fill="#22D3EE"/>'
     f'<path d="M300 214 H352 V168" {_CIRCUIT}/><circle cx="352" cy="168" r="2.6" {_W}/>')
 
+ILL_NEWS = _svg(
+    _grid("czw")
+    + '<defs><linearGradient id="czwFill" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#B9A6FF"/><stop offset="1" stop-color="#5B6CFF"/></linearGradient></defs>'
+    '<circle cx="196" cy="134" r="112" fill="url(#czwGlow)"/>'
+    '<rect x="170" y="82" width="96" height="112" rx="12" fill="#18206A" fill-opacity=".35" stroke="#A9B8FF" stroke-opacity=".5" stroke-width="1.2"/>'
+    '<rect x="148" y="96" width="96" height="112" rx="12" fill="url(#czwFill)"/>'
+    '<rect x="148" y="96" width="96" height="112" rx="12" fill="none" stroke="#FFFFFF" stroke-opacity=".55"/>'
+    '<rect x="158" y="108" width="34" height="26" rx="5" fill="#0A0F2E" fill-opacity=".8"/>'
+    '<path d="M162 130 L171 120 L178 126 L184 118 L189 130 Z" fill="#22D3EE" fill-opacity=".8"/>'
+    '<rect x="198" y="110" width="36" height="6" rx="3" fill="#FFFFFF" fill-opacity=".92"/>'
+    '<rect x="198" y="122" width="26" height="6" rx="3" fill="#FFFFFF" fill-opacity=".6"/>'
+    '<rect x="158" y="146" width="76" height="5" rx="2.5" fill="#0A0F2E" fill-opacity=".55"/>'
+    '<rect x="158" y="158" width="64" height="5" rx="2.5" fill="#0A0F2E" fill-opacity=".55"/>'
+    '<rect x="158" y="170" width="70" height="5" rx="2.5" fill="#0A0F2E" fill-opacity=".55"/>'
+    '<rect x="158" y="182" width="46" height="5" rx="2.5" fill="#0A0F2E" fill-opacity=".55"/>'
+    '<circle cx="262" cy="86" r="12" fill="none" stroke="#22D3EE" stroke-opacity=".5"/><circle cx="262" cy="86" r="5" fill="#22D3EE"/>'
+    '<path d="M280 74 A20 20 0 0 1 280 98 M288 67 A30 30 0 0 1 288 105" fill="none" stroke="#22D3EE" stroke-opacity=".7" stroke-width="1.6" stroke-linecap="round"/>'
+    f'<circle cx="148" cy="96" r="3" {_W}/><circle cx="244" cy="208" r="3" {_W}/>'
+    f'<path d="M40 178 H100 V142 H148" {_CIRCUIT}/><circle cx="40" cy="178" r="2.6" {_W}/>'
+    f'<path d="M352 196 V160 H300" {_CIRCUIT}/><circle cx="300" cy="160" r="2.6" {_W}/>')
+
+ILL_ACADEMY = _svg(
+    _grid("cza")
+    + '<defs><pattern id="czaStripes" width="6" height="4" patternUnits="userSpaceOnUse"><rect width="6" height="4" fill="#B9B4FF"/>'
+    '<rect y="3" width="6" height="1" fill="#6E69E6"/></pattern>'
+    '<linearGradient id="czaFill" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9C8BFF"/><stop offset="1" stop-color="#4F5FE6"/></linearGradient></defs>'
+    '<circle cx="196" cy="130" r="112" fill="url(#czaGlow)"/>'
+    '<path d="M148 124 V160 Q196 188 244 160 V124 L196 146 Z" fill="url(#czaFill)"/>'
+    '<path d="M148 124 V160 Q196 188 244 160 V124" fill="none" stroke="#FFFFFF" stroke-opacity=".5"/>'
+    '<polygon points="196,78 278,110 196,142 114,110" fill="url(#czaStripes)" stroke="#ECE9FF" stroke-width="1.4"/>'
+    '<path d="M196 110 L262 124 V166" fill="none" stroke="#22D3EE" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>'
+    '<circle cx="262" cy="172" r="6" fill="#22D3EE"/><circle cx="262" cy="172" r="12" fill="none" stroke="#22D3EE" stroke-opacity=".45"/>'
+    f'<circle cx="196" cy="110" r="4" {_W}/><circle cx="114" cy="110" r="3" {_W}/><circle cx="278" cy="110" r="3" {_W}/>'
+    f'<path d="M44 76 V126 H102" {_CIRCUIT}/><circle cx="44" cy="76" r="2.6" {_W}/>'
+    f'<path d="M296 210 H350 V166" {_CIRCUIT}/><circle cx="350" cy="166" r="2.6" {_W}/>')
+
 
 def cards():
     """(key, page to open, illustration, title, emphasised word, two lines break, two short texts) in the current language."""
     return [
-        ("bots", "paper", ILL_BOTS, L("Paper", "البوتات"), L("Bots", "الافتراضية"), False,
+        ("bots", "paper", ILL_BOTS, L("Paper", "البوتات"), L("Bots", "الافتراضية"), True,
          L("Build trading bots and run them on virtual money, with no real funds at risk.",
            "ابنِ بوتات تداول وشغّلها بأموال افتراضية، بدون أي مخاطرة بأموال حقيقية."),
          L("Forward tests save every signal and trade the moment it happens, with the strategy version.",
@@ -213,7 +277,7 @@ def top_html(chips_html=""):
     tag = L("Paper trading · Opportunity hunting · Market research", "تداول افتراضي · صيد الفرص · أبحاث السوق")
     chips = f'<div class="czchips">{chips_html}</div>' if chips_html else ""
     return (f'<div class="cztop{" ar" if ar else ""}"><div class="czline"></div>{_GLINT}<div class="czghost" aria-hidden="true">ALTURAIFI</div>'
-            f'<div class="czlogo">{_MARK}<div class="czword"><span>Alturaifi</span><span class="czpro">PRO</span></div></div>'
+            f'<div class="czlogo">{T.logo_mark("czlg")}<div class="czword"><span>Alturaifi</span><span class="czpro">PRO</span></div></div>'
             f'<div class="cztag">{tag}</div>{chips}{_ARC}</div>')
 
 
@@ -227,15 +291,119 @@ def card_html(ill, t1, t2, two_lines, p1, p2):
             f'<div class="czgo">{go} <span class="ms">arrow_forward</span></div></div></div>')
 
 
+# ---------------------------------------------------------------- the two wide cards
+@st.cache_data(ttl=180, show_spinner=False)
+def _top_news(ar):
+    """The two most important headlines of the last 24 hours (the News page's default order), titles in Arabic when asked.
+    Raises while the news bot has nothing yet, so an empty answer is never kept."""
+    items = []
+    try:
+        import newsbot
+        items = newsbot.bot(wait=False).items(24)
+    except Exception:
+        items = []
+    if len(items) < 2:
+        try:
+            import pandas as pd
+            cut = pd.Timestamp.now(tz="UTC") - pd.Timedelta(hours=24)
+            items = [n for n in data.market_news(24) if pd.notna(n.get("time")) and n["time"] >= cut]
+        except Exception:
+            items = []
+    if not items:
+        raise LookupError("no headlines yet")
+    tick = sorted({s for n in items[:250] for s in n.get("tickers", [])})
+    try:
+        chg = data.quick_changes(tick) if tick else {}
+    except Exception:
+        chg = {}
+    newsiq.enrich(items, chg)
+    top = newsiq.rank(items)[:2]
+    titles = [n["title"] for n in top]
+    if ar:
+        try:
+            tr = data.translate(titles)
+            if tr and tr != titles:
+                titles = tr
+        except Exception:
+            pass
+    return [{"title": t, "link": n.get("link", ""), "source": n.get("source", ""), "time": n.get("time"), "img": n.get("img"),
+             "tickers": list(n.get("tickers") or []), "iq": n["iq"]} for n, t in zip(top, titles)]
+
+
+def top_news():
+    try:
+        return _top_news(is_ar())
+    except Exception:
+        return []
+
+
+def news_pane(n):
+    """One headline, as on the News page: picture, title (opens the story), outlet · time, importance score."""
+    ar = is_ar()
+    sc = int(n["iq"]["score"])
+    bg, fg, bd = newsiq.colors(sc)
+    lv = newsiq.level(sc)
+    return (f'<a class="czn" href="{T.esc(n["link"])}" target="_blank" rel="noopener">{T.news_thumb(n)}'
+            f'<span class="nb"><span class="t" dir="auto">{T.esc(n["title"])}</span>'
+            f'<span class="meta">{T.icon("schedule")} {T.esc(n["source"])} · {T.time_ago(n["time"], ar)}</span></span>'
+            f'<span class="sc" style="--iqb:{bg};--iqf:{fg};--iqd:{bd}" title="{T.esc(L(*lv))}">{sc}<small>/10</small></span></a>')
+
+
+def academy_texts():
+    try:
+        import academy as A
+        import academy_labs as AL
+        n, labs, terms = len(A.COURSES), len(AL.LABS), len(A.GLOSSARY)
+        return (L(f"{n} courses from beginner to advanced, in Arabic and English, each ending with a short quiz.",
+                  f"{n} دورة من المبتدئ إلى المتقدم، بالعربي والإنجليزي، وكل دورة تنتهي باختبار قصير."),
+                L(f"{labs} interactive labs to try the ideas yourself, plus a glossary of {terms} market terms.",
+                  f"{labs} مختبرات تفاعلية لتجربة الأفكار بنفسك، وقاموس فيه {terms} مصطلحاً من مصطلحات السوق."))
+    except Exception:
+        return (L("Courses from beginner to advanced, in Arabic and English, each ending with a short quiz.",
+                  "دورات من المبتدئ إلى المتقدم، بالعربي والإنجليزي، وكل دورة تنتهي باختبار قصير."),
+                L("Interactive labs to try the ideas yourself, plus a glossary of market terms.",
+                  "مختبرات تفاعلية لتجربة الأفكار بنفسك، وقاموس لمصطلحات السوق."))
+
+
+def wide_html(ill, t1, t2, body):
+    ar = is_ar()
+    go = L("Open", "افتح")
+    return (f'<div class="czframe czwide"><div class="czcard{" ar" if ar else ""}"><div class="czside">{ill}'
+            f'<div class="czt">{t1} <span class="czem">{t2}</span></div><div class="czgo">{go} <span class="ms">arrow_forward</span></div></div>'
+            f'<div class="czlist">{body}</div></div></div>')
+
+
+def news_html(items):
+    if items:
+        body = "".join(news_pane(n) for n in items[:2])
+    else:
+        body = (f'<div class="czp">{L("The news bot is collecting the latest headlines from 35 feeds. They appear here in a moment.", "بوت الأخبار يجمع آخر العناوين من 35 مصدراً، وتظهر هنا بعد لحظات.")}</div>')
+    return wide_html(ILL_NEWS, L("Market", "أخبار"), L("News", "السوق"), body)
+
+
+def academy_html():
+    p1, p2 = academy_texts()
+    return wide_html(ILL_ACADEMY, L("Learning", "الأكاديمية"), L("Academy", "التعليمية"), f'<div class="czp">{p1}</div><div class="czp">{p2}</div>')
+
+
+def _card(key, page, html, label):
+    with st.container(key=f"czcard_{key}"):
+        ui.html(html)
+        if st.button(label, key=f"czgo_{key}", width="stretch"):
+            ui.goto(page)
+
+
 def hero(chips_html=""):
-    """The home page's opening. Each card is one big button that opens its page."""
+    """The home page's opening. Each card is one big button that opens its page (a headline opens its story)."""
     with st.container(key="czhero"):
         ui.html(CSS + top_html(chips_html))
         cols = st.columns(3, gap="large")
         for col, (k, page, ill, t1, t2, two, p1, p2) in zip(cols, cards()):
             with col:
-                with st.container(key=f"czcard_{k}"):
-                    ui.html(card_html(ill, t1, t2, two, p1, p2))
-                    label = f'{t1.replace("&amp;", "&")} {t2}'
-                    if st.button(label, key=f"czgo_{k}", width="stretch"):
-                        ui.goto(page)
+                _card(k, page, card_html(ill, t1, t2, two, p1, p2), f'{t1.replace("&amp;", "&")} {t2}')
+        with st.container(key="czrow2"):
+            a, b = st.columns(2, gap="large")
+            with a:
+                _card("news", "news", news_html(top_news()), L("Market News", "أخبار السوق"))
+            with b:
+                _card("academy", "academy", academy_html(), L("Learning Academy", "الأكاديمية التعليمية"))
