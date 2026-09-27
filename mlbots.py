@@ -272,3 +272,6 @@ def export_hgb(clf, features, **meta):
                       "value": nd["value"].astype(float).tolist(), "depth": int(nd["depth"].max())})
     base = float(np.ravel(clf._baseline_prediction)[0])
     return {"features": list(features), "baseline": base, "trees": trees, **meta}
+
+# version stamp: app.py reloads any module still in memory from an older version of the site
+BUILD = "10.1"
