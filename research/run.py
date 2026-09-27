@@ -50,6 +50,10 @@ VARIANTS = {
     "trailing_10": {"trail_pct": 10.0},                    # a 10% trailing stop
     "stop_8": {"stop_pct": 8.0},
     "risk_1_atr_3": {"atr_mult": 3.0, "risk_pct": 1.0},    # size each trade so the 3-ATR stop loses 1% of the balance
+    "site_default": {"stop_pct": 2.0},                     # what the bot form gives when nothing is changed
+    "stop_5": {"stop_pct": 5.0},
+    "trend_market_exit": {"trend_filter": 1, "regime": 2},
+    "trend_atr_3": {"trend_filter": 1, "atr_mult": 3.0},
 }
 
 
