@@ -3285,7 +3285,8 @@ def _open_ai(mid):
 def ai_section(bots, can_add):
     """The five AI bots with their test (2020 to now, years their models never saw) and a button to add each one."""
     res = MLB.results()
-    ids = [m for m in (res or {}).get("bots", {}) if MLB.load(m) is not None]
+    # only the AI bots whose model beat the same bot without it on 2020 to now (years the model never saw)
+    ids = [m for m, r in (res or {}).get("bots", {}).items() if MLB.load(m) is not None and MLB.verdict(r) == "up"]
     if not ids:
         return
     have = {b.get("ml") for b in bots}

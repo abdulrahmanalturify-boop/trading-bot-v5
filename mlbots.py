@@ -12,6 +12,7 @@ numpy. Every feature uses only what was known at the signal's close.
 """
 import json
 import os
+import warnings
 from functools import lru_cache
 
 import numpy as np
@@ -109,6 +110,61 @@ def features_at(frames, syms, idx, spy, t, j, strat):
     X[:, col["rs60"]] = row_rank(R60)[t, j]
     X[:, col["strat"]] = strat
     return X
+
+
+# ---------------------------------------------------------------- the market model (kind "market")
+# It looks at the whole market each day (the S&P 500 and the breadth of the bot's stocks) and gives the chance that the
+# next month is good for stocks. Below its threshold the bot buys nothing and sells what it holds (like the 200-day
+# market filter, but decided by the model).
+MARKET2 = ["spy_d50", "spy_d200", "spy_r20", "spy_r60", "spy_vol20", "spy_volr", "spy_dd", "br50", "br200", "up20", "med_r20",
+           "disp20", "hilo"]
+
+
+def market_panel(frames, syms, idx, spy):
+    """The market model's features on every day of idx (from SPY and the stocks of frames)."""
+    T, N = len(idx), len(syms)
+    A50, A200, U20, R20, HI, LO = (np.full((T, N), np.nan) for _ in range(6))
+    for j, s in enumerate(syms):
+        df = frames[s]
+        p = idx.get_indexer(df.index)
+        c = df["Close"].astype(float)
+        s50, s200 = c.rolling(50, min_periods=50).mean(), c.rolling(200, min_periods=200).mean()
+        r20 = c.pct_change(20)
+        mx, mn = c.rolling(252, min_periods=252).max(), c.rolling(252, min_periods=252).min()
+        A50[p, j] = np.where(s50.isna(), np.nan, (c > s50).astype(float))
+        A200[p, j] = np.where(s200.isna(), np.nan, (c > s200).astype(float))
+        R20[p, j] = r20.to_numpy(float)
+        U20[p, j] = np.where(r20.isna(), np.nan, (r20 > 0).astype(float))
+        HI[p, j] = np.where(mx.isna(), np.nan, (c >= mx).astype(float))
+        LO[p, j] = np.where(mn.isna(), np.nan, (c <= mn).astype(float))
+    with np.errstate(all="ignore"), warnings.catch_warnings():
+        warnings.simplefilter("ignore")                  # a day with no stock in a column gives NaN, not a warning
+        f = pd.DataFrame({"br50": np.nanmean(A50, axis=1), "br200": np.nanmean(A200, axis=1), "up20": np.nanmean(U20, axis=1),
+                          "med_r20": np.nanmedian(R20, axis=1), "disp20": np.nanstd(R20, axis=1),
+                          "hilo": np.nanmean(HI, axis=1) - np.nanmean(LO, axis=1)}, index=idx)
+    for k in ("br50", "br200", "up20", "med_r20", "disp20", "hilo"):          # too few stocks that day: unknown
+        f.loc[(~np.isnan(R20)).sum(axis=1) < 20, k] = np.nan
+    m = pd.DataFrame(np.nan, index=idx, columns=MARKET2[:7])
+    if spy is not None and not getattr(spy, "empty", True):
+        c = spy["Close"].astype(float)
+        c = c[~c.index.duplicated(keep="last")].sort_index()
+        c.index = _naive(c.index)
+        r = c.pct_change()
+        v20, v60 = r.rolling(20, min_periods=20).std(), r.rolling(60, min_periods=60).std()
+        sm = pd.DataFrame({"spy_d50": c / c.rolling(50, min_periods=50).mean() - 1, "spy_d200": c / c.rolling(200, min_periods=200).mean() - 1,
+                           "spy_r20": c.pct_change(20), "spy_r60": c.pct_change(60), "spy_vol20": v20, "spy_volr": v20 / v60,
+                           "spy_dd": c / c.rolling(252, min_periods=60).max() - 1})
+        m = sm.reindex(_naive(idx), method="ffill")
+        m.index = idx
+    out = pd.concat([m, f], axis=1)[MARKET2]
+    return out.replace([np.inf, -np.inf], np.nan)
+
+
+def market_gate(model, frames, syms, idx, spy):
+    """(True on the days the market model allows the bot to hold stocks, the model's chance on each day)."""
+    X = market_panel(frames, syms, idx, spy)[model["features"]].to_numpy(float)
+    p = predict(model, X)
+    return p >= float(model.get("threshold", 0.0)), p
 
 
 # ---------------------------------------------------------------- models

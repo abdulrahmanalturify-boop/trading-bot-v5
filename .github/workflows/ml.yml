@@ -1,11 +1,11 @@
 # Trains the AI bots' models on real prices and tests them (branch "research" only; the site on "main" is not touched).
-# A push of research/train_ml.py or mlbots.py (or a manual run) runs research/train_ml.py and commits models/, ml_results.json
-# and research/results/ml_summary.md.
+# A push of the training scripts or mlbots.py (or a manual run) trains the current round (research/train_market.py; round 2,
+# the signal filter, is research/train_ml.py) and commits models/, ml_results.json and the report in research/results.
 name: ai bots
 on:
   push:
     branches: [research]
-    paths: ["research/train_ml.py", "mlbots.py"]
+    paths: ["research/train_ml.py", "research/train_market.py", "mlbots.py"]
   workflow_dispatch:
 permissions:
   contents: write
@@ -30,12 +30,12 @@ jobs:
           path: research/.cache
           key: prices-${{ steps.day.outputs.d }}
           restore-keys: prices-
-      - run: python research/train_ml.py
+      - run: python research/train_market.py
       - name: Save the models and the report
         run: |
           git config user.name "research-lab"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add models ml_results.json research/results/ml_summary.md
+          git add models ml_results.json research/results/ml_summary.md research/results/ml_market_summary.md
           git commit -m "ai models [skip ci]" || exit 0
           git pull --rebase -q origin research
           git push -q origin HEAD:research

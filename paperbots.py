@@ -796,7 +796,14 @@ def simulate(bot, px, spy=None, record=None):
     # an AI bot: a buy signal counts only when its model gives the trade at least the model's chance of a win (and, for a
     # model with rank, the highest chances fill the free slots first)
     SCORE = None
-    if model is not None:
+    if model is not None and model.get("kind") == "market":
+        # the market model: no buys on the days it says the market is risky, and the shares are sold (like regime 2)
+        mok, mp = MLB.market_gate(model, frames, syms, idx, spy)
+        ENT &= mok[None, :, None]
+        EXT |= (~mok)[None, :, None] & valid[None, :, :]
+        out["ml_last"] = {"day": str(idx[-1])[:10], "threshold": float(model.get("threshold", 0.0)), "market": float(mp[-1]),
+                          "risky_days": int((~mok & live).sum()), "days": int(live.sum())}
+    elif model is not None:
         PR = MLB.scores(model, frames, syms, idx, spy, ENT, labels)
         ENT &= np.nan_to_num(PR, nan=-1.0) >= float(model.get("threshold", 0.0))
         if model.get("rank"):
