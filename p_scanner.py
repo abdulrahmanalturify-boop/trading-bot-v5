@@ -48,6 +48,7 @@ CSS = f"""<style>
 /* ---------- hero: a radar in the brand's colours ---------- */
 .hnhero {{ position:relative; overflow:hidden; border-radius:22px; border:1px solid {_BD}; margin:2px 0 16px; min-height:250px;
   background:linear-gradient(120deg,#060c1c,#0c1d3f,#1c1543,#071a33); background-size:300% 300%; animation:sky 20s ease-in-out infinite; }}
+.hnhero::after {{ content:""; position:absolute; left:0; right:0; top:0; height:3px; background:{T.LINE}; z-index:3; pointer-events:none; }}
 .hnhero .grid {{ position:absolute; inset:0; pointer-events:none;
   background-image:linear-gradient(rgba(34,211,238,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(34,211,238,.07) 1px,transparent 1px);
   background-size:36px 36px; -webkit-mask-image:radial-gradient(ellipse at 78% 50%,#000 0%,transparent 66%);
@@ -85,7 +86,7 @@ CSS = f"""<style>
 /* ---------- market mood ---------- */
 .hnreg {{ display:grid; grid-template-columns:1.5fr repeat(4,1fr); gap:10px; margin:2px 0 4px; }}
 @media (max-width: 1000px) {{ .hnreg {{ grid-template-columns:1fr 1fr; }} }}
-.hnreg .tl {{ background:linear-gradient(180deg,{_BG},{T.CARD}); border:1px solid {_BD}; border-radius:16px; padding:12px 14px; position:relative; overflow:hidden; }}
+.hnreg .tl {{ background:{T.BOX_BG}; border:1px solid {_BD}; border-radius:16px; padding:12px 14px; position:relative; overflow:hidden; }}
 .hnreg .tl .l {{ color:{_MU}; font-size:.68rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase; display:flex; align-items:center; gap:6px; }}
 .hnreg .tl .l .ms {{ font-size:.95rem; color:{_C}; }}
 .hnreg .tl .v {{ font-size:1.35rem; font-weight:800; color:#fff; margin-top:4px; direction:ltr; unicode-bidi:isolate; }}
@@ -174,7 +175,7 @@ CSS = f"""<style>
 .hnwhy .w .ms {{ font-size:1rem; flex:none; margin-top:1px; }}
 .hnwhy .w.ok .ms {{ color:#4ADE80; }} .hnwhy .w.no .ms {{ color:#F87171; }} .hnwhy .w.in .ms {{ color:{_G}; }}
 .hnplan {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; }}
-.hnplan .p {{ position:relative; overflow:hidden; background:linear-gradient(160deg,rgba(61,123,255,.16),rgba(139,92,246,.08) 55%,{T.CARD});
+.hnplan .p {{ position:relative; overflow:hidden; background:{T.TOP}, linear-gradient(160deg,rgba(61,123,255,.16),rgba(139,92,246,.08) 55%,{T.CARD});
   border:1px solid {_BD}; border-radius:14px; padding:10px 12px; transition:border-color .18s ease, box-shadow .18s ease, transform .18s ease; }}
 .hnplan .p::after {{ content:""; position:absolute; inset:auto 0 0 0; height:2px; background:linear-gradient(90deg,{_A},{_V},{_C}); opacity:0;
   transition:opacity .18s ease; }}
@@ -219,7 +220,7 @@ CSS = f"""<style>
   min-height:38px; display:flex; align-items:center; }}
 [class*="st-key-hnfilt"] [data-testid="stCheckbox"]:hover {{ border-color:{_A}88; }}
 [class*="st-key-hnfilt"] [data-testid="stCheckbox"] p {{ font-weight:700; font-size:.84rem; color:#DCE2EC; }}
-.hnbox {{ position:relative; background:linear-gradient(160deg,rgba(61,123,255,.16),rgba(139,92,246,.08) 55%,{T.CARD}); border:1px solid {_BD}; border-radius:16px; padding:0 14px 4px; margin-top:12px;
+.hnbox {{ position:relative; background:{T.TOP}, linear-gradient(160deg,rgba(61,123,255,.16),rgba(139,92,246,.08) 55%,{T.CARD}); border:1px solid {_BD}; border-radius:16px; padding:0 14px 4px; margin-top:12px;
   overflow:hidden; transition:border-color .18s ease, box-shadow .18s ease, transform .18s ease; }}
 .hnbox:hover {{ border-color:rgba(126,166,255,.45); box-shadow:0 12px 30px rgba(61,123,255,.14); transform:translateY(-2px); }}
 .hnbox .hnbt {{ margin:0 -14px 4px; padding:10px 14px 9px; border-bottom:1px solid rgba(138,148,167,.14);
@@ -241,7 +242,7 @@ CSS = f"""<style>
   background:linear-gradient(160deg,rgba(61,123,255,.16),rgba(139,92,246,.08) 55%,{T.CARD}); box-shadow:0 10px 26px rgba(0,0,0,.22); transition:border-color .18s ease, box-shadow .18s ease, transform .18s ease; }}
 .hnrate:hover {{ border-color:rgba(126,166,255,.45); box-shadow:0 14px 34px rgba(61,123,255,.16); transform:translateY(-2px); }}
 .hntgt {{ position:relative; overflow:hidden; border-radius:16px; padding:0 16px 12px; margin-top:12px; border:1px solid {_BD};
-  background:linear-gradient(160deg,rgba(61,123,255,.16),rgba(139,92,246,.08) 55%,{T.CARD}); transition:border-color .18s ease, box-shadow .18s ease, transform .18s ease; }}
+  background:{T.TOP}, linear-gradient(160deg,rgba(61,123,255,.16),rgba(139,92,246,.08) 55%,{T.CARD}); transition:border-color .18s ease, box-shadow .18s ease, transform .18s ease; }}
 .hntgt:hover {{ border-color:rgba(126,166,255,.45); box-shadow:0 12px 30px rgba(61,123,255,.14); transform:translateY(-2px); }}
 .hntgt .hnbt {{ margin:0 -16px 6px; padding:10px 16px 9px; border-bottom:1px solid rgba(138,148,167,.14);
   background:linear-gradient(90deg,rgba(61,123,255,.10),rgba(139,92,246,.05) 60%,transparent); }}
@@ -274,7 +275,7 @@ CSS = f"""<style>
 .hnang .hnar .hntgt {{ margin-top:0; flex:1; }}
 .hnang .kts {{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }}
 .hnkt {{ position:relative; overflow:hidden; border-radius:14px; padding:12px 14px; border:1px solid {_BD};
-  background:linear-gradient(160deg,rgba(61,123,255,.16),rgba(139,92,246,.08) 55%,{T.CARD});
+  background:{T.TOP}, linear-gradient(160deg,rgba(61,123,255,.16),rgba(139,92,246,.08) 55%,{T.CARD});
   transition:border-color .18s ease, box-shadow .18s ease, transform .18s ease; }}
 .hnkt::after {{ content:""; position:absolute; inset:auto 0 0 0; height:2px; background:linear-gradient(90deg,{_A},{_V},{_C}); opacity:0;
   transition:opacity .18s ease; }}
@@ -1519,4 +1520,4 @@ def page_scanner():
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "9.5"
+BUILD = "9.6"

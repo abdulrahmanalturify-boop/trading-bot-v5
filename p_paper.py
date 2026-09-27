@@ -99,6 +99,7 @@ PAGE_CSS = f"""<style>
 /* ---------- hero: the bots on the brand's rising line ---------- */
 .pbhero {{ position:relative; overflow:hidden; border-radius:22px; border:1px solid {_BD}; margin:2px 0 16px; min-height:258px;
   background:linear-gradient(120deg,#060c1c,#0c1d3f,#1c1543,#071a33); background-size:300% 300%; animation:sky 20s ease-in-out infinite; }}
+.pbhero::after {{ content:""; position:absolute; left:0; right:0; top:0; height:3px; background:{T.LINE}; z-index:3; pointer-events:none; }}
 .pbhero .grid {{ position:absolute; inset:0; pointer-events:none;
   background-image:linear-gradient(rgba(34,211,238,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(34,211,238,.07) 1px,transparent 1px);
   background-size:36px 36px; -webkit-mask-image:radial-gradient(ellipse at 78% 45%,#000 0%,transparent 68%);
@@ -189,7 +190,7 @@ PAGE_CSS = f"""<style>
 .phg.live::before {{ content:""; width:6px; height:6px; border-radius:50%; background:currentColor; animation:pbtw 2s ease-in-out infinite; }}
 .phg.sim {{ background:{T.YEL_BG}; color:{T.YEL_FG}; }}
 [class*="st-key-pbcard_"]:hover .pbc .rt {{ opacity:0; }}
-[class*="st-key-pbphase"] {{ background:rgba(5,8,23,.55); border:1px solid {_BD}; border-radius:16px; padding:5px; margin-bottom:2px; }}
+[class*="st-key-pbphase"] {{ background:{T.BOX_BG}; border:1px solid {_BD}; border-radius:16px; padding:5px; margin-bottom:2px; }}
 [class*="st-key-pbphase"] [data-testid="stHorizontalBlock"] {{ gap:5px !important; flex-wrap:nowrap !important; }}
 [class*="st-key-pbphase"] [data-testid="stColumn"] {{ min-width:0 !important; }}
 [class*="st-key-pbph_"] {{ position:relative; }}
@@ -257,7 +258,7 @@ PAGE_CSS = f"""<style>
 [class*="st-key-pbcard_"] [data-testid="stMarkdownContainer"] {{ margin-bottom:0 !important; }}
 
 /* ---------- panels: open positions / recent trades / calendar ---------- */
-.pbp {{ position:relative; overflow:hidden; background:linear-gradient(180deg,{_BG},{T.CARD}); border:1px solid {_BD}; border-radius:18px;
+.pbp {{ position:relative; overflow:hidden; background:{T.BOX_BG}; border:1px solid {_BD}; border-radius:18px;
   padding:14px 16px 10px 19px; margin:0; }}
 .pbp::before {{ content:""; position:absolute; top:0; bottom:0; left:0; width:3px; background:linear-gradient(180deg,{_A},{_V},{_C}); }}
 .pbp .hd {{ display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px; }}
@@ -301,7 +302,7 @@ a.pblink .ms {{ font-size:1rem; }}
 
 /* ---------- monthly returns: every month is a button that opens its calendar ---------- */
 [class*="st-key-pbmg_"] {{ overflow-x:auto; overflow-y:hidden; max-width:860px; gap:5px !important; padding:10px 12px 12px;
-  background:linear-gradient(180deg,{_BG},{T.CARD}); border:1px solid {_BD}; border-radius:16px; }}
+  background:{T.BOX_BG}; border:1px solid {_BD}; border-radius:16px; }}
 [class*="st-key-pbmg_"] [data-testid="stHorizontalBlock"] {{ min-width:680px; flex-wrap:nowrap !important; gap:4px !important;
   align-items:center !important; }}
 [class*="st-key-pbmg_"] [data-testid="stColumn"] {{ min-width:0 !important; }}
@@ -317,7 +318,7 @@ a.pblink .ms {{ font-size:1rem; }}
 [class*="st-key-pbmo_"] button p {{ font-size:.68rem !important; font-weight:700 !important; color:#1F2937 !important; white-space:nowrap; direction:ltr; }}
 [class*="st-key-pbmo_"] button:hover {{ transform:translateY(-2px); box-shadow:0 6px 16px rgba(0,0,0,.35); }}
 [class*="st-key-pbmo_"][class*="_on_"] button {{ box-shadow:0 0 0 2px {T.BG}, 0 0 0 4px {_A} !important; transform:translateY(-2px); }}
-[class*="st-key-pbcalbox_"] {{ background:linear-gradient(180deg,{_BG},{T.CARD}); border:1px solid {_A}66; border-radius:18px; padding:14px 16px;
+[class*="st-key-pbcalbox_"] {{ background:{T.BOX_BG}; border:1px solid {_A}66; border-radius:18px; padding:14px 16px;
   box-shadow:0 12px 30px rgba(61,123,255,.12); margin-top:6px; max-width:1100px; }}
 .pbct {{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; font-weight:800; font-size:1rem; color:#fff; }}
 .pbct .ms {{ color:#fff; background:linear-gradient(135deg,{_A},{_V}); border-radius:8px; padding:4px; font-size:1rem; }}
@@ -327,6 +328,7 @@ a.pblink .ms {{ font-size:1rem; }}
 /* ---------- add / edit form: a banner in the hero's colours, then numbered cards with space between them ---------- */
 .pbfb {{ position:relative; overflow:hidden; border-radius:18px; border:1px solid {_BD}; padding:16px 20px 14px; min-height:118px;
   background:linear-gradient(120deg,#060c1c,#0c1d3f,#1c1543,#071a33); background-size:300% 300%; animation:sky 20s ease-in-out infinite; }}
+.pbfb::after {{ content:""; position:absolute; left:0; right:0; top:0; height:3px; background:{T.LINE}; z-index:3; pointer-events:none; }}
 .pbfb .art {{ position:absolute; top:0; bottom:0; right:0; width:34%; pointer-events:none; }}
 .pbfb .art svg {{ width:100%; height:100%; display:block; }}
 .pbfb .ln {{ animation:pbdraw 7s ease-in-out infinite; }}
@@ -357,7 +359,7 @@ a.pblink .ms {{ font-size:1rem; }}
 .pbfs {{ display:flex; align-items:center; gap:6px; font-weight:800; font-size:.74rem; color:#AEB7C6; letter-spacing:.08em; text-transform:uppercase; }}
 .pbfs .ms {{ color:{_C}; font-size:1rem; }}
 /* the two ways to pick strategies: one full-width switch in the brand colours, the chosen half lit */
-[class*="st-key-pbswitch"] {{ background:rgba(5,8,23,.55); border:1px solid {_BD}; border-radius:16px; padding:5px; }}
+[class*="st-key-pbswitch"] {{ background:{T.BOX_BG}; border:1px solid {_BD}; border-radius:16px; padding:5px; }}
 [class*="st-key-pbswitch"] [data-testid="stHorizontalBlock"] {{ gap:5px !important; flex-wrap:nowrap !important; }}
 [class*="st-key-pbswitch"] [data-testid="stColumn"] {{ min-width:0 !important; }}
 [class*="st-key-pbmode_"] {{ position:relative; }}
@@ -403,7 +405,7 @@ a.pblink .ms {{ font-size:1rem; }}
 [class*="st-key-pb_ms_"] [data-baseweb="tag"] span {{ color:#fff !important; font-weight:700; }}
 [class*="st-key-pb_ms_"] [data-baseweb="select"] > div {{ border-radius:12px !important; }}
 /* a combined strategy's rules */
-.pbrl {{ border:1px solid {_BD}; border-radius:16px; background:rgba(5,8,23,.5); padding:12px 14px 13px; }}
+.pbrl {{ border:1px solid {_BD}; border-radius:16px; background:{T.BOX_BG}; padding:12px 14px 13px; }}
 .pbrl + .pbrl {{ margin-top:10px; }}
 .pbrl .hd {{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }}
 .pbrl .hd .i .ms {{ font-size:1.1rem; color:#fff; background:linear-gradient(135deg,{_A},{_V}); border-radius:10px; padding:6px; }}
@@ -416,7 +418,7 @@ a.pblink .ms {{ font-size:1rem; }}
 .pbrl .cs .c .ms {{ font-size:.95rem; color:{_C}; }}
 .pbrl .gr {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:9px; margin-top:11px; }}
 .pbrl .gr:has(> .g:nth-child(4)) {{ grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); }}
-.pbrl .g {{ background:rgba(255,255,255,.028); border:1px solid rgba(255,255,255,.055); border-radius:12px; padding:9px 12px 8px; }}
+.pbrl .g {{ background:{T.TOP_THIN}, rgba(255,255,255,.028); border:1px solid rgba(255,255,255,.055); border-radius:12px; padding:9px 12px 8px; }}
 .pbrl .gt {{ display:flex; align-items:center; gap:7px; font-size:.68rem; font-weight:800; letter-spacing:.09em; text-transform:uppercase; color:#9CC3FF; }}
 .pbrl .gt .k {{ width:18px; height:18px; border-radius:6px; display:grid; place-items:center; background:rgba(61,123,255,.25); color:#fff; font-size:.64rem; }}
 .pbrl ul {{ margin:6px 0 0; padding-inline-start:18px; }}
@@ -3042,4 +3044,4 @@ def page_paper_bots():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "9.5"
+BUILD = "9.6"

@@ -10,7 +10,7 @@ import theme as T
 import ui
 from i18n import L, is_ar
 
-BUILD = "9.5"
+BUILD = "9.6"
 
 _LINE = "rgba(130,150,255,"
 CSS = f"""
@@ -64,7 +64,7 @@ CSS = f"""
   transition:transform .25s ease, box-shadow .25s ease, border-color .25s ease; }}
 [class*="st-key-czcard_"]:hover .czframe {{ transform:translateY(-6px); border-color:{_LINE}.45); box-shadow:0 30px 80px -30px rgba(79,107,255,.6); }}
 .czcard {{ box-sizing:border-box; border-radius:20px; border:1px solid {_LINE}.18);
-  background:linear-gradient(180deg,#0B1234 0%,#070B22 55%,#050818 100%); box-shadow:inset 0 1px 0 rgba(255,255,255,.06);
+  background:{T.TOP}, linear-gradient(180deg,#0B1234 0%,#070B22 55%,#050818 100%); box-shadow:inset 0 1px 0 rgba(255,255,255,.06);
   padding:14px 20px 18px; display:flex; flex-direction:column; gap:9px; }}
 .czcard svg.czill {{ display:block; width:100%; max-width:330px; height:auto; margin:0 auto; overflow:visible; }}
 .czcard .czt {{ margin:0 0 6px; text-align:center; font-size:1.9rem; font-weight:500; letter-spacing:-.01em; line-height:1.14; color:#fff; }}
