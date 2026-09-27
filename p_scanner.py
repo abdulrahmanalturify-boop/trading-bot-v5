@@ -174,12 +174,16 @@ CSS = f"""<style>
 .hnwhy .w .ms {{ font-size:1rem; flex:none; margin-top:1px; }}
 .hnwhy .w.ok .ms {{ color:#4ADE80; }} .hnwhy .w.no .ms {{ color:#F87171; }} .hnwhy .w.in .ms {{ color:{_G}; }}
 .hnplan {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; }}
-.hnplan .p {{ background:linear-gradient(180deg,{_BG},{T.CARD}); border:1px solid {_BD}; border-radius:14px; padding:10px 12px; }}
-.hnplan .p .l {{ color:{_MU}; font-size:.66rem; font-weight:800; letter-spacing:.07em; text-transform:uppercase; }}
+.hnplan .p {{ position:relative; overflow:hidden; background:linear-gradient(160deg,rgba(61,123,255,.16),rgba(139,92,246,.08) 55%,{T.CARD});
+  border:1px solid {_BD}; border-radius:14px; padding:10px 12px; transition:border-color .18s ease, box-shadow .18s ease, transform .18s ease; }}
+.hnplan .p::after {{ content:""; position:absolute; inset:auto 0 0 0; height:2px; background:linear-gradient(90deg,{_A},{_V},{_C}); opacity:0;
+  transition:opacity .18s ease; }}
+.hnplan .p:hover {{ border-color:rgba(126,166,255,.45); box-shadow:0 12px 28px rgba(61,123,255,.16); transform:translateY(-2px); }}
+.hnplan .p:hover::after {{ opacity:.9; }}
+.hnplan .p .l {{ color:#C9D0DC; font-size:.66rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }}
 .hnplan .p .v {{ color:#fff; font-size:1.05rem; font-weight:800; margin-top:3px; direction:ltr; unicode-bidi:isolate; }}
 .hnplan .p .s {{ color:{_MU}; font-size:.72rem; margin-top:1px; }}
-.hnplan .p.en {{ border-color:{_A}66; }} .hnplan .p.sl {{ border-color:{_D}55; }} .hnplan .p.tp {{ border-color:{_U}55; }}
-.hnplan .p.sl .v {{ color:#F87171; }} .hnplan .p.tp .v {{ color:#4ADE80; }}
+.hnplan .p.sl .v {{ color:#F87171; }} .hnplan .p.tp .v {{ color:#4ADE80; }} .hnplan .p.en .v {{ color:#9CC3FF; }}
 .hnnote {{ color:#C7CFDD; font-size:.84rem; line-height:1.6; background:rgba(61,123,255,.07); border:1px solid {_A}33; border-radius:12px; padding:10px 12px; }}
 .hnnote b {{ color:#fff; }}
 [class*="st-key-hnsec_"] {{ margin-top:18px; }}
@@ -821,12 +825,8 @@ def plan_section(r, det, d):
     """The trade plan: the setup's entry, stop and target with the position size for your account and risk, the key levels,
     when to enter and how to exit. Without a buying setup: the plain plan (wait / avoid) from the price structure."""
     sym, k = r["Symbol"], r["Setup"]
-    head, a_, b_ = st.columns([2.6, 1, 1], vertical_alignment="bottom")
-    with head:
-        ui.sec("flag", "Trade plan", "خطة التداول")
-    a_.number_input(L("Account ($)", "المحفظة ($)"), 100, 100_000_000, step=1000, key="hn_acct")
-    b_.number_input(L("Risk per trade %", "المخاطرة لكل صفقة %"), 0.1, 10.0, step=0.25, key="hn_risk")
-    acct, risk = float(ss.get("hn_acct") or 100_000), float(ss.get("hn_risk") or 1.0)
+    ui.sec("flag", "Trade plan", "خطة التداول")
+    acct, risk = float(ss.get("hn_acct") or 100_000), float(ss.get("hn_risk") or 1.0)     # sized for $100,000 at 1% risk
     price = float(r["Price"])
     atr = float(r["ATR %"]) * price / 100
     sup, res_ = _levels(d, price)
@@ -1426,4 +1426,4 @@ def page_scanner():
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "8.9"
+BUILD = "9.0"
