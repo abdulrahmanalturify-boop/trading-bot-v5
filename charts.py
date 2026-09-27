@@ -28,9 +28,9 @@ def rgba(hex_color, alpha):
 pio.templates["alturaifi"] = go.layout.Template(layout=dict(
     font=dict(family=FONT_FAMILY, color=TEXT, size=12),
     paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", colorway=PALETTE,
-    hoverlabel=dict(bgcolor="#161D2B", bordercolor="#2B3548", font=dict(family=FONT_FAMILY, color=TEXT, size=12)),
-    xaxis=dict(gridcolor=GRID, zeroline=False, linecolor="#222B3B", tickfont=dict(color=MUTED)),
-    yaxis=dict(gridcolor=GRID, zeroline=False, linecolor="#222B3B", tickfont=dict(color=MUTED)),
+    hoverlabel=dict(bgcolor="#111940", bordercolor="#2C3868", font=dict(family=FONT_FAMILY, color=TEXT, size=12)),
+    xaxis=dict(gridcolor=GRID, zeroline=False, linecolor="#232E5A", tickfont=dict(color=MUTED)),
+    yaxis=dict(gridcolor=GRID, zeroline=False, linecolor="#232E5A", tickfont=dict(color=MUTED)),
     legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(color="#B8C0CE")),
     title=dict(font=dict(size=15, color="#FFFFFF", family=FONT_FAMILY), x=0.01, xanchor="left"),
 ))
@@ -309,7 +309,7 @@ def trade_chart(d, trades=None, overlays=(), panels=(), mode="Line", height=None
             text=None if many else [w["BUY"] if is_buy else w["SELL"]] * len(xs), textposition="bottom center" if is_buy else "top center",
             textfont=dict(size=9, color=UP if is_buy else DOWN, family=FONT_FAMILY),
             marker=dict(symbol="triangle-up" if is_buy else "triangle-down", size=13, color=UP if is_buy else DOWN,
-                        line=dict(color="#0A0E17", width=1.5)),
+                        line=dict(color="#050817", width=1.5)),
             hovertext=tips, hovertemplate="%{hovertext}<extra></extra>"), 1, 1)
 
     arrows(t, "_ed", True)
@@ -388,7 +388,7 @@ def orb_chart(bars, trades=None, or_minutes=15, mode="Candles", words=None, heig
                                      text=[w["long"] if long_ else w["short"]], textposition="bottom center" if long_ else "top center",
                                      textfont=dict(size=10, color=UP if long_ else DOWN, family=FONT_FAMILY),
                                      marker=dict(symbol="triangle-up" if long_ else "triangle-down", size=14, color=UP if long_ else DOWN,
-                                                 line=dict(color="#0A0E17", width=1.5)),
+                                                 line=dict(color="#050817", width=1.5)),
                                      hovertemplate=f"<b>{w['long'] if long_ else w['short']}</b> {w['at']} {float(r['Entry']):,.2f}<br>%{{x}}"
                                                    "<extra></extra>", showlegend=False), 1, 1)
             if closed:
@@ -398,7 +398,7 @@ def orb_chart(bars, trades=None, or_minutes=15, mode="Candles", words=None, heig
                                          textposition="top center" if long_ else "bottom center",
                                          textfont=dict(size=10, color=DOWN if long_ else UP, family=FONT_FAMILY),
                                          marker=dict(symbol="triangle-down" if long_ else "triangle-up", size=14, color=DOWN if long_ else UP,
-                                                     line=dict(color="#0A0E17", width=1.5)),
+                                                     line=dict(color="#050817", width=1.5)),
                                          hovertemplate=f"<b>{word}</b> {w['at']} {float(r['Exit']):,.2f} · {why}<br>"
                                                        f"{float(r['P&L %']):+.2f}% ({'+' if r['P&L $'] > 0 else '-'}${abs(float(r['P&L $'])):,.0f})"
                                                        "<extra></extra>", showlegend=False), 1, 1)
@@ -586,7 +586,7 @@ def cumulative_pnl(trades, title="Cumulative P&L ($)", xlab="Trade #"):
 def pie(labels, values, title, colors=None, center=None):
     fig = go.Figure(go.Pie(labels=labels, values=values, hole=0.62, sort=False,
                            marker=dict(colors=colors or [UP, DOWN, ACCENT, GOLD, PURPLE, CYAN, ORANGE, MUTED], line=dict(color=BG, width=3)),
-                           textinfo="percent", textfont=dict(color="#0A0E17", size=12)))
+                           textinfo="percent", textfont=dict(color="#050817", size=12)))
     if center:
         fig.add_annotation(text=center, showarrow=False, font=dict(size=18, color="#fff"))
     return style(fig, 300, title)
@@ -969,10 +969,10 @@ def level_progress(levels, completed, in_progress, total, colors, title=None, na
     fig = go.Figure()
     rest = [t - c - p for t, c, p in zip(total, completed, in_progress)]
     fig.add_trace(go.Bar(y=levels, x=completed, orientation="h", name=names[0], marker=dict(color=colors),
-                         text=[str(v) if v else "" for v in completed], textposition="inside", insidetextfont=dict(color="#0A0E17")))
+                         text=[str(v) if v else "" for v in completed], textposition="inside", insidetextfont=dict(color="#050817")))
     fig.add_trace(go.Bar(y=levels, x=in_progress, orientation="h", name=names[1], marker=dict(color=[rgba(c, 0.45) for c in colors]),
                          text=[str(v) if v else "" for v in in_progress], textposition="inside", insidetextfont=dict(color="#fff")))
-    fig.add_trace(go.Bar(y=levels, x=rest, orientation="h", name=names[2], marker=dict(color="#222B3B"), hoverinfo="skip"))
+    fig.add_trace(go.Bar(y=levels, x=rest, orientation="h", name=names[2], marker=dict(color="#232E5A"), hoverinfo="skip"))
     style(fig, 260, title)
     fig.update_layout(barmode="stack", bargap=0.35, hovermode="closest")
     fig.update_yaxes(side="left", autorange="reversed", showgrid=False)
@@ -1183,4 +1183,4 @@ def seasonal_path(avg, cur=None, title=None, names=("Average year", "This year")
     return fig
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "9.2"
+BUILD = "9.3"

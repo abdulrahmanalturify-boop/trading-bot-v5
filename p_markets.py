@@ -11,6 +11,7 @@ import streamlit as st
 import charts
 import data
 import heatmap as HM
+import home
 import newsbot
 import newsiq
 import ta
@@ -319,9 +320,7 @@ def page_overview():
         p, _, c = _last(px, s)
         if p is not None:
             chips += f'<span class="chip"><b>{name}</b>{f"{p:.2f}%" if s == "^TNX" else T.fmt_price(p)} {T.pill(c)}</span>'
-    ui.html(T.hero("A.Alturaifi Pro", L("Invest with <b>clarity</b>", "استثمر <b>بوضوح</b>"),
-                   L("US market intelligence in one place: live markets, research, screeners, an academy and an automated trading lab.",
-                     "كل ما تحتاجه عن السوق الأمريكي في مكان واحد: أسواق مباشرة، أبحاث، فلاتر، أكاديمية، ومختبر تداول آلي."), chips, rtl=is_ar()))
+    home.hero(chips)
     ui.header("monitoring", "Market Overview", "نظرة عامة على السوق",
               "Live snapshot of US stocks, futures, rates, commodities, currencies and crypto.",
               "لمحة مباشرة عن الأسهم والعقود والسندات والسلع والعملات والعملات الرقمية.")
@@ -971,4 +970,4 @@ def page_news():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "9.2"
+BUILD = "9.3"

@@ -106,16 +106,16 @@ PAGE_CSS = f"""<style>
 .pbhero .art {{ position:absolute; top:0; bottom:0; right:0; width:58%; pointer-events:none; }}
 .pbhero .art svg {{ width:100%; height:100%; display:block; }}
 .pbhero .txt {{ position:relative; z-index:2; padding:26px 30px 24px; max-width:640px;
-  background:linear-gradient(90deg,rgba(10,14,23,.78) 0%,rgba(10,14,23,.35) 70%,rgba(10,14,23,0) 100%); }}
+  background:linear-gradient(90deg,rgba(5,8,23,.78) 0%,rgba(5,8,23,.35) 70%,rgba(5,8,23,0) 100%); }}
 .pbhero.rtl .art {{ right:auto; left:0; }}
-.pbhero.rtl .txt {{ margin-left:auto; background:linear-gradient(270deg,rgba(10,14,23,.78) 0%,rgba(10,14,23,.35) 70%,rgba(10,14,23,0) 100%); }}
+.pbhero.rtl .txt {{ margin-left:auto; background:linear-gradient(270deg,rgba(5,8,23,.78) 0%,rgba(5,8,23,.35) 70%,rgba(5,8,23,0) 100%); }}
 .pbhero .eb {{ color:{_C}; font-weight:800; letter-spacing:.2em; font-size:.72rem; text-transform:uppercase; display:flex; align-items:center; gap:8px; }}
 .pbhero .eb .ms {{ font-size:1.05rem; }}
 .pbhero .t {{ font-size:2.4rem; font-weight:800; line-height:1.08; margin:8px 0 6px; color:#fff; letter-spacing:-.02em; }}
 .pbhero .t b {{ background:linear-gradient(90deg,{_A},{_V},{_C}); -webkit-background-clip:text; background-clip:text; color:transparent; }}
 .pbhero .tg {{ color:#C7CFDD; font-size:.94rem; line-height:1.6; max-width:540px; }}
 .pbhero .chips {{ display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }}
-.pbhero .chip {{ background:rgba(17,23,35,.8); border:1px solid {_BD}; backdrop-filter:blur(6px); border-radius:10px; padding:6px 10px;
+.pbhero .chip {{ background:rgba(12,18,48,.8); border:1px solid {_BD}; backdrop-filter:blur(6px); border-radius:10px; padding:6px 10px;
   font-size:.8rem; display:inline-flex; align-items:center; gap:7px; color:#C9D0DC; font-variant-numeric:tabular-nums; }}
 .pbhero .chip b {{ color:#fff; unicode-bidi:isolate; direction:ltr; }} .pbhero .chip .ms {{ color:{_C}; font-size:1rem; }}
 .pbhero .chip .pill {{ min-width:0; padding:2px 7px; font-size:.74rem; }}
@@ -189,7 +189,7 @@ PAGE_CSS = f"""<style>
 .phg.live::before {{ content:""; width:6px; height:6px; border-radius:50%; background:currentColor; animation:pbtw 2s ease-in-out infinite; }}
 .phg.sim {{ background:{T.YEL_BG}; color:{T.YEL_FG}; }}
 [class*="st-key-pbcard_"]:hover .pbc .rt {{ opacity:0; }}
-[class*="st-key-pbphase"] {{ background:rgba(10,14,23,.55); border:1px solid {_BD}; border-radius:16px; padding:5px; margin-bottom:2px; }}
+[class*="st-key-pbphase"] {{ background:rgba(5,8,23,.55); border:1px solid {_BD}; border-radius:16px; padding:5px; margin-bottom:2px; }}
 [class*="st-key-pbphase"] [data-testid="stHorizontalBlock"] {{ gap:5px !important; flex-wrap:nowrap !important; }}
 [class*="st-key-pbphase"] [data-testid="stColumn"] {{ min-width:0 !important; }}
 [class*="st-key-pbph_"] {{ position:relative; }}
@@ -339,7 +339,7 @@ a.pblink .ms {{ font-size:1rem; }}
 .pbfb .t b {{ background:linear-gradient(90deg,{_A},{_V},{_C}); -webkit-background-clip:text; background-clip:text; color:transparent; }}
 .pbfb .s {{ color:#C7CFDD; font-size:.84rem; line-height:1.5; }}
 .pbfb .pbstp {{ display:flex; flex-wrap:wrap; gap:4px; margin-top:11px; }}
-.pbfb .pbstp span {{ display:inline-flex; align-items:center; gap:5px; font-size:.7rem; font-weight:700; color:#C9D0DC; background:rgba(17,23,35,.72);
+.pbfb .pbstp span {{ display:inline-flex; align-items:center; gap:5px; font-size:.7rem; font-weight:700; color:#C9D0DC; background:rgba(12,18,48,.72);
   border:1px solid rgba(255,255,255,.06); border-radius:999px; padding:2px 9px 2px 3px; white-space:nowrap; }}
 .pbfb.rtl .pbstp span {{ padding:2px 3px 2px 9px; }}
 .pbfb .pbstp i {{ font-style:normal; width:17px; height:17px; border-radius:50%; display:grid; place-items:center; font-size:.62rem; font-weight:800;
@@ -357,7 +357,7 @@ a.pblink .ms {{ font-size:1rem; }}
 .pbfs {{ display:flex; align-items:center; gap:6px; font-weight:800; font-size:.74rem; color:#AEB7C6; letter-spacing:.08em; text-transform:uppercase; }}
 .pbfs .ms {{ color:{_C}; font-size:1rem; }}
 /* the two ways to pick strategies: one full-width switch in the brand colours, the chosen half lit */
-[class*="st-key-pbswitch"] {{ background:rgba(10,14,23,.55); border:1px solid {_BD}; border-radius:16px; padding:5px; }}
+[class*="st-key-pbswitch"] {{ background:rgba(5,8,23,.55); border:1px solid {_BD}; border-radius:16px; padding:5px; }}
 [class*="st-key-pbswitch"] [data-testid="stHorizontalBlock"] {{ gap:5px !important; flex-wrap:nowrap !important; }}
 [class*="st-key-pbswitch"] [data-testid="stColumn"] {{ min-width:0 !important; }}
 [class*="st-key-pbmode_"] {{ position:relative; }}
@@ -403,7 +403,7 @@ a.pblink .ms {{ font-size:1rem; }}
 [class*="st-key-pb_ms_"] [data-baseweb="tag"] span {{ color:#fff !important; font-weight:700; }}
 [class*="st-key-pb_ms_"] [data-baseweb="select"] > div {{ border-radius:12px !important; }}
 /* a combined strategy's rules */
-.pbrl {{ border:1px solid {_BD}; border-radius:16px; background:rgba(10,14,23,.5); padding:12px 14px 13px; }}
+.pbrl {{ border:1px solid {_BD}; border-radius:16px; background:rgba(5,8,23,.5); padding:12px 14px 13px; }}
 .pbrl + .pbrl {{ margin-top:10px; }}
 .pbrl .hd {{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }}
 .pbrl .hd .i .ms {{ font-size:1.1rem; color:#fff; background:linear-gradient(135deg,{_A},{_V}); border-radius:10px; padding:6px; }}
@@ -648,7 +648,7 @@ def _hero_art(ranked_sims):
     for i, (x, y) in enumerate(_SLOTS):
         rank = PB.MAX_BOTS - i
         if rank > len(ranked_sims):
-            s.append(f'<g opacity=".8"><circle cx="{x}" cy="{y}" r="14" fill="#0A0E17" fill-opacity=".55" stroke="#8A94A7" stroke-width="1.6" '
+            s.append(f'<g opacity=".8"><circle cx="{x}" cy="{y}" r="14" fill="#050817" fill-opacity=".55" stroke="#8A94A7" stroke-width="1.6" '
                      f'stroke-dasharray="3 4"/><path d="M{x - 5} {y} H{x + 5} M{x} {y - 5} V{y + 5}" stroke="#8A94A7" stroke-width="2" '
                      f'stroke-linecap="round"/></g>')
             continue
@@ -660,7 +660,7 @@ def _hero_art(ranked_sims):
         name = sim["bot"]["name"]
         name = name[:13] + "…" if len(name) > 14 else name
         s.append(f'<g><circle class="halo" cx="{x}" cy="{y}" r="15" fill="none" stroke="{ring}" stroke-width="2" style="animation-delay:-{i * 0.5:.1f}s"/>'
-                 f'<circle cx="{x}" cy="{y}" r="15" fill="url(#pbnd)" stroke="#0A0E17" stroke-width="2"/>'
+                 f'<circle cx="{x}" cy="{y}" r="15" fill="url(#pbnd)" stroke="#050817" stroke-width="2"/>'
                  f'<text x="{x}" y="{y + 4.5}" text-anchor="middle" font-size="12.5" font-weight="800" fill="#fff" font-family="{T.FONT}">{rank}</text>'
                  f'<text x="{x}" y="{y - 36}" text-anchor="middle" font-size="13" font-weight="800" fill="{ring}" font-family="{T.FONT}">{label}</text>'
                  f'<text x="{x}" y="{y - 22}" text-anchor="middle" font-size="10.5" fill="#C7CFDD" font-family="{T.FONT}">{T.esc(name)}</text></g>')
@@ -2488,7 +2488,7 @@ FORM_ART = ('<svg viewBox="0 0 260 120" preserveAspectRatio="xMidYMid meet" xmln
             '<path class="ln" d="M12 104 L58 80 L96 88 L138 58 L176 64 L236 22" fill="none" stroke="url(#pbfl)" stroke-width="3" '
             'stroke-linecap="round" stroke-linejoin="round" filter="url(#pbfg)" style="stroke-dasharray:290;--len:290"/>'
             '<path d="M222 21 L237 21.6 L236.4 36" fill="none" stroke="#A78BFA" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>'
-            + "".join(f'<circle cx="{x}" cy="{y}" r="5" fill="#0A0E17" stroke="{c}" stroke-width="2.4"/>'
+            + "".join(f'<circle cx="{x}" cy="{y}" r="5" fill="#050817" stroke="{c}" stroke-width="2.4"/>'
                       for x, y, c in ((58, 80, "#22D3EE"), (96, 88, "#3D7BFF"), (138, 58, "#3D7BFF"), (176, 64, "#8B5CF6")))
             + '</svg>')
 
@@ -3042,4 +3042,4 @@ def page_paper_bots():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "9.2"
+BUILD = "9.3"
