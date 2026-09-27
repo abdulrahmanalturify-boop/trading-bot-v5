@@ -222,6 +222,22 @@ CSS = f"""<style>
 .hnbt .sc {{ margin-inline-start:auto; font-size:.72rem; font-weight:800; color:#DCE6FF; background:rgba(61,123,255,.16); border:1px solid {_A}44;
   border-radius:999px; padding:2px 9px; direction:ltr; unicode-bidi:isolate; }}
 [class*="st-key-hnsec_look"] h4 {{ margin:0 !important; padding:0 !important; }}
+/* ---------- analyst rating card: violet with a faint cyan glow (the brand's gradient, softly) ---------- */
+.hnrate {{ position:relative; overflow:hidden; border-radius:20px; padding:18px 20px 16px; border:1px solid rgba(139,92,246,.42);
+  background:radial-gradient(120% 90% at 0% 0%,rgba(139,92,246,.30),transparent 58%),radial-gradient(90% 80% at 100% 100%,rgba(34,211,238,.16),transparent 60%),
+  linear-gradient(160deg,#141031,#0E1328 55%,#0A1424); box-shadow:0 14px 34px rgba(139,92,246,.18), inset 0 1px 0 rgba(255,255,255,.06); }}
+.hnrate::before {{ content:""; position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg,{_V},{_A},{_C}); opacity:.9; }}
+.hnrate .t {{ font-size:1.35rem; font-weight:800; color:#fff; letter-spacing:-.01em; }}
+.hnrate .s {{ color:#B9C1D3; font-size:.84rem; margin-top:2px; }}
+.hnrate .g {{ max-width:360px; margin:10px auto 4px; }}
+.hnrate .g svg {{ width:100%; height:auto; display:block; filter:drop-shadow(0 6px 18px rgba(139,92,246,.25)); }}
+.hnrate .lgs {{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); grid-template-rows:repeat(3,auto); grid-auto-flow:column;
+  gap:8px 22px; max-width:380px; margin:8px auto 0; }}
+.hnrate .rl {{ display:flex; align-items:center; gap:9px; color:#D5DBE7; font-size:.92rem; }}
+.hnrate .rl i {{ width:11px; height:11px; border-radius:50%; flex:none; box-shadow:0 0 0 3px rgba(255,255,255,.05); }}
+.hnrate .rl b {{ color:#fff; font-weight:700; direction:ltr; unicode-bidi:isolate; }}
+.hnrate .mr {{ text-align:center; color:#B9C1D3; font-size:.8rem; margin-top:12px; }}
+.hnrate .mr b {{ color:#fff; direction:ltr; unicode-bidi:isolate; }} .hnrate .mr span {{ color:{_MU}; }}
 </style>"""
 RTL_CSS = """<style>
 .hnhero .eb, .hnreg .tl .l, .hnc .lv span, .hnplan .p .l { letter-spacing:0; }
@@ -863,52 +879,131 @@ def catalyst_section(sym):
                 + "</div>")
 
 
+# the rating scale of Yahoo Finance (1 = strong buy .. 5 = sell), from the left of the gauge (sell) to its right (strong buy)
+RATING = [("strongSell", "Sell", "بيع", "#A62D4A"), ("sell", "Underperform", "أداء أقل", "#F06E6E"), ("hold", "Hold", "احتفاظ", "#E8A93B"),
+          ("buy", "Buy", "شراء", "#6CC46A"), ("strongBuy", "Strong Buy", "شراء قوي", "#5DD3A8")]
+
+
+def _rating_counts(rec):
+    """The latest month of the recommendations summary as {key: count} (None when there is none)."""
+    if not isinstance(rec, pd.DataFrame) or rec.empty:
+        return None
+    row = rec[rec["period"].astype(str) == "0m"] if "period" in rec else rec.head(1)
+    row = (row if len(row) else rec.head(1)).iloc[0]
+    out = {k: int(pd.to_numeric(row.get(k), errors="coerce") or 0) for k, *_ in RATING}
+    return out if sum(out.values()) else None
+
+
+def rating_label(counts, mean=None):
+    """(en, ar, color) of the consensus: from the mean rating (1-5), or the weighted counts."""
+    if mean is None and counts:
+        tot = sum(counts.values())
+        mean = sum(w * counts[k] for w, (k, *_) in zip((5, 4, 3, 2, 1), RATING)) / tot if tot else None
+    if mean is None or not np.isfinite(mean):
+        return "—", "—", _MU
+    for hi, idx in ((1.5, 4), (2.5, 3), (3.5, 2), (4.5, 1), (9, 0)):
+        if mean < hi:
+            _, en, ar_, col = RATING[idx]
+            return en, ar_, col
+    return "—", "—", _MU
+
+
+def rating_gauge(counts, label, color):
+    """A half-ring split by the share of each rating (sell on the left, strong buy on the right), the consensus in the middle."""
+    cx, cy, ro, ri = 170, 160, 132, 96
+    tot = sum(counts.values()) if counts else 0
+    parts, a0, gap = [], 180.0, 1.6
+    segs = [(k, en, ar_, col, counts[k] / tot) for k, en, ar_, col in RATING if counts and counts[k]] if tot else []
+    for n_, (k, en, ar_, col, frac) in enumerate(segs):
+        a1 = a0 - frac * 180
+        s_, e_ = a0 - (gap / 2 if n_ else 0), a1 + (gap / 2 if n_ < len(segs) - 1 else 0)
+        if s_ - e_ <= 0.2:
+            a0 = a1
+            continue
+        pt = lambda r_, a: (cx + r_ * np.cos(np.radians(a)), cy - r_ * np.sin(np.radians(a)))
+        (x1, y1), (x2, y2), (x3, y3), (x4, y4) = pt(ro, s_), pt(ro, e_), pt(ri, e_), pt(ri, s_)
+        big = 1 if s_ - e_ > 180 else 0
+        parts.append(f'<path d="M{x1:.1f} {y1:.1f} A{ro} {ro} 0 {big} 1 {x2:.1f} {y2:.1f} L{x3:.1f} {y3:.1f} A{ri} {ri} 0 {big} 0 {x4:.1f} {y4:.1f} Z" '
+                     f'fill="{col}"><title>{T.esc(L(en, ar_))} {frac * 100:.0f}%</title></path>')
+        a0 = a1
+    if not segs:
+        parts.append(f'<path d="M{cx - ro} {cy} A{ro} {ro} 0 0 1 {cx + ro} {cy} L{cx + ri} {cy} A{ri} {ri} 0 0 0 {cx - ri} {cy} Z" fill="rgba(138,148,167,.25)"/>')
+    return (f'<svg viewBox="0 0 340 176" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'
+            f'<defs><radialGradient id="hnrg2" cx="50%" cy="100%" r="80%"><stop offset="0" stop-color="#8B5CF6" stop-opacity=".22"/>'
+            f'<stop offset="1" stop-color="#0A0E17" stop-opacity=".0"/></radialGradient></defs>{"".join(parts)}'
+            f'<path d="M{cx - ri + 12} {cy} A{ri - 12} {ri - 12} 0 0 1 {cx + ri - 12} {cy} Z" fill="url(#hnrg2)"/>'
+            f'<text x="{cx}" y="{cy - 22}" text-anchor="middle" font-size="40" font-weight="800" fill="{color}" font-family="{T.FONT}">{T.esc(label)}</text></svg>')
+
+
 def analyst_section(sym, price):
-    """The analysts: consensus, price targets, the recommendation trend and the latest rating changes."""
+    """Analyst rating (a half-ring gauge as on the big finance sites) in a card in the site's colours, the price targets,
+    and every rating change of the last 90 days in a table (date, firm, action, from, to, price target)."""
     cat = catalysts(sym, H.BUILD)
     an, tg = cat["an"], cat["targets"] or {}
-    n = an.get("numberOfAnalystOpinions") or 0
+    counts = _rating_counts(cat["rec"])
+    n = int(an.get("numberOfAnalystOpinions") or (sum(counts.values()) if counts else 0))
     mean_t = tg.get("mean") or an.get("targetMeanPrice")
     lo_t, hi_t = tg.get("low") or an.get("targetLowPrice"), tg.get("high") or an.get("targetHighPrice")
-    rec_k = str(an.get("recommendationKey") or "").lower()
     rr = cat["ratings"] if isinstance(cat["ratings"], pd.DataFrame) else pd.DataFrame()
-    if not (n or mean_t or rec_k in REC or len(rr)):
+    mean_r = an.get("recommendationMean")
+    if not (counts or mean_r or mean_t or len(rr)):
         return
     ui.sec("groups", "Analysts", "المحللون")
+    en, ar_, color = rating_label(counts, float(mean_r) if mean_r else None)
+    tot = sum(counts.values()) if counts else 0
+    legend = "".join(f'<div class="rl"><i style="background:{col}"></i>{T.esc(L(e_, a_))} <b>{counts[k] / tot * 100:.0f}%</b></div>'
+                     for k, e_, a_, col in RATING) if tot else ""
+    when = _today_ny().strftime("%m/%d/%Y")
+    sub = (L(f"Based on {n} analysts. Updated on {when} ET.", f"بناءً على {n} محلل. آخر تحديث {when} بتوقيت نيويورك.") if n else
+           L("No analyst count available.", "عدد المحللين غير متاح."))
+    mean_txt = f'<div class="mr">{L("Average rating", "متوسط التقييم")} <b>{float(mean_r):.2f}</b> / 5 <span>{L("(1 = strong buy, 5 = sell)", "(1 = شراء قوي، 5 = بيع)")}</span></div>' if mean_r else ""
+    card = (f'<div class="hnrate"><div class="t">{L("Analyst Rating", "تقييم المحللين")}</div><div class="s">{T.esc(sub)}</div>'
+            f'<div class="g">{rating_gauge(counts, L(en, ar_), color)}</div><div class="lgs">{legend}</div>{mean_txt}</div>')
     ups = downs = 0
     if len(rr) and "Action" in rr:
         recent = rr[rr.index >= pd.Timestamp.now() - pd.Timedelta(days=30)]
         ups, downs = int((recent["Action"] == "up").sum()), int((recent["Action"] == "down").sum())
-    en, ar_, kind = REC.get(rec_k, ("—", "—", None))
-    tiles = [T.kpi("how_to_vote", L("Consensus", "الإجماع"), L(en, ar_), (f"{an['recommendationMean']:.2f} / 5 · " if an.get("recommendationMean") else "")
-                   + L(f"{n} analysts", f"{n} محلل"), {"up": "pos", "down": "neg"}.get(kind))]
+    tiles = []
     if mean_t and price:
         up = (mean_t / price - 1) * 100
-        tiles.append(T.kpi("flag", L("Mean target", "متوسط الهدف"), _money_px(mean_t), L(f"{up:+.1f}% from now", f"{up:+.1f}% من السعر الحالي"), T.cls(up)))
+        tiles.append(T.kpi("flag", L("Mean price target", "متوسط السعر المستهدف"), _money_px(mean_t), L(f"{up:+.1f}% from now", f"{up:+.1f}% من السعر الحالي"), T.cls(up)))
     if lo_t and hi_t:
         tiles.append(T.kpi("straighten", L("Target range", "مدى الأهداف"), f"{_money_px(lo_t)} – {_money_px(hi_t)}",
                            L(f"low {_pct(price, lo_t):+.0f}% · high {_pct(price, hi_t):+.0f}%", f"الأدنى {_pct(price, lo_t):+.0f}% · الأعلى {_pct(price, hi_t):+.0f}%"), None))
     tiles.append(T.kpi("swap_vert", L("Rating changes (30 days)", "تغييرات التقييم (30 يوم)"), f"↑{ups} · ↓{downs}",
                        L("upgrades · downgrades", "ترقيات · تخفيضات"), "pos" if ups > downs else "neg" if downs > ups else None))
-    ui.html('<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px">' + "".join(tiles) + "</div>")
-    c1, c2 = st.columns(2, gap="medium")
-    rec = cat["rec"]
+    tiles.append(T.kpi("groups", L("Analysts", "المحللون"), f"{n}", L("covering the stock", "يغطون السهم"), None))
+    c1, c2 = st.columns([1, 1.25], gap="medium")
     with c1:
-        if isinstance(rec, pd.DataFrame) and not rec.empty:
-            ui.chart(charts.rec_chart(rec, L("Recommendations by month", "التوصيات حسب الشهر")), key=f"hn_rec_{_key(sym)}")
-        elif tg:
-            ui.chart(charts.target_chart(price, tg, L("12-month price targets", "السعر المستهدف (12 شهر)")), key=f"hn_tgt_{_key(sym)}")
+        ui.html(card)
     with c2:
-        rows = []
-        for dt, x in rr.head(7).iterrows():
-            a_en, a_ar, a_k = ACTION.get(str(x.get("Action", "")), (str(x.get("Action", "")), str(x.get("Action", "")), "neu"))
-            frm, to = str(x.get("FromGrade") or ""), str(x.get("ToGrade") or "")
-            grade_txt = f"{frm} → {to}" if frm and frm != "nan" else to
-            rows.append(f'<div class="check">{T.badge(L(a_en, a_ar), a_k)}<div><b>{T.esc(str(x.get("Firm", "")))}</b> '
-                        f'<span class="muted">· {T.esc(grade_txt)} · {pd.Timestamp(dt):%Y-%m-%d}</span></div></div>')
-        ui.html(f'<div class="hnbox"><div class="hnbt">{T.icon("swap_vert")}{L("Latest rating changes", "آخر تغييرات التقييم")}</div>'
-                + ("".join(rows) or f'<div class="muted" style="font-size:.84rem;padding:6px 0 10px">{L("No rating changes in the last 90 days.", "لا توجد تغييرات خلال آخر 90 يوم.")}</div>')
-                + "</div>")
+        ui.html('<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">' + "".join(tiles) + "</div>")
+        if tg and price:
+            ui.chart(charts.target_chart(price, tg, L("12-month price targets", "السعر المستهدف (12 شهر)")), key=f"hn_tgt_{_key(sym)}")
+    ui.html(f'<div class="hnbt" style="margin-top:6px">{T.icon("table_rows")}{L("Analysts and their ratings (90 days)", "المحللون وتوصياتهم (90 يوم)")}</div>')
+    if not len(rr):
+        st.caption(L("No rating changes in the last 90 days.", "لا توجد تغييرات تقييم خلال آخر 90 يوم."))
+        return
+    t = rr.copy()
+    act = lambda a: L(*ACTION.get(str(a), (str(a), str(a), ""))[:2])
+    out = pd.DataFrame({L("Date", "التاريخ"): pd.to_datetime(t.index).date, L("Firm", "الجهة"): t.get("Firm", ""),
+                        L("Action", "الإجراء"): t["Action"].map(act) if "Action" in t else "",
+                        L("From", "من"): t.get("FromGrade", "").replace("", "—") if "FromGrade" in t else "—",
+                        L("To", "إلى"): t.get("ToGrade", "")})
+    if "currentPriceTarget" in t:
+        out[L("Price target", "السعر المستهدف")] = pd.to_numeric(t["currentPriceTarget"], errors="coerce").replace(0, np.nan).values
+    if "priorPriceTarget" in t:
+        out[L("Prior target", "الهدف السابق")] = pd.to_numeric(t["priorPriceTarget"], errors="coerce").replace(0, np.nan).values
+    fmt = {c: "${:,.2f}" for c in out.columns if c in (L("Price target", "السعر المستهدف"), L("Prior target", "الهدف السابق"))}
+
+    def color(v):
+        if v in (L("Upgrade", "ترقية"),):
+            return f"color:{T.POS_FG};background-color:{T.POS_BG};font-weight:700"
+        if v in (L("Downgrade", "تخفيض"),):
+            return f"color:{T.NEG_FG};background-color:{T.NEG_BG};font-weight:700"
+        return ""
+    st.dataframe(out.style.map(color, subset=[L("Action", "الإجراء")]).format(fmt, na_rep="—"), hide_index=True,
+                 height=min(420, 38 + 35 * len(out)))
 
 
 def news_section(sym):
@@ -1167,4 +1262,4 @@ def page_scanner():
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "8.6"
+BUILD = "8.7"
