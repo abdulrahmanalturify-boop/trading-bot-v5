@@ -134,7 +134,7 @@ def open_picker(symbols, key, label_en="Open a company", label_ar="افتح شر
 
 
 def foot():
-    html(f'<div class="foot">A.Alturaifi Pro · {L("Data: Yahoo Finance, FRED & BLS, may be delayed. Educational use only, not investment advice.", "البيانات: ياهو فاينانس وFRED ومكتب إحصاءات العمل وقد تكون متأخرة. للاستخدام التعليمي فقط وليست توصية استثمارية.")}</div>')
+    html(f'<div class="foot">{T.brand(".95em", "ftb", dot=True, pro="inline", color="currentColor")} · {L("Data: Yahoo Finance, FRED & BLS, may be delayed. Educational use only, not investment advice.", "البيانات: ياهو فاينانس وFRED ومكتب إحصاءات العمل وقد تكون متأخرة. للاستخدام التعليمي فقط وليست توصية استثمارية.")}</div>')
 
 
 def multiselect_free(label, options, key, placeholder="", max_n=4):
@@ -147,4 +147,4 @@ def multiselect_free(label, options, key, placeholder="", max_n=4):
         return st.multiselect(label, options, key=key, max_selections=max_n, placeholder=placeholder)
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "9.4"
+BUILD = "9.5"

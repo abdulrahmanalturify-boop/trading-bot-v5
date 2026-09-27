@@ -51,12 +51,107 @@ def logo_mark(p="lg", cls=""):
     return f'<svg{c} viewBox="{LOGO_BOX}" aria-hidden="true">{logo_parts(p)}</svg>'
 
 
+# ---------------------------------------------------------------- the name, drawn in thin geometric lines (Fenomeno style)
+# Each letter is a line drawing on a 100-high grid: (width, path). Drawn, not typed, so it looks the same everywhere without a font file.
+_GLYPHS = {
+    "A": (84, "M0 100 L42 0 L84 100 M17 60 H52"),         # the bar stops short of the right leg, like Fenomeno's open bars
+    "L": (56, "M0 0 V100 H56"),
+    "T": (72, "M0 0 H72 M36 0 V100"),
+    "U": (72, "M0 0 V64 A36 36 0 0 0 72 64 V0"),
+    "R": (66, "M0 100 V0 H38 A25 25 0 0 1 38 50 H0 M26 50 L66 100"),
+    "I": (0, "M0 0 V100"),
+    "F": (58, "M0 100 V0 H58 M14 50 H48"),
+    "P": (64, "M0 100 V0 H38 A25 25 0 0 1 38 50 H0"),
+    "O": (100, "M0 50 A50 50 0 1 0 100 50 A50 50 0 1 0 0 50"),
+    ".": (7, "M0 97 H7"),
+    " ": (30, ""),
+}
+_TRACK, _SW = 26, 6          # space between letters and line width, in grid units
+
+
+def _move(d, s, tx, ty):
+    """A glyph path scaled by s and moved by (tx, ty), written out in plain coordinates (so a gradient spans the whole word)."""
+    tok, out, i = d.replace(",", " ").split(), [], 0
+    f = lambda v: f"{v:.2f}".rstrip("0").rstrip(".")
+    cmd = ""
+    while i < len(tok):
+        t = tok[i]
+        if t[0].isalpha():
+            cmd, t = t[0], t[1:]
+            out.append(cmd)
+            if not t:
+                i += 1
+                continue
+            tok[i] = t
+        if cmd in "ML":
+            out += [f(float(tok[i]) * s + tx), f(float(tok[i + 1]) * s + ty)]
+            i += 2
+        elif cmd == "H":
+            out.append(f(float(tok[i]) * s + tx))
+            i += 1
+        elif cmd == "V":
+            out.append(f(float(tok[i]) * s + ty))
+            i += 1
+        elif cmd == "A":
+            rx, ry, rot, la, sw, x, y = tok[i:i + 7]
+            out += [f(float(rx) * s), f(float(ry) * s), rot, la, sw, f(float(x) * s + tx), f(float(y) * s + ty)]
+            i += 7
+        else:                                   # Z
+            i += 1
+    return " ".join(out)
+
+
+def _word(text, x, scale=1.0, y=0.0):
+    """The letters of text as one path starting at x (grid units). Returns (path, right edge)."""
+    parts = []
+    for ch in text.upper():
+        w, d = _GLYPHS.get(ch, _GLYPHS[" "])
+        if d:
+            parts.append(_move(d, scale, x, y))
+        x += (w + _TRACK) * scale
+    return (f'<path d="{" ".join(parts)}"/>' if parts else ""), x - _TRACK * scale
+
+
+def brand(height="1em", p="bm", dot=False, pro="sup", color="#FFFFFF", cls="brand", label="A.Alturaifi Pro"):
+    """The site's name as line art. pro: 'sup' (small, raised, blue to cyan), 'inline' (same size, blue) or None.
+    dot adds the leading 'A.'. height is any CSS length; the width follows."""
+    x = _SW / 2
+    first = ""
+    if dot:
+        first, x = _word("A.", x)
+        x += _TRACK
+    main, x = _word("ALTURAIFI", x)
+    tail = defs = ""
+    if pro:
+        x += 46 if pro == "sup" else 64
+        sc = .46 if pro == "sup" else 1.0
+        x0 = x
+        tail, x = _word("PRO", x, sc)
+        defs = (f'<defs><linearGradient id="{p}g" gradientUnits="userSpaceOnUse" x1="{x0:.0f}" y1="0" x2="{x:.0f}" y2="0">'
+                f'<stop offset="0" stop-color="#5B8CFF"/><stop offset=".55" stop-color="#A78BFA"/><stop offset="1" stop-color="#22D3EE"/>'
+                f'</linearGradient></defs>')
+        tail = f'<g stroke="url(#{p}g)">{tail}</g>'
+    w, h = x + _SW / 2, 100 + _SW
+    st_ = f' style="height:{height};width:auto"' if height else ""
+    return (f'<svg class="{cls}" viewBox="0 {-_SW / 2:.0f} {w:.0f} {h:.0f}"{st_} role="img" '
+            f'aria-label="{label}" fill="none" stroke-width="{_SW}" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="10">'
+            f'{defs}<g stroke="{color}">{first}{main}</g>{tail}</svg>')
+
+
+def brand_box(p="bw"):
+    """(width, height, inner svg) of the name for placing inside another SVG."""
+    s = brand(None, p)
+    vb = s.split('viewBox="', 1)[1].split('"', 1)[0].split()
+    return float(vb[2]), float(vb[3]), s
+
+
 _MARK = f'<svg x="2" y="10" width="60" height="44" viewBox="{LOGO_BOX}">{logo_parts("mk")}</svg>'
 LOGO_ICON = f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">{_MARK}</svg>'
-LOGO_WORDMARK = f"""<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 64" width="300" height="64">{_MARK}
-<defs><linearGradient id="tx" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#5B8CFF"/><stop offset="1" stop-color="#A78BFA"/></linearGradient></defs>
-<text x="78" y="43" font-family="Plus Jakarta Sans, Helvetica Neue, Helvetica, Arial, sans-serif" font-size="31" font-weight="800" fill="#FFFFFF" letter-spacing="-0.5">Alturaifi<tspan dx="9" fill="url(#tx)" font-weight="800" letter-spacing="1">PRO</tspan></text>
-</svg>"""
+_bw, _bh, _bs = brand_box("lw")
+_BH = 26                                     # height of the name inside the 64-high logo
+LOGO_WORDMARK = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {80 + _bw * _BH / _bh + 6:.0f} 64" width="{80 + _bw * _BH / _bh + 6:.0f}" height="64">{_MARK}'
+                 + _bs.replace('<svg class="brand"', f'<svg x="78" y="{32 - _BH / 2 + 1:.0f}" width="{_bw * _BH / _bh:.0f}" height="{_BH}"', 1)
+                 + "</svg>")
 
 FONT_LATIN, FONT_AR = "'Plus Jakarta Sans'", "'Readex Pro'"
 FLAG_US, FLAG_SA = flags.US, flags.SA
@@ -621,6 +716,12 @@ a.lnk {{ color:inherit !important; text-decoration:none !important; }} a.lnk:hov
 .pulse .ph {{ display:flex; align-items:center; gap:6px; font-size:.7rem; font-weight:800; letter-spacing:.09em; text-transform:uppercase;
   color:#C9D0DC; margin-bottom:4px; }}
 .pulse .ph .ms {{ color:#7EA6FF; }}
+/* market pulse: the title on its own line, the market status under it across the whole width */
+.pulse .ph {{ flex-wrap:wrap; row-gap:8px; }}
+.pulse .ph .status.mini {{ flex:1 0 100%; box-sizing:border-box; justify-content:flex-start; gap:7px; padding:5px 10px; border-radius:10px;
+  white-space:nowrap; text-transform:none; letter-spacing:0; font-size:.74rem; font-weight:600; overflow:hidden; }}
+.pulse .ph .status.mini b {{ font-weight:750; }} .pulse .ph .status.mini .muted {{ margin-inline-start:auto; }}
+.brand {{ display:inline-block; vertical-align:-.08em; overflow:visible; }}
 .pr {{ display:grid; grid-template-columns: minmax(0,1fr) 58px auto; gap:8px; align-items:center; padding:5px 0;
   border-bottom:1px dashed rgba(138,148,167,.16); direction:ltr; }}
 .pr:last-child {{ border-bottom:none; }}
@@ -1439,4 +1540,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "9.4"
+BUILD = "9.5"

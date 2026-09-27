@@ -514,7 +514,7 @@ def _article_view(a):
                 f'<div class="dek">{T.esc(L(*a["dek"]))}</div><div class="ameta" style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">'
                 f'{T.badge(L(f"{_mins(a)} min read", f"قراءة {_mins(a)} دقائق"), "neu", "schedule")}'
                 + (T.badge(L("Includes live data", "يتضمن بيانات مباشرة"), "acc", "monitoring") if live else "")
-                + f'{T.badge("A.Alturaifi Pro", "vio", "edit_note")}</div>'
+                + f'<span class="badge b-vio">{T.icon("edit_note")}{T.brand(".9em", "arb" + a["id"], dot=True, pro="inline", color="currentColor")}</span></div>'
                 f'<div class="tkw"><div class="h">{T.icon("bolt")} {L("Key takeaways", "أهم النقاط")}</div>'
                 + "".join(f'<div class="t">{T.icon("check_circle")}<span>{T.esc(L(e, r))}</span></div>' for e, r in a["takeaways"]) + "</div></div>")
         buf = []
@@ -679,4 +679,4 @@ def page_seasonality():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "9.4"
+BUILD = "9.5"

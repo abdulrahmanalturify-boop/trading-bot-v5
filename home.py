@@ -10,7 +10,7 @@ import theme as T
 import ui
 from i18n import L, is_ar
 
-BUILD = "9.4"
+BUILD = "9.5"
 
 _LINE = "rgba(130,150,255,"
 CSS = f"""
@@ -37,15 +37,12 @@ CSS = f"""
   background:linear-gradient(90deg,transparent,{_LINE}.36) 18%,{_LINE}.36) 82%,transparent); }}
 .cztop .czglint {{ position:absolute; top:-30px; left:59%; width:60px; height:60px; pointer-events:none; animation:czglint 5s ease-in-out infinite; }}
 @keyframes czglint {{ 0%,100% {{ opacity:.75; transform:scale(.92) rotate(0deg); }} 50% {{ opacity:1; transform:scale(1.08) rotate(12deg); }} }}
-.cztop .czghost {{ position:absolute; left:0; right:0; top:8px; font-size:clamp(70px,13.5vw,210px); font-weight:800; letter-spacing:-.04em;
-  line-height:1; color:transparent; -webkit-text-stroke:1px {_LINE}.12); pointer-events:none; direction:ltr; user-select:none; }}
-.cztop .czlogo {{ position:relative; display:flex; justify-content:center; align-items:center; gap:clamp(12px,1.6vw,24px); direction:ltr;
+.cztop .czghost {{ position:absolute; left:0; right:0; top:10px; display:flex; justify-content:center; pointer-events:none; user-select:none; }}
+.cztop .czghost .brand {{ height:clamp(58px,10.5vw,168px); width:auto; max-width:96%; }}
+.cztop .czlogo {{ position:relative; display:flex; justify-content:center; align-items:center; gap:clamp(14px,1.8vw,28px); direction:ltr;
   margin-top:clamp(18px,3.4vw,58px); }}
-.cztop .czlogo svg {{ width:clamp(72px,7.6vw,122px); height:auto; filter:drop-shadow(0 0 22px rgba(45,182,235,.55)); }}
-.cztop .czword {{ display:flex; align-items:flex-start; gap:clamp(8px,1vw,16px); font-size:clamp(42px,5.6vw,84px); font-weight:700;
-  letter-spacing:-.035em; line-height:1; color:#fff; }}
-.cztop .czpro {{ font-size:.36em; font-weight:800; letter-spacing:.14em; margin-top:.2em;
-  background:linear-gradient(90deg,#5B8CFF,#A78BFA 55%,#22D3EE); -webkit-background-clip:text; background-clip:text; color:transparent; }}
+.cztop .czlogo svg.czmark {{ flex:none; width:clamp(72px,7.6vw,122px); height:auto; filter:drop-shadow(0 0 22px rgba(45,182,235,.55)); }}
+.cztop .czlogo .brand {{ height:clamp(30px,4.4vw,64px); width:auto; max-width:66vw; filter:drop-shadow(0 0 16px rgba(91,140,255,.35)); }}
 .cztop .cztag {{ position:relative; margin-top:18px; font-size:.8rem; font-weight:600; letter-spacing:.26em; text-transform:uppercase; color:#93A3DA; }}
 .cztop.ar .cztag {{ letter-spacing:0; font-size:.95rem; }}
 .cztop .czchips {{ position:relative; display:flex; justify-content:center; gap:10px; flex-wrap:wrap; margin-top:18px; direction:ltr; }}
@@ -276,8 +273,9 @@ def top_html(chips_html=""):
     ar = is_ar()
     tag = L("Paper trading · Opportunity hunting · Market research", "تداول افتراضي · صيد الفرص · أبحاث السوق")
     chips = f'<div class="czchips">{chips_html}</div>' if chips_html else ""
-    return (f'<div class="cztop{" ar" if ar else ""}"><div class="czline"></div>{_GLINT}<div class="czghost" aria-hidden="true">ALTURAIFI</div>'
-            f'<div class="czlogo">{T.logo_mark("czlg")}<div class="czword"><span>Alturaifi</span><span class="czpro">PRO</span></div></div>'
+    return (f'<div class="cztop{" ar" if ar else ""}"><div class="czline"></div>{_GLINT}'
+            f'<div class="czghost" aria-hidden="true">{T.brand(None, "czgh", pro=None, color="rgba(150,170,255,.09)", label="")}</div>'
+            f'<div class="czlogo">{T.logo_mark("czlg", "czmark")}{T.brand(None, "czbr")}</div>'
             f'<div class="cztag">{tag}</div>{chips}{_ARC}</div>')
 
 
