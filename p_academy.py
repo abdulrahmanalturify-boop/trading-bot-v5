@@ -161,6 +161,7 @@ def _course_view(c):
     ui.html(f'<section class="ac-course-banner"><div class="ac-course-background" aria-hidden="true">{artwork}</div>'
             f'<div class="ac-course-copy"><h1>{T.esc(L(*c["title"]))}</h1><p>{T.esc(L(*c["tagline"]))}</p>'
             f'<div class="ac-course-meta">{T.badge(L(*lvl), LEVEL_KIND.get(lvl[0], "neu"), "signal_cellular_alt")}{mins}{lessons}</div></div></section>')
+    _course_videos(c)
     ui.html('<div class="steps">' + "".join(f'<span class="{"on" if i <= step else ""}"></span>' for i in range(n + 1)) + "</div>")
     rtl = " rtl" if is_ar() else ""
     if step < n:
@@ -172,14 +173,15 @@ def _course_view(c):
             if viz:
                 ui.sec("touch_app", "Interactive", "تفاعلي")
                 interactive(viz)
-            a, _, b = st.columns([1, 2, 1])
-            if step > 0 and a.button(L("Back", "السابق"), icon=":material/chevron_left:", width="stretch"):
-                ss[f"step_{cid}"] = step - 1
-                st.rerun()
-            if b.button(L("Next", "التالي") if step < n - 1 else L("Take the quiz", "ابدأ الاختبار"), icon=":material/chevron_right:",
-                        type="primary", width="stretch"):
-                ss[f"step_{cid}"] = step + 1
-                st.rerun()
+            with st.container(key="academy_lesson_navigation"):
+                a, _, b = st.columns([1, 2, 1])
+                if step > 0 and a.button(L("Back", "السابق"), icon=":material/chevron_left:", width="stretch"):
+                    ss[f"step_{cid}"] = step - 1
+                    st.rerun()
+                if b.button(L("Next", "التالي") if step < n - 1 else L("Take the quiz", "ابدأ الاختبار"), icon=":material/chevron_right:",
+                            type="primary", width="stretch"):
+                    ss[f"step_{cid}"] = step + 1
+                    st.rerun()
         return
     # ---- quiz
     st.caption(L("Pass with at least 80%. You can review and try again.", "الاجتياز من 80%. تقدر تراجع وتحاول مرة ثانية."))
@@ -279,7 +281,7 @@ def _academy_hero():
 
 def _learning_path():
     paths = {
-        "start": (L("Start investing", "أبدأ الاستثمار"), ["goals", "basics", "compounding", "funds", "inflation", "allocation"]),
+        "start": (L("Start investing", "أبدأ الاستثمار"), ["money_foundations", "goals", "basics", "broker_safety", "diversification_basics", "funds", "compounding", "returns_costs", "inflation", "allocation"]),
         "research": (L("Analyse companies", "أحلل الشركات"), ["statements", "value", "quality", "valuation_scenarios"]),
         "trade": (L("Build a trading process", "أبني منهج تداول"), ["execution", "candles", "risk", "behaviour", "robustness"]),
     }
@@ -296,6 +298,46 @@ def _learning_path():
         st.write(f"{i:02d} · {L(*c['title'])} " + ("✓" if _status(c['id'])=="done" else ""))
 
 
+def _video_player(v):
+    st.markdown("#### " + L(*v["title"]))
+    st.caption(v["creator"] + " · " + ("العربية" if v["language"] == "ar" else "English"))
+    st.write(L(*v["note"]))
+    st.video(v["url"])
+    st.link_button(L("Open on YouTube", "افتح في يوتيوب"), v["url"])
+    if v["language"] == "en":
+        st.caption(L("English audio. Subtitle availability depends on the publisher.",
+                     "الصوت إنجليزي. توفر الترجمة يعتمد على ناشر الفيديو."))
+
+
+def _course_videos(c):
+    related = [v for v in A.VIDEOS if c["id"] in v["courses"]]
+    if not related:
+        return
+    related.sort(key=lambda v: v["language"] != ("ar" if is_ar() else "en"))
+    with st.expander(L("Watch an explanation", "شاهد شرح بالفيديو"), icon=":material/play_circle:"):
+        chosen = st.selectbox(L("Choose a video", "اختر الفيديو"), range(len(related)),
+                             format_func=lambda i, labels=[L(*v["title"]) for v in related]: labels[i],
+                             key="ac_course_video_" + c["id"])
+        _video_player(related[chosen])
+
+
+def _video_library():
+    st.subheader(L("Learn by watching", "تعلّم بالمشاهدة"))
+    st.caption(L("Selected explanations from Thameen and Khan Academy. Start with a topic, then practise in its course.",
+                 "شروحات مختارة من ثمين وKhan Academy. اختر الموضوع، وبعد المشاهدة طبّق بدورته."))
+    language = st.radio(L("Video language", "لغة الفيديو"), ["all", "ar", "en"], horizontal=True,
+                        format_func=lambda x, labels={"all": L("All", "الكل"), "ar": "العربية", "en": "English"}: labels[x],
+                        key="ac_video_language")
+    items = [v for v in A.VIDEOS if language == "all" or v["language"] == language]
+    selected = st.selectbox(L("Choose a video", "اختر الفيديو"), [v["id"] for v in items],
+                           format_func=lambda x, labels={v["id"]: L(*v["title"]) for v in items}: labels[x],
+                           key="ac_video_pick_" + language)
+    v = next(v for v in items if v["id"] == selected)
+    _video_player(v)
+    st.caption(L("Continue with the related courses", "كمّل مع الدورات المرتبطة"))
+    course_cards([_course(cid) for cid in v["courses"] if _course(cid)], prefix="crs_video")
+
+
 def page_academy():
     st.logo(AV.WORDMARK, icon_image=AV.MARK, size="large")
     ui.html(AV.CSS)
@@ -306,14 +348,22 @@ def page_academy():
             ss["course"] = c["id"]
             _course_view(c)
             with st.expander(L("Further learning", "قراءات إضافية")):
+                for label, url in A.COURSE_SOURCES.get(c["id"], []):
+                    st.markdown(f"[{label}]({url})")
                 st.markdown("[Investor.gov — investing education](https://www.investor.gov/introduction-investing)\n\n"
                             "[Financial Industry Regulatory Authority — bonds](https://www.finra.org/investors/investing/investment-products/bonds)")
             ui.foot()
             return
         _academy_hero()
-        catalog, path, labs, progress = st.tabs([L("Explore courses", "استكشف الدورات"), L("My learning path", "مساري التعليمي"),
+        catalog, videos, path, labs, progress = st.tabs([L("Course library", "مكتبة الكورسات"), L("Video explanations", "شروحات الفيديو"), L("My learning path", "مساري التعليمي"),
                                               L("Interactive labs", "المختبرات التفاعلية"), L("My progress", "تقدمي")])
         with catalog:
+            with st.container(key="academy_start_here"):
+                st.markdown("### " + L("New to investing? Start here.", "جديد على الاستثمار؟ ابدأ هنا."))
+                st.caption(L("Build your foundation first, then move through each level at your own pace.",
+                             "ابدأ بالأساسيات، وبعدها تقدّم بالمستويات على راحتك."))
+                st.button(L("Start the beginner journey", "ابدأ رحلة المبتدئ"), type="primary",
+                          key="ac_beginner_start", on_click=_open_course, args=("money_foundations",))
             a,b=st.columns([3,1])
             query=a.text_input(L("Search courses", "ابحث عن دورة"),placeholder=L("e.g. bonds, cash flow, risk", "مثل: السندات، النقد، المخاطرة"),key="ac_search").strip().casefold()
             state=b.selectbox(L("Show", "اعرض"),["all","new","progress","done"],key="ac_status",format_func=lambda x, labels={"all":L("All courses","كل الدورات"),"new":L("New additions","المضافة حديثًا"),"progress":L("In progress","قيد التعلم"),"done":L("Completed","المكتملة")}:labels[x])
@@ -322,8 +372,21 @@ def page_academy():
                      and (not query or query in " ".join(c["title"]+c["tagline"]).casefold())
                      and (state=="all" or state=="new" and c.get("new") or state=="progress" and _status(c["id"])=="prog" or state=="done" and _status(c["id"])=="done")]
             st.caption(L(f"{len(courses)} courses · choose a card to begin",f"{len(courses)} دورة · اختر بطاقة للبدء"))
-            if courses: course_cards(courses)
+            if courses:
+                descriptions = {
+                    "Beginner": ("Start from zero: money, markets and your first portfolio.", "من الصفر: فلوسك، السوق، وأول محفظة لك."),
+                    "Essential": ("Build the skills every investor needs.", "مهارات أساسية يحتاجها كل مستثمر."),
+                    "Intermediate": ("Go deeper into analysis and market behaviour.", "تعمّق بالتحليل وفهم حركة الأسواق."),
+                    "Advanced": ("Explore derivatives, valuation scenarios and strategy testing.", "المشتقات وسيناريوهات التقييم واختبار الاستراتيجيات.")}
+                for index, level in enumerate(A.LEVEL_ORDER, 1):
+                    group = [c for c in courses if c["level"][0] == level]
+                    if group:
+                        st.subheader(f"{index:02d} · {L(*LEVELS[level])} · {len(group)}")
+                        st.caption(L(*descriptions[level]))
+                        course_cards(group)
             else: st.info(L("No matching courses. Try another search or level.","ما فيه دورات تطابق الاختيار. غيّر البحث أو المستوى."))
+        with videos:
+            _video_library()
         with path:
             _learning_path()
         with labs:
@@ -350,4 +413,5 @@ def page_glossary():
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
 BUILD = "9.8.3"
+
 

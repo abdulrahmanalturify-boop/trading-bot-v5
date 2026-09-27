@@ -1,7 +1,7 @@
 """Local vector artwork and scoped academy styling; no remote image dependency."""
 from html import escape
 import hashlib
-ACADEMY_REVISION = "2026-09-27.3"
+ACADEMY_REVISION = "2026-09-27.5"
 MARK = '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="Academy university emblem"><defs><linearGradient id="acmark" x2="1" y2="1"><stop stop-color="#3D7BFF"/><stop offset="1" stop-color="#8B5CF6"/></linearGradient></defs><rect x="2" y="2" width="92" height="92" rx="25" fill="url(#acmark)"/><path d="M20 36 48 20 76 36M24 40H72M29 43V63M42 43V59M54 43V59M67 43V63M20 73H76" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M25 63Q37 58 48 65Q59 58 71 63V78Q59 73 48 80Q37 73 25 78ZM48 65V80" fill="#102347" stroke="#79E6F3" stroke-width="2.5" stroke-linejoin="round"/></svg>'''
 WORDMARK = MARK.replace('viewBox="0 0 96 96"','viewBox="0 0 420 96"').replace('</svg>','<text x="114" y="43" fill="#EDF2FF" font-family="Arial,sans-serif" font-size="25" font-weight="700">ALTURAIFI</text><text x="114" y="72" fill="#A9BFFF" font-family="Arial,sans-serif" font-size="20" letter-spacing="5">ACADEMY</text></svg>')
 
@@ -76,4 +76,7 @@ CSS = '''<style>
 .st-key-academy_root .st-key-academy_lesson_panel .lesson {padding:0;margin:0;border:0;border-radius:0;background:none;}
 .st-key-academy_root .st-key-academy_lesson_panel [data-testid="stHorizontalBlock"] {row-gap:12px;}
 @media(max-width:650px){.st-key-academy_root .ac-course-banner{min-height:300px;}.st-key-academy_root .ac-course-copy{padding:22px;}.st-key-academy_root .st-key-academy_lesson_panel{padding:18px;}}
+.st-key-academy_root .st-key-academy_lesson_navigation {padding-top:24px!important;}
+.st-key-academy_root .st-key-academy_start_here {padding:22px;border:1px solid #405381;border-radius:18px;background:linear-gradient(115deg,#183458,#262040);margin-bottom:20px;}
 </style>'''
+

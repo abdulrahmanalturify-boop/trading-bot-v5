@@ -373,6 +373,15 @@ BUILD = "9.8.3"
 
 
 # Academy expansion: original courses retain their identifiers and progress.
-from academy_extra import EXTRA_COURSES, ACADEMY_REVISION
+from academy_extra import EXTRA_COURSES, ACADEMY_REVISION, VIDEOS, COURSE_SOURCES
 from academy_visuals import cover as course_art
 COURSES.extend(EXTRA_COURSES)
+
+
+# One progression order for the catalog, next-course action and dashboard.
+LEVEL_ORDER = ("Beginner", "Essential", "Intermediate", "Advanced")
+BEGINNER_ORDER = ("money_foundations", "goals", "basics", "broker_safety", "diversification_basics",
+                  "funds", "compounding", "returns_costs", "inflation", "execution",
+                  "statements", "behaviour", "candles", "levels")
+COURSES.sort(key=lambda c: (LEVEL_ORDER.index(c["level"][0]),
+             BEGINNER_ORDER.index(c["id"]) if c["id"] in BEGINNER_ORDER else 999))
