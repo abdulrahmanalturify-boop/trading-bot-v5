@@ -1,0 +1,5 @@
+{
+  "experiments": ["baseline"],
+  "company_bots": 100,
+  "sectors": "all"
+}
