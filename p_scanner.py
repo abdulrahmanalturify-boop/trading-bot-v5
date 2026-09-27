@@ -215,19 +215,41 @@ CSS = f"""<style>
   min-height:38px; display:flex; align-items:center; }}
 [class*="st-key-hnfilt"] [data-testid="stCheckbox"]:hover {{ border-color:{_A}88; }}
 [class*="st-key-hnfilt"] [data-testid="stCheckbox"] p {{ font-weight:700; font-size:.84rem; color:#DCE2EC; }}
-.hnbox {{ background:linear-gradient(180deg,{_BG},{T.CARD}); border:1px solid {_BD}; border-radius:16px; padding:12px 14px 4px; height:100%; }}
+.hnbox {{ position:relative; background:linear-gradient(160deg,rgba(61,123,255,.16),rgba(139,92,246,.08) 55%,{T.CARD}); border:1px solid {_BD}; border-radius:16px; padding:0 14px 4px; margin-top:12px;
+  overflow:hidden; transition:border-color .18s ease, box-shadow .18s ease, transform .18s ease; }}
+.hnbox:hover {{ border-color:rgba(126,166,255,.45); box-shadow:0 12px 30px rgba(61,123,255,.14); transform:translateY(-2px); }}
+.hnbox .hnbt {{ margin:0 -14px 4px; padding:10px 14px 9px; border-bottom:1px solid rgba(138,148,167,.14);
+  background:linear-gradient(90deg,rgba(61,123,255,.10),rgba(139,92,246,.05) 60%,transparent); }}
+.hnbox .check {{ transition:background .15s ease; border-radius:8px; color:#DCE2EC; }}
+.hnbox .check b {{ color:#fff; }}
+.hnbox .check:hover {{ background:rgba(126,166,255,.06); }}
 .hnbox .check {{ font-size:.84rem; }} .hnbox .check:last-child {{ border-bottom:0; }}
-.hnbt {{ display:flex; align-items:center; gap:7px; font-weight:800; color:#fff; font-size:.92rem; margin-bottom:2px; }}
-.hnbt .ms {{ color:{_C}; font-size:1.1rem; }}
-.hnbt .sc {{ margin-inline-start:auto; font-size:.72rem; font-weight:800; color:#DCE6FF; background:rgba(61,123,255,.16); border:1px solid {_A}44;
+.hnbt {{ display:flex; align-items:center; gap:7px; font-weight:800; color:#C9D0DC; font-size:.74rem; letter-spacing:.09em;
+  text-transform:uppercase; margin-bottom:2px; }}
+.hnbt .ms {{ color:#7EA6FF; font-size:1.05rem; }}
+.hnbt .sc.ok {{ background:{T.POS_BG} !important; color:{T.POS_FG} !important; border-color:transparent !important; }}
+.hnbt .sc.bad {{ background:{T.NEG_BG} !important; color:{T.NEG_FG} !important; border-color:transparent !important; }}
+.hnbt .sc {{ margin-inline-start:auto; font-size:.72rem; font-weight:800; letter-spacing:0; text-transform:none; color:#DCE6FF; background:rgba(61,123,255,.16); border:1px solid {_A}44;
   border-radius:999px; padding:2px 9px; direction:ltr; unicode-bidi:isolate; }}
 [class*="st-key-hnsec_look"] h4 {{ margin:0 !important; padding:0 !important; }}
 /* ---------- analyst rating card: violet with a faint cyan glow (the brand's gradient, softly) ---------- */
-.hnrate {{ position:relative; overflow:hidden; border-radius:20px; padding:18px 20px 16px; border:1px solid rgba(139,92,246,.42);
-  background:radial-gradient(120% 90% at 0% 0%,rgba(139,92,246,.30),transparent 58%),radial-gradient(90% 80% at 100% 100%,rgba(34,211,238,.16),transparent 60%),
-  linear-gradient(160deg,#141031,#0E1328 55%,#0A1424); box-shadow:0 14px 34px rgba(139,92,246,.18), inset 0 1px 0 rgba(255,255,255,.06); }}
+.hnrate {{ position:relative; overflow:hidden; border-radius:20px; padding:18px 20px 16px; border:1px solid {_BD};
+  background:linear-gradient(160deg,rgba(61,123,255,.16),rgba(139,92,246,.08) 55%,{T.CARD}); box-shadow:0 10px 26px rgba(0,0,0,.22); transition:border-color .18s ease, box-shadow .18s ease, transform .18s ease; }}
+.hnrate:hover {{ border-color:rgba(126,166,255,.45); box-shadow:0 14px 34px rgba(61,123,255,.16); transform:translateY(-2px); }}
+.hntgt {{ position:relative; overflow:hidden; border-radius:16px; padding:0 16px 12px; margin-top:12px; border:1px solid {_BD};
+  background:linear-gradient(160deg,rgba(61,123,255,.16),rgba(139,92,246,.08) 55%,{T.CARD}); transition:border-color .18s ease, box-shadow .18s ease, transform .18s ease; }}
+.hntgt:hover {{ border-color:rgba(126,166,255,.45); box-shadow:0 12px 30px rgba(61,123,255,.14); transform:translateY(-2px); }}
+.hntgt .hnbt {{ margin:0 -16px 6px; padding:10px 16px 9px; border-bottom:1px solid rgba(138,148,167,.14);
+  background:linear-gradient(90deg,rgba(61,123,255,.10),rgba(139,92,246,.05) 60%,transparent); }}
+.hntgt .sv svg {{ width:100%; height:auto; display:block; }}
+.hntgt .cs {{ display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; direction:ltr; }}
+.hntgt .cs .c {{ display:inline-flex; align-items:center; gap:6px; font-size:.74rem; color:#AEB7C6; background:rgba(10,14,23,.45); border:1px solid {_BD};
+  border-radius:999px; padding:3px 10px; }}
+.hntgt .cs .c i {{ width:8px; height:8px; border-radius:50%; }}
+.hntgt .cs .c b {{ color:#fff; }} .hntgt .cs .c em {{ font-style:normal; font-weight:800; }}
+.hntgt .cs .c em.up {{ color:#4ADE80; }} .hntgt .cs .c em.dn {{ color:#F87171; }}
 .hnrate::before {{ content:""; position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg,{_V},{_A},{_C}); opacity:.9; }}
-.hnrate .t {{ font-size:1.35rem; font-weight:800; color:#fff; letter-spacing:-.01em; }}
+.hnrate .t {{ font-size:1.3rem; font-weight:800; color:#fff; letter-spacing:-.01em; }}
 .hnrate .s {{ color:#B9C1D3; font-size:.84rem; margin-top:2px; }}
 .hnrate .g {{ max-width:360px; margin:10px auto 4px; }}
 .hnrate .g svg {{ width:100%; height:auto; display:block; filter:drop-shadow(0 6px 18px rgba(139,92,246,.25)); }}
@@ -740,7 +762,7 @@ def lookup(sym, build=None):
     return res.iloc[0].to_dict(), det.get(sym, {})
 
 
-@st.cache_data(ttl=3600, show_spinner=False, max_entries=48)
+@st.cache_data(ttl=900, show_spinner=False, max_entries=48)
 def catalysts(sym, build=None):
     """The fundamental checks, the events and the news of one stock (the old Catalyst Pro)."""
     inf = data.info(sym)
@@ -853,35 +875,102 @@ ACTION = {"up": ("Upgrade", "ترقية", "up"), "down": ("Downgrade", "تخفي
           "main": ("Maintained", "تثبيت", "neu"), "reit": ("Reiterated", "تأكيد", "neu")}
 
 
-def catalyst_section(sym):
-    """Fundamental checks and events, side by side (right under 'Why this score')."""
-    cat = catalysts(sym, H.BUILD)
-    fund, events = cat["fund"], cat["events"]
-    fs = sum(x["Pass"] for x in fund) / len(fund) * 100 if fund else None
+def score_chip(text, good):
+    """A score in a box title: light green when good, light red when not (None = neutral)."""
+    return f'<span class="sc {"" if good is None else ("ok" if good else "bad")}">{text}</span>'
+
+
+def _event_score(events):
     es = 50.0
     for ev in events:
         es += {"pos": 12, "hot": 8, "neg": -15, "warn": -5}.get(ev["Impact"], 0)
-    es = max(0.0, min(100.0, es))
-    c1, c2 = st.columns(2, gap="medium")
-    with c1:
-        sc = "" if fs is None else f'<span class="sc">{fs:.0f}/100 · {sum(x["Pass"] for x in fund)}/{len(fund)}</span>'
-        ui.html(f'<div class="hnbox"><div class="hnbt">{T.icon("request_quote")}{L("Fundamental analysis", "التحليل الأساسي")}{sc}</div>'
-                + (_checklist(fund) if fund else f'<div class="muted" style="font-size:.84rem;padding:6px 0 10px">{L("No fundamental data (ETF, index or crypto).", "لا توجد بيانات مالية (صندوق أو مؤشر أو عملة رقمية).")}</div>')
-                + "</div>")
-    with c2:
-        rows = []
-        for e in events:
-            en, ar_, kind, ic = engine.IMPACT[e["Impact"]]
-            rows.append(f'<div class="check">{T.badge(L(en, ar_), kind, ic)}<div><b>{T.esc(L(e["Event"], e["Event_ar"]))}</b> '
-                        f'<span class="muted">· {T.esc(L(e["Detail"], e["Detail_ar"]))}</span></div></div>')
-        ui.html(f'<div class="hnbox"><div class="hnbt">{T.icon("event")}{L("Events", "الأحداث")}<span class="sc">{es:.0f}/100</span></div>'
-                + ("".join(rows) or f'<div class="muted" style="font-size:.84rem;padding:6px 0 10px">{L("No special events right now.", "لا توجد أحداث خاصة حالياً.")}</div>')
-                + "</div>")
+    return max(0.0, min(100.0, es))
+
+
+def fundamentals_box(sym):
+    cat = catalysts(sym, H.BUILD)
+    fund = cat["fund"]
+    fs = sum(x["Pass"] for x in fund) / len(fund) * 100 if fund else None
+    sc = "" if fs is None else score_chip(f'{fs:.0f}/100 · {sum(x["Pass"] for x in fund)}/{len(fund)}', fs >= 50)
+    ui.html(f'<div class="hnbox"><div class="hnbt">{T.icon("request_quote")}<span>{L("Fundamental analysis", "التحليل الأساسي")}</span>{sc}</div>'
+            + (_checklist(fund) if fund else f'<div class="muted" style="font-size:.84rem;padding:6px 0 10px">{L("No fundamental data (ETF, index or crypto).", "لا توجد بيانات مالية (صندوق أو مؤشر أو عملة رقمية).")}</div>')
+            + "</div>")
+
+
+def events_box(sym):
+    cat = catalysts(sym, H.BUILD)
+    events = cat["events"]
+    es = _event_score(events)
+    rows = []
+    for e in events:
+        en, ar_, kind, ic = engine.IMPACT[e["Impact"]]
+        rows.append(f'<div class="check">{T.badge(L(en, ar_), kind, ic)}<div><b>{T.esc(L(e["Event"], e["Event_ar"]))}</b> '
+                    f'<span class="muted">· {T.esc(L(e["Detail"], e["Detail_ar"]))}</span></div></div>')
+    ui.html(f'<div class="hnbox"><div class="hnbt">{T.icon("event")}<span>{L("Events", "الأحداث")}</span>{score_chip(f"{es:.0f}/100", es >= 50)}</div>'
+            + ("".join(rows) or f'<div class="muted" style="font-size:.84rem;padding:6px 0 10px">{L("No special events right now.", "لا توجد أحداث خاصة حالياً.")}</div>')
+            + "</div>")
+
+
+def target_card(price, tg):
+    """12-month price targets as a modern card: a low-to-high track (red to gold to green), the low, median, mean and high
+    targets and today's price, labels kept apart, and the upside of each target in chips below."""
+    pts = [(k, float(tg[k])) for k in ("low", "median", "mean", "high") if tg.get(k)]
+    if len(pts) < 2 or not price:
+        return ""
+    names = {"low": ("Low", "الأدنى", _D), "median": ("Median", "الوسيط", _G), "mean": ("Mean", "المتوسط", _A), "high": ("High", "الأعلى", _U)}
+    lo = min([v for _, v in pts] + [price])
+    hi = max([v for _, v in pts] + [price])
+    span = (hi - lo) or 1.0
+    W, pad = 640, 34
+    x = lambda v: pad + (v - lo) / span * (W - 2 * pad)
+    y0 = 78
+    svg = [f'<svg viewBox="0 0 {W} 150" xmlns="http://www.w3.org/2000/svg" style="direction:ltr">'
+           f'<defs><linearGradient id="hntg" x1="0" x2="1"><stop offset="0" stop-color="{_D}"/><stop offset=".5" stop-color="{_G}"/>'
+           f'<stop offset="1" stop-color="{_U}"/></linearGradient>'
+           f'<filter id="hntgl" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3" result="b"/>'
+           f'<feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>',
+           f'<rect x="{pad}" y="{y0 - 4}" width="{W - 2 * pad}" height="8" rx="4" fill="rgba(138,148,167,.18)"/>']
+    tl, th = x(min(v for _, v in pts)), x(max(v for _, v in pts))
+    svg.append(f'<rect x="{tl:.1f}" y="{y0 - 4}" width="{max(th - tl, 2):.1f}" height="8" rx="4" fill="url(#hntg)" opacity=".85"/>')
+    # target labels above the track, moved up a row when two are too close
+    placed = []
+    for k, v in sorted(pts, key=lambda t: t[1]):
+        xx = x(v)
+        row = 0
+        while any(abs(xx - px) < 78 and r_ == row for px, r_ in placed):
+            row += 1
+        placed.append((xx, row))
+        en, ar_, col = names[k]
+        ty = y0 - 18 - row * 30
+        anchor = "start" if xx < 60 else ("end" if xx > W - 60 else "middle")
+        svg.append(f'<line x1="{xx:.1f}" y1="{y0 - 7}" x2="{xx:.1f}" y2="{ty + 6}" stroke="{col}" stroke-opacity=".45" stroke-width="1"/>'
+                   f'<circle cx="{xx:.1f}" cy="{y0}" r="8" fill="{col}" stroke="#0A0E17" stroke-width="2.5" filter="url(#hntgl)"/>'
+                   f'<text x="{xx:.1f}" y="{ty - 8}" text-anchor="{anchor}" font-size="11" fill="#9AA4B6" font-family="{T.FONT}">{T.esc(L(en, ar_))}</text>'
+                   f'<text x="{xx:.1f}" y="{ty + 4}" text-anchor="{anchor}" font-size="13" font-weight="800" fill="#fff" font-family="{T.FONT}">${v:,.0f}</text>')
+    xp = x(price)
+    anchor = "start" if xp < 60 else ("end" if xp > W - 60 else "middle")
+    svg.append(f'<path d="M{xp:.1f} {y0 - 10} L{xp + 10:.1f} {y0} L{xp:.1f} {y0 + 10} L{xp - 10:.1f} {y0} Z" fill="#fff" stroke="#0A0E17" stroke-width="2"/>'
+               f'<text x="{xp:.1f}" y="{y0 + 30}" text-anchor="{anchor}" font-size="11" fill="#9AA4B6" font-family="{T.FONT}">{L("Now", "الحالي")}</text>'
+               f'<text x="{xp:.1f}" y="{y0 + 45}" text-anchor="{anchor}" font-size="13" font-weight="800" fill="#fff" font-family="{T.FONT}">${price:,.2f}</text>')
+    top = min((y0 - 18 - r_ * 30 - 22 for _, r_ in placed), default=0)
+    svg[0] = svg[0].replace('viewBox="0 0 {} 150"'.format(W), f'viewBox="0 {min(0, top - 4):.0f} {W} {150 - min(0, top - 4):.0f}"')
+    chips = "".join(f'<span class="c"><i style="background:{names[k][2]}"></i>{T.esc(L(*names[k][:2]))} <b>${v:,.2f}</b>'
+                    f'<em class="{"up" if v >= price else "dn"}">{_pct(price, v):+.1f}%</em></span>' for k, v in pts)
+    return (f'<div class="hntgt"><div class="hnbt">{T.icon("flag")}<span>{L("12-month price targets", "السعر المستهدف خلال 12 شهر")}</span></div>'
+            f'<div class="sv">{"".join(svg)}</svg></div><div class="cs">{chips}</div></div>')
 
 
 # the rating scale of Yahoo Finance (1 = strong buy .. 5 = sell), from the left of the gauge (sell) to its right (strong buy)
 RATING = [("strongSell", "Sell", "بيع", "#A62D4A"), ("sell", "Underperform", "أداء أقل", "#F06E6E"), ("hold", "Hold", "احتفاظ", "#E8A93B"),
           ("buy", "Buy", "شراء", "#6CC46A"), ("strongBuy", "Strong Buy", "شراء قوي", "#5DD3A8")]
+
+
+def _num0(v):
+    try:
+        v = float(v)
+        return int(v) if np.isfinite(v) else 0
+    except (TypeError, ValueError):
+        return 0
 
 
 def _rating_counts(rec):
@@ -890,7 +979,41 @@ def _rating_counts(rec):
         return None
     row = rec[rec["period"].astype(str) == "0m"] if "period" in rec else rec.head(1)
     row = (row if len(row) else rec.head(1)).iloc[0]
-    out = {k: int(pd.to_numeric(row.get(k), errors="coerce") or 0) for k, *_ in RATING}
+    out = {k: _num0(row.get(k)) for k, *_ in RATING}
+    return out if sum(out.values()) else None
+
+
+def _bucket(grade):
+    """A broker's grade (Overweight, Market Perform, ...) on the five-step scale; None when unknown."""
+    g = str(grade or "").strip().lower()
+    if not g or g == "nan":
+        return None
+    if any(w in g for w in ("strong buy", "top pick", "conviction buy")):
+        return "strongBuy"
+    if any(w in g for w in ("strong sell",)):
+        return "strongSell"
+    if any(w in g for w in ("underperform", "underweight", "reduce", "negative", "sector underperform", "market underperform")):
+        return "sell"
+    if g == "sell" or g.endswith(" sell"):
+        return "strongSell"
+    if any(w in g for w in ("buy", "outperform", "overweight", "positive", "accumulate", "add", "long-term buy")):
+        return "buy"
+    if any(w in g for w in ("hold", "neutral", "equal", "market perform", "sector perform", "in-line", "inline", "peer perform", "perform")):
+        return "hold"
+    return None
+
+
+def _counts_from_ratings(rr):
+    """Fallback when Yahoo's summary is missing: each firm's latest grade of the last 90 days."""
+    if not isinstance(rr, pd.DataFrame) or rr.empty or "ToGrade" not in rr:
+        return None
+    latest = rr.sort_index(ascending=False)
+    latest = latest[~latest["Firm"].duplicated()] if "Firm" in latest else latest
+    out = {k: 0 for k, *_ in RATING}
+    for g in latest["ToGrade"]:
+        b_ = _bucket(g)
+        if b_:
+            out[b_] += 1
     return out if sum(out.values()) else None
 
 
@@ -932,7 +1055,8 @@ def rating_gauge(counts, label, color):
             f'<defs><radialGradient id="hnrg2" cx="50%" cy="100%" r="80%"><stop offset="0" stop-color="#8B5CF6" stop-opacity=".22"/>'
             f'<stop offset="1" stop-color="#0A0E17" stop-opacity=".0"/></radialGradient></defs>{"".join(parts)}'
             f'<path d="M{cx - ri + 12} {cy} A{ri - 12} {ri - 12} 0 0 1 {cx + ri - 12} {cy} Z" fill="url(#hnrg2)"/>'
-            f'<text x="{cx}" y="{cy - 22}" text-anchor="middle" font-size="40" font-weight="800" fill="{color}" font-family="{T.FONT}">{T.esc(label)}</text></svg>')
+            f'<text x="{cx}" y="{cy - 16}" text-anchor="middle" font-size="{min(38, 148 / max(len(label) * 0.6, 1)):.0f}" font-weight="800" '
+            f'fill="{color}" font-family="{T.FONT}">{T.esc(label)}</text></svg>')
 
 
 def analyst_section(sym, price):
@@ -946,17 +1070,31 @@ def analyst_section(sym, price):
     lo_t, hi_t = tg.get("low") or an.get("targetLowPrice"), tg.get("high") or an.get("targetHighPrice")
     rr = cat["ratings"] if isinstance(cat["ratings"], pd.DataFrame) else pd.DataFrame()
     mean_r = an.get("recommendationMean")
-    if not (counts or mean_r or mean_t or len(rr)):
-        return
+    try:
+        mean_r = float(mean_r) if mean_r is not None and np.isfinite(float(mean_r)) else None
+    except (TypeError, ValueError):
+        mean_r = None
+    source = "summary"
+    if not counts:
+        counts = _counts_from_ratings(rr)
+        source = "firms" if counts else "none"
+    if not n and counts:
+        n = sum(counts.values())
     ui.sec("groups", "Analysts", "المحللون")
-    en, ar_, color = rating_label(counts, float(mean_r) if mean_r else None)
+    en, ar_, color = rating_label(counts, mean_r)
     tot = sum(counts.values()) if counts else 0
     legend = "".join(f'<div class="rl"><i style="background:{col}"></i>{T.esc(L(e_, a_))} <b>{counts[k] / tot * 100:.0f}%</b></div>'
                      for k, e_, a_, col in RATING) if tot else ""
     when = _today_ny().strftime("%m/%d/%Y")
-    sub = (L(f"Based on {n} analysts. Updated on {when} ET.", f"بناءً على {n} محلل. آخر تحديث {when} بتوقيت نيويورك.") if n else
-           L("No analyst count available.", "عدد المحللين غير متاح."))
-    mean_txt = f'<div class="mr">{L("Average rating", "متوسط التقييم")} <b>{float(mean_r):.2f}</b> / 5 <span>{L("(1 = strong buy, 5 = sell)", "(1 = شراء قوي، 5 = بيع)")}</span></div>' if mean_r else ""
+    if source == "firms":
+        sub = L(f"Based on the latest rating of {n} firms (90 days). Updated on {when} ET.",
+                f"بناءً على آخر توصية لـ {n} جهة (90 يوم). آخر تحديث {when} بتوقيت نيويورك.")
+    elif n:
+        sub = L(f"Based on {n} analysts. Updated on {when} ET.", f"بناءً على {n} محلل. آخر تحديث {when} بتوقيت نيويورك.")
+    else:
+        sub = L("Yahoo Finance sent no analyst data for this stock right now; it is tried again on the next view.",
+                "ياهو فاينانس ما أرسل بيانات المحللين لهذا السهم الحين، وتنطلب من جديد مع الفتح القادم.")
+    mean_txt = f'<div class="mr">{L("Average rating", "متوسط التقييم")} <b>{mean_r:.2f}</b> / 5 <span>{L("(1 = strong buy, 5 = sell)", "(1 = شراء قوي، 5 = بيع)")}</span></div>' if mean_r else ""
     card = (f'<div class="hnrate"><div class="t">{L("Analyst Rating", "تقييم المحللين")}</div><div class="s">{T.esc(sub)}</div>'
             f'<div class="g">{rating_gauge(counts, L(en, ar_), color)}</div><div class="lgs">{legend}</div>{mean_txt}</div>')
     ups = downs = 0
@@ -979,7 +1117,7 @@ def analyst_section(sym, price):
     with c2:
         ui.html('<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">' + "".join(tiles) + "</div>")
         if tg and price:
-            ui.chart(charts.target_chart(price, tg, L("12-month price targets", "السعر المستهدف (12 شهر)")), key=f"hn_tgt_{_key(sym)}")
+            ui.html(target_card(price, tg))
     ui.html(f'<div class="hnbt" style="margin-top:6px">{T.icon("table_rows")}{L("Analysts and their ratings (90 days)", "المحللون وتوصياتهم (90 يوم)")}</div>')
     if not len(rr):
         st.caption(L("No rating changes in the last 90 days.", "لا توجد تغييرات تقييم خلال آخر 90 يوم."))
@@ -1009,7 +1147,7 @@ def analyst_section(sym, price):
 def news_section(sym):
     cat = catalysts(sym, H.BUILD)
     if cat["news"]:
-        ui.sec("newspaper", "Latest news", "آخر الأخبار")
+        ui.sec("newspaper", f"Latest news · {sym}", f"آخر الأخبار · {sym}")
         ui.news_list(cat["news"], 6)
 
 
@@ -1042,6 +1180,7 @@ def detail(r, det, got):
                            (L("Target", "هدف"), r["Target"], _U, "dash")] if np.isfinite(r["Entry"]) else None)
                 ui.chart(charts.price_chart(d.tail(190), "Candles", ["SMA 20", "SMA 50", "SMA 200"], [], False, levels=levels, height=470),
                          key=f"hn_chart_{_key(sym)}")
+            ui.safe(fundamentals_box, sym)
         with right:
             ui.sec("donut_large", "Why this score", "ليش هالتقييم")
             parts = {"trend": r["Trend"], "rs": r["RS"], "volume": r["Accum"], "setup": r["SetupPts"], "risk": r["RiskPts"]}
@@ -1049,11 +1188,11 @@ def detail(r, det, got):
                 f'<div class="r"><span>{T.esc(L(*H.PARTS[p]))} <span class="w">· {int(H.WEIGHTS[p] * 100)}%</span></span>'
                 f'<div class="bar"><i style="width:{float(v):.0f}%"></i></div><b>{float(v):.0f}</b></div>' for p, v in parts.items()) + "</div>")
             tc = tech_checks(r, det, d, spy5)
-            ui.html(f'<div class="hnbox" style="margin-top:12px"><div class="hnbt">{T.icon("query_stats")}{L("Technical checks", "الفحص الفني")}'
-                    f'<span class="sc">{sum(c_["Pass"] for c_ in tc)}/{len(tc)}</span></div>{_checklist2(tc)}</div>')
+            npass = sum(c_["Pass"] for c_ in tc)
+            ui.html(f'<div class="hnbox" style="margin-top:12px"><div class="hnbt">{T.icon("query_stats")}<span>{L("Technical checks", "الفحص الفني")}</span>'
+                    f'{score_chip(f"{npass}/{len(tc)}", npass >= len(tc) / 2)}</div>{_checklist2(tc)}</div>')
+            ui.safe(events_box, sym)
 
-    with st.container(key=f"hnsec_cat_{_key(sym)}"):
-        ui.safe(catalyst_section, sym)
     with st.container(key=f"hnsec_an_{_key(sym)}"):
         ui.safe(analyst_section, sym, float(r["Price"]))
 
@@ -1107,9 +1246,6 @@ def detail(r, det, got):
             elif st.button(L("Add to watchlist", "أضف للمتابعة"), icon=":material/star:", key="hn_wl"):
                 wl.append(sym)
                 st.toast(L(f"{sym} added to your watchlist", f"انضاف {sym} لقائمة المتابعة"), icon=":material/star:")
-
-    with st.container(key=f"hnsec_news_{_key(sym)}"):
-        ui.safe(news_section, sym)
 
 
 # ---------------------------------------------------------------- the table and the charts
@@ -1237,6 +1373,10 @@ def page_scanner():
                                                           L("Score", "التقييم"))), key="hn_map"))
             with c2:
                 ui.safe(sector_chart, got["sec"])
+    news_sym = look or (ss.get("hn_sel") if not view.empty else None)
+    if news_sym:
+        with st.container(key="hnsec_news"):
+            ui.safe(news_section, news_sym)
     with st.expander(L("How the hunter works", "كيف يشتغل الصائد"), icon=":material/help:"):
         ui.html('<div class="hnnote">' + L(
             "<b>Setups</b> are exact rules on the daily close (the four combined strategies of the Paper Bots, breakouts, leaders, "
@@ -1262,4 +1402,4 @@ def page_scanner():
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "8.7"
+BUILD = "8.8"

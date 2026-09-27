@@ -564,8 +564,22 @@ def logo_url(sym):
 
 
 # ---------------------------------------------------------------- fundamentals & catalysts
-@st.cache_data(ttl=21600, show_spinner=False)
+def _empty_fundamentals():
+    return {"earnings_date": None, "ratings": pd.DataFrame(), "targets": {}, "rec_summary": pd.DataFrame(),
+            "earnings_hist": pd.DataFrame(), "income_q": pd.DataFrame(), "insiders": pd.DataFrame()}
+
+
 def fundamentals(symbol):
+    """Earnings date, analyst ratings / targets / recommendations, EPS history, quarterly income, insiders.
+    A fetch that brings nothing back (Yahoo busy) isn't kept, so the next page view tries again."""
+    try:
+        return _fundamentals(symbol)
+    except Exception:
+        return _empty_fundamentals()
+
+
+@st.cache_data(ttl=21600, show_spinner=False)
+def _fundamentals(symbol):
     t = yf.Ticker(symbol)
     out = {"earnings_date": None, "ratings": pd.DataFrame(), "targets": {}, "rec_summary": pd.DataFrame(),
            "earnings_hist": pd.DataFrame(), "income_q": pd.DataFrame(), "insiders": pd.DataFrame()}
@@ -609,6 +623,10 @@ def fundamentals(symbol):
     attempt("earnings_hist", earnings_hist)
     attempt("income_q", lambda: t.quarterly_income_stmt)
     attempt("insiders", lambda: t.insider_transactions)
+    got = [out["earnings_date"] is not None, len(out["targets"]) > 0] + [isinstance(out[k], pd.DataFrame) and not out[k].empty
+                                                                        for k in ("ratings", "rec_summary", "earnings_hist", "income_q")]
+    if not any(got):
+        raise Empty(symbol)                  # not cached: try again next time
     return out
 
 
@@ -1163,4 +1181,4 @@ def revenues(symbols, limit=100):
     return out
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "8.7"
+BUILD = "8.8"
