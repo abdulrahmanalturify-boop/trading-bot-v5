@@ -60,5 +60,16 @@ def main():
     return 0
 
 
+def report(e):
+    """The error as a GitHub annotation (readable on the run's page), with anything that looks like a token hidden."""
+    import re
+    msg = re.sub(r"hf_[A-Za-z0-9]{6,}", "hf_***", f"{type(e).__name__}: {e}").replace("\n", " ")[:600]
+    print(f"::error title=Hugging Face sync::{msg}")
+
+
 if __name__ == "__main__":
-    sys.exit(main())
+    try:
+        sys.exit(main())
+    except Exception as e:                  # say what went wrong where it can be read, then fail the run
+        report(e)
+        raise
