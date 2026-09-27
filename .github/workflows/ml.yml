@@ -1,0 +1,41 @@
+# Trains the AI bots' models on real prices and tests them (branch "research" only; the site on "main" is not touched).
+# A push of research/train_ml.py or mlbots.py (or a manual run) runs research/train_ml.py and commits models/, ml_results.json
+# and research/results/ml_summary.md.
+name: ai bots
+on:
+  push:
+    branches: [research]
+    paths: ["research/train_ml.py", "mlbots.py"]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: ai-bots
+  cancel-in-progress: true
+jobs:
+  train:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt "scikit-learn>=1.4"
+      - id: day
+        run: echo "d=$(date -u +%Y%m%d)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        with:
+          path: research/.cache
+          key: prices-${{ steps.day.outputs.d }}
+          restore-keys: prices-
+      - run: python research/train_ml.py
+      - name: Save the models and the report
+        run: |
+          git config user.name "research-lab"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add models ml_results.json research/results/ml_summary.md
+          git commit -m "ai models [skip ci]" || exit 0
+          git pull --rebase -q origin research
+          git push -q origin HEAD:research

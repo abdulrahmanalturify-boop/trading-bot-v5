@@ -50,12 +50,13 @@ from math import exp
 import data
 import engine
 import mcal
+import mlbots as MLB
 import playbooks as PB
 import ta
 import universe as U
 from autotrader import bs_call, strike_for
 
-MAX_BOTS = 5
+MAX_BOTS = 10
 MAX_POS_LIMIT = 20
 TABLE = "paper_bots"
 KINDS = ("company", "sector", "industry", "all")
@@ -360,6 +361,7 @@ def _norm(r):
                 "risk_pct": min(max(_num(params.get("risk_pct")) if isinstance(params, dict) else 0.0, 0.0), 10.0),
                 "regime": int(min(max(_num(params.get("regime")) if isinstance(params, dict) else 0, 0), 2)),
                 "trend_filter": int(bool(_num(params.get("trend_filter")))) if isinstance(params, dict) else 0,
+                "ml": str(params["ml"])[:40] if isinstance(params, dict) and params.get("ml") else None,
                 "fwd": params.get("fwd") if isinstance(params, dict) and isinstance(params.get("fwd"), dict) else None,
                 "fwd_prev": list(params.get("fwd_prev") or []) if isinstance(params, dict) else []}
     except Exception:
@@ -367,7 +369,7 @@ def _norm(r):
 
 
 def make_record(name, kind, value, strategies, max_pos, capital, fee, stop_pct, atr_mult, tp_pct, trail_pct, start_date, combine=None,
-                instrument="stock", options=None, risk_pct=0.0, regime=0, trend_filter=0):
+                instrument="stock", options=None, risk_pct=0.0, regime=0, trend_filter=0, ml=None):
     """Settings from the form -> a row for the table (FIELDS).
     combine: None / {'mode': 'any'} = any strategy opens its own trades; {'mode': 'combo', 'min': n} = buy only when at least
     n of the strategies agree (see simulate)."""
@@ -392,7 +394,8 @@ def make_record(name, kind, value, strategies, max_pos, capital, fee, stop_pct, 
                       "instrument": instrument if instrument in INSTRUMENTS else "stock", "options": clean_options(options),
                       **({"risk_pct": round(min(max(float(risk_pct or 0), 0.0), 10.0), 4)} if risk_pct else {}),
                       **({"regime": int(min(max(int(regime), 0), 2))} if regime else {}),
-                      **({"trend_filter": 1} if trend_filter else {})},
+                      **({"trend_filter": 1} if trend_filter else {}),
+                      **({"ml": str(ml)[:40]} if ml else {})},
            "capital": float(capital), "fee": float(fee), "stop_pct": float(stop_pct), "atr_mult": float(atr_mult),
            "tp_pct": float(tp_pct), "trail_pct": float(trail_pct), "start_date": str(start_date)[:10]}
     rec["params"]["fwd"] = new_record(_settings_of_record(rec))
@@ -503,7 +506,7 @@ def _settings_of_record(rec):
     p = rec["params"]
     return {"kind": p["universe"]["kind"], "value": p["universe"]["value"], "strategies": p["strategies"], "combine": p["combine"],
             "max_pos": p["max_pos"], "instrument": p["instrument"], "options": p["options"], "risk_pct": p.get("risk_pct", 0.0),
-            "regime": p.get("regime", 0), "trend_filter": p.get("trend_filter", 0),
+            "regime": p.get("regime", 0), "trend_filter": p.get("trend_filter", 0), "ml": p.get("ml"),
             **{k: rec[k] for k in ("capital", "fee", "stop_pct", "atr_mult", "tp_pct", "trail_pct")}}
 
 
@@ -519,7 +522,8 @@ def settings_of(bot):
          **{k: round(float(bot[k]), 6) for k in ("capital", "fee", "stop_pct", "atr_mult", "tp_pct", "trail_pct")},
          **({"risk_pct": round(float(bot["risk_pct"]), 6)} if bot.get("risk_pct") else {}),
          **({"regime": int(bot["regime"])} if bot.get("regime") else {}),
-         **({"trend_filter": 1} if bot.get("trend_filter") else {})}, default=float))
+         **({"trend_filter": 1} if bot.get("trend_filter") else {}),
+         **({"ml": str(bot["ml"])} if bot.get("ml") else {})}, default=float))
 
 
 def settings_hash(bot):
@@ -560,6 +564,7 @@ def params_of(bot):
             **({"risk_pct": bot["risk_pct"]} if bot.get("risk_pct") else {}),
             **({"regime": int(bot["regime"])} if bot.get("regime") else {}),
             **({"trend_filter": 1} if bot.get("trend_filter") else {}),
+            **({"ml": str(bot["ml"])} if bot.get("ml") else {}),
             "fwd_prev": bot.get("fwd_prev") or []}
 
 
@@ -663,6 +668,10 @@ def simulate(bot, px, spy=None, record=None):
     ('eq_rows') of the run is returned, so the caller can record the sessions that have closed."""
     out = {"bot": bot, "ok": False, "why": None, "waiting": False}
     if not bot.get("valid") or PB.ORB in bot["strategies"]:           # the Opening Range Breakout runs in simulate_orb
+        out["why"] = "strategy"
+        return out
+    model = MLB.load(bot.get("ml")) if bot.get("ml") else None        # an AI bot: its model (mlbots.py)
+    if bot.get("ml") and model is None:
         out["why"] = "strategy"
         return out
     frames = {}
@@ -784,6 +793,17 @@ def simulate(bot, px, spy=None, record=None):
         ENT &= okm[None, :, None]
         if regime == 2:
             EXT |= (~okm)[None, :, None] & valid[None, :, :]
+    # an AI bot: a buy signal counts only when its model gives the trade at least the model's chance of a win, and the
+    # highest chances fill the free slots first
+    SCORE = None
+    if model is not None:
+        PR = MLB.scores(model, frames, syms, idx, spy, ENT)
+        ENT &= np.nan_to_num(PR, nan=-1.0) >= float(model.get("threshold", 0.0))
+        SCORE = np.where(ENT, np.nan_to_num(PR, nan=-1.0), -1.0).max(axis=0)
+        last = PR[:, -1, :]
+        out["ml_last"] = {"day": str(idx[-1])[:10], "threshold": float(model.get("threshold", 0.0)),
+                          "signals": sorted(((syms[j], float(np.nanmax(last[:, j]))) for j in np.flatnonzero(~np.isnan(last).all(axis=0))),
+                                            key=lambda x: -x[1])[:40]}
     if want_put:
         PENT &= live[None, :, None]
         PENT &= valid[None, :, :]
@@ -862,7 +882,7 @@ def simulate(bot, px, spy=None, record=None):
                 row = ENT[:, t, :]
                 for j in np.flatnonzero(row.any(axis=0)):
                     m_ = MOM[t, j]
-                    rank_ = (-m_ if not np.isnan(m_) else np.inf, syms[j])
+                    rank_ = ((-SCORE[t, j], syms[j]) if SCORE is not None else (-m_ if not np.isnan(m_) else np.inf, syms[j]))
                     if want_stock and (j, "S") not in pos:
                         cand.append((rank_, int(j), int(np.argmax(row[:, j])), "Stock"))
                     if want_call and (j, "O") not in pos:
