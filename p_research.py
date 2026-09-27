@@ -11,6 +11,7 @@ import streamlit as st
 import charts
 import data
 import engine
+import sharia
 import ta
 import taxonomy as X
 import theme as T
@@ -161,18 +162,11 @@ def technicals_tab(daily):
              m(L("Bollinger width", "عرض بولنجر"), f"{last['BB_width'] * 100:.1f}%") if pd.notna(last.get("BB_width", np.nan)) else "",
              m(L("Volume vs 20-day avg", "الحجم مقابل متوسط 20"), f"{vol_x:.2f}×", "pos" if vol_x > 1.2 else "neu") if pd.notna(vol_x) else "",
              m("MACD", f"{last['MACD']:.2f} / {last['MACD_signal']:.2f}", T.cls(last["MACD"] - last["MACD_signal"])) if pd.notna(last.get("MACD", np.nan)) else ""]
-    ui.html('<div class="mx">' + "".join(cards) + "</div>")
-
-    left, right = st.columns([1.35, 1])
-    with left:
-        ui.sec("tune", "Indicator signals", "إشارات المؤشرات")
-        items = []
-        for _, r in table.iterrows():
-            k = {"Buy": "pos", "Sell": "neg"}.get(r["Signal"], "neu")
-            items.append(f'<div class="sg"><div><div class="n">{T.esc(r["Indicator"])}</div><div class="v">{r["Value"]:,.2f}</div></div>'
-                         f'<span class="pill {k}" style="min-width:64px">{T.esc(sig(r["Signal"]))}</span></div>')
-        ui.html('<div class="sigs">' + "".join(items) + "</div>")
-    with right:
+    kl, kr = st.columns([1.35, 1])
+    with kl:
+        ui.sec("insights", "Key readings", "قراءات أساسية")
+        ui.html('<div class="mx">' + "".join(cards) + "</div>")
+    with kr:
         ui.sec("stacked_line_chart", "Price ladder: pivots & support / resistance", "سلّم الأسعار: الارتكاز والدعوم والمقاومات")
         piv = ta.pivot_points(daily)
         levels = [(k, v, "res" if k.startswith("R") else ("sup" if k.startswith("S") else "piv")) for k, v in piv.items()]
@@ -184,6 +178,24 @@ def technicals_tab(daily):
         ui.html(T.ladder(levels, price, L("Price", "السعر")))
         st.caption(L("R = resistance above the price, S = support below it, P = pivot. Distance is from the current price.",
                      "R = مقاومة فوق السعر، S = دعم تحت السعر، P = نقطة الارتكاز. المسافة محسوبة من السعر الحالي."))
+
+    ui.sec("tune", "Indicator signals", "إشارات المؤشرات")
+    groups = [(L("Oscillators", "المذبذبات"), "speed", table[~is_ma]),
+              (L("EMA moving averages", "المتوسطات الأُسّية EMA"), "show_chart", table[table["Indicator"].str.startswith("EMA")]),
+              (L("SMA moving averages", "المتوسطات البسيطة SMA"), "timeline", table[table["Indicator"].str.startswith("SMA")])]
+    cols_html = []
+    for name, ic, g in groups:
+        if g.empty:
+            continue
+        nb, ns = int((g["Signal"] == "Buy").sum()), int((g["Signal"] == "Sell").sum())
+        rows = "".join(f'<div class="sgr"><span class="n">{T.esc(r["Indicator"])}</span><span class="v">{r["Value"]:,.2f}</span>'
+                       f'<span class="pill {({"Buy": "pos", "Sell": "neg"}.get(r["Signal"], "neu"))}">{T.esc(sig(r["Signal"]))}</span></div>'
+                       for _, r in g.iterrows())
+        cols_html.append(f'<div class="sgcol"><div class="sgh">{T.icon(ic)}<b>{T.esc(name)}</b>'
+                         f'<span class="ct"><i class="up">{nb} {T.esc(sig("Buy"))}</i><i class="dn">{ns} {T.esc(sig("Sell"))}</i></span></div>'
+                         f'<div class="sgth"><span>{L("Indicator", "المؤشر")}</span><span>{L("Value", "القيمة")}</span><span>{L("Signal", "الإشارة")}</span></div>'
+                         f'{rows}</div>')
+    ui.html('<div class="sgcols">' + "".join(cols_html) + "</div>")
 
 
 # ---------------------------------------------------------------- financials
@@ -545,6 +557,7 @@ def company_tab(sym):
     ui.html('<div class="prof">' + "".join(f'<div class="it"><div class="l">{T.icon(ic)}{T.esc(l)}</div><div class="v">{T.esc(v)}</div></div>'
                                            for ic, l, v in items)
             + f'<div class="it"><div class="l">{T.icon("language")}{L("Website", "الموقع الإلكتروني")}</div><div class="v">{web}</div></div></div>')
+    ui.safe(sharia.section, sym, p.get("industry"))
     if p["officers"]:
         ui.sec("badge", "Key executives", "كبار التنفيذيين")
         off = pd.DataFrame([{L("Name", "الاسم"): o.get("name"), L("Title", "المنصب"): o.get("title"),
@@ -1429,4 +1442,4 @@ def page_screener():
 # SCANNER
 # =====================================================================
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "9.8.3"
+BUILD = "9.9"

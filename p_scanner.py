@@ -164,9 +164,9 @@ CSS = f"""<style>
 .hndh .px b {{ display:block; font-size:1.3rem; color:#fff; direction:ltr; }}
 .hndh .hnring, .hndh .hnring svg {{ width:62px; height:62px; }}
 .hndh .hnring .g b {{ font-size:1.2rem; }}
-.hnparts {{ display:flex; flex-direction:column; gap:9px; }}
-.hnparts .r {{ display:grid; grid-template-columns:130px 1fr 44px; gap:10px; align-items:center; font-size:.8rem; color:#C9D0DC; }}
-.hnparts .r .w {{ color:{_MU}; font-size:.68rem; }}
+.hnparts {{ display:flex; flex-direction:column; gap:10px; background:{T.BOX_BG}; border:1px solid {_BD}; border-radius:16px; padding:16px 16px 14px; }}
+.hnparts .r {{ display:grid; grid-template-columns:130px 1fr 44px; gap:10px; align-items:center; font-size:.82rem; color:#E3E8F4; font-weight:600; }}
+.hnparts .r .w {{ color:#9FAACB; font-size:.7rem; font-weight:500; }}
 .hnparts .r b {{ color:#fff; text-align:end; direction:ltr; }}
 .hnparts .bar {{ height:8px; border-radius:8px; background:rgba(138,148,167,.16); overflow:hidden; direction:ltr; }}
 .hnparts .bar i {{ display:block; height:100%; border-radius:8px; background:linear-gradient(90deg,{_A},{_V},{_C}); }}
@@ -1502,4 +1502,4 @@ def page_scanner():
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "9.8.3"
+BUILD = "9.9"

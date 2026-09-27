@@ -162,7 +162,7 @@ FLAG_US, FLAG_SA = flags.US, flags.SA
 # after one reboot); until then the same file comes from the public repository through the jsDelivr CDN.
 BG_FILE = "bg_globe.jpg"
 BG_CDN = f"https://cdn.jsdelivr.net/gh/abdulrahmanalturify-boop/trading-bot-v5@fe0f68de01ac1dfcb9f274d5f029a2af215e1bd4/static/{BG_FILE}"   # pinned: never stale
-BG_VEIL = "linear-gradient(180deg, rgba(4,8,16,.56) 0%, rgba(4,8,16,.64) 38%, rgba(4,8,16,.84) 100%)"
+BG_VEIL = "linear-gradient(180deg, rgba(4,8,16,.62) 0%, rgba(4,8,16,.70) 38%, rgba(4,8,16,.86) 100%)"
 
 
 def background_css(static_ok=False):
@@ -388,7 +388,7 @@ a.lnk {{ color:inherit !important; text-decoration:none !important; }} a.lnk:hov
 .ladder {{ display:flex; flex-direction:column; gap:5px; direction:ltr; }}
 .lr {{ display:grid; grid-template-columns: 70px 1fr auto; gap:10px; align-items:center; padding:7px 10px; border-radius:10px; background:{BOX_BG};
   border:1px solid {BORDER}; font-variant-numeric: tabular-nums; }}
-.lr .ln {{ font-weight:800; font-size:.8rem; }} .lr .lp {{ font-weight:700; }}
+.lr .ln {{ font-weight:800; font-size:.8rem; }} .lr .lp {{ font-weight:700; color:#E9EDF5; }}
 .lr.res .ln {{ color:#F87171; }} .lr.sup .ln {{ color:#4ADE80; }} .lr.piv .ln {{ color:#93C5FD; }}
 .lr.now {{ background:{TOP}, linear-gradient(90deg, rgba(61,123,255,.3), rgba(139,92,246,.25)); border-color:{ACCENT}; }}
 .lr.now .ln, .lr.now .lp {{ color:#fff; }}
@@ -1018,6 +1018,30 @@ a.lnk {{ color:inherit !important; text-decoration:none !important; }} a.lnk:hov
 /* ---------- boxes with a see-through tint get a solid dark base, so the background photo never shows through them ---------- */
 :is(.pulse,.brief,.hnbox,.hnrate,.hntgt,.hnkt,.hnplan .p,.tkw,.botbar,.ecard,.ac-hero,.ac-note,.lr.now,.hndh,.hnnote,.pbrl,.story,.news)
   {{ background-color:{CARD} !important; }}
+/* ---------- indicator signals: three columns, each with its name and its column headings on top ---------- */
+.sgcols {{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }}
+@media (max-width: 1100px) {{ .sgcols {{ grid-template-columns:minmax(0,1fr); }} }}
+.sgcol {{ position:relative; overflow:hidden; background:{BOX_BG}; border:1px solid {BORDER}; border-radius:18px; padding:12px 12px 10px 16px; }}
+.sgcol::before {{ content:""; position:absolute; top:0; bottom:0; left:0; width:3px; background:linear-gradient(180deg,{ACCENT},{VIOLET},{CYAN}); }}
+.sgh {{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:2px 0 8px; }}
+.sgh .ms {{ color:#fff; background:linear-gradient(135deg,{ACCENT},{VIOLET}); border-radius:8px; padding:4px; font-size:1rem; }}
+.sgh b {{ color:#fff; font-size:.95rem; font-weight:800; }}
+.sgh .ct {{ margin-inline-start:auto; display:flex; gap:6px; }}
+.sgh .ct i {{ font-style:normal; font-size:.7rem; font-weight:800; padding:2px 8px; border-radius:999px; }}
+.sgh .ct i.up {{ background:{POS_BG}; color:{POS_FG}; }} .sgh .ct i.dn {{ background:{NEG_BG}; color:{NEG_FG}; }}
+.sgth, .sgr {{ display:grid; grid-template-columns:minmax(0,1fr) 84px 80px; gap:8px; align-items:center; }}
+.sgth {{ padding:4px 10px 2px; font-size:.6rem; font-weight:800; letter-spacing:.09em; text-transform:uppercase; color:{MUTED}; }}
+.sgth span:nth-child(2), .sgr .v {{ text-align:right; }} .sgth span:nth-child(3), .sgr .pill {{ justify-self:end; }}
+.sgr {{ margin-top:4px; padding:7px 10px; border-radius:10px; background:rgba(255,255,255,.028); border:1px solid rgba(255,255,255,.045);
+  font-size:.82rem; transition:background .15s ease; }}
+.sgr:hover {{ background:rgba(61,123,255,.10); }}
+.sgr .n {{ color:#fff; font-weight:700; line-height:1.3; }}
+.sgr .v {{ color:#C9D2E8; direction:ltr; font-variant-numeric:tabular-nums; }}
+.sgr .pill {{ min-width:64px; text-align:center; }}
+/* ---------- text that sits straight on the photo stays readable ---------- */
+.sec, [data-testid="stCaptionContainer"], [data-testid="stWidgetLabel"] {{ text-shadow:0 1px 3px rgba(0,0,0,.75); }}
+.sec {{ color:#AEB8D0; }}
+[data-testid="stCaptionContainer"] {{ color:#B3BDD6 !important; }}
 /* ---------- coloured boxes keep their colour: green ones get green edges and a green line on top, red ones red ---------- */
 .botbar {{ background:{UP_LINE}, linear-gradient(90deg, rgba(34,197,94,.1), rgba(61,123,255,.08)); border-color:{UP_EDGE}; }}
 :is(.card,.tile,.kpi,.stat,.mx .m,.opos .o,.perfrow .pc2,.sigs .sg,.lr,.evt,.fgc,.prof .it,.plan .p,.mcard,.lc,.tdc,.tdp,.dcard,.cal .d,.story,.news).pos
@@ -1050,6 +1074,7 @@ html, body, .stApp, .stMarkdown, button, input, textarea, select, label, [data-b
 .st-key-langdd {{ right:auto; left:0; transform-origin: top left; }}
 .nth.fb em::after {{ content:attr(data-ar); }} .nth.fb em {{ letter-spacing:0; font-size:.72rem; }}
 .xtbl th {{ letter-spacing:0; font-size:.7rem; }}
+.sgth {{ letter-spacing:0; font-size:.7rem; }}
 </style>
 """
 
@@ -1631,4 +1656,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "9.8.3"
+BUILD = "9.9"
