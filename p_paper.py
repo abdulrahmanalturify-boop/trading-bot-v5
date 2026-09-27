@@ -394,6 +394,7 @@ a.pblink .ms {{ font-size:1rem; }}
 [class*="st-key-pbq_together"] button [data-testid="stIconMaterial"] {{ color:{_C} !important; }}
 [data-testid="stPopoverBody"] {{ min-width:min(760px, 92vw); }}
 /* the big button at the end of the form */
+[class*="st-key-pb_create"] {{ margin-top:8px; }}
 [class*="st-key-pb_create"] button {{ min-height:54px !important; border:0 !important; border-radius:14px !important;
   background:linear-gradient(95deg,{_A} 0%,{_V} 62%,{_C} 130%) !important; box-shadow:0 12px 30px rgba(61,123,255,.35), inset 0 1px 0 rgba(255,255,255,.2);
   transition:transform .15s ease, box-shadow .15s ease, filter .15s ease; }}
@@ -541,7 +542,9 @@ def _stock_risk(bot):
 def _options_txt(o):
     alloc, tp, sl = iso(f"{o['alloc']:g}%"), iso(f"+{o['tp']:g}%"), iso(f"-{o['sl']:g}%")
     return " · ".join([L(*OTYPE_LABEL[o["type"]]), L(f"{o['dte']} days", f"{o['dte']} يوم"), L(*STRIKE_LABEL[o["strike"]]),
-                       L(f"{alloc} per trade", f"{alloc} لكل صفقة"), L(f"target {tp}", f"هدف {tp}"), L(f"stop {sl}", f"وقف {sl}")])
+                       L(f"{alloc} per trade", f"{alloc} لكل صفقة"),
+                       L(f"target {tp}", f"هدف {tp}") if o["tp"] > 0 else L("no target", "بدون هدف"),
+                       L(f"stop {sl}", f"وقف {sl}") if o["sl"] > 0 else L("no stop", "بدون وقف")])
 
 
 def _session_live():
@@ -2850,8 +2853,10 @@ def bot_form(mode, bot=None):
                 o3.selectbox(L("Strike", "سعر التنفيذ"), list(PB.STRIKES), key="pb_strike", format_func=lambda k: L(*STRIKE_LABEL[k]))
                 o4, o5, o6 = st.columns(3)
                 o4.number_input(L("Per trade (% of balance)", "لكل صفقة (% من الرصيد)"), 0.5, 50.0, step=0.5, key="pb_oalloc")
-                o5.number_input(L("Take profit on the option %", "هدف ربح العقد %"), 5.0, 2000.0, step=5.0, key="pb_otp")
-                o6.number_input(L("Stop loss on the option %", "وقف خسارة العقد %"), 5.0, 95.0, step=5.0, key="pb_osl")
+                o5.number_input(L("Take profit on the option %", "هدف ربح العقد %"), 0.0, 2000.0, step=5.0, key="pb_otp",
+                                help=L("0 = off", "0 = إيقاف"))
+                o6.number_input(L("Stop loss on the option %", "وقف خسارة العقد %"), 0.0, 95.0, step=1.0, key="pb_osl",
+                                help=L("0 = off", "0 = إيقاف"))
                 st.caption(options_caption())
 
     # 6) start
@@ -2874,9 +2879,10 @@ def bot_form(mode, bot=None):
                          "session, and the old record is kept. A new name or start date keeps the forward test going.",
                          "حفظ أي تغيير في طريقة تداول البوت (الاستراتيجيات، الأسهم، رأس المال، المخاطرة) يبدأ تجربة أمامية جديدة من الجلسة "
                          "القادمة، والسجل القديم ينحفظ. تغيير الاسم أو تاريخ البداية ما يوقف التجربة الأمامية."))
-        label = L("Start the bot", "شغّل البوت") if mode == "add" else L("Save changes", "حفظ التعديلات")
-        pressed = st.button(label, type="primary", icon=":material/play_arrow:" if mode == "add" else ":material/save:", key="pb_create",
-                            width="stretch")
+    # the start button sits on its own under box 6
+    label = L("Start the bot", "شغّل البوت") if mode == "add" else L("Save changes", "حفظ التعديلات")
+    pressed = st.button(label, type="primary", icon=":material/play_arrow:" if mode == "add" else ":material/save:", key="pb_create",
+                        width="stretch")
     if not pressed:
         return
     if ss.get("pb_cap_bad"):
@@ -3050,4 +3056,4 @@ def page_paper_bots():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "9.8.2"
+BUILD = "9.8.3"

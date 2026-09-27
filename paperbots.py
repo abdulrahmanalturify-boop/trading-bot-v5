@@ -267,8 +267,8 @@ def clean_options(o):
             "dte": int(min(max(_num(o["dte"], 30), 7), 180)),
             "strike": int(min(STRIKES, key=lambda k: abs(k - _num(o["strike"], 0)))),
             "alloc": float(min(max(_num(o["alloc"], 5.0), 0.5), 50.0)),
-            "tp": float(min(max(_num(o["tp"], 100.0), 5.0), 2000.0)),
-            "sl": float(min(max(_num(o["sl"], 50.0), 5.0), 95.0))}
+            "tp": float(min(max(_num(o["tp"], 100.0), 0.0), 2000.0)),          # 0 = no target on the option
+            "sl": float(min(max(_num(o["sl"], 50.0), 0.0), 95.0))}             # 0 = no stop on the option
 
 
 ALL_STRATEGIES = list(engine.STRATEGIES) + list(PB.PLAYBOOKS)       # fixed order: the first one wins a tie
@@ -1008,9 +1008,9 @@ def simulate(bot, px, spy=None, record=None):
             t_left = (q["expiry"] - idx[t]).days
             q["value"] = _bs(q["kind"], C[t, j], q["K"], max(t_left, 0) / 365, sigma_of(HVC[t, j], q["sigma"]))
             why = None
-            if q["value"] >= q["entry"] * (1 + oc["tp"] / 100):
+            if oc["tp"] > 0 and q["value"] >= q["entry"] * (1 + oc["tp"] / 100):
                 why = "Take Profit"
-            elif q["value"] <= q["entry"] * (1 - oc["sl"] / 100):
+            elif oc["sl"] > 0 and q["value"] <= q["entry"] * (1 - oc["sl"] / 100):
                 why = "Stop Loss"
             elif t_left <= TIME_EXIT_DAYS:
                 why = "Time Exit"
@@ -1035,7 +1035,8 @@ def simulate(bot, px, spy=None, record=None):
             cost = q["shares"] * 100 * q["entry"] + q["shares"] * OPT_FEE
             pnl = q["shares"] * 100 * q["value"] - cost
             pct, exit_px, fees = pnl / cost * 100, q["value"], q["shares"] * OPT_FEE
-            stop_lvl, target_lvl = q["entry"] * (1 - oc["sl"] / 100), q["entry"] * (1 + oc["tp"] / 100)
+            stop_lvl = q["entry"] * (1 - oc["sl"] / 100) if oc["sl"] > 0 else np.nan
+            target_lvl = q["entry"] * (1 + oc["tp"] / 100) if oc["tp"] > 0 else np.nan
         open_rows.append({"Symbol": syms[j], "Strategy": labels[q["k"]], "Entry Date": idx[q["t"]], "Entry": q["entry"],
                           "Exit Date": idx[tl], "Exit": exit_px, "Shares": q["shares"], "P&L $": pnl, "P&L %": pct,
                           "Bars": int(K[tl, j] - q["kb"]), "Exit Reason": "Open", "Type": q["kind"], "Contract": q["contract"],
@@ -1338,4 +1339,4 @@ def journal(sim):
                          "Days": tr["Bars"], "Exit Reason": tr["Exit Reason"]})
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "9.8.2"
+BUILD = "9.8.3"
