@@ -476,11 +476,13 @@ a.pblink .ms {{ font-size:1rem; }}
 [class*="st-key-pbf_"]::before {{ border-radius:18px 18px 0 0; }}
 [class*="st-key-pbkinds_"] [data-testid="stHorizontalBlock"] {{ gap:8px !important; margin-bottom:8px; }}
 [class*="st-key-pbkind_"] {{ position:relative; }}
-.pbkd {{ display:flex; flex-direction:column; align-items:flex-start; gap:5px; height:92px; box-sizing:border-box; border:1px solid {_BD};
+.pbkd {{ display:flex; flex-direction:column; justify-content:center; gap:7px; height:74px; box-sizing:border-box; border:1px solid {_BD};
   border-radius:14px; background:{T.BOX_BG}; padding:10px 12px; cursor:default; transition:border-color .15s, background .15s; }}
+.pbkd .tp {{ display:flex; align-items:center; gap:9px; min-width:0; }}
+.pbkd .i {{ flex:none; display:flex; }}
 .pbkd .i .ms {{ color:{_C}; background:rgba(34,211,238,.12); border-radius:9px; padding:5px; font-size:1.05rem; }}
-.pbkd .nm {{ font-weight:800; font-size:.84rem; color:#fff; line-height:1.2; }}
-.pbkd .ct {{ display:flex; align-items:center; gap:2px; font-size:.68rem; color:{_MU}; font-weight:700; margin-top:auto; }}
+.pbkd .nm {{ font-weight:800; font-size:.86rem; color:#fff; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
+.pbkd .ct {{ display:flex; align-items:center; gap:2px; font-size:.68rem; color:{_MU}; font-weight:700; padding-inline-start:2px; }}
 .pbkd .ct .ms {{ font-size:1rem; transition:transform .15s; }}
 .pbkd.has {{ border-color:{_A}77; background:{T.TOP_THIN}, linear-gradient(135deg,rgba(61,123,255,.14),rgba(139,92,246,.08) 70%,{T.CARD}); }}
 .pbkd.has .ct {{ color:#9CC3FF; }}
@@ -492,10 +494,12 @@ a.pblink .ms {{ font-size:1rem; }}
 [class*="st-key-pbkindl_"][class*="_R"] {{ inset-inline-start:auto; inset-inline-end:0; }}
 [class*="st-key-pbkind_"]:hover [class*="st-key-pbkindl_"], [class*="st-key-pbkind_"]:focus-within [class*="st-key-pbkindl_"] {{ display:flex !important; }}
 [class*="st-key-pbkindl_"] button {{ justify-content:flex-start !important; min-height:36px !important; border-radius:10px !important;
-  border:1px solid transparent !important; background:transparent !important; box-shadow:none !important; }}
+  border:1px solid transparent !important; background:transparent !important; box-shadow:none !important; padding:4px 10px !important; }}
+[class*="st-key-pbkindl_"] button > div {{ justify-content:flex-start !important; width:100% !important; gap:10px !important; }}
+[class*="st-key-pbkindl_"] button [data-testid="stMarkdownContainer"] {{ text-align:start !important; }}
 [class*="st-key-pbkindl_"] button:hover {{ background:rgba(61,123,255,.14) !important; }}
-[class*="st-key-pbkindl_"] button p {{ font-size:.84rem !important; font-weight:700 !important; color:#DCE2EC !important; text-align:start; }}
-[class*="st-key-pbkindl_"] button [data-testid="stIconMaterial"] {{ color:{_MU} !important; }}
+[class*="st-key-pbkindl_"] button p {{ font-size:.84rem !important; font-weight:700 !important; color:#DCE2EC !important; text-align:start !important; }}
+[class*="st-key-pbkindl_"] button [data-testid="stIconMaterial"] {{ color:{_MU} !important; flex:none; font-size:1.15rem !important; margin:0 !important; }}
 [class*="st-key-pbkindl_"] button[kind="primary"], [class*="st-key-pbkindl_"] button[data-testid="stBaseButton-primary"] {{
   background:rgba(61,123,255,.18) !important; border-color:{_A}55 !important; }}
 [class*="st-key-pbkindl_"] button[kind="primary"] [data-testid="stIconMaterial"],
@@ -3028,8 +3032,8 @@ def kind_picker(way, names, store):
                 end = "_R" if i >= per_row // 2 else ""
                 with col:
                     with st.container(key=f"pbkind_{way}_{k}"):
-                        ui.html(f'<div class="pbkd{" has" if n_on else ""}"><span class="i">{T.icon(ic)}</span>'
-                                f'<span class="nm">{T.esc(L(en, ar_))}</span>'
+                        ui.html(f'<div class="pbkd{" has" if n_on else ""}"><div class="tp"><span class="i">{T.icon(ic)}</span>'
+                                f'<span class="nm">{T.esc(L(en, ar_))}</span></div>'
                                 f'<span class="ct">{L(f"{n_on} of {len(items)} chosen", f"{n_on} من {len(items)} مختارة") if n_on else L(f"{len(items)} strategies", f"{len(items)} استراتيجيات")}'
                                 f'{T.icon("expand_more")}</span></div>')
                         with st.container(key=f"pbkindl_{way}_{k}{end}"):
@@ -3870,4 +3874,4 @@ def page_paper_bots():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "11.0"
+BUILD = "11.0.1"
