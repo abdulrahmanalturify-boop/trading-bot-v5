@@ -24,7 +24,7 @@ def main():
     t0 = time.time()
     bots = PB.list_bots()
     before = {b["id"]: (b.get("fwd") or {}).get("until") for b in bots}
-    sims, _ = PB.run_all(bots)
+    sims, _ = PB.run_all(bots, hist=False)
     for s in sims:
         b = s["bot"]
         rec = b.get("fwd") or {}
