@@ -83,52 +83,10 @@ def _history_many(symbols, period, interval):
     return out
 
 
-LONG_PERIODS = ("1y", "2y", "5y", "10y", "max")
-
-
-def _ny_day():
-    return pd.Timestamp.now(tz="America/New_York").strftime("%Y-%m-%d")
-
-
-@st.cache_data(ttl=86400, show_spinner=False, max_entries=6)
-def _history_many_base(symbols, period, day):
-    """The long daily history of many stocks, downloaded once a day (day is only the cache key)."""
-    out = _split(yf.download(list(symbols), period=period, interval="1d", auto_adjust=True, progress=False, threads=True), list(symbols))
-    if not out:
-        raise Empty("batch")
-    return out
-
-
-def _merge_recent(base, fresh):
-    """The day's history with the last few sessions replaced by the fresh download (the rest of the history doesn't change
-    during the day)."""
-    out = {}
-    for s, b in base.items():
-        f = fresh.get(s)
-        if f is None or f.empty or b is None or b.empty:
-            out[s] = b
-            continue
-        f = f[[c for c in b.columns if c in f.columns]]
-        out[s] = pd.concat([b[b.index < f.index[0]], f])
-    return out
-
-
 def history_many(symbols, period="1y", interval="1d"):
-    """{symbol: daily OHLCV} for many symbols. Long daily histories of big groups come from a copy downloaded once a day,
-    with only the last five sessions downloaded again (every 10 minutes), so large groups (500+ stocks) load fast."""
     symbols = tuple(dict.fromkeys(s for s in symbols if s))
     if not symbols:
         return {}
-    if interval == "1d" and period in LONG_PERIODS and len(symbols) > 25:
-        try:
-            base = _history_many_base(symbols, period, _ny_day())
-            try:
-                fresh = _history_many(symbols, "5d", "1d")
-            except Exception:
-                fresh = {}
-            return _merge_recent(base, fresh)
-        except Exception:
-            pass
     try:
         return _history_many(symbols, period, interval)
     except Exception:
@@ -1004,7 +962,7 @@ ytd_change = ta.ytd_change        # year-to-date % change from the last close of
 
 @st.cache_data(ttl=1800, show_spinner=False)
 def _perf(symbols):
-    hist = history_many(symbols, "1y")
+    hist = _history_many(symbols, "1y", "1d")
     rows = []
     for s, df in hist.items():
         c = df["Close"].dropna()
@@ -1225,4 +1183,4 @@ def revenues(symbols, limit=100):
     return out
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "11.1"
+BUILD = "11.0.2"

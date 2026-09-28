@@ -3824,13 +3824,13 @@ def page_paper_bots():
         bots, err = [], e
 
     sims, spy = [], None
-    if bots and "pb_phase" not in ss:              # the forward tests once a session has been saved, else the simulations
-        ss["pb_phase"] = "live" if _saved_sessions([{"bot": b} for b in bots]) else "sim"
     if bots:
         big = any(b["kind"] != "company" for b in bots)
         with st.spinner(L("Updating the bots with the latest prices" + (" (groups of stocks can take up to a minute)..." if big else "..."),
                           "جاري تحديث البوتات بآخر الأسعار" + (" (مجموعات الأسهم قد تاخذ لين دقيقة)..." if big else "..."))):
-            sims, spy = PB.run_all(bots, hist=phase() == "sim")      # the historical simulations only when they are shown
+            sims, spy = PB.run_all(bots)
+    if sims and "pb_phase" not in ss:              # the forward tests once a session has been saved, else the simulations
+        ss["pb_phase"] = "live" if _saved_sessions(sims) else "sim"
     shown = phase_sims(sims, phase())
     ui.html(hero_html(shown, len(bots)))
     storage_notice(err)
@@ -3874,4 +3874,4 @@ def page_paper_bots():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "11.1"
+BUILD = "11.0.2"

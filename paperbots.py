@@ -629,9 +629,6 @@ def market_ok(spy, idx):
 
 
 def _prep(df):
-    ix = df.index
-    if ix.is_monotonic_increasing and ix.is_unique and not np.isnan(df[["Open", "High", "Low", "Close"]].to_numpy(float)).any():
-        return df                                             # already clean: no copy
     df = df.dropna(subset=["Open", "High", "Low", "Close"]).sort_index()
     return df[~df.index.duplicated(keep="last")]
 
@@ -1321,27 +1318,14 @@ def _bench(spy, li, cap):
     return None, None
 
 
-def price_stamp(now=None):
-    """What the bots' results depend on in time: the last session with final prices, plus a half-hour step while the
-    market is open (the day's candle moves). Outside the session nothing changes, so the results are reused until the next
-    close instead of being recalculated."""
-    now = pd.Timestamp(now) if now is not None else ny_now()
-    last = last_closed_session(now)
-    d = now.normalize()
-    if mcal.is_trading_day(d.date()) and d + pd.Timedelta(minutes=9 * 60 + 30) <= now < d + pd.Timedelta(minutes=_close_min(d) + 30):
-        return f"{last}|{now.floor('30min'):%H%M}"
-    return last
-
-
-@st.cache_data(ttl=6 * 3600, show_spinner=False, max_entries=24)
-def _run_cached(bot_json, build=None, with_hist=True, stamp=None):
-    """build: the site version, so results cached by an older version of the engine are never reused.
-    with_hist: also run the historical simulation (only needed when the page shows it). stamp: price_stamp()."""
+@st.cache_data(ttl=600, show_spinner=False, max_entries=24)
+def _run_cached(bot_json, build=None):
+    """build: the site version, so results cached by an older version of the engine are never reused."""
     bot = json.loads(bot_json)
     rec = bot.get("fwd") or None
     since = rec.get("since") if rec else None
     fwd_bot = {**bot, "start_date": max(since, bot["start_date"])} if since else bot
-    hist_bot = {**bot, "fwd": None} if with_hist and since and bot["start_date"] < since else None
+    hist_bot = {**bot, "fwd": None} if since and bot["start_date"] < since else None
     if PB.ORB in bot.get("strategies", {}):          # 5-minute candles (Yahoo keeps 60 days) + daily ones for the ATR
         syms = members(bot["kind"], bot["value"]) if bot.get("valid") else []
         px5 = load_prices(syms, "60d", "5m")
@@ -1379,11 +1363,9 @@ def _before(df, cut):
     return df[np.asarray(ix.normalize() < cut)]
 
 
-def run_all(bots, hist=True):
-    """Every bot replayed (each result reused until the prices move: see price_stamp) + SPY for the comparison chart.
-    hist=False skips the historical simulations (the forward tests are all the page's LIVE view and the recorder need)."""
+def run_all(bots):
+    """Every bot replayed (each result cached for 10 minutes, like the prices) + SPY for the comparison chart."""
     sims = []
-    stamp = price_stamp()
     for b in bots:
         if not b.get("fwd") and b.get("id") is not None:         # a bot saved before forward tests were recorded: start now
             b = {**b, "fwd": new_record(b)}
@@ -1393,7 +1375,7 @@ def run_all(bots, hist=True):
                 pass
         rec = b.get("fwd") or {}
         key = {**b, "fwd_prev": None, "fwd": {k: rec.get(k) for k in ("since", "until", "ev", "sig", "eq")} if rec else None}
-        sim = dict(_run_cached(json.dumps(key, sort_keys=True, default=str), BUILD, bool(hist), stamp))   # only what the run needs is in the key
+        sim = dict(_run_cached(json.dumps(key, sort_keys=True, default=str), BUILD))   # only what the run needs is in the key
         sim["bot"] = b                       # the saved settings as they are (the cache key sorts the JSON)
         if sim.get("hist") is not None:
             sim["hist"] = {**sim["hist"], "bot": b}
@@ -1420,4 +1402,4 @@ def journal(sim):
                          "Days": tr["Bars"], "Exit Reason": tr["Exit Reason"]})
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "11.1"
+BUILD = "11.0.2"
