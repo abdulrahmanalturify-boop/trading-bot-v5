@@ -1509,4 +1509,4 @@ def page_scanner():
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "12.4"
+BUILD = "12.5"

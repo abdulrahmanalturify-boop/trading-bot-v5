@@ -1214,9 +1214,9 @@ FX_CSS = f"""<style>
 FX_JS = """<script>
 (function () {
   var w = window.parent, d = w.document;
-  if (w.__alturaifiFx) return;
-  w.__alturaifiFx = 1;
-  var SEL = %s;
+  if (w.__alturaifiFx2) return;
+  w.__alturaifiFx2 = 1;
+  var SEL = __SEL__;
   var cur = null, raf = 0, x = 0, y = 0;
   function set(el) {
     if (el === cur) return;
@@ -1228,6 +1228,12 @@ FX_JS = """<script>
     raf = 0;
     var el = null, stack = d.elementsFromPoint(x, y);
     for (var i = 0; i < stack.length; i++) { var n = stack[i]; if (n.matches && n.matches(SEL)) { el = n; break; } }
+    var ix = d.querySelector('.ix');                 // the landing: parallax and the spotlight follow the pointer
+    if (ix) {
+      ix.style.setProperty('--px', ((x / w.innerWidth) * 2 - 1).toFixed(3));
+      ix.style.setProperty('--py', ((y / w.innerHeight) * 2 - 1).toFixed(3));
+      ix.style.setProperty('--cx', x + 'px'); ix.style.setProperty('--cy', y + 'px');
+    }
     set(el);
     if (el) {
       var r = el.getBoundingClientRect();
@@ -1242,8 +1248,23 @@ FX_JS = """<script>
   }, {passive: true});
   d.documentElement.addEventListener('mouseleave', function () { set(null); });
   w.addEventListener('scroll', function () { if (cur && !raf) raf = w.requestAnimationFrame(pick); }, {passive: true, capture: true});
+  // the landing's typing line: types each sentence, waits, deletes it, types the next
+  w.setInterval(function () {
+    var els = d.querySelectorAll('.ix-type[data-words]');
+    for (var i = 0; i < els.length; i++) {
+      var el = els[i], s = el.__tw;
+      if (!s) { try { s = el.__tw = {w: JSON.parse(el.getAttribute('data-words')), i: 0, n: 0, dir: 1, hold: 26}; } catch (e) { continue; }
+        s.n = s.w[0].length; s.dir = -1; }
+      if (s.hold > 0) { s.hold--; continue; }
+      var word = s.w[s.i];
+      s.n += s.dir > 0 ? 1 : -2;
+      if (s.dir > 0 && s.n >= word.length) { s.n = word.length; s.dir = -1; s.hold = 34; }
+      else if (s.dir < 0 && s.n <= 0) { s.n = 0; s.dir = 1; s.i = (s.i + 1) % s.w.length; s.hold = 6; }
+      el.textContent = s.w[s.i].slice(0, Math.max(0, s.n));
+    }
+  }, 55);
 })();
-</script>""" % json.dumps(_fx)
+</script>""".replace("__SEL__", json.dumps(_fx))
 
 
 # ---------------------------------------------------------------- formatting
@@ -1823,4 +1844,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "12.4"
+BUILD = "12.5"
