@@ -9,6 +9,7 @@ Fonts: DM Sans (Latin) + Readex Pro (Arabic). Material Symbols icons. No emoji.
 import base64
 import hashlib
 import html
+import json
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
@@ -1161,24 +1162,42 @@ h1 {{ font-weight: 400 !important; letter-spacing: 0; line-height:1.35 !importan
 # The light follows the pointer: over a card, a violet spotlight glows inside it and its edge lights up where the pointer
 # is; the card lifts a little and presses in when clicked. FX_JS (run once per browser tab from app.py) finds the card under
 # the pointer - also under the invisible buttons that make whole cards clickable - and hands it the pointer position.
-FX_CARDS = (".card", ".tile", ".kpi", ".mcard", ".story", ".news", ".lc", ".tdc", ".tdp", ".dcard", ".fgc", ".acard", ".course", ".ecard",
-            ".stat", ".rmeter", ".xtp", ".sgcol", ".czcard", ".pbph", ".pbkd", ".wwc", ".pbrl", ".shc", ".secgrid .sc", ".aic", ".sprow",
-            ".hrow", ".evt", ".prof .it", ".plan .p", ".mx .m", ".wlr")
+FX_CARDS = (
+    # every card, tile and panel of the site (theme)
+    ".card", ".tile", ".kpi", ".mcard", ".lc", ".stat", ".plan .p", ".prof .it", ".news", ".story", ".rmeter", ".lr", ".secgrid .sc",
+    ".course", ".dcard", ".lesson", ".hmwrap", ".tdc", ".tdp", ".cal .d", ".cal .wk", ".opos .o", ".mx .m", ".perfrow .pc2", ".sigs .sg",
+    ".brief", ".evt", ".acard", ".tkw", ".fgc", ".pulse", ".wlr", ".ehub .day", ".etab", ".ecard", ".evday", ".hrow", ".sprow", ".iplist",
+    ".botbar", ".srcc", ".xtp", ".chainwrap", ".sgcol", '[data-testid="stMetric"]', '[data-testid="stPlotlyChart"]',
+    '[data-testid="stExpander"] details',
+    # home page
+    ".czcard", ".czn",
+    # Paper Bots
+    ".pbph", ".pbkd", ".pbmode", ".wwc", ".pbp", ".pbid", ".pbrl", ".aic", '[class*="st-key-aicard_"]', '[class*="st-key-pbmg_"]',
+    '[class*="st-key-pbcalbox_"]',
+    # Opportunity Hunter
+    ".hnbox", ".hnrate", ".hntgt", ".hnkt", ".hnplan .p", ".hndh", '[class*="st-key-hnbar"]', '[class*="st-key-hnfilt"]',
+    # Sharia check
+    ".shc", ".shbn")
+FX_NO_RING = (".hnkt", ".hnplan .p")                                  # their ::after is taken: the spotlight only
+FX_NO_GLOW = (".pbc", ".hnc", ".xtp", ".sgcol", ".pbid", ".pbp", ".hnrate", ".hndh", ".etab", ".iplist", ".chainwrap", ".evday",
+              '[class*="st-key-hnbar"]', '[class*="st-key-hnfilt"]')   # their ::before is taken: the edge light only (.pbc draws its own)
 FX_LIFT = (".kpi", ".mcard", ".story", ".news", ".lc", ".tdc", ".dcard", ".fgc", ".stat", ".ecard", ".shc", ".secgrid .sc", ".sprow", ".hrow",
-           ".evt", ".prof .it", ".plan .p", ".mx .m", ".pbph", ".pbkd")
-FX_NO_GLOW = (".pbc", ".hnc", ".xtp", ".sgcol", ".pbid", ".pbp")      # their ::before is taken: the edge light only (.pbc draws its own spotlight)
+           ".evt", ".prof .it", ".plan .p", ".mx .m", ".pbph", ".pbkd", ".pbmode", ".lr", ".opos .o", ".perfrow .pc2", ".sigs .sg", ".srcc",
+           ".cal .d", ".czn", ".aic", '[data-testid="stMetric"]')
 _fx = ",".join(FX_CARDS)
 _lift = ",".join(FX_LIFT)
+_ring = f":is({_fx}):not({','.join(FX_NO_RING)})"
+_glow = f":is({_fx}):not({','.join(FX_NO_GLOW)})"
 FX_CSS = f"""<style>
 :is({_fx}) {{ position:relative; isolation:isolate; transition: transform .22s cubic-bezier(.2,.8,.2,1), border-color .22s, box-shadow .22s; }}
 /* the edge light: a 1px ring that shows only near the pointer */
-:is({_fx})::after {{ content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none; z-index:3; padding:1px;
+{_ring}::after {{ content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none; z-index:3; padding:1px;
   background: radial-gradient(240px circle at var(--mx,50%) var(--my,50%), rgba(196,181,253,.95), rgba(121,184,244,.45) 38%, transparent 62%);
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
   mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
   opacity:0; transition: opacity .3s ease; }}
 /* the spotlight inside the card: over its background, under its text (each card is its own stacking layer) */
-:is({_fx}):not({",".join(FX_NO_GLOW)})::before {{ content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none; z-index:-1;
+{_glow}::before {{ content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none; z-index:-1;
   background: radial-gradient(420px circle at var(--mx,50%) var(--my,50%), rgba(123,69,240,.16), rgba(7,122,199,.06) 40%, transparent 65%);
   opacity:0; transition: opacity .3s ease; }}
 .fx-on::after, .fx-on::before {{ opacity:1 !important; }}
@@ -1190,7 +1209,7 @@ FX_CSS = f"""<style>
 [data-testid="stElementContainer"]:has(iframe[height="0"]), .element-container:has(iframe[height="0"]) {{ position:absolute !important; width:0 !important;
   height:0 !important; overflow:hidden !important; margin:0 !important; padding:0 !important; }}
 @media (prefers-reduced-motion: reduce) {{ :is({_lift}).fx-on {{ transform:none; }} }}
-@media (hover: none) {{ :is({_fx})::after, :is({_fx})::before {{ display:none; }} }}
+@media (hover: none) {{ {_ring}::after, {_glow}::before {{ display:none; }} }}
 </style>"""
 FX_JS = """<script>
 (function () {
@@ -1224,7 +1243,7 @@ FX_JS = """<script>
   d.documentElement.addEventListener('mouseleave', function () { set(null); });
   w.addEventListener('scroll', function () { if (cur && !raf) raf = w.requestAnimationFrame(pick); }, {passive: true, capture: true});
 })();
-</script>""" % repr(_fx).replace("'", '"')
+</script>""" % json.dumps(_fx)
 
 
 # ---------------------------------------------------------------- formatting
@@ -1804,4 +1823,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "12.3"
+BUILD = "12.4"
