@@ -141,8 +141,9 @@ PAGE_CSS = f"""<style>
 /* ---------- bot cards ---------- */
 .pbc {{ margin:0 !important; height:{_CARD_H}px; box-sizing:border-box; display:flex; flex-direction:column; overflow:hidden; position:relative;
   transition:box-shadow .18s ease, border-color .18s ease; }}
-.pbc::before {{ content:""; position:absolute; left:0; right:0; top:0; height:1px; background:linear-gradient(90deg,transparent,rgba(196,181,253,.5),transparent);
-  opacity:0; transition:opacity .18s; }}
+.pbc::before {{ content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none; z-index:-1;
+  background:radial-gradient(420px circle at var(--mx,50%) var(--my,50%), rgba(123,69,240,.18), rgba(7,122,199,.07) 40%, transparent 65%);
+  opacity:0; transition:opacity .3s ease; }}
 .pbc .top {{ display:flex; justify-content:space-between; align-items:center; height:22px; margin:-4px 0 8px; gap:6px; }}
 .pbc .it {{ display:inline-flex; align-items:center; gap:5px; font-size:.62rem; font-weight:600; letter-spacing:.1em; text-transform:uppercase;
   color:{_MU}; transition:opacity .15s; white-space:nowrap; overflow:hidden; }}
@@ -161,7 +162,7 @@ PAGE_CSS = f"""<style>
 .pbc .row .r {{ text-align:end; white-space:nowrap; }}
 .pbc .pbft {{ color:{_MU}; font-size:.74rem; margin-top:10px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }}
 .pbc.sel {{ border-top:3px solid {_A}; box-shadow:0 0 0 1px {_A}55, 0 12px 30px {_A}26; }}
-.pbc.sel::before {{ display:none; }}
+.pbc.sel::before {{ opacity:.6; }}
 [class*="st-key-pbcard_"] {{ position:relative; transition:transform .18s ease; }}
 [class*="st-key-pbcard_"]:hover {{ transform:translateY(-4px) scale(1.02); z-index:3; }}
 [class*="st-key-pbcard_"]:hover .pbc {{ box-shadow:0 14px 34px rgba(59,139,235,.20); }}
@@ -3873,4 +3874,4 @@ def page_paper_bots():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "12.2"
+BUILD = "12.3"

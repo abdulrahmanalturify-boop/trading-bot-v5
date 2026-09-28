@@ -1,2 +1,2 @@
-A.Alturaifi Pro - version 12.2 (the n8n "midnight engine" look, as in 12.0; the frosted-glass cards of 12.1 are undone)
+A.Alturaifi Pro - version 12.3 (the n8n "midnight engine" look, with interactive cards: the light follows the pointer)
 If you can see this file on GitHub, the new version was uploaded correctly.

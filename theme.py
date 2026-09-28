@@ -1157,6 +1157,76 @@ h1 {{ font-weight: 400 !important; letter-spacing: 0; line-height:1.35 !importan
 """
 
 
+# ---------------------------------------------------------------- interactive cards
+# The light follows the pointer: over a card, a violet spotlight glows inside it and its edge lights up where the pointer
+# is; the card lifts a little and presses in when clicked. FX_JS (run once per browser tab from app.py) finds the card under
+# the pointer - also under the invisible buttons that make whole cards clickable - and hands it the pointer position.
+FX_CARDS = (".card", ".tile", ".kpi", ".mcard", ".story", ".news", ".lc", ".tdc", ".tdp", ".dcard", ".fgc", ".acard", ".course", ".ecard",
+            ".stat", ".rmeter", ".xtp", ".sgcol", ".czcard", ".pbph", ".pbkd", ".wwc", ".pbrl", ".shc", ".secgrid .sc", ".aic", ".sprow",
+            ".hrow", ".evt", ".prof .it", ".plan .p", ".mx .m", ".wlr")
+FX_LIFT = (".kpi", ".mcard", ".story", ".news", ".lc", ".tdc", ".dcard", ".fgc", ".stat", ".ecard", ".shc", ".secgrid .sc", ".sprow", ".hrow",
+           ".evt", ".prof .it", ".plan .p", ".mx .m", ".pbph", ".pbkd")
+FX_NO_GLOW = (".pbc", ".hnc", ".xtp", ".sgcol", ".pbid", ".pbp")      # their ::before is taken: the edge light only (.pbc draws its own spotlight)
+_fx = ",".join(FX_CARDS)
+_lift = ",".join(FX_LIFT)
+FX_CSS = f"""<style>
+:is({_fx}) {{ position:relative; isolation:isolate; transition: transform .22s cubic-bezier(.2,.8,.2,1), border-color .22s, box-shadow .22s; }}
+/* the edge light: a 1px ring that shows only near the pointer */
+:is({_fx})::after {{ content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none; z-index:3; padding:1px;
+  background: radial-gradient(240px circle at var(--mx,50%) var(--my,50%), rgba(196,181,253,.95), rgba(121,184,244,.45) 38%, transparent 62%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  opacity:0; transition: opacity .3s ease; }}
+/* the spotlight inside the card: over its background, under its text (each card is its own stacking layer) */
+:is({_fx}):not({",".join(FX_NO_GLOW)})::before {{ content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none; z-index:-1;
+  background: radial-gradient(420px circle at var(--mx,50%) var(--my,50%), rgba(123,69,240,.16), rgba(7,122,199,.06) 40%, transparent 65%);
+  opacity:0; transition: opacity .3s ease; }}
+.fx-on::after, .fx-on::before {{ opacity:1 !important; }}
+.fx-on {{ border-color: rgba(196,181,253,.28) !important; }}
+/* lift and press */
+:is({_lift}).fx-on {{ transform: translateY(-3px); box-shadow: 0 14px 30px -12px rgba(0,0,0,.7), 0 0 0 1px rgba(123,69,240,.12); }}
+:is({_lift}).fx-on:active {{ transform: translateY(-1px) scale(.99); }}
+/* the invisible frame that runs the script takes no room */
+[data-testid="stElementContainer"]:has(iframe[height="0"]), .element-container:has(iframe[height="0"]) {{ position:absolute !important; width:0 !important;
+  height:0 !important; overflow:hidden !important; margin:0 !important; padding:0 !important; }}
+@media (prefers-reduced-motion: reduce) {{ :is({_lift}).fx-on {{ transform:none; }} }}
+@media (hover: none) {{ :is({_fx})::after, :is({_fx})::before {{ display:none; }} }}
+</style>"""
+FX_JS = """<script>
+(function () {
+  var w = window.parent, d = w.document;
+  if (w.__alturaifiFx) return;
+  w.__alturaifiFx = 1;
+  var SEL = %s;
+  var cur = null, raf = 0, x = 0, y = 0;
+  function set(el) {
+    if (el === cur) return;
+    if (cur) cur.classList.remove('fx-on');
+    cur = el;
+    if (el) el.classList.add('fx-on');
+  }
+  function pick() {
+    raf = 0;
+    var el = null, stack = d.elementsFromPoint(x, y);
+    for (var i = 0; i < stack.length; i++) { var n = stack[i]; if (n.matches && n.matches(SEL)) { el = n; break; } }
+    set(el);
+    if (el) {
+      var r = el.getBoundingClientRect();
+      el.style.setProperty('--mx', (x - r.left) + 'px');
+      el.style.setProperty('--my', (y - r.top) + 'px');
+    }
+  }
+  d.addEventListener('pointermove', function (e) {
+    if (e.pointerType && e.pointerType !== 'mouse') return;
+    x = e.clientX; y = e.clientY;
+    if (!raf) raf = w.requestAnimationFrame(pick);
+  }, {passive: true});
+  d.documentElement.addEventListener('mouseleave', function () { set(null); });
+  w.addEventListener('scroll', function () { if (cur && !raf) raf = w.requestAnimationFrame(pick); }, {passive: true, capture: true});
+})();
+</script>""" % repr(_fx).replace("'", '"')
+
+
 # ---------------------------------------------------------------- formatting
 def fmt_price(x):
     if x is None or pd.isna(x):
@@ -1734,4 +1804,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "12.2"
+BUILD = "12.3"
