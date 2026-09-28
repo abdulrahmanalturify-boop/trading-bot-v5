@@ -160,11 +160,11 @@ PAGE_CSS = f"""<style>
 .pbc .row {{ display:flex; justify-content:space-between; align-items:flex-end; gap:8px; }}
 .pbc .row .r {{ text-align:end; white-space:nowrap; }}
 .pbc .pbft {{ color:{_MU}; font-size:.74rem; margin-top:10px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }}
-.pbc.sel {{ border-top:3px solid {_A}; box-shadow:0 0 0 1px {_A}55, 0 12px 30px {_A}26; }}
+.pbc.sel {{ border-color:rgba(216,236,248,.5) !important; box-shadow:{T.GLASS_SHADOW}, 0 0 0 1px rgba(152,192,239,.35), 0 0 30px rgba(152,192,239,.16); }}
 .pbc.sel::before {{ display:none; }}
 [class*="st-key-pbcard_"] {{ position:relative; transition:transform .18s ease; }}
 [class*="st-key-pbcard_"]:hover {{ transform:translateY(-4px) scale(1.02); z-index:3; }}
-[class*="st-key-pbcard_"]:hover .pbc {{ box-shadow:0 14px 34px rgba(59,139,235,.20); }}
+[class*="st-key-pbcard_"]:hover .pbc {{ box-shadow:{T.GLASS_SHADOW}; border-color:{T.EDGE_HOVER}; }}
 [class*="st-key-pbcard_"]:hover .pbc::before {{ opacity:.95; }}
 [class*="st-key-pbcard_"]:hover .pbc .rk, [class*="st-key-pbcard_"]:hover .pbc .it {{ opacity:0; }}
 [class*="st-key-pbcard_"] [data-testid="stElementContainer"] {{ position:static !important; }}
@@ -211,8 +211,8 @@ PAGE_CSS = f"""<style>
 .pbph {{ position:relative; overflow:hidden; display:flex; align-items:center; gap:11px; height:66px; box-sizing:border-box; border-radius:14px;
   padding:10px 16px; color:#B1ABBA; background:{T.BOX_BG}; border:1px solid {_BD}; transition:background .18s, color .18s, border-color .18s; }}
 [class*="st-key-pbph_"]:hover .pbph:not(.on) {{ border-color:{_A}66; color:#fff; }}
-.pbph.on {{ color:#fff; border-color:{_A}88; background:{T.TOP}, linear-gradient(135deg,rgba(59,139,235,.20),rgba(123,69,240,.14) 70%,{T.CARD});
-  box-shadow:0 8px 22px rgba(59,139,235,.14); }}
+.pbph.on {{ color:#fff; border-color:rgba(216,236,248,.42); background:linear-gradient(135deg,rgba(186,214,247,.14),rgba(186,214,247,.04) 70%), {T.GLASS_BASE};
+  box-shadow:{T.GLASS_SHADOW}, 0 0 0 1px rgba(152,192,239,.22); }}
 .pbph .i .ms {{ font-size:1.2rem; color:{_C}; background:rgba(45,182,235,.12); border-radius:10px; padding:6px; }}
 .pbph.on .i .ms {{ color:#fff; background:rgba(59,139,235,.35); }}
 .pbph .nm {{ display:flex; flex-direction:column; line-height:1.25; min-width:0; }}
@@ -226,10 +226,10 @@ PAGE_CSS = f"""<style>
 .pbrec .c .ms {{ font-size:.95rem; color:{_C}; }}
 
 /* ---------- "Add Bot": the logo tile with a plus and the cyan trend arrow ---------- */
-.pbadd {{ align-items:center; justify-content:center; gap:10px; text-align:center; border:1.5px dashed {_A}77 !important;
-  background:radial-gradient(120% 80% at 50% 0%,rgba(59,139,235,.12),transparent 62%),linear-gradient(180deg,{_BG},{T.CARD}) !important; }}
-[class*="st-key-pbcard_add"]:hover .pbadd {{ border-color:{_A} !important; border-style:solid !important;
-  box-shadow:0 0 0 1px {_A}55, 0 16px 40px rgba(59,139,235,.28) !important; }}
+.pbadd {{ align-items:center; justify-content:center; gap:10px; text-align:center; border:1.5px dashed rgba(186,215,247,.28) !important;
+  background:radial-gradient(120% 80% at 50% 0%,rgba(59,139,235,.12),transparent 62%),{T.GLASS} !important; }}
+[class*="st-key-pbcard_add"]:hover .pbadd {{ border-color:rgba(216,236,248,.5) !important; border-style:solid !important;
+  box-shadow:{T.GLASS_SHADOW}, 0 0 0 1px rgba(152,192,239,.3) !important; }}
 .pbadd .plus {{ width:92px; height:92px; }}
 .pbadd .plus svg {{ width:92px; height:92px; display:block; overflow:visible; }}
 .pbadd .orbit {{ transform-box:view-box; transform-origin:46px 46px; animation:pbspin 16s linear infinite; }}
@@ -240,7 +240,7 @@ PAGE_CSS = f"""<style>
 [class*="st-key-pbcard_add"]:hover .pbadd .spark {{ animation:pbspark 1s ease-out; }}
 @keyframes pbspin {{ to {{ transform:rotate(360deg); }} }}
 @keyframes pbspark {{ from {{ stroke-dashoffset:40; }} to {{ stroke-dashoffset:0; }} }}
-.pbadd .ttl {{ font-weight:600; font-size:1.15rem; background:linear-gradient(90deg,{_A},{_V},{_C}); -webkit-background-clip:text;
+.pbadd .ttl {{ font-weight:600; font-size:1.15rem; background:{T.TITLE_FROST}; -webkit-background-clip:text;
   background-clip:text; color:transparent; }}
 .pbadd .sub {{ color:{_MU}; font-size:.78rem; }}
 .pbadd .slots {{ display:flex; gap:6px; justify-content:center; margin-top:2px; direction:ltr; }}
@@ -382,8 +382,8 @@ a.pblink .ms {{ font-size:1rem; }}
 .pbfb.rtl .pbstp span {{ padding:2px 3px 2px 9px; }}
 .pbfb .pbstp i {{ font-style:normal; width:17px; height:17px; border-radius:50%; display:grid; place-items:center; font-size:.62rem; font-weight:600;
   color:#fff; background:{T.ELECTRIC}; }}
-[class*="st-key-pbf_"] {{ position:relative; overflow:hidden; background:linear-gradient(180deg,{_BG},{T.CARD}); border:1px solid {_BD};
-  border-radius:18px; padding:16px 18px 16px; margin-top:16px; box-shadow:0 10px 26px rgba(0,0,0,.18); }}
+[class*="st-key-pbf_"] {{ position:relative; overflow:hidden; background:{T.BOX_BG}; border:1px solid {_BD};
+  border-radius:16px; padding:16px 18px 16px; margin-top:16px; box-shadow:{T.GLASS_SHADOW}; }}
 [class*="st-key-pbf_"]::before {{ content:""; position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(90deg,transparent,rgba(196,181,253,.5),transparent); }}
 [class*="st-key-pbf_"] [data-testid="stMarkdownContainer"] {{ margin-bottom:0 !important; }}
 .pbfh {{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:2px; }}
@@ -547,6 +547,14 @@ a.pblink .ms {{ font-size:1rem; }}
 .pbrl ul {{ margin:6px 0 0; padding-inline-start:18px; }}
 .pbrl li {{ color:#DDD9E2; font-size:.8rem; line-height:1.55; margin:2px 0; }}
 .pbrl li::marker {{ color:{_C}; }}
+
+/* ---------- frosted glass on this page's own boxes ---------- */
+.wwc, .pbrl, .pbph, .pbkd, .pbid, .pbp, [class*="st-key-aicard_"], [class*="st-key-pbmg_"], [class*="st-key-pbcalbox_"] {{ border-color:{_BD} !important; box-shadow:{T.GLASS_SHADOW}; }}
+.pbph, .pbkd {{ box-shadow:{T.GLASS_SHADOW_SM}; border-radius:16px; }}
+.pbph:not(.on):hover, [class*="st-key-pbkind_"]:hover .pbkd {{ border-color:{T.EDGE_HOVER} !important; }}
+.pbkd.has {{ background:linear-gradient(135deg,rgba(186,214,247,.13),rgba(186,214,247,.04) 70%), {T.GLASS_BASE}; border-color:rgba(216,236,248,.4) !important; }}
+.pbc .co .tk, .wwh b, .aic .nm, .pbrl .nm b {{ color:#D8ECF8; }}
+[class*="st-key-pbkindl_"] {{ background:{T.FROST}, rgba(8,7,18,.97) !important; border-color:{_BD} !important; box-shadow:inset 0 1px 1px rgba(216,236,248,.2), 0 24px 40px rgba(0,0,0,.6) !important; }}
 
 @media (prefers-reduced-motion: reduce) {{ .pbhero *, .pbadd *, .pbfb * {{ animation:none !important; }} }}
 @media (max-width: 640px) {{ .pbfb .art {{ width:100%; opacity:.25; }} .pbfb .tx {{ max-width:100%; }} }}
@@ -3873,4 +3881,4 @@ def page_paper_bots():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "12.0"
+BUILD = "12.1"

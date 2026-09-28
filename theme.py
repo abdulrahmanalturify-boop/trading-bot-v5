@@ -19,7 +19,8 @@ import flags
 import mcal
 
 # ---------------------------------------------------------------- palette
-BG, CARD, CARD2, BORDER = "#0E0918", "#1A1624", "#221D2F", "#2C2738"
+BG, CARD, CARD2 = "#0E0918", "#1A1624", "#221D2F"
+BORDER = "rgba(186,215,247,.12)"                 # the frosted hairline: every box edge and separator (AuthKit)
 TEXT, MUTED = "#E7E3EB", "#9D97A5"
 UP, DOWN = "#22C55E", "#EF4444"                     # chart strokes on dark surfaces
 ACCENT, VIOLET, CYAN, GOLD, ORANGE, PURPLE = "#3B8BEB", "#7B45F0", "#2DB6EB", "#F5B94A", "#F97316", "#A78BFA"
@@ -189,7 +190,16 @@ def background_css(static_ok=False):
 LINE = ELECTRIC                                                 # the electric current: small accent bars and lines
 TOP = "linear-gradient(transparent,transparent) top / 100% 0 no-repeat"
 TOP_THIN = TOP
-BOX_BG = f"{TOP}, linear-gradient({CARD},{CARD})"             # every plain box: solid, one step above the page
+# the cards: AuthKit's frosted glass - a faint blue-white frost over a dark translucent base, a hairline edge, a light
+# catching the top edge, a soft inner glow and a dark halo under the card (no coloured shadows)
+FROST = "linear-gradient(180deg, rgba(186,214,247,.065) 0%, rgba(186,214,247,.025) 55%, rgba(186,214,247,.018) 100%)"
+GLASS_BASE = "rgba(9,8,20,.72)"
+GLASS = f"{FROST}, {GLASS_BASE}"
+GLASS_SHADOW = "inset 0 1px 1px rgba(199,211,234,.12), inset 0 24px 48px rgba(199,211,234,.05), 0 24px 32px rgba(6,6,14,.7)"
+GLASS_SHADOW_SM = "inset 0 1px 1px rgba(199,211,234,.10), 0 10px 20px rgba(6,6,14,.45)"
+EDGE_HOVER = "rgba(186,215,247,.24)"
+TITLE_FROST = "linear-gradient(180deg,#D8ECF8,#98C0EF)"          # card headlines: ice highlight -> blueprint blue
+BOX_BG = f"{TOP}, {GLASS}"                                     # every plain box: frosted glass
 UP_EDGE, DN_EDGE = "rgba(74,222,128,.34)", "rgba(248,113,113,.34)"   # a green box keeps its colour, with soft green edges (red the same)
 UP_LINE = TOP
 DN_LINE = TOP
@@ -259,7 +269,7 @@ button[data-testid="stBaseButton-tertiary"]:hover {{ color:#fff; }}
   border-color:#5B7CF2 !important; box-shadow:0 0 0 3px rgba(107,33,239,.22) !important; }}
 [data-baseweb="popover"] ul, [data-baseweb="menu"] {{ background:{PANEL} !important; border:1px solid {SMOKE}; border-radius:12px; }}
 [data-baseweb="popover"] li:hover, [data-baseweb="menu"] li:hover {{ background:rgba(255,255,255,.05) !important; }}
-[data-testid="stDialog"] [role="dialog"] {{ background:{CARD} !important; border:1px solid {SHELL}; border-radius:24px !important; box-shadow:{GLOW}, 0 30px 80px rgba(0,0,0,.6); }}
+[data-testid="stDialog"] [role="dialog"] {{ background:{FROST}, rgba(8,7,18,.97) !important; border:1px solid {BORDER}; border-radius:16px !important; box-shadow:inset 0 1px 1px rgba(216,236,248,.2), inset 0 24px 48px rgba(168,216,245,.06), 0 16px 32px rgba(0,0,0,.3), 0 30px 80px rgba(0,0,0,.5); }}
 [data-testid="stPopoverBody"] {{ background:{CARD} !important; border:1px solid {SHELL} !important; border-radius:16px !important; }}
 [data-testid="stSlider"] [role="slider"] {{ box-shadow:0 0 0 4px rgba(107,33,239,.25); }}
 [data-testid="stDataFrame"], [data-testid="stTable"] {{ border-radius:14px; overflow:hidden; border:1px solid {BORDER}; }}
@@ -293,9 +303,9 @@ hr {{ border-color:{SHELL} !important; }}
 .tile {{ background:{BOX_BG}; border:1px solid {BORDER}; border-radius:14px; padding:11px 13px;
   transition: transform .15s, box-shadow .15s; }}
 .tile:hover {{ transform: translateY(-2px); box-shadow: 0 10px 24px rgba(0,0,0,.35); }}
-.tile.pos {{ background:{UP_TINT}, {CARD} !important; border-color:{UP_EDGE}; }}
-.tile.neg {{ background:{DN_TINT}, {CARD} !important; border-color:{DN_EDGE}; }}
-.tile.acc {{ background:linear-gradient(180deg, rgba(59,139,235,.18), rgba(59,139,235,.06)), {CARD}; border-color:rgba(59,139,235,.45); color:{ACC_FG}; }}
+.tile.pos {{ background:{UP_TINT}, {GLASS_BASE} !important; border-color:{UP_EDGE}; }}
+.tile.neg {{ background:{DN_TINT}, {GLASS_BASE} !important; border-color:{DN_EDGE}; }}
+.tile.acc {{ background:linear-gradient(180deg, rgba(59,139,235,.18), rgba(59,139,235,.06)), {GLASS_BASE}; border-color:rgba(59,139,235,.45); color:{ACC_FG}; }}
 .t-name {{ color:{MUTED}; font-size:.78rem; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
 .tile.pos .t-name {{ color:#8FD4A9; }} .tile.neg .t-name {{ color:#E7A2A9; }} .tile.acc .t-name {{ color:#9DB9EE; }}
 .t-row {{ display:flex; justify-content:space-between; align-items:flex-end; gap:6px; direction:ltr; }}
@@ -423,7 +433,7 @@ a.lnk {{ color:inherit !important; text-decoration:none !important; }} a.lnk:hov
 .kpi .v {{ font-size:1.25rem; font-weight:600; margin-top:6px; display:flex; align-items:center; gap:8px; direction:ltr; }}
 .kpi .s {{ font-size:.8rem; margin-top:4px; font-weight:500; }}
 .kpi:not(.pos):not(.neg):not(.acc) .v {{ color:#fff; }}
-.kpi.acc {{ background:linear-gradient(180deg, rgba(59,139,235,.18), rgba(59,139,235,.06)), {CARD}; color:{ACC_FG}; border-color:rgba(59,139,235,.45); }} .kpi.acc .l {{ color:#9DB9EE; }}
+.kpi.acc {{ background:linear-gradient(180deg, rgba(59,139,235,.18), rgba(59,139,235,.06)), {GLASS_BASE}; color:{ACC_FG}; border-color:rgba(59,139,235,.45); }} .kpi.acc .l {{ color:#9DB9EE; }}
 /* rating meter (technicals) */
 .rmeter {{ background:{BOX_BG}; border:1px solid {BORDER}; border-radius:16px; padding:16px; }}
 .rmeter .rt {{ color:{MUTED}; font-size:.78rem; font-weight:600; letter-spacing:.06em; text-transform:uppercase; }}
@@ -446,7 +456,7 @@ a.lnk {{ color:inherit !important; text-decoration:none !important; }} a.lnk:hov
 .secgrid {{ display:grid; grid-template-columns:repeat(auto-fill,minmax(172px,1fr)); gap:10px; }}
 .sc {{ border-radius:14px; padding:11px 12px; border:1px solid transparent; }}
 .secgrid .sc {{ border-color:{BORDER}; background:{BOX_BG}; }}
-.secgrid .sc.pos {{ background:{UP_TINT}, {CARD} !important; border-color:{UP_EDGE}; }} .secgrid .sc.neg {{ background:{DN_TINT}, {CARD} !important; border-color:{DN_EDGE}; }}
+.secgrid .sc.pos {{ background:{UP_TINT}, {GLASS_BASE} !important; border-color:{UP_EDGE}; }} .secgrid .sc.neg {{ background:{DN_TINT}, {GLASS_BASE} !important; border-color:{DN_EDGE}; }}
 .sc .h {{ display:flex; justify-content:space-between; font-weight:600; font-size:.8rem; }} .sc .v {{ font-size:1.25rem; font-weight:600; margin-top:4px; direction:ltr; }}
 .sc .f {{ display:flex; gap:8px; font-size:.7rem; font-weight:600; margin-top:4px; direction:ltr; opacity:.85; }}
 .bars .b {{ margin:10px 0; }} .bars .b .t {{ display:flex; justify-content:space-between; font-size:.82rem; font-weight:500; }}
@@ -567,7 +577,7 @@ a.lnk {{ color:inherit !important; text-decoration:none !important; }} a.lnk:hov
 /* ---------- insight: daily brief ---------- */
 .brief {{ position:relative; border-radius:20px; padding:22px 26px 18px; border:1px solid {BORDER}; overflow:hidden; margin-bottom:12px;
   background:{TOP}, radial-gradient(700px 260px at 0% 0%, rgba(59,139,235,.22), transparent 60%), radial-gradient(600px 240px at 100% 0%, rgba(123,69,240,.18), transparent 60%),
-  linear-gradient(180deg, {CARD2}, {CARD}); }}
+  {GLASS}; }}
 .brief .eyebrow {{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; color:{CYAN}; font-weight:600; letter-spacing:.14em; font-size:.72rem; text-transform:uppercase; }}
 .brief .hl {{ font-size:1.9rem; font-weight:300; margin:10px 0 8px; line-height:1.3; color:#fff; letter-spacing:-.01em; }}
 .brief ul {{ margin:8px 0 0; padding-inline-start:20px; }} .brief li {{ margin:4px 0; line-height:1.75; color:#D7D3DD; }}
@@ -756,7 +766,7 @@ a.lnk {{ color:inherit !important; text-decoration:none !important; }} a.lnk:hov
 }}
 /* ---------- sidebar: market pulse + watchlist ---------- */
 [data-testid="stSidebar"] [data-testid="stVerticalBlock"] {{ gap: .45rem; }}
-.pulse {{ background:{TOP}, linear-gradient(160deg, rgba(59,139,235,.16), rgba(123,69,240,.08) 55%, {CARD}); border:1px solid {BORDER};
+.pulse {{ background:{TOP}, {FROST}, {GLASS_BASE}; border:1px solid {BORDER};
   border-radius:14px; padding:10px 12px; margin-bottom:6px; }}
 .pulse .ph {{ display:flex; align-items:center; gap:6px; font-size:.7rem; font-weight:600; letter-spacing:.09em; text-transform:uppercase;
   color:#CCC7D3; margin-bottom:4px; }}
@@ -851,8 +861,8 @@ a.lnk {{ color:inherit !important; text-decoration:none !important; }} a.lnk:hov
 .egrid {{ display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:14px; margin:12px 0 8px; }}
 .ecard {{ background:{BOX_BG}; border:1px solid {BORDER}; border-inline-start:4px solid #3A3545; border-radius:18px; padding:14px 16px;
   display:flex; flex-direction:column; gap:12px; min-width:0; }}
-.ecard.beat {{ background:{UP_LINE}, linear-gradient(180deg, rgba(34,197,94,.13), {CARD} 72%); border-color:{UP_EDGE}; border-inline-start-color:#22C55E; }}
-.ecard.miss {{ background:{DN_LINE}, linear-gradient(180deg, rgba(239,68,68,.13), {CARD} 72%); border-color:{DN_EDGE}; border-inline-start-color:#EF4444; }}
+.ecard.beat {{ background:{UP_LINE}, linear-gradient(180deg, rgba(34,197,94,.13), transparent 72%), {GLASS_BASE}; border-color:{UP_EDGE}; border-inline-start-color:#22C55E; }}
+.ecard.miss {{ background:{DN_LINE}, linear-gradient(180deg, rgba(239,68,68,.13), transparent 72%), {GLASS_BASE}; border-color:{DN_EDGE}; border-inline-start-color:#EF4444; }}
 .ecard .top {{ display:flex; gap:12px; align-items:flex-start; }}
 .ecard .top .lnk {{ flex:none; }}
 .ecard .t {{ min-width:0; flex:1; }}
@@ -1068,7 +1078,7 @@ a.lnk {{ color:inherit !important; text-decoration:none !important; }} a.lnk:hov
   > :is(.card,.kpi,.tile,.mcard,.story,.fgc,.dcard,.tdc,.tdp,.lc,.rmeter):only-child {{ height:100%; box-sizing:border-box; }}
 /* ---------- boxes with a see-through tint get a solid dark base, so the background photo never shows through them ---------- */
 :is(.pulse,.brief,.hnbox,.hnrate,.hntgt,.hnkt,.hnplan .p,.tkw,.botbar,.ecard,.ac-hero,.ac-note,.lr.now,.hndh,.hnnote,.pbrl,.story,.news)
-  {{ background-color:{CARD} !important; }}
+  {{ background-color:{GLASS_BASE} !important; }}
 /* ---------- indicator signals: three columns, each with its name and its column headings on top ---------- */
 .sgcols {{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }}
 @media (max-width: 1100px) {{ .sgcols {{ grid-template-columns:minmax(0,1fr); }} }}
@@ -1094,11 +1104,11 @@ a.lnk {{ color:inherit !important; text-decoration:none !important; }} a.lnk:hov
 [data-testid="stCaptionContainer"] {{ color:#A9A3B2 !important; }}
 [data-testid="stWidgetLabel"] p {{ color:#CFCAD6; }}
 /* ---------- coloured boxes keep their colour: a green wash with soft green edges, red the same ---------- */
-.botbar {{ background:linear-gradient(90deg, rgba(34,197,94,.1), rgba(59,139,235,.06)), {CARD}; border-color:{UP_EDGE}; }}
+.botbar {{ background:linear-gradient(90deg, rgba(34,197,94,.1), rgba(59,139,235,.06)), {GLASS_BASE}; border-color:{UP_EDGE}; }}
 :is(.card,.tile,.kpi,.stat,.mx .m,.opos .o,.perfrow .pc2,.sigs .sg,.lr,.evt,.fgc,.prof .it,.plan .p,.mcard,.lc,.tdc,.tdp,.dcard,.cal .d,.story,.news).pos
-  {{ background:{UP_TINT}, {CARD} !important; border-color:{UP_EDGE} !important; }}
+  {{ background:{UP_TINT}, {GLASS_BASE} !important; border-color:{UP_EDGE} !important; }}
 :is(.card,.tile,.kpi,.stat,.mx .m,.opos .o,.perfrow .pc2,.sigs .sg,.lr,.evt,.fgc,.prof .it,.plan .p,.mcard,.lc,.tdc,.tdp,.dcard,.cal .d,.story,.news).neg
-  {{ background:{DN_TINT}, {CARD} !important; border-color:{DN_EDGE} !important; }}
+  {{ background:{DN_TINT}, {GLASS_BASE} !important; border-color:{DN_EDGE} !important; }}
 .acard .aart::after {{ content:""; position:absolute; left:0; right:0; top:0; height:1px; background:linear-gradient(90deg,transparent,rgba(196,181,253,.5),transparent); z-index:2; }}
 /* Streamlit's message boxes: a dark wash of their colour and a hairline edge */
 [data-testid="stAlertContainer"] {{ border:1px solid rgba(59,139,235,.35); background:rgba(59,139,235,.08) !important; border-radius:14px; }}
@@ -1106,15 +1116,32 @@ a.lnk {{ color:inherit !important; text-decoration:none !important; }} a.lnk:hov
 [data-testid="stAlertContainer"]:has([data-testid="stAlertContentError"]) {{ border-color:{DN_EDGE}; background:rgba(239,68,68,.08) !important; }}
 [data-testid="stAlertContainer"]:has([data-testid="stAlertContentWarning"]) {{ border-color:rgba(245,185,74,.4); background:rgba(245,185,74,.07) !important; }}
 /* ---------- n8n's signature pieces ---------- */
-/* hover: a box lifts its hairline, never floats on a shadow */
-:is(.card,.tile,.mcard,.kpi,.story,.news,.lc,.tdc,.tdp,.dcard,.fgc,.acard):hover {{ border-color:rgba(255,255,255,.16); }}
-.tile:hover {{ box-shadow:none; }}
-/* the big boxes are "backlit hardware": a white hairline inside and a violet glow from below */
-:is(.brief,.pulse,.rmeter,.xtp,.sgcol) {{ box-shadow:{GLOW}; }}
+/* ---------- the cards: AuthKit's frosted glass ---------- */
+/* the big cards: frost over a dark translucent base, a hairline edge, light on the top edge, a soft inner glow, a dark halo */
+:is(.card,.kpi,.mcard,.story,.news,.lc,.tdc,.tdp,.dcard,.fgc,.acard,.course,.lesson,.ecard,.evday,.etab,.iplist,.chainwrap,.hmwrap,
+  .xtp,.sgcol,.rmeter,.brief,.pulse,.wlr,.tile,.ehub .day,[data-testid="stMetric"],[data-testid="stPlotlyChart"],[data-testid="stExpander"] details) {{
+  border:1px solid {BORDER}; border-radius:16px; box-shadow:{GLASS_SHADOW}; }}
+:is(.tile,.wlr,.kpi) {{ box-shadow:{GLASS_SHADOW_SM}; }}
+/* the small boxes inside them: the same glass, lighter */
+:is(.stat,.lr,.evt,.prof .it,.plan .p,.mx .m,.perfrow .pc2,.sigs .sg,.hrow,.sprow,.opos .o,.srcc,.cal .d,.cal .wk) {{
+  border-color:{BORDER}; box-shadow:inset 0 1px 1px rgba(199,211,234,.08); }}
+/* hover: the hairline brightens (never a coloured shadow) */
+:is(.card,.tile,.mcard,.kpi,.story,.news,.lc,.tdc,.tdp,.dcard,.fgc,.acard,.course,.ecard,.wlr,.stat,.lr,.evt,.hrow,.sprow):hover {{ border-color:{EDGE_HOVER}; }}
+.tile:hover {{ transform:translateY(-2px); box-shadow:{GLASS_SHADOW}; }}
+/* card headlines: ice-white to blueprint blue */
+:is(.acard .attl,.course .ttl,.story a.t,.mcard .hd b,.fgc .h b,.tdp .tt,.xtp .tt,.sgh b,.ecard .t .nm) {{ color:#D8ECF8; }}
+:is(.acard .attl,.course .ttl,.story a.t) {{ background:{TITLE_FROST}; -webkit-background-clip:text; background-clip:text; color:transparent !important; }}
+/* labels and muted copy inside the cards: moon mist and fog veil */
+:is(.kpi .l,.t-name,.stat .l,.mx .m .l,.plan .p .l,.prof .it .l,.tdc .h,.lc .rank) {{ color:#9DA7BA; }}
+:is(.kpi,.stat,.mx .m,.plan .p,.prof .it,.tdc).pos .l, .tile.pos .t-name {{ color:#8FD4A9; }}
+:is(.kpi,.stat,.mx .m,.plan .p,.prof .it,.tdc).neg .l, .tile.neg .t-name {{ color:#E7A2A9; }}
+/* the icon of a card head: a small frosted tile */
+:is(.mcard .hd,.xtp .tt,.sgh,.sec,.page-title,.wlh .t) .ms {{ background:linear-gradient(180deg, rgba(186,214,247,.12), rgba(186,214,247,.04)), rgba(9,8,20,.8);
+  box-shadow:inset 0 1px 1px rgba(216,236,248,.25), inset 0 0 0 1px rgba(186,215,247,.14); color:#D8ECF8; }}
 /* the page heroes: a strong violet light rising from under them, as on n8n's home page */
 :is(.hero,.pbhero,.hnhero) {{ border-color:{SHELL} !important; box-shadow:inset 0 0 0 1px rgba(255,255,255,.06), inset 0 -110px 120px -80px rgba(107,33,239,.65), inset 0 90px 110px -90px rgba(7,122,199,.35) !important; }}
-.pulse {{ background:{PANEL} !important; border-color:{SHELL}; }}
-.brief {{ background:radial-gradient(700px 260px at 0% 0%, rgba(7,122,199,.18), transparent 60%), radial-gradient(600px 240px at 100% 0%, rgba(107,33,239,.2), transparent 60%), {CARD} !important; }}
+.pulse {{ border-color:{BORDER}; }}
+.brief {{ background:radial-gradient(700px 260px at 0% 0%, rgba(7,122,199,.18), transparent 60%), radial-gradient(600px 240px at 100% 0%, rgba(107,33,239,.2), transparent 60%), {GLASS_BASE} !important; }}
 /* small numbers and chips: the frosted ghost look */
 .badge, .kwc, .tkc, .chip2, .xtp .sum .c, .pbrec .c {{ backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); }}
 /* links in the electric blue */
@@ -1734,4 +1761,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "12.0"
+BUILD = "12.1"
