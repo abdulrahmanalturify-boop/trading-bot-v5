@@ -56,6 +56,9 @@ CSS = f"""<style>
 .hnhero .art {{ position:absolute; top:0; bottom:0; right:0; width:52%; pointer-events:none; }}
 .hnhero .art svg {{ width:100%; height:100%; display:block; }}
 .hnhero.rtl .art {{ right:auto; left:0; }}
+.hnhero.rtl .sweep {{ transform-origin:160px 125px; }}
+.hnhero.rtl .grid {{ -webkit-mask-image:radial-gradient(ellipse at 22% 50%,#000 0%,transparent 66%);
+  mask-image:radial-gradient(ellipse at 22% 50%,#000 0%,transparent 66%); }}
 .hnhero .txt {{ position:relative; z-index:2; padding:26px 30px 24px; max-width:640px;
   background:linear-gradient(90deg,rgba(4,8,16,.8) 0%,rgba(4,8,16,.35) 72%,rgba(4,8,16,0) 100%); }}
 .hnhero.rtl .txt {{ margin-left:auto; background:linear-gradient(270deg,rgba(4,8,16,.8) 0%,rgba(4,8,16,.35) 72%,rgba(4,8,16,0) 100%); }}
@@ -471,8 +474,10 @@ def flags_of(r):
 
 
 # ---------------------------------------------------------------- hero
-def _radar(res):
-    cx, cy = 360, 125
+def _radar(res, rtl=False):
+    """The radar; in Arabic it sits at the left edge (the mirror of English, where it sits at the right edge)."""
+    cx, cy = (160 if rtl else 360), 125
+    side = -1 if rtl else 1
     s = ['<svg viewBox="0 0 520 250" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" style="direction:ltr">'
          '<defs><radialGradient id="hnrg" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#22D3EE" stop-opacity=".16"/>'
          '<stop offset="1" stop-color="#22D3EE" stop-opacity="0"/></radialGradient>'
@@ -491,12 +496,14 @@ def _radar(res):
     for i, r in enumerate(top.itertuples()):
         ang = np.radians(-160 + i * 53)
         rad = 32 + i * 12
-        x, y = cx + rad * np.cos(ang), cy + rad * np.sin(ang)
+        x, y = cx + side * rad * np.cos(ang), cy + rad * np.sin(ang)
         col = GRADE_COLOR.get(r.Grade, _C)
         s.append(f'<circle class="blip" cx="{x:.0f}" cy="{y:.0f}" r="5" fill="none" stroke="{col}" stroke-width="1.5" style="animation-delay:-{i * .35:.2f}s"/>'
                  f'<circle cx="{x:.0f}" cy="{y:.0f}" r="4" fill="{col}" filter="url(#hngl)"/>'
-                 f'<text x="{x + 8:.0f}" y="{y - 6:.0f}" font-size="11" font-weight="800" fill="#fff" font-family="{T.FONT}">{T.esc(r.Symbol)}</text>'
-                 f'<text x="{x + 8:.0f}" y="{y + 7:.0f}" font-size="9.5" fill="{col}" font-family="{T.FONT}">{r.Grade} · {r.Score:.0f}</text>')
+                 f'<text x="{x + side * 8:.0f}" y="{y - 6:.0f}" text-anchor="{"end" if rtl else "start"}" font-size="11" font-weight="800" '
+                 f'fill="#fff" font-family="{T.FONT}">{T.esc(r.Symbol)}</text>'
+                 f'<text x="{x + side * 8:.0f}" y="{y + 7:.0f}" text-anchor="{"end" if rtl else "start"}" font-size="9.5" fill="{col}" '
+                 f'font-family="{T.FONT}">{r.Grade} · {r.Score:.0f}</text>')
     s.append(f'<circle cx="{cx}" cy="{cy}" r="4" fill="#22D3EE" filter="url(#hngl)"/>')
     return "".join(s) + "</svg>"
 
@@ -515,7 +522,7 @@ def hero_html(got, label):
             "reward-to-risk, with a full trade plan and how the same setup did on the same stock before.",
             "كل سهم يُفحص على فرص بشروط دقيقة، ويأخذ تقييم من 100 على الاتجاه والقوة النسبية والتجميع والعائد مقابل المخاطرة، "
             "مع خطة تداول كاملة وكيف كانت نفس الفرصة على نفس السهم قبل.")
-    return (f'<div class="hnhero{" rtl" if is_ar() else ""}"><div class="grid"></div><div class="art">{_radar(res)}</div>'
+    return (f'<div class="hnhero{" rtl" if is_ar() else ""}"><div class="grid"></div><div class="art">{_radar(res, is_ar())}</div>'
             f'<div class="txt"><div class="eb">{T.icon("radar")}{L("Opportunity scanner", "ماسح الفرص")}</div>'
             f'<div class="t">{L("Opportunity <b>Hunter</b>", "صائد <b>الفرص</b>")}</div><div class="tg">{T.esc(tag)}</div>'
             f'<div class="chips">{"".join(chips)}</div><div class="st">{T.market_status(is_ar())}</div></div></div>')
@@ -1502,4 +1509,4 @@ def page_scanner():
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "11.0.1"
+BUILD = "11.0.2"

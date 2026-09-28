@@ -1062,6 +1062,7 @@ a.lnk {{ color:inherit !important; text-decoration:none !important; }} a.lnk:hov
 RTL_CSS = f"""
 <style>
 .block-container, [data-testid="stMainBlockContainer"], [data-testid="stSidebarContent"] {{ direction: rtl; }}
+[data-testid="stSidebarHeader"] {{ direction: ltr; }}   /* the logo stays on the left, as in English */
 [data-testid="stMarkdownContainer"], [data-testid="stCaptionContainer"], h1, h2, h3, h4, label, .stMarkdown {{ text-align: right; }}
 .stPlotlyChart, .js-plotly-plot, [data-testid="stDataFrame"], .tape, .t-row, [data-testid="stMetricValue"], [data-testid="stMetricDelta"] {{ direction: ltr; }}
 .stPlotlyChart *, .js-plotly-plot *, [data-testid="stPlotlyChart"] *, .hm, .hm * {{ direction: ltr !important; }}
@@ -1657,4 +1658,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "11.0.1"
+BUILD = "11.0.2"
