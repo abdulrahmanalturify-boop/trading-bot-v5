@@ -382,7 +382,7 @@ def _scene_fed(u):          # the central bank building, a rate dial and arrows
 
 
 def _scene_curve(u):        # normal vs inverted yield curve on a chart
-    return (f'<rect x="70" y="36" width="260" height="150" rx="14" fill="#0B1020" opacity=".35"/>'
+    return (f'<rect x="70" y="36" width="260" height="150" rx="14" fill="#120D1C" opacity=".35"/>'
             f'<line x1="92" y1="166" x2="312" y2="166" stroke="#fff" stroke-width="2" opacity=".7"/><line x1="92" y1="56" x2="92" y2="166" stroke="#fff" stroke-width="2" opacity=".7"/>'
             f'<path d="M100 150 C150 110 210 92 305 84" fill="none" stroke="#86EFAC" stroke-width="4" stroke-dasharray="8 7" stroke-linecap="round"/>'
             f'<path d="M100 76 C150 92 220 124 305 136" fill="none" stroke="#FCA5A5" stroke-width="5" stroke-linecap="round"/>'
@@ -497,4 +497,4 @@ def art_scene(aid, cat, uid):
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "11.2"
+BUILD = "12.0"

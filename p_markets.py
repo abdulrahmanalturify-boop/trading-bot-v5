@@ -280,7 +280,7 @@ def breadth_section(sp=None):
         mood = L("Bullish breadth", "اتساع إيجابي") if pct > 55 else (L("Bearish breadth", "اتساع سلبي") if pct < 45 else L("Mixed", "متوازن"))
         ui.html(f'<div class="card">{T.pulse_gauge(pct, L("advancing", "صاعدة"), mood)}'
                 f'<div style="margin-top:8px">{T.ad_bar(adv, dec, unch)}</div>'
-                f'<div style="display:flex;justify-content:space-between;margin-top:8px;font-size:.8rem;font-weight:700;direction:ltr">'
+                f'<div style="display:flex;justify-content:space-between;margin-top:8px;font-size:.8rem;font-weight:600;direction:ltr">'
                 f'<span class="pill pos" style="min-width:0">▲ {adv}</span><span class="pill neu" style="min-width:0">= {unch}</span>'
                 f'<span class="pill neg" style="min-width:0">▼ {dec}</span></div></div>')
     with b:
@@ -297,12 +297,12 @@ def breadth_section(sp=None):
                 nh, nl = int((hi >= -2).sum()), int((lo <= 2).sum())
                 items.append((L("Near 52-week high", "قرب القمة السنوية"), str(nh), nh / len(hi) * 100 * 4, T.UP))
                 items.append((L("Near 52-week low", "قرب القاع السنوي"), str(nl), nl / len(lo) * 100 * 4, T.DOWN))
-        ui.html(f'<div class="card"><div class="muted" style="font-size:.75rem;font-weight:800;letter-spacing:.08em">'
+        ui.html(f'<div class="card"><div class="muted" style="font-size:.75rem;font-weight:600;letter-spacing:.08em">'
                 f'{L("PARTICIPATION", "المشاركة")}</div>{T.progress_bars(items) if items else ""}</div>')
     with c:
         if "Sector" in sp:
             g = sp.assign(up=pd.to_numeric(sp["1D"], errors="coerce") > 0).groupby("Sector")["up"].mean().sort_values(ascending=False) * 100
-            ui.html(f'<div class="card"><div class="muted" style="font-size:.75rem;font-weight:800;letter-spacing:.08em">'
+            ui.html(f'<div class="card"><div class="muted" style="font-size:.75rem;font-weight:600;letter-spacing:.08em">'
                     f'{L("ADVANCING BY SECTOR", "الصاعدة حسب القطاع")}</div>' +
                     T.progress_bars([(sector_name(s_), f"{v:.0f}%", v, T.UP if v >= 50 else T.DOWN) for s_, v in g.items()]) + "</div>")
     ui.chart(charts.change_distribution(chg, L("Distribution of today's moves (S&P 500)", "توزيع حركة الأسهم اليوم (إس آند بي 500)"),
@@ -969,4 +969,4 @@ def page_news():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "11.2"
+BUILD = "12.0"

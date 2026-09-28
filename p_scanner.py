@@ -37,7 +37,7 @@ from i18n import L, industry_name, is_ar, sector_name
 from sp500 import gics_name
 
 ss = st.session_state
-_A, _V, _C, _G, _D, _U, _MU, _BD, _BG = T.ACCENT, T.VIOLET, T.CYAN, T.GOLD, T.DOWN, T.UP, "#8A94A7", T.BORDER, T.CARD2
+_A, _V, _C, _G, _D, _U, _MU, _BD, _BG = T.ACCENT, T.VIOLET, T.CYAN, T.GOLD, T.DOWN, T.UP, "#9D97A5", T.BORDER, T.CARD2
 GRADE_COLOR = {"A+": "#22C55E", "A": "#4ADE80", "B": _C, "C": _G, "D": _D}
 FLAG = {"earnings": ("event", "Earnings in {d} days", "أرباح بعد {d} أيام", "gold"), "extended": ("height", "Stretched", "ممتد", "org"),
         "thin": ("water_drop", "Thin trading", "سيولة ضعيفة", "neu")}
@@ -47,10 +47,10 @@ N_CARDS = 8
 CSS = f"""<style>
 /* ---------- hero: a radar in the brand's colours ---------- */
 .hnhero {{ position:relative; overflow:hidden; border-radius:22px; border:1px solid {_BD}; margin:2px 0 16px; min-height:250px;
-  background:linear-gradient(120deg,#060c1c,#0c1d3f,#1c1543,#071a33); background-size:300% 300%; animation:sky 20s ease-in-out infinite; }}
-.hnhero::after {{ content:""; position:absolute; left:0; right:0; top:0; height:3px; background:{T.LINE}; z-index:3; pointer-events:none; }}
+  background:linear-gradient(120deg,#0E0918,#1B1430,#27184A,#130F24); background-size:300% 300%; animation:sky 20s ease-in-out infinite; }}
+.hnhero::after {{ content:""; position:absolute; left:0; right:0; top:0; height:1px; background:linear-gradient(90deg,transparent,rgba(196,181,253,.5),transparent); z-index:3; pointer-events:none; }}
 .hnhero .grid {{ position:absolute; inset:0; pointer-events:none;
-  background-image:linear-gradient(rgba(34,211,238,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(34,211,238,.07) 1px,transparent 1px);
+  background-image:linear-gradient(rgba(45,182,235,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(45,182,235,.07) 1px,transparent 1px);
   background-size:36px 36px; -webkit-mask-image:radial-gradient(ellipse at 78% 50%,#000 0%,transparent 66%);
   mask-image:radial-gradient(ellipse at 78% 50%,#000 0%,transparent 66%); }}
 .hnhero .art {{ position:absolute; top:0; bottom:0; right:0; width:52%; pointer-events:none; }}
@@ -60,15 +60,15 @@ CSS = f"""<style>
 .hnhero.rtl .grid {{ -webkit-mask-image:radial-gradient(ellipse at 22% 50%,#000 0%,transparent 66%);
   mask-image:radial-gradient(ellipse at 22% 50%,#000 0%,transparent 66%); }}
 .hnhero .txt {{ position:relative; z-index:2; padding:26px 30px 24px; max-width:640px;
-  background:linear-gradient(90deg,rgba(4,8,16,.8) 0%,rgba(4,8,16,.35) 72%,rgba(4,8,16,0) 100%); }}
-.hnhero.rtl .txt {{ margin-left:auto; background:linear-gradient(270deg,rgba(4,8,16,.8) 0%,rgba(4,8,16,.35) 72%,rgba(4,8,16,0) 100%); }}
-.hnhero .eb {{ color:{_C}; font-weight:800; letter-spacing:.2em; font-size:.72rem; text-transform:uppercase; display:flex; align-items:center; gap:8px; }}
-.hnhero .t {{ font-size:2.4rem; font-weight:800; line-height:1.08; margin:8px 0 6px; color:#fff; letter-spacing:-.02em; }}
+  background:linear-gradient(90deg,rgba(14,9,24,.8) 0%,rgba(14,9,24,.35) 72%,rgba(14,9,24,0) 100%); }}
+.hnhero.rtl .txt {{ margin-left:auto; background:linear-gradient(270deg,rgba(14,9,24,.8) 0%,rgba(14,9,24,.35) 72%,rgba(14,9,24,0) 100%); }}
+.hnhero .eb {{ color:{_C}; font-weight:600; letter-spacing:.2em; font-size:.72rem; text-transform:uppercase; display:flex; align-items:center; gap:8px; }}
+.hnhero .t {{ font-size:2.7rem; font-weight:300; line-height:1.04; margin:8px 0 8px; color:#fff; letter-spacing:-.035em; }}
 .hnhero .t b {{ background:linear-gradient(90deg,{_A},{_V},{_C}); -webkit-background-clip:text; background-clip:text; color:transparent; }}
-.hnhero .tg {{ color:#C7CFDD; font-size:.94rem; line-height:1.6; max-width:540px; }}
+.hnhero .tg {{ color:#CAC5D1; font-size:.94rem; line-height:1.6; max-width:540px; }}
 .hnhero .chips {{ display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }}
-.hnhero .chip {{ background:rgba(11,21,48,.8); border:1px solid {_BD}; backdrop-filter:blur(6px); border-radius:10px; padding:6px 10px;
-  font-size:.8rem; display:inline-flex; align-items:center; gap:7px; color:#C9D0DC; }}
+.hnhero .chip {{ background:rgba(26,22,36,.8); border:1px solid {_BD}; backdrop-filter:blur(6px); border-radius:10px; padding:6px 10px;
+  font-size:.8rem; display:inline-flex; align-items:center; gap:7px; color:#CCC7D3; }}
 .hnhero .chip b {{ color:#fff; unicode-bidi:isolate; direction:ltr; }} .hnhero .chip .ms {{ color:{_C}; font-size:1rem; }}
 .hnhero .st {{ margin-top:12px; }}
 .hnhero .sweep {{ transform-origin:360px 125px; animation:hnspin 5.5s linear infinite; }}
@@ -80,26 +80,26 @@ CSS = f"""<style>
 /* ---------- the hunt bar ---------- */
 [class*="st-key-hnbar"] {{ position:relative; overflow:hidden; background:linear-gradient(180deg,{_BG},{T.CARD}); border:1px solid {_BD};
   border-radius:18px; padding:14px 18px 16px; box-shadow:0 10px 26px rgba(0,0,0,.18); }}
-[class*="st-key-hnbar"]::before {{ content:""; position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg,{_A},{_V},{_C}); }}
+[class*="st-key-hnbar"]::before {{ content:""; position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(90deg,transparent,rgba(196,181,253,.5),transparent); }}
 [class*="st-key-hn_go"] button {{ min-height:44px !important; border:0 !important; border-radius:12px !important;
-  background:linear-gradient(95deg,{_A} 0%,{_V} 62%,{_C} 130%) !important; box-shadow:0 10px 26px rgba(61,123,255,.35); }}
+  background:linear-gradient(95deg,{_A} 0%,{_V} 62%,{_C} 130%) !important; box-shadow:0 10px 26px rgba(59,139,235,.35); }}
 [class*="st-key-hn_go"] button:hover {{ filter:brightness(1.08); transform:translateY(-1px); }}
-[class*="st-key-hn_go"] button p, [class*="st-key-hn_go"] button [data-testid="stIconMaterial"] {{ color:#fff !important; font-weight:800 !important; }}
+[class*="st-key-hn_go"] button p, [class*="st-key-hn_go"] button [data-testid="stIconMaterial"] {{ color:#fff !important; font-weight:600 !important; }}
 
 /* ---------- market mood ---------- */
 .hnreg {{ display:grid; grid-template-columns:1.5fr repeat(4,1fr); gap:10px; margin:2px 0 4px; }}
 @media (max-width: 1000px) {{ .hnreg {{ grid-template-columns:1fr 1fr; }} }}
 .hnreg .tl {{ background:{T.BOX_BG}; border:1px solid {_BD}; border-radius:16px; padding:12px 14px; position:relative; overflow:hidden; }}
-.hnreg .tl .l {{ color:{_MU}; font-size:.68rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase; display:flex; align-items:center; gap:6px; }}
+.hnreg .tl .l {{ color:{_MU}; font-size:.68rem; font-weight:600; letter-spacing:.08em; text-transform:uppercase; display:flex; align-items:center; gap:6px; }}
 .hnreg .tl .l .ms {{ font-size:.95rem; color:{_C}; }}
-.hnreg .tl .v {{ font-size:1.35rem; font-weight:800; color:#fff; margin-top:4px; direction:ltr; unicode-bidi:isolate; }}
+.hnreg .tl .v {{ font-size:1.35rem; font-weight:600; color:#fff; margin-top:4px; direction:ltr; unicode-bidi:isolate; }}
 .hnreg .tl .s {{ color:{_MU}; font-size:.74rem; margin-top:2px; }}
-.hnreg .bar {{ height:6px; border-radius:6px; background:rgba(138,148,167,.18); margin-top:8px; overflow:hidden; direction:ltr; }}
+.hnreg .bar {{ height:6px; border-radius:6px; background:rgba(157,151,165,.18); margin-top:8px; overflow:hidden; direction:ltr; }}
 .hnreg .bar i {{ display:block; height:100%; border-radius:6px; }}
 .hnreg .mood {{ border-width:1.5px; }}
 .hnreg .mood .v {{ font-size:1.08rem; display:flex; align-items:center; gap:8px; direction:inherit; }}
 .hnreg .mood .dot {{ width:10px; height:10px; border-radius:50%; box-shadow:0 0 0 4px rgba(255,255,255,.06); flex:none; }}
-.hnreg .mood .s {{ color:#C7CFDD; line-height:1.45; }}
+.hnreg .mood .s {{ color:#CAC5D1; line-height:1.45; }}
 .hnreg .mood.on {{ border-color:{_U}66; background:linear-gradient(135deg,rgba(34,197,94,.14),{T.CARD}); }}
 .hnreg .mood.mixed {{ border-color:{_G}66; background:linear-gradient(135deg,rgba(245,185,74,.13),{T.CARD}); }}
 .hnreg .mood.off {{ border-color:{_D}66; background:linear-gradient(135deg,rgba(239,68,68,.14),{T.CARD}); }}
@@ -107,14 +107,14 @@ CSS = f"""<style>
 /* ---------- opportunity cards ---------- */
 .hnc {{ margin:0 !important; height:336px; box-sizing:border-box; display:flex; flex-direction:column; overflow:hidden; position:relative;
   transition:box-shadow .18s ease, border-color .18s ease; }}
-.hnc::before {{ content:""; position:absolute; left:0; right:0; top:0; height:3px; background:linear-gradient(90deg,{_A},{_V},{_C}); opacity:.35; }}
+.hnc::before {{ content:""; position:absolute; left:0; right:0; top:0; height:1px; background:linear-gradient(90deg,transparent,rgba(196,181,253,.5),transparent); opacity:.35; }}
 .hnc.sel {{ border-color:{_A} !important; box-shadow:0 0 0 1px {_A}66, 0 12px 30px {_A}26; }}
 .hnc.sel::before {{ opacity:1; }}
 .hnc .top {{ display:flex; justify-content:space-between; align-items:center; gap:6px; margin:-2px 0 10px; }}
-.hnc .su {{ display:inline-flex; align-items:center; gap:5px; font-size:.68rem; font-weight:800; color:#C9D0DC; min-width:0; }}
+.hnc .su {{ display:inline-flex; align-items:center; gap:5px; font-size:.68rem; font-weight:600; color:#CCC7D3; min-width:0; }}
 .hnc .su .ms {{ font-size:1rem; color:{_C}; flex:none; }}
 .hnc .su .tx {{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }}
-.hntag {{ display:inline-flex; align-items:center; gap:4px; font-size:.6rem; font-weight:800; letter-spacing:.05em; border-radius:6px; padding:2px 6px;
+.hntag {{ display:inline-flex; align-items:center; gap:4px; font-size:.6rem; font-weight:600; letter-spacing:.05em; border-radius:6px; padding:2px 6px;
   white-space:nowrap; flex:none; }}
 .hntag.fresh {{ background:{T.POS_BG}; color:{T.POS_FG}; }}
 .hntag.fresh::before {{ content:""; width:6px; height:6px; border-radius:50%; background:currentColor; animation:pbtw 1.6s ease-in-out infinite; }}
@@ -127,29 +127,29 @@ CSS = f"""<style>
 .hnring {{ position:relative; width:48px; height:48px; flex:none; }}
 .hnring svg {{ width:48px; height:48px; transform:rotate(-90deg); }}
 .hnring .g {{ position:absolute; inset:0; direction:ltr; display:flex; flex-direction:column; align-items:center; justify-content:center; line-height:1; }}
-.hnring .g b {{ font-size:.92rem; font-weight:800; color:#fff; }}
+.hnring .g b {{ font-size:.92rem; font-weight:600; color:#fff; }}
 .hnring .g span {{ font-size:.58rem; color:{_MU}; margin-top:2px; }}
 .hnc .spk {{ margin:10px -2px 6px; height:58px; }}
 .hnc .spk svg {{ width:100%; height:58px; display:block; overflow:visible; }}
 .hnc .lv {{ display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-top:auto; direction:ltr; }}
 .hnc .lv div {{ background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.05); border-radius:10px; padding:5px 7px; min-width:0; }}
-.hnc .lv span {{ display:block; color:{_MU}; font-size:.6rem; font-weight:800; letter-spacing:.06em; text-transform:uppercase; }}
+.hnc .lv span {{ display:block; color:{_MU}; font-size:.6rem; font-weight:600; letter-spacing:.06em; text-transform:uppercase; }}
 .hnc .lv b {{ display:block; color:#fff; font-size:.8rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
-.hnc .lv i {{ display:block; font-style:normal; font-size:.66rem; font-weight:700; line-height:1.2; }}
+.hnc .lv i {{ display:block; font-style:normal; font-size:.66rem; font-weight:600; line-height:1.2; }}
 .hnc .mt {{ display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin:2px 0 8px; direction:ltr; }}
 .hnc .mt div {{ min-width:0; }}
-.hnc .mt span {{ display:block; color:{_MU}; font-size:.6rem; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
-.hnc .mt b {{ font-size:.8rem; font-weight:800; }}
+.hnc .mt span {{ display:block; color:{_MU}; font-size:.6rem; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
+.hnc .mt b {{ font-size:.8rem; font-weight:600; }}
 .hnc .lv .dn {{ color:#F87171; }} .hnc .lv .up {{ color:#4ADE80; }}
 .hnc .ft {{ display:flex; flex-wrap:nowrap; gap:5px; margin-top:10px; padding-bottom:2px; overflow:hidden; min-height:24px; align-items:center; }}
-.hnc .ft .c {{ display:inline-flex; align-items:center; gap:4px; font-size:.68rem; font-weight:700; color:#AEB7C6; background:rgba(138,148,167,.10);
+.hnc .ft .c {{ display:inline-flex; align-items:center; gap:4px; font-size:.68rem; font-weight:600; color:#B1ABBA; background:rgba(157,151,165,.10);
   border:1px solid {_BD}; border-radius:999px; padding:3px 9px; white-space:nowrap; line-height:1.3; flex:none; }}
 .hnc .ft .c b {{ color:#fff; direction:ltr; unicode-bidi:isolate; }}
 .hnc .ft .c.w {{ color:{T.YEL_FG}; background:{T.YEL_BG}; border-color:transparent; }}
 .hnc .ft .c .ms {{ font-size:.85rem; }}
 [class*="st-key-hncard_"] {{ position:relative; transition:transform .18s ease; }}
 [class*="st-key-hncard_"]:hover {{ transform:translateY(-4px); z-index:3; }}
-[class*="st-key-hncard_"]:hover .hnc {{ box-shadow:0 14px 34px rgba(61,123,255,.22); }}
+[class*="st-key-hncard_"]:hover .hnc {{ box-shadow:0 14px 34px rgba(59,139,235,.22); }}
 [class*="st-key-hncard_"]:hover .hnc::before {{ opacity:1; }}
 [class*="st-key-hncard_"] [data-testid="stElementContainer"] {{ position:static !important; }}
 [class*="st-key-hncard_"] [data-testid="stMarkdownContainer"] {{ margin-bottom:0 !important; }}
@@ -159,7 +159,7 @@ CSS = f"""<style>
 
 /* ---------- the opened opportunity ---------- */
 .hndh {{ position:relative; overflow:hidden; margin:0 !important; display:flex; align-items:center; gap:14px; flex-wrap:wrap; }}
-.hndh::before {{ content:""; position:absolute; top:0; bottom:0; left:0; width:3px; background:linear-gradient(180deg,{_A},{_V},{_C}); }}
+.hndh::before {{ content:""; position:absolute; top:0; bottom:0; left:0; width:2px; background:{T.ELECTRIC}; }}
 .hndh .nm {{ display:flex; flex-direction:column; line-height:1.25; }}
 .hndh .nm b {{ font-size:1.3rem; color:#fff; }} .hndh .nm span {{ color:{_MU}; font-size:.8rem; }}
 .hndh .bd {{ display:flex; flex-wrap:wrap; gap:4px; flex:1; min-width:240px; }}
@@ -168,27 +168,27 @@ CSS = f"""<style>
 .hndh .hnring, .hndh .hnring svg {{ width:62px; height:62px; }}
 .hndh .hnring .g b {{ font-size:1.2rem; }}
 .hnparts {{ display:flex; flex-direction:column; gap:10px; background:{T.BOX_BG}; border:1px solid {_BD}; border-radius:16px; padding:16px 16px 14px; }}
-.hnparts .r {{ display:grid; grid-template-columns:130px 1fr 44px; gap:10px; align-items:center; font-size:.82rem; color:#E3E8F4; font-weight:600; }}
-.hnparts .r .w {{ color:#9FAACB; font-size:.7rem; font-weight:500; }}
+.hnparts .r {{ display:grid; grid-template-columns:130px 1fr 44px; gap:10px; align-items:center; font-size:.82rem; color:#E5E1EB; font-weight:600; }}
+.hnparts .r .w {{ color:#A59FB8; font-size:.7rem; font-weight:500; }}
 .hnparts .r b {{ color:#fff; text-align:end; direction:ltr; }}
-.hnparts .bar {{ height:8px; border-radius:8px; background:rgba(138,148,167,.16); overflow:hidden; direction:ltr; }}
+.hnparts .bar {{ height:8px; border-radius:8px; background:rgba(157,151,165,.16); overflow:hidden; direction:ltr; }}
 .hnparts .bar i {{ display:block; height:100%; border-radius:8px; background:linear-gradient(90deg,{_A},{_V},{_C}); }}
 .hnwhy {{ margin-top:12px; display:flex; flex-direction:column; gap:6px; }}
-.hnwhy .w {{ display:flex; gap:8px; align-items:flex-start; font-size:.8rem; color:#DCE2EC; line-height:1.45; }}
+.hnwhy .w {{ display:flex; gap:8px; align-items:flex-start; font-size:.8rem; color:#DDD9E2; line-height:1.45; }}
 .hnwhy .w .ms {{ font-size:1rem; flex:none; margin-top:1px; }}
 .hnwhy .w.ok .ms {{ color:#4ADE80; }} .hnwhy .w.no .ms {{ color:#F87171; }} .hnwhy .w.in .ms {{ color:{_G}; }}
 .hnplan {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; }}
-.hnplan .p {{ position:relative; overflow:hidden; background:{T.TOP}, linear-gradient(160deg,rgba(61,123,255,.16),rgba(139,92,246,.08) 55%,{T.CARD});
+.hnplan .p {{ position:relative; overflow:hidden; background:{T.TOP}, linear-gradient(160deg,rgba(59,139,235,.16),rgba(123,69,240,.08) 55%,{T.CARD});
   border:1px solid {_BD}; border-radius:14px; padding:10px 12px; transition:border-color .18s ease, box-shadow .18s ease, transform .18s ease; }}
 .hnplan .p::after {{ content:""; position:absolute; inset:auto 0 0 0; height:2px; background:linear-gradient(90deg,{_A},{_V},{_C}); opacity:0;
   transition:opacity .18s ease; }}
-.hnplan .p:hover {{ border-color:rgba(126,166,255,.45); box-shadow:0 12px 28px rgba(61,123,255,.16); transform:translateY(-2px); }}
+.hnplan .p:hover {{ border-color:rgba(121,184,244,.45); box-shadow:0 12px 28px rgba(59,139,235,.16); transform:translateY(-2px); }}
 .hnplan .p:hover::after {{ opacity:.9; }}
-.hnplan .p .l {{ color:#C9D0DC; font-size:.66rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }}
-.hnplan .p .v {{ color:#fff; font-size:1.05rem; font-weight:800; margin-top:3px; direction:ltr; unicode-bidi:isolate; }}
+.hnplan .p .l {{ color:#CCC7D3; font-size:.66rem; font-weight:600; letter-spacing:.08em; text-transform:uppercase; }}
+.hnplan .p .v {{ color:#fff; font-size:1.05rem; font-weight:600; margin-top:3px; direction:ltr; unicode-bidi:isolate; }}
 .hnplan .p .s {{ color:{_MU}; font-size:.72rem; margin-top:1px; }}
-.hnplan .p.sl .v {{ color:#F87171; }} .hnplan .p.tp .v {{ color:#4ADE80; }} .hnplan .p.en .v {{ color:#9CC3FF; }}
-.hnnote {{ color:#C7CFDD; font-size:.84rem; line-height:1.6; background:rgba(61,123,255,.07); border:1px solid {_A}33; border-radius:12px; padding:10px 12px; }}
+.hnplan .p.sl .v {{ color:#F87171; }} .hnplan .p.tp .v {{ color:#4ADE80; }} .hnplan .p.en .v {{ color:#9DCBF7; }}
+.hnnote {{ color:#CAC5D1; font-size:.84rem; line-height:1.6; background:rgba(59,139,235,.07); border:1px solid {_A}33; border-radius:12px; padding:10px 12px; }}
 .hnnote b {{ color:#fff; }}
 [class*="st-key-hnsec_"] {{ margin-top:18px; }}
 [class*="st-key-hnsec_"] [data-testid="stMarkdownContainer"] {{ margin-bottom:0 !important; }}
@@ -197,76 +197,76 @@ CSS = f"""<style>
 /* ---------- filters: one card, modern chips ---------- */
 [class*="st-key-hnfilt"] {{ position:relative; overflow:hidden; background:linear-gradient(180deg,{_BG},{T.CARD}); border:1px solid {_BD};
   border-radius:18px; padding:14px 18px 16px; box-shadow:0 10px 26px rgba(0,0,0,.18); gap:12px !important; }}
-[class*="st-key-hnfilt"]::before {{ content:""; position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg,{_A},{_V},{_C}); }}
+[class*="st-key-hnfilt"]::before {{ content:""; position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(90deg,transparent,rgba(196,181,253,.5),transparent); }}
 .hnfh {{ display:flex; align-items:center; gap:9px; flex-wrap:wrap; }}
-.hnfh .ms {{ color:#fff; background:linear-gradient(135deg,{_A},{_V}); border-radius:8px; padding:4px; font-size:1rem; }}
+.hnfh .ms {{ color:#fff; background:{T.PANEL}; box-shadow:{T.GLOW}; border-radius:8px; padding:4px; font-size:1rem; }}
 .hnfh b {{ color:#fff; font-size:.98rem; }}
 .hnfh span:last-child {{ color:{_MU}; font-size:.78rem; font-weight:600; }}
 [class*="st-key-hnfilt"] [data-testid="stButtonGroup"] {{ gap:8px !important; flex-wrap:wrap; }}
 [class*="st-key-hnfilt"] [data-testid="stBaseButton-pills"], [class*="st-key-hnfilt"] [data-testid="stBaseButton-pillsActive"] {{
   border-radius:999px !important; min-height:34px !important; padding:4px 14px !important; transition:all .15s ease; }}
-[class*="st-key-hnfilt"] [data-testid="stBaseButton-pills"] {{ background:rgba(61,123,255,.07) !important; border:1px solid rgba(61,123,255,.30) !important; }}
-[class*="st-key-hnfilt"] [data-testid="stBaseButton-pills"]:hover {{ background:rgba(61,123,255,.16) !important; border-color:{_A} !important; transform:translateY(-1px); }}
-[class*="st-key-hnfilt"] [data-testid="stBaseButton-pills"] p {{ color:#DCE6FF !important; font-weight:600 !important; font-size:.84rem !important; }}
+[class*="st-key-hnfilt"] [data-testid="stBaseButton-pills"] {{ background:rgba(59,139,235,.07) !important; border:1px solid rgba(59,139,235,.30) !important; }}
+[class*="st-key-hnfilt"] [data-testid="stBaseButton-pills"]:hover {{ background:rgba(59,139,235,.16) !important; border-color:{_A} !important; transform:translateY(-1px); }}
+[class*="st-key-hnfilt"] [data-testid="stBaseButton-pills"] p {{ color:#DCEBFA !important; font-weight:600 !important; font-size:.84rem !important; }}
 [class*="st-key-hnfilt"] [data-testid="stBaseButton-pillsActive"] {{ background:linear-gradient(95deg,{_A},{_V}) !important; border:1px solid transparent !important;
-  box-shadow:0 6px 18px rgba(61,123,255,.35); }}
-[class*="st-key-hnfilt"] [data-testid="stBaseButton-pillsActive"] p {{ color:#fff !important; font-weight:800 !important; font-size:.84rem !important; }}
+  box-shadow:0 6px 18px rgba(59,139,235,.35); }}
+[class*="st-key-hnfilt"] [data-testid="stBaseButton-pillsActive"] p {{ color:#fff !important; font-weight:600 !important; font-size:.84rem !important; }}
 [class*="st-key-hnfilt"] [data-testid="stBaseButton-segmented_control"], [class*="st-key-hnfilt"] [data-testid="stBaseButton-segmented_controlActive"] {{
   min-height:38px !important; padding:4px 14px !important; }}
-[class*="st-key-hnfilt"] [data-testid="stBaseButton-segmented_control"] {{ background:rgba(4,8,16,.55) !important; border-color:{_BD} !important; }}
-[class*="st-key-hnfilt"] [data-testid="stBaseButton-segmented_control"]:hover {{ background:rgba(61,123,255,.12) !important; }}
-[class*="st-key-hnfilt"] [data-testid="stBaseButton-segmented_control"] p {{ color:#C9D0DC !important; font-weight:700 !important; }}
+[class*="st-key-hnfilt"] [data-testid="stBaseButton-segmented_control"] {{ background:rgba(14,9,24,.55) !important; border-color:{_BD} !important; }}
+[class*="st-key-hnfilt"] [data-testid="stBaseButton-segmented_control"]:hover {{ background:rgba(59,139,235,.12) !important; }}
+[class*="st-key-hnfilt"] [data-testid="stBaseButton-segmented_control"] p {{ color:#CCC7D3 !important; font-weight:600 !important; }}
 [class*="st-key-hnfilt"] [data-testid="stBaseButton-segmented_controlActive"] {{ background:linear-gradient(95deg,{_A},{_V}) !important; border-color:transparent !important;
-  box-shadow:0 6px 16px rgba(61,123,255,.30); z-index:1; }}
-[class*="st-key-hnfilt"] [data-testid="stBaseButton-segmented_controlActive"] p {{ color:#fff !important; font-weight:800 !important; }}
-[class*="st-key-hnfilt"] [data-testid="stCheckbox"] {{ background:rgba(4,8,16,.55); border:1px solid {_BD}; border-radius:12px; padding:8px 12px;
+  box-shadow:0 6px 16px rgba(59,139,235,.30); z-index:1; }}
+[class*="st-key-hnfilt"] [data-testid="stBaseButton-segmented_controlActive"] p {{ color:#fff !important; font-weight:600 !important; }}
+[class*="st-key-hnfilt"] [data-testid="stCheckbox"] {{ background:rgba(14,9,24,.55); border:1px solid {_BD}; border-radius:12px; padding:8px 12px;
   min-height:38px; display:flex; align-items:center; }}
 [class*="st-key-hnfilt"] [data-testid="stCheckbox"]:hover {{ border-color:{_A}88; }}
-[class*="st-key-hnfilt"] [data-testid="stCheckbox"] p {{ font-weight:700; font-size:.84rem; color:#DCE2EC; }}
-.hnbox {{ position:relative; background:{T.TOP}, linear-gradient(160deg,rgba(61,123,255,.16),rgba(139,92,246,.08) 55%,{T.CARD}); border:1px solid {_BD}; border-radius:16px; padding:0 14px 4px; margin-top:12px;
+[class*="st-key-hnfilt"] [data-testid="stCheckbox"] p {{ font-weight:600; font-size:.84rem; color:#DDD9E2; }}
+.hnbox {{ position:relative; background:{T.TOP}, linear-gradient(160deg,rgba(59,139,235,.16),rgba(123,69,240,.08) 55%,{T.CARD}); border:1px solid {_BD}; border-radius:16px; padding:0 14px 4px; margin-top:12px;
   overflow:hidden; transition:border-color .18s ease, box-shadow .18s ease, transform .18s ease; }}
-.hnbox:hover {{ border-color:rgba(126,166,255,.45); box-shadow:0 12px 30px rgba(61,123,255,.14); transform:translateY(-2px); }}
-.hnbox .hnbt {{ margin:0 -14px 4px; padding:10px 14px 9px; border-bottom:1px solid rgba(138,148,167,.14);
-  background:linear-gradient(90deg,rgba(61,123,255,.10),rgba(139,92,246,.05) 60%,transparent); }}
-.hnbox .check {{ transition:background .15s ease; border-radius:8px; color:#DCE2EC; }}
+.hnbox:hover {{ border-color:rgba(121,184,244,.45); box-shadow:0 12px 30px rgba(59,139,235,.14); transform:translateY(-2px); }}
+.hnbox .hnbt {{ margin:0 -14px 4px; padding:10px 14px 9px; border-bottom:1px solid rgba(157,151,165,.14);
+  background:linear-gradient(90deg,rgba(59,139,235,.10),rgba(123,69,240,.05) 60%,transparent); }}
+.hnbox .check {{ transition:background .15s ease; border-radius:8px; color:#DDD9E2; }}
 .hnbox .check b {{ color:#fff; }}
-.hnbox .check:hover {{ background:rgba(126,166,255,.06); }}
+.hnbox .check:hover {{ background:rgba(121,184,244,.06); }}
 .hnbox .check {{ font-size:.84rem; }} .hnbox .check:last-child {{ border-bottom:0; }}
-.hnbt {{ display:flex; align-items:center; gap:7px; font-weight:800; color:#C9D0DC; font-size:.74rem; letter-spacing:.09em;
+.hnbt {{ display:flex; align-items:center; gap:7px; font-weight:600; color:#CCC7D3; font-size:.74rem; letter-spacing:.09em;
   text-transform:uppercase; margin-bottom:2px; }}
-.hnbt .ms {{ color:#7EA6FF; font-size:1.05rem; }}
+.hnbt .ms {{ color:#79B8F4; font-size:1.05rem; }}
 .hnbt .sc.ok {{ background:{T.POS_BG} !important; color:{T.POS_FG} !important; border-color:transparent !important; }}
 .hnbt .sc.bad {{ background:{T.NEG_BG} !important; color:{T.NEG_FG} !important; border-color:transparent !important; }}
-.hnbt .sc {{ margin-inline-start:auto; font-size:.72rem; font-weight:800; letter-spacing:0; text-transform:none; color:#DCE6FF; background:rgba(61,123,255,.16); border:1px solid {_A}44;
+.hnbt .sc {{ margin-inline-start:auto; font-size:.72rem; font-weight:600; letter-spacing:0; text-transform:none; color:#DCEBFA; background:rgba(59,139,235,.16); border:1px solid {_A}44;
   border-radius:999px; padding:2px 9px; direction:ltr; unicode-bidi:isolate; }}
 [class*="st-key-hnsec_look"] h4 {{ margin:0 !important; padding:0 !important; }}
 /* ---------- analyst rating card: violet with a faint cyan glow (the brand's gradient, softly) ---------- */
 .hnrate {{ position:relative; overflow:hidden; border-radius:20px; padding:18px 20px 16px; border:1px solid {_BD};
-  background:linear-gradient(160deg,rgba(61,123,255,.16),rgba(139,92,246,.08) 55%,{T.CARD}); box-shadow:0 10px 26px rgba(0,0,0,.22); transition:border-color .18s ease, box-shadow .18s ease, transform .18s ease; }}
-.hnrate:hover {{ border-color:rgba(126,166,255,.45); box-shadow:0 14px 34px rgba(61,123,255,.16); transform:translateY(-2px); }}
+  background:linear-gradient(160deg,rgba(59,139,235,.16),rgba(123,69,240,.08) 55%,{T.CARD}); box-shadow:0 10px 26px rgba(0,0,0,.22); transition:border-color .18s ease, box-shadow .18s ease, transform .18s ease; }}
+.hnrate:hover {{ border-color:rgba(121,184,244,.45); box-shadow:0 14px 34px rgba(59,139,235,.16); transform:translateY(-2px); }}
 .hntgt {{ position:relative; overflow:hidden; border-radius:16px; padding:0 16px 12px; margin-top:12px; border:1px solid {_BD};
-  background:{T.TOP}, linear-gradient(160deg,rgba(61,123,255,.16),rgba(139,92,246,.08) 55%,{T.CARD}); transition:border-color .18s ease, box-shadow .18s ease, transform .18s ease; }}
-.hntgt:hover {{ border-color:rgba(126,166,255,.45); box-shadow:0 12px 30px rgba(61,123,255,.14); transform:translateY(-2px); }}
-.hntgt .hnbt {{ margin:0 -16px 6px; padding:10px 16px 9px; border-bottom:1px solid rgba(138,148,167,.14);
-  background:linear-gradient(90deg,rgba(61,123,255,.10),rgba(139,92,246,.05) 60%,transparent); }}
+  background:{T.TOP}, linear-gradient(160deg,rgba(59,139,235,.16),rgba(123,69,240,.08) 55%,{T.CARD}); transition:border-color .18s ease, box-shadow .18s ease, transform .18s ease; }}
+.hntgt:hover {{ border-color:rgba(121,184,244,.45); box-shadow:0 12px 30px rgba(59,139,235,.14); transform:translateY(-2px); }}
+.hntgt .hnbt {{ margin:0 -16px 6px; padding:10px 16px 9px; border-bottom:1px solid rgba(157,151,165,.14);
+  background:linear-gradient(90deg,rgba(59,139,235,.10),rgba(123,69,240,.05) 60%,transparent); }}
 .hntgt .sv svg {{ width:100%; height:auto; display:block; }}
 .hntgt .cs {{ display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; direction:ltr; }}
-.hntgt .cs .c {{ display:inline-flex; align-items:center; gap:6px; font-size:.74rem; color:#AEB7C6; background:rgba(4,8,16,.45); border:1px solid {_BD};
+.hntgt .cs .c {{ display:inline-flex; align-items:center; gap:6px; font-size:.74rem; color:#B1ABBA; background:rgba(14,9,24,.45); border:1px solid {_BD};
   border-radius:999px; padding:3px 10px; }}
 .hntgt .cs .c i {{ width:8px; height:8px; border-radius:50%; }}
-.hntgt .cs .c b {{ color:#fff; }} .hntgt .cs .c em {{ font-style:normal; font-weight:800; }}
+.hntgt .cs .c b {{ color:#fff; }} .hntgt .cs .c em {{ font-style:normal; font-weight:600; }}
 .hntgt .cs .c em.up {{ color:#4ADE80; }} .hntgt .cs .c em.dn {{ color:#F87171; }}
 .hnrate::before {{ content:""; position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg,{_V},{_A},{_C}); opacity:.9; }}
-.hnrate .t {{ font-size:1.3rem; font-weight:800; color:#fff; letter-spacing:-.01em; }}
-.hnrate .s {{ color:#B9C1D3; font-size:.84rem; margin-top:2px; }}
+.hnrate .t {{ font-size:1.3rem; font-weight:600; color:#fff; letter-spacing:-.01em; }}
+.hnrate .s {{ color:#BCB6C7; font-size:.84rem; margin-top:2px; }}
 .hnrate .g {{ max-width:360px; margin:10px auto 4px; }}
-.hnrate .g svg {{ width:100%; height:auto; display:block; filter:drop-shadow(0 6px 18px rgba(139,92,246,.25)); }}
+.hnrate .g svg {{ width:100%; height:auto; display:block; filter:drop-shadow(0 6px 18px rgba(123,69,240,.25)); }}
 .hnrate .lgs {{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); grid-template-rows:repeat(3,auto); grid-auto-flow:column;
   gap:8px 22px; max-width:380px; margin:8px auto 0; }}
-.hnrate .rl {{ display:flex; align-items:center; gap:9px; color:#D5DBE7; font-size:.92rem; }}
+.hnrate .rl {{ display:flex; align-items:center; gap:9px; color:#D7D3DD; font-size:.92rem; }}
 .hnrate .rl i {{ width:11px; height:11px; border-radius:50%; flex:none; box-shadow:0 0 0 3px rgba(255,255,255,.05); }}
-.hnrate .rl b {{ color:#fff; font-weight:700; direction:ltr; unicode-bidi:isolate; }}
-.hnrate .mr {{ text-align:center; color:#B9C1D3; font-size:.8rem; margin-top:12px; }}
+.hnrate .rl b {{ color:#fff; font-weight:600; direction:ltr; unicode-bidi:isolate; }}
+.hnrate .mr {{ text-align:center; color:#BCB6C7; font-size:.8rem; margin-top:12px; }}
 .hnrate .mr b {{ color:#fff; direction:ltr; unicode-bidi:isolate; }} .hnrate .mr span {{ color:{_MU}; }}
 /* ---------- analysts: the rating card as tall as the tiles + the targets card next to it ---------- */
 .hnang {{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.25fr); gap:16px; align-items:stretch; }}
@@ -278,18 +278,18 @@ CSS = f"""<style>
 .hnang .hnar .hntgt {{ margin-top:0; flex:1; }}
 .hnang .kts {{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }}
 .hnkt {{ position:relative; overflow:hidden; border-radius:14px; padding:12px 14px; border:1px solid {_BD};
-  background:{T.TOP}, linear-gradient(160deg,rgba(61,123,255,.16),rgba(139,92,246,.08) 55%,{T.CARD});
+  background:{T.TOP}, linear-gradient(160deg,rgba(59,139,235,.16),rgba(123,69,240,.08) 55%,{T.CARD});
   transition:border-color .18s ease, box-shadow .18s ease, transform .18s ease; }}
 .hnkt::after {{ content:""; position:absolute; inset:auto 0 0 0; height:2px; background:linear-gradient(90deg,{_A},{_V},{_C}); opacity:0;
   transition:opacity .18s ease; }}
-.hnkt:hover {{ border-color:rgba(126,166,255,.45); box-shadow:0 12px 28px rgba(61,123,255,.16); transform:translateY(-2px); }}
+.hnkt:hover {{ border-color:rgba(121,184,244,.45); box-shadow:0 12px 28px rgba(59,139,235,.16); transform:translateY(-2px); }}
 .hnkt:hover::after {{ opacity:.9; }}
-.hnkt .l {{ display:flex; align-items:center; gap:7px; color:#C9D0DC; font-size:.7rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }}
-.hnkt .l .ms {{ color:#7EA6FF; font-size:1.02rem; }}
-.hnkt .v {{ color:#fff; font-size:1.25rem; font-weight:800; margin-top:6px; direction:ltr; unicode-bidi:isolate; white-space:nowrap; overflow:hidden;
+.hnkt .l {{ display:flex; align-items:center; gap:7px; color:#CCC7D3; font-size:.7rem; font-weight:600; letter-spacing:.08em; text-transform:uppercase; }}
+.hnkt .l .ms {{ color:#79B8F4; font-size:1.02rem; }}
+.hnkt .v {{ color:#fff; font-size:1.25rem; font-weight:600; margin-top:6px; direction:ltr; unicode-bidi:isolate; white-space:nowrap; overflow:hidden;
   text-overflow:ellipsis; }}
 .hnkt .s {{ color:{_MU}; font-size:.76rem; margin-top:2px; }}
-.hnkt.ok .s {{ color:#4ADE80; font-weight:700; }} .hnkt.bad .s {{ color:#F87171; font-weight:700; }}
+.hnkt.ok .s {{ color:#4ADE80; font-weight:600; }} .hnkt.bad .s {{ color:#F87171; font-weight:600; }}
 .hnkt.ok .v {{ color:#E8FFF0; }}
 .hnkts4 {{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin-bottom:12px; }}
 @media (max-width: 900px) {{ .hnkts4 {{ grid-template-columns:repeat(2,minmax(0,1fr)); }} }}
@@ -425,7 +425,7 @@ def ring(score, g, size=48):
     circ = 2 * np.pi * r
     col = GRADE_COLOR.get(g, _C)
     return (f'<div class="hnring" style="width:{size}px;height:{size}px"><svg viewBox="0 0 48 48">'
-            f'<circle cx="24" cy="24" r="{r}" fill="none" stroke="rgba(138,148,167,.18)" stroke-width="4.5"/>'
+            f'<circle cx="24" cy="24" r="{r}" fill="none" stroke="rgba(157,151,165,.18)" stroke-width="4.5"/>'
             f'<circle cx="24" cy="24" r="{r}" fill="none" stroke="{col}" stroke-width="4.5" stroke-linecap="round" '
             f'stroke-dasharray="{circ * score / 100:.1f} {circ:.1f}"/></svg>'
             f'<div class="g"><b style="color:{col}">{g}</b><span>{score:.0f}</span></div></div>')
@@ -479,19 +479,19 @@ def _radar(res, rtl=False):
     cx, cy = (160 if rtl else 360), 125
     side = -1 if rtl else 1
     s = ['<svg viewBox="0 0 520 250" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" style="direction:ltr">'
-         '<defs><radialGradient id="hnrg" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#22D3EE" stop-opacity=".16"/>'
-         '<stop offset="1" stop-color="#22D3EE" stop-opacity="0"/></radialGradient>'
-         '<linearGradient id="hnsw" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#22D3EE" stop-opacity="0"/>'
-         '<stop offset="1" stop-color="#22D3EE" stop-opacity=".42"/></linearGradient>'
+         '<defs><radialGradient id="hnrg" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#2DB6EB" stop-opacity=".16"/>'
+         '<stop offset="1" stop-color="#2DB6EB" stop-opacity="0"/></radialGradient>'
+         '<linearGradient id="hnsw" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#2DB6EB" stop-opacity="0"/>'
+         '<stop offset="1" stop-color="#2DB6EB" stop-opacity=".42"/></linearGradient>'
          '<filter id="hngl" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.5" result="b"/>'
          '<feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>',
          f'<circle cx="{cx}" cy="{cy}" r="112" fill="url(#hnrg)"/>']
     for r in (28, 56, 84, 112):
-        s.append(f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="none" stroke="#22D3EE" stroke-opacity="{.10 + r / 1200:.2f}" stroke-width="1"/>')
-    s.append(f'<path d="M{cx - 118} {cy} H{cx + 118} M{cx} {cy - 118} V{cy + 118}" stroke="#22D3EE" stroke-opacity=".12" stroke-width="1"/>')
+        s.append(f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="none" stroke="#2DB6EB" stroke-opacity="{.10 + r / 1200:.2f}" stroke-width="1"/>')
+    s.append(f'<path d="M{cx - 118} {cy} H{cx + 118} M{cx} {cy - 118} V{cy + 118}" stroke="#2DB6EB" stroke-opacity=".12" stroke-width="1"/>')
     s.append(f'<g class="sweep"><path d="M{cx} {cy} L{cx + 112} {cy} A112 112 0 0 0 {cx + 112 * np.cos(np.radians(-38)):.1f} '
              f'{cy + 112 * np.sin(np.radians(-38)):.1f} Z" fill="url(#hnsw)"/>'
-             f'<line x1="{cx}" y1="{cy}" x2="{cx + 112}" y2="{cy}" stroke="#22D3EE" stroke-width="2" stroke-opacity=".8" filter="url(#hngl)"/></g>')
+             f'<line x1="{cx}" y1="{cy}" x2="{cx + 112}" y2="{cy}" stroke="#2DB6EB" stroke-width="2" stroke-opacity=".8" filter="url(#hngl)"/></g>')
     top = res.head(7) if res is not None and len(res) else pd.DataFrame()
     for i, r in enumerate(top.itertuples()):
         ang = np.radians(-160 + i * 53)
@@ -504,7 +504,7 @@ def _radar(res, rtl=False):
                  f'fill="#fff" font-family="{T.FONT}">{T.esc(r.Symbol)}</text>'
                  f'<text x="{x + side * 8:.0f}" y="{y + 7:.0f}" text-anchor="{"end" if rtl else "start"}" font-size="9.5" fill="{col}" '
                  f'font-family="{T.FONT}">{r.Grade} · {r.Score:.0f}</text>')
-    s.append(f'<circle cx="{cx}" cy="{cy}" r="4" fill="#22D3EE" filter="url(#hngl)"/>')
+    s.append(f'<circle cx="{cx}" cy="{cy}" r="4" fill="#2DB6EB" filter="url(#hngl)"/>')
     return "".join(s) + "</svg>"
 
 
@@ -963,7 +963,7 @@ def target_card(price, tg):
            f'<stop offset="1" stop-color="{_U}"/></linearGradient>'
            f'<filter id="hntgl" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3" result="b"/>'
            f'<feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>',
-           f'<rect x="{pad}" y="{y0 - 4}" width="{W - 2 * pad}" height="8" rx="4" fill="rgba(138,148,167,.18)"/>']
+           f'<rect x="{pad}" y="{y0 - 4}" width="{W - 2 * pad}" height="8" rx="4" fill="rgba(157,151,165,.18)"/>']
     tl, th = x(min(v for _, v in pts)), x(max(v for _, v in pts))
     svg.append(f'<rect x="{tl:.1f}" y="{y0 - 4}" width="{max(th - tl, 2):.1f}" height="8" rx="4" fill="url(#hntg)" opacity=".85"/>')
     # target labels above the track, moved up a row when two are too close
@@ -978,13 +978,13 @@ def target_card(price, tg):
         ty = y0 - 18 - row * 30
         anchor = "start" if xx < 60 else ("end" if xx > W - 60 else "middle")
         svg.append(f'<line x1="{xx:.1f}" y1="{y0 - 7}" x2="{xx:.1f}" y2="{ty + 6}" stroke="{col}" stroke-opacity=".45" stroke-width="1"/>'
-                   f'<circle cx="{xx:.1f}" cy="{y0}" r="8" fill="{col}" stroke="#040810" stroke-width="2.5" filter="url(#hntgl)"/>'
-                   f'<text x="{xx:.1f}" y="{ty - 8}" text-anchor="{anchor}" font-size="11" fill="#9AA4B6" font-family="{T.FONT}">{T.esc(L(en, ar_))}</text>'
+                   f'<circle cx="{xx:.1f}" cy="{y0}" r="8" fill="{col}" stroke="#0E0918" stroke-width="2.5" filter="url(#hntgl)"/>'
+                   f'<text x="{xx:.1f}" y="{ty - 8}" text-anchor="{anchor}" font-size="11" fill="#A09AAB" font-family="{T.FONT}">{T.esc(L(en, ar_))}</text>'
                    f'<text x="{xx:.1f}" y="{ty + 4}" text-anchor="{anchor}" font-size="13" font-weight="800" fill="#fff" font-family="{T.FONT}">${v:,.0f}</text>')
     xp = x(price)
     anchor = "start" if xp < 60 else ("end" if xp > W - 60 else "middle")
-    svg.append(f'<path d="M{xp:.1f} {y0 - 10} L{xp + 10:.1f} {y0} L{xp:.1f} {y0 + 10} L{xp - 10:.1f} {y0} Z" fill="#fff" stroke="#040810" stroke-width="2"/>'
-               f'<text x="{xp:.1f}" y="{y0 + 30}" text-anchor="{anchor}" font-size="11" fill="#9AA4B6" font-family="{T.FONT}">{L("Now", "الحالي")}</text>'
+    svg.append(f'<path d="M{xp:.1f} {y0 - 10} L{xp + 10:.1f} {y0} L{xp:.1f} {y0 + 10} L{xp - 10:.1f} {y0} Z" fill="#fff" stroke="#0E0918" stroke-width="2"/>'
+               f'<text x="{xp:.1f}" y="{y0 + 30}" text-anchor="{anchor}" font-size="11" fill="#A09AAB" font-family="{T.FONT}">{L("Now", "الحالي")}</text>'
                f'<text x="{xp:.1f}" y="{y0 + 45}" text-anchor="{anchor}" font-size="13" font-weight="800" fill="#fff" font-family="{T.FONT}">${price:,.2f}</text>')
     top = min((y0 - 18 - r_ * 30 - 22 for _, r_ in placed), default=0)
     svg[0] = svg[0].replace('viewBox="0 0 {} 150"'.format(W), f'viewBox="0 {min(0, top - 4):.0f} {W} {150 - min(0, top - 4):.0f}"')
@@ -1084,10 +1084,10 @@ def rating_gauge(counts, label, color):
                      f'fill="{col}"><title>{T.esc(L(en, ar_))} {frac * 100:.0f}%</title></path>')
         a0 = a1
     if not segs:
-        parts.append(f'<path d="M{cx - ro} {cy} A{ro} {ro} 0 0 1 {cx + ro} {cy} L{cx + ri} {cy} A{ri} {ri} 0 0 0 {cx - ri} {cy} Z" fill="rgba(138,148,167,.25)"/>')
+        parts.append(f'<path d="M{cx - ro} {cy} A{ro} {ro} 0 0 1 {cx + ro} {cy} L{cx + ri} {cy} A{ri} {ri} 0 0 0 {cx - ri} {cy} Z" fill="rgba(157,151,165,.25)"/>')
     return (f'<svg viewBox="0 0 340 176" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'
-            f'<defs><radialGradient id="hnrg2" cx="50%" cy="100%" r="80%"><stop offset="0" stop-color="#8B5CF6" stop-opacity=".22"/>'
-            f'<stop offset="1" stop-color="#040810" stop-opacity=".0"/></radialGradient></defs>{"".join(parts)}'
+            f'<defs><radialGradient id="hnrg2" cx="50%" cy="100%" r="80%"><stop offset="0" stop-color="#7B45F0" stop-opacity=".22"/>'
+            f'<stop offset="1" stop-color="#0E0918" stop-opacity=".0"/></radialGradient></defs>{"".join(parts)}'
             f'<path d="M{cx - ri + 12} {cy} A{ri - 12} {ri - 12} 0 0 1 {cx + ri - 12} {cy} Z" fill="url(#hnrg2)"/>'
             f'<text x="{cx}" y="{cy - 16}" text-anchor="middle" font-size="{min(38, 148 / max(len(label) * 0.6, 1)):.0f}" font-weight="800" '
             f'fill="{color}" font-family="{T.FONT}">{T.esc(label)}</text></svg>')
@@ -1509,4 +1509,4 @@ def page_scanner():
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "11.2"
+BUILD = "12.0"

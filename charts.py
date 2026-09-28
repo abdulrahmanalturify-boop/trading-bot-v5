@@ -14,8 +14,14 @@ import ta
 from theme import (ACCENT, BG, BORDER, CYAN, DOWN, GOLD, MUTED, NEG_BD, NEG_BG, NEG_FG, ORANGE, POS_BD, POS_BG, POS_FG,
                    PURPLE, TEXT, UP, VIOLET)
 
-FONT_FAMILY = "Plus Jakarta Sans, Readex Pro, system-ui, sans-serif"
-GRID = "rgba(138,148,167,0.13)"
+FONT_FAMILY = "DM Sans, Readex Pro, system-ui, sans-serif"
+# chart fills on the dark night: mid-tone green / red boxes with bright edges and light text (the page's own dark tints
+# would disappear into a chart's background)
+POS_BG, POS_BD, POS_FG = "#1C5E3B", "#34D27A", "#E8FBF0"
+NEG_BG, NEG_BD, NEG_FG = "#6E2330", "#F26B6B", "#FDECEE"
+NEU_FILL, NEU_LINE, NEU_TEXT = "#2A2535", "#3E3A46", "#D8D3DE"
+ACC_FILL, ACC_LINE = "#1B3A66", "#79B8F4"
+GRID = "rgba(157,151,165,0.13)"
 PALETTE = [ACCENT, CYAN, VIOLET, GOLD, "#F472B6", "#34D399", ORANGE, "#60A5FA", "#A3E635", "#FB7185", "#C084FC", "#2DD4BF"]
 
 
@@ -28,10 +34,10 @@ def rgba(hex_color, alpha):
 pio.templates["alturaifi"] = go.layout.Template(layout=dict(
     font=dict(family=FONT_FAMILY, color=TEXT, size=12),
     paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", colorway=PALETTE,
-    hoverlabel=dict(bgcolor="#12203F", bordercolor="#2B4172", font=dict(family=FONT_FAMILY, color=TEXT, size=12)),
-    xaxis=dict(gridcolor=GRID, zeroline=False, linecolor="#22355F", tickfont=dict(color=MUTED)),
-    yaxis=dict(gridcolor=GRID, zeroline=False, linecolor="#22355F", tickfont=dict(color=MUTED)),
-    legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(color="#B8C0CE")),
+    hoverlabel=dict(bgcolor="#1B1728", bordercolor="#3E3A46", font=dict(family=FONT_FAMILY, color=TEXT, size=12)),
+    xaxis=dict(gridcolor=GRID, zeroline=False, linecolor="#2C2738", tickfont=dict(color=MUTED)),
+    yaxis=dict(gridcolor=GRID, zeroline=False, linecolor="#2C2738", tickfont=dict(color=MUTED)),
+    legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(color="#BBB5C3")),
     title=dict(font=dict(size=15, color="#FFFFFF", family=FONT_FAMILY), x=0.01, xanchor="left"),
 ))
 TEMPLATE = "plotly_dark+alturaifi"
@@ -70,7 +76,7 @@ def pastel(values, neutral=False):
     fill, line, txt, out = [], [], [], []
     for v in values:
         if v is None or (isinstance(v, float) and np.isnan(v)) or (neutral and v == 0):
-            fill.append("#2A3142"); line.append("#3A4458"); txt.append(TEXT); out.append(MUTED)
+            fill.append("#332E3D"); line.append("#3A3545"); txt.append(TEXT); out.append(MUTED)
         elif v >= 0:
             fill.append(POS_BG); line.append(POS_BD); txt.append(POS_FG); out.append(POS_BD)
         else:
@@ -135,7 +141,7 @@ def price_chart(d, chart_type="Candles", overlays=(), panels=(), intraday=False,
         elif o == "Bollinger Bands" and "BB_up" in d:
             fig.add_trace(go.Scatter(x=x, y=d["BB_up"], name="BB Upper", line=dict(color=MUTED, width=1, dash="dot")), 1, 1)
             fig.add_trace(go.Scatter(x=x, y=d["BB_low"], name="BB Lower", line=dict(color=MUTED, width=1, dash="dot"),
-                                     fill="tonexty", fillcolor="rgba(138,147,163,0.07)"), 1, 1)
+                                     fill="tonexty", fillcolor="rgba(157,151,165,0.07)"), 1, 1)
         elif o == "VWAP" and intraday and "Volume" in d:
             fig.add_trace(go.Scatter(x=x, y=ta.vwap(d), name="VWAP", line=dict(color="#E040FB", width=1.4)), 1, 1)
         elif o == "Pivot Points" and len(d) > 2:
@@ -239,7 +245,7 @@ def trade_chart(d, trades=None, overlays=(), panels=(), mode="Line", height=None
     if mode != "Candles":
         for tr in fig.data:
             if tr.name == "Price":
-                tr.update(line=dict(color="#EEF2F8", width=1.8, shape="linear"), hovertemplate="%{x}<br>%{y:,.2f}<extra></extra>")
+                tr.update(line=dict(color="#EFECF3", width=1.8, shape="linear"), hovertemplate="%{x}<br>%{y:,.2f}<extra></extra>")
         fig.add_trace(go.Scatter(x=d.index.strftime(fmt), y=d["Close"], mode="lines", line=dict(color=rgba(CYAN, 0.12), width=7),
                                  hoverinfo="skip", showlegend=False), 1, 1)
         try:
@@ -309,7 +315,7 @@ def trade_chart(d, trades=None, overlays=(), panels=(), mode="Line", height=None
             text=None if many else [w["BUY"] if is_buy else w["SELL"]] * len(xs), textposition="bottom center" if is_buy else "top center",
             textfont=dict(size=9, color=UP if is_buy else DOWN, family=FONT_FAMILY),
             marker=dict(symbol="triangle-up" if is_buy else "triangle-down", size=13, color=UP if is_buy else DOWN,
-                        line=dict(color="#040810", width=1.5)),
+                        line=dict(color="#0E0918", width=1.5)),
             hovertext=tips, hovertemplate="%{hovertext}<extra></extra>"), 1, 1)
 
     arrows(t, "_ed", True)
@@ -336,7 +342,7 @@ def orb_chart(bars, trades=None, or_minutes=15, mode="Candles", words=None, heig
     else:
         fig.add_trace(go.Scatter(x=x, y=bars["Close"], mode="lines", line=dict(color=rgba(CYAN, 0.12), width=7), hoverinfo="skip",
                                  showlegend=False), 1, 1)
-        fig.add_trace(go.Scatter(x=x, y=bars["Close"], mode="lines", name="Price", line=dict(color="#EEF2F8", width=1.8),
+        fig.add_trace(go.Scatter(x=x, y=bars["Close"], mode="lines", name="Price", line=dict(color="#EFECF3", width=1.8),
                                  hovertemplate="%{x}<br>%{y:,.2f}<extra></extra>", showlegend=False), 1, 1)
     k = max(int(or_minutes) // 5, 1)
     orb = bars.iloc[:k]
@@ -344,7 +350,7 @@ def orb_chart(bars, trades=None, or_minutes=15, mode="Candles", words=None, heig
     lo_all, hi_all = float(bars["Low"].min()), float(bars["High"].max())
     fig.add_vrect(x0=-0.5, x1=min(k, len(x)) - 0.5, fillcolor=rgba(ACCENT, 0.13), line_width=0, layer="below", row=1, col=1)
     fig.add_annotation(x=0, y=1, xref="x", yref="y domain", text=w["range"], showarrow=False, xanchor="left", yanchor="bottom",
-                       font=dict(color="#9CC3FF", size=11))
+                       font=dict(color="#9DCBF7", size=11))
     for y, name, color in ((hi, w["high"], CYAN), (lo, w["low"], VIOLET)):
         fig.add_trace(go.Scatter(x=[x[0], x[-1]], y=[y, y], mode="lines", name=f"{name} {y:,.2f}", line=dict(color=color, width=1.3, dash="dash"),
                                  hovertemplate=f"{name} {y:,.2f}<extra></extra>"), 1, 1)
@@ -388,7 +394,7 @@ def orb_chart(bars, trades=None, or_minutes=15, mode="Candles", words=None, heig
                                      text=[w["long"] if long_ else w["short"]], textposition="bottom center" if long_ else "top center",
                                      textfont=dict(size=10, color=UP if long_ else DOWN, family=FONT_FAMILY),
                                      marker=dict(symbol="triangle-up" if long_ else "triangle-down", size=14, color=UP if long_ else DOWN,
-                                                 line=dict(color="#040810", width=1.5)),
+                                                 line=dict(color="#0E0918", width=1.5)),
                                      hovertemplate=f"<b>{w['long'] if long_ else w['short']}</b> {w['at']} {float(r['Entry']):,.2f}<br>%{{x}}"
                                                    "<extra></extra>", showlegend=False), 1, 1)
             if closed:
@@ -398,7 +404,7 @@ def orb_chart(bars, trades=None, or_minutes=15, mode="Candles", words=None, heig
                                          textposition="top center" if long_ else "bottom center",
                                          textfont=dict(size=10, color=DOWN if long_ else UP, family=FONT_FAMILY),
                                          marker=dict(symbol="triangle-down" if long_ else "triangle-up", size=14, color=DOWN if long_ else UP,
-                                                     line=dict(color="#040810", width=1.5)),
+                                                     line=dict(color="#0E0918", width=1.5)),
                                          hovertemplate=f"<b>{word}</b> {w['at']} {float(r['Exit']):,.2f} · {why}<br>"
                                                        f"{float(r['P&L %']):+.2f}% ({'+' if r['P&L $'] > 0 else '-'}${abs(float(r['P&L $'])):,.0f})"
                                                        "<extra></extra>", showlegend=False), 1, 1)
@@ -433,9 +439,9 @@ def pct_bars(labels, values, title=None, height=None, hover=None):
     style(fig, height or max(260, 30 * len(values) + 80), title, legend=False)
     span = max(abs(min(values + [0])), abs(max(values + [0]))) or 1.0
     lo, hi = min(values + [0]), max(values + [0])
-    fig.update_xaxes(showgrid=True, gridcolor="rgba(138,148,167,0.08)", zeroline=True, zerolinecolor="#4B5568", zerolinewidth=1.5,
+    fig.update_xaxes(showgrid=True, gridcolor="rgba(157,151,165,0.08)", zeroline=True, zerolinecolor="#514B5C", zerolinewidth=1.5,
                      ticksuffix="%", range=[lo - span * (0.28 if lo < 0 else 0.04), hi + span * (0.28 if hi > 0 else 0.04)])
-    fig.update_yaxes(side="left", gridcolor="rgba(0,0,0,0)", tickfont=dict(color="#C9D0DC", size=12))
+    fig.update_yaxes(side="left", gridcolor="rgba(0,0,0,0)", tickfont=dict(color="#CCC7D3", size=12))
     fig.update_layout(hovermode="closest", bargap=0.38)
     return _bars(fig)
 
@@ -450,12 +456,12 @@ def score_gauge(total, title):
         mode="gauge+number", value=total, number=dict(suffix="/100", font=dict(size=28, color="#fff")),
         domain=dict(x=[0, 1], y=[0, 0.84]),
         gauge=dict(axis=dict(range=[0, 100], tickcolor=MUTED), bar=dict(color=color, thickness=0.32), bgcolor="rgba(0,0,0,0)", borderwidth=0,
-                   steps=[dict(range=[0, 45], color=rgba(DOWN, 0.16)), dict(range=[45, 55], color="rgba(138,148,167,0.14)"),
+                   steps=[dict(range=[0, 45], color=rgba(DOWN, 0.16)), dict(range=[45, 55], color="rgba(157,151,165,0.14)"),
                           dict(range=[55, 100], color=rgba(UP, 0.16))])))
     style(fig, 262, legend=False)
     fig.update_layout(margin=dict(l=34, r=34, t=12, b=6))
     fig.add_annotation(text=f"<b>{rtl_text(title)}</b>", x=0.5, y=1.0, xref="paper", yref="paper", xanchor="center", yanchor="top",
-                       showarrow=False, font=dict(size=14, color="#C9D2E3"))
+                       showarrow=False, font=dict(size=14, color="#CCC7D5"))
     return fig
 
 
@@ -474,7 +480,7 @@ def hbar(labels, values, title=None, height=None, suffix="%"):
                            hovertemplate="%{y}: %{x:+.2f}" + suffix + "<extra></extra>"))
     style(fig, height or max(260, 30 * len(values) + 70), title, legend=False)
     fig.update_yaxes(side="left", gridcolor="rgba(0,0,0,0)")
-    fig.update_xaxes(showgrid=True, gridcolor=GRID, zeroline=True, zerolinecolor="#3A4458")
+    fig.update_xaxes(showgrid=True, gridcolor=GRID, zeroline=True, zerolinecolor="#3A3545")
     fig.update_layout(hovermode="closest", bargap=0.28)
     return _bars(fig)
 
@@ -500,7 +506,7 @@ def area(series, title=None, color=CYAN, height=300, prefix="$"):
     except (ValueError, AttributeError):
         tr.fillcolor = rgba(color, 0.15)
     fig.add_trace(tr)
-    fig.add_hline(y=0, line=dict(color="#3A4458", width=1))
+    fig.add_hline(y=0, line=dict(color="#3A3545", width=1))
     style(fig, height, title, legend=False)
     fig.update_yaxes(tickprefix=prefix, side="left")
     fig.update_layout(hovermode="x")
@@ -512,7 +518,7 @@ def signed_bars(x, y, title=None, height=300, prefix="$", fmt=",.0f"):
     fill, line, _, _ = pastel(list(y))
     fig = go.Figure(go.Bar(x=x, y=y, marker=dict(color=fill, line=dict(color=line, width=1)),
                            hovertemplate=f"%{{x}}<br>{prefix}%{{y:{fmt}}}<extra></extra>"))
-    fig.add_hline(y=0, line=dict(color="#3A4458", width=1))
+    fig.add_hline(y=0, line=dict(color="#3A3545", width=1))
     style(fig, height, title, legend=False)
     fig.update_yaxes(tickprefix=prefix, side="left")
     fig.update_layout(hovermode="x", bargap=0.25)
@@ -545,8 +551,8 @@ def monthly_heatmap(table, title="Monthly Returns", months=None):
     text = [[("" if np.isnan(v) else f"{v:+.1f}%") for v in row] for row in z]
     m = np.nanmax(np.abs(z)) if np.isfinite(z).any() else 1
     fig = go.Figure(go.Heatmap(z=z, x=months, y=[str(y) for y in table.index], text=text, texttemplate="%{text}",
-                               colorscale=[[0, "#F1AEB5"], [0.35, NEG_BG], [0.5, "#E2E8F0"], [0.65, POS_BG], [1, "#A3CFBB"]],
-                               zmid=0, zmin=-m, zmax=m, xgap=3, ygap=3, textfont=dict(color="#1F2937", size=12),
+                               colorscale=[[0, "#A8323F"], [0.35, "#5A1F29"], [0.5, NEU_FILL], [0.65, "#17482F"], [1, "#1F8A4E"]],
+                               zmid=0, zmin=-m, zmax=m, xgap=3, ygap=3, textfont=dict(color="#F2EFF6", size=12),
                                showscale=False, hovertemplate="%{y} %{x}: %{text}<extra></extra>"))
     style(fig, 90 + 40 * len(table), title, legend=False)
     fig.update_yaxes(side="left", autorange="reversed", showgrid=False)
@@ -558,7 +564,7 @@ def optimizer_heatmap(grid, xname, yname, metric, title=None):
     text = [[("" if np.isnan(v) else f"{v:.1f}") for v in row] for row in z]
     fig = go.Figure(go.Heatmap(z=z, x=[str(c) for c in grid.columns], y=[str(i) for i in grid.index], text=text,
                                texttemplate="%{text}", zmid=0 if "Drawdown" not in metric else None, xgap=2, ygap=2,
-                               colorscale=[[0, "#B3262B"], [0.5, "#1A2130"], [1, "#16A34A"]],
+                               colorscale=[[0, "#B3262B"], [0.5, "#221E2B"], [1, "#16A34A"]],
                                colorbar=dict(title=metric, thickness=10)))
     style(fig, 420, title or f"{metric} by parameters", legend=False)
     fig.update_xaxes(title_text=xname, type="category")
@@ -586,7 +592,7 @@ def cumulative_pnl(trades, title="Cumulative P&L ($)", xlab="Trade #"):
 def pie(labels, values, title, colors=None, center=None):
     fig = go.Figure(go.Pie(labels=labels, values=values, hole=0.62, sort=False,
                            marker=dict(colors=colors or [UP, DOWN, ACCENT, GOLD, PURPLE, CYAN, ORANGE, MUTED], line=dict(color=BG, width=3)),
-                           textinfo="percent", textfont=dict(color="#040810", size=12)))
+                           textinfo="percent", textfont=dict(color="#0E0918", size=12)))
     if center:
         fig.add_annotation(text=center, showarrow=False, font=dict(size=18, color="#fff"))
     return style(fig, 300, title)
@@ -626,7 +632,7 @@ def hunt_map(res, title=None, words=("From 52-week high %", "RS rating (1-99)", 
     top = set(d.nlargest(18, "Score")["Symbol"])
     fig = go.Figure(go.Scatter(
         x=d["From high %"], y=d["RS"], mode="markers+text", text=[s if s in top else "" for s in d["Symbol"]], customdata=d[["Symbol", "Score"]],
-        textposition="top center", textfont=dict(size=9, color="#C7CFDD"),
+        textposition="top center", textfont=dict(size=9, color="#CAC5D1"),
         marker=dict(size=size, color=d["Score"], cmin=20, cmax=95, colorscale=[[0, DOWN], [0.45, GOLD], [0.7, CYAN], [1, UP]], showscale=True,
                     colorbar=dict(title=words[2], thickness=10), line=dict(width=0.5, color="rgba(255,255,255,.25)"), opacity=0.9),
         hovertemplate="<b>%{customdata[0]}</b><br>" + words[1] + ": %{y:.0f}<br>" + words[0] + ": %{x:.1f}%<br>" + words[2]
@@ -737,8 +743,8 @@ def sector_rrg(tails, names, title="Sector rotation (vs S&P 500)", labels=("Lead
                                  textposition="top center", textfont=dict(color=col, size=11), name=names.get(etf, etf),
                                  marker=dict(size=15, color=col, line=dict(color="#fff", width=1.5)),
                                  hovertemplate=f"<b>{names.get(etf, etf)}</b> ({etf})<br>RS-Ratio %{{x:.2f}}<br>RS-Momentum %{{y:.2f}}<extra></extra>"))
-    fig.add_hline(y=100, line=dict(color="#3A4458", width=1))
-    fig.add_vline(x=100, line=dict(color="#3A4458", width=1))
+    fig.add_hline(y=100, line=dict(color="#3A3545", width=1))
+    fig.add_vline(x=100, line=dict(color="#3A3545", width=1))
     style(fig, 470, title, legend=False)
     fig.update_xaxes(range=[x0, x1], showgrid=False, title_text="RS-Ratio", title_font=dict(size=11, color=MUTED))
     fig.update_yaxes(range=[y0, y1], showgrid=False, side="left", title_text="RS-Momentum", title_font=dict(size=11, color=MUTED))
@@ -772,7 +778,7 @@ def norm_lines(series_map, title=None, height=360):
         r = (s / s.iloc[0] - 1) * 100
         fig.add_trace(go.Scatter(x=r.index, y=r.values, name=name, mode="lines", line=dict(width=2, color=PALETTE[i % len(PALETTE)]),
                                  hovertemplate=f"{name}: %{{y:+.2f}}%<extra></extra>"))
-    fig.add_hline(y=0, line=dict(color="#3A4458", width=1))
+    fig.add_hline(y=0, line=dict(color="#3A3545", width=1))
     style(fig, height, title)
     fig.update_yaxes(ticksuffix="%")
     return fig
@@ -801,7 +807,7 @@ def pc_bars(symbols, ratios, title="Put/Call volume ratio"):
         elif r > 1.0:
             fill.append(NEG_BG); line.append(NEG_BD); txt.append(NEG_FG)
         else:
-            fill.append("#E2E8F0"); line.append("#CBD5E1"); txt.append("#334155")
+            fill.append(NEU_FILL); line.append(NEU_LINE); txt.append(NEU_TEXT)
     fig = go.Figure(go.Bar(x=symbols, y=ratios, marker=dict(color=fill, line=dict(color=line, width=1)), text=[f"{r:.2f}" for r in ratios],
                            textposition="inside", insidetextfont=dict(color=txt, size=12)))
     fig.add_hline(y=1, line=dict(color=DOWN, dash="dot", width=1))
@@ -838,7 +844,7 @@ def metric_bars(labels, values, title=None, kind="money", height=340):
             fig.add_annotation(x=labels[i], y=max(b, 0), text=f"{g:+.0f}%", showarrow=False, yshift=16,
                                font=dict(size=11, color=POS_BD if g >= 0 else NEG_BD))
     style(fig, height, title, legend=False)
-    fig.update_yaxes(side="left", showticklabels=False, showgrid=False, zeroline=True, zerolinecolor="#3A4458")
+    fig.update_yaxes(side="left", showticklabels=False, showgrid=False, zeroline=True, zerolinecolor="#3A3545")
     fig.update_xaxes(type="category")
     fig.update_layout(hovermode="closest", bargap=0.3)
     return _bars(fig)
@@ -857,11 +863,11 @@ def cash_waterfall(items, title="Where the cash went (latest year)"):
     fig = go.Figure(go.Waterfall(
         x=[i[0] for i in items], y=[i[1] for i in items], measure=[i[2] for i in items],
         text=text, textposition="outside",
-        textfont=dict(color="#E9EDF5", size=12),
+        textfont=dict(color="#E7E3EB", size=12),
         increasing=dict(marker=dict(color=POS_BG, line=dict(color=POS_BD, width=1.5))),
         decreasing=dict(marker=dict(color=NEG_BG, line=dict(color=NEG_BD, width=1.5))),
-        totals=dict(marker=dict(color="#DBEAFE", line=dict(color="#93C5FD", width=1.5))),
-        connector=dict(line=dict(color="#3A4458", width=1, dash="dot"))))
+        totals=dict(marker=dict(color=ACC_FILL, line=dict(color=ACC_LINE, width=1.5))),
+        connector=dict(line=dict(color="#3A3545", width=1, dash="dot"))))
     style(fig, 360, title, legend=False)
     fig.update_yaxes(side="left", tickprefix="$", showgrid=True, range=[min(0, run) * 1.15, peak * 1.16 if peak > 0 else None])
     fig.update_layout(hovermode="closest")
@@ -871,7 +877,7 @@ def cash_waterfall(items, title="Where the cash went (latest year)"):
 def cash_trend(periods, ocf, capex, fcf, margin=None, title="Cash flow trend", names=("Operating cash flow", "Capital expenditure", "Free cash flow", "FCF margin")):
     fig = make_subplots(specs=[[{"secondary_y": True}]])
     b = lambda v: [x / 1e9 if x is not None and not np.isnan(x) else None for x in v]
-    fig.add_trace(go.Bar(x=periods, y=b(ocf), name=names[0], marker=dict(color="#DBEAFE", line=dict(color="#93C5FD", width=1))), secondary_y=False)
+    fig.add_trace(go.Bar(x=periods, y=b(ocf), name=names[0], marker=dict(color=ACC_FILL, line=dict(color=ACC_LINE, width=1))), secondary_y=False)
     fig.add_trace(go.Bar(x=periods, y=b(capex), name=names[1], marker=dict(color=NEG_BG, line=dict(color=NEG_BD, width=1))), secondary_y=False)
     fig.add_trace(go.Bar(x=periods, y=b(fcf), name=names[2], marker=dict(color=POS_BG, line=dict(color=POS_BD, width=1))), secondary_y=False)
     if margin is not None:
@@ -952,7 +958,7 @@ def movers_bubble(df, title="Change vs relative volume (bubble = market cap)", x
         textfont=dict(size=9, color=txt),
         marker=dict(size=size, color=fill, line=dict(width=1.5, color=line), opacity=0.95),
         customdata=d["Name"], hovertemplate="<b>%{text}</b> %{customdata}<br>%{y:+.2f}% · %{x:.1f}×<extra></extra>"))
-    fig.add_hline(y=0, line=dict(color="#3A4458"))
+    fig.add_hline(y=0, line=dict(color="#3A3545"))
     fig.add_vline(x=1, line=dict(color=MUTED, dash="dot"))
     style(fig, 440, title, legend=False)
     fig.update_xaxes(title_text=xlab, type="log", showgrid=True, gridcolor=GRID)
@@ -969,10 +975,10 @@ def level_progress(levels, completed, in_progress, total, colors, title=None, na
     fig = go.Figure()
     rest = [t - c - p for t, c, p in zip(total, completed, in_progress)]
     fig.add_trace(go.Bar(y=levels, x=completed, orientation="h", name=names[0], marker=dict(color=colors),
-                         text=[str(v) if v else "" for v in completed], textposition="inside", insidetextfont=dict(color="#040810")))
+                         text=[str(v) if v else "" for v in completed], textposition="inside", insidetextfont=dict(color="#0E0918")))
     fig.add_trace(go.Bar(y=levels, x=in_progress, orientation="h", name=names[1], marker=dict(color=[rgba(c, 0.45) for c in colors]),
                          text=[str(v) if v else "" for v in in_progress], textposition="inside", insidetextfont=dict(color="#fff")))
-    fig.add_trace(go.Bar(y=levels, x=rest, orientation="h", name=names[2], marker=dict(color="#22355F"), hoverinfo="skip"))
+    fig.add_trace(go.Bar(y=levels, x=rest, orientation="h", name=names[2], marker=dict(color="#2C2738"), hoverinfo="skip"))
     style(fig, 260, title)
     fig.update_layout(barmode="stack", bargap=0.35, hovermode="closest")
     fig.update_yaxes(side="left", autorange="reversed", showgrid=False)
@@ -1006,7 +1012,7 @@ def spread_area(s, title=None, label="10Y − 2Y"):
     for part, col in ((bps.where(bps >= 0), UP), (bps.where(bps < 0), DOWN)):
         fig.add_trace(go.Scatter(x=bps.index, y=part, fill="tozeroy", mode="lines", line=dict(color=col, width=1.8),
                                  fillcolor=rgba(col, 0.16), name=label, hovertemplate="%{x|%b %d, %Y}: %{y:.0f} bps<extra></extra>"))
-    fig.add_hline(y=0, line=dict(color="#3A4458", width=1))
+    fig.add_hline(y=0, line=dict(color="#3A3545", width=1))
     style(fig, 380, title, legend=False)
     fig.update_yaxes(ticksuffix=" bps", side="left")
     fig.update_layout(hovermode="x")
@@ -1044,7 +1050,7 @@ def compare_bars(labels, series_map, title=None, kind="money", height=380):
     style(fig, height, title)
     fig.update_layout(barmode="group", bargap=0.24 if len(series_map) > 1 else 0.42, bargroupgap=0.06, hovermode="x unified")
     fig.update_xaxes(type="category")
-    fig.update_yaxes(side="left", zeroline=True, zerolinecolor="#3A4458",
+    fig.update_yaxes(side="left", zeroline=True, zerolinecolor="#3A3545",
                      tickprefix="$" if kind in ("money", "eps") else "", ticksuffix="B" if kind == "money" else ("%" if kind == "pct" else ""))
     return _bars(fig)
 
@@ -1052,7 +1058,7 @@ def compare_bars(labels, series_map, title=None, kind="money", height=380):
 def share_donut(labels, values, title=None, center=None, hover=None):
     colors = (PALETTE * 3)[:len(labels)]
     if labels and labels[-1] in ("Others", "أخرى"):
-        colors[-1] = "#475569"
+        colors[-1] = "#514B5C"
     fig = go.Figure(go.Pie(labels=labels, values=values, hole=0.6, sort=False, direction="clockwise",
                            marker=dict(colors=colors, line=dict(color=BG, width=2)), textinfo="label+percent", textposition="outside",
                            textfont=dict(color=TEXT, size=11), customdata=hover or labels,
@@ -1085,7 +1091,7 @@ def drawdown(dd, title=None, height=340):
     fig = go.Figure(go.Scatter(x=dd.index, y=dd.values, mode="lines", fill="tozeroy", line=dict(color=DOWN, width=1.4),
                                fillcolor=rgba(DOWN, 0.22), hovertemplate="%{x|%b %d, %Y}: %{y:.1f}%<extra></extra>"))
     for lvl in (-10, -20):
-        fig.add_hline(y=lvl, line=dict(color="#3A4458", width=1, dash="dot"),
+        fig.add_hline(y=lvl, line=dict(color="#3A3545", width=1, dash="dot"),
                       annotation=dict(text=f"{lvl}%", font=dict(size=10, color=MUTED), xanchor="left"), annotation_position="bottom left")
     style(fig, height, title, legend=False)
     fig.update_yaxes(ticksuffix="%", side="left")
@@ -1128,7 +1134,7 @@ FG_BANDS = [(0, 25, DOWN, 0.16), (25, 45, "#F97316", 0.1), (45, 55, "#94A3B8", 0
 def fg_history(fg, title=None, spx=None, names=("Fear & Greed", "S&P 500"), height=380):
     """Index 0-100 with fear (red) to greed (green) bands; optional S&P 500 on a second axis."""
     fig = make_subplots(specs=[[{"secondary_y": True}]]) if spx is not None else go.Figure()
-    tr = go.Scatter(x=fg.index, y=fg.values, name=names[0], mode="lines", line=dict(color="#E9EDF5", width=2.4),
+    tr = go.Scatter(x=fg.index, y=fg.values, name=names[0], mode="lines", line=dict(color="#E7E3EB", width=2.4),
                     hovertemplate=f"{names[0]}: %{{y:.0f}}<extra></extra>")
     if spx is not None:
         fig.add_trace(tr, secondary_y=False)
@@ -1161,7 +1167,7 @@ def season_bars(labels, avg, win, cur=None, title=None, names=("Average return",
     style(fig, height, title)
     lo, hi = min(min(avg), 0), max(max(avg), 0)
     pad = (hi - lo) * 0.25 or 1
-    fig.update_yaxes(ticksuffix="%", side="left", range=[lo - pad, hi + pad], zeroline=True, zerolinecolor="#3A4458", secondary_y=False)
+    fig.update_yaxes(ticksuffix="%", side="left", range=[lo - pad, hi + pad], zeroline=True, zerolinecolor="#3A3545", secondary_y=False)
     fig.update_yaxes(ticksuffix="%", range=[0, 100], showgrid=False, side="right", secondary_y=True, tickfont=dict(color=rgba(VIOLET, 0.9)))
     fig.update_layout(hovermode="x unified", bargap=0.3)
     fig.update_xaxes(type="category")
@@ -1175,7 +1181,7 @@ def seasonal_path(avg, cur=None, title=None, names=("Average year", "This year")
     if cur is not None and len(cur):
         fig.add_trace(go.Scatter(x=cur.index, y=cur.values, name=names[1], mode="lines", line=dict(color=CYAN, width=2.2),
                                  hovertemplate=f"{names[1]} · %{{x}}: %{{y:+.1f}}%<extra></extra>"))
-    fig.add_hline(y=0, line=dict(color="#3A4458", width=1))
+    fig.add_hline(y=0, line=dict(color="#3A3545", width=1))
     style(fig, height, title)
     fig.update_yaxes(ticksuffix="%", side="left")
     fig.update_xaxes(title_text=xlab, title_font=dict(size=11, color=MUTED))
@@ -1183,4 +1189,4 @@ def seasonal_path(avg, cur=None, title=None, names=("Average year", "This year")
     return fig
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "11.2"
+BUILD = "12.0"

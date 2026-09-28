@@ -2,7 +2,7 @@
 from html import escape
 import hashlib
 ACADEMY_REVISION = "2026-09-27.6"
-MARK = '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="Academy university emblem"><defs><linearGradient id="acmark" x2="1" y2="1"><stop stop-color="#3D7BFF"/><stop offset="1" stop-color="#8B5CF6"/></linearGradient></defs><rect x="2" y="2" width="92" height="92" rx="25" fill="url(#acmark)"/><path d="M20 36 48 20 76 36M24 40H72M29 43V63M42 43V59M54 43V59M67 43V63M20 73H76" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M25 63Q37 58 48 65Q59 58 71 63V78Q59 73 48 80Q37 73 25 78ZM48 65V80" fill="#102347" stroke="#79E6F3" stroke-width="2.5" stroke-linejoin="round"/></svg>'''
+MARK = '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="Academy university emblem"><defs><linearGradient id="acmark" x2="1" y2="1"><stop stop-color="#3B8BEB"/><stop offset="1" stop-color="#7B45F0"/></linearGradient></defs><rect x="2" y="2" width="92" height="92" rx="25" fill="url(#acmark)"/><path d="M20 36 48 20 76 36M24 40H72M29 43V63M42 43V59M54 43V59M67 43V63M20 73H76" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M25 63Q37 58 48 65Q59 58 71 63V78Q59 73 48 80Q37 73 25 78ZM48 65V80" fill="#1F1839" stroke="#79E6F3" stroke-width="2.5" stroke-linejoin="round"/></svg>'''
 WORDMARK = MARK.replace('viewBox="0 0 96 96"','viewBox="0 0 420 96"').replace('</svg>','<text x="114" y="43" fill="#EDF2FF" font-family="Arial,sans-serif" font-size="25" font-weight="700">ALTURAIFI</text><text x="114" y="72" fill="#A9BFFF" font-family="Arial,sans-serif" font-size="20" letter-spacing="5">ACADEMY</text></svg>')
 
 
@@ -25,15 +25,15 @@ def vector_cover(kind, uid="course"):
     }
     aliases={"market":"growth","candles":"quality","levels":"orders","ma":"valuation","osc":"research","risk":"mind","value":"statements","options":"valuation","macro":"bonds"}
     art=shapes.get(kind,shapes.get(aliases.get(kind),shapes["plan"]))
-    return f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 190" role="img" aria-label="{escape(kind)} course illustration"><defs><linearGradient id="bg{token}" x2="1" y2="1"><stop stop-color="#14294A"/><stop offset="1" stop-color="#201A41"/></linearGradient><linearGradient id="ink{token}" x2="1" y2="1"><stop stop-color="#6ECDF5"/><stop offset="1" stop-color="#AC94FF"/></linearGradient></defs><rect width="400" height="190" fill="url(#bg{token})"/><circle cx="349" cy="26" r="97" fill="#8362EF" opacity=".09"/><circle cx="54" cy="191" r="113" fill="#3D7BFF" opacity=".09"/><g stroke="#A4B7E5" opacity=".06">{''.join(f'<path d="M{x} 0v190"/>' for x in range(0,401,25))}{''.join(f'<path d="M0 {y}h400"/>' for y in range(0,191,25))}</g><g fill="#111D35" fill-opacity=".8" stroke="url(#ink{token})" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">{art}</g><circle cx="34" cy="28" r="4" fill="#6ECDF5"/><path d="M46 28h38" stroke="#8096BB" stroke-width="2"/></svg>'''
+    return f'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 190" role="img" aria-label="{escape(kind)} course illustration"><defs><linearGradient id="bg{token}" x2="1" y2="1"><stop stop-color="#231B38"/><stop offset="1" stop-color="#201A41"/></linearGradient><linearGradient id="ink{token}" x2="1" y2="1"><stop stop-color="#6ECDF5"/><stop offset="1" stop-color="#AC94FF"/></linearGradient></defs><rect width="400" height="190" fill="url(#bg{token})"/><circle cx="349" cy="26" r="97" fill="#8362EF" opacity=".09"/><circle cx="54" cy="191" r="113" fill="#3B8BEB" opacity=".09"/><g stroke="#A4B7E5" opacity=".06">{''.join(f'<path d="M{x} 0v190"/>' for x in range(0,401,25))}{''.join(f'<path d="M0 {y}h400"/>' for y in range(0,191,25))}</g><g fill="#1A1528" fill-opacity=".8" stroke="url(#ink{token})" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">{art}</g><circle cx="34" cy="28" r="4" fill="#6ECDF5"/><path d="M46 28h38" stroke="#8096BB" stroke-width="2"/></svg>'''
 
 CSS = '''<style>
-.st-key-academy_root .ac-hero {position:relative;overflow:hidden;border:1px solid #22355F;border-radius:26px;padding:38px;background:linear-gradient(90deg,#3D7BFF,#8B5CF6,#22D3EE) top / 100% 3px no-repeat,radial-gradient(ellipse at 88% 10%,#7553c83d,transparent 55%),linear-gradient(115deg,#12203F,#0B1530 65%);margin-bottom:20px;display:grid;grid-template-columns:minmax(0,1fr) 210px;gap:32px;align-items:center;}
+.st-key-academy_root .ac-hero {position:relative;overflow:hidden;border:1px solid #2C2738;border-radius:26px;padding:38px;background:linear-gradient(90deg,#3B8BEB,#7B45F0,#2DB6EB) top / 100% 3px no-repeat,radial-gradient(ellipse at 88% 10%,#7553c83d,transparent 55%),linear-gradient(115deg,#221D2F,#1A1624 65%);margin-bottom:20px;display:grid;grid-template-columns:minmax(0,1fr) 210px;gap:32px;align-items:center;}
 .ac-hero h1 {font-size:clamp(30px,3vw,46px);line-height:1.2;letter-spacing:-1px;color:#F2F5FF;margin:12px 0!important;}
 .ac-hero p {color:#B1BED5;max-width:680px;font-size:15px;line-height:1.9;margin:10px 0;}
 .st-key-academy_root .ac-eyebrow {
   display:inline-block;max-width:100%;font-size:clamp(15px,1.5vw,20px);
-  font-weight:800;letter-spacing:1.8px;line-height:1.5;color:#A8BDFF;
+  font-weight:600;letter-spacing:1.8px;line-height:1.5;color:#A8BDFF;
 }
 @supports ((background-clip:text) or (-webkit-background-clip:text)) {
   .st-key-academy_root .ac-eyebrow {
@@ -45,45 +45,45 @@ CSS = '''<style>
 .ac-emblem {max-width:180px;margin:auto;filter:drop-shadow(0 22px 40px #050a17aa);transform:rotate(-5deg);}
 .ac-emblem svg {width:100%;height:auto;}
 .ac-meta {display:flex;flex-wrap:wrap;gap:10px;margin-top:22px;}
-.ac-meta span {font-size:12px;color:#CBD7EF;padding:7px 12px;border:1px solid #22355F;border-radius:8px;background:rgba(11,21,48,.6);}
-.st-key-academy_root .course {border-radius:18px;border:1px solid #22355F;background:linear-gradient(90deg,#3D7BFF,#8B5CF6,#22D3EE) top / 100% 3px no-repeat, linear-gradient(180deg,#12203F,#0B1530);height:100%;}
-.st-key-academy_root .course .art::after {content:"";position:absolute;left:0;right:0;top:0;height:3px;background:linear-gradient(90deg,#3D7BFF,#8B5CF6,#22D3EE);z-index:2;}
+.ac-meta span {font-size:12px;color:#CBD7EF;padding:7px 12px;border:1px solid #2C2738;border-radius:8px;background:rgba(26,22,36,.6);}
+.st-key-academy_root .course {border-radius:18px;border:1px solid #2C2738;background:linear-gradient(90deg,#3B8BEB,#7B45F0,#2DB6EB) top / 100% 3px no-repeat, linear-gradient(180deg,#221D2F,#1A1624);height:100%;}
+.st-key-academy_root .course .art::after {content:"";position:absolute;left:0;right:0;top:0;height:3px;background:linear-gradient(90deg,#3B8BEB,#7B45F0,#2DB6EB);z-index:2;}
 .st-key-academy_root .course .art {height:170px;}
 .st-key-academy_root .course .body {padding:20px;}
 .st-key-academy_root .course .ttl {font-size:1.02rem;min-height:48px;}
 .st-key-academy_root .course .tag {font-size:.8rem;min-height:50px;color:#A1B0C9;}
 .st-key-academy_root .course .play {background:#18243de8;border:1px solid #6b7eac;color:#BDD4FF;width:32px;height:32px;}
-.st-key-academy_root .course .prog {height:3px;background:#25304A;margin-top:18px;}
+.st-key-academy_root .course .prog {height:3px;background:#2F2A3C;margin-top:18px;}
 .st-key-academy_root .course .prog span {background:linear-gradient(90deg,#4F8AFF,#A78BFA);}
-.st-key-academy_root .dcard {background:linear-gradient(90deg,#3D7BFF,#8B5CF6,#22D3EE) top / 100% 3px no-repeat, linear-gradient(180deg,#12203F,#0B1530);border-color:#22355F;border-radius:18px;}
-.st-key-academy_root .lesson {background:linear-gradient(90deg,#3D7BFF,#8B5CF6,#22D3EE) top / 100% 3px no-repeat, linear-gradient(180deg,#12203F,#0B1530);border:1px solid #22355F;border-radius:20px;}
+.st-key-academy_root .dcard {background:linear-gradient(90deg,#3B8BEB,#7B45F0,#2DB6EB) top / 100% 3px no-repeat, linear-gradient(180deg,#221D2F,#1A1624);border-color:#2C2738;border-radius:18px;}
+.st-key-academy_root .lesson {background:linear-gradient(90deg,#3B8BEB,#7B45F0,#2DB6EB) top / 100% 3px no-repeat, linear-gradient(180deg,#221D2F,#1A1624);border:1px solid #2C2738;border-radius:20px;}
 .st-key-academy_root .lesson p {font-size:1.02rem;line-height:2;}
 .st-key-academy_root [class*="st-key-crs_"]:focus-within .course {outline:2px solid #8CAFFF;outline-offset:3px;}
-.st-key-academy_root [data-testid="stTabs"] button {font-weight:700;}
-.ac-note {padding:16px 20px;border-inline-start:3px solid #8B5CF6;border-radius:8px;background:linear-gradient(90deg,#3D7BFF,#8B5CF6,#22D3EE) top / 100% 3px no-repeat,#12203F;color:#B7C7E4;font-size:13px;line-height:1.8;}
+.st-key-academy_root [data-testid="stTabs"] button {font-weight:600;}
+.ac-note {padding:16px 20px;border-inline-start:3px solid #7B45F0;border-radius:8px;background:linear-gradient(90deg,#3B8BEB,#7B45F0,#2DB6EB) top / 100% 3px no-repeat,#221D2F;color:#B7C7E4;font-size:13px;line-height:1.8;}
 @media(max-width:650px){.st-key-academy_root .ac-hero {grid-template-columns:1fr;padding:24px;gap:12px;}.ac-emblem {max-width:80px;position:absolute;inset-inline-end:20px;top:20px;opacity:.3;}.ac-hero h1{max-width:90%;}.st-key-academy_root .course .ttl,.st-key-academy_root .course .tag{min-height:0;}}
 @media(prefers-reduced-motion:reduce){.st-key-academy_root *{transition:none!important;animation:none!important;}}
-.st-key-academy_root .ac-course-banner {position:relative;isolation:isolate;overflow:hidden;min-height:330px;display:flex;align-items:flex-end;border:1px solid #22355F;border-radius:22px;margin-bottom:18px;background:#14294a;}
-.st-key-academy_root .ac-course-banner::before {content:"";position:absolute;left:0;right:0;top:0;height:3px;background:linear-gradient(90deg,#3D7BFF,#8B5CF6,#22D3EE);z-index:2;}
+.st-key-academy_root .ac-course-banner {position:relative;isolation:isolate;overflow:hidden;min-height:330px;display:flex;align-items:flex-end;border:1px solid #2C2738;border-radius:22px;margin-bottom:18px;background:#231B38;}
+.st-key-academy_root .ac-course-banner::before {content:"";position:absolute;left:0;right:0;top:0;height:3px;background:linear-gradient(90deg,#3B8BEB,#7B45F0,#2DB6EB);z-index:2;}
 .st-key-academy_root .ac-course-background {position:absolute;inset:0;z-index:-2;}
 .st-key-academy_root .ac-course-background svg {display:block;width:100%;height:100%;max-width:none;}
-.st-key-academy_root .ac-course-banner::after {content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(0deg,rgba(8,16,33,.97),rgba(8,16,33,.55) 55%,rgba(8,16,33,.08));}
+.st-key-academy_root .ac-course-banner::after {content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(0deg,rgba(18,13,30,.97),rgba(18,13,30,.55) 55%,rgba(18,13,30,.08));}
 .st-key-academy_root .ac-course-copy {padding:32px;width:100%;position:relative;}
 .st-key-academy_root .ac-course-copy h1 {font-size:clamp(25px,2.5vw,36px);line-height:1.25;color:#f1f5ff;margin:0 0 12px;}
 .st-key-academy_root .ac-course-copy p {color:#c2cfe7;font-size:16px;margin:0 0 24px;max-width:760px;}
 .st-key-academy_root .ac-course-meta {display:flex;flex-wrap:wrap;gap:10px;}
-.st-key-academy_root .st-key-academy_lesson_panel {padding:24px;border:1px solid #22355F;border-radius:20px;background:linear-gradient(90deg,#3D7BFF,#8B5CF6,#22D3EE) top / 100% 3px no-repeat, linear-gradient(180deg,#12203F,#0B1530);}
+.st-key-academy_root .st-key-academy_lesson_panel {padding:24px;border:1px solid #2C2738;border-radius:20px;background:linear-gradient(90deg,#3B8BEB,#7B45F0,#2DB6EB) top / 100% 3px no-repeat, linear-gradient(180deg,#221D2F,#1A1624);}
 .st-key-academy_root .st-key-academy_lesson_panel .lesson {padding:0;margin:0;border:0;border-radius:0;background:none;}
 .st-key-academy_root .st-key-academy_lesson_panel [data-testid="stHorizontalBlock"] {row-gap:12px;}
 @media(max-width:650px){.st-key-academy_root .ac-course-banner{min-height:300px;}.st-key-academy_root .ac-course-copy{padding:22px;}.st-key-academy_root .st-key-academy_lesson_panel{padding:18px;}}
 .st-key-academy_root .st-key-academy_lesson_navigation {padding-top:24px!important;}
-.st-key-academy_root .st-key-academy_start_here {padding:22px;border:1px solid #405381;border-radius:18px;background:linear-gradient(115deg,#183458,#262040);margin-bottom:20px;}
+.st-key-academy_root .st-key-academy_start_here {padding:22px;border:1px solid #405381;border-radius:18px;background:linear-gradient(115deg,#28203F,#262040);margin-bottom:20px;}
 .st-key-academy_root .ac-brand-lockup {grid-column:1/-1;direction:ltr!important;text-align:left!important;justify-self:start;display:flex;flex-direction:column;align-items:flex-start;gap:14px;width:100%;margin-bottom:8px;}
 .st-key-academy_root .ac-brand-lockup .brand {height:clamp(30px,4.4vw,64px);width:auto;max-width:100%;filter:drop-shadow(0 0 16px rgba(91,140,255,.35));}
-.st-key-academy_root .ac-brand-lockup span {font-family:Arial,sans-serif;font-size:14px;letter-spacing:6px;font-weight:700;color:#91BCFF;}
+.st-key-academy_root .ac-brand-lockup span {font-family:Arial,sans-serif;font-size:14px;letter-spacing:6px;font-weight:600;color:#91BCFF;}
 .st-key-academy_root .ac-hero {direction:ltr!important;}
 
-.st-key-academy_root .ac-photo-cover {position:relative;width:100%;height:100%;overflow:hidden;background:#132747;}
+.st-key-academy_root .ac-photo-cover {position:relative;width:100%;height:100%;overflow:hidden;background:#211A36;}
 .st-key-academy_root .ac-photo-cover img {position:absolute;inset:0;display:block;width:100%!important;height:100%!important;max-width:none;object-fit:cover;}
 .st-key-academy_root .ac-photo-fallback {position:absolute;inset:0;}
 .st-key-academy_root .ac-photo-fallback svg {width:100%;height:100%;}

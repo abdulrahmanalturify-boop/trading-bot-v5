@@ -553,7 +553,7 @@ def company_tab(sym):
              ("groups", L("Employees", "الموظفون"), f"{p['employees']:,}" if p["employees"] else "—"),
              ("person", L("CEO", "الرئيس التنفيذي"), p["ceo"] or "—"),
              ("storefront", L("Exchange", "السوق"), p["exchange"] or "—")]
-    web = f'<a href="{T.esc(p["website"])}" target="_blank" style="color:#7EA6FF">{T.esc(p["website"])}</a>' if p["website"] else "—"
+    web = f'<a href="{T.esc(p["website"])}" target="_blank" style="color:#79B8F4">{T.esc(p["website"])}</a>' if p["website"] else "—"
     ui.html('<div class="prof">' + "".join(f'<div class="it"><div class="l">{T.icon(ic)}{T.esc(l)}</div><div class="v">{T.esc(v)}</div></div>'
                                            for ic, l, v in items)
             + f'<div class="it"><div class="l">{T.icon("language")}{L("Website", "الموقع الإلكتروني")}</div><div class="v">{web}</div></div></div>')
@@ -1168,7 +1168,7 @@ def _share_view(df, total, group_name):
                         f'<span class="num">${T.fmt_big(r["Revenue"])} · <b>{w:.1f}%</b></span></div>'
                         f'<div class="trk"><span style="width:{min(100, w / max(d["Rev share"].max(), 1e-9) * 100):.1f}%;'
                         f'background:linear-gradient(90deg,{T.ACCENT},{T.VIOLET})"></span></div></div>')
-        ui.html(f'<div class="card"><div class="muted" style="font-size:.75rem;font-weight:800;letter-spacing:.08em">'
+        ui.html(f'<div class="card"><div class="muted" style="font-size:.75rem;font-weight:600;letter-spacing:.08em">'
                 f'{L("LEADERS BY REVENUE", "الأكبر حسب الإيرادات")}</div><div class="bars">{"".join(rows)}</div></div>')
     st.caption(L("Market share = company revenue (last 12 months) ÷ total revenue of the companies in this list.",
                  "الحصة السوقية = إيرادات الشركة (آخر 12 شهر) ÷ مجموع إيرادات الشركات في هذه القائمة."))
@@ -1442,4 +1442,4 @@ def page_screener():
 # SCANNER
 # =====================================================================
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "11.2"
+BUILD = "12.0"

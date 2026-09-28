@@ -318,7 +318,7 @@ GLOSSARY = [
 def course_art(kind, uid="a"):
     """Original SVG illustration for course cards (400x150)."""
     g = {"market": ("#1d4ed8", "#7c3aed"), "candles": ("#0f766e", "#1d4ed8"), "levels": ("#7c2d12", "#b45309"), "ma": ("#1e3a8a", "#0891b2"),
-         "osc": ("#581c87", "#be185d"), "risk": ("#064e3b", "#0f766e"), "value": ("#1e293b", "#2563eb"), "options": ("#312e81", "#9333ea"),
+         "osc": ("#581c87", "#be185d"), "risk": ("#064e3b", "#0f766e"), "value": ("#2A2535", "#2563eb"), "options": ("#312e81", "#9333ea"),
          "macro": ("#0c4a6e", "#4338ca")}[kind]
     bg = (f'<defs><linearGradient id="g{uid}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="{g[0]}"/><stop offset="1" stop-color="{g[1]}"/>'
           f'</linearGradient></defs><rect width="400" height="150" fill="url(#g{uid})"/>'
@@ -360,16 +360,16 @@ def course_art(kind, uid="a"):
 CANDLE_ANATOMY = """<svg viewBox="0 0 520 240" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:560px">
 <line x1="140" y1="20" x2="140" y2="220" stroke="#0ECB81" stroke-width="3"/><rect x="115" y="60" width="50" height="110" rx="4" fill="#0ECB81"/>
 <line x1="360" y1="20" x2="360" y2="220" stroke="#F6465D" stroke-width="3"/><rect x="335" y="60" width="50" height="110" rx="4" fill="#F6465D"/>
-<g font-family="Arial" font-size="13" fill="#E9EDF5">
+<g font-family="Arial" font-size="13" fill="#E7E3EB">
 <text x="175" y="25">{high}</text><text x="175" y="65">{close}</text><text x="175" y="172">{open}</text><text x="175" y="222">{low}</text>
 <text x="395" y="25">{high}</text><text x="395" y="65">{open}</text><text x="395" y="172">{close}</text><text x="395" y="222">{low}</text>
-<text x="92" y="118" text-anchor="end" fill="#8A94A7">{body}</text><text x="130" y="40" text-anchor="end" fill="#8A94A7">{wick}</text></g>
-<g stroke="#8A94A7" stroke-dasharray="3 3"><line x1="145" y1="20" x2="170" y2="20"/><line x1="165" y1="60" x2="170" y2="60"/><line x1="165" y1="170" x2="170" y2="170"/><line x1="145" y1="220" x2="170" y2="220"/>
+<text x="92" y="118" text-anchor="end" fill="#9D97A5">{body}</text><text x="130" y="40" text-anchor="end" fill="#9D97A5">{wick}</text></g>
+<g stroke="#9D97A5" stroke-dasharray="3 3"><line x1="145" y1="20" x2="170" y2="20"/><line x1="165" y1="60" x2="170" y2="60"/><line x1="165" y1="170" x2="170" y2="170"/><line x1="145" y1="220" x2="170" y2="220"/>
 <line x1="365" y1="20" x2="390" y2="20"/><line x1="385" y1="60" x2="390" y2="60"/><line x1="385" y1="170" x2="390" y2="170"/><line x1="365" y1="220" x2="390" y2="220"/></g>
 </svg>"""
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "11.2"
+BUILD = "12.0"
 
 
 # Academy expansion: original courses retain their identifiers and progress.

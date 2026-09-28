@@ -10,9 +10,9 @@ import theme as T
 import ui
 from i18n import L, is_ar
 
-BUILD = "11.2"
+BUILD = "12.0"
 
-_LINE = "rgba(130,150,255,"
+_LINE = "rgba(150,140,250,"
 CSS = f"""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap');
@@ -43,16 +43,21 @@ CSS = f"""
   margin-top:clamp(18px,3.4vw,58px); }}
 .cztop .czlogo svg.czmark {{ flex:none; width:clamp(72px,7.6vw,122px); height:auto; filter:drop-shadow(0 0 22px rgba(45,182,235,.55)); }}
 .cztop .czlogo .brand {{ height:clamp(30px,4.4vw,64px); width:auto; max-width:66vw; filter:drop-shadow(0 0 16px rgba(91,140,255,.35)); }}
-.cztop .cztag {{ position:relative; margin-top:18px; font-size:.8rem; font-weight:600; letter-spacing:.26em; text-transform:uppercase; color:#93A3DA; }}
+.cztop .cztag {{ position:relative; margin-top:18px; font-size:.8rem; font-weight:600; letter-spacing:.26em; text-transform:uppercase; color:#A69ED0; }}
 .cztop.ar .cztag {{ letter-spacing:0; font-size:.95rem; }}
 .cztop .czchips {{ position:relative; display:flex; justify-content:center; gap:10px; flex-wrap:wrap; margin-top:18px; direction:ltr; }}
-.cztop .czchips .chip {{ display:inline-flex; align-items:center; gap:7px; background:rgba(11,21,48,.88); border:1px solid {_LINE}.22);
-  backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); border-radius:999px; padding:6px 8px 6px 13px; font-size:.8rem; color:#C9D2F2;
+.cztop .czchips .chip {{ display:inline-flex; align-items:center; gap:7px; background:rgba(26,22,36,.88); border:1px solid {_LINE}.22);
+  backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); border-radius:999px; padding:6px 8px 6px 13px; font-size:.8rem; color:#D2CCEB;
   font-variant-numeric:tabular-nums; }}
-.cztop .czchips .chip b {{ color:#fff; font-weight:700; letter-spacing:.04em; }}
+.cztop .czchips .chip b {{ color:#fff; font-weight:600; letter-spacing:.04em; }}
 .cztop .czchips .chip .pill {{ min-width:0; padding:2px 8px; font-size:.74rem; border-radius:999px; }}
 .cztop .czarc {{ position:absolute; left:30%; width:40%; bottom:-118px; height:130px; pointer-events:none; }}
 
+/* the calls to action under the logo: side by side in the middle */
+.st-key-czcta {{ flex-direction:row !important; flex-wrap:wrap; justify-content:center; align-items:center; gap:12px !important; margin:-6px 0 34px; }}
+.st-key-czcta .stElementContainer {{ width:auto !important; flex:none; }}
+.st-key-czcta button {{ min-height:44px; padding:0 22px; border-radius:10px; }}
+.st-key-czcta button p {{ font-size:.95rem; }}
 /* the glass cards */
 [class*="st-key-czcard_"] {{ position:relative; }}
 [class*="st-key-czcard_"] [data-testid="stElementContainer"] {{ position:static !important; }}
@@ -60,11 +65,11 @@ CSS = f"""
 [class*="st-key-czcard_"] [class*="st-key-czgo_"] {{ position:absolute !important; inset:0; z-index:4; margin:0 !important; width:auto !important; }}
 [class*="st-key-czcard_"] [class*="st-key-czgo_"] .stButton, [class*="st-key-czcard_"] [class*="st-key-czgo_"] button
   {{ width:100% !important; height:100% !important; opacity:0; cursor:pointer; }}
-.czframe {{ padding:7px; border-radius:26px; border:1px solid {_LINE}.24); background:rgba(7,12,28,.55);
+.czframe {{ padding:7px; border-radius:26px; border:1px solid {_LINE}.24); background:rgba(18,13,30,.55);
   transition:transform .25s ease, box-shadow .25s ease, border-color .25s ease; }}
 [class*="st-key-czcard_"]:hover .czframe {{ transform:translateY(-6px); border-color:{_LINE}.45); box-shadow:0 30px 80px -30px rgba(79,107,255,.6); }}
 .czcard {{ box-sizing:border-box; border-radius:20px; border:1px solid {_LINE}.18);
-  background:{T.TOP}, linear-gradient(180deg,#0B1733 0%,#081127 55%,#050A18 100%); box-shadow:inset 0 1px 0 rgba(255,255,255,.06);
+  background:{T.TOP}, linear-gradient(180deg,#16112A 0%,#120D1F 55%,#0E0918 100%); box-shadow:inset 0 1px 0 rgba(255,255,255,.06);
   padding:14px 20px 18px; display:flex; flex-direction:column; gap:9px; }}
 .czcard svg.czill {{ display:block; width:100%; max-width:330px; height:auto; margin:0 auto; overflow:visible; }}
 .czcard .czt {{ margin:0 0 6px; text-align:center; font-size:1.9rem; font-weight:500; letter-spacing:-.01em; line-height:1.14; color:#fff; }}
@@ -73,11 +78,11 @@ CSS = f"""
 .czcard.ar .czem {{ font-family:'Readex Pro',sans-serif; font-style:normal; font-weight:600; font-size:1em;
   background:linear-gradient(90deg,#8FB0FF,#B9A6FF 60%,#67E8F9); -webkit-background-clip:text; background-clip:text; color:transparent; }}
 .czcard .czp {{ padding:12px 16px; border-radius:12px; border:1px solid {_LINE}.24);
-  background:linear-gradient(90deg,rgba(40,60,170,.18),rgba(96,74,230,.32)); text-align:center; font-size:.88rem; line-height:1.55; color:#BCC6EA;
+  background:linear-gradient(90deg,rgba(40,60,170,.18),rgba(96,74,230,.32)); text-align:center; font-size:.88rem; line-height:1.55; color:#C6C0E4;
   transition:border-color .2s ease, background .2s ease; }}
 [class*="st-key-czcard_"]:hover .czp {{ border-color:{_LINE}.4); }}
-.czcard .czgo {{ margin-top:auto; padding-top:4px; display:flex; justify-content:center; align-items:center; gap:6px; font-size:.84rem; font-weight:700;
-  color:#9CB4FF; letter-spacing:.02em; }}
+.czcard .czgo {{ margin-top:auto; padding-top:4px; display:flex; justify-content:center; align-items:center; gap:6px; font-size:.84rem; font-weight:600;
+  color:#9CC4F4; letter-spacing:.02em; }}
 .czcard .czgo .ms {{ transition:transform .2s ease; }}
 [class*="st-key-czcard_"]:hover .czgo {{ color:#fff; }}
 [class*="st-key-czcard_"]:hover .czgo .ms {{ transform:translateX(4px); }}
@@ -101,14 +106,14 @@ CSS = f"""
 .czn .nth {{ width:88px; height:62px; border-radius:10px; }}
 .czn .nth.fb .ms {{ font-size:30px; }} .czn .nth.fb em, .czn .nth .nlg {{ display:none; }}
 .czn .nb {{ flex:1; min-width:0; display:flex; flex-direction:column; gap:3px; }}
-.czn .t {{ color:#EEF2FF; font-weight:650; font-size:.9rem; line-height:1.5; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+.czn .t {{ color:#F1EEFA; font-weight:500; font-size:.9rem; line-height:1.5; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
   overflow:hidden; text-align:start; }}
 .czn:hover .t {{ color:#fff; }}
-.czn .meta {{ color:#8E9BC8; font-size:.74rem; display:flex; align-items:center; gap:4px; }}
+.czn .meta {{ color:#9A93BE; font-size:.74rem; display:flex; align-items:center; gap:4px; }}
 .czn .meta .ms {{ font-size:.9rem; }}
-.czn .sc {{ flex:none; min-width:46px; text-align:center; border-radius:10px; padding:5px 6px 4px; font-weight:800; font-size:1rem; line-height:1.1;
+.czn .sc {{ flex:none; min-width:46px; text-align:center; border-radius:10px; padding:5px 6px 4px; font-weight:600; font-size:1rem; line-height:1.1;
   background:var(--iqb); color:var(--iqf); border:1px solid var(--iqd); direction:ltr; font-variant-numeric:tabular-nums; }}
-.czn .sc small {{ display:block; font-size:.58rem; font-weight:800; opacity:.75; margin-top:1px; }}
+.czn .sc small {{ display:block; font-size:.58rem; font-weight:600; opacity:.75; margin-top:1px; }}
 /* a narrow wide card (small screens, open sidebar): picture and title on top, the two boxes under them */
 @container (max-width: 640px) {{
   .czwide .czcard {{ grid-template-columns:minmax(0,1fr); }}
@@ -169,11 +174,11 @@ ILL_BOTS = _svg(
     '<circle cx="196" cy="124" r="112" fill="url(#czbGlow)"/>'
     '<circle cx="196" cy="124" r="62" fill="none" stroke="#A9B8FF" stroke-opacity=".5" stroke-width="1.2"/>'
     '<circle cx="196" cy="124" r="46" fill="#18206A" fill-opacity=".45" stroke="#A9B8FF" stroke-opacity=".22"/>'
-    '<path d="M196 84 V97" stroke="#D6DCFF" stroke-width="2" stroke-linecap="round"/><circle cx="196" cy="81" r="4" fill="#22D3EE"/>'
+    '<path d="M196 84 V97" stroke="#D6DCFF" stroke-width="2" stroke-linecap="round"/><circle cx="196" cy="81" r="4" fill="#2DB6EB"/>'
     '<rect x="164" y="97" width="64" height="52" rx="15" fill="url(#czbFill)"/>'
     '<rect x="164" y="97" width="64" height="52" rx="15" fill="none" stroke="#FFFFFF" stroke-opacity=".55"/>'
-    '<rect x="173" y="109" width="46" height="26" rx="11" fill="#0A0F2E" fill-opacity=".8"/>'
-    '<circle cx="186" cy="122" r="4.5" fill="#22D3EE"/><circle cx="206" cy="122" r="4.5" fill="#22D3EE"/>'
+    '<rect x="173" y="109" width="46" height="26" rx="11" fill="#120C1F" fill-opacity=".8"/>'
+    '<circle cx="186" cy="122" r="4.5" fill="#2DB6EB"/><circle cx="206" cy="122" r="4.5" fill="#2DB6EB"/>'
     '<rect x="157" y="114" width="7" height="18" rx="3.5" fill="#8FA0FF"/><rect x="228" y="114" width="7" height="18" rx="3.5" fill="#8FA0FF"/>'
     f'<circle cx="164" cy="97" r="3" {_W}/><circle cx="228" cy="149" r="3" {_W}/>'
     f'<path d="M34 150 H92 V116 H134" {_CIRCUIT}/><circle cx="34" cy="150" r="2.6" {_W}/>'
@@ -188,10 +193,10 @@ ILL_HUNT = _svg(
     '<ellipse cx="196" cy="133" rx="64" ry="21" fill="none" stroke="#A9B8FF" stroke-opacity=".75" stroke-width="1.4"/>'
     '<path d="M132 112 V152 M260 112 V152" stroke="#A9B8FF" stroke-opacity=".75" stroke-width="1.4"/>'
     '<ellipse cx="196" cy="112" rx="64" ry="21" fill="url(#czhStripes)" stroke="#ECE9FF" stroke-width="1.4"/>'
-    '<path d="M196 112 L260 112 A64 21 0 0 0 228 93.8 Z" fill="#22D3EE" fill-opacity=".5"/>'
+    '<path d="M196 112 L260 112 A64 21 0 0 0 228 93.8 Z" fill="#2DB6EB" fill-opacity=".5"/>'
     '<ellipse cx="196" cy="112" rx="40" ry="13" fill="none" stroke="#FFFFFF" stroke-opacity=".6"/>'
     '<ellipse cx="196" cy="112" rx="17" ry="5.5" fill="none" stroke="#FFFFFF" stroke-opacity=".75"/>'
-    '<circle cx="222" cy="103" r="10" fill="none" stroke="#22D3EE" stroke-opacity=".6"/><circle cx="222" cy="103" r="4" fill="#22D3EE"/>'
+    '<circle cx="222" cy="103" r="10" fill="none" stroke="#2DB6EB" stroke-opacity=".6"/><circle cx="222" cy="103" r="4" fill="#2DB6EB"/>'
     f'<circle cx="196" cy="91" r="3" {_W}/><circle cx="132" cy="133" r="3" {_W}/><circle cx="260" cy="133" r="3" {_W}/><circle cx="196" cy="173" r="3" {_W}/>'
     f'<path d="M52 64 V110 H104 V140" {_CIRCUIT}/><circle cx="52" cy="64" r="2.6" {_W}/>'
     f'<path d="M150 216 H300" {_CIRCUIT}/><circle cx="150" cy="216" r="2.6" {_W}/>')
@@ -207,8 +212,8 @@ ILL_RESEARCH = _svg(
     '<rect x="186" y="100" width="32" height="68" fill="url(#czrStripes)"/>'
     '<rect x="230" y="56" width="32" height="112" fill="none" stroke="#E6EAFF" stroke-width="1.6"/>'
     f'<circle cx="230" cy="56" r="3.4" {_W}/>'
-    '<path d="M130 150 L178 124 L214 132 L270 78" fill="none" stroke="#22D3EE" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity=".9"/>'
-    '<circle cx="270" cy="78" r="3.6" fill="#22D3EE"/>'
+    '<path d="M130 150 L178 124 L214 132 L270 78" fill="none" stroke="#2DB6EB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity=".9"/>'
+    '<circle cx="270" cy="78" r="3.6" fill="#2DB6EB"/>'
     f'<path d="M300 214 H352 V168" {_CIRCUIT}/><circle cx="352" cy="168" r="2.6" {_W}/>')
 
 ILL_NEWS = _svg(
@@ -218,16 +223,16 @@ ILL_NEWS = _svg(
     '<rect x="170" y="82" width="96" height="112" rx="12" fill="#18206A" fill-opacity=".35" stroke="#A9B8FF" stroke-opacity=".5" stroke-width="1.2"/>'
     '<rect x="148" y="96" width="96" height="112" rx="12" fill="url(#czwFill)"/>'
     '<rect x="148" y="96" width="96" height="112" rx="12" fill="none" stroke="#FFFFFF" stroke-opacity=".55"/>'
-    '<rect x="158" y="108" width="34" height="26" rx="5" fill="#0A0F2E" fill-opacity=".8"/>'
-    '<path d="M162 130 L171 120 L178 126 L184 118 L189 130 Z" fill="#22D3EE" fill-opacity=".8"/>'
+    '<rect x="158" y="108" width="34" height="26" rx="5" fill="#120C1F" fill-opacity=".8"/>'
+    '<path d="M162 130 L171 120 L178 126 L184 118 L189 130 Z" fill="#2DB6EB" fill-opacity=".8"/>'
     '<rect x="198" y="110" width="36" height="6" rx="3" fill="#FFFFFF" fill-opacity=".92"/>'
     '<rect x="198" y="122" width="26" height="6" rx="3" fill="#FFFFFF" fill-opacity=".6"/>'
-    '<rect x="158" y="146" width="76" height="5" rx="2.5" fill="#0A0F2E" fill-opacity=".55"/>'
-    '<rect x="158" y="158" width="64" height="5" rx="2.5" fill="#0A0F2E" fill-opacity=".55"/>'
-    '<rect x="158" y="170" width="70" height="5" rx="2.5" fill="#0A0F2E" fill-opacity=".55"/>'
-    '<rect x="158" y="182" width="46" height="5" rx="2.5" fill="#0A0F2E" fill-opacity=".55"/>'
-    '<circle cx="262" cy="86" r="12" fill="none" stroke="#22D3EE" stroke-opacity=".5"/><circle cx="262" cy="86" r="5" fill="#22D3EE"/>'
-    '<path d="M280 74 A20 20 0 0 1 280 98 M288 67 A30 30 0 0 1 288 105" fill="none" stroke="#22D3EE" stroke-opacity=".7" stroke-width="1.6" stroke-linecap="round"/>'
+    '<rect x="158" y="146" width="76" height="5" rx="2.5" fill="#120C1F" fill-opacity=".55"/>'
+    '<rect x="158" y="158" width="64" height="5" rx="2.5" fill="#120C1F" fill-opacity=".55"/>'
+    '<rect x="158" y="170" width="70" height="5" rx="2.5" fill="#120C1F" fill-opacity=".55"/>'
+    '<rect x="158" y="182" width="46" height="5" rx="2.5" fill="#120C1F" fill-opacity=".55"/>'
+    '<circle cx="262" cy="86" r="12" fill="none" stroke="#2DB6EB" stroke-opacity=".5"/><circle cx="262" cy="86" r="5" fill="#2DB6EB"/>'
+    '<path d="M280 74 A20 20 0 0 1 280 98 M288 67 A30 30 0 0 1 288 105" fill="none" stroke="#2DB6EB" stroke-opacity=".7" stroke-width="1.6" stroke-linecap="round"/>'
     f'<circle cx="148" cy="96" r="3" {_W}/><circle cx="244" cy="208" r="3" {_W}/>'
     f'<path d="M40 178 H100 V142 H148" {_CIRCUIT}/><circle cx="40" cy="178" r="2.6" {_W}/>'
     f'<path d="M352 196 V160 H300" {_CIRCUIT}/><circle cx="300" cy="160" r="2.6" {_W}/>')
@@ -241,8 +246,8 @@ ILL_ACADEMY = _svg(
     '<path d="M148 124 V160 Q196 188 244 160 V124 L196 146 Z" fill="url(#czaFill)"/>'
     '<path d="M148 124 V160 Q196 188 244 160 V124" fill="none" stroke="#FFFFFF" stroke-opacity=".5"/>'
     '<polygon points="196,78 278,110 196,142 114,110" fill="url(#czaStripes)" stroke="#ECE9FF" stroke-width="1.4"/>'
-    '<path d="M196 110 L262 124 V166" fill="none" stroke="#22D3EE" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>'
-    '<circle cx="262" cy="172" r="6" fill="#22D3EE"/><circle cx="262" cy="172" r="12" fill="none" stroke="#22D3EE" stroke-opacity=".45"/>'
+    '<path d="M196 110 L262 124 V166" fill="none" stroke="#2DB6EB" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>'
+    '<circle cx="262" cy="172" r="6" fill="#2DB6EB"/><circle cx="262" cy="172" r="12" fill="none" stroke="#2DB6EB" stroke-opacity=".45"/>'
     f'<circle cx="196" cy="110" r="4" {_W}/><circle cx="114" cy="110" r="3" {_W}/><circle cx="278" cy="110" r="3" {_W}/>'
     f'<path d="M44 76 V126 H102" {_CIRCUIT}/><circle cx="44" cy="76" r="2.6" {_W}/>'
     f'<path d="M296 210 H350 V166" {_CIRCUIT}/><circle cx="350" cy="166" r="2.6" {_W}/>')
@@ -395,6 +400,11 @@ def hero(chips_html=""):
     """The home page's opening. Each card is one big button that opens its page (a headline opens its story)."""
     with st.container(key="czhero"):
         ui.html(CSS + top_html(chips_html))
+        with st.container(key="czcta"):                  # the two calls to action under the logo, as on n8n's home page
+            if st.button(L("Build a bot", "ابنِ بوتك"), type="primary", icon=":material/smart_toy:", key="czcta_bot"):
+                ui.goto("paper")
+            if st.button(L("Today's opportunities", "فرص اليوم"), icon=":material/radar:", key="czcta_hunt"):
+                ui.goto("scanner")
         cols = st.columns(3, gap="large")
         for col, (k, page, ill, t1, t2, two, p1, p2) in zip(cols, cards()):
             with col:

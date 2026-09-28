@@ -162,7 +162,7 @@ def render(tr, op, s, capital, key="td"):
     with c4:
         months = sorted({(d.year, d.month) for d in pd.to_datetime(tr["Exit Date"])}, reverse=True) if len(tr) else []
         head = st.columns([2, 1, 1], vertical_alignment="center")
-        head[0].markdown(f'<div style="font-weight:800;font-size:1.02rem">{L("Calendar", "التقويم")}</div>', unsafe_allow_html=True)
+        head[0].markdown(f'<div style="font-weight:600;font-size:1.02rem">{L("Calendar", "التقويم")}</div>', unsafe_allow_html=True)
         if months:
             ui.valid(f"{key}_month", months)
             ym = head[1].selectbox(L("Month", "الشهر"), months, key=f"{key}_month", format_func=lambda x: month_name(*x), label_visibility="collapsed")
@@ -179,4 +179,4 @@ def render(tr, op, s, capital, key="td"):
                 f'<span class="muted">{n_open} {L("positions", "مراكز")}</span></div>{open_html(op, lg)}</div>')
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "11.2"
+BUILD = "12.0"

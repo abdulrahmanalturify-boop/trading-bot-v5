@@ -172,7 +172,7 @@ def page_sentiment():
                 "neu": L("The market mood is balanced: neither fear nor greed is in control.", "مزاج السوق متوازن: لا الخوف ولا الطمع مسيطر."),
                 "pos": L("Investors are greedy. Rallies can continue, but risk of a pullback rises when greed is extreme.",
                          "المستثمرون في حالة طمع. قد يستمر الصعود، لكن خطر التراجع يرتفع عندما يصبح الطمع شديداً.")}[kind]
-        ui.html(f'<div class="card"><div class="muted" style="font-size:.75rem;font-weight:800;letter-spacing:.08em">{L("HOW THE MOOD CHANGED", "كيف تغيّر المزاج")}</div>'
+        ui.html(f'<div class="card"><div class="muted" style="font-size:.75rem;font-weight:600;letter-spacing:.08em">{L("HOW THE MOOD CHANGED", "كيف تغيّر المزاج")}</div>'
                 f'<div class="fgcmp">{cells}</div><div style="margin-top:12px;line-height:1.8">{T.icon("psychology", T.CYAN)} {T.esc(read)}</div></div>')
     ui.chart(charts.fg_history(idx, L("Fear & Greed over the past year", "الخوف والطمع خلال السنة الماضية"),
                                spx.reindex(idx.index).ffill() if len(spx) else None, (L("Fear & Greed", "الخوف والطمع"), "S&P 500")), key="fg_hist")
@@ -185,7 +185,7 @@ def page_sentiment():
             sc = parts[k]["score"].dropna()
             val = float(sc.iloc[-1]) if len(sc) else 50.0
             bg, fg, zl = _fg_box(val)
-            col.markdown(f'<div class="fgc"><div class="h"><b>{T.icon(ic, "#7EA6FF")} {T.esc(L(en, ar))}</b>'
+            col.markdown(f'<div class="fgc"><div class="h"><b>{T.icon(ic, "#79B8F4")} {T.esc(L(en, ar))}</b>'
                          f'<span class="pbox" style="background:{bg};color:{fg}">{val:.0f} · {T.esc(zl)}</span></div>'
                          f'<div class="fgbar"><i style="left:{val:.1f}%"></i></div><div class="r">{T.esc(_fg_raw_text(k, parts[k]["raw"]))}</div>'
                          f'<div class="x">{T.esc(L(xen, xar))}</div></div>', unsafe_allow_html=True)
@@ -679,4 +679,4 @@ def page_seasonality():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "11.2"
+BUILD = "12.0"

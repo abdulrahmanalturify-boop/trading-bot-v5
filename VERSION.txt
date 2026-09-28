@@ -1,2 +1,2 @@
-A.Alturaifi Pro - version 11.2
+A.Alturaifi Pro - version 12.0 (redesign: the n8n "midnight engine" look)
 If you can see this file on GitHub, the new version was uploaded correctly.

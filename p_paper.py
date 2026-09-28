@@ -105,26 +105,26 @@ PAGE_CSS = f"""<style>
 
 /* ---------- hero: the bots on the brand's rising line ---------- */
 .pbhero {{ position:relative; overflow:hidden; border-radius:22px; border:1px solid {_BD}; margin:2px 0 16px; min-height:258px;
-  background:linear-gradient(120deg,#060c1c,#0c1d3f,#1c1543,#071a33); background-size:300% 300%; animation:sky 20s ease-in-out infinite; }}
-.pbhero::after {{ content:""; position:absolute; left:0; right:0; top:0; height:3px; background:{T.LINE}; z-index:3; pointer-events:none; }}
+  background:linear-gradient(120deg,#0E0918,#1B1430,#27184A,#130F24); background-size:300% 300%; animation:sky 20s ease-in-out infinite; }}
+.pbhero::after {{ content:""; position:absolute; left:0; right:0; top:0; height:1px; background:linear-gradient(90deg,transparent,rgba(196,181,253,.5),transparent); z-index:3; pointer-events:none; }}
 .pbhero .grid {{ position:absolute; inset:0; pointer-events:none;
-  background-image:linear-gradient(rgba(34,211,238,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(34,211,238,.07) 1px,transparent 1px);
+  background-image:linear-gradient(rgba(45,182,235,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(45,182,235,.07) 1px,transparent 1px);
   background-size:36px 36px; -webkit-mask-image:radial-gradient(ellipse at 78% 45%,#000 0%,transparent 68%);
   mask-image:radial-gradient(ellipse at 78% 45%,#000 0%,transparent 68%); }}
 .pbhero .art {{ position:absolute; top:0; bottom:0; right:0; width:58%; pointer-events:none; }}
 .pbhero .art svg {{ width:100%; height:100%; display:block; }}
 .pbhero .txt {{ position:relative; z-index:2; padding:26px 30px 24px; max-width:640px;
-  background:linear-gradient(90deg,rgba(4,8,16,.78) 0%,rgba(4,8,16,.35) 70%,rgba(4,8,16,0) 100%); }}
+  background:linear-gradient(90deg,rgba(14,9,24,.78) 0%,rgba(14,9,24,.35) 70%,rgba(14,9,24,0) 100%); }}
 .pbhero.rtl .art {{ right:auto; left:0; }}
-.pbhero.rtl .txt {{ margin-left:auto; background:linear-gradient(270deg,rgba(4,8,16,.78) 0%,rgba(4,8,16,.35) 70%,rgba(4,8,16,0) 100%); }}
-.pbhero .eb {{ color:{_C}; font-weight:800; letter-spacing:.2em; font-size:.72rem; text-transform:uppercase; display:flex; align-items:center; gap:8px; }}
+.pbhero.rtl .txt {{ margin-left:auto; background:linear-gradient(270deg,rgba(14,9,24,.78) 0%,rgba(14,9,24,.35) 70%,rgba(14,9,24,0) 100%); }}
+.pbhero .eb {{ color:{_C}; font-weight:600; letter-spacing:.2em; font-size:.72rem; text-transform:uppercase; display:flex; align-items:center; gap:8px; }}
 .pbhero .eb .ms {{ font-size:1.05rem; }}
-.pbhero .t {{ font-size:2.4rem; font-weight:800; line-height:1.08; margin:8px 0 6px; color:#fff; letter-spacing:-.02em; }}
+.pbhero .t {{ font-size:2.7rem; font-weight:300; line-height:1.04; margin:8px 0 8px; color:#fff; letter-spacing:-.035em; }}
 .pbhero .t b {{ background:linear-gradient(90deg,{_A},{_V},{_C}); -webkit-background-clip:text; background-clip:text; color:transparent; }}
-.pbhero .tg {{ color:#C7CFDD; font-size:.94rem; line-height:1.6; max-width:540px; }}
+.pbhero .tg {{ color:#CAC5D1; font-size:.94rem; line-height:1.6; max-width:540px; }}
 .pbhero .chips {{ display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }}
-.pbhero .chip {{ background:rgba(11,21,48,.8); border:1px solid {_BD}; backdrop-filter:blur(6px); border-radius:10px; padding:6px 10px;
-  font-size:.8rem; display:inline-flex; align-items:center; gap:7px; color:#C9D0DC; font-variant-numeric:tabular-nums; }}
+.pbhero .chip {{ background:rgba(26,22,36,.8); border:1px solid {_BD}; backdrop-filter:blur(6px); border-radius:10px; padding:6px 10px;
+  font-size:.8rem; display:inline-flex; align-items:center; gap:7px; color:#CCC7D3; font-variant-numeric:tabular-nums; }}
 .pbhero .chip b {{ color:#fff; unicode-bidi:isolate; direction:ltr; }} .pbhero .chip .ms {{ color:{_C}; font-size:1rem; }}
 .pbhero .chip .pill {{ min-width:0; padding:2px 7px; font-size:.74rem; }}
 .pbhero .st {{ margin-top:12px; }}
@@ -141,15 +141,15 @@ PAGE_CSS = f"""<style>
 /* ---------- bot cards ---------- */
 .pbc {{ margin:0 !important; height:{_CARD_H}px; box-sizing:border-box; display:flex; flex-direction:column; overflow:hidden; position:relative;
   transition:box-shadow .18s ease, border-color .18s ease; }}
-.pbc::before {{ content:""; position:absolute; left:0; right:0; top:0; height:3px; background:linear-gradient(90deg,{_A},{_V},{_C});
+.pbc::before {{ content:""; position:absolute; left:0; right:0; top:0; height:1px; background:linear-gradient(90deg,transparent,rgba(196,181,253,.5),transparent);
   opacity:0; transition:opacity .18s; }}
 .pbc .top {{ display:flex; justify-content:space-between; align-items:center; height:22px; margin:-4px 0 8px; gap:6px; }}
-.pbc .it {{ display:inline-flex; align-items:center; gap:5px; font-size:.62rem; font-weight:800; letter-spacing:.1em; text-transform:uppercase;
+.pbc .it {{ display:inline-flex; align-items:center; gap:5px; font-size:.62rem; font-weight:600; letter-spacing:.1em; text-transform:uppercase;
   color:{_MU}; transition:opacity .15s; white-space:nowrap; overflow:hidden; }}
 .pbc .it .ms {{ font-size:.95rem; color:{_C}; }}
-.pbc .rk {{ display:inline-flex; align-items:center; gap:3px; font-weight:800; color:{_MU}; transition:opacity .15s; direction:ltr; }}
+.pbc .rk {{ display:inline-flex; align-items:center; gap:3px; font-weight:600; color:{_MU}; transition:opacity .15s; direction:ltr; }}
 .pbc .rk .ms {{ font-size:1.05rem; }}
-.pbc .rk.r1 {{ color:{_G}; }} .pbc .rk.r2 {{ color:#C7CEDB; }} .pbc .rk.r3 {{ color:#D9925F; }}
+.pbc .rk.r1 {{ color:{_G}; }} .pbc .rk.r2 {{ color:#CAC5D1; }} .pbc .rk.r3 {{ color:#D9925F; }}
 .pbc .co .tk {{ display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; white-space:normal; line-height:1.25; }}
 .pbc .bdg {{ margin-top:10px; max-height:64px; overflow:hidden; display:flex; flex-direction:column; align-items:flex-start; gap:4px; }}
 .pbc .bdg .badge {{ max-width:100%; margin:0; white-space:nowrap; min-width:0; }}
@@ -164,7 +164,7 @@ PAGE_CSS = f"""<style>
 .pbc.sel::before {{ display:none; }}
 [class*="st-key-pbcard_"] {{ position:relative; transition:transform .18s ease; }}
 [class*="st-key-pbcard_"]:hover {{ transform:translateY(-4px) scale(1.02); z-index:3; }}
-[class*="st-key-pbcard_"]:hover .pbc {{ box-shadow:0 14px 34px rgba(61,123,255,.20); }}
+[class*="st-key-pbcard_"]:hover .pbc {{ box-shadow:0 14px 34px rgba(59,139,235,.20); }}
 [class*="st-key-pbcard_"]:hover .pbc::before {{ opacity:.95; }}
 [class*="st-key-pbcard_"]:hover .pbc .rk, [class*="st-key-pbcard_"]:hover .pbc .it {{ opacity:0; }}
 [class*="st-key-pbcard_"] [data-testid="stElementContainer"] {{ position:static !important; }}
@@ -194,7 +194,7 @@ PAGE_CSS = f"""<style>
 .pbc .it .tx {{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0; }}
 .pbc .nw {{ white-space:nowrap; }}
 .pbc .rt {{ display:inline-flex; align-items:center; gap:6px; transition:opacity .15s; flex:none; }}
-.phg {{ display:inline-flex; align-items:center; gap:4px; font-size:.58rem; font-weight:800; letter-spacing:.06em; border-radius:6px;
+.phg {{ display:inline-flex; align-items:center; gap:4px; font-size:.58rem; font-weight:600; letter-spacing:.06em; border-radius:6px;
   padding:2px 5px; line-height:1.3; white-space:nowrap; }}
 .phg.live {{ background:{T.POS_BG}; color:{T.POS_FG}; }}
 .phg.live::before {{ content:""; width:6px; height:6px; border-radius:50%; background:currentColor; animation:pbtw 2s ease-in-out infinite; }}
@@ -209,27 +209,27 @@ PAGE_CSS = f"""<style>
 [class*="st-key-pbph_"] [class*="st-key-pb_ph_"] .stButton, [class*="st-key-pbph_"] [class*="st-key-pb_ph_"] button
   {{ width:100% !important; height:100% !important; opacity:0; cursor:pointer; }}
 .pbph {{ position:relative; overflow:hidden; display:flex; align-items:center; gap:11px; height:66px; box-sizing:border-box; border-radius:14px;
-  padding:10px 16px; color:#AEB7C6; background:{T.BOX_BG}; border:1px solid {_BD}; transition:background .18s, color .18s, border-color .18s; }}
+  padding:10px 16px; color:#B1ABBA; background:{T.BOX_BG}; border:1px solid {_BD}; transition:background .18s, color .18s, border-color .18s; }}
 [class*="st-key-pbph_"]:hover .pbph:not(.on) {{ border-color:{_A}66; color:#fff; }}
-.pbph.on {{ color:#fff; border-color:{_A}88; background:{T.TOP}, linear-gradient(135deg,rgba(61,123,255,.20),rgba(139,92,246,.14) 70%,{T.CARD});
-  box-shadow:0 8px 22px rgba(61,123,255,.14); }}
-.pbph .i .ms {{ font-size:1.2rem; color:{_C}; background:rgba(34,211,238,.12); border-radius:10px; padding:6px; }}
-.pbph.on .i .ms {{ color:#fff; background:rgba(61,123,255,.35); }}
+.pbph.on {{ color:#fff; border-color:{_A}88; background:{T.TOP}, linear-gradient(135deg,rgba(59,139,235,.20),rgba(123,69,240,.14) 70%,{T.CARD});
+  box-shadow:0 8px 22px rgba(59,139,235,.14); }}
+.pbph .i .ms {{ font-size:1.2rem; color:{_C}; background:rgba(45,182,235,.12); border-radius:10px; padding:6px; }}
+.pbph.on .i .ms {{ color:#fff; background:rgba(59,139,235,.35); }}
 .pbph .nm {{ display:flex; flex-direction:column; line-height:1.25; min-width:0; }}
-.pbph .nm b {{ font-weight:800; font-size:.95rem; }}
+.pbph .nm b {{ font-weight:600; font-size:.95rem; }}
 .pbph .nm span {{ font-size:.72rem; font-weight:600; opacity:.8; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
 .pbph .phg {{ margin-inline-start:auto; }}
 .pbrec {{ display:flex; flex-wrap:wrap; gap:7px; margin:2px 0 10px; }}
-.pbrec .c {{ display:inline-flex; align-items:center; gap:6px; background:rgba(138,148,167,.10); border:1px solid {_BD}; border-radius:999px;
-  padding:4px 12px; font-size:.75rem; font-weight:700; color:#AEB7C6; white-space:nowrap; }}
+.pbrec .c {{ display:inline-flex; align-items:center; gap:6px; background:rgba(157,151,165,.10); border:1px solid {_BD}; border-radius:999px;
+  padding:4px 12px; font-size:.75rem; font-weight:600; color:#B1ABBA; white-space:nowrap; }}
 .pbrec .c b {{ color:#fff; unicode-bidi:isolate; direction:ltr; }}
 .pbrec .c .ms {{ font-size:.95rem; color:{_C}; }}
 
 /* ---------- "Add Bot": the logo tile with a plus and the cyan trend arrow ---------- */
 .pbadd {{ align-items:center; justify-content:center; gap:10px; text-align:center; border:1.5px dashed {_A}77 !important;
-  background:radial-gradient(120% 80% at 50% 0%,rgba(61,123,255,.12),transparent 62%),linear-gradient(180deg,{_BG},{T.CARD}) !important; }}
+  background:radial-gradient(120% 80% at 50% 0%,rgba(59,139,235,.12),transparent 62%),linear-gradient(180deg,{_BG},{T.CARD}) !important; }}
 [class*="st-key-pbcard_add"]:hover .pbadd {{ border-color:{_A} !important; border-style:solid !important;
-  box-shadow:0 0 0 1px {_A}55, 0 16px 40px rgba(61,123,255,.28) !important; }}
+  box-shadow:0 0 0 1px {_A}55, 0 16px 40px rgba(59,139,235,.28) !important; }}
 .pbadd .plus {{ width:92px; height:92px; }}
 .pbadd .plus svg {{ width:92px; height:92px; display:block; overflow:visible; }}
 .pbadd .orbit {{ transform-box:view-box; transform-origin:46px 46px; animation:pbspin 16s linear infinite; }}
@@ -240,7 +240,7 @@ PAGE_CSS = f"""<style>
 [class*="st-key-pbcard_add"]:hover .pbadd .spark {{ animation:pbspark 1s ease-out; }}
 @keyframes pbspin {{ to {{ transform:rotate(360deg); }} }}
 @keyframes pbspark {{ from {{ stroke-dashoffset:40; }} to {{ stroke-dashoffset:0; }} }}
-.pbadd .ttl {{ font-weight:800; font-size:1.15rem; background:linear-gradient(90deg,{_A},{_V},{_C}); -webkit-background-clip:text;
+.pbadd .ttl {{ font-weight:600; font-size:1.15rem; background:linear-gradient(90deg,{_A},{_V},{_C}); -webkit-background-clip:text;
   background-clip:text; color:transparent; }}
 .pbadd .sub {{ color:{_MU}; font-size:.78rem; }}
 .pbadd .slots {{ display:flex; gap:6px; justify-content:center; margin-top:2px; direction:ltr; }}
@@ -249,42 +249,42 @@ PAGE_CSS = f"""<style>
 
 /* ---------- details ---------- */
 .pbid {{ position:relative; overflow:hidden; margin:0 !important; }}
-.pbid::before {{ content:""; position:absolute; top:0; bottom:0; left:0; width:3px; background:linear-gradient(180deg,{_A},{_V},{_C}); }}
+.pbid::before {{ content:""; position:absolute; top:0; bottom:0; left:0; width:2px; background:{T.ELECTRIC}; }}
 .pbid .co .tk {{ font-size:1.12rem; }}
 .pbid .bdgs {{ margin-top:10px; }}
 .pbk {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px; }}
-.pbsub {{ display:flex; align-items:center; gap:8px; font-weight:800; font-size:.98rem; color:#fff; margin:8px 0 0; }}
+.pbsub {{ display:flex; align-items:center; gap:8px; font-weight:600; font-size:.98rem; color:#fff; margin:8px 0 0; }}
 /* what worked: three panels of the same size, a centred bar per row (loss to the left, gain to the right) */
 .wwg {{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; margin:10px 0 6px; }}
 @media (max-width: 900px) {{ .wwg {{ grid-template-columns:1fr; }} }}
 .wwc {{ position:relative; overflow:hidden; background:{T.BOX_BG}; border:1px solid {_BD}; border-radius:18px; padding:14px 14px 10px;
   height:500px; box-sizing:border-box; display:flex; flex-direction:column; }}
 .wwh {{ display:flex; align-items:center; gap:10px; margin-bottom:10px; }}
-.wwh .i .ms {{ font-size:1.05rem; color:#fff; background:linear-gradient(135deg,{_A},{_V}); border-radius:9px; padding:6px; }}
-.wwh b {{ display:block; color:#fff; font-size:.95rem; font-weight:800; }}
+.wwh .i .ms {{ font-size:1.05rem; color:#fff; background:{T.PANEL}; box-shadow:{T.GLOW}; border-radius:9px; padding:6px; }}
+.wwh b {{ display:block; color:#fff; font-size:.95rem; font-weight:600; }}
 .wwh span:not(.i):not(.ms) {{ display:block; color:{_MU}; font-size:.72rem; font-weight:600; }}
 .wwb {{ flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:5px; padding-inline-end:2px; scrollbar-width:thin; }}
 .wwr {{ display:grid; grid-template-columns:minmax(0,1.15fr) minmax(0,1fr) 62px; align-items:center; gap:8px; padding:0 9px; height:31px; flex:none;
   border-radius:11px; background:rgba(255,255,255,.028); border:1px solid rgba(255,255,255,.04); }}
-.wwr:hover {{ background:rgba(61,123,255,.09); border-color:{_A}44; }}
+.wwr:hover {{ background:rgba(59,139,235,.09); border-color:{_A}44; }}
 .wwn {{ display:flex; flex-direction:column; min-width:0; line-height:1.25; }}
 .wwl {{ display:inline-flex; align-items:center; gap:7px; min-width:0; color:#fff !important; text-decoration:none !important; }}
-.wwl b {{ font-size:.8rem; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
+.wwl b {{ font-size:.8rem; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
 .wwl .lg {{ width:20px !important; height:20px !important; font-size:8px !important; flex:none; }}
 .wwi {{ color:{_MU}; font-size:.66rem; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
 .wwt {{ display:grid; grid-template-columns:1fr 1fr; height:10px; direction:ltr; }}
-.wwt .h {{ display:flex; height:10px; background:rgba(138,148,167,.10); }}
-.wwt .n {{ justify-content:flex-end; border-radius:6px 0 0 6px; border-right:1px solid #4B5568; }}
+.wwt .h {{ display:flex; height:10px; background:rgba(157,151,165,.10); }}
+.wwt .n {{ justify-content:flex-end; border-radius:6px 0 0 6px; border-right:1px solid #514B5C; }}
 .wwt .p {{ justify-content:flex-start; border-radius:0 6px 6px 0; }}
 .wwt .n i {{ display:block; height:100%; border-radius:6px 0 0 6px; background:linear-gradient(270deg,#FB7185,#E11D48); }}
 .wwt .p i {{ display:block; height:100%; border-radius:0 6px 6px 0; background:linear-gradient(90deg,#10B981,#34D399); }}
-.wwv {{ text-align:end; font-size:.8rem; font-weight:800; font-variant-numeric:tabular-nums; direction:ltr; }}
+.wwv {{ text-align:end; font-size:.8rem; font-weight:600; font-variant-numeric:tabular-nums; direction:ltr; }}
 .wwv.up {{ color:#34D399; }} .wwv.dn {{ color:#FB7185; }}
-.pbsub .ms {{ color:#fff; background:linear-gradient(135deg,{_A},{_V}); border-radius:8px; padding:4px; font-size:1rem; }}
+.pbsub .ms {{ color:#fff; background:{T.PANEL}; box-shadow:{T.GLOW}; border-radius:8px; padding:4px; font-size:1rem; }}
 .pbsub .muted {{ font-size:.76rem; font-weight:600; }}
 .pbsel {{ display:flex; flex-wrap:wrap; gap:8px; }}
-.pbsel .c {{ display:inline-flex; align-items:center; gap:6px; padding:5px 10px; border-radius:10px; background:rgba(138,148,167,.12);
-  border:1px solid {_BD}; font-size:.78rem; font-weight:700; color:#C9D0DC; }}
+.pbsel .c {{ display:inline-flex; align-items:center; gap:6px; padding:5px 10px; border-radius:10px; background:rgba(157,151,165,.12);
+  border:1px solid {_BD}; font-size:.78rem; font-weight:600; color:#CCC7D3; }}
 .pbsel .c .pill {{ min-width:0; padding:1px 6px; font-size:.72rem; }}
 /* every part of the details is its own block: the same space between parts, the normal gap inside them */
 [class*="st-key-pbsec_"] {{ margin-top:20px; }}
@@ -296,15 +296,15 @@ PAGE_CSS = f"""<style>
 /* ---------- panels: open positions / recent trades / calendar ---------- */
 .pbp {{ position:relative; overflow:hidden; background:{T.BOX_BG}; border:1px solid {_BD}; border-radius:18px;
   padding:14px 16px 10px 19px; margin:0; }}
-.pbp::before {{ content:""; position:absolute; top:0; bottom:0; left:0; width:3px; background:linear-gradient(180deg,{_A},{_V},{_C}); }}
+.pbp::before {{ content:""; position:absolute; top:0; bottom:0; left:0; width:2px; background:{T.ELECTRIC}; }}
 .pbp .hd {{ display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px; }}
-.pbp .tt {{ display:flex; align-items:center; gap:8px; font-weight:800; font-size:1.02rem; color:#fff; }}
-.pbp .tt .ms {{ color:#fff; background:linear-gradient(135deg,{_A},{_V}); border-radius:8px; padding:4px; font-size:1rem; }}
+.pbp .tt {{ display:flex; align-items:center; gap:8px; font-weight:600; font-size:1.02rem; color:#fff; }}
+.pbp .tt .ms {{ color:#fff; background:{T.PANEL}; box-shadow:{T.GLOW}; border-radius:8px; padding:4px; font-size:1rem; }}
 .pbp .tt .live {{ width:8px; height:8px; border-radius:50%; background:{_G}; box-shadow:0 0 0 3px rgba(245,185,74,.18); }}
 .pbp .sum {{ display:flex; flex-wrap:wrap; gap:7px; align-items:center; }}
-.pbp .sum .c {{ display:inline-flex; align-items:center; gap:7px; background:rgba(138,148,167,.10); border:1px solid {_BD}; border-radius:999px;
-  padding:4px 12px; font-size:.75rem; font-weight:700; color:#AEB7C6; line-height:1.4; white-space:nowrap; }}
-.pbp .sum .c b {{ color:#fff; unicode-bidi:isolate; direction:ltr; font-weight:800; }}
+.pbp .sum .c {{ display:inline-flex; align-items:center; gap:7px; background:rgba(157,151,165,.10); border:1px solid {_BD}; border-radius:999px;
+  padding:4px 12px; font-size:.75rem; font-weight:600; color:#B1ABBA; line-height:1.4; white-space:nowrap; }}
+.pbp .sum .c b {{ color:#fff; unicode-bidi:isolate; direction:ltr; font-weight:600; }}
 .pbp .sum .c .pbox {{ padding:1px 8px; font-size:.74rem; border-radius:999px; line-height:1.4; margin:0; }}
 .pbempty {{ color:{_MU}; padding:10px 2px 8px; display:flex; align-items:center; gap:8px; }}
 .pbscroll {{ overflow-x:auto; }}
@@ -313,24 +313,24 @@ PAGE_CSS = f"""<style>
   border:none !important; margin:-4px 0 0 !important; background:none !important; }}
 .pbt thead tr, .pbt tbody tr {{ background:none !important; border:none !important; }}
 .pbt th {{ color:{_MU}; font-size:.6rem; letter-spacing:.09em; text-transform:uppercase; text-align:left; padding:6px 12px 2px !important;
-  font-weight:800; white-space:nowrap; border:none !important; background:none !important; }}
-.pbt td {{ padding:6px 12px !important; white-space:nowrap; vertical-align:middle; text-align:left; line-height:1.35; color:#DCE2EC;
+  font-weight:600; white-space:nowrap; border:none !important; background:none !important; }}
+.pbt td {{ padding:6px 12px !important; white-space:nowrap; vertical-align:middle; text-align:left; line-height:1.35; color:#DDD9E2;
   background:rgba(255,255,255,.028) !important; border:none !important; border-top:1px solid rgba(255,255,255,.045) !important;
   border-bottom:1px solid rgba(255,255,255,.045) !important; transition:background .15s ease; }}
 .pbt td:first-child {{ border-left:1px solid rgba(255,255,255,.045) !important; border-radius:10px 0 0 10px; }}
 .pbt td:last-child {{ border-right:1px solid rgba(255,255,255,.045) !important; border-radius:0 10px 10px 0; }}
-.pbt tbody tr:hover td {{ background:rgba(61,123,255,.10) !important; }}
+.pbt tbody tr:hover td {{ background:rgba(59,139,235,.10) !important; }}
 .pbt th.r, .pbt td.r {{ text-align:right; }}
-.pbt b {{ color:#fff; font-weight:800; }}
+.pbt b {{ color:#fff; font-weight:600; }}
 .pbt .as {{ display:inline-flex; align-items:center; gap:8px; color:#fff !important; text-decoration:none !important; }}
 .pbt .as .lg {{ width:22px !important; height:22px !important; font-size:9px !important; }}
-.pbt .as b {{ font-size:.84rem; }} .pbt .as:hover b {{ color:#7EA6FF; }}
+.pbt .as b {{ font-size:.84rem; }} .pbt .as:hover b {{ color:#79B8F4; }}
 .pbt .m {{ color:{_MU}; font-size:.72rem; font-weight:600; }}
-.pbt .up {{ color:#4ADE80; font-weight:700; }} .pbt .dn {{ color:#F87171; font-weight:700; }}
+.pbt .up {{ color:#4ADE80; font-weight:600; }} .pbt .dn {{ color:#F87171; font-weight:600; }}
 .pbt .est {{ color:{_G}; border:1px solid {_G}55; border-radius:6px; padding:0 5px; margin-inline-start:6px; font-size:.64rem; }}
 .pbt .badge {{ margin:0; padding:2px 9px; font-size:.64rem; }}
 .pbt .pbox {{ padding:1px 9px; font-size:.76rem; border-radius:999px; margin-left:8px; }}
-a.pblink {{ display:inline-flex; align-items:center; gap:4px; color:#7EA6FF !important; font-weight:800; font-size:.8rem;
+a.pblink {{ display:inline-flex; align-items:center; gap:4px; color:#79B8F4 !important; font-weight:600; font-size:.8rem;
   text-decoration:none !important; padding:4px 10px; border-radius:10px; border:1px solid {_A}55; background:{_A}14; }}
 a.pblink:hover {{ color:#fff !important; border-color:{_A}; background:{_A}33; }}
 a.pblink .ms {{ font-size:1rem; }}
@@ -345,54 +345,54 @@ a.pblink .ms {{ font-size:1rem; }}
 [class*="st-key-pbmg_"] [data-testid="stElementContainer"], [class*="st-key-pbmg_"] .stMarkdown,
 [class*="st-key-pbmg_"] [data-testid="stMarkdownContainer"] {{ margin:0 !important; }}
 [class*="st-key-pbmg_"] [data-testid="stMarkdownContainer"] p {{ margin:0 !important; }}
-.pbmh {{ color:{_MU}; font-size:.58rem; font-weight:800; text-align:center; letter-spacing:.06em; text-transform:uppercase; line-height:16px; }}
-.pbmy {{ font-weight:800; color:#fff; font-size:.78rem; line-height:26px; }}
+.pbmh {{ color:{_MU}; font-size:.58rem; font-weight:600; text-align:center; letter-spacing:.06em; text-transform:uppercase; line-height:16px; }}
+.pbmy {{ font-weight:600; color:#fff; font-size:.78rem; line-height:26px; }}
 .pbmt {{ text-align:center; line-height:26px; }} .pbmt .pbox {{ padding:2px 6px; font-size:.68rem; border-radius:6px; }}
-.pbme {{ height:26px; border-radius:6px; background:rgba(138,148,167,.06); }}
+.pbme {{ height:26px; border-radius:6px; background:rgba(157,151,165,.06); }}
 [class*="st-key-pbmo_"] button {{ min-height:26px !important; height:26px; padding:0 2px !important; border-radius:6px !important;
   border:0 !important; transition:transform .12s ease, box-shadow .12s ease; }}
-[class*="st-key-pbmo_"] button p {{ font-size:.68rem !important; font-weight:700 !important; color:#1F2937 !important; white-space:nowrap; direction:ltr; }}
+[class*="st-key-pbmo_"] button p {{ font-size:.68rem !important; font-weight:600 !important; color:#F2EFF6 !important; white-space:nowrap; direction:ltr; }}
 [class*="st-key-pbmo_"] button:hover {{ transform:translateY(-2px); box-shadow:0 6px 16px rgba(0,0,0,.35); }}
 [class*="st-key-pbmo_"][class*="_on_"] button {{ box-shadow:0 0 0 2px {T.BG}, 0 0 0 4px {_A} !important; transform:translateY(-2px); }}
 [class*="st-key-pbcalbox_"] {{ background:{T.BOX_BG}; border:1px solid {_A}66; border-radius:18px; padding:14px 16px;
-  box-shadow:0 12px 30px rgba(61,123,255,.12); margin-top:6px; max-width:1100px; }}
-.pbct {{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; font-weight:800; font-size:1rem; color:#fff; }}
-.pbct .ms {{ color:#fff; background:linear-gradient(135deg,{_A},{_V}); border-radius:8px; padding:4px; font-size:1rem; }}
+  box-shadow:0 12px 30px rgba(59,139,235,.12); margin-top:6px; max-width:1100px; }}
+.pbct {{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; font-weight:600; font-size:1rem; color:#fff; }}
+.pbct .ms {{ color:#fff; background:{T.PANEL}; box-shadow:{T.GLOW}; border-radius:8px; padding:4px; font-size:1rem; }}
 .pbct .muted {{ font-size:.78rem; font-weight:600; }} .pbct .pill {{ min-width:0; padding:2px 8px; font-size:.76rem; }}
 .pbct .pbox {{ padding:2px 8px; font-size:.8rem; }}
 
 /* ---------- add / edit form: a banner in the hero's colours, then numbered cards with space between them ---------- */
 .pbfb {{ position:relative; overflow:hidden; border-radius:18px; border:1px solid {_BD}; padding:16px 20px 14px; min-height:118px;
-  background:linear-gradient(120deg,#060c1c,#0c1d3f,#1c1543,#071a33); background-size:300% 300%; animation:sky 20s ease-in-out infinite; }}
-.pbfb::after {{ content:""; position:absolute; left:0; right:0; top:0; height:3px; background:{T.LINE}; z-index:3; pointer-events:none; }}
+  background:linear-gradient(120deg,#0E0918,#1B1430,#27184A,#130F24); background-size:300% 300%; animation:sky 20s ease-in-out infinite; }}
+.pbfb::after {{ content:""; position:absolute; left:0; right:0; top:0; height:1px; background:linear-gradient(90deg,transparent,rgba(196,181,253,.5),transparent); z-index:3; pointer-events:none; }}
 .pbfb .art {{ position:absolute; top:0; bottom:0; right:0; width:34%; pointer-events:none; }}
 .pbfb .art svg {{ width:100%; height:100%; display:block; }}
 .pbfb .ln {{ animation:pbdraw 7s ease-in-out infinite; }}
 .pbfb .tx {{ position:relative; z-index:2; max-width:76%; }}
 .pbfb.rtl .art {{ right:auto; left:0; transform:scaleX(-1); }}
 .pbfb.rtl .tx {{ margin-left:auto; }}
-.pbfb .eb {{ color:{_C}; font-weight:800; letter-spacing:.18em; font-size:.66rem; text-transform:uppercase; display:flex; align-items:center; gap:6px; }}
+.pbfb .eb {{ color:{_C}; font-weight:600; letter-spacing:.18em; font-size:.66rem; text-transform:uppercase; display:flex; align-items:center; gap:6px; }}
 .pbfb .eb .ms {{ font-size:.95rem; }}
-.pbfb .t {{ font-size:1.55rem; font-weight:800; color:#fff; margin:5px 0 3px; letter-spacing:-.01em; line-height:1.15; }}
+.pbfb .t {{ font-size:1.55rem; font-weight:600; color:#fff; margin:5px 0 3px; letter-spacing:-.01em; line-height:1.15; }}
 .pbfb .t b {{ background:linear-gradient(90deg,{_A},{_V},{_C}); -webkit-background-clip:text; background-clip:text; color:transparent; }}
-.pbfb .s {{ color:#C7CFDD; font-size:.84rem; line-height:1.5; }}
+.pbfb .s {{ color:#CAC5D1; font-size:.84rem; line-height:1.5; }}
 .pbfb .pbstp {{ display:flex; flex-wrap:wrap; gap:4px; margin-top:11px; }}
-.pbfb .pbstp span {{ display:inline-flex; align-items:center; gap:5px; font-size:.7rem; font-weight:700; color:#C9D0DC; background:rgba(11,21,48,.72);
+.pbfb .pbstp span {{ display:inline-flex; align-items:center; gap:5px; font-size:.7rem; font-weight:600; color:#CCC7D3; background:rgba(26,22,36,.72);
   border:1px solid rgba(255,255,255,.06); border-radius:999px; padding:2px 9px 2px 3px; white-space:nowrap; }}
 .pbfb.rtl .pbstp span {{ padding:2px 3px 2px 9px; }}
-.pbfb .pbstp i {{ font-style:normal; width:17px; height:17px; border-radius:50%; display:grid; place-items:center; font-size:.62rem; font-weight:800;
-  color:#fff; background:linear-gradient(135deg,{_A},{_V}); }}
+.pbfb .pbstp i {{ font-style:normal; width:17px; height:17px; border-radius:50%; display:grid; place-items:center; font-size:.62rem; font-weight:600;
+  color:#fff; background:{T.ELECTRIC}; }}
 [class*="st-key-pbf_"] {{ position:relative; overflow:hidden; background:linear-gradient(180deg,{_BG},{T.CARD}); border:1px solid {_BD};
   border-radius:18px; padding:16px 18px 16px; margin-top:16px; box-shadow:0 10px 26px rgba(0,0,0,.18); }}
-[class*="st-key-pbf_"]::before {{ content:""; position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg,{_A},{_V},{_C}); }}
+[class*="st-key-pbf_"]::before {{ content:""; position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(90deg,transparent,rgba(196,181,253,.5),transparent); }}
 [class*="st-key-pbf_"] [data-testid="stMarkdownContainer"] {{ margin-bottom:0 !important; }}
 .pbfh {{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:2px; }}
-.pbfh .n {{ width:28px; height:28px; border-radius:9px; display:grid; place-items:center; font-weight:800; font-size:.84rem; color:#fff; flex:none;
-  background:linear-gradient(135deg,{_A},{_V}); box-shadow:0 6px 16px rgba(61,123,255,.35); }}
-.pbfh .t {{ display:flex; align-items:center; gap:7px; font-weight:800; font-size:1.03rem; color:#fff; }}
+.pbfh .n {{ width:28px; height:28px; border-radius:9px; display:grid; place-items:center; font-weight:600; font-size:.84rem; color:#fff; flex:none;
+  background:{T.ELECTRIC}; box-shadow:0 6px 16px rgba(107,33,239,.35); }}
+.pbfh .t {{ display:flex; align-items:center; gap:7px; font-weight:600; font-size:1.03rem; color:#fff; }}
 .pbfh .t .ms {{ color:{_C}; font-size:1.15rem; }}
 .pbfh .h {{ color:{_MU}; font-size:.76rem; font-weight:600; margin-inline-start:auto; }}
-.pbfs {{ display:flex; align-items:center; gap:6px; font-weight:800; font-size:.74rem; color:#AEB7C6; letter-spacing:.08em; text-transform:uppercase; }}
+.pbfs {{ display:flex; align-items:center; gap:6px; font-weight:600; font-size:.74rem; color:#B1ABBA; letter-spacing:.08em; text-transform:uppercase; }}
 .pbfs .ms {{ color:{_C}; font-size:1rem; }}
 /* the two ways to pick strategies: two separate tiles, the chosen one softly lit */
 [class*="st-key-pbswitch"] [data-testid="stHorizontalBlock"] {{ gap:12px !important; flex-wrap:nowrap !important; align-items:stretch !important; }}
@@ -403,73 +403,73 @@ a.pblink .ms {{ font-size:1rem; }}
 [class*="st-key-pbmode_"] [class*="st-key-pb_mode_"] .stButton, [class*="st-key-pbmode_"] [class*="st-key-pb_mode_"] button
   {{ width:100% !important; height:100% !important; opacity:0; cursor:pointer; }}
 .pbmode {{ position:relative; overflow:hidden; display:flex; align-items:center; gap:10px; height:62px; box-sizing:border-box; border-radius:14px;
-  padding:9px 15px; color:#AEB7C6; background:{T.BOX_BG}; border:1px solid {_BD}; transition:background .18s, color .18s, border-color .18s; }}
+  padding:9px 15px; color:#B1ABBA; background:{T.BOX_BG}; border:1px solid {_BD}; transition:background .18s, color .18s, border-color .18s; }}
 [class*="st-key-pbmode_"]:hover .pbmode:not(.on) {{ border-color:{_A}66; color:#fff; }}
-.pbmode.on {{ color:#fff; border-color:{_A}88; background:{T.TOP}, linear-gradient(135deg,rgba(61,123,255,.20),rgba(139,92,246,.14) 70%,{T.CARD});
-  box-shadow:0 8px 22px rgba(61,123,255,.14); }}
-.pbmode .i .ms {{ font-size:1.2rem; color:{_C}; background:rgba(34,211,238,.12); border-radius:10px; padding:6px; }}
-.pbmode.on .i .ms {{ color:#fff; background:rgba(61,123,255,.35); }}
-.pbmode .nm {{ font-weight:800; font-size:.95rem; line-height:1.25; }}
-.pbmode .ct {{ margin-inline-start:auto; font-size:.72rem; font-weight:800; min-width:26px; height:22px; padding:0 8px; border-radius:999px;
-  display:inline-grid; place-items:center; background:rgba(138,148,167,.16); color:#C9D0DC; }}
+.pbmode.on {{ color:#fff; border-color:{_A}88; background:{T.TOP}, linear-gradient(135deg,rgba(59,139,235,.20),rgba(123,69,240,.14) 70%,{T.CARD});
+  box-shadow:0 8px 22px rgba(59,139,235,.14); }}
+.pbmode .i .ms {{ font-size:1.2rem; color:{_C}; background:rgba(45,182,235,.12); border-radius:10px; padding:6px; }}
+.pbmode.on .i .ms {{ color:#fff; background:rgba(59,139,235,.35); }}
+.pbmode .nm {{ font-weight:600; font-size:.95rem; line-height:1.25; }}
+.pbmode .ct {{ margin-inline-start:auto; font-size:.72rem; font-weight:600; min-width:26px; height:22px; padding:0 8px; border-radius:999px;
+  display:inline-grid; place-items:center; background:rgba(157,151,165,.16); color:#CCC7D3; }}
 .pbmode.on .ct {{ background:rgba(255,255,255,.22); color:#fff; }}
 /* a '?' next to every chosen strategy (it opens the strategy's rules), and the "work together" pop-out, last */
 [class*="st-key-pbq_row"] {{ flex-wrap:wrap !important; gap:8px !important; }}
 [class*="st-key-pbq_row"] button {{ border-radius:999px !important; border:1px solid {_A}55 !important; background:{_A}14 !important;
   min-height:34px !important; padding:3px 14px 3px 10px !important; }}
 [class*="st-key-pbq_row"] button:hover {{ border-color:{_A} !important; background:{_A}2A !important; }}
-[class*="st-key-pbq_row"] button p {{ font-weight:700 !important; font-size:.84rem !important; color:#DCE6FF !important; }}
+[class*="st-key-pbq_row"] button p {{ font-weight:600 !important; font-size:.84rem !important; color:#DCEBFA !important; }}
 [class*="st-key-pbq_row"] button [data-testid="stIconMaterial"] {{ color:{_C} !important; }}
 [class*="st-key-pbq_together"] [data-testid="stPopover"], [class*="st-key-pbq_together"] [data-testid="stPopover"] > div,
 [class*="st-key-pbq_together"] button {{ width:100% !important; }}
 [class*="st-key-pbq_together"] button {{ justify-content:flex-start !important; min-height:44px !important; border-radius:12px !important;
-  border:1px dashed {_A}88 !important; background:rgba(61,123,255,.07) !important; }}
-[class*="st-key-pbq_together"] button:hover {{ border-style:solid !important; background:rgba(61,123,255,.14) !important; }}
-[class*="st-key-pbq_together"] button p {{ font-weight:700 !important; color:#DCE6FF !important; }}
+  border:1px dashed {_A}88 !important; background:rgba(59,139,235,.07) !important; }}
+[class*="st-key-pbq_together"] button:hover {{ border-style:solid !important; background:rgba(59,139,235,.14) !important; }}
+[class*="st-key-pbq_together"] button p {{ font-weight:600 !important; color:#DCEBFA !important; }}
 [class*="st-key-pbq_together"] button [data-testid="stIconMaterial"] {{ color:{_C} !important; }}
 [data-testid="stPopoverBody"] {{ min-width:min(760px, 92vw); }}
 /* AI bots: five ready bots, each with its own model */
 .aihd {{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:22px 0 6px; }}
 .aihd .i .ms {{ font-size:1.25rem; color:#fff; background:linear-gradient(135deg,{_V},{_C}); border-radius:11px; padding:7px; }}
-.aihd .t {{ font-weight:800; font-size:1.18rem; color:#fff; }}
+.aihd .t {{ font-weight:600; font-size:1.18rem; color:#fff; }}
 .aihd .s {{ color:{_MU}; font-size:.8rem; font-weight:600; width:100%; margin-top:-4px; }}
 [class*="st-key-aicard_"] {{ position:relative; overflow:hidden; background:{T.BOX_BG}; border:1px solid {_BD}; border-radius:18px;
   padding:14px 15px 12px; height:100%; }}
 [class*="st-key-aicard_"]:has(.aic.up) {{ border-color:rgba(34,197,94,.45); }}
 [class*="st-key-aicard_"]:has(.aic.down) {{ border-color:rgba(239,68,68,.40); }}
 .aic .hd {{ display:flex; align-items:flex-start; gap:9px; }}
-.aic .hd .i .ms {{ font-size:1.05rem; color:#fff; background:linear-gradient(135deg,{_A},{_V}); border-radius:9px; padding:5px; }}
-.aic .nm {{ font-weight:800; color:#fff; font-size:.98rem; line-height:1.25; }}
+.aic .hd .i .ms {{ font-size:1.05rem; color:#fff; background:{T.PANEL}; box-shadow:{T.GLOW}; border-radius:9px; padding:5px; }}
+.aic .nm {{ font-weight:600; color:#fff; font-size:.98rem; line-height:1.25; }}
 .aic .sub {{ color:{_MU}; font-size:.74rem; font-weight:600; margin-top:2px; line-height:1.4; }}
 .aic .hd .tx {{ flex:1; min-width:0; }}
 .aic .cs .badge {{ margin:0; }}
 .aic .cs {{ display:flex; flex-wrap:wrap; gap:5px; margin:9px 0 8px; }}
-.aic .cs > span:not(.badge) {{ font-size:.68rem; font-weight:700; color:#C9D0DC; background:rgba(138,148,167,.10); border:1px solid {_BD}; border-radius:999px;
+.aic .cs > span:not(.badge) {{ font-size:.68rem; font-weight:600; color:#CCC7D3; background:rgba(157,151,165,.10); border:1px solid {_BD}; border-radius:999px;
   padding:2px 9px; white-space:nowrap; }}
 .aic table {{ width:100%; border-collapse:separate; border-spacing:0 3px; font-size:.78rem; direction:ltr; }}
-.aic th {{ color:{_MU}; font-size:.6rem; letter-spacing:.07em; text-transform:uppercase; font-weight:800; text-align:right; padding:0 6px 2px; }}
+.aic th {{ color:{_MU}; font-size:.6rem; letter-spacing:.07em; text-transform:uppercase; font-weight:600; text-align:right; padding:0 6px 2px; }}
 .aic th:first-child, .aic td:first-child {{ text-align:left; }}
-.aic td {{ background:rgba(255,255,255,.035); padding:5px 6px; text-align:right; color:#DCE2EC; font-variant-numeric:tabular-nums; }}
-.aic td:first-child {{ border-radius:8px 0 0 8px; font-weight:700; color:#fff; }}
+.aic td {{ background:rgba(255,255,255,.035); padding:5px 6px; text-align:right; color:#DDD9E2; font-variant-numeric:tabular-nums; }}
+.aic td:first-child {{ border-radius:8px 0 0 8px; font-weight:600; color:#fff; }}
 .aic td:last-child {{ border-radius:0 8px 8px 0; }}
-.aic tr.ai td {{ background:linear-gradient(90deg,rgba(139,92,246,.20),rgba(34,211,238,.10)); }}
+.aic tr.ai td {{ background:linear-gradient(90deg,rgba(123,69,240,.20),rgba(45,182,235,.10)); }}
 .aic .up {{ color:#4ADE80; }} .aic .dn {{ color:#F87171; }}
-.aic .nt {{ color:#AEB7C6; font-size:.74rem; line-height:1.5; margin-top:7px; }}
+.aic .nt {{ color:#B1ABBA; font-size:.74rem; line-height:1.5; margin-top:7px; }}
 [class*="st-key-aicard_"] button {{ border-radius:12px !important; min-height:40px !important; margin-top:4px; }}
 [class*="st-key-aicard_"] [data-testid="stElementContainer"] {{ width:100%; }}
 .aiday {{ display:flex; flex-wrap:wrap; gap:6px; }}
-.aiday span {{ display:inline-flex; align-items:center; gap:6px; font-size:.76rem; font-weight:700; border-radius:999px; padding:3px 10px;
-  border:1px solid {_BD}; background:rgba(138,148,167,.08); color:#C9D0DC; }}
+.aiday span {{ display:inline-flex; align-items:center; gap:6px; font-size:.76rem; font-weight:600; border-radius:999px; padding:3px 10px;
+  border:1px solid {_BD}; background:rgba(157,151,165,.08); color:#CCC7D3; }}
 .aiday span.go {{ border-color:rgba(34,197,94,.5); background:rgba(34,197,94,.12); color:#BBF7D0; }}
 .aiday span b {{ color:#fff; }}
 /* name ideas under the name */
 [class*="st-key-pbnames"] {{ flex-wrap:wrap !important; gap:6px !important; align-items:center !important; margin-top:-4px; }}
-.pbni {{ display:inline-flex; align-items:center; gap:4px; font-size:.72rem; font-weight:800; color:{_G}; }}
+.pbni {{ display:inline-flex; align-items:center; gap:4px; font-size:.72rem; font-weight:600; color:{_G}; }}
 .pbni .ms {{ font-size:1rem; }}
 [class*="st-key-pbnames"] button {{ min-height:30px !important; padding:2px 12px !important; border-radius:999px !important;
-  border:1px dashed {_A}77 !important; background:rgba(61,123,255,.06) !important; }}
-[class*="st-key-pbnames"] button:hover {{ border-style:solid !important; background:rgba(61,123,255,.16) !important; }}
-[class*="st-key-pbnames"] button p {{ font-size:.78rem !important; font-weight:700 !important; color:#DCE6FF !important; }}
+  border:1px dashed {_A}77 !important; background:rgba(59,139,235,.06) !important; }}
+[class*="st-key-pbnames"] button:hover {{ border-style:solid !important; background:rgba(59,139,235,.16) !important; }}
+[class*="st-key-pbnames"] button p {{ font-size:.78rem !important; font-weight:600 !important; color:#DCEBFA !important; }}
 .pbfs2 {{ margin-top:12px; }}
 /* the kinds of strategy: tiles; pointing at one drops down its strategies */
 [class*="st-key-pbf_"] {{ overflow:visible !important; }}
@@ -480,16 +480,16 @@ a.pblink .ms {{ font-size:1rem; }}
   border-radius:14px; background:{T.BOX_BG}; padding:10px 12px; cursor:default; transition:border-color .15s, background .15s; }}
 .pbkd .tp {{ display:flex; align-items:center; gap:9px; min-width:0; }}
 .pbkd .i {{ flex:none; display:flex; }}
-.pbkd .i .ms {{ color:{_C}; background:rgba(34,211,238,.12); border-radius:9px; padding:5px; font-size:1.05rem; }}
-.pbkd .nm {{ font-weight:800; font-size:.86rem; color:#fff; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
-.pbkd .ct {{ display:flex; align-items:center; gap:2px; font-size:.68rem; color:{_MU}; font-weight:700; padding-inline-start:2px; }}
+.pbkd .i .ms {{ color:{_C}; background:rgba(45,182,235,.12); border-radius:9px; padding:5px; font-size:1.05rem; }}
+.pbkd .nm {{ font-weight:600; font-size:.86rem; color:#fff; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
+.pbkd .ct {{ display:flex; align-items:center; gap:2px; font-size:.68rem; color:{_MU}; font-weight:600; padding-inline-start:2px; }}
 .pbkd .ct .ms {{ font-size:1rem; transition:transform .15s; }}
-.pbkd.has {{ border-color:{_A}77; background:{T.TOP_THIN}, linear-gradient(135deg,rgba(61,123,255,.14),rgba(139,92,246,.08) 70%,{T.CARD}); }}
-.pbkd.has .ct {{ color:#9CC3FF; }}
+.pbkd.has {{ border-color:{_A}77; background:{T.TOP_THIN}, linear-gradient(135deg,rgba(59,139,235,.14),rgba(123,69,240,.08) 70%,{T.CARD}); }}
+.pbkd.has .ct {{ color:#9DCBF7; }}
 [class*="st-key-pbkind_"]:hover .pbkd {{ border-color:{_A}; }}
 [class*="st-key-pbkind_"]:hover .pbkd .ct .ms {{ transform:rotate(180deg); }}
 [class*="st-key-pbkindl_"] {{ display:none !important; position:absolute !important; top:100%; inset-inline-start:0; z-index:80; min-width:260px;
-  width:max-content !important; max-width:340px; gap:3px !important; padding:6px !important; margin-top:0 !important; background:#0B1530;
+  width:max-content !important; max-width:340px; gap:3px !important; padding:6px !important; margin-top:0 !important; background:#1A1624;
   border:1px solid {_A}55; border-radius:14px; box-shadow:0 22px 44px rgba(0,0,0,.55); }}
 [class*="st-key-pbkindl_"][class*="_R"] {{ inset-inline-start:auto; inset-inline-end:0; }}
 [class*="st-key-pbkind_"]:hover [class*="st-key-pbkindl_"], [class*="st-key-pbkind_"]:focus-within [class*="st-key-pbkindl_"] {{ display:flex !important; }}
@@ -497,11 +497,11 @@ a.pblink .ms {{ font-size:1rem; }}
   border:1px solid transparent !important; background:transparent !important; box-shadow:none !important; padding:4px 10px !important; }}
 [class*="st-key-pbkindl_"] button > div {{ justify-content:flex-start !important; width:100% !important; gap:10px !important; }}
 [class*="st-key-pbkindl_"] button [data-testid="stMarkdownContainer"] {{ text-align:start !important; }}
-[class*="st-key-pbkindl_"] button:hover {{ background:rgba(61,123,255,.14) !important; }}
-[class*="st-key-pbkindl_"] button p {{ font-size:.84rem !important; font-weight:700 !important; color:#DCE2EC !important; text-align:start !important; }}
+[class*="st-key-pbkindl_"] button:hover {{ background:rgba(59,139,235,.14) !important; }}
+[class*="st-key-pbkindl_"] button p {{ font-size:.84rem !important; font-weight:600 !important; color:#DDD9E2 !important; text-align:start !important; }}
 [class*="st-key-pbkindl_"] button [data-testid="stIconMaterial"] {{ color:{_MU} !important; flex:none; font-size:1.15rem !important; margin:0 !important; }}
 [class*="st-key-pbkindl_"] button[kind="primary"], [class*="st-key-pbkindl_"] button[data-testid="stBaseButton-primary"] {{
-  background:rgba(61,123,255,.18) !important; border-color:{_A}55 !important; }}
+  background:rgba(59,139,235,.18) !important; border-color:{_A}55 !important; }}
 [class*="st-key-pbkindl_"] button[kind="primary"] [data-testid="stIconMaterial"],
 [class*="st-key-pbkindl_"] button[data-testid="stBaseButton-primary"] [data-testid="stIconMaterial"] {{ color:{_C} !important; }}
 @media (max-width: 640px) {{ [class*="st-key-pbkindl_"] {{ min-width:220px; }} }}
@@ -509,43 +509,43 @@ a.pblink .ms {{ font-size:1rem; }}
 [class*="st-key-pblab"] {{ margin-top:16px; }}
 [class*="st-key-pblab"] .xtp {{ margin-bottom:8px; }}
 [class*="st-key-pb_uselab"] button {{ min-height:42px !important; border-radius:12px !important; border:1px solid {_C}88 !important;
-  background:linear-gradient(95deg,rgba(34,211,238,.16),rgba(139,92,246,.18)) !important; }}
+  background:linear-gradient(95deg,rgba(45,182,235,.16),rgba(123,69,240,.18)) !important; }}
 [class*="st-key-pb_uselab"] button:hover {{ border-color:{_C} !important; filter:brightness(1.1); }}
-[class*="st-key-pb_uselab"] button p {{ font-weight:800 !important; color:#fff !important; }}
+[class*="st-key-pb_uselab"] button p {{ font-weight:600 !important; color:#fff !important; }}
 [class*="st-key-pb_uselab"] button [data-testid="stIconMaterial"] {{ color:{_C} !important; }}
 [class*="st-key-pblab"] [data-testid="stExpander"] details {{ background:{T.BOX_BG}; border:1px solid {_BD} !important; border-radius:14px !important; }}
 /* the big button at the end of the form */
 [class*="st-key-pb_create"] {{ margin-top:8px; }}
 [class*="st-key-pb_create"] button {{ min-height:54px !important; border:0 !important; border-radius:14px !important;
-  background:linear-gradient(95deg,{_A} 0%,{_V} 62%,{_C} 130%) !important; box-shadow:0 12px 30px rgba(61,123,255,.35), inset 0 1px 0 rgba(255,255,255,.2);
+  background:{T.CTA} !important; box-shadow:0 14px 34px -12px rgba(45,182,235,.75), inset 0 1px 0 rgba(255,255,255,.2);
   transition:transform .15s ease, box-shadow .15s ease, filter .15s ease; }}
-[class*="st-key-pb_create"] button:hover {{ transform:translateY(-2px); filter:brightness(1.08); box-shadow:0 16px 36px rgba(61,123,255,.45); }}
-[class*="st-key-pb_create"] button p {{ font-size:1.05rem !important; font-weight:800 !important; color:#fff !important; letter-spacing:.01em; }}
+[class*="st-key-pb_create"] button:hover {{ transform:translateY(-2px); filter:brightness(1.08); box-shadow:0 18px 40px -12px rgba(45,182,235,.9); }}
+[class*="st-key-pb_create"] button p {{ font-size:1.05rem !important; font-weight:600 !important; color:#fff !important; letter-spacing:.01em; }}
 [class*="st-key-pb_create"] button [data-testid="stIconMaterial"] {{ color:#fff !important; }}
 /* the chosen strategies inside the drop-downs, in the brand colours */
-[class*="st-key-pb_ms_"] [data-baseweb="tag"] {{ background:linear-gradient(135deg,rgba(61,123,255,.30),rgba(139,92,246,.30)) !important;
+[class*="st-key-pb_ms_"] [data-baseweb="tag"] {{ background:linear-gradient(135deg,rgba(59,139,235,.30),rgba(123,69,240,.30)) !important;
   border:1px solid {_A}66 !important; border-radius:10px !important; }}
-[class*="st-key-pb_ms_"] [data-baseweb="tag"] span {{ color:#fff !important; font-weight:700; }}
+[class*="st-key-pb_ms_"] [data-baseweb="tag"] span {{ color:#fff !important; font-weight:600; }}
 [class*="st-key-pb_ms_"] [data-baseweb="select"] > div {{ border-radius:12px !important; }}
 /* a combined strategy's rules */
 .pbrl {{ border:1px solid {_BD}; border-radius:16px; background:{T.BOX_BG}; padding:12px 14px 13px; }}
 .pbrl + .pbrl {{ margin-top:10px; }}
 .pbrl .hd {{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }}
-.pbrl .hd .i .ms {{ font-size:1.1rem; color:#fff; background:linear-gradient(135deg,{_A},{_V}); border-radius:10px; padding:6px; }}
+.pbrl .hd .i .ms {{ font-size:1.1rem; color:#fff; background:{T.PANEL}; box-shadow:{T.GLOW}; border-radius:10px; padding:6px; }}
 .pbrl .nm {{ display:flex; flex-direction:column; line-height:1.3; }}
 .pbrl .nm b {{ color:#fff; font-size:.96rem; }}
 .pbrl .nm span {{ color:{_MU}; font-size:.74rem; font-weight:600; }}
 .pbrl .cs {{ display:flex; flex-wrap:wrap; gap:6px; margin-inline-start:auto; }}
-.pbrl .cs .c {{ display:inline-flex; align-items:center; gap:5px; font-size:.72rem; font-weight:700; color:#C9D0DC; background:rgba(138,148,167,.10);
+.pbrl .cs .c {{ display:inline-flex; align-items:center; gap:5px; font-size:.72rem; font-weight:600; color:#CCC7D3; background:rgba(157,151,165,.10);
   border:1px solid {_BD}; border-radius:999px; padding:3px 10px; white-space:nowrap; }}
 .pbrl .cs .c .ms {{ font-size:.95rem; color:{_C}; }}
 .pbrl .gr {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:9px; margin-top:11px; }}
 .pbrl .gr:has(> .g:nth-child(4)) {{ grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); }}
 .pbrl .g {{ background:{T.TOP_THIN}, rgba(255,255,255,.028); border:1px solid rgba(255,255,255,.055); border-radius:12px; padding:9px 12px 8px; }}
-.pbrl .gt {{ display:flex; align-items:center; gap:7px; font-size:.68rem; font-weight:800; letter-spacing:.09em; text-transform:uppercase; color:#9CC3FF; }}
-.pbrl .gt .k {{ width:18px; height:18px; border-radius:6px; display:grid; place-items:center; background:rgba(61,123,255,.25); color:#fff; font-size:.64rem; }}
+.pbrl .gt {{ display:flex; align-items:center; gap:7px; font-size:.68rem; font-weight:600; letter-spacing:.09em; text-transform:uppercase; color:#9DCBF7; }}
+.pbrl .gt .k {{ width:18px; height:18px; border-radius:6px; display:grid; place-items:center; background:rgba(59,139,235,.25); color:#fff; font-size:.64rem; }}
 .pbrl ul {{ margin:6px 0 0; padding-inline-start:18px; }}
-.pbrl li {{ color:#DCE2EC; font-size:.8rem; line-height:1.55; margin:2px 0; }}
+.pbrl li {{ color:#DDD9E2; font-size:.8rem; line-height:1.55; margin:2px 0; }}
 .pbrl li::marker {{ color:{_C}; }}
 
 @media (prefers-reduced-motion: reduce) {{ .pbhero *, .pbadd *, .pbfb * {{ animation:none !important; }} }}
@@ -556,8 +556,7 @@ PAGE_RTL_CSS = """<style>
 .pbhero .eb, .pbc .it, .pbmh, .pbt th, .pbfb .eb, .pbfs, .pbmode .ct, .pbrl .gt { letter-spacing:0; }
 .pbp::before, .pbid::before { left:auto; right:0; }
 .pbp { padding:14px 19px 8px 16px; }
-[class*="st-key-pbf_"]::before { background:linear-gradient(270deg,#3D7BFF,#8B5CF6,#22D3EE); }
-[class*="st-key-pb_create"] button { background:linear-gradient(265deg,#3D7BFF 0%,#8B5CF6 62%,#22D3EE 130%) !important; }
+
 [class*="st-key-pbq_row"] button { padding:3px 10px 3px 14px !important; }
 </style>"""
 
@@ -754,9 +753,9 @@ def _hero_art(ranked_sims):
     path = "M" + " L".join(f"{x} {y}" for x, y in pts)
     length = sum(hypot(x2 - x1, y2 - y1) for (x1, y1), (x2, y2) in zip(pts, pts[1:]))
     s = ['<svg viewBox="0 0 520 250" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" style="direction:ltr">'
-         '<defs><linearGradient id="pbln" x1="0" x2="1"><stop offset="0" stop-color="#22D3EE" stop-opacity="0"/>'
-         '<stop offset=".3" stop-color="#22D3EE"/><stop offset=".72" stop-color="#3D7BFF"/><stop offset="1" stop-color="#A78BFA"/></linearGradient>'
-         '<linearGradient id="pbnd" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3D7BFF"/><stop offset="1" stop-color="#8B5CF6"/></linearGradient>'
+         '<defs><linearGradient id="pbln" x1="0" x2="1"><stop offset="0" stop-color="#2DB6EB" stop-opacity="0"/>'
+         '<stop offset=".3" stop-color="#2DB6EB"/><stop offset=".72" stop-color="#3B8BEB"/><stop offset="1" stop-color="#A78BFA"/></linearGradient>'
+         '<linearGradient id="pbnd" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3B8BEB"/><stop offset="1" stop-color="#7B45F0"/></linearGradient>'
          '<filter id="pbgl" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="3" result="b"/>'
          '<feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>',
          # the brand's "A", large and faint
@@ -765,17 +764,17 @@ def _hero_art(ranked_sims):
     rng = np.random.default_rng(11)
     for _ in range(16):
         s.append(f'<circle class="tw" cx="{rng.uniform(20, 510):.0f}" cy="{rng.uniform(8, 240):.0f}" r="{rng.uniform(.6, 1.5):.1f}" '
-                 f'fill="#9CC3FF" style="animation-delay:-{rng.uniform(0, 4):.1f}s"/>')
-    s.append(f'<path d="{path}" fill="none" stroke="#22D3EE" stroke-opacity=".10" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>')
+                 f'fill="#9DCBF7" style="animation-delay:-{rng.uniform(0, 4):.1f}s"/>')
+    s.append(f'<path d="{path}" fill="none" stroke="#2DB6EB" stroke-opacity=".10" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>')
     s.append(f'<path class="ln" d="{path}" fill="none" stroke="url(#pbln)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" '
              f'filter="url(#pbgl)" style="stroke-dasharray:{length:.0f};--len:{length:.0f}"/>')
     s.append('<path d="M461 35 L476.5 35.6 L475.9 51" fill="none" stroke="#A78BFA" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>')
-    s.append(f'<circle class="mv" r="4.5" fill="#22D3EE" filter="url(#pbgl)" style="offset-path:path(\'{path}\')"/>')
+    s.append(f'<circle class="mv" r="4.5" fill="#2DB6EB" filter="url(#pbgl)" style="offset-path:path(\'{path}\')"/>')
     for i, (x, y) in enumerate(_SLOTS):
         rank = PB.MAX_BOTS - i
         if rank > len(ranked_sims):
-            s.append(f'<g opacity=".8"><circle cx="{x}" cy="{y}" r="14" fill="#040810" fill-opacity=".55" stroke="#8A94A7" stroke-width="1.6" '
-                     f'stroke-dasharray="3 4"/><path d="M{x - 5} {y} H{x + 5} M{x} {y - 5} V{y + 5}" stroke="#8A94A7" stroke-width="2" '
+            s.append(f'<g opacity=".8"><circle cx="{x}" cy="{y}" r="14" fill="#0E0918" fill-opacity=".55" stroke="#9D97A5" stroke-width="1.6" '
+                     f'stroke-dasharray="3 4"/><path d="M{x - 5} {y} H{x + 5} M{x} {y - 5} V{y + 5}" stroke="#9D97A5" stroke-width="2" '
                      f'stroke-linecap="round"/></g>')
             continue
         sim = ranked_sims[rank - 1]
@@ -786,10 +785,10 @@ def _hero_art(ranked_sims):
         name = sim["bot"]["name"]
         name = name[:13] + "…" if len(name) > 14 else name
         s.append(f'<g><circle class="halo" cx="{x}" cy="{y}" r="15" fill="none" stroke="{ring}" stroke-width="2" style="animation-delay:-{i * 0.5:.1f}s"/>'
-                 f'<circle cx="{x}" cy="{y}" r="15" fill="url(#pbnd)" stroke="#040810" stroke-width="2"/>'
+                 f'<circle cx="{x}" cy="{y}" r="15" fill="url(#pbnd)" stroke="#0E0918" stroke-width="2"/>'
                  f'<text x="{x}" y="{y + 4.5}" text-anchor="middle" font-size="12.5" font-weight="800" fill="#fff" font-family="{T.FONT}">{rank}</text>'
                  f'<text x="{x}" y="{y - 36}" text-anchor="middle" font-size="13" font-weight="800" fill="{ring}" font-family="{T.FONT}">{label}</text>'
-                 f'<text x="{x}" y="{y - 22}" text-anchor="middle" font-size="10.5" fill="#C7CFDD" font-family="{T.FONT}">{T.esc(name)}</text></g>')
+                 f'<text x="{x}" y="{y - 22}" text-anchor="middle" font-size="10.5" fill="#CAC5D1" font-family="{T.FONT}">{T.esc(name)}</text></g>')
     return "".join(s) + "</svg>"
 
 
@@ -972,7 +971,7 @@ def bot_card(rank, sim, logo, selected=False):
                 else f'{L("since", "منذ")} <span class="nw">{iso(since_of(sim))}</span>')
         body = (f'<div class="spk">{_spark_area(sim["equity"], b["capital"], b["id"])}</div>'
                 f'<div class="row"><div><div class="muted" style="font-size:.72rem">{L("Balance", "الرصيد")}</div>'
-                f'<div style="font-weight:800;font-size:1.1rem;direction:ltr">{T.money(sim["final"])}</div></div>'
+                f'<div style="font-weight:600;font-size:1.1rem;direction:ltr">{T.money(sim["final"])}</div></div>'
                 f'<div class="r">{T.pbox(f"{ret:+.2f}%", ret)}{spx}</div></div>'
                 f'<div class="pbft">{trades}{watch} · {when}</div>')
     elif sim["ok"]:
@@ -1012,25 +1011,25 @@ def _spark_area(equity, capital, uid, n=160):
             f'<defs><linearGradient id="{gid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="{col}" stop-opacity=".32"/>'
             f'<stop offset="1" stop-color="{col}" stop-opacity="0"/></linearGradient></defs>'
             f'<polygon points="0,{h:.0f} {pts} {w:.0f},{h:.0f}" fill="url(#{gid})"/>'
-            f'<line x1="0" y1="{base:.1f}" x2="{w:.0f}" y2="{base:.1f}" stroke="#8A94A7" stroke-width="1" stroke-dasharray="3 4" '
+            f'<line x1="0" y1="{base:.1f}" x2="{w:.0f}" y2="{base:.1f}" stroke="#9D97A5" stroke-width="1" stroke-dasharray="3 4" '
             f'vector-effect="non-scaling-stroke" opacity=".6"/>'
             f'<polyline points="{pts}" fill="none" stroke="{col}" stroke-width="2" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></svg>')
 
 
 # the site's logo tile (blue-violet, rounded) with a white plus and the cyan trend arrow; a dashed orbit turns around it
 PLUS_SVG = ('<svg viewBox="0 0 92 92" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'
-            '<defs><linearGradient id="pbaddg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3D7BFF"/>'
-            '<stop offset="1" stop-color="#8B5CF6"/></linearGradient>'
+            '<defs><linearGradient id="pbaddg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3B8BEB"/>'
+            '<stop offset="1" stop-color="#7B45F0"/></linearGradient>'
             '<filter id="pbaddf" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="5"/></filter></defs>'
-            '<g class="orbit"><circle cx="46" cy="46" r="43" fill="none" stroke="#22D3EE" stroke-opacity=".45" stroke-width="1.4" stroke-dasharray="2 7"/>'
-            '<circle cx="46" cy="3" r="3.2" fill="#22D3EE"/><circle cx="89" cy="46" r="2" fill="#A78BFA"/></g>'
-            '<g class="tile"><rect x="16" y="20" width="60" height="60" rx="17" fill="#3D7BFF" opacity=".45" filter="url(#pbaddf)"/>'
+            '<g class="orbit"><circle cx="46" cy="46" r="43" fill="none" stroke="#2DB6EB" stroke-opacity=".45" stroke-width="1.4" stroke-dasharray="2 7"/>'
+            '<circle cx="46" cy="3" r="3.2" fill="#2DB6EB"/><circle cx="89" cy="46" r="2" fill="#A78BFA"/></g>'
+            '<g class="tile"><rect x="16" y="20" width="60" height="60" rx="17" fill="#3B8BEB" opacity=".45" filter="url(#pbaddf)"/>'
             '<rect x="16" y="16" width="60" height="60" rx="17" fill="url(#pbaddg)"/>'
             '<path d="M22 30 Q22 22 30 22 H62 Q70 22 70 30" fill="none" stroke="#fff" stroke-opacity=".22" stroke-width="2" stroke-linecap="round"/>'
             '<g class="cross"><path d="M46 32 V60 M32 46 H60" stroke="#fff" stroke-width="6.5" stroke-linecap="round"/></g>'
-            '<path class="spark" d="M51 67 L57 62 L61 64 L69 56" fill="none" stroke="#22D3EE" stroke-width="3.2" stroke-linecap="round" '
+            '<path class="spark" d="M51 67 L57 62 L61 64 L69 56" fill="none" stroke="#2DB6EB" stroke-width="3.2" stroke-linecap="round" '
             'stroke-linejoin="round" style="stroke-dasharray:40"/>'
-            '<path d="M65 55.6 L69.4 55.9 L69.1 60.3" fill="none" stroke="#22D3EE" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>'
+            '<path d="M65 55.6 L69.4 55.9 L69.1 60.3" fill="none" stroke="#2DB6EB" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>'
             '</g></svg>')
 
 
@@ -1491,8 +1490,8 @@ def pnl_charts(v):
                  container=c2)
 
 
-# the colours of the old monthly heatmap: pale for small months, deeper green / red for big ones
-_HEAT_STOPS = [(0.0, "#F1AEB5"), (0.35, T.NEG_BG), (0.5, "#E2E8F0"), (0.65, T.POS_BG), (1.0, "#A3CFBB")]
+# the colours of the monthly heatmap: dark for small months, stronger green / red for big ones
+_HEAT_STOPS = [(0.0, "#A8323F"), (0.35, "#5A1F29"), (0.5, "#2A2535"), (0.65, "#17482F"), (1.0, "#1F8A4E")]
 
 
 def _heat_color(t):
@@ -1513,7 +1512,7 @@ def _heat_class(x, top):
 
 HEAT_CSS = "<style>" + "".join(
     f'[class*="st-key-pbmo_{s}{k}"] button {{ background:{_heat_color(0.5 + (0.5 if s == "p" else -0.5) * (k - 0.5) / 4)} !important; }}'
-    for s in "pn" for k in range(1, 5)) + '[class*="st-key-pbmo_z"] button { background:#E2E8F0 !important; }</style>'
+    for s in "pn" for k in range(1, 5)) + '[class*="st-key-pbmo_z"] button { background:#2A2535 !important; }</style>'
 
 
 def _pick_month(ck, ym):
@@ -2742,19 +2741,19 @@ def _default_name(kind, value, strats, need=None, instr="stock"):
 STEPS = [("Basics", "الأساسيات"), ("Market", "السوق"), ("Strategies", "الاستراتيجيات"), ("Buys", "الشراء"), ("Exits", "الخروج"),
          ("Start", "البداية")]
 FORM_ART = ('<svg viewBox="0 0 260 120" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'
-            '<defs><linearGradient id="pbfl" x1="0" x2="1"><stop offset="0" stop-color="#22D3EE" stop-opacity="0"/>'
-            '<stop offset=".35" stop-color="#22D3EE"/><stop offset=".75" stop-color="#3D7BFF"/><stop offset="1" stop-color="#A78BFA"/></linearGradient>'
+            '<defs><linearGradient id="pbfl" x1="0" x2="1"><stop offset="0" stop-color="#2DB6EB" stop-opacity="0"/>'
+            '<stop offset=".35" stop-color="#2DB6EB"/><stop offset=".75" stop-color="#3B8BEB"/><stop offset="1" stop-color="#A78BFA"/></linearGradient>'
             '<filter id="pbfg" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.5" result="b"/>'
             '<feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>'
             '<g transform="translate(150 14) scale(1.9)" opacity=".07"><path d="M17 48 L29.5 15.5 Q32 11 34.5 15.5 L47 48" fill="none" '
             'stroke="#fff" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/></g>'
-            '<path d="M12 104 L58 80 L96 88 L138 58 L176 64 L236 22" fill="none" stroke="#22D3EE" stroke-opacity=".12" stroke-width="10" '
+            '<path d="M12 104 L58 80 L96 88 L138 58 L176 64 L236 22" fill="none" stroke="#2DB6EB" stroke-opacity=".12" stroke-width="10" '
             'stroke-linecap="round" stroke-linejoin="round"/>'
             '<path class="ln" d="M12 104 L58 80 L96 88 L138 58 L176 64 L236 22" fill="none" stroke="url(#pbfl)" stroke-width="3" '
             'stroke-linecap="round" stroke-linejoin="round" filter="url(#pbfg)" style="stroke-dasharray:290;--len:290"/>'
             '<path d="M222 21 L237 21.6 L236.4 36" fill="none" stroke="#A78BFA" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>'
-            + "".join(f'<circle cx="{x}" cy="{y}" r="5" fill="#040810" stroke="{c}" stroke-width="2.4"/>'
-                      for x, y, c in ((58, 80, "#22D3EE"), (96, 88, "#3D7BFF"), (138, 58, "#3D7BFF"), (176, 64, "#8B5CF6")))
+            + "".join(f'<circle cx="{x}" cy="{y}" r="5" fill="#0E0918" stroke="{c}" stroke-width="2.4"/>'
+                      for x, y, c in ((58, 80, "#2DB6EB"), (96, 88, "#3B8BEB"), (138, 58, "#3B8BEB"), (176, 64, "#7B45F0")))
             + '</svg>')
 
 
@@ -3874,4 +3873,4 @@ def page_paper_bots():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "11.2"
+BUILD = "12.0"

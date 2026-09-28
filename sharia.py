@@ -18,7 +18,7 @@ import theme as T
 import ui
 from i18n import L, industry_name, is_ar
 
-BUILD = "11.2"
+BUILD = "12.0"
 
 REV_MAX, RATIO_MAX = 5.0, 30.0
 HALAL, DOUBT, HARAM = "#4ADE80", "#F5B94A", "#F87171"
@@ -135,27 +135,27 @@ CSS = f"""<style>
   -webkit-mask-image:linear-gradient(90deg,#000 0%,rgba(0,0,0,.85) 18%,transparent 36%,transparent 64%,rgba(0,0,0,.85) 82%,#000 100%);
   mask-image:linear-gradient(90deg,#000 0%,rgba(0,0,0,.85) 18%,transparent 36%,transparent 64%,rgba(0,0,0,.85) 82%,#000 100%); }}
 .shbn .patw svg {{ width:100%; height:100%; display:block; }}
-.shbn .fade {{ position:absolute; inset:0; pointer-events:none; background:radial-gradient(34% 90% at 50% 50%, {T.CARD} 0%, rgba(11,21,48,.92) 45%, transparent 100%); }}
+.shbn .fade {{ position:absolute; inset:0; pointer-events:none; background:radial-gradient(34% 90% at 50% 50%, {T.CARD} 0%, rgba(26,22,36,.92) 45%, transparent 100%); }}
 .shbn .ic {{ position:relative; width:54px; height:54px; }}
-.shbn .v {{ position:relative; font-size:1.55rem; font-weight:800; color:#fff; letter-spacing:-.01em; }}
-.shbn .s {{ position:relative; font-size:.8rem; color:#C9D2E8; text-align:center; max-width:520px; padding:0 12px; }}
+.shbn .v {{ position:relative; font-size:1.55rem; font-weight:600; color:#fff; letter-spacing:-.01em; }}
+.shbn .s {{ position:relative; font-size:.8rem; color:#CCC7D8; text-align:center; max-width:520px; padding:0 12px; }}
 .shgrid {{ display:grid; grid-template-columns:minmax(0,2fr) minmax(0,1fr); gap:12px; }}
 .shgrid.two {{ grid-template-columns:repeat(2,minmax(0,1fr)); margin-top:12px; }}
 @media (max-width: 900px) {{ .shgrid, .shgrid.two {{ grid-template-columns:minmax(0,1fr); }} }}
 .shc {{ position:relative; background:{T.BOX_BG}; border:1px solid {T.BORDER}; border-radius:18px; padding:16px 18px 16px; display:flex;
   flex-direction:column; gap:8px; }}
 .shc .hd {{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }}
-.shc .t {{ font-size:1.08rem; font-weight:800; color:#fff; line-height:1.3; }}
-.shc .rule {{ color:#AEB8D0; font-size:.82rem; line-height:1.55; }}
-.shc .big {{ font-size:1.6rem; font-weight:800; color:#fff; direction:ltr; margin-top:auto; font-variant-numeric:tabular-nums; }}
-.shc .big small {{ font-size:.78rem; color:#AEB8D0; font-weight:600; margin-inline-start:6px; }}
-.shchip {{ display:inline-flex; align-items:center; gap:4px; font-size:.72rem; font-weight:800; letter-spacing:.04em; padding:3px 10px; border-radius:8px; }}
+.shc .t {{ font-size:1.08rem; font-weight:600; color:#fff; line-height:1.3; }}
+.shc .rule {{ color:#B1ABBF; font-size:.82rem; line-height:1.55; }}
+.shc .big {{ font-size:1.6rem; font-weight:600; color:#fff; direction:ltr; margin-top:auto; font-variant-numeric:tabular-nums; }}
+.shc .big small {{ font-size:.78rem; color:#B1ABBF; font-weight:600; margin-inline-start:6px; }}
+.shchip {{ display:inline-flex; align-items:center; gap:4px; font-size:.72rem; font-weight:600; letter-spacing:.04em; padding:3px 10px; border-radius:8px; }}
 .shchip.pass {{ background:{T.POS_BG}; color:{T.POS_FG}; }} .shchip.fail {{ background:{T.NEG_BG}; color:{T.NEG_FG}; }}
 .shchip.doubt, .shchip.none {{ background:{T.YEL_BG}; color:{T.YEL_FG}; }}
-.shbar {{ position:relative; height:10px; border-radius:6px; background:rgba(138,148,167,.2); direction:ltr; margin-top:4px; }}
+.shbar {{ position:relative; height:10px; border-radius:6px; background:rgba(157,151,165,.2); direction:ltr; margin-top:4px; }}
 .shbar i {{ position:absolute; left:0; top:0; bottom:0; border-radius:6px; }}
 .shbar b {{ position:absolute; top:-4px; bottom:-4px; width:2px; background:#fff; border-radius:2px; }}
-.shbar + .sc {{ display:flex; justify-content:space-between; font-size:.68rem; color:#8E9BC0; direction:ltr; }}
+.shbar + .sc {{ display:flex; justify-content:space-between; font-size:.68rem; color:#9791AD; direction:ltr; }}
 .shrev {{ display:grid; grid-template-columns:minmax(150px,200px) minmax(0,1fr); gap:18px 34px; align-items:center; margin-top:6px; }}
 @media (max-width: 700px) {{ .shrev {{ grid-template-columns:minmax(0,1fr); justify-items:center; }} }}
 .shrev svg {{ width:100%; max-width:200px; height:auto; }}
@@ -163,9 +163,9 @@ CSS = f"""<style>
 @media (max-width: 1100px) {{ .shleg {{ grid-template-columns:minmax(0,1fr); }} }}
 .shleg .it {{ display:flex; align-items:stretch; gap:12px; }}
 .shleg .it i {{ width:6px; border-radius:4px; flex:none; }}
-.shleg .it span {{ display:block; font-size:.72rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase; color:#AEB8D0; }}
+.shleg .it span {{ display:block; font-size:.72rem; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:#B1ABBF; }}
 .shleg .it b {{ display:block; font-size:1.35rem; color:#fff; direction:ltr; text-align:start; font-variant-numeric:tabular-nums; }}
-.shnote {{ color:#AEB8D0; font-size:.76rem; line-height:1.6; margin-top:10px; }}
+.shnote {{ color:#B1ABBF; font-size:.76rem; line-height:1.6; margin-top:10px; }}
 .ar .shleg .it span {{ letter-spacing:0; font-size:.8rem; }}
 </style>"""
 
@@ -186,9 +186,9 @@ def _icon(state):
         state, '<path d="M42 38 v6 M42 48 v1" fill="none" stroke="#2A1D04" stroke-width="3" stroke-linecap="round"/>')
     return (f'<svg class="ic" viewBox="0 0 56 56" aria-hidden="true">'
             f'<path d="M26 3 L31 9 L39 7 L40 15 L48 18 L44 25 L49 32 L41 35 L40 43 L32 41 L27 48 L21 42 L13 45 L12 37 L4 34 L8 27 L3 20 '
-            f'L11 17 L12 9 L20 11 Z" fill="none" stroke="#DCE4F7" stroke-width="2" stroke-linejoin="round"/>'
-            f'<path d="M30 16 A11 11 0 1 0 30 36 A8.5 8.5 0 1 1 30 16 Z" fill="#DCE4F7"/>'
-            f'<path d="M33 22 l1.2 2.6 2.8 .3 -2.1 1.9 .6 2.8 -2.5 -1.4 -2.5 1.4 .6 -2.8 -2.1 -1.9 2.8 -.3 Z" fill="#DCE4F7"/>'
+            f'L11 17 L12 9 L20 11 Z" fill="none" stroke="#DFDAE8" stroke-width="2" stroke-linejoin="round"/>'
+            f'<path d="M30 16 A11 11 0 1 0 30 36 A8.5 8.5 0 1 1 30 16 Z" fill="#DFDAE8"/>'
+            f'<path d="M33 22 l1.2 2.6 2.8 .3 -2.1 1.9 .6 2.8 -2.5 -1.4 -2.5 1.4 .6 -2.8 -2.1 -1.9 2.8 -.3 Z" fill="#DFDAE8"/>'
             f'<circle cx="42" cy="44" r="10" fill="{col}"/>{mark}</svg>')
 
 
@@ -208,7 +208,7 @@ def _donut(halal, doubt, haram):
         parts.append(f'<circle cx="80" cy="80" r="{r}" fill="none" stroke="{col}" stroke-width="20" stroke-dasharray="{ln:.2f} {c:.2f}" '
                      f'stroke-dashoffset="{-off:.2f}" transform="rotate(-90 80 80)"/>')
         off += c * v / 100
-    return (f'<svg viewBox="0 0 160 160" aria-hidden="true"><circle cx="80" cy="80" r="{r}" fill="none" stroke="rgba(138,148,167,.18)" '
+    return (f'<svg viewBox="0 0 160 160" aria-hidden="true"><circle cx="80" cy="80" r="{r}" fill="none" stroke="rgba(157,151,165,.18)" '
             f'stroke-width="20"/>{"".join(parts)}</svg>')
 
 

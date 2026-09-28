@@ -98,11 +98,11 @@ MEGA = {"AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "GOOG", "META", "AVGO", "TSLA",
 
 LEVELS = [(9, "Very important", "هام جداً"), (7, "Important", "هام"), (5, "Medium", "متوسط الأهمية"), (3, "Low", "منخفض الأهمية"),
           (1, "Not important", "غير هام")]
-# score -> (light box, dark text, border): 1 green ... 5 yellow ... 10 red (the pastel rule)
-COLORS = {1: ("#D1E7DD", "#0F5132", "#A3CFBB"), 2: ("#DCEEDA", "#1C5A2B", "#B3D8AE"), 3: ("#E6F2D3", "#355E12", "#C4DF9E"),
-          4: ("#F0F3CE", "#545A0F", "#DBE29A"), 5: ("#FEF3C7", "#854D0E", "#F4DB8B"), 6: ("#FEE8C3", "#8A4A0B", "#F5CD8A"),
-          7: ("#FFE2CB", "#9A3412", "#F6C09A"), 8: ("#FCD8CE", "#9A2B1B", "#F1AF9C"), 9: ("#F9D1D4", "#8C1D27", "#EDA3AB"),
-          10: ("#F5C0C6", "#6B111A", "#E1858F")}
+# score -> (dark box, bright text, border): 1 green ... 5 yellow ... 10 red (the colour rule on the night background)
+COLORS = {1: ("#0F2A1E", "#4ADE80", "#1F5A3B"), 2: ("#152B18", "#86EFAC", "#2A5A30"), 3: ("#1C2C14", "#BEF264", "#3E5A1E"),
+          4: ("#262B12", "#D9F99D", "#52591C"), 5: ("#302410", "#FCD34D", "#6B5518"), 6: ("#33200E", "#FBBF24", "#6E4A14"),
+          7: ("#341C0F", "#FDBA74", "#723E1A"), 8: ("#36170F", "#FF8A65", "#74301C"), 9: ("#34141C", "#F87171", "#6B2531"),
+          10: ("#3A1018", "#FB7185", "#7A1F32")}
 
 
 def level(score):
@@ -222,4 +222,4 @@ def rank(items):
     return sorted(items, key=lambda n: ((n.get("iq") or {}).get("raw", 0), n["time"] if pd.notna(n.get("time")) else zero), reverse=True)
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "11.2"
+BUILD = "12.0"

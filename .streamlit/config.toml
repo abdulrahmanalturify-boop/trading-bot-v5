@@ -1,10 +1,13 @@
 [theme]
 base = "dark"
-primaryColor = "#3D7BFF"
-backgroundColor = "#040810"
-secondaryBackgroundColor = "#12203F"
-textColor = "#E9EDF5"
-font = "Plus Jakarta Sans:https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+primaryColor = "#3B8BEB"
+backgroundColor = "#0E0918"
+secondaryBackgroundColor = "#1B1728"
+textColor = "#E7E3EB"
+linkColor = "#79B8F4"
+borderColor = "#2C2738"
+baseRadius = "0.5rem"
+font = "DM Sans:https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap"
 
 [server]
 enableStaticServing = true

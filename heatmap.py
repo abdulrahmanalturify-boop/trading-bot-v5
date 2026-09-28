@@ -19,7 +19,7 @@ RANGE = {"1D": 3, "1W": 6, "1M": 10, "3M": 18, "YTD": 25, "1Y": 40, "PRE": 3, "P
 
 def color(v, rng=3.0):
     if v is None or not np.isfinite(v):
-        return "#40444F"
+        return "#443F4E"
     x = max(-1.0, min(1.0, float(v) / rng))
     for (x0, c0), (x1, c1) in zip(STOPS, STOPS[1:]):
         if x <= x1:
@@ -109,9 +109,9 @@ def _fit(text, width, fs):
 def render(tiles, groups, logos=None, rng=3.0, lang="en", label=str, tip=None, rtl=False, width=W, height=H, uid="hm"):
     """logos: symbol -> image URL (verified). label: group key -> display name. tip: tile -> tooltip text."""
     logos = logos or {}
-    defs, body = [], [f'<rect width="{width}" height="{height}" fill="#0B0F19"/>']
+    defs, body = [], [f'<rect width="{width}" height="{height}" fill="#100C18"/>']
     for g in groups:
-        body.append(f'<rect x="{g["x"]:.1f}" y="{g["y"]:.1f}" width="{g["w"]:.1f}" height="{g["h"]:.1f}" fill="#141A26"/>')
+        body.append(f'<rect x="{g["x"]:.1f}" y="{g["y"]:.1f}" width="{g["w"]:.1f}" height="{g["h"]:.1f}" fill="#1C1826"/>')
     for i, t in enumerate(tiles):
         x, y, w, h = t["x"] + 0.5, t["y"] + 0.5, t["w"] - 1, t["h"] - 1
         if w < 1 or h < 1:
@@ -154,7 +154,7 @@ def render(tiles, groups, logos=None, rng=3.0, lang="en", label=str, tip=None, r
             continue
         name = label(g["name"])
         c = g["chg"]
-        cc = "#4ADE80" if c > 0.005 else ("#F87171" if c < -0.005 else "#9AA3B2")
+        cc = "#4ADE80" if c > 0.005 else ("#F87171" if c < -0.005 else "#A09AA8")
         chg = f"{c:+.2f}%"
         room = g["w"] - 12 - len(chg) * 7.2
         name = _fit(name, max(room, 20), 12.5)
@@ -174,4 +174,4 @@ def legend(rng=3.0):
     return f'<div class="hmlegend">{cells}</div>'
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "11.2"
+BUILD = "12.0"
