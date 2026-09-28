@@ -4,7 +4,7 @@ name: research
 on:
   push:
     branches: [research]
-    paths: ["research/run.py", "research/config.json", "paperbots.py", "engine.py", "playbooks.py", "ta.py"]
+    paths: ["research/run.py", "research/config.json"]          # a new engine is tested by a manual run (Actions > research)
   workflow_dispatch:
 permissions:
   contents: write
