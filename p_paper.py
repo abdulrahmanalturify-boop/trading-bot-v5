@@ -720,6 +720,30 @@ def setup_steps():
             L("choose-a-password", "اختر-كلمة-مرور") + '"', language="toml")
 
 
+def fresh_notice(sims):
+    """While the forward tests are brand new (no trade filled yet), say when the first orders fill and where the past is."""
+    live = [x for x in sims if x.get("ok") and x.get("phase") != "sim"]
+    if not live or any(len(x.get("trades") if x.get("trades") is not None else []) for x in live):
+        return
+    if max(int(x.get("sessions") or 0) for x in live) > 2:
+        return
+    from zoneinfo import ZoneInfo
+    now = PB.ny_now()
+    d = now.date()
+    if not (mcal.is_trading_day(d) and now.hour * 60 + now.minute < 9 * 60 + 30):
+        d = mcal.next_trading_day(d)
+    op = pd.Timestamp(f"{d} 09:30", tz="America/New_York")
+    ksa = op.tz_convert(ZoneInfo("Asia/Riyadh"))
+    since = min(since_of(x) for x in live)
+    st.info(L(f"The forward tests started with the session of {since}. The bots decide at every close and buy at the next open, so the "
+              f"first trades fill on {op:%A %d %b} at 9:30 New York ({ksa:%H:%M} Riyadh). Until then the balances stay at their capital. "
+              "To see how the rules did in the past, open Historical simulation (a bot that starts on its first day has none).",
+              f"التجارب الأمامية بدأت مع جلسة {since}. البوتات تقرر عند كل إغلاق وتشتري عند الافتتاح اللي بعده، فأول الصفقات تتنفذ "
+              f"يوم {op:%d/%m} الساعة 9:30 بتوقيت نيويورك ({ksa:%H:%M} بتوقيت الرياض). لين ذاك الوقت الأرصدة تبقى على رأس مالها. "
+              "وعشان تشوف كيف كانت القواعد في الماضي، افتح المحاكاة التاريخية (البوت اللي يبدأ من يومه الأول ما عنده محاكاة)."),
+            icon=":material/schedule:")
+
+
 def storage_notice(err):
     if err is not None:
         msg = {"no_table": L("Supabase is connected, but the bots table is missing. Open SQL Editor in Supabase, run this code, then refresh.",
@@ -3836,6 +3860,8 @@ def page_paper_bots():
     storage_notice(err)
     if sims:
         ui.safe(phase_switch, sims)
+        if phase() == "live":
+            ui.safe(fresh_notice, sims)
     sel = ui.safe(leaderboard, shown, len(bots), err is None and len(bots) < PB.MAX_BOTS) or []
 
     op = ss.pop("pb_open", None)
@@ -3874,4 +3900,4 @@ def page_paper_bots():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "11.1"
+BUILD = "11.1.1"
