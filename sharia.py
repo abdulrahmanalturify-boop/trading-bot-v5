@@ -18,7 +18,7 @@ import theme as T
 import ui
 from i18n import L, industry_name, is_ar
 
-BUILD = "12.1"
+BUILD = "12.0"
 
 REV_MAX, RATIO_MAX = 5.0, 30.0
 HALAL, DOUBT, HARAM = "#4ADE80", "#F5B94A", "#F87171"
@@ -142,7 +142,7 @@ CSS = f"""<style>
 .shgrid {{ display:grid; grid-template-columns:minmax(0,2fr) minmax(0,1fr); gap:12px; }}
 .shgrid.two {{ grid-template-columns:repeat(2,minmax(0,1fr)); margin-top:12px; }}
 @media (max-width: 900px) {{ .shgrid, .shgrid.two {{ grid-template-columns:minmax(0,1fr); }} }}
-.shc {{ position:relative; background:{T.BOX_BG}; border:1px solid {T.BORDER}; box-shadow:{T.GLASS_SHADOW}; border-radius:16px; padding:16px 18px 16px; display:flex;
+.shc {{ position:relative; background:{T.BOX_BG}; border:1px solid {T.BORDER}; border-radius:18px; padding:16px 18px 16px; display:flex;
   flex-direction:column; gap:8px; }}
 .shc .hd {{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }}
 .shc .t {{ font-size:1.08rem; font-weight:600; color:#fff; line-height:1.3; }}

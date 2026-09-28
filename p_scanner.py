@@ -78,7 +78,7 @@ CSS = f"""<style>
 @media (max-width: 820px) {{ .hnhero .art {{ width:100%; opacity:.25; }} .hnhero .t {{ font-size:1.9rem; }} .hnhero .txt {{ background:none; }} }}
 
 /* ---------- the hunt bar ---------- */
-[class*="st-key-hnbar"] {{ position:relative; overflow:hidden; background:{T.BOX_BG}; border:1px solid {_BD};
+[class*="st-key-hnbar"] {{ position:relative; overflow:hidden; background:linear-gradient(180deg,{_BG},{T.CARD}); border:1px solid {_BD};
   border-radius:18px; padding:14px 18px 16px; box-shadow:0 10px 26px rgba(0,0,0,.18); }}
 [class*="st-key-hnbar"]::before {{ content:""; position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(90deg,transparent,rgba(196,181,253,.5),transparent); }}
 [class*="st-key-hn_go"] button {{ min-height:44px !important; border:0 !important; border-radius:12px !important;
@@ -178,11 +178,11 @@ CSS = f"""<style>
 .hnwhy .w .ms {{ font-size:1rem; flex:none; margin-top:1px; }}
 .hnwhy .w.ok .ms {{ color:#4ADE80; }} .hnwhy .w.no .ms {{ color:#F87171; }} .hnwhy .w.in .ms {{ color:{_G}; }}
 .hnplan {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; }}
-.hnplan .p {{ position:relative; overflow:hidden; background:{T.GLASS};
+.hnplan .p {{ position:relative; overflow:hidden; background:{T.TOP}, linear-gradient(160deg,rgba(59,139,235,.16),rgba(123,69,240,.08) 55%,{T.CARD});
   border:1px solid {_BD}; border-radius:14px; padding:10px 12px; transition:border-color .18s ease, box-shadow .18s ease, transform .18s ease; }}
 .hnplan .p::after {{ content:""; position:absolute; inset:auto 0 0 0; height:2px; background:linear-gradient(90deg,{_A},{_V},{_C}); opacity:0;
   transition:opacity .18s ease; }}
-.hnplan .p:hover {{ border-color:{T.EDGE_HOVER}; box-shadow:{T.GLASS_SHADOW}; transform:translateY(-2px); }}
+.hnplan .p:hover {{ border-color:rgba(121,184,244,.45); box-shadow:0 12px 28px rgba(59,139,235,.16); transform:translateY(-2px); }}
 .hnplan .p:hover::after {{ opacity:.9; }}
 .hnplan .p .l {{ color:#CCC7D3; font-size:.66rem; font-weight:600; letter-spacing:.08em; text-transform:uppercase; }}
 .hnplan .p .v {{ color:#fff; font-size:1.05rem; font-weight:600; margin-top:3px; direction:ltr; unicode-bidi:isolate; }}
@@ -195,7 +195,7 @@ CSS = f"""<style>
 [class*="st-key-hnsec_"] .sec {{ margin:0 !important; }}
 [class*="st-key-hnact"] button {{ border-radius:12px !important; min-height:42px !important; }}
 /* ---------- filters: one card, modern chips ---------- */
-[class*="st-key-hnfilt"] {{ position:relative; overflow:hidden; background:{T.BOX_BG}; border:1px solid {_BD};
+[class*="st-key-hnfilt"] {{ position:relative; overflow:hidden; background:linear-gradient(180deg,{_BG},{T.CARD}); border:1px solid {_BD};
   border-radius:18px; padding:14px 18px 16px; box-shadow:0 10px 26px rgba(0,0,0,.18); gap:12px !important; }}
 [class*="st-key-hnfilt"]::before {{ content:""; position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(90deg,transparent,rgba(196,181,253,.5),transparent); }}
 .hnfh {{ display:flex; align-items:center; gap:9px; flex-wrap:wrap; }}
@@ -223,7 +223,7 @@ CSS = f"""<style>
   min-height:38px; display:flex; align-items:center; }}
 [class*="st-key-hnfilt"] [data-testid="stCheckbox"]:hover {{ border-color:{_A}88; }}
 [class*="st-key-hnfilt"] [data-testid="stCheckbox"] p {{ font-weight:600; font-size:.84rem; color:#DDD9E2; }}
-.hnbox {{ position:relative; background:{T.GLASS}; border:1px solid {_BD}; border-radius:16px; padding:0 14px 4px; margin-top:12px;
+.hnbox {{ position:relative; background:{T.TOP}, linear-gradient(160deg,rgba(59,139,235,.16),rgba(123,69,240,.08) 55%,{T.CARD}); border:1px solid {_BD}; border-radius:16px; padding:0 14px 4px; margin-top:12px;
   overflow:hidden; transition:border-color .18s ease, box-shadow .18s ease, transform .18s ease; }}
 .hnbox:hover {{ border-color:rgba(121,184,244,.45); box-shadow:0 12px 30px rgba(59,139,235,.14); transform:translateY(-2px); }}
 .hnbox .hnbt {{ margin:0 -14px 4px; padding:10px 14px 9px; border-bottom:1px solid rgba(157,151,165,.14);
@@ -293,9 +293,6 @@ CSS = f"""<style>
 .hnkt.ok .v {{ color:#E8FFF0; }}
 .hnkts4 {{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin-bottom:12px; }}
 @media (max-width: 900px) {{ .hnkts4 {{ grid-template-columns:repeat(2,minmax(0,1fr)); }} }}
-/* frosted glass on this page's own boxes */
-[class*="st-key-hnbar"], [class*="st-key-hnfilt"], .hnbox, .hnrate, .hntgt, .hnkt, .hnplan .p, .hndh {{ border-color:{_BD} !important; box-shadow:{T.GLASS_SHADOW}; }}
-.hnplan .p, .hnkt {{ box-shadow:{T.GLASS_SHADOW_SM}; }}
 </style>"""
 RTL_CSS = """<style>
 .hnhero .eb, .hnreg .tl .l, .hnc .lv span, .hnplan .p .l { letter-spacing:0; }
@@ -1512,4 +1509,4 @@ def page_scanner():
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "12.1"
+BUILD = "12.0"

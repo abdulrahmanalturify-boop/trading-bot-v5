@@ -10,7 +10,7 @@ import theme as T
 import ui
 from i18n import L, is_ar
 
-BUILD = "12.1"
+BUILD = "12.0"
 
 _LINE = "rgba(150,140,250,"
 CSS = f"""
@@ -65,24 +65,22 @@ CSS = f"""
 [class*="st-key-czcard_"] [class*="st-key-czgo_"] {{ position:absolute !important; inset:0; z-index:4; margin:0 !important; width:auto !important; }}
 [class*="st-key-czcard_"] [class*="st-key-czgo_"] .stButton, [class*="st-key-czcard_"] [class*="st-key-czgo_"] button
   {{ width:100% !important; height:100% !important; opacity:0; cursor:pointer; }}
-.czframe {{ padding:7px; border-radius:23px; border:1px solid rgba(186,215,247,.10); background:rgba(186,214,247,.02);
+.czframe {{ padding:7px; border-radius:26px; border:1px solid {_LINE}.24); background:rgba(18,13,30,.55);
   transition:transform .25s ease, box-shadow .25s ease, border-color .25s ease; }}
-[class*="st-key-czcard_"]:hover .czframe {{ transform:translateY(-6px); border-color:rgba(186,215,247,.22); box-shadow:0 30px 60px -24px rgba(6,6,14,.9); }}
-[class*="st-key-czcard_"]:hover .czcard {{ border-color:{T.EDGE_HOVER}; }}
-.czcard {{ box-sizing:border-box; border-radius:16px; border:1px solid {T.BORDER};
-  background:{T.GLASS}; box-shadow:{T.GLASS_SHADOW};
+[class*="st-key-czcard_"]:hover .czframe {{ transform:translateY(-6px); border-color:{_LINE}.45); box-shadow:0 30px 80px -30px rgba(79,107,255,.6); }}
+.czcard {{ box-sizing:border-box; border-radius:20px; border:1px solid {_LINE}.18);
+  background:{T.TOP}, linear-gradient(180deg,#16112A 0%,#120D1F 55%,#0E0918 100%); box-shadow:inset 0 1px 0 rgba(255,255,255,.06);
   padding:14px 20px 18px; display:flex; flex-direction:column; gap:9px; }}
 .czcard svg.czill {{ display:block; width:100%; max-width:330px; height:auto; margin:0 auto; overflow:visible; }}
-.czcard .czt {{ margin:0 0 6px; text-align:center; font-size:1.9rem; font-weight:500; letter-spacing:-.01em; line-height:1.14; color:#fff;
-  background:{T.TITLE_FROST}; -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }}
+.czcard .czt {{ margin:0 0 6px; text-align:center; font-size:1.9rem; font-weight:500; letter-spacing:-.01em; line-height:1.14; color:#fff; }}
 .czcard .czem {{ font-family:'Instrument Serif',Georgia,serif; font-style:italic; font-weight:400; font-size:1.2em; letter-spacing:0; }}
 .czcard.ar .czt {{ font-weight:600; letter-spacing:0; line-height:1.4; }}
 .czcard.ar .czem {{ font-family:'Readex Pro',sans-serif; font-style:normal; font-weight:600; font-size:1em;
   background:linear-gradient(90deg,#8FB0FF,#B9A6FF 60%,#67E8F9); -webkit-background-clip:text; background-clip:text; color:transparent; }}
-.czcard .czp {{ padding:12px 16px; border-radius:12px; border:1px solid rgba(186,215,247,.12);
-  background:rgba(186,214,247,.04); box-shadow:inset 0 1px 1px rgba(199,211,234,.08); text-align:center; font-size:.88rem; line-height:1.55; color:#C7D3EA;
+.czcard .czp {{ padding:12px 16px; border-radius:12px; border:1px solid {_LINE}.24);
+  background:linear-gradient(90deg,rgba(40,60,170,.18),rgba(96,74,230,.32)); text-align:center; font-size:.88rem; line-height:1.55; color:#C6C0E4;
   transition:border-color .2s ease, background .2s ease; }}
-[class*="st-key-czcard_"]:hover .czp {{ border-color:rgba(186,215,247,.24); }}
+[class*="st-key-czcard_"]:hover .czp {{ border-color:{_LINE}.4); }}
 .czcard .czgo {{ margin-top:auto; padding-top:4px; display:flex; justify-content:center; align-items:center; gap:6px; font-size:.84rem; font-weight:600;
   color:#9CC4F4; letter-spacing:.02em; }}
 .czcard .czgo .ms {{ transition:transform .2s ease; }}
@@ -103,8 +101,8 @@ CSS = f"""
 .czwide .czgo {{ margin-top:2px; padding-top:0; }}
 .czwide .czlist {{ display:flex; flex-direction:column; gap:10px; }}
 .czn {{ position:relative; z-index:5; display:flex; gap:12px; align-items:center; padding:9px 11px; border-radius:12px; text-decoration:none !important;
-  border:1px solid rgba(186,215,247,.12); background:rgba(186,214,247,.04); transition:border-color .2s ease, background .2s ease; }}
-.czn:hover {{ border-color:rgba(186,215,247,.28); background:rgba(186,214,247,.08); }}
+  border:1px solid {_LINE}.24); background:linear-gradient(90deg,rgba(40,60,170,.18),rgba(96,74,230,.32)); transition:border-color .2s ease, background .2s ease; }}
+.czn:hover {{ border-color:{_LINE}.6); background:linear-gradient(90deg,rgba(52,76,200,.26),rgba(110,84,240,.42)); }}
 .czn .nth {{ width:88px; height:62px; border-radius:10px; }}
 .czn .nth.fb .ms {{ font-size:30px; }} .czn .nth.fb em, .czn .nth .nlg {{ display:none; }}
 .czn .nb {{ flex:1; min-width:0; display:flex; flex-direction:column; gap:3px; }}

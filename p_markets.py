@@ -969,4 +969,4 @@ def page_news():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "12.1"
+BUILD = "12.0"
