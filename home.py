@@ -10,7 +10,7 @@ import theme as T
 import ui
 from i18n import L, is_ar
 
-BUILD = "13.6"
+BUILD = "13.7"
 
 _LINE = "rgba(150,140,250,"
 CSS = f"""
@@ -487,7 +487,7 @@ html.ix-scrolled header[data-testid="stHeader"] { background: rgba(14,9,24,.32) 
 .ixend { position: relative; }
 .ixp.ar { font-family: 'Readex Pro', 'DM Sans', sans-serif; }
 /* ---------- the first screen: a violet-lit void, a slowly turning iridescent sculpture, two lines of words ---------- */
-.ix { position: relative; min-height: 100vh; overflow: hidden; background: #2A0A4E; }
+.ix { position: relative; min-height: 100vh; overflow: hidden; background: #180B2C; }
 /* the first screen melts into the page under it: no hard line between the two */
 .ix::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 34vh; z-index: 3; pointer-events: none;
   background: linear-gradient(180deg, rgba(20,16,26,0) 0%, rgba(20,16,26,.55) 55%, #14101A 100%); }
@@ -496,11 +496,11 @@ html.ix-scrolled header[data-testid="stHeader"] { background: rgba(14,9,24,.32) 
 .ix-glow i { position: absolute; inset: 0; }
 /* Letter's colour field, with its red turned very dark violet: a wide wash over the upper left and the middle, a
    teal-grey haze low on the left, near-black on the right, a cold bloom where the sculpture stands */
-.ix-glow .g1 { background: radial-gradient(ellipse 110% 130% at 40% 22%, #4C1188 0%, #420E78 22%, #380C68 42%, #300A5A 62%, #2A0A4E 82%, transparent 96%);
+.ix-glow .g1 { background: radial-gradient(ellipse 110% 130% at 40% 22%, #230E42 0%, #200D3C 22%, #1D0C36 42%, #1A0B30 62%, #180B2C 82%, transparent 96%);
   animation: ixbreath 11s ease-in-out infinite alternate; }
 .ix-glow .g2 { background: radial-gradient(ellipse 42% 70% at -4% 82%, #23384A 0%, rgba(35,56,74,.8) 34%, rgba(35,54,72,.3) 60%, transparent 82%);
   animation: ixdrift 19s ease-in-out infinite alternate; }
-.ix-glow .g3 { background: radial-gradient(ellipse 55% 95% at 104% 40%, rgba(40,9,74,.92) 0%, rgba(38,9,70,.6) 45%, transparent 80%); }
+.ix-glow .g3 { background: radial-gradient(ellipse 62% 95% at 104% 6%, #0C0B0F 0%, rgba(12,11,15,.92) 36%, rgba(12,11,15,.45) 62%, transparent 82%); }
 .ix-glow .g4 { background: radial-gradient(ellipse 30% 26% at 50% 104%, rgba(126,129,170,.75) 0%, rgba(92,76,140,.4) 42%, transparent 76%);
   animation: ixbreath 7s ease-in-out -3s infinite alternate; }
 @keyframes ixbreath { 0% { transform: scale(1) translate(0,0); opacity: .9; } 100% { transform: scale(1.06) translate(1.5%,1.5%); opacity: 1; } }
