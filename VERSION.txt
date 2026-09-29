@@ -1,2 +1,2 @@
-A.Alturaifi Pro - version 13.7 (the landing: the first screen in the violet of the closing section, black in the top right)
+A.Alturaifi Pro - version 13.8 (five smart ready bots: market regime, strategy by regime, a score out of 100, risk sizing and a self-check; tested on real prices 2008-now)
 If you can see this file on GitHub, the new version was uploaded correctly.

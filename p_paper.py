@@ -3651,22 +3651,22 @@ def _pct_cell(x, key="ret", cls=True):
     if not x or x.get(key) is None:
         return "<td>—</td>"
     v = x[key]
+    if round(v * 100) == 0:
+        return '<td>0%</td>'
     c = ("up" if v > 0 else "dn") if cls else ""
     return f'<td class="{c}">{v * 100:+.0f}%</td>'
 
 
-def _smart_verdict(sm, hold):
-    """Out of sample (2020 to now): did the bot beat holding the same stocks, or hold up with less risk?"""
-    if not sm or not hold:
+def _smart_verdict(sm, spy):
+    """Since 2020 (years that played no part in choosing the settings), against the S&P 500."""
+    if not sm or not spy:
         return ""
-    if sm["sharpe"] >= hold["sharpe"] + 0.05 and sm["cagr"] >= hold["cagr"]:
-        v = (("Beat holding the stocks since 2020", "تفوّق على الاحتفاظ بالأسهم من 2020"), "up", "trending_up")
-    elif sm["sharpe"] >= hold["sharpe"] - 0.05 and sm["maxdd"] > hold["maxdd"] + 0.03:
-        v = (("Less risk than holding since 2020", "مخاطرة أقل من الاحتفاظ من 2020"), "acc", "shield")
-    elif sm["sharpe"] >= hold["sharpe"] - 0.05:
-        v = (("About as good as holding since 2020", "تقريباً مثل الاحتفاظ من 2020"), "neu", "drag_handle")
+    if sm["sharpe"] >= spy["sharpe"] + 0.05 and sm["cagr"] >= spy["cagr"]:
+        v = (("Beat the S&P 500 since 2020", "تفوّق على S&P 500 من 2020"), "up", "trending_up")
+    elif sm["maxdd"] >= spy["maxdd"] + 0.10 and sm["sharpe"] >= spy["sharpe"] - 0.15:
+        v = (("Smaller drops than the S&P 500 since 2020", "هبوط أقل من S&P 500 من 2020"), "acc", "shield")
     else:
-        v = (("Behind holding the stocks since 2020", "أقل من الاحتفاظ بالأسهم من 2020"), "down", "trending_down")
+        v = (("Behind the S&P 500 since 2020", "أقل من S&P 500 من 2020"), "down", "trending_down")
     (en, ar_), kind, ic = v
     return T.badge(L(en, ar_), kind, ic)
 
@@ -3678,44 +3678,49 @@ def _smart_card(key, res, have):
     sm, plain = r.get("smart") or {}, r.get("plain") or {}
     bench = (res or {}).get("bench") or {}
     per = sm.get("periods") or {}
-    oos, hold_oos = per.get("oos"), (bench.get("oos") or {}).get("hold")
+    oos, spy_oos = per.get("oos"), (bench.get("oos") or {}).get("spy")
+    full, spy_full = per.get("full"), (bench.get("full") or {}).get("spy")
     strats = " + ".join(strat_short(x) for x in b["strategies"])
     sub = L(f"All companies · up to {b['max_pos']} trades · {strats}", f"كل الشركات · لين {b['max_pos']} صفقات · {strats}")
     chips = "".join(f"<span>{T.esc(x)}</span>" for x in _smart_chips(br))
     table = ""
     if per and "error" not in sm:
-        rows = "".join(f'<tr class="{"ai" if k in ("oos",) else ""}"><td>{T.esc(L(*SMART_PERIOD[k]))}</td>{_pct_cell(per.get(k), "cagr")}'
-                       f'{_pct_cell((bench.get(k) or {}).get("hold"), "cagr")}{_pct_cell((bench.get(k) or {}).get("spy"), "cagr")}'
+        rows = "".join(f'<tr class="{"ai" if k in ("oos", "full") else ""}"><td>{T.esc(L(*SMART_PERIOD[k]))}</td>{_pct_cell(per.get(k), "cagr")}'
+                       f'{_pct_cell((bench.get(k) or {}).get("spy"), "cagr")}{_pct_cell((bench.get(k) or {}).get("hold"), "cagr")}'
                        f'<td class="dn">{(per.get(k) or {}).get("maxdd", 0) * 100:.0f}%</td></tr>'
-                       for k in SMART_ROWS + ("oos",) if per.get(k))
-        table = (f'<table><thead><tr><th>{L("Period · a year", "الفترة · سنوياً")}</th><th>{L("Bot", "البوت")}</th><th>{L("Hold", "احتفاظ")}</th>'
-                 f'<th>S&amp;P</th><th>{L("Max drop", "أكبر هبوط")}</th></tr></thead><tbody>{rows}</tbody></table>')
+                       for k in SMART_ROWS + ("oos", "full") if per.get(k))
+        table = (f'<table><thead><tr><th>{L("Period · a year", "الفترة · سنوياً")}</th><th>{L("Bot", "البوت")}</th><th>S&amp;P</th>'
+                 f'<th>{L("Hold", "احتفاظ")}</th><th>{L("Max drop", "أكبر هبوط")}</th></tr></thead><tbody>{rows}</tbody></table>')
     note = ""
     if oos:
-        ins = per.get("ins") or {}
+        def yr(x):
+            return iso(f"{x['cagr'] * 100:+.0f}%")
+
+        def dd(x):
+            return iso(f"{x['maxdd'] * 100:.0f}%")
+        sp = iso("S&P 500")
         pl = (plain.get("periods") or {}).get("oos") if isinstance(plain, dict) else None
-        note = L(f"Since 2020 (settings fixed before the test saw it): {oos['cagr'] * 100:+.0f}% a year, Sharpe {oos['sharpe']:.2f}, "
-                 f"worst drop {oos['maxdd'] * 100:.0f}%" + (f"; holding the same stocks: {hold_oos['cagr'] * 100:+.0f}% a year, Sharpe "
-                                                             f"{hold_oos['sharpe']:.2f}, worst drop {hold_oos['maxdd'] * 100:.0f}%" if hold_oos else "") + ".",
-                 f"من 2020 (الإعدادات ثابتة قبل ما يشوفها الاختبار): {oos['cagr'] * 100:+.0f}% سنوياً، شارب {oos['sharpe']:.2f}، وأكبر هبوط "
-                 f"{oos['maxdd'] * 100:.0f}%" + (f"؛ والاحتفاظ بنفس الأسهم: {hold_oos['cagr'] * 100:+.0f}% سنوياً، شارب {hold_oos['sharpe']:.2f}، "
-                                                 f"وأكبر هبوط {hold_oos['maxdd'] * 100:.0f}%" if hold_oos else "") + ".")
+        if full and spy_full:
+            note = L(f"2008 → now: {yr(full)} a year, worst drop {dd(full)} (S&P 500: {yr(spy_full)} a year, {dd(spy_full)}). ",
+                     f"من 2008 لين اليوم: {yr(full)} سنوياً، وأكبر هبوط {dd(full)} ({sp}: {yr(spy_full)} سنوياً، {dd(spy_full)}). ")
+        note += L(f"Since 2020, years that played no part in choosing its settings (chosen on 2010–2019): {yr(oos)} a year, worst drop "
+                  f"{dd(oos)}" + (f" (S&P 500: {yr(spy_oos)} a year, {dd(spy_oos)})" if spy_oos else "") + ".",
+                  f"من 2020، سنين ما دخلت في اختيار إعداداته (اختيرت على 2010–2019): {yr(oos)} سنوياً، وأكبر هبوط {dd(oos)}"
+                  + (f" ({sp}: {yr(spy_oos)} سنوياً، {dd(spy_oos)})" if spy_oos else "") + ".")
         if pl:
-            note += " " + L(f"The same strategies without the brain: Sharpe {pl['sharpe']:.2f}, worst drop {pl['maxdd'] * 100:.0f}%.",
-                            f"نفس الاستراتيجيات بدون العقل: شارب {pl['sharpe']:.2f}، وأكبر هبوط {pl['maxdd'] * 100:.0f}%.")
+            note += " " + L(f"The same strategies without the brain since 2020: {yr(pl)} a year, worst drop {dd(pl)}.",
+                            f"نفس الاستراتيجيات بدون العقل من 2020: {yr(pl)} سنوياً، وأكبر هبوط {dd(pl)}.")
         if oos.get("t_n"):
             yrs = max((pd.Timestamp.now() - pd.Timestamp("2020-01-02")).days / 365.25, 1)
             note += " " + L(f"About {oos['t_n'] / yrs:.0f} trades a year, {oos.get('t_win', 0) * 100:.0f}% winners.",
                             f"حوالي {oos['t_n'] / yrs:.0f} صفقة بالسنة، {oos.get('t_win', 0) * 100:.0f}% منها رابحة.")
-        if ins.get("sharpe") is not None:
-            note += " " + L(f"2010–2019: Sharpe {ins['sharpe']:.2f}.", f"2010–2019: شارب {ins['sharpe']:.2f}.")
     elif not res:
         note = L("Its test on real prices hasn't run yet.", "اختباره على الأسعار الحقيقية ما اشتغل للحين.")
     if have:
         note += " " + L("Already running.", "شغّال عندك.")
     return (f'<div class="aic smart"><div class="hd"><span class="i">{T.icon("neurology")}</span><div class="tx"><div class="nm">'
             f'{T.esc(L(*b["name"]))}</div><div class="sub">{T.esc(sub)}</div></div></div>'
-            f'<div class="idea">{T.esc(L(*b["idea"]))}</div><div class="cs">{_smart_verdict(oos, hold_oos)}{chips}</div>'
+            f'<div class="idea">{T.esc(L(*b["idea"]))}</div><div class="cs">{_smart_verdict(oos, spy_oos)}{chips}</div>'
             f'{_smart_rules(br)}{table}<div class="nt">{T.esc(note.strip())}</div></div>')
 
 
@@ -3740,7 +3745,8 @@ def ready_section(bots, can_add):
             f"منها مختبر على أسعار حقيقية لـ {n or 'كل'} شركة من 2008 لين اليوم، فترة بفترة، بمحرّك البوتات نفسه في الموقع.")
     ui.html(f'<div class="aihd"><span class="i">{T.icon("neurology")}</span><span class="t">{L("Ready bots", "بوتات جاهزة")}</span>'
             f'<span class="s">{T.esc(sub)}</span></div>')
-    order = list(SB.ORDER)
+    oos_ = lambda k_: ((((res or {}).get("bots") or {}).get(k_) or {}).get("smart") or {}).get("periods", {}).get("oos") or {}
+    order = sorted(SB.ORDER, key=lambda k_: -(oos_(k_).get("sharpe") if oos_(k_).get("sharpe") is not None else -9))  # best since 2020 first
     for i in range(0, len(order), 2):
         cols = st.columns(2)
         for col, key in zip(cols, order[i:i + 2]):
@@ -4026,4 +4032,4 @@ def page_paper_bots():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "13.7"
+BUILD = "13.8"
