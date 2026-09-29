@@ -74,6 +74,15 @@ def variants(key):
               "stress_strict": {**br, "stress_vol": 40.0, "stress_x": 2.5},
               "light": light,
               "light_notrail": {**light, "trail_atr": 0.0, "be_r": 0.0}})
+    # round 3: a lighter brain - the bot's strategies trade in bull and sideways markets (sideways at 80%), nothing new in a
+    # bear market or a panic, no forced selling, a mild size by score, drawdown sizing and the self-check kept
+    lite = {**br, "allow": {"bull": list(br["allow"]["bull"]) or list(BR.FAMILIES), "neutral": list(br["allow"]["bull"]) or list(BR.FAMILIES),
+                            "bear": [], "stress": []},
+            "size": {"bull": 1.0, "neutral": 0.8, "bear": 0.0, "stress": 0.0}, "exposure": {"bull": 1.0, "neutral": 0.8, "bear": 0.0, "stress": 0.0},
+            "exit": [], "min_score": 50.0, "size_floor": 0.8, "risk": 1.5, "trail_atr": 0.0, "be_r": 0.0, "streak": 8, "cool": 3,
+            "dd_half": 15.0, "dd_stop": 25.0, "stress_vol": 40.0, "stress_x": 2.5}
+    v.update({"lite": lite, "lite_bear_exit": {**lite, "exit": ["bear"]},
+              "lite_trail": {**lite, "trail_atr": br["trail_atr"] or 4.0}, "lite_score60": {**lite, "min_score": 60.0}})
     return {n: (b["strategies"], b["max_pos"], (BR.clean(x) if x else None), (x or br)["atr"]) for n, x in v.items()}
 
 
