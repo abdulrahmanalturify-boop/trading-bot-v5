@@ -10,7 +10,7 @@ import theme as T
 import ui
 from i18n import L, is_ar
 
-BUILD = "13.3"
+BUILD = "13.4"
 
 _LINE = "rgba(150,140,250,"
 CSS = f"""
@@ -467,13 +467,6 @@ header[data-testid="stHeader"]::after, header[data-testid="stHeader"]::before { 
 html.ix-scrolled header[data-testid="stHeader"] { background: rgba(14,9,24,.32) !important; background-color: rgba(14,9,24,.32) !important;
   backdrop-filter: blur(14px) !important; -webkit-backdrop-filter: blur(14px) !important; }
 [data-testid="stSidebar"], [data-testid="stSidebarCollapsedControl"] { display: none !important; }
-.st-key-navsearch [role="group"], .st-key-navsearch [data-baseweb="select"] > div, .st-key-navsearch [data-baseweb="input"],
-.st-key-navsearch [data-baseweb="base-input"], .st-key-navsearch input, .st-key-navright .status, .langbtn, .navbtn.on {
-  background: transparent !important; background-color: transparent !important; backdrop-filter: none !important; box-shadow: none !important; }
-.st-key-navsearch [role="group"], .st-key-navsearch [data-baseweb="select"] > div, .st-key-navsearch [data-baseweb="input"],
-.st-key-navright .status, .langbtn, .navbtn.on { border: 1px solid rgba(255,255,255,.28) !important; }
-.st-key-navsearch input::placeholder { color: rgba(255,255,255,.7) !important; }
-.st-key-langsec:hover .langbtn, [class*="st-key-navsec_"]:hover .navbtn { background: rgba(255,255,255,.08) !important; }
 .block-container, [data-testid="stMainBlockContainer"], [data-testid="stMainBlockContainer"]:has(.st-key-topnav) { max-width: none !important;
   padding: 0 !important; }
 @media (max-width: 1023.98px) { .st-key-topnav { margin: 8px !important; } }
@@ -487,7 +480,7 @@ html.ix-scrolled header[data-testid="stHeader"] { background: rgba(14,9,24,.32) 
 .ixend { position: relative; }
 .ixp.ar { font-family: 'Readex Pro', 'DM Sans', sans-serif; }
 /* ---------- the first screen: a violet-lit void, a slowly turning iridescent sculpture, two lines of words ---------- */
-.ix { position: relative; min-height: 100vh; overflow: hidden; background: #24124A; }
+.ix { position: relative; min-height: 100vh; overflow: hidden; background: #6A44C8; }
 /* the first screen melts into the page under it: no hard line between the two */
 .ix::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 34vh; z-index: 3; pointer-events: none;
   background: linear-gradient(180deg, rgba(20,16,26,0) 0%, rgba(20,16,26,.55) 55%, #14101A 100%); }
@@ -496,12 +489,12 @@ html.ix-scrolled header[data-testid="stHeader"] { background: rgba(14,9,24,.32) 
 .ix-glow i { position: absolute; inset: 0; }
 /* Letter's colour field, with its red turned very dark violet: a wide wash over the upper left and the middle, a
    teal-grey haze low on the left, near-black on the right, a cold bloom where the sculpture stands */
-.ix-glow .g1 { background: radial-gradient(ellipse 110% 130% at 42% 24%, #6A35B5 0%, #5E2DA5 26%, #4F258C 46%, #3C1C6E 66%, #2A1452 82%, transparent 96%);
+.ix-glow .g1 { background: radial-gradient(ellipse 110% 130% at 42% 24%, #C3A6FF 0%, #B08EFC 22%, #9C76F2 42%, #8660E2 62%, #7150D2 82%, transparent 96%);
   animation: ixbreath 11s ease-in-out infinite alternate; }
-.ix-glow .g2 { background: radial-gradient(ellipse 42% 70% at -4% 82%, #26404A 0%, rgba(36,60,70,.8) 34%, rgba(34,54,63,.3) 60%, transparent 82%);
+.ix-glow .g2 { background: radial-gradient(ellipse 42% 70% at -4% 82%, #7FB4C4 0%, rgba(120,172,190,.75) 34%, rgba(120,168,186,.28) 60%, transparent 82%);
   animation: ixdrift 19s ease-in-out infinite alternate; }
-.ix-glow .g3 { background: radial-gradient(ellipse 55% 95% at 104% 40%, rgba(58,26,120,.9) 0%, rgba(48,22,100,.6) 45%, transparent 80%); }
-.ix-glow .g4 { background: radial-gradient(ellipse 30% 26% at 50% 104%, rgba(110,112,160,.7) 0%, rgba(84,70,120,.38) 42%, transparent 76%);
+.ix-glow .g3 { background: radial-gradient(ellipse 55% 95% at 104% 40%, rgba(128,90,236,.9) 0%, rgba(112,76,220,.55) 45%, transparent 80%); }
+.ix-glow .g4 { background: radial-gradient(ellipse 30% 26% at 50% 104%, rgba(226,220,255,.75) 0%, rgba(196,182,250,.4) 42%, transparent 76%);
   animation: ixbreath 7s ease-in-out -3s infinite alternate; }
 @keyframes ixbreath { 0% { transform: scale(1) translate(0,0); opacity: .9; } 100% { transform: scale(1.06) translate(1.5%,1.5%); opacity: 1; } }
 @keyframes ixdrift { 0% { transform: translate(0,0) scale(1); } 100% { transform: translate(3vw,-3vh) scale(1.08); } }
@@ -538,7 +531,8 @@ html.ix-scrolled header[data-testid="stHeader"] { background: rgba(14,9,24,.32) 
   background-clip: text; color: transparent; padding-inline-end: .06em; }
 .ixp.ar .ix-h { font-family: 'Readex Pro', sans-serif; font-weight: 500; font-size: clamp(42px, 6vw, 92px); line-height: 1.25; letter-spacing: 0; }
 .ixp.ar .ix-h em, .ixp.ar .ixh em { font-style: normal; font-weight: 400; }
-.ix-sub { margin: 0 auto; max-width: 640px; font-size: clamp(16px, 1.35vw, 19px); line-height: 1.55; font-weight: 400; color: rgba(255,255,255,.74); }
+.ix-sub { margin: 0 auto; max-width: 640px; font-size: clamp(16px, 1.35vw, 19px); line-height: 1.55; font-weight: 400; color: rgba(255,255,255,.94);
+  text-shadow: 0 2px 18px rgba(40,20,90,.45); }
 .ix-sub b { display: block; margin-top: 10px; font-weight: 500; color: rgba(255,255,255,.92); }
 .ixp .ix-sub, .ixp .ixend .ixt { margin-left: auto !important; margin-right: auto !important; margin-bottom: 0 !important; }
 .ixp .ix-center { text-align: center !important; }

@@ -1,2 +1,2 @@
-A.Alturaifi Pro - version 13.3 (the landing: lighter violet over the whole screen, no black, see-through boxes in the top bar)
+A.Alturaifi Pro - version 13.4 (the landing: a very light violet; the top-right boxes back in their own colours)
 If you can see this file on GitHub, the new version was uploaded correctly.
