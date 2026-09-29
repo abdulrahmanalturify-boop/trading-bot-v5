@@ -38,14 +38,28 @@ HIGH = {"min_score": 45, "choose": "edge", "prefer": [], "bonus": 0, "multi": []
         "exit": [], "risk": 3.0, "size_floor": 1.0, "atr": 3.0, "sector_cap": 5, "be_r": 0, "trail_atr": 0, "time_bars": 0,
         "dd_half": 25, "dd_stop": 40, "pause": 10, "streak": 0, "cool": 0, "day_loss": 0, "decay": 1,
         "stress_vol": 40, "stress_x": 2.5}
-# the lighter risk the bots had before (14.0 to 14.4), kept for the test's comparison
+# the lighter risk the bots had before (14.0 to 14.4)
 LOOSE = {**HIGH, "allow": {"bull": OPEN, "neutral": OPEN, "bear": OPEN, "stress": []},
          "size": {"bull": 1.0, "neutral": 0.9, "bear": 0.5, "stress": 0.0},
          "exposure": {"bull": 1.0, "neutral": 0.9, "bear": 0.5, "stress": 0.0},
          "risk": 2.0, "size_floor": 0.9, "sector_cap": 4, "dd_half": 15, "dd_stop": 30, "pause": 15, "streak": 10, "cool": 2,
          "day_loss": 5}
-RISK_KEYS = ("allow", "size", "exposure", "risk", "size_floor", "sector_cap", "dd_half", "dd_stop", "pause", "streak", "cool",
-             "day_loss")
+# careful: smaller in a sideways (60%) and a bear (30%) market, everything sold in a panic; 1% risk a trade and a weak signal
+# at half size; up to 3 trades a sector; half size from 10% under the peak and a 20-session break at 20%; a 5-session break
+# after 5 losing trades in a row, and no buys after a session that lost 3%
+CAREFUL = {**HIGH, "allow": {"bull": OPEN, "neutral": OPEN, "bear": OPEN, "stress": []},
+           "size": {"bull": 1.0, "neutral": 0.6, "bear": 0.3, "stress": 0.0},
+           "exposure": {"bull": 1.0, "neutral": 0.6, "bear": 0.3, "stress": 0.0}, "exit": ["stress"],
+           "risk": 1.0, "size_floor": 0.5, "sector_cap": 3, "dd_half": 10, "dd_stop": 20, "pause": 20, "streak": 5, "cool": 5,
+           "day_loss": 3}
+RISK_KEYS = ("allow", "size", "exposure", "exit", "risk", "size_floor", "sector_cap", "dd_half", "dd_stop", "pause", "streak",
+             "cool", "day_loss")
+# the risk tolerance picked when a ready bot is added (the bots below are set, and shown, at "aggressive")
+RISK = {"conservative": {k: CAREFUL[k] for k in RISK_KEYS}, "moderate": {k: LOOSE[k] for k in RISK_KEYS},
+        "aggressive": {k: HIGH[k] for k in RISK_KEYS}}
+RISK_LABEL = {"conservative": ("Conservative", "محافظ"), "moderate": ("Moderate", "معتدل"), "aggressive": ("Aggressive", "جريء")}
+RISK_DEFAULT = "aggressive"
+RISK_VARIANT = {"conservative": "risk_conservative", "moderate": "risk_moderate", "aggressive": "smart"}   # in smart_results
 
 BOTS = {
     "strong": {
@@ -105,23 +119,32 @@ for _b in BOTS.values():            # a bot with combinations has their strategi
 ORDER = list(BOTS)
 
 
-def brain_of(key):
-    return BR.clean(BOTS[key]["brain"])
+def brain_of(key, risk=None):
+    """The bot's brain; with a risk tolerance ("conservative", "moderate", "aggressive"), at that level."""
+    b = BOTS[key]["brain"]
+    return BR.clean({**b, **RISK[risk]} if risk in RISK else b)
 
 
-def record_args(key):
+def record_args(key, risk=None):
     """What paperbots.make_record needs for this bot (besides the name, the capital and the start date)."""
     b = BOTS[key]
-    br = brain_of(key)
+    br = brain_of(key, risk)
     return {"strategies": {s: dict(p) for s, p in b["strategies"].items()}, "max_pos": b["max_pos"], "fee": FEE,
             "atr_mult": br["atr"], "brain": br}
 
 
-def same_bot(bot, key):
-    """Is this saved bot the ready bot `key` (the same strategies, open trades and brain)?"""
+def risk_of(bot, key):
+    """The risk tolerance a saved copy of the ready bot `key` runs at (None when it isn't one)."""
     b = BOTS[key]
-    return (bot.get("kind") == "all" and set(bot.get("strategies") or {}) == set(b["strategies"])
-            and int(bot.get("max_pos") or 0) == b["max_pos"] and bot.get("brain") == brain_of(key))
+    if not (bot.get("kind") == "all" and set(bot.get("strategies") or {}) == set(b["strategies"])
+            and int(bot.get("max_pos") or 0) == b["max_pos"]):
+        return None
+    return next((r for r in RISK if bot.get("brain") == brain_of(key, r)), None)
+
+
+def same_bot(bot, key):
+    """Is this saved bot the ready bot `key` (the same strategies, open trades and brain, at any risk tolerance)?"""
+    return risk_of(bot, key) is not None
 
 
 _CACHE = {}
