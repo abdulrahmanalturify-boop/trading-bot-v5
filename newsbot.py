@@ -385,7 +385,7 @@ class NewsBot:
                     results.append(fu.result())
             except Exception:                              # the slowest feeds are dropped from this round
                 pass
-            ex.shutdown(wait=False)
+            ex.shutdown(wait=False, cancel_futures=True)   # feeds not started yet are dropped, not left running
             done = {r[0] for r in results}
             now = time.time()
             with self.lock:
@@ -460,6 +460,9 @@ class NewsBot:
         return out
 
 
+_REFRESH = threading.Lock()   # held while a background refresh (started from a page) runs
+
+
 @st.cache_resource(show_spinner=False)
 def _shared_bot():
     b = NewsBot()
@@ -478,8 +481,17 @@ def bot(wait=True, timeout=14):
             pass
         b = _shared_bot()
     b.start()                  # restarts the loop if it ever stopped
-    if b.updated and time.time() - b.updated > 3 * INTERVAL:
-        threading.Thread(target=b.collect, daemon=True).start()   # the loop looks stuck: refresh now, in the background
+    if b.updated and time.time() - b.updated > 3 * INTERVAL and not b.running.locked() and _REFRESH.acquire(blocking=False):
+        # the loop looks stuck: refresh now, in the background (one such thread at a time, not one per page view)
+        def _refresh():
+            try:
+                b.collect()
+            finally:
+                _REFRESH.release()
+        try:
+            threading.Thread(target=_refresh, daemon=True).start()
+        except RuntimeError:
+            _REFRESH.release()
     if wait and not b.first.is_set():
         b.first.wait(timeout)
     return b
@@ -492,4 +504,4 @@ def headlines(hours=48):
         return []
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "14.6"
+BUILD = "14.7"

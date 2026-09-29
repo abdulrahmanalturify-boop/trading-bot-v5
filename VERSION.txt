@@ -1,2 +1,2 @@
-A.Alturaifi Pro - version 14.6 (a risk tolerance - conservative, moderate or aggressive - when a ready bot is added)
+A.Alturaifi Pro - version 14.7 (fix: "can't start new thread" - price downloads without yfinance's thread per stock)
 If you can see this file on GitHub, the new version was uploaded correctly.
