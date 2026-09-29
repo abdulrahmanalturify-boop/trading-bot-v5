@@ -62,33 +62,51 @@ def _split(df, symbols):
 # ---------------------------------------------------------------- prices
 # yfinance's own threads (threads=True) start one thread per symbol AT ONCE, each then waiting for its turn: a download of
 # the 515 companies meant 515 threads, and a few visitors doing it together ran the server out of threads ("can't start new
-# thread" on every page). So every download here runs without them (threads=False): a big list is cut into chunks fetched
-# by a small pool, and a gate caps the Yahoo downloads running at once for the whole site.
-_YF_GATE = threading.BoundedSemaphore(6)     # Yahoo downloads at once, all visitors together
-_YF_CHUNK = 40                                # symbols per download
-_YF_WORKERS = 6                               # chunks of one list fetched side by side
+# thread" on every page). So a big list is cut into chunks of _YF_CHUNK symbols (at most that many threads each), a few
+# chunks at a time; the chunks of big lists wait for each other at a gate of their own, and a small list (the prices every
+# page shows) never waits behind them.
+_YF_CHUNK = 20                                # symbols per download: yfinance starts one thread for each
+_YF_BULK = threading.BoundedSemaphore(3)      # chunks of big lists downloading at once, all visitors together
+_YF_WORKERS = 3                               # chunks of one big list fetched side by side
+
+
+def _yf_tidy():
+    """yfinance's thread helper keeps every thread it ever started in a list: drop the finished ones."""
+    try:
+        import multitasking
+        tasks = multitasking.config["TASKS"]
+        tasks[:] = [t for t in tasks if t.is_alive()]
+    except Exception:
+        pass
 
 
 def _yf_download(symbols, period, interval):
-    """One yfinance download, without yfinance's threads, through the gate."""
+    """One yfinance download: its own threads for a few symbols (one each, all at once), none for a single one."""
     syms = list(symbols)
-    with _YF_GATE:
+    try:
         return yf.download(syms if len(syms) > 1 else syms[0], period=period, interval=interval, auto_adjust=True,
-                           progress=False, threads=False)
+                           progress=False, threads=len(syms) > 1)
+    finally:
+        if len(syms) > 1:
+            _yf_tidy()
 
 
 def _download_many(symbols, period, interval):
-    """{symbol: OHLC} for any number of symbols: chunks of _YF_CHUNK, at most _YF_WORKERS at once (a failed chunk is skipped)."""
+    """{symbol: OHLC} for any number of symbols. Up to _YF_CHUNK: one download, at once. More: chunks of _YF_CHUNK, at most
+    _YF_WORKERS of them at once, through the bulk gate (a failed chunk is skipped)."""
     symbols = list(symbols)
+    if not symbols:
+        return {}
+    if len(symbols) <= _YF_CHUNK:
+        return _split(_yf_download(symbols, period, interval), symbols)
     chunks = [symbols[i:i + _YF_CHUNK] for i in range(0, len(symbols), _YF_CHUNK)]
 
     def one(chunk):
         try:
-            return _split(_yf_download(chunk, period, interval), chunk)
+            with _YF_BULK:
+                return _split(_yf_download(chunk, period, interval), chunk)
         except Exception:
             return {}
-    if len(chunks) <= 1:
-        return one(chunks[0]) if chunks else {}
     out = {}
     with ThreadPoolExecutor(max_workers=min(_YF_WORKERS, len(chunks))) as ex:
         for part in ex.map(one, chunks):
@@ -1219,4 +1237,4 @@ def revenues(symbols, limit=100):
     return out
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "14.7"
+BUILD = "14.8"
