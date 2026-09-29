@@ -3716,6 +3716,9 @@ def _smart_verdict(sm, spy):
         v = (("Beat the S&P 500 since 2020", "تفوّق على S&P 500 من 2020"), "up", "trending_up")
     elif sm["maxdd"] >= spy["maxdd"] + 0.10 and sm["sharpe"] >= spy["sharpe"] - 0.15:
         v = (("Smaller drops than the S&P 500 since 2020", "هبوط أقل من S&P 500 من 2020"), "acc", "shield")
+    elif sm["cagr"] >= spy["cagr"] - 0.01 and sm["sharpe"] >= spy["sharpe"] - 0.05:
+        # about as good: within a point a year and about the same return for its swings
+        v = (("Level with the S&P 500 since 2020", "مقارب لـ S&P 500 من 2020"), "neu", "balance")
     else:
         v = (("Behind the S&P 500 since 2020", "أقل من S&P 500 من 2020"), "down", "trending_down")
     (en, ar_), kind, ic = v
@@ -4111,4 +4114,4 @@ def page_paper_bots():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "14.4"
+BUILD = "14.5"
