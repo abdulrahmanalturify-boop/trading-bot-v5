@@ -1,0 +1,47 @@
+# Which strategies work best together (branch "research" only; the site on "main" is not touched). A push of
+# research/combos.py (or a manual run) screens every pair, triple and quad of strategies and commits
+# research/results/combos.json, combos.md and the run's log combos_log.txt.
+name: strategy combinations
+on:
+  push:
+    branches: [research]
+    paths: ["research/combos.py"]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: combos
+  cancel-in-progress: true
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - id: day
+        run: echo "d=$(date -u +%Y%m%d)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        with:
+          path: research/.cache
+          key: smart-prices-${{ steps.day.outputs.d }}
+          restore-keys: smart-prices-
+      - name: Screen the combinations
+        run: |
+          set -o pipefail
+          mkdir -p research/results
+          python research/combos.py 2>&1 | tee research/results/combos_log.txt
+      - name: Save the results
+        if: always()
+        run: |
+          git config user.name "research-lab"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add research/results/combos_log.txt
+          for f in research/results/combos.md research/results/combos.json; do if [ -f "$f" ]; then git add "$f"; fi; done
+          git commit -m "strategy combinations results [skip ci]" || exit 0
+          git pull --rebase -q origin research
+          git push -q origin HEAD:research
