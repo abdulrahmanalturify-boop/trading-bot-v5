@@ -11,7 +11,7 @@ import streamlit as st
 # Streamlit Cloud re-reads app.py after every GitHub upload but can keep the other modules (theme, data, ...) from the
 # previous version in memory. Every module carries BUILD; if one in memory is older, all of them are reloaded in order.
 BUILD = "14.2"
-_ORDER = ["i18n", "flags", "mcal", "universe", "sp500", "taxonomy", "ta", "academy", "insight", "heatmap", "newsiq", "theme", "data",
+_ORDER = ["i18n", "ai_assistant", "flags", "mcal", "universe", "sp500", "taxonomy", "ta", "academy", "insight", "heatmap", "newsiq", "theme", "data",
           "caldata", "newsbot", "charts", "engine", "playbooks", "autotrader", "ui", "sharia", "lab", "tdash", "mlbots", "brain", "paperbots", "smartbots", "p_markets", "p_research", "p_insight",
           "p_academy", "p_paper", "p_calendar", "hunter", "p_scanner", "home"]
 if any(m in sys.modules and getattr(sys.modules[m], "BUILD", None) != BUILD for m in _ORDER):
@@ -372,4 +372,13 @@ except Exception as e:  # Streamlit's own rerun / page-switch signals are not Ex
     with st.expander(L("Technical details", "تفاصيل فنية")):
         st.exception(e)
 
-
+# Persistent visitor assistant: page-aware, bilingual, and fixed over every page.
+try:
+    ai_assistant.render(
+        page_path=getattr(pg, "url_path", "") or "",
+        page_title=getattr(pg, "title", "") or "",
+        symbol=ss.get("symbol", "") or "",
+        lang=ss.get("lang", "en"),
+    )
+except Exception:
+    pass
