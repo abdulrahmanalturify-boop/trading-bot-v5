@@ -471,6 +471,7 @@ a.pblink .ms {{ font-size:1rem; }}
 .bwhy b {{ color:#fff; font-size:.86rem; }}
 .bwhy .sc {{ font-weight:600; color:#BBF7D0; background:rgba(34,197,94,.14); border-radius:999px; padding:1px 8px; direction:ltr; }}
 .bwhy .pt {{ color:#B1ABBA; font-size:.72rem; }}
+.bwhy .st {{ color:#DDD9E2; font-size:.74rem; font-weight:600; }}
 .aiday {{ display:flex; flex-wrap:wrap; gap:6px; }}
 .aiday span {{ display:inline-flex; align-items:center; gap:6px; font-size:.76rem; font-weight:600; border-radius:999px; padding:3px 10px;
   border:1px solid {_BD}; background:rgba(157,151,165,.08); color:#CCC7D3; }}
@@ -3620,7 +3621,12 @@ def _smart_fams(fams):
 
 
 def _smart_chips(br):
-    out = [L(f"Score ≥ {br['min_score']:g}/100", f"تقييم ≥ {br['min_score']:g}/100"),
+    out = []
+    if br.get("choose") == "edge":
+        out.append(L("Picks the strategy for each trade", "يختار الاستراتيجية لكل صفقة"))
+    if br.get("prefer") and br.get("bonus"):
+        out.append(L("Prefers ", "يفضّل ") + L(" · ", " · ").join(L(*BR.FAMILY_LABEL[f]) for f in br["prefer"]) + f" (+{br['bonus']:g})")
+    out += [L(f"Score ≥ {br['min_score']:g}/100", f"تقييم ≥ {br['min_score']:g}/100"),
            L(f"Risk {br['risk']:g}% per trade", f"مخاطرة {br['risk']:g}% لكل صفقة"), L(f"Stop {br['atr']:g} ATR", f"وقف {br['atr']:g} ATR")]
     if br["be_r"]:
         out.append(L(f"Break-even at +{br['be_r']:g}R", f"للتعادل عند +{br['be_r']:g}R"))
@@ -3680,7 +3686,7 @@ def _smart_card(key, res, have):
     per = sm.get("periods") or {}
     oos, spy_oos = per.get("oos"), (bench.get("oos") or {}).get("spy")
     full, spy_full = per.get("full"), (bench.get("full") or {}).get("spy")
-    strats = " + ".join(strat_short(x) for x in b["strategies"])
+    strats = strategies_label(list(b["strategies"]))
     sub = L(f"All companies · up to {b['max_pos']} trades · {strats}", f"كل الشركات · لين {b['max_pos']} صفقات · {strats}")
     chips = "".join(f"<span>{T.esc(x)}</span>" for x in _smart_chips(br))
     table = ""
@@ -3703,9 +3709,9 @@ def _smart_card(key, res, have):
         if full and spy_full:
             note = L(f"2008 → now: {yr(full)} a year, worst drop {dd(full)} (S&P 500: {yr(spy_full)} a year, {dd(spy_full)}). ",
                      f"من 2008 لين اليوم: {yr(full)} سنوياً، وأكبر هبوط {dd(full)} ({sp}: {yr(spy_full)} سنوياً، {dd(spy_full)}). ")
-        note += L(f"Since 2020, years that played no part in choosing its settings (chosen on 2010–2019): {yr(oos)} a year, worst drop "
+        note += L(f"Since 2020: {yr(oos)} a year, worst drop "
                   f"{dd(oos)}" + (f" (S&P 500: {yr(spy_oos)} a year, {dd(spy_oos)})" if spy_oos else "") + ".",
-                  f"من 2020، سنين ما دخلت في اختيار إعداداته (اختيرت على 2010–2019): {yr(oos)} سنوياً، وأكبر هبوط {dd(oos)}"
+                  f"من 2020: {yr(oos)} سنوياً، وأكبر هبوط {dd(oos)}"
                   + (f" ({sp}: {yr(spy_oos)} سنوياً، {dd(spy_oos)})" if spy_oos else "") + ".")
         if pl:
             note += " " + L(f"The same strategies without the brain since 2020: {yr(pl)} a year, worst drop {dd(pl)}.",
@@ -3737,11 +3743,14 @@ def ready_section(bots, can_add):
     sub = L("Five bots that read the market before they trade: the regime (bull, sideways, bear or panic) decides which of their "
             "strategies may open trades, every signal gets a score out of 100 (trend, momentum, volume, volatility, price structure "
             "and reward/risk) and only good ones are bought, the best first; each trade is sized by its risk, and the bot pauses "
-            "itself after a deep drawdown or a losing streak and mutes a strategy that lost its edge. Each one was tested on real "
+            "itself after a deep drawdown or a losing streak and mutes a strategy that lost its edge. Each has every strategy of the "
+            "site at hand and picks, for each trade, the one that suits the market and has worked best lately (its own style "
+            "first). Each one was tested on real "
             f"prices of {n or 'all the'} companies from 2008 to now, period by period, through this site's own bot engine.",
             "خمس بوتات تقرأ السوق قبل ما تتداول: حالة السوق (صاعد، عرضي، هابط أو ذعر) تحدد أي استراتيجياتها تفتح صفقات، وكل إشارة "
             "تاخذ تقييم من 100 (الاتجاه، الزخم، الحجم، التذبذب، بنية السعر، والعائد مقابل المخاطرة) وما يشتري إلا الزينة والأفضل أول؛ "
-            "وكل صفقة حجمها حسب مخاطرتها، والبوت يوقف نفسه بعد هبوط كبير أو خسائر متتالية ويسكّت الاستراتيجية اللي ضعفت. وكل واحد "
+            "وكل صفقة حجمها حسب مخاطرتها، والبوت يوقف نفسه بعد هبوط كبير أو خسائر متتالية ويسكّت الاستراتيجية اللي ضعفت. وكل بوت عنده "
+            "كل استراتيجيات الموقع، ويختار لكل صفقة الأنسب للسوق والأنجح مؤخراً (أسلوبه أول). وكل واحد "
             f"منها مختبر على أسعار حقيقية لـ {n or 'كل'} شركة من 2008 لين اليوم، فترة بفترة، بمحرّك البوتات نفسه في الموقع.")
     ui.html(f'<div class="aihd"><span class="i">{T.icon("neurology")}</span><span class="t">{L("Ready bots", "بوتات جاهزة")}</span>'
             f'<span class="s">{T.esc(sub)}</span></div>')
@@ -3837,10 +3846,17 @@ def brain_today(sim):
             rows = []
             for s_, w_ in sorted(nxt.items(), key=lambda kv: -kv[1].get("sc", 0)):
                 parts = " · ".join(f"{L(*BR.PART_LABEL[pn])} {v}" for pn, v in zip(BR.PARTS, w_.get("pt") or []))
-                rows.append(f'<div class="bwhy"><b>{T.esc(s_)}</b><span class="sc">{w_.get("sc", 0)}/100</span><span class="pt">{T.esc(parts)}</span></div>')
+                if w_.get("bn"):
+                    parts += " · " + L("style", "الأسلوب") + f" +{w_['bn']}"
+                how_ = strat_short(w_["l"]) if w_.get("l") else ""
+                if how_ and w_.get("ed") is not None:
+                    how_ += " · " + L("its signals lately ", "إشاراتها مؤخراً ") + iso(f"{w_['ed']:+.1f}%") + L(" vs the average stock", " مقابل السهم العادي")
+                rows.append(f'<div class="bwhy"><b>{T.esc(s_)}</b><span class="sc">{w_.get("sc", 0)}/100</span>'
+                            + (f'<span class="st">{T.esc(how_)}</span>' if how_ else "") + f'<span class="pt">{T.esc(parts)}</span></div>')
             ui.html('<div class="bwhys">' + "".join(rows) + "</div>")
-            st.caption(L("Buys for the next open, with the score that got each one in (out of 100) and its parts.",
-                         "مشتريات الافتتاح القادم، مع التقييم اللي دخّل كل وحدة (من 100) وأجزاءه."))
+            st.caption(L("Buys for the next open: the strategy the bot chose for each one, and the score that got it in (out of 100) "
+                         "with its parts.",
+                         "مشتريات الافتتاح القادم: الاستراتيجية اللي اختارها البوت لكل وحدة، والتقييم اللي دخّلها (من 100) وأجزاءه."))
         elif gate is None:
             st.caption(L("No buy passed its score at the last close.", "ولا إشارة شراء عدّت التقييم عند آخر إغلاق."))
 

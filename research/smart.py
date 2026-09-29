@@ -5,11 +5,11 @@ Yahoo Finance can be reached). Writes smart_results.json (read by the Paper Bots
 Each bot runs ONCE through the site's own engine (paperbots.simulate) from 2007-01-03 to today on all companies, with
 100,000 of virtual money and 0.10% per side for the fee and the slippage. Its balance is then read period by period:
   2008-2009 financial crisis · 2010-2014 · 2015-2019 · 2020 (COVID crash and rebound) · 2021 · 2022 bear market · 2023-now,
-  in-sample 2010-2019 (where the settings were chosen: research/results/smart_rounds.md) and out-of-sample 2020-now (no
-  part in the choice), and the whole 2008-now.
+  2010-2019 and 2020-now, and the whole 2008-now.
 Each period is compared with the S&P 500 (SPY) and with holding all the same stocks equally (bought at the period's start).
 Variants of every bot show what each part adds and how sensitive it is: the same strategies without the brain, the brain
-without the regimes / the score / the self-check, and the minimum score and the ATR stop moved up and down.
+without the regimes / the score / the self-check, the first strategy instead of the one with the best recent edge, half the
+risk, and the minimum score moved up and down.
 Note: the stock list is today's S&P 500 (survivorship bias): every number back in time is on the high side, so compare a
 bot with holding the same stocks, not with zero.
 """
@@ -60,8 +60,8 @@ def variants(key):
          "no_selfcheck": {**br, "decay": 0, "streak": 0, "pause": 0, "day_loss": 0.0},
          "score_m10": {**br, "min_score": max(br["min_score"] - 10, 0)},
          "score_p10": {**br, "min_score": min(br["min_score"] + 10, 100)},
-         "atr_m": {**br, "atr": br["atr"] - 0.5},
-         "atr_p": {**br, "atr": br["atr"] + 0.5}}
+         "first_choice": {**br, "choose": "first"},
+         "risk_1": {**br, "risk": 1.0}}
     return {n: (b["strategies"], b["max_pos"], (BR.clean(x) if x else None), (x or br)["atr"]) for n, x in v.items()}
 
 

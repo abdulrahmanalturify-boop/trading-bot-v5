@@ -78,6 +78,10 @@ DEFAULTS = {
     "decay": 1,                       # mute a strategy whose signals of the last year did clearly worse than the market
     "stress_vol": 30.0,               # panic: the S&P 500's 20-day volatility at least this % a year ...
     "stress_x": 2.0,                  # ... or this many times its median of the last year (and at least 20%)
+    "prefer": [],                     # the bot's style: signals of these families get `bonus` points on their score
+    "bonus": 0.0,
+    "choose": "first",                # when several strategies signal on one stock: "edge" = the one whose signals did best
+                                      # lately (its style first), "first" = the first in the list
 }
 EDGE_H, EDGE_WIN, EDGE_MIN, EDGE_CUT = 10, 250, 30, -0.01   # 10-session return after each signal, over the last year
 
@@ -117,6 +121,9 @@ def clean(b):
             "size_floor": _f(b.get("size_floor", d["size_floor"]), 0, 1, d["size_floor"]),
             "stress_vol": _f(b.get("stress_vol", d["stress_vol"]), 10, 200, d["stress_vol"]),
             "stress_x": _f(b.get("stress_x", d["stress_x"]), 1, 10, d["stress_x"]),
+            "prefer": [f for f in FAMILIES if f in (b.get("prefer") if isinstance(b.get("prefer"), (list, tuple)) else [])],
+            "bonus": _f(b.get("bonus", d["bonus"]), 0, 50, d["bonus"]),
+            "choose": "edge" if b.get("choose") == "edge" else "first",
             "sector_cap": ints("sector_cap", 0, 20), "be_r": _f(b.get("be_r", d["be_r"]), 0, 10, d["be_r"]),
             "trail_atr": _f(b.get("trail_atr", d["trail_atr"]), 0, 20, d["trail_atr"]),
             "time_bars": ints("time_bars", 0, 250), "time_r": _f(b.get("time_r", d["time_r"]), -5, 10, d["time_r"]),
@@ -235,25 +242,37 @@ def score(P, weights):
 
 
 # ---------------------------------------------------------------- 5) self-check: a strategy whose signals lost their edge
-def edge_ok(ent, O, C, h=EDGE_H, window=EDGE_WIN, min_n=EDGE_MIN, cut=EDGE_CUT):
-    """(T,) True while the strategy may trade: its buy signals of the last `window` sessions, each followed for h sessions
-    (bought at the next open, valued at the close h sessions later), beat the average stock by more than `cut` on average.
-    A signal counts only once its h sessions have passed (no look-ahead); with fewer than min_n signals it may trade."""
+def excess(O, C, h=EDGE_H):
+    """(T, N) what buying each stock at the next open and holding it h sessions made, minus the average stock that day
+    (NaN where it isn't known; one stock alone: its raw return)."""
     T = len(C)
     fr = np.full(C.shape, np.nan)
     if T > h + 1:
         with np.errstate(invalid="ignore", divide="ignore"):
             fr[:T - h] = C[h:] / O[1:T - h + 1] - 1
-    ex = fr - np.nan_to_num(_row_mean(fr, MIN_CROSS), nan=0.0)[:, None]     # against the average stock (one stock: its raw return)
+    return fr - np.nan_to_num(_row_mean(fr, MIN_CROSS), nan=0.0)[:, None]
+
+
+def edge(ent, ex, h=EDGE_H, window=EDGE_WIN, min_n=EDGE_MIN, cut=EDGE_CUT):
+    """A strategy's edge at every session: the average of ex over its buy signals of the last `window` sessions, each
+    counted only once its h sessions have passed (no look-ahead). Returns (ok, value): ok is False while that average is
+    under `cut` with at least min_n signals; value is NaN with fewer than min_n."""
+    T = len(ex)
     m = ent & np.isfinite(ex)
     s = np.where(m, ex, 0.0).sum(axis=1)
     n = m.sum(axis=1).astype(float)
-    s = np.r_[np.zeros(h), s[:T - h]] if T > h else np.zeros(T)      # known h sessions after the signal
+    s = np.r_[np.zeros(h), s[:T - h]] if T > h else np.zeros(T)
     n = np.r_[np.zeros(h), n[:T - h]] if T > h else np.zeros(T)
     S = pd.Series(s).rolling(window, min_periods=1).sum().to_numpy()
     Nn = pd.Series(n).rolling(window, min_periods=1).sum().to_numpy()
     with np.errstate(invalid="ignore", divide="ignore"):
-        return (Nn < min_n) | (S / np.maximum(Nn, 1) > cut)
+        val = np.where(Nn >= min_n, S / np.maximum(Nn, 1), np.nan)
+    return (Nn < min_n) | (np.nan_to_num(val, nan=np.inf) > cut), val
+
+
+def edge_ok(ent, O, C, h=EDGE_H, window=EDGE_WIN, min_n=EDGE_MIN, cut=EDGE_CUT):
+    """(T,) True while the strategy may trade (see edge)."""
+    return edge(ent, excess(O, C, h), h, window, min_n, cut)[0]
 
 
 # ---------------------------------------------------------------- 4) sizing
