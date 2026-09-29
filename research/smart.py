@@ -83,6 +83,11 @@ def variants(key):
             "dd_half": 15.0, "dd_stop": 25.0, "stress_vol": 40.0, "stress_x": 2.5}
     v.update({"lite": lite, "lite_bear_exit": {**lite, "exit": ["bear"]},
               "lite_trail": {**lite, "trail_atr": br["trail_atr"] or 4.0}, "lite_score60": {**lite, "min_score": 60.0}})
+    # round 4: which of the risk rules costs the lite brain its return (still judged on 2010-2019 only)
+    w_novol = {p: (0.0 if p == "volat" else x) for p, x in br["weights"].items()}
+    v.update({"lite_nocap": {**lite, "sector_cap": 0}, "lite_novol": {**lite, "weights": w_novol},
+              "lite_bigrisk": {**lite, "risk": 3.0},
+              "lite_free": {**lite, "sector_cap": 0, "risk": 3.0, "size_floor": 1.0}})
     return {n: (b["strategies"], b["max_pos"], (BR.clean(x) if x else None), (x or br)["atr"]) for n, x in v.items()}
 
 
