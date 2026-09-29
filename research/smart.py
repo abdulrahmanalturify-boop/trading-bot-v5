@@ -207,7 +207,8 @@ def main():
     spy = px["SPY"]
     jobs = [(k, v) for k in SB.ORDER for v in variants(k)]
     rows = {}
-    with ProcessPoolExecutor(max_workers=os.cpu_count() or 2, initializer=_init, initargs=(px,)) as ex:
+    # three workers: a bot with every strategy on 500+ stocks since 2007 needs about a gigabyte while it runs
+    with ProcessPoolExecutor(max_workers=min(3, os.cpu_count() or 2), initializer=_init, initargs=(px,)) as ex:
         for job, res in ex.map(run_one, jobs):
             rows[job] = res
             print(job, "error" if "error" in res else f"{res['secs']} s", res.get("error", ""), flush=True)
