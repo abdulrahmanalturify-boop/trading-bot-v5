@@ -62,6 +62,18 @@ def variants(key):
          "score_p10": {**br, "min_score": min(br["min_score"] + 10, 100)},
          "atr_m": {**br, "atr": br["atr"] - 0.5},
          "atr_p": {**br, "atr": br["atr"] + 0.5}}
+    # round 2: what makes the bot hold more of its money in good trades (judged on 2010-2019 only)
+    full = lambda x: {r: (1.0 if br["allow"][r] and x[r] > 0 else x[r]) for r in BR.REGIMES}
+    light = {**br, "size_floor": 1.0, "exit": [r for r in br["exit"] if r != "stress"], "size": full(br["size"]),
+             "exposure": full(br["exposure"]), "stress_vol": 40.0, "stress_x": 2.5}
+    v.update({"size_full": {**br, "size_floor": 1.0},
+              "hold_stress": {**br, "exit": [r for r in br["exit"] if r != "stress"]},
+              "no_trail": {**br, "trail_atr": 0.0, "be_r": 0.0},
+              "trail_wide": {**br, "trail_atr": br["trail_atr"] + 1.5 if br["trail_atr"] else 0.0, "be_r": 0.0},
+              "neutral_full": {**br, "size": full(br["size"]), "exposure": full(br["exposure"])},
+              "stress_strict": {**br, "stress_vol": 40.0, "stress_x": 2.5},
+              "light": light,
+              "light_notrail": {**light, "trail_atr": 0.0, "be_r": 0.0}})
     return {n: (b["strategies"], b["max_pos"], (BR.clean(x) if x else None), (x or br)["atr"]) for n, x in v.items()}
 
 
@@ -246,6 +258,20 @@ def main():
         L.append("| | " + " |" * len(PERIODS))
     L.append("| S&P 500 (SPY) | " + " | ".join(cell(bench[pk]["spy"]) for pk, _, _, _ in PERIODS) + " |")
     L.append("| Hold all the stocks | " + " | ".join(cell(bench[pk]["hold"]) for pk, _, _, _ in PERIODS) + " |")
+    L += ["", "## Decision table: in-sample 2010-2019 (where settings may change) · out-of-sample 2020-now (only to check)", "",
+          "| Bot · variant | IS yearly | IS Sharpe | IS max drop | IS invested | OOS yearly | OOS Sharpe | OOS max drop | OOS invested |",
+          "|---|---|---|---|---|---|---|---|---|"]
+    for k in SB.ORDER:
+        for v in variants(k):
+            r = rows[(k, v)]
+            if "error" in r:
+                continue
+            a_, b_ = r["periods"].get("ins") or {}, r["periods"].get("oos") or {}
+            L.append(f"| {k} · {v} | {pct(a_.get('cagr'))} | {a_.get('sharpe', 0):.2f} | {pct(a_.get('maxdd'))} | {a_.get('invested', 0) * 100:.0f}% | "
+                     f"{pct(b_.get('cagr'))} | {b_.get('sharpe', 0):.2f} | {pct(b_.get('maxdd'))} | {b_.get('invested', 0) * 100:.0f}% |")
+    for pk in ("ins", "oos"):
+        h_, s_ = bench[pk]["hold"], bench[pk]["spy"]
+        L.append(f"| Hold / SPY {pk} | {pct(h_['cagr'])} / {pct(s_['cagr'])} | {h_['sharpe']:.2f} / {s_['sharpe']:.2f} | {pct(h_['maxdd'])} / {pct(s_['maxdd'])} | | | | | |")
     L += ["", "## Inside each smart bot", ""]
     for k in SB.ORDER:
         r = rows[(k, "smart")]

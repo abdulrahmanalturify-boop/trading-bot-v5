@@ -59,6 +59,7 @@ DEFAULTS = {
     "exposure": {"bull": 1.0, "neutral": 0.6, "bear": 0.3, "stress": 0.0},   # share of the open-trade slots usable
     "exit": ["stress"],               # regimes that sell every open trade at the next open
     "risk": 1.0,                      # % of the balance a full-size trade loses at its stop
+    "size_floor": 0.5,                # the weakest signal that passes gets this share of the full size (the best gets all)
     "atr": 3.0,                       # the stop: this many ATR under the entry
     "sector_cap": 3,                  # open trades in one sector at most (0 = no cap)
     "be_r": 1.5,                      # the stop moves to the entry once the trade has been up this many R (0 = off)
@@ -72,6 +73,8 @@ DEFAULTS = {
     "cool": 5,                        # ... no buys for this many sessions
     "day_loss": 3.0,                  # a session that loses this % of the balance: no buys at its close
     "decay": 1,                       # mute a strategy whose signals of the last year did clearly worse than the market
+    "stress_vol": 30.0,               # panic: the S&P 500's 20-day volatility at least this % a year ...
+    "stress_x": 2.0,                  # ... or this many times its median of the last year (and at least 20%)
 }
 EDGE_H, EDGE_WIN, EDGE_MIN, EDGE_CUT = 10, 250, 30, -0.01   # 10-session return after each signal, over the last year
 
@@ -107,6 +110,9 @@ def clean(b):
             "size": per_regime("size"), "exposure": per_regime("exposure"),
             "exit": [r for r in REGIMES if r in (b.get("exit") if isinstance(b.get("exit"), list) else d["exit"])],
             "risk": _f(b.get("risk", d["risk"]), 0.1, 5, d["risk"]), "atr": _f(b.get("atr", d["atr"]), 0.5, 10, d["atr"]),
+            "size_floor": _f(b.get("size_floor", d["size_floor"]), 0, 1, d["size_floor"]),
+            "stress_vol": _f(b.get("stress_vol", d["stress_vol"]), 10, 200, d["stress_vol"]),
+            "stress_x": _f(b.get("stress_x", d["stress_x"]), 1, 10, d["stress_x"]),
             "sector_cap": ints("sector_cap", 0, 20), "be_r": _f(b.get("be_r", d["be_r"]), 0, 10, d["be_r"]),
             "trail_atr": _f(b.get("trail_atr", d["trail_atr"]), 0, 20, d["trail_atr"]),
             "time_bars": ints("time_bars", 0, 250), "time_r": _f(b.get("time_r", d["time_r"]), -5, 10, d["time_r"]),
@@ -133,10 +139,11 @@ def _naive(ix):
     return ix.tz_localize(None) if ix.tz is not None else ix
 
 
-def regime(spy, idx, above50):
+def regime(spy, idx, above50, stress_vol=30.0, stress_x=2.0):
     """The regime code of every session of idx (BULL, NEUTRAL, BEAR, STRESS) and its inputs.
     above50: (T, N) 1.0 / 0.0 = the stock closed above / under its 50-day average, NaN = unknown.
-      stress  the S&P 500's 20-day volatility is 30% a year or more, or twice its median of the last year and at least 20%
+      stress  the S&P 500's 20-day volatility is stress_vol % a year or more, or stress_x times its median of the last year
+              and at least 20%
       bear    the S&P 500 under its 200-day average and its 50-day average falling (over 20 sessions)
       bull    the S&P 500 over its 200-day average, its 50-day average rising and at least half the stocks over their own
       neutral everything else (and whenever the S&P 500 is missing or too short to tell)"""
@@ -158,7 +165,7 @@ def regime(spy, idx, above50):
     al = lambda s: s.reindex(ix, method="ffill").to_numpy(float)
     c, s200, sl, v, vm = al(sc), al(sma200), al(slope), al(vol), al(vmed)
     with np.errstate(invalid="ignore"):
-        stress = (v >= 0.30) | ((v >= 0.20) & (v >= 2.0 * vm))
+        stress = (v >= stress_vol / 100) | ((v >= 0.20) & (v >= stress_x * vm))
         bear = (c < s200) & (sl < 0)
         bull = (c > s200) & (sl > 0) & (np.nan_to_num(breadth, nan=0.5) >= 0.5)
     codes[bull] = BULL
@@ -241,7 +248,7 @@ def edge_ok(ent, O, C, h=EDGE_H, window=EDGE_WIN, min_n=EDGE_MIN, cut=EDGE_CUT):
 
 
 # ---------------------------------------------------------------- 4) sizing
-def size_mult(sc, min_score, regime_size, dd, dd_half):
-    """The share of the full risk a new trade gets: 0.5..1 by its score, x the regime's size, halved in a drawdown."""
-    s = 1.0 if min_score >= 100 else 0.5 + 0.5 * float(np.clip((sc - min_score) / (100 - min_score), 0, 1))
+def size_mult(sc, min_score, regime_size, dd, dd_half, floor=0.5):
+    """The share of the full risk a new trade gets: floor..1 by its score, x the regime's size, halved in a drawdown."""
+    s = 1.0 if min_score >= 100 else floor + (1 - floor) * float(np.clip((sc - min_score) / (100 - min_score), 0, 1))
     return s * regime_size * (0.5 if dd >= dd_half / 100 else 1.0)

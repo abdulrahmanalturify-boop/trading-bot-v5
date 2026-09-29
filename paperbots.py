@@ -798,7 +798,7 @@ def simulate(bot, px, spy=None, record=None):
         # 1) the regime of every session; 2) a strategy family trades only in the regimes the bot allows it (and, with the
         # self-check on, only while its signals of the last year kept an edge over the average stock); 3) a signal counts
         # only with a score of at least min_score, and the best scores fill the free slots first
-        codes, rparts = BR.regime(spy, idx, BPX["above50"])
+        codes, rparts = BR.regime(spy, idx, BPX["above50"], brain["stress_vol"], brain["stress_x"])
         allowed = np.array([[BR.family_of(nm) in brain["allow"][r] for r in BR.REGIMES] for nm in labels], bool)
         muted = np.zeros((S, T), bool)
         for k in range(S):
@@ -1130,7 +1130,7 @@ def simulate(bot, px, spy=None, record=None):
                         continue
                     stops.append(o - b_atr * a_)
                     mult = BR.size_mult(float(np.nan_to_num(BSC[ts, j], nan=brain["min_score"])), brain["min_score"],
-                                        brain["size"][BR.REGIMES[codes[ts]]], bst["dd"], brain["dd_half"])
+                                        brain["size"][BR.REGIMES[codes[ts]]], bst["dd"], brain["dd_half"], brain["size_floor"])
                     shares = min(shares, eq_prev * brain["risk"] / 100 / (o - max(stops))) * mult
                     if shares * o < 1:
                         continue
