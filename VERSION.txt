@@ -1,2 +1,2 @@
-A.Alturaifi Pro - version 13.8 (five smart ready bots: market regime, strategy by regime, a score out of 100, risk sizing and a self-check; tested on real prices 2008-now)
+A.Alturaifi Pro - version 13.9 (smart ready bots: every bot has all 26 strategies and picks one per trade; lighter risk rules)
 If you can see this file on GitHub, the new version was uploaded correctly.
