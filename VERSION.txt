@@ -1,2 +1,2 @@
-A.Alturaifi Pro - version 13.2 (the landing: no dark band at the top or strip on the right, words centred, see-through Scroll down)
+A.Alturaifi Pro - version 13.3 (the landing: lighter violet over the whole screen, no black, see-through boxes in the top bar)
 If you can see this file on GitHub, the new version was uploaded correctly.

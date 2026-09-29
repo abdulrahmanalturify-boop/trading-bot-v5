@@ -1218,8 +1218,14 @@ FX_CSS = f"""<style>
 FX_JS = """<script>
 (function () {
   var w = window.parent, d = w.document;
-  if (w.__alturaifiFx2) return;
-  w.__alturaifiFx2 = 1;
+  var VER = '__VER__', KEY = '__alturaifiCards';
+  if (w[KEY] === VER) return;                       // this version already runs in this tab
+  if (typeof w[KEY + 'Off'] === 'function') { try { w[KEY + 'Off'](); } catch (e) {} }   // an older one stops first
+  w[KEY] = VER;
+  var offs = [];
+  w[KEY + 'Off'] = function () { offs.forEach(function (f) { try { f(); } catch (e) {} }); offs = []; };
+  function on(t, ev, fn, o) { t.addEventListener(ev, fn, o); offs.push(function () { t.removeEventListener(ev, fn, o); }); }
+  function every(fn, ms) { var id = w.setInterval(fn, ms); offs.push(function () { w.clearInterval(id); }); }
   var SEL = __SEL__;
   var cur = null, raf = 0, x = 0, y = 0;
   function set(el) {
@@ -1239,18 +1245,24 @@ FX_JS = """<script>
       el.style.setProperty('--my', (y - r.top) + 'px');
     }
   }
-  d.addEventListener('pointermove', function (e) {
+  on(d, 'pointermove', function (e) {
     if (e.pointerType && e.pointerType !== 'mouse') return;
     x = e.clientX; y = e.clientY;
     if (!raf) raf = w.requestAnimationFrame(pick);
   }, {passive: true});
-  d.documentElement.addEventListener('mouseleave', function () { set(null); });
-  w.addEventListener('scroll', function () { if (cur && !raf) raf = w.requestAnimationFrame(pick); }, {passive: true, capture: true});
+  on(d.documentElement, 'mouseleave', function () { set(null); });
+  on(w, 'scroll', function () { if (cur && !raf) raf = w.requestAnimationFrame(pick); }, {passive: true, capture: true});
 })();
 (function () {                                   // the landing: parallax, spotlight, typing line, reveals, tilting cards
   var w = window.parent, d = w.document, de = d.documentElement;
-  if (w.__alturaifiLanding) return;
-  w.__alturaifiLanding = 1;
+  var VER = '__VER__', KEY = '__alturaifiLanding';
+  if (w[KEY] === VER) return;                       // this version already runs in this tab
+  if (typeof w[KEY + 'Off'] === 'function') { try { w[KEY + 'Off'](); } catch (e) {} }   // an older one stops first
+  w[KEY] = VER;
+  var offs = [];
+  w[KEY + 'Off'] = function () { offs.forEach(function (f) { try { f(); } catch (e) {} }); offs = []; };
+  function on(t, ev, fn, o) { t.addEventListener(ev, fn, o); offs.push(function () { t.removeEventListener(ev, fn, o); }); }
+  function every(fn, ms) { var id = w.setInterval(fn, ms); offs.push(function () { w.clearInterval(id); }); }
   de.classList.add('ix-js');
   var raf = 0, x = 0, y = 0, tilt = null;
   function frame() {
@@ -1275,13 +1287,13 @@ FX_JS = """<script>
       el.style.setProperty('--gx', (x - b.left) + 'px'); el.style.setProperty('--gy', (y - b.top) + 'px');
     }
   }
-  d.addEventListener('pointermove', function (e) {
+  on(d, 'pointermove', function (e) {
     if (e.pointerType && e.pointerType !== 'mouse') return;
     x = e.clientX; y = e.clientY;
     if (!raf && d.querySelector('.ixp')) raf = w.requestAnimationFrame(frame);
   }, {passive: true});
   // the top bar gets a light glass once the page has scrolled
-  d.addEventListener('scroll', function (e) {
+  on(d, 'scroll', function (e) {
     var t = e.target, page = d.querySelector('.ixp');
     if (!page) return;
     if (t !== d && t !== de && !(t.contains && t.contains(page))) return;       // only the page's own scrolling
@@ -1299,7 +1311,7 @@ FX_JS = """<script>
     var m = d.querySelector('[data-testid="stMain"]') || d.querySelector('section.stMain') || d.querySelector('[data-testid="stAppViewContainer"]');
     if (m && m.scrollTo) m.scrollTo({top: 0}); w.scrollTo(0, 0); de.classList.remove('ix-scrolled');
   }
-  d.addEventListener('click', function (e) {
+  on(d, 'click', function (e) {
     var t = e.target;
     if (t && t.closest && t.closest('.st-key-introgo button, .st-key-logohome button')) { toTop(); w.setTimeout(toTop, 450); w.setTimeout(toTop, 1200); }
     if (t && t.closest && t.closest('.ix-scroll')) {                       // "Scroll down": to the first section
@@ -1307,7 +1319,7 @@ FX_JS = """<script>
       if (nx) nx.scrollIntoView({behavior: 'smooth', block: 'start'});
     }
   }, true);
-  w.setInterval(function () {
+  every(function () {
     // reveals: a section shows as it comes into view
     var rv = d.querySelectorAll('.rv:not(.in)');
     for (var i = 0; i < rv.length; i++) { if (rv[i].getBoundingClientRect().top < w.innerHeight * .9) rv[i].classList.add('in'); }
@@ -1334,13 +1346,19 @@ FX_JS = """<script>
   }, 180);
   var idle = Date.now();
   ['pointermove', 'pointerdown', 'wheel', 'keydown', 'touchstart'].forEach(function (ev) {
-    d.addEventListener(ev, function () { idle = Date.now(); }, {passive: true, capture: true});
+    on(d, ev, function () { idle = Date.now(); }, {passive: true, capture: true});
   });
 })();
 (function () {                                   // the landing's sculpture: an iridescent faceted crystal, drawn with WebGL
   var w = window.parent, d = w.document;
-  if (w.__alturaifiGem) return;
-  w.__alturaifiGem = 1;
+  var VER = '__VER__', KEY = '__alturaifiSculpture';
+  if (w[KEY] === VER) return;                       // this version already runs in this tab
+  if (typeof w[KEY + 'Off'] === 'function') { try { w[KEY + 'Off'](); } catch (e) {} }   // an older one stops first
+  w[KEY] = VER;
+  var offs = [];
+  w[KEY + 'Off'] = function () { offs.forEach(function (f) { try { f(); } catch (e) {} }); offs = []; };
+  function on(t, ev, fn, o) { t.addEventListener(ev, fn, o); offs.push(function () { t.removeEventListener(ev, fn, o); }); }
+  function every(fn, ms) { var id = w.setInterval(fn, ms); offs.push(function () { w.clearInterval(id); }); }
   function mat4() { return new Float32Array(16); }
   function persp(fov, asp, n, f) { var m = mat4(), t = 1 / Math.tan(fov / 2); m[0] = t / asp; m[5] = t; m[10] = (f + n) / (n - f); m[11] = -1; m[14] = 2 * f * n / (n - f); return m; }
   function mul(a, b) { var o = mat4(); for (var i = 0; i < 4; i++) for (var j = 0; j < 4; j++) { var s = 0; for (var k = 0; k < 4; k++) s += a[k * 4 + j] * b[i * 4 + k]; o[i * 4 + j] = s; } return o; }
@@ -1442,17 +1460,23 @@ FX_JS = """<script>
     }
     w.requestAnimationFrame(frame);
   }
-  w.setInterval(function () {                     // the landing can appear at any rerun: give each new one its sculpture
-    var hosts = d.querySelectorAll('.ix-obj:not(.gl-try)');
+  every(function () {                     // the landing can appear at any rerun: give each new one its sculpture
+    var hosts = d.querySelectorAll('.ix-sc:not(.gl-try)');
     for (var i = 0; i < hosts.length; i++) { hosts[i].classList.add('gl-try'); try { mount(hosts[i]); } catch (e) {} }
   }, 250);
 })();
 (function () {                                   // the logo opens the home page's first screen
   var w = window.parent, d = w.document;
-  if (w.__alturaifiLogo) return;
-  w.__alturaifiLogo = 1;
+  var VER = '__VER__', KEY = '__alturaifiLogoV';
+  if (w[KEY] === VER) return;                       // this version already runs in this tab
+  if (typeof w[KEY + 'Off'] === 'function') { try { w[KEY + 'Off'](); } catch (e) {} }   // an older one stops first
+  w[KEY] = VER;
+  var offs = [];
+  w[KEY + 'Off'] = function () { offs.forEach(function (f) { try { f(); } catch (e) {} }); offs = []; };
+  function on(t, ev, fn, o) { t.addEventListener(ev, fn, o); offs.push(function () { t.removeEventListener(ev, fn, o); }); }
+  function every(fn, ms) { var id = w.setInterval(fn, ms); offs.push(function () { w.clearInterval(id); }); }
   var LOGO = '[data-testid="stLogo"], img.stLogo, [data-testid="stLogoLink"], [data-testid="stSidebarHeader"] img, [data-testid="stHeaderLogo"]';
-  d.addEventListener('click', function (e) {
+  on(d, 'click', function (e) {
     var t = e.target;
     if (!t || !t.closest || !t.closest(LOGO)) return;
     var b = d.querySelector('.st-key-logohome button');
@@ -1462,6 +1486,7 @@ FX_JS = """<script>
   }, true);
 })();
 </script>""".replace("__SEL__", json.dumps(_fx))
+FX_JS = FX_JS.replace("__VER__", hashlib.md5(FX_JS.encode()).hexdigest()[:10])   # a new script replaces the old one in open tabs
 
 
 # ---------------------------------------------------------------- formatting
@@ -2041,4 +2066,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "13.2"
+BUILD = "13.3"

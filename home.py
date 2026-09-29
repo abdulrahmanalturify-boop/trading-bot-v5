@@ -10,7 +10,7 @@ import theme as T
 import ui
 from i18n import L, is_ar
 
-BUILD = "13.2"
+BUILD = "13.3"
 
 _LINE = "rgba(150,140,250,"
 CSS = f"""
@@ -467,6 +467,13 @@ header[data-testid="stHeader"]::after, header[data-testid="stHeader"]::before { 
 html.ix-scrolled header[data-testid="stHeader"] { background: rgba(14,9,24,.32) !important; background-color: rgba(14,9,24,.32) !important;
   backdrop-filter: blur(14px) !important; -webkit-backdrop-filter: blur(14px) !important; }
 [data-testid="stSidebar"], [data-testid="stSidebarCollapsedControl"] { display: none !important; }
+.st-key-navsearch [role="group"], .st-key-navsearch [data-baseweb="select"] > div, .st-key-navsearch [data-baseweb="input"],
+.st-key-navsearch [data-baseweb="base-input"], .st-key-navsearch input, .st-key-navright .status, .langbtn, .navbtn.on {
+  background: transparent !important; background-color: transparent !important; backdrop-filter: none !important; box-shadow: none !important; }
+.st-key-navsearch [role="group"], .st-key-navsearch [data-baseweb="select"] > div, .st-key-navsearch [data-baseweb="input"],
+.st-key-navright .status, .langbtn, .navbtn.on { border: 1px solid rgba(255,255,255,.28) !important; }
+.st-key-navsearch input::placeholder { color: rgba(255,255,255,.7) !important; }
+.st-key-langsec:hover .langbtn, [class*="st-key-navsec_"]:hover .navbtn { background: rgba(255,255,255,.08) !important; }
 .block-container, [data-testid="stMainBlockContainer"], [data-testid="stMainBlockContainer"]:has(.st-key-topnav) { max-width: none !important;
   padding: 0 !important; }
 @media (max-width: 1023.98px) { .st-key-topnav { margin: 8px !important; } }
@@ -480,7 +487,7 @@ html.ix-scrolled header[data-testid="stHeader"] { background: rgba(14,9,24,.32) 
 .ixend { position: relative; }
 .ixp.ar { font-family: 'Readex Pro', 'DM Sans', sans-serif; }
 /* ---------- the first screen: a violet-lit void, a slowly turning iridescent sculpture, two lines of words ---------- */
-.ix { position: relative; min-height: 100vh; overflow: hidden; background: #0C0C0E; }
+.ix { position: relative; min-height: 100vh; overflow: hidden; background: #24124A; }
 /* the first screen melts into the page under it: no hard line between the two */
 .ix::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 34vh; z-index: 3; pointer-events: none;
   background: linear-gradient(180deg, rgba(20,16,26,0) 0%, rgba(20,16,26,.55) 55%, #14101A 100%); }
@@ -489,24 +496,24 @@ html.ix-scrolled header[data-testid="stHeader"] { background: rgba(14,9,24,.32) 
 .ix-glow i { position: absolute; inset: 0; }
 /* Letter's colour field, with its red turned very dark violet: a wide wash over the upper left and the middle, a
    teal-grey haze low on the left, near-black on the right, a cold bloom where the sculpture stands */
-.ix-glow .g1 { background: radial-gradient(ellipse 95% 120% at 38% 24%, #32095A 0%, #2E0A52 26%, #280A47 44%, #1B0931 62%, #110A1A 78%, transparent 92%);
+.ix-glow .g1 { background: radial-gradient(ellipse 110% 130% at 42% 24%, #6A35B5 0%, #5E2DA5 26%, #4F258C 46%, #3C1C6E 66%, #2A1452 82%, transparent 96%);
   animation: ixbreath 11s ease-in-out infinite alternate; }
 .ix-glow .g2 { background: radial-gradient(ellipse 42% 70% at -4% 82%, #26404A 0%, rgba(36,60,70,.8) 34%, rgba(34,54,63,.3) 60%, transparent 82%);
   animation: ixdrift 19s ease-in-out infinite alternate; }
-.ix-glow .g3 { background: radial-gradient(ellipse 40% 95% at 104% 40%, #0B0B0D 0%, rgba(11,11,13,.9) 45%, transparent 80%); }
+.ix-glow .g3 { background: radial-gradient(ellipse 55% 95% at 104% 40%, rgba(58,26,120,.9) 0%, rgba(48,22,100,.6) 45%, transparent 80%); }
 .ix-glow .g4 { background: radial-gradient(ellipse 30% 26% at 50% 104%, rgba(110,112,160,.7) 0%, rgba(84,70,120,.38) 42%, transparent 76%);
   animation: ixbreath 7s ease-in-out -3s infinite alternate; }
 @keyframes ixbreath { 0% { transform: scale(1) translate(0,0); opacity: .9; } 100% { transform: scale(1.06) translate(1.5%,1.5%); opacity: 1; } }
 @keyframes ixdrift { 0% { transform: translate(0,0) scale(1); } 100% { transform: translate(3vw,-3vh) scale(1.08); } }
 .ix-grain { inset: 0; pointer-events: none; opacity: .07; mix-blend-mode: overlay;
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>"); }
-.ix-obj { left: 50%; bottom: -9vh; width: min(820px, 92vw); height: 50vh; translate: -50% 0; pointer-events: none;
+.ix-sc { left: 50%; bottom: -9vh; width: min(820px, 92vw); height: 50vh; translate: -50% 0; pointer-events: none;
   transform: translate3d(calc(var(--px,0) * -14px), calc(var(--py,0) * -8px), 0);
   opacity: 0; animation: ixrise 2.4s cubic-bezier(.455,.03,.515,.955) .5s forwards; }
 @keyframes ixrise { from { opacity: 0; filter: blur(14px); translate: -50% 60px; } to { opacity: 1; filter: none; translate: -50% 0; } }
-.ix-obj .ix-gl { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-.ix-obj .ix-gem { position: absolute; left: 50%; bottom: 8%; width: 44%; translate: -50% 0; animation: ixturn 14s ease-in-out infinite alternate; }
-.ix-obj.gl-on .ix-gem { display: none; }                                    /* the WebGL sculpture replaces the drawing */
+.ix-sc .ix-gl { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.ix-sc .ix-gem { position: absolute; left: 50%; bottom: 8%; width: 44%; translate: -50% 0; animation: ixturn 14s ease-in-out infinite alternate; }
+.ix-sc.gl-on .ix-gem { display: none; }                                    /* the WebGL sculpture replaces the drawing */
 @keyframes ixturn { 0% { transform: rotate(-4deg) scale(1); } 100% { transform: rotate(5deg) scale(1.04); } }
 .ix-fl { position: absolute; z-index: 2; width: 150px; height: 150px; translate: -50% -50%; opacity: 0; mix-blend-mode: screen;
   background: radial-gradient(closest-side, #FFFFFF, rgba(255,255,255,.85) 12%, rgba(220,230,255,.35) 32%, transparent 70%);
@@ -707,11 +714,11 @@ html.ix-js.ix-past .st-key-introgo { opacity: 1; translate: -50% 0; pointer-even
 .st-key-introgo button:active { transform: translateY(0) scale(.98); }
 @media (max-width: 1000px) { .ixg { grid-template-columns: repeat(2, minmax(0, 1fr)); } .ixf { grid-template-columns: 1fr; gap: 36px; }
   .ixf.rev > :first-child { order: 0; } .ixn { grid-template-columns: repeat(2, minmax(0, 1fr)); } .ixw { grid-template-columns: 1fr; } }
-@media (max-width: 900px) { .ix-center { top: 38%; } .ix-obj { height: 44vh; bottom: -6vh; } .ixs { padding-top: 84px; } }
+@media (max-width: 900px) { .ix-center { top: 38%; } .ix-sc { height: 44vh; bottom: -6vh; } .ixs { padding-top: 84px; } }
 @media (max-width: 640px) { .ixg { grid-template-columns: 1fr; } .ixc { min-height: 220px; } .mrad { grid-template-columns: 1fr; justify-items: center; }
   .mheat { grid-template-columns: repeat(3, minmax(0, 1fr)); } .ixn { grid-template-columns: 1fr 1fr; } }
 @media (prefers-reduced-motion: reduce) { .ixp *, .st-key-introgo { animation: none !important; opacity: 1 !important; }
-  .mbot .ln { stroke-dashoffset: 0; } html.ix-js .rv { opacity: 1; translate: none; } .ix-obj { translate: -50% 0; filter: none; } }
+  .mbot .ln { stroke-dashoffset: 0; } html.ix-js .rv { opacity: 1; translate: none; } .ix-sc { translate: -50% 0; filter: none; } }
 </style>"""
 
 
@@ -787,7 +794,7 @@ def intro_html():
            '<path d="M200 120 L300 250 M200 120 L372 206 M200 120 L110 250" stroke="rgba(255,255,255,.25)"/></svg>')
     hero = ('<section class="ix"><div class="ix-glow"><i class="g1"></i><i class="g2"></i><i class="g3"></i><i class="g4"></i></div>'
             '<div class="ix-grain"></div>'
-            f'<div class="ix-obj">{gem}<span class="ix-fl f1"></span><span class="ix-fl f2"></span><span class="ix-fl f3"></span><span class="ix-fl f4"></span><span class="ix-gl-o"></span><span class="ix-gl-b"></span></div>'
+            f'<div class="ix-sc">{gem}<span class="ix-fl f1"></span><span class="ix-fl f2"></span><span class="ix-fl f3"></span><span class="ix-fl f4"></span><span class="ix-gl-o"></span><span class="ix-gl-b"></span></div>'
             f'<div class="ix-center"><div class="ix-h" role="heading" aria-level="1">{L("Beyond Investing", "أبعد من الاستثمار")}</div>'
             f'<p class="ix-sub">{L("Paper-trading bots, a daily opportunity hunter and market research, in one place.", "بوتات تداول افتراضية، وصياد فرص يومي، وأبحاث السوق، في مكان واحد.")}'
             f'<b>{L("Our goal is to teach you, and to let you trade on paper first.", "هدفنا نعلّمك، ونخليك تتداول افتراضياً.")}</b></p></div>'
