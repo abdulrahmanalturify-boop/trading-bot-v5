@@ -463,6 +463,13 @@ a.pblink .ms {{ font-size:1rem; }}
 /* smart bots */
 .aic.smart .idea {{ color:#DDD9E2; font-size:.8rem; line-height:1.55; margin:8px 0 2px; }}
 .aic table.rg {{ margin:2px 0 8px; }}
+.aic .mx {{ display:flex; flex-direction:column; gap:4px; margin:8px 0 2px; }}
+.aic .mxr {{ display:flex; align-items:center; gap:8px; font-size:.74rem; background:rgba(123,69,240,.10); border:1px solid rgba(123,69,240,.25);
+  border-radius:10px; padding:5px 9px; }}
+.aic .mxr .n {{ flex:none; width:18px; height:18px; border-radius:6px; display:grid; place-items:center; font-weight:700; font-size:.68rem;
+  color:#fff; background:rgba(123,69,240,.55); }}
+.aic .mxr .t {{ flex:1; min-width:0; color:#E7E3EB; font-weight:600; line-height:1.35; }}
+.aic .mxr .r {{ flex:none; color:#B1ABBA; font-weight:600; white-space:nowrap; }}
 .aic table.rg td.fm {{ text-align:left; color:#CCC7D3; font-weight:500; }}
 .aic table.rg th:nth-child(2) {{ text-align:left; }}
 .bwhys {{ display:flex; flex-direction:column; gap:6px; margin-top:8px; }}
@@ -599,6 +606,9 @@ def strat_name(k):
     m_ = BR.agree_level(k)
     if m_:
         return L(f"{m_}+ strategies agreeing", f"{m_}+ استراتيجيات متفقة")
+    cp = BR.combo_parts(k)
+    if cp:                                            # a combined strategy: its strategies and how many must agree
+        return " & ".join(strat_name(x) for x in cp[0]) + " " + iso(f"({cp[1]}/{len(cp[0])})")
     return L(k, engine.STRATEGY_AR.get(k) or PBK.AR.get(k, k))
 
 
@@ -612,6 +622,9 @@ def is_orb(bot):
 
 
 def strat_short(k):
+    cp = BR.combo_parts(k)
+    if cp:
+        return " & ".join(strat_short(x) for x in cp[0]) + " " + iso(f"({cp[1]}/{len(cp[0])})")
     return strat_name(k).split(" (")[0]
 
 
@@ -3660,6 +3673,18 @@ def _smart_chips(br):
     return out
 
 
+def _smart_mixes(br):
+    """A smart bot's combined strategies: which strategies, and how many of them must agree."""
+    def row(i, c):
+        m, n = c["min"], len(c["of"])
+        rule = L(f"{m} of {n} agree", f"تتفق {m} من {n}")
+        return (f'<div class="mxr"><span class="n">{i + 1}</span><span class="t">{T.esc(" + ".join(strat_short(x) for x in c["of"]))}</span>'
+                f'<span class="r">{T.esc(rule)}</span></div>')
+    if not br.get("combos"):
+        return ""
+    return '<div class="mx">' + "".join(row(i, c) for i, c in enumerate(br["combos"])) + "</div>"
+
+
 def _smart_rules(br):
     """What the bot may do in each market regime: which strategy families open trades, and how big."""
     def size_of(r):
@@ -3706,6 +3731,8 @@ def _smart_card(key, res, have):
     oos, spy_oos = per.get("oos"), (bench.get("oos") or {}).get("spy")
     full, spy_full = per.get("full"), (bench.get("full") or {}).get("spy")
     strats = strategies_label(list(b["strategies"]))
+    if br.get("combos"):
+        strats = L(f"{len(br['combos'])} combined strategies", f"{len(br['combos'])} استراتيجيات مركّبة")
     rk = br.get("sector_rank") or 0
     secb = (r.get("sector_hold") or {}).get("periods") if rk else None
     if rk:
@@ -3752,7 +3779,7 @@ def _smart_card(key, res, have):
         note += " " + L("Already running.", "شغّال عندك.")
     return (f'<div class="aic smart"><div class="hd"><span class="i">{T.icon("neurology")}</span><div class="tx"><div class="nm">'
             f'{T.esc(L(*b["name"]))}</div><div class="sub">{T.esc(sub)}</div></div></div>'
-            f'<div class="idea">{T.esc(L(*b["idea"]))}</div><div class="cs">{_smart_verdict(oos, spy_oos)}{chips}</div>'
+            f'<div class="idea">{T.esc(L(*b["idea"]))}</div>{_smart_mixes(br)}<div class="cs">{_smart_verdict(oos, spy_oos)}{chips}</div>'
             f'{_smart_rules(br)}{table}<div class="nt">{T.esc(note.strip())}</div></div>')
 
 
@@ -3769,16 +3796,16 @@ def ready_section(bots, can_add):
     sub = L("Five bots that read the market before they trade: the regime (bull, sideways, bear or panic) decides which of their "
             "strategies may open trades, every signal gets a score out of 100 (trend, momentum, volume, volatility, price structure "
             "and reward/risk) and only good ones are bought, the best first; each trade is sized by its risk, and the bot pauses "
-            "itself after a deep drawdown or a losing streak and mutes a strategy that lost its edge. Each has every strategy of the "
-            "site at hand and picks, for each trade, the one that has worked best lately, alone or with several agreeing. Each one "
-            "trades one of the five fastest-growing sectors (by the growth of their stocks over the last 12 months, ranked again "
-            "every month). Each one was tested on real "
+            "itself after a deep drawdown or a losing streak and mutes a strategy that lost its edge. Each trades three combined "
+            "strategies (a stock is bought when all or most strategies of a combination agree): the 15 best of every pair, triple "
+            "and group of four of the site's strategies on 2010–2019, dealt in turn, and for each trade it takes the combination "
+            "that has worked best lately. Each one was tested on real "
             f"prices of {n or 'all the'} companies from 2008 to now, period by period, through this site's own bot engine.",
             "خمس بوتات تقرأ السوق قبل ما تتداول: حالة السوق (صاعد، عرضي، هابط أو ذعر) تحدد أي استراتيجياتها تفتح صفقات، وكل إشارة "
             "تاخذ تقييم من 100 (الاتجاه، الزخم، الحجم، التذبذب، بنية السعر، والعائد مقابل المخاطرة) وما يشتري إلا الزينة والأفضل أول؛ "
             "وكل صفقة حجمها حسب مخاطرتها، والبوت يوقف نفسه بعد هبوط كبير أو خسائر متتالية ويسكّت الاستراتيجية اللي ضعفت. وكل بوت عنده "
-            "كل استراتيجيات الموقع، ويختار لكل صفقة الأنجح مؤخراً، لحالها أو مع عدة استراتيجيات متفقة. وكل بوت يتداول في قطاع من "
-            "أسرع خمس قطاعات نمواً (حسب نمو أسهمها في آخر 12 شهر، ويتحدّث الترتيب كل شهر). وكل واحد "
+            "ثلاث استراتيجيات مركّبة (يشتري السهم لما تتفق كل أو أغلب استراتيجيات التركيبة): أفضل 15 تركيبة من كل ثنائي وثلاثي "
+            "ورباعي من استراتيجيات الموقع على 2010–2019، موزعة بالدور، ولكل صفقة ياخذ التركيبة الأنجح مؤخراً. وكل واحد "
             f"منها مختبر على أسعار حقيقية لـ {n or 'كل'} شركة من 2008 لين اليوم، فترة بفترة، بمحرّك البوتات نفسه في الموقع.")
     ui.html(f'<div class="aihd"><span class="i">{T.icon("neurology")}</span><span class="t">{L("Ready bots", "بوتات جاهزة")}</span>'
             f'<span class="s">{T.esc(sub)}</span></div>')

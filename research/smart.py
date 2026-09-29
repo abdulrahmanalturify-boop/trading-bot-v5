@@ -60,8 +60,7 @@ def variants(key):
          "no_selfcheck": {**br, "decay": 0, "streak": 0, "pause": 0, "day_loss": 0.0},
          "score_m10": {**br, "min_score": max(br["min_score"] - 10, 0)},
          "score_p10": {**br, "min_score": min(br["min_score"] + 10, 100)},
-         "single_only": {**br, "multi": []},
-         "all_sectors": {**br, "sector_rank": 0},
+         "first_combo": {**br, "choose": "first"},
          "risk_1": {**br, "risk": 1.0}}
     return {n: (b["strategies"], b["max_pos"], (BR.clean(x) if x else None), (x or br)["atr"]) for n, x in v.items()}
 

@@ -3,33 +3,28 @@ smartbots.py - The five ready smart bots (brain.py on top of the bot engine): th
 (smart_results.json, written by research/smart.py in GitHub Actions). The Paper Bots page offers them in "Ready bots"; a bot
 starts only when someone adds it.
 
-Every bot trades all companies (the S&P 500 + the site's largest companies) with shares, has every strategy of the site at
-hand and runs the five parts of brain.py: the market regime (which sizes the trades), the score out of 100, the risk sizing
-and the self-check; its strategies are open (every one may trade in every market but a panic), and for each trade it takes
-the one whose signals did best lately - one strategy alone, or 3 or 6 of them agreeing. Each one trades one sector: the
-one ranked 1 to 5 by the growth of its stocks over the last 12 months (ranked again every month), so the five together
-cover the five fastest-growing sectors. They also differ by what their score values in a stock, and how long they hold.
+Every bot trades all companies (the S&P 500 + the site's largest companies) with shares, and
+trades three COMBINED STRATEGIES (a combination buys a stock when enough of its strategies are in their buy state at once,
+and sells when they no longer are): the 15 best combinations of research/combos.py, dealt in turn. It runs the parts of
+brain.py on top: the market regime (which sizes the trades), the score out of 100, the risk sizing and the self-check, and
+for each trade it takes the combination whose signals did best lately.
 The risk rules are the lighter ones asked for (LOOSE); the test shows each bot period by period, 2008 to now.
 """
 import json
 import os
 
 import brain as BR
-import engine
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 RESULTS = os.path.join(HERE, "smart_results.json")
 FEE = 0.10          # % per side: the broker fee and the slippage of a real fill together (conservative for large companies)
 
-ALL = {name: {} for name in engine.STRATEGIES}     # every bot has every strategy at hand, each at its own default settings
-
-# what every bot allows itself: every strategy in every market (open: no family is set aside, no style is preferred; the bot
-# takes, for each trade, the strategy whose signals did best lately), a sideways market at 90% of the size and a bear one at
-# half, nothing new in a panic, no forced selling; 2% risk a trade, up to 4 trades a sector, trades half size from 15% under
-# the peak and a 15-session break at 30%
-OPEN = ["trend", "breakout", "momentum", "reversion"]
-LOOSE = {"min_score": 45, "choose": "edge", "prefer": [], "bonus": 0, "multi": [3, 6], "sector_days": 252,
-         "allow": {"bull": OPEN, "neutral": OPEN, "bear": OPEN, "stress": []},
+# the 15 best combined strategies of research/combos.py (every pair, triple and group of four, ranked on 2010-2019), dealt
+# to the five bots in turn: each bot has one of the top 5, one of 6-10 and one of 11-15, and picks per trade the one whose
+# signals did best lately
+LOOSE = {"min_score": 45, "choose": "edge", "prefer": [], "bonus": 0, "multi": [], "sector_rank": 0,
+         "allow": {"bull": ["trend", "breakout", "momentum", "reversion"], "neutral": ["trend", "breakout", "momentum", "reversion"],
+                   "bear": ["trend", "breakout", "momentum", "reversion"], "stress": []},
          "size": {"bull": 1.0, "neutral": 0.9, "bear": 0.5, "stress": 0.0},
          "exposure": {"bull": 1.0, "neutral": 0.9, "bear": 0.5, "stress": 0.0},
          "exit": [], "risk": 2.0, "size_floor": 0.9, "atr": 3.0, "sector_cap": 4, "be_r": 0, "trail_atr": 0, "time_bars": 0,
@@ -37,55 +32,55 @@ LOOSE = {"min_score": 45, "choose": "edge", "prefer": [], "bonus": 0, "multi": [
          "stress_vol": 40, "stress_x": 2.5}
 
 BOTS = {
-    "adaptive": {
-        "name": ("Adaptive All-Weather", "المتكيّف مع السوق"),
-        "idea": ("Trades the third fastest-growing sector of the market (by its stocks' growth over the last 12 months, checked every month). Any strategy, alone or several agreeing, whichever has worked best lately; it weighs the six parts of a trade's score evenly and trades "
-                 "smaller in a sideways or a bear market.",
-                 "يتداول في القطاع الثالث نمواً في السوق (حسب نمو أسهمه في آخر 12 شهر، ويتحدّث كل شهر). أي استراتيجية، لحالها أو عدة استراتيجيات متفقة، اللي كانت الأنجح مؤخراً؛ ويوزن أجزاء التقييم الستة بالتوازن، ويتداول بحجم أصغر في السوق العرضي "
-                 "والهابط."),
+    "strong": {
+        "name": ("Strong Stocks on Sale", "الأسهم القوية بسعر مخفّض"),
+        "idea": ("Buys a short dip in stocks that its momentum and factor strategies call strong, only when all the strategies of one of its three combinations agree.",
+                 "يشتري الهبوط القصير في الأسهم اللي تقول عنها استراتيجيات الزخم والعوامل إنها قوية، وبس لما تتفق كل استراتيجيات وحدة من تركيباته الثلاث."),
         "max_pos": 10,
-        "brain": {**LOOSE, "sector_rank": 3},
+        "brain": {**LOOSE, "combos": [{"of": ["VWAP Mean Reversion", "Multi-Factor Strategy", "Momentum Strategy", "Portfolio-Level Strategy"], "min": 4},
+                                       {"of": ["Momentum Strategy", "VWAP Mean Reversion", "Multi-Factor Strategy"], "min": 3},
+                                       {"of": ["VWAP Mean Reversion", "Statistical Arbitrage", "Multi-Factor Strategy", "Relative Strength Strategy"], "min": 3}]},
     },
-    "trend": {
-        "name": ("Trend Rider", "راكب الاتجاه"),
-        "idea": ("Trades the second fastest-growing sector of the market (by its stocks' growth over the last 12 months, checked every month). Any strategy, alone or several agreeing, whichever fits the trade; among the stocks that signal it buys those with the strongest "
-                 "trends first, and lets a winner run until its strategy says sell.",
-                 "يتداول في القطاع الثاني نمواً في السوق (حسب نمو أسهمه في آخر 12 شهر، ويتحدّث كل شهر). أي استراتيجية تناسب الصفقة، لحالها أو عدة استراتيجيات متفقة؛ ومن الأسهم اللي تعطي إشارة يشتري أول اللي اتجاهها أقوى، ويخلّي الصفقة الرابحة تمشي "
-                 "لين تقول استراتيجيتها بيع."),
+    "factor": {
+        "name": ("Factor Dips", "تصحيحات العوامل"),
+        "idea": ("Buys dips that its factor, momentum and statistical strategies agree on: three combinations of three or four strategies.",
+                 "يشتري التصحيحات اللي تتفق عليها استراتيجيات العوامل والزخم والإحصاء: ثلاث تركيبات من ثلاث أو أربع استراتيجيات."),
         "max_pos": 10,
-        "brain": {**LOOSE, "sector_rank": 2, "weights": {"trend": 30, "mom": 20, "vol": 10, "volat": 10, "struct": 15, "rr": 15}},
+        "brain": {**LOOSE, "combos": [{"of": ["VWAP Mean Reversion", "Mean Reversion", "Multi-Factor Strategy", "Momentum Strategy"], "min": 4},
+                                       {"of": ["SMA Crossover", "VWAP Mean Reversion", "Multi-Factor Strategy"], "min": 3},
+                                       {"of": ["VWAP Mean Reversion", "RSI Mean Reversion", "Statistical Arbitrage", "Momentum Strategy"], "min": 3}]},
     },
-    "breakout": {
-        "name": ("Breakout Hunter", "صياد الاختراقات"),
-        "idea": ("Trades the fourth fastest-growing sector of the market (by its stocks' growth over the last 12 months, checked every month). Any strategy, alone or several agreeing, whichever fits the trade; it buys first the stocks near their highs on heavy volume, and drops "
-                 "a trade that goes nowhere in 20 sessions.",
-                 "يتداول في القطاع الرابع نمواً في السوق (حسب نمو أسهمه في آخر 12 شهر، ويتحدّث كل شهر). أي استراتيجية تناسب الصفقة، لحالها أو عدة استراتيجيات متفقة؛ ويشتري أول الأسهم القريبة من قممها بحجم تداول عالي، ويطلع من الصفقة اللي ما تتحرك "
-                 "خلال 20 جلسة."),
+    "deep": {
+        "name": ("Deep Pullbacks", "التصحيحات العميقة"),
+        "idea": ("Waits until two mean-reversion strategies and the market's own trend and rotation strategies agree on a stock, then buys the pullback.",
+                 "ينتظر لين تتفق استراتيجيتين للارتداد للمتوسط مع استراتيجيات الاتجاه والتدوير على سهم، وبعدين يشتري التصحيح."),
         "max_pos": 10,
-        "brain": {**LOOSE, "sector_rank": 4, "atr": 2.5, "time_bars": 20, "time_r": 0.5,
-                  "weights": {"trend": 15, "mom": 15, "vol": 25, "volat": 10, "struct": 20, "rr": 15}},
+        "brain": {**LOOSE, "combos": [{"of": ["VWAP Mean Reversion", "Mean Reversion", "Regime-Based Strategy", "Portfolio-Level Strategy"], "min": 4},
+                                       {"of": ["VWAP Mean Reversion", "Mean Reversion", "Multi-Factor Strategy", "Portfolio-Level Strategy"], "min": 4},
+                                       {"of": ["VWAP Reclaim / Pullback", "Pairs Trading", "Statistical Arbitrage"], "min": 2}]},
     },
-    "momentum": {
-        "name": ("Momentum Leaders", "قادة الزخم"),
-        "idea": ("Trades the fastest-growing sector of the market (by its stocks' growth over the last 12 months, checked every month). Any strategy, alone or several agreeing, whichever fits the trade; among the stocks that signal it buys the market's strongest first, "
-                 "ranked by momentum.",
-                 "يتداول في القطاع الأسرع نمواً في السوق (حسب نمو أسهمه في آخر 12 شهر، ويتحدّث كل شهر). أي استراتيجية تناسب الصفقة، لحالها أو عدة استراتيجيات متفقة؛ ومن الأسهم اللي تعطي إشارة يشتري أول أقوى أسهم السوق، مرتبة حسب الزخم."),
+    "trendpb": {
+        "name": ("Trend Pullbacks", "تصحيحات الاتجاه"),
+        "idea": ("Buys a pullback to the average price in stocks whose regime and rotation strategies say the trend is up.",
+                 "يشتري نزول السعر لمتوسطه في الأسهم اللي تقول استراتيجيات الحالة والتدوير إن اتجاهها صاعد."),
         "max_pos": 10,
-        "brain": {**LOOSE, "sector_rank": 1, "weights": {"trend": 20, "mom": 35, "vol": 10, "volat": 10, "struct": 15, "rr": 10}},
+        "brain": {**LOOSE, "combos": [{"of": ["VWAP Mean Reversion", "Regime-Based Strategy", "Portfolio-Level Strategy"], "min": 3},
+                                       {"of": ["VWAP Mean Reversion", "RSI Mean Reversion", "Statistical Arbitrage", "Regime-Based Strategy"], "min": 3},
+                                       {"of": ["VWAP Mean Reversion", "MFI Money Flow (Volume)", "Multi-Factor Strategy", "Moving Average Crossover"], "min": 3}]},
     },
-    "pullback": {
-        "name": ("Pullback Buyer", "صياد التصحيحات"),
-        "idea": ("Trades the fifth fastest-growing sector of the market (by its stocks' growth over the last 12 months, checked every month). Any strategy, alone or several agreeing, whichever fits the trade; it buys first the stocks in an uptrend with the most room to their "
-                 "recent high, and never holds a trade more than 10 sessions unless it's working.",
-                 "يتداول في القطاع الخامس نمواً في السوق (حسب نمو أسهمه في آخر 12 شهر، ويتحدّث كل شهر). أي استراتيجية تناسب الصفقة، لحالها أو عدة استراتيجيات متفقة؛ ويشتري أول الأسهم اللي اتجاهها صاعد وعندها أكبر مجال لين قمتها القريبة، وما يمسك "
-                 "الصفقة أكثر من 10 جلسات إلا إذا كانت ماشية."),
-        "max_pos": 12,
-        "brain": {**LOOSE, "sector_rank": 5, "atr": 2.5, "time_bars": 10, "time_r": 0.0,
-                  "weights": {"trend": 30, "mom": 20, "vol": 5, "volat": 15, "struct": 10, "rr": 20}},
+    "golden": {
+        "name": ("Golden Cross Pullbacks", "تصحيحات التقاطع الذهبي"),
+        "idea": ("Buys a dip in stocks above their golden cross (50-day over 200-day average) when the regime strategy agrees, or when several reversion and relative-strength strategies do.",
+                 "يشتري الهبوط في الأسهم اللي فوق تقاطعها الذهبي (متوسط 50 فوق 200) لما توافق استراتيجية الحالة، أو لما تتفق عدة استراتيجيات للارتداد والقوة النسبية."),
+        "max_pos": 10,
+        "brain": {**LOOSE, "combos": [{"of": ["Golden Cross (50/200)", "VWAP Mean Reversion", "Regime-Based Strategy"], "min": 3},
+                                       {"of": ["Mean Reversion", "Statistical Arbitrage", "Regime-Based Strategy", "Relative Strength Strategy"], "min": 3},
+                                       {"of": ["VWAP Mean Reversion", "Pairs Trading", "Multi-Factor Strategy"], "min": 2}]},
     },
 }
-for _b in BOTS.values():
-    _b["strategies"] = ALL
+for _b in BOTS.values():                          # each bot has the strategies of its combinations, at their defaults
+    _b["strategies"] = {x: {} for c in _b["brain"]["combos"] for x in c["of"]}
+
 ORDER = list(BOTS)
 
 

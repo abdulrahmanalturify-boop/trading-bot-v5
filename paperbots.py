@@ -729,8 +729,13 @@ def simulate(bot, px, spy=None, record=None):
     labels = [COMBO] if combo and not pb_combo else names      # what opens a trade: each strategy, or the combined rule
     # a smart bot (brain.py): market regime, strategy families by regime, a score out of 100, risk sizing, circuit breakers
     brain = bot.get("brain") if isinstance(bot.get("brain"), dict) else None
-    multi = [m for m in (brain or {}).get("multi") or [] if m <= len(names)] if not combo and not any(map(is_playbook, names)) else []
-    if multi:                                                  # a smart bot may also trade when several strategies agree
+    plain_ok = not combo and not any(map(is_playbook, names))
+    mixes = [c for c in (brain or {}).get("combos") or [] if all(x in names for x in c["of"])] if plain_ok else []
+    multi = [m for m in (brain or {}).get("multi") or [] if m <= len(names)] if plain_ok and not mixes else []
+    members_of = {BR.combo_label(c): c["of"] for c in mixes}
+    if mixes:                                                  # a smart bot with combined strategies trades only them
+        labels = list(members_of)
+    elif multi:                                                # a smart bot may also trade when several strategies agree
         labels = names + [BR.AGREE.format(m) for m in multi]
     S = len(labels)
     b_atr = float(bot["atr_mult"] or (brain or {}).get("atr") or 3.0)
@@ -808,6 +813,12 @@ def simulate(bot, px, spy=None, record=None):
             if want_put:                                   # puts: bought when the rule breaks, sold when it is met again
                 PENT[0, p, j] = (~cond & cond.shift(1, fill_value=False)).to_numpy()
                 PEXT[0, p, j] = cond.to_numpy()
+        elif mixes:                                            # combined strategies: in while at least m of theirs are
+            st_map = {nm_: _state(e, x) for nm_, (e, x) in zip(names, sig)}
+            for i_, c in enumerate(mixes):
+                cond = sum(st_map[x_] for x_ in c["of"]) >= c["min"]
+                ENT[i_, p, j] = (cond & ~cond.shift(1, fill_value=False)).to_numpy()
+                EXT[i_, p, j] = (~cond).to_numpy()
         else:
             if multi:                                          # "m strategies agree": in at least m buy states at once
                 cnt = sum(_state(e, x) for e, x in sig)
@@ -829,7 +840,8 @@ def simulate(bot, px, spy=None, record=None):
         # self-check on, only while its signals of the last year kept an edge over the average stock); 3) a signal counts
         # only with a score of at least min_score, and the best scores fill the free slots first
         codes, rparts = BR.regime(spy, idx, BPX["above50"], brain["stress_vol"], brain["stress_x"])
-        fams_ = [[BR.family_of(x_) for x_ in names] if (nm == COMBO or BR.agree_level(nm)) else [BR.family_of(nm)] for nm in labels]
+        fams_ = [[BR.family_of(x_) for x_ in members_of[nm]] if nm in members_of else
+                 [BR.family_of(x_) for x_ in names] if (nm == COMBO or BR.agree_level(nm)) else [BR.family_of(nm)] for nm in labels]
         allowed = np.array([[any(f_ in brain["allow"][r] for f_ in fl_) for r in BR.REGIMES] for fl_ in fams_], bool)
         muted = np.zeros((S, T), bool)
         EDGE = np.full((S, T), np.nan)                        # each strategy's recent edge (for the choice of strategy)
