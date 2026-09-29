@@ -1,2 +1,2 @@
-A.Alturaifi Pro - version 14.1 (smart ready bots: one strategy or several agreeing, picked per trade; each trades one of the five fastest-growing sectors)
+A.Alturaifi Pro - version 14.2 (smart ready bots with combined strategies: the 15 best combinations of 2-4 strategies, three per bot)
 If you can see this file on GitHub, the new version was uploaded correctly.

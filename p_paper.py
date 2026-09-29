@@ -3646,14 +3646,15 @@ GATE_TXT = {"pause": ("It is taking a break after a deep drawdown: no new buys f
 
 def _smart_fams(fams):
     if set(fams) == set(BR.FAMILIES):
-        return L("Any strategy", "أي استراتيجية")
+        return L("Any of its strategies", "أي من استراتيجياته")
     return " · ".join(L(*BR.FAMILY_LABEL[f]) for f in fams) or L("No new trades", "ولا صفقة جديدة")
 
 
 def _smart_chips(br):
     out = []
     if br.get("choose") == "edge":
-        out.append(L("Picks the strategy for each trade", "يختار الاستراتيجية لكل صفقة"))
+        out.append(L("Picks the combination for each trade", "يختار التركيبة لكل صفقة") if br.get("combos") else
+                   L("Picks the strategy for each trade", "يختار الاستراتيجية لكل صفقة"))
     if br.get("multi"):
         out.append(L("One strategy or several agreeing (", "استراتيجية وحدة أو عدة متفقة (") + ", ".join(f"{m}+" for m in br["multi"]) + ")")
     if br.get("prefer") and br.get("bonus"):
@@ -3758,7 +3759,7 @@ def _smart_card(key, res, have):
         def dd(x):
             return iso(f"{x['maxdd'] * 100:.0f}%")
         sp = iso("S&P 500")
-        pl = (plain.get("periods") or {}).get("oos") if isinstance(plain, dict) else None
+        pl = (plain.get("periods") or {}).get("oos") if isinstance(plain, dict) and not br.get("combos") else None
         if full and spy_full:
             note = L(f"2008 → now: {yr(full)} a year, worst drop {dd(full)} (S&P 500: {yr(spy_full)} a year, {dd(spy_full)}). ",
                      f"من 2008 لين اليوم: {yr(full)} سنوياً، وأكبر هبوط {dd(full)} ({sp}: {yr(spy_full)} سنوياً، {dd(spy_full)}). ")
@@ -4107,4 +4108,4 @@ def page_paper_bots():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "14.1"
+BUILD = "14.2"
