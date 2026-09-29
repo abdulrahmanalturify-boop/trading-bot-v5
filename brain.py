@@ -85,7 +85,8 @@ DEFAULTS = {
     "multi": [],                      # besides each strategy alone, "m strategies agree" rules (buy when at least m of them
                                       # are in their buy state, sell when fewer are): the bot may trade on one or on several
     "combos": [],                     # combined strategies: [{"of": [strategies], "min": m}] - each is "in" a stock while at
-                                      # least m of its strategies are in their buy state; with combos the bot trades only them
+                                      # least m of its strategies are in their buy state (one strategy alone trades on its own
+                                      # signals); with combos the bot trades only them
     "sector_rank": 0,                 # trade only the sector ranked this by the growth of its stocks over `sector_days`
     "sector_days": 252,               # sessions (re-ranked at the start of every month; 0 = every sector)
 }
@@ -144,13 +145,14 @@ def clean(b):
 
 
 def _combos(v):
-    """Combined strategies, cleaned: up to 6, each of 2..6 different strategies with an agreement of 1..all."""
+    """Combined strategies, cleaned: up to 6, each of 1..6 different strategies with an agreement of 1..all (one strategy
+    alone is that strategy trading on its own signals, next to the combinations)."""
     out = []
     for c in (v if isinstance(v, (list, tuple)) else [])[:6]:
         if not isinstance(c, dict) or not isinstance(c.get("of"), (list, tuple)):
             continue
         of = list(dict.fromkeys(str(x) for x in c["of"] if isinstance(x, str) and x))[:6]
-        if len(of) < 2:
+        if not of:
             continue
         m = int(round(_f(c.get("min", len(of)), 1, len(of), len(of))))
         out.append({"of": of, "min": m})
@@ -158,7 +160,10 @@ def _combos(v):
 
 
 def combo_label(c):
-    """The name a combined strategy trades under: its strategies joined by ' & ', with its agreement: 'A & B (2/2)'."""
+    """The name a combined strategy trades under: its strategies joined by ' & ', with its agreement: 'A & B (2/2)'; one
+    strategy alone trades under its own name."""
+    if len(c["of"]) == 1:
+        return c["of"][0]
     return " & ".join(c["of"]) + f" ({c['min']}/{len(c['of'])})"
 
 

@@ -61,8 +61,17 @@ def variants(key):
          "score_m10": {**br, "min_score": max(br["min_score"] - 10, 0)},
          "score_p10": {**br, "min_score": min(br["min_score"] + 10, 100)},
          "first_combo": {**br, "choose": "first"},
-         "risk_1": {**br, "risk": 1.0}}
-    out = {n: (b["strategies"], b["max_pos"], (BR.clean(x) if x else None), (x or br)["atr"]) for n, x in v.items()}
+         "risk_1": {**br, "risk": 1.0},
+         # the lighter risk rules the bots had before (14.0-14.4): what the high risk changes
+         "loose_risk": {**br, **{k: SB.LOOSE[k] for k in SB.RISK_KEYS}}}
+    strategies = {n: b["strategies"] for n in v}
+    # a single strategy in place of a combination: the same bot with the combination back (what the swap changes)
+    solo = [c for c in br.get("combos") or [] if len(c["of"]) == 1]
+    if solo and SB.SWAPPED.get(key):
+        back = [c for c in br["combos"] if len(c["of"]) > 1] + [SB.SWAPPED[key]]
+        v["combo_back"] = {**br, "combos": back}
+        strategies["combo_back"] = {x: {} for c in back for x in c["of"]}
+    out = {n: (strategies[n], b["max_pos"], (BR.clean(x) if x else None), (x or br)["atr"]) for n, x in v.items()}
     # fewer open trades, each bigger: combined strategies hold few stocks at once (about 5 in research/combos.py)
     out.update({f"pos{m}": (b["strategies"], m, br, br["atr"]) for m in (5, 7) if m != b["max_pos"]})
     return out

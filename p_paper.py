@@ -3678,7 +3678,7 @@ def _smart_mixes(br):
     """A smart bot's combined strategies: which strategies, and how many of them must agree."""
     def row(i, c):
         m, n = c["min"], len(c["of"])
-        rule = L(f"{m} of {n} agree", f"تتفق {m} من {n}")
+        rule = L(f"{m} of {n} agree", f"تتفق {m} من {n}") if n > 1 else L("On its own", "لحالها")
         return (f'<div class="mxr"><span class="n">{i + 1}</span><span class="t">{T.esc(" + ".join(strat_short(x) for x in c["of"]))}</span>'
                 f'<span class="r">{T.esc(rule)}</span></div>')
     if not br.get("combos"):
@@ -3733,7 +3733,9 @@ def _smart_card(key, res, have):
     full, spy_full = per.get("full"), (bench.get("full") or {}).get("spy")
     strats = strategies_label(list(b["strategies"]))
     if br.get("combos"):
-        strats = L(f"{len(br['combos'])} combined strategies", f"{len(br['combos'])} استراتيجيات مركّبة")
+        n_mx = sum(len(c["of"]) > 1 for c in br["combos"])
+        solo = [strat_short(c["of"][0]) for c in br["combos"] if len(c["of"]) == 1]
+        strats = " + ".join(([L(f"{n_mx} combined strategies", f"{n_mx} استراتيجيات مركّبة")] if n_mx else []) + solo)
     rk = br.get("sector_rank") or 0
     secb = (r.get("sector_hold") or {}).get("periods") if rk else None
     if rk:
@@ -3794,20 +3796,21 @@ def ready_section(bots, can_add):
     res = SB.results()
     have = {k for k in SB.ORDER for b in bots if SB.same_bot(b, k)}
     n = (res or {}).get("n_stocks")
-    sub = L("Five bots that read the market before they trade: the regime (bull, sideways, bear or panic) decides which of their "
-            "strategies may open trades, every signal gets a score out of 100 (trend, momentum, volume, volatility, price structure "
-            "and reward/risk) and only good ones are bought, the best first; each trade is sized by its risk, and the bot pauses "
-            "itself after a deep drawdown or a losing streak and mutes a strategy that lost its edge. Each trades six combined "
-            "strategies (a stock is bought when all or most strategies of a combination agree): the 30 best of every pair, triple "
-            "and group of four of the site's strategies on 2010–2019, dealt in turn, and for each trade it takes the combination "
-            "that has worked best lately. Each one was tested on real "
+    sub = L("Five bots that read the market before they trade: the regime (bull, sideways, bear or panic) sizes their trades, "
+            "every signal gets a score out of 100 (trend, momentum, volume, volatility, price structure and reward/risk) and only "
+            "good ones are bought, the best first; each trade is sized by its risk, and a strategy that lost its edge is muted. "
+            "They take high risk: full size in every market, trades even in a panic (at half size), 3% risk a trade, and only a "
+            "deep drawdown slows them down. Strong Stocks on Sale trades five combined strategies (a stock is bought when all or "
+            "most strategies of a combination agree) and Donchian Breakout on its own; the other four have every strategy of the "
+            "site at hand, and each takes, for every trade, the strategy that has worked best lately. Each one was tested on real "
             f"prices of {n or 'all the'} companies from 2008 to now, period by period, through this site's own bot engine.",
-            "خمس بوتات تقرأ السوق قبل ما تتداول: حالة السوق (صاعد، عرضي، هابط أو ذعر) تحدد أي استراتيجياتها تفتح صفقات، وكل إشارة "
-            "تاخذ تقييم من 100 (الاتجاه، الزخم، الحجم، التذبذب، بنية السعر، والعائد مقابل المخاطرة) وما يشتري إلا الزينة والأفضل أول؛ "
-            "وكل صفقة حجمها حسب مخاطرتها، والبوت يوقف نفسه بعد هبوط كبير أو خسائر متتالية ويسكّت الاستراتيجية اللي ضعفت. وكل بوت عنده "
-            "ست استراتيجيات مركّبة (يشتري السهم لما تتفق كل أو أغلب استراتيجيات التركيبة): أفضل 30 تركيبة من كل ثنائي وثلاثي "
-            "ورباعي من استراتيجيات الموقع على 2010–2019، موزعة بالدور، ولكل صفقة ياخذ التركيبة الأنجح مؤخراً. وكل واحد "
-            f"منها مختبر على أسعار حقيقية لـ {n or 'كل'} شركة من 2008 لين اليوم، فترة بفترة، بمحرّك البوتات نفسه في الموقع.")
+            "خمس بوتات تقرأ السوق قبل ما تتداول: حالة السوق (صاعد، عرضي، هابط أو ذعر) تحدد حجم صفقاتها، وكل إشارة تاخذ تقييم من 100 "
+            "(الاتجاه، الزخم، الحجم، التذبذب، بنية السعر، والعائد مقابل المخاطرة) وما يشتري إلا الزينة والأفضل أول؛ وكل صفقة حجمها "
+            "حسب مخاطرتها، والاستراتيجية اللي ضعفت تسكت. ومخاطرتها عالية: حجم كامل في كل الأسواق، وتتداول حتى وقت الذعر (بنص الحجم)، "
+            "و3% مخاطرة لكل صفقة، وما يبطّئها إلا هبوط كبير. «الأسهم القوية بسعر مخفّض» عنده خمس استراتيجيات مركّبة (يشتري السهم لما "
+            "تتفق كل أو أغلب استراتيجيات التركيبة) واختراق دونشيان لحاله؛ والأربعة الباقين عندهم كل استراتيجيات الموقع، وكل واحد ياخذ "
+            "لكل صفقة الاستراتيجية الأنجح مؤخراً. وكل واحد منها مختبر على أسعار حقيقية لـ "
+            f"{n or 'كل'} شركة من 2008 لين اليوم، فترة بفترة، بمحرّك البوتات نفسه في الموقع.")
     ui.html(f'<div class="aihd"><span class="i">{T.icon("neurology")}</span><span class="t">{L("Ready bots", "بوتات جاهزة")}</span>'
             f'<span class="s">{T.esc(sub)}</span></div>')
     oos_ = lambda k_: ((((res or {}).get("bots") or {}).get(k_) or {}).get("smart") or {}).get("periods", {}).get("oos") or {}

@@ -814,8 +814,14 @@ def simulate(bot, px, spy=None, record=None):
                 PENT[0, p, j] = (~cond & cond.shift(1, fill_value=False)).to_numpy()
                 PEXT[0, p, j] = cond.to_numpy()
         elif mixes:                                            # combined strategies: in while at least m of theirs are
-            st_map = {nm_: _state(e, x) for nm_, (e, x) in zip(names, sig)}
+            sg_map = dict(zip(names, sig))
+            st_map = {nm_: _state(e, x) for nm_, (e, x) in sg_map.items()}
             for i_, c in enumerate(mixes):
+                if len(c["of"]) == 1:                          # one strategy on its own: its own buy and sell signals
+                    e, x = sg_map[c["of"][0]]
+                    ENT[i_, p, j] = e.fillna(False).astype(bool).to_numpy()
+                    EXT[i_, p, j] = x.fillna(False).astype(bool).to_numpy()
+                    continue
                 cond = sum(st_map[x_] for x_ in c["of"]) >= c["min"]
                 ENT[i_, p, j] = (cond & ~cond.shift(1, fill_value=False)).to_numpy()
                 EXT[i_, p, j] = (~cond).to_numpy()

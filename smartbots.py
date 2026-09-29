@@ -3,98 +3,104 @@ smartbots.py - The five ready smart bots (brain.py on top of the bot engine): th
 (smart_results.json, written by research/smart.py in GitHub Actions). The Paper Bots page offers them in "Ready bots"; a bot
 starts only when someone adds it.
 
-Every bot trades all companies (the S&P 500 + the site's largest companies) with shares, and
-trades six COMBINED STRATEGIES (a combination buys a stock when enough of its strategies are in their buy state at once,
-and sells when they no longer are): the 30 best combinations of research/combos.py, dealt in turn. It runs the parts of
-brain.py on top: the market regime (which sizes the trades), the score out of 100, the risk sizing and the self-check, and
-for each trade it takes the combination whose signals did best lately.
-The risk rules are the lighter ones asked for (LOOSE); the test shows each bot period by period, 2008 to now.
+Every bot trades all companies (the S&P 500 + the site's largest companies) with shares and runs the parts of brain.py:
+the market regime, the score out of 100, the risk sizing and the self-check, and for each trade it takes the strategy (or
+combination) whose signals did best lately.
+- Strong Stocks on Sale trades five COMBINED STRATEGIES (a combination buys a stock when enough of its strategies are in
+  their buy state at once, and sells when they no longer are), picked from the best of research/combos.py, plus Donchian
+  Breakout on its own signals (in place of its weakest combination on 2010-2019).
+- The other four have every strategy of the site at hand, open (every one may trade in every market); they differ by what
+  their score values in a stock, and how long they hold.
+All five take HIGH risk (asked for): full size in every market, trades even in a panic (at half size), 3% risk a trade, and
+only a deep drawdown slows them down. The test shows each bot period by period, 2008 to now.
 """
 import json
 import os
 
 import brain as BR
+import engine
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 RESULTS = os.path.join(HERE, "smart_results.json")
 FEE = 0.10          # % per side: the broker fee and the slippage of a real fill together (conservative for large companies)
 
-# the 30 best combined strategies of research/combos.py (every pair, triple and group of four, ranked on 2010-2019 only), dealt
-# to the five bots in turn: each bot has six, one of each group of five (1-5, 6-10 ... 26-30), and picks per trade the one
-# whose signals did best lately
-LOOSE = {"min_score": 45, "choose": "edge", "prefer": [], "bonus": 0, "multi": [], "sector_rank": 0,
-         "allow": {"bull": ["trend", "breakout", "momentum", "reversion"], "neutral": ["trend", "breakout", "momentum", "reversion"],
-                   "bear": ["trend", "breakout", "momentum", "reversion"], "stress": []},
+ALL = {name: {} for name in engine.STRATEGIES}     # every strategy of the site at hand, each at its own default settings
+
+# HIGH risk (asked for): every strategy family in every market, a panic included; full size in a sideways and a bear market
+# and half size in a panic (nothing is sold because of the market); 3% risk a trade at the 3-ATR stop and every signal that
+# passes the score at full size; up to 5 trades a sector; trades half size only from 25% under the peak and a 10-session
+# break at 40%; no break after losing streaks or a bad day. The self-check (a strategy that lost its edge is muted) stays.
+OPEN = ["trend", "breakout", "momentum", "reversion"]
+HIGH = {"min_score": 45, "choose": "edge", "prefer": [], "bonus": 0, "multi": [], "sector_rank": 0,
+        "allow": {"bull": OPEN, "neutral": OPEN, "bear": OPEN, "stress": OPEN},
+        "size": {"bull": 1.0, "neutral": 1.0, "bear": 1.0, "stress": 0.5},
+        "exposure": {"bull": 1.0, "neutral": 1.0, "bear": 1.0, "stress": 0.5},
+        "exit": [], "risk": 3.0, "size_floor": 1.0, "atr": 3.0, "sector_cap": 5, "be_r": 0, "trail_atr": 0, "time_bars": 0,
+        "dd_half": 25, "dd_stop": 40, "pause": 10, "streak": 0, "cool": 0, "day_loss": 0, "decay": 1,
+        "stress_vol": 40, "stress_x": 2.5}
+# the lighter risk the bots had before (14.0 to 14.4), kept for the test's comparison
+LOOSE = {**HIGH, "allow": {"bull": OPEN, "neutral": OPEN, "bear": OPEN, "stress": []},
          "size": {"bull": 1.0, "neutral": 0.9, "bear": 0.5, "stress": 0.0},
          "exposure": {"bull": 1.0, "neutral": 0.9, "bear": 0.5, "stress": 0.0},
-         "exit": [], "risk": 2.0, "size_floor": 0.9, "atr": 3.0, "sector_cap": 4, "be_r": 0, "trail_atr": 0, "time_bars": 0,
-         "dd_half": 15, "dd_stop": 30, "pause": 15, "streak": 10, "cool": 2, "day_loss": 5, "decay": 1,
-         "stress_vol": 40, "stress_x": 2.5}
+         "risk": 2.0, "size_floor": 0.9, "sector_cap": 4, "dd_half": 15, "dd_stop": 30, "pause": 15, "streak": 10, "cool": 2,
+         "day_loss": 5}
+RISK_KEYS = ("allow", "size", "exposure", "risk", "size_floor", "sector_cap", "dd_half", "dd_stop", "pause", "streak", "cool",
+             "day_loss")
 
 BOTS = {
     "strong": {
         "name": ("Strong Stocks on Sale", "الأسهم القوية بسعر مخفّض"),
-        "idea": ("Buys a short dip in stocks that its momentum and factor strategies call strong, only when all or most strategies of one of its six combinations agree.",
-                 "يشتري الهبوط القصير في الأسهم اللي تقول عنها استراتيجيات الزخم والعوامل إنها قوية، وبس لما تتفق كل أو أغلب استراتيجيات وحدة من تركيباته الست."),
+        "idea": ("Buys a short dip in stocks that its momentum and factor strategies call strong, when all or most strategies of one of its five combinations agree, and also buys Donchian breakouts to a new 20-day high.",
+                 "يشتري الهبوط القصير في الأسهم اللي تقول عنها استراتيجيات الزخم والعوامل إنها قوية، لما تتفق كل أو أغلب استراتيجيات وحدة من تركيباته الخمس، ويشتري بعد اختراقات دونشيان لقمة 20 يوم جديدة."),
         "max_pos": 10,
-        "brain": {**LOOSE, "combos": [{"of": ["VWAP Mean Reversion", "Multi-Factor Strategy", "Momentum Strategy", "Portfolio-Level Strategy"], "min": 4},
-                                       {"of": ["Momentum Strategy", "VWAP Mean Reversion", "Multi-Factor Strategy"], "min": 3},
-                                       {"of": ["VWAP Mean Reversion", "Statistical Arbitrage", "Multi-Factor Strategy", "Relative Strength Strategy"], "min": 3},
-                                       {"of": ["Mean Reversion", "Multi-Factor Strategy", "Regime-Based Strategy", "Portfolio-Level Strategy"], "min": 4},
-                                       {"of": ["Mean Reversion", "Multi-Factor Strategy", "Regime-Based Strategy"], "min": 3},
-                                       {"of": ["VWAP Mean Reversion", "RSI Mean Reversion", "Relative Strength Strategy", "Portfolio-Level Strategy"], "min": 3}]},
+        # five of the 30 best combinations of research/combos.py (ranked on 2010-2019) and Donchian Breakout on its own, in
+        # place of "Mean Reversion & Multi-Factor & Regime-Based (3/3)", the one that earned least in this bot on 2010-2019
+        "brain": {**HIGH, "combos": [{"of": ["VWAP Mean Reversion", "Multi-Factor Strategy", "Momentum Strategy", "Portfolio-Level Strategy"], "min": 4},
+                                      {"of": ["Momentum Strategy", "VWAP Mean Reversion", "Multi-Factor Strategy"], "min": 3},
+                                      {"of": ["VWAP Mean Reversion", "Statistical Arbitrage", "Multi-Factor Strategy", "Relative Strength Strategy"], "min": 3},
+                                      {"of": ["Mean Reversion", "Multi-Factor Strategy", "Regime-Based Strategy", "Portfolio-Level Strategy"], "min": 4},
+                                      {"of": ["VWAP Mean Reversion", "RSI Mean Reversion", "Relative Strength Strategy", "Portfolio-Level Strategy"], "min": 3},
+                                      {"of": ["Donchian Breakout (Turtle)"], "min": 1}]},
     },
-    "factor": {
-        "name": ("Factor Dips", "تصحيحات العوامل"),
-        "idea": ("Buys dips that its factor, momentum, statistical and pairs strategies agree on: six combinations of three or four strategies.",
-                 "يشتري التصحيحات اللي تتفق عليها استراتيجيات العوامل والزخم والإحصاء والأزواج: ست تركيبات من ثلاث أو أربع استراتيجيات."),
+    "adaptive": {
+        "name": ("Adaptive All-Weather", "المتكيّف مع السوق"),
+        "idea": ("Any strategy, whichever has worked best lately; it weighs the six parts of a trade's score evenly.",
+                 "أي استراتيجية، اللي كانت الأنجح مؤخراً؛ ويوزن أجزاء التقييم الستة بالتوازن."),
         "max_pos": 10,
-        "brain": {**LOOSE, "combos": [{"of": ["VWAP Mean Reversion", "Mean Reversion", "Multi-Factor Strategy", "Momentum Strategy"], "min": 4},
-                                       {"of": ["SMA Crossover", "VWAP Mean Reversion", "Multi-Factor Strategy"], "min": 3},
-                                       {"of": ["VWAP Mean Reversion", "RSI Mean Reversion", "Statistical Arbitrage", "Momentum Strategy"], "min": 3},
-                                       {"of": ["VWAP Mean Reversion", "Statistical Arbitrage", "Multi-Factor Strategy", "Regime-Based Strategy"], "min": 3},
-                                       {"of": ["Pairs Trading", "Regime-Based Strategy", "Portfolio-Level Strategy"], "min": 3},
-                                       {"of": ["Pairs Trading", "VWAP Mean Reversion", "MFI Money Flow (Volume)", "Statistical Arbitrage"], "min": 3}]},
+        "brain": dict(HIGH),
     },
-    "deep": {
-        "name": ("Deep Pullbacks", "التصحيحات العميقة"),
-        "idea": ("Waits until its mean-reversion strategies and the market's own trend, rotation and momentum strategies agree on a stock, then buys the pullback: six combinations.",
-                 "ينتظر لين تتفق استراتيجيات الارتداد للمتوسط مع استراتيجيات الاتجاه والتدوير والزخم على سهم، وبعدين يشتري التصحيح: ست تركيبات."),
+    "trend": {
+        "name": ("Trend Rider", "راكب الاتجاه"),
+        "idea": ("Any strategy, whichever fits the trade; among the stocks that signal it buys those with the strongest "
+                 "trends first, and lets a winner run until its strategy says sell.",
+                 "أي استراتيجية تناسب الصفقة؛ ومن الأسهم اللي تعطي إشارة يشتري أول اللي اتجاهها أقوى، ويخلّي الصفقة الرابحة تمشي "
+                 "لين تقول استراتيجيتها بيع."),
         "max_pos": 10,
-        "brain": {**LOOSE, "combos": [{"of": ["VWAP Mean Reversion", "Mean Reversion", "Regime-Based Strategy", "Portfolio-Level Strategy"], "min": 4},
-                                       {"of": ["VWAP Mean Reversion", "Mean Reversion", "Multi-Factor Strategy", "Portfolio-Level Strategy"], "min": 4},
-                                       {"of": ["VWAP Reclaim / Pullback", "Pairs Trading", "Statistical Arbitrage"], "min": 2},
-                                       {"of": ["VWAP Mean Reversion", "RSI Mean Reversion", "Momentum Strategy", "Relative Strength Strategy"], "min": 3},
-                                       {"of": ["VWAP Mean Reversion", "Multi-Factor Strategy", "Portfolio-Level Strategy"], "min": 3},
-                                       {"of": ["Momentum Strategy", "Mean Reversion", "Statistical Arbitrage"], "min": 3}]},
+        "brain": {**HIGH, "weights": {"trend": 30, "mom": 20, "vol": 10, "volat": 10, "struct": 15, "rr": 15}},
     },
-    "trendpb": {
-        "name": ("Trend Pullbacks", "تصحيحات الاتجاه"),
-        "idea": ("Buys a pullback to the average price in stocks whose regime, rotation and trend strategies say the trend is up: six combinations.",
-                 "يشتري نزول السعر لمتوسطه في الأسهم اللي تقول استراتيجيات الحالة والتدوير والاتجاه إن اتجاهها صاعد: ست تركيبات."),
+    "momentum": {
+        "name": ("Momentum Leaders", "قادة الزخم"),
+        "idea": ("Any strategy, whichever fits the trade; among the stocks that signal it buys the market's strongest first, "
+                 "ranked by momentum.",
+                 "أي استراتيجية تناسب الصفقة؛ ومن الأسهم اللي تعطي إشارة يشتري أول أقوى أسهم السوق، مرتبة حسب الزخم."),
         "max_pos": 10,
-        "brain": {**LOOSE, "combos": [{"of": ["VWAP Mean Reversion", "Regime-Based Strategy", "Portfolio-Level Strategy"], "min": 3},
-                                       {"of": ["VWAP Mean Reversion", "RSI Mean Reversion", "Statistical Arbitrage", "Regime-Based Strategy"], "min": 3},
-                                       {"of": ["VWAP Mean Reversion", "MFI Money Flow (Volume)", "Multi-Factor Strategy", "Moving Average Crossover"], "min": 3},
-                                       {"of": ["SMA Crossover", "Bollinger Breakout", "Pairs Trading"], "min": 3},
-                                       {"of": ["Trend Following", "Mean Reversion", "Portfolio-Level Strategy"], "min": 3},
-                                       {"of": ["SMA Crossover", "Momentum Strategy", "VWAP Mean Reversion"], "min": 3}]},
+        "brain": {**HIGH, "weights": {"trend": 20, "mom": 35, "vol": 10, "volat": 10, "struct": 15, "rr": 10}},
     },
-    "golden": {
-        "name": ("Golden Cross Pullbacks", "تصحيحات التقاطع الذهبي"),
-        "idea": ("Buys a dip in stocks above their golden cross (50-day over 200-day average) when the regime strategy agrees, or when several reversion, relative-strength and money-flow strategies do: six combinations.",
-                 "يشتري الهبوط في الأسهم اللي فوق تقاطعها الذهبي (متوسط 50 فوق 200) لما توافق استراتيجية الحالة، أو لما تتفق عدة استراتيجيات للارتداد والقوة النسبية وتدفق السيولة: ست تركيبات."),
-        "max_pos": 10,
-        "brain": {**LOOSE, "combos": [{"of": ["Golden Cross (50/200)", "VWAP Mean Reversion", "Regime-Based Strategy"], "min": 3},
-                                       {"of": ["Mean Reversion", "Statistical Arbitrage", "Regime-Based Strategy", "Relative Strength Strategy"], "min": 3},
-                                       {"of": ["VWAP Mean Reversion", "Pairs Trading", "Multi-Factor Strategy"], "min": 2},
-                                       {"of": ["Golden Cross (50/200)", "Pairs Trading", "Regime-Based Strategy"], "min": 3},
-                                       {"of": ["Mean Reversion", "Statistical Arbitrage", "Momentum Strategy", "Portfolio-Level Strategy"], "min": 4},
-                                       {"of": ["MACD Crossover", "MFI Money Flow (Volume)", "VWAP Reclaim / Pullback"], "min": 3}]},
+    "pullback": {
+        "name": ("Pullback Buyer", "صياد التصحيحات"),
+        "idea": ("Any strategy, whichever fits the trade; it buys first the stocks in an uptrend with the most room to their "
+                 "recent high, and never holds a trade more than 10 sessions unless it's working.",
+                 "أي استراتيجية تناسب الصفقة؛ ويشتري أول الأسهم اللي اتجاهها صاعد وعندها أكبر مجال لين قمتها القريبة، وما يمسك "
+                 "الصفقة أكثر من 10 جلسات إلا إذا كانت ماشية."),
+        "max_pos": 12,
+        "brain": {**HIGH, "atr": 2.5, "time_bars": 10, "time_r": 0.0,
+                  "weights": {"trend": 30, "mom": 20, "vol": 5, "volat": 15, "struct": 10, "rr": 20}},
     },
 }
-for _b in BOTS.values():                          # each bot has the strategies of its combinations, at their defaults
-    _b["strategies"] = {x: {} for c in _b["brain"]["combos"] for x in c["of"]}
+# the combination a single strategy replaced (the test also runs the bot with it back)
+SWAPPED = {"strong": {"of": ["Mean Reversion", "Multi-Factor Strategy", "Regime-Based Strategy"], "min": 3}}
+for _b in BOTS.values():            # a bot with combinations has their strategies; the others have every strategy
+    _b["strategies"] = ({x: {} for c in _b["brain"]["combos"] for x in c["of"]} if _b["brain"].get("combos") else ALL)
 
 ORDER = list(BOTS)
 
