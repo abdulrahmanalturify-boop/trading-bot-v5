@@ -82,6 +82,10 @@ DEFAULTS = {
     "bonus": 0.0,
     "choose": "first",                # when several strategies signal on one stock: "edge" = the one whose signals did best
                                       # lately (its style first), "first" = the first in the list
+    "multi": [],                      # besides each strategy alone, "m strategies agree" rules (buy when at least m of them
+                                      # are in their buy state, sell when fewer are): the bot may trade on one or on several
+    "sector_rank": 0,                 # trade only the sector ranked this by the growth of its stocks over `sector_days`
+    "sector_days": 252,               # sessions (re-ranked at the start of every month; 0 = every sector)
 }
 EDGE_H, EDGE_WIN, EDGE_MIN, EDGE_CUT = 10, 250, 30, -0.01   # 10-session return after each signal, over the last year
 
@@ -124,6 +128,9 @@ def clean(b):
             "prefer": [f for f in FAMILIES if f in (b.get("prefer") if isinstance(b.get("prefer"), (list, tuple)) else [])],
             "bonus": _f(b.get("bonus", d["bonus"]), 0, 50, d["bonus"]),
             "choose": "edge" if b.get("choose") == "edge" else "first",
+            "multi": sorted({int(m) for m in (b.get("multi") if isinstance(b.get("multi"), (list, tuple)) else [])
+                             if isinstance(m, (int, float)) and 2 <= m <= 20}),
+            "sector_rank": ints("sector_rank", 0, 11), "sector_days": ints("sector_days", 21, 504),
             "sector_cap": ints("sector_cap", 0, 20), "be_r": _f(b.get("be_r", d["be_r"]), 0, 10, d["be_r"]),
             "trail_atr": _f(b.get("trail_atr", d["trail_atr"]), 0, 20, d["trail_atr"]),
             "time_bars": ints("time_bars", 0, 250), "time_r": _f(b.get("time_r", d["time_r"]), -5, 10, d["time_r"]),
@@ -135,6 +142,46 @@ def clean(b):
 
 def family_of(strategy):
     return FAMILY.get(strategy, "trend")
+
+
+AGREE = "__agree{}__"                 # the label of an "m strategies agree" rule
+
+
+def agree_level(label):
+    """m for an "m strategies agree" label, else None."""
+    if isinstance(label, str) and label.startswith("__agree") and label.endswith("__"):
+        try:
+            return int(label[7:-2])
+        except ValueError:
+            return None
+    return None
+
+
+# ---------------------------------------------------------------- the sector of a sector bot
+def sector_by_rank(CF, sectors, idx, rank, days=252, min_stocks=5):
+    """(T,) the sector a bot trades at each session: the one ranked `rank` by the average growth of its stocks over the
+    last `days` sessions, ranked again on the first session of every month from the closes up to the session before
+    (no look-ahead). '' until there is enough history. Also returns [(first day, sector)] for every change."""
+    T = len(CF)
+    names = sorted({s for s in sectors if s})
+    cols = {s: [j for j, x in enumerate(sectors) if x == s] for s in names}
+    cols = {s: c for s, c in cols.items() if len(c) >= min_stocks}
+    ix = _naive(idx)
+    out = np.array([""] * T, dtype=object)
+    cur, changes = "", []
+    for t in range(1, T):
+        if ix[t].month != ix[t - 1].month or t == 1:
+            if t - 1 - days >= 0:
+                with np.errstate(invalid="ignore", divide="ignore"):
+                    g = CF[t - 1] / CF[t - 1 - days] - 1
+                ranked = sorted(((float(np.nanmean(g[c])) if np.isfinite(g[c]).any() else -np.inf, s) for s, c in cols.items()),
+                                reverse=True)
+                new = ranked[rank - 1][1] if len(ranked) >= rank and np.isfinite(ranked[rank - 1][0]) else ""
+                if new != cur:
+                    cur = new
+                    changes.append((str(ix[t])[:10], cur))
+        out[t] = cur
+    return out, changes
 
 
 # ---------------------------------------------------------------- 1) the market regime

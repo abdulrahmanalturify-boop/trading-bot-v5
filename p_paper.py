@@ -584,9 +584,21 @@ PAGE_RTL_CSS = """<style>
 </style>"""
 
 
+SECTOR_ORD = {1: ("the fastest-growing sector", "القطاع الأسرع نمواً"), 2: ("the 2nd fastest-growing sector", "القطاع الثاني نمواً"),
+              3: ("the 3rd fastest-growing sector", "القطاع الثالث نمواً"), 4: ("the 4th fastest-growing sector", "القطاع الرابع نمواً"),
+              5: ("the 5th fastest-growing sector", "القطاع الخامس نمواً")}
+
+
+def sector_rank_label(rk):
+    return L(*SECTOR_ORD[rk]) if rk in SECTOR_ORD else L(f"sector #{rk} by growth", f"القطاع رقم {rk} نمواً")
+
+
 def strat_name(k):
     if k == PB.COMBO:
         return L("Agreement rule", "قاعدة الاتفاق")
+    m_ = BR.agree_level(k)
+    if m_:
+        return L(f"{m_}+ strategies agreeing", f"{m_}+ استراتيجيات متفقة")
     return L(k, engine.STRATEGY_AR.get(k) or PBK.AR.get(k, k))
 
 
@@ -1834,6 +1846,9 @@ def bot_header(sim):
                           "vio", "psychology")
     if b.get("brain"):
         br = b["brain"]
+        if br.get("sector_rank"):
+            now_ = (sim.get("brain") or {}).get("sector")
+            badges += T.badge(sector_rank_label(br["sector_rank"]) + ((" · " + sector_name(now_)) if now_ else ""), "gold", "category")
         badges += (T.badge(L("Smart bot: reads the market, scores every signal", "بوت ذكي: يقرأ السوق ويقيّم كل إشارة"), "vio", "neurology")
                    + T.badge(L(f"Score ≥ {br['min_score']:g}/100 · risk {br['risk']:g}% per trade",
                                f"تقييم ≥ {br['min_score']:g}/100 · مخاطرة {br['risk']:g}% لكل صفقة"), "gold", "balance"))
@@ -3626,6 +3641,8 @@ def _smart_chips(br):
     out = []
     if br.get("choose") == "edge":
         out.append(L("Picks the strategy for each trade", "يختار الاستراتيجية لكل صفقة"))
+    if br.get("multi"):
+        out.append(L("One strategy or several agreeing (", "استراتيجية وحدة أو عدة متفقة (") + ", ".join(f"{m}+" for m in br["multi"]) + ")")
     if br.get("prefer") and br.get("bonus"):
         out.append(L("Prefers ", "يفضّل ") + L(" · ", " · ").join(L(*BR.FAMILY_LABEL[f]) for f in br["prefer"]) + f" (+{br['bonus']:g})")
     out += [L(f"Score ≥ {br['min_score']:g}/100", f"تقييم ≥ {br['min_score']:g}/100"),
@@ -3689,16 +3706,23 @@ def _smart_card(key, res, have):
     oos, spy_oos = per.get("oos"), (bench.get("oos") or {}).get("spy")
     full, spy_full = per.get("full"), (bench.get("full") or {}).get("spy")
     strats = strategies_label(list(b["strategies"]))
-    sub = L(f"All companies · up to {b['max_pos']} trades · {strats}", f"كل الشركات · لين {b['max_pos']} صفقات · {strats}")
+    rk = br.get("sector_rank") or 0
+    secb = (r.get("sector_hold") or {}).get("periods") if rk else None
+    if rk:
+        now_ = sm.get("sector_now")
+        where = sector_rank_label(rk) + ((" · " + L("now: ", "الحين: ") + sector_name(now_)) if now_ else "")
+        sub = L(f"{where} · up to {b['max_pos']} trades · {strats}", f"{where} · لين {b['max_pos']} صفقات · {strats}")
+    else:
+        sub = L(f"All companies · up to {b['max_pos']} trades · {strats}", f"كل الشركات · لين {b['max_pos']} صفقات · {strats}")
     chips = "".join(f"<span>{T.esc(x)}</span>" for x in _smart_chips(br))
     table = ""
     if per and "error" not in sm:
         rows = "".join(f'<tr class="{"ai" if k in ("oos", "full") else ""}"><td>{T.esc(L(*SMART_PERIOD[k]))}</td>{_pct_cell(per.get(k), "cagr")}'
-                       f'{_pct_cell((bench.get(k) or {}).get("spy"), "cagr")}{_pct_cell((bench.get(k) or {}).get("hold"), "cagr")}'
+                       f'{_pct_cell((bench.get(k) or {}).get("spy"), "cagr")}{_pct_cell((secb or {}).get(k) if secb else (bench.get(k) or {}).get("hold"), "cagr")}'
                        f'<td class="dn">{(per.get(k) or {}).get("maxdd", 0) * 100:.0f}%</td></tr>'
                        for k in SMART_ROWS + ("oos", "full") if per.get(k))
         table = (f'<table><thead><tr><th>{L("Period · a year", "الفترة · سنوياً")}</th><th>{L("Bot", "البوت")}</th><th>S&amp;P</th>'
-                 f'<th>{L("Hold", "احتفاظ")}</th><th>{L("Max drop", "أكبر هبوط")}</th></tr></thead><tbody>{rows}</tbody></table>')
+                 f'<th>{L("Sector", "القطاع") if secb else L("Hold", "احتفاظ")}</th><th>{L("Max drop", "أكبر هبوط")}</th></tr></thead><tbody>{rows}</tbody></table>')
     note = ""
     if oos:
         def yr(x):
@@ -3746,13 +3770,15 @@ def ready_section(bots, can_add):
             "strategies may open trades, every signal gets a score out of 100 (trend, momentum, volume, volatility, price structure "
             "and reward/risk) and only good ones are bought, the best first; each trade is sized by its risk, and the bot pauses "
             "itself after a deep drawdown or a losing streak and mutes a strategy that lost its edge. Each has every strategy of the "
-            "site at hand and picks, for each trade, the one that suits the market and has worked best lately (its own style "
-            "first). Each one was tested on real "
+            "site at hand and picks, for each trade, the one that has worked best lately, alone or with several agreeing. Each one "
+            "trades one of the five fastest-growing sectors (by the growth of their stocks over the last 12 months, ranked again "
+            "every month). Each one was tested on real "
             f"prices of {n or 'all the'} companies from 2008 to now, period by period, through this site's own bot engine.",
             "خمس بوتات تقرأ السوق قبل ما تتداول: حالة السوق (صاعد، عرضي، هابط أو ذعر) تحدد أي استراتيجياتها تفتح صفقات، وكل إشارة "
             "تاخذ تقييم من 100 (الاتجاه، الزخم، الحجم، التذبذب، بنية السعر، والعائد مقابل المخاطرة) وما يشتري إلا الزينة والأفضل أول؛ "
             "وكل صفقة حجمها حسب مخاطرتها، والبوت يوقف نفسه بعد هبوط كبير أو خسائر متتالية ويسكّت الاستراتيجية اللي ضعفت. وكل بوت عنده "
-            "كل استراتيجيات الموقع، ويختار لكل صفقة الأنسب للسوق والأنجح مؤخراً (أسلوبه أول). وكل واحد "
+            "كل استراتيجيات الموقع، ويختار لكل صفقة الأنجح مؤخراً، لحالها أو مع عدة استراتيجيات متفقة. وكل بوت يتداول في قطاع من "
+            "أسرع خمس قطاعات نمواً (حسب نمو أسهمها في آخر 12 شهر، ويتحدّث الترتيب كل شهر). وكل واحد "
             f"منها مختبر على أسعار حقيقية لـ {n or 'كل'} شركة من 2008 لين اليوم، فترة بفترة، بمحرّك البوتات نفسه في الموقع.")
     ui.html(f'<div class="aihd"><span class="i">{T.icon("neurology")}</span><span class="t">{L("Ready bots", "بوتات جاهزة")}</span>'
             f'<span class="s">{T.esc(sub)}</span></div>')
@@ -3767,11 +3793,12 @@ def ready_section(bots, can_add):
                     st.button(L("Add this bot", "أضف هالبوت"), key=f"pb_ready_{key}", icon=":material/add:", width="stretch",
                               on_click=_open_ready, args=(key,), disabled=not can_add or key in have)
     st.caption(L(f"Returns are a year, for each period, with 100,000 of virtual money and {SB.FEE:g}% per side for "
-                 "the fee and the slippage. Hold = all the same stocks bought equally at the start of the period. The stock list is "
+                 "the fee and the slippage. Sector = holding the stocks of the bot's sector equally, switched every month like the "
+                 "bot (Hold = all the stocks, for a bot on every sector). The stock list is "
                  "today's S&P 500, so every number back in time is on the high side: compare a bot with Hold, not with zero. Past "
                  "results don't promise future ones.",
-                 f"العوائد سنوية لكل فترة، برأس مال وهمي 100,000 و{SB.FEE:g}% لكل جهة للعمولة والانزلاق. الاحتفاظ = نفس "
-                 "الأسهم كلها مشتراة بالتساوي في بداية الفترة. قائمة الأسهم هي S&P 500 اليوم، فكل الأرقام القديمة مرتفعة شوي: قارن البوت "
+                 f"العوائد سنوية لكل فترة، برأس مال وهمي 100,000 و{SB.FEE:g}% لكل جهة للعمولة والانزلاق. القطاع = الاحتفاظ بأسهم "
+                 "قطاع البوت بالتساوي، ويتبدل كل شهر مثل البوت (والاحتفاظ = كل الأسهم، لبوت على كل القطاعات). قائمة الأسهم هي S&P 500 اليوم، فكل الأرقام القديمة مرتفعة شوي: قارن البوت "
                  "بالاحتفاظ، مو بالصفر. النتائج السابقة ما تضمن اللي جاي."))
 
 
@@ -3829,6 +3856,9 @@ def brain_today(sim):
             chips.append(f'<span>{T.esc(L("Volatility", "التذبذب"))} <b>{p_["vol"] * 100:.0f}%</b></span>')
         if p_.get("breadth") is not None:
             chips.append(f'<span>{T.esc(L("Stocks above their 50-day average", "أسهم فوق متوسط 50 يوم"))} <b>{p_["breadth"] * 100:.0f}%</b></span>')
+        if br.get("sector_rank") and info.get("sector"):
+            chips.append(f'<span class="go">{T.icon("category")}<b>{T.esc(sector_name(info["sector"]))}</b> '
+                         f'{T.esc(sector_rank_label(br["sector_rank"]))}</span>')
         ui.html('<div class="aiday">' + "".join(chips) + "</div>")
         fams = br["allow"].get(rg) or []
         size = br["size"].get(rg, 0) * 100

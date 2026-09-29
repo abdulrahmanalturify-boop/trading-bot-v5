@@ -60,7 +60,8 @@ def variants(key):
          "no_selfcheck": {**br, "decay": 0, "streak": 0, "pause": 0, "day_loss": 0.0},
          "score_m10": {**br, "min_score": max(br["min_score"] - 10, 0)},
          "score_p10": {**br, "min_score": min(br["min_score"] + 10, 100)},
-         "first_choice": {**br, "choose": "first"},
+         "single_only": {**br, "multi": []},
+         "all_sectors": {**br, "sector_rank": 0},
          "risk_1": {**br, "risk": 1.0}}
     return {n: (b["strategies"], b["max_pos"], (BR.clean(x) if x else None), (x or br)["atr"]) for n, x in v.items()}
 
@@ -190,6 +191,7 @@ def run_one(job):
         exits = {k: int(v) for k, v in closed["Exit Reason"].value_counts().items()}
         monthly = (eq.resample("ME").last() / CAP).round(4)
         res.update(by_regime=by_reg, by_strategy=by_str, exits=exits, blocked=bb.get("blocked"), pauses=bb.get("pauses"),
+                   sector_now=bb.get("sector"), sectors=bb.get("sectors"),
                    regime_days=bb.get("regime_days"), regime_now=bb.get("regime"),
                    curve={"d": [f"{d:%Y-%m}" for d in monthly.index], "v": monthly.tolist()})
     return job, res
@@ -217,12 +219,32 @@ def main():
         sc = spy["Close"].astype(float)
         sc.index = pd.DatetimeIndex(sc.index).tz_localize(None) if pd.DatetimeIndex(sc.index).tz is not None else sc.index
         bench[pk] = {"spy": curve_stats(window(sc, a, b)), "hold": curve_stats(ew_hold(px, syms, a, b))}
+    # holding the sector a bot trades: its stocks bought equally, switched every month like the bot (a fair yardstick)
+    sec_hold = {}
+    cl = pd.concat({s_: px[s_]["Close"].astype(float) for s_ in syms if s_ in px}, axis=1).sort_index()
+    cl.index = pd.DatetimeIndex(cl.index).tz_localize(None) if pd.DatetimeIndex(cl.index).tz is not None else cl.index
+    cl = cl[cl.index >= pd.Timestamp("2005-01-01")]
+    CFm = cl.ffill().to_numpy(float)
+    sect_ = [PB.sector_of(s_) for s_ in cl.columns]
+    with np.errstate(invalid="ignore", divide="ignore"):
+        dr = np.vstack([np.full(CFm.shape[1], np.nan), CFm[1:] / CFm[:-1] - 1])
+    for k in SB.ORDER:
+        rk = BR.clean(SB.BOTS[k]["brain"])["sector_rank"]
+        if not rk:
+            continue
+        cur, _ = BR.sector_by_rank(CFm, sect_, cl.index, rk, 252)
+        member = (np.array(sect_, dtype=object)[None, :] == cur[:, None]) & (cur != "")[:, None]
+        cnt = (member & np.isfinite(dr)).sum(axis=1)
+        r_ = np.where(cnt > 0, np.where(member & np.isfinite(dr), dr, 0.0).sum(axis=1) / np.maximum(cnt, 1), 0.0)
+        curve = pd.Series(np.cumprod(1 + r_), index=cl.index) * CAP
+        sec_hold[k] = {pk: curve_stats(window(curve, a, b)) for pk, _, a, b in PERIODS}
     spy_m = window(sc, "2007-01-03", None)
     spy_m = (spy_m.resample("ME").last() / float(spy_m.iloc[0])).round(4)
     js = {"run": f"{pd.Timestamp.now(tz='UTC'):%Y-%m-%d %H:%M} UTC", "start": START, "capital": CAP, "fee": SB.FEE,
           "n_stocks": len([s for s in syms if s in px]), "periods": [{"key": k, "name": n, "from": a, "to": b} for k, n, a, b in PERIODS],
           "bench": bench, "spy_curve": {"d": [f"{d:%Y-%m}" for d in spy_m.index], "v": spy_m.tolist()},
-          "bots": {k: {v: rows[(k, v)] for v in variants(k)} for k in SB.ORDER}}
+          "bots": {k: {**{v: rows[(k, v)] for v in variants(k)}, **({"sector_hold": {"periods": sec_hold[k]}} if k in sec_hold else {})}
+                   for k in SB.ORDER}}
     json.dump(js, open(os.path.join(ROOT, "smart_results.json"), "w"), indent=0, default=float)
     # the report
     L = [f"# Smart bots · period test", "", f"Run {js['run']} · {js['n_stocks']} stocks · from {START} · fee+slippage {SB.FEE}% per side · "
@@ -258,6 +280,10 @@ def main():
             a_, b_ = r["periods"].get("ins") or {}, r["periods"].get("oos") or {}
             L.append(f"| {k} · {v} | {pct(a_.get('cagr'))} | {a_.get('sharpe', 0):.2f} | {pct(a_.get('maxdd'))} | {a_.get('invested', 0) * 100:.0f}% | "
                      f"{pct(b_.get('cagr'))} | {b_.get('sharpe', 0):.2f} | {pct(b_.get('maxdd'))} | {b_.get('invested', 0) * 100:.0f}% |")
+        if k in sec_hold:
+            a_, b_ = sec_hold[k].get("ins") or {}, sec_hold[k].get("oos") or {}
+            L.append(f"| {k} · sector hold | {pct(a_.get('cagr'))} | {a_.get('sharpe', 0):.2f} | {pct(a_.get('maxdd'))} | 100% | "
+                     f"{pct(b_.get('cagr'))} | {b_.get('sharpe', 0):.2f} | {pct(b_.get('maxdd'))} | 100% |")
     for pk in ("ins", "oos"):
         h_, s_ = bench[pk]["hold"], bench[pk]["spy"]
         L.append(f"| Hold / SPY {pk} | {pct(h_['cagr'])} / {pct(s_['cagr'])} | {h_['sharpe']:.2f} / {s_['sharpe']:.2f} | {pct(h_['maxdd'])} / {pct(s_['maxdd'])} | | | | | |")
@@ -267,7 +293,7 @@ def main():
         if "error" in r:
             L += [f"### {k}: error", "", "```", r["error"], "```", ""]
             continue
-        L += [f"### {SB.BOTS[k]['name'][0]}", "", f"Closed trades {r['trades_total']} · exits {r.get('exits')} · sessions blocked {r.get('blocked')} · "
+        L += [f"### {SB.BOTS[k]['name'][0]}", "", f"Sectors (first day, sector): {r.get('sectors')}", "", f"Closed trades {r['trades_total']} · exits {r.get('exits')} · sessions blocked {r.get('blocked')} · "
               f"pauses {r.get('pauses')} · regime days {r.get('regime_days')} · regime now {r.get('regime_now')}", "",
               "By regime (the session before): " + ", ".join(f"{n} {x['days']} days {pct(x['ann'])}/yr Sharpe {x['sharpe']:.2f}"
                                                               for n, x in (r.get("by_regime") or {}).items()), "",

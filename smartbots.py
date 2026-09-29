@@ -6,7 +6,9 @@ starts only when someone adds it.
 Every bot trades all companies (the S&P 500 + the site's largest companies) with shares, has every strategy of the site at
 hand and runs the five parts of brain.py: the market regime (which sizes the trades), the score out of 100, the risk sizing
 and the self-check; its strategies are open (every one may trade in every market but a panic), and for each trade it takes
-the one whose signals did best lately. The five differ by what their score values in a stock, and how long they hold.
+the one whose signals did best lately - one strategy alone, or 3 or 6 of them agreeing. Each one trades one sector: the
+one ranked 1 to 5 by the growth of its stocks over the last 12 months (ranked again every month), so the five together
+cover the five fastest-growing sectors. They also differ by what their score values in a stock, and how long they hold.
 The risk rules are the lighter ones asked for (LOOSE); the test shows each bot period by period, 2008 to now.
 """
 import json
@@ -26,7 +28,7 @@ ALL = {name: {} for name in engine.STRATEGIES}     # every bot has every strateg
 # half, nothing new in a panic, no forced selling; 2% risk a trade, up to 4 trades a sector, trades half size from 15% under
 # the peak and a 15-session break at 30%
 OPEN = ["trend", "breakout", "momentum", "reversion"]
-LOOSE = {"min_score": 45, "choose": "edge", "prefer": [], "bonus": 0,
+LOOSE = {"min_score": 45, "choose": "edge", "prefer": [], "bonus": 0, "multi": [3, 6], "sector_days": 252,
          "allow": {"bull": OPEN, "neutral": OPEN, "bear": OPEN, "stress": []},
          "size": {"bull": 1.0, "neutral": 0.9, "bear": 0.5, "stress": 0.0},
          "exposure": {"bull": 1.0, "neutral": 0.9, "bear": 0.5, "stress": 0.0},
@@ -37,48 +39,48 @@ LOOSE = {"min_score": 45, "choose": "edge", "prefer": [], "bonus": 0,
 BOTS = {
     "adaptive": {
         "name": ("Adaptive All-Weather", "المتكيّف مع السوق"),
-        "idea": ("Any strategy, whichever has worked best lately; it weighs the six parts of a trade's score evenly and trades "
+        "idea": ("Trades the third fastest-growing sector of the market (by its stocks' growth over the last 12 months, checked every month). Any strategy, alone or several agreeing, whichever has worked best lately; it weighs the six parts of a trade's score evenly and trades "
                  "smaller in a sideways or a bear market.",
-                 "أي استراتيجية، اللي كانت الأنجح مؤخراً؛ ويوزن أجزاء التقييم الستة بالتوازن، ويتداول بحجم أصغر في السوق العرضي "
+                 "يتداول في القطاع الثالث نمواً في السوق (حسب نمو أسهمه في آخر 12 شهر، ويتحدّث كل شهر). أي استراتيجية، لحالها أو عدة استراتيجيات متفقة، اللي كانت الأنجح مؤخراً؛ ويوزن أجزاء التقييم الستة بالتوازن، ويتداول بحجم أصغر في السوق العرضي "
                  "والهابط."),
         "max_pos": 10,
-        "brain": dict(LOOSE),
+        "brain": {**LOOSE, "sector_rank": 3},
     },
     "trend": {
         "name": ("Trend Rider", "راكب الاتجاه"),
-        "idea": ("Any strategy, whichever fits the trade; among the stocks that signal it buys those with the strongest "
+        "idea": ("Trades the second fastest-growing sector of the market (by its stocks' growth over the last 12 months, checked every month). Any strategy, alone or several agreeing, whichever fits the trade; among the stocks that signal it buys those with the strongest "
                  "trends first, and lets a winner run until its strategy says sell.",
-                 "أي استراتيجية تناسب الصفقة؛ ومن الأسهم اللي تعطي إشارة يشتري أول اللي اتجاهها أقوى، ويخلّي الصفقة الرابحة تمشي "
+                 "يتداول في القطاع الثاني نمواً في السوق (حسب نمو أسهمه في آخر 12 شهر، ويتحدّث كل شهر). أي استراتيجية تناسب الصفقة، لحالها أو عدة استراتيجيات متفقة؛ ومن الأسهم اللي تعطي إشارة يشتري أول اللي اتجاهها أقوى، ويخلّي الصفقة الرابحة تمشي "
                  "لين تقول استراتيجيتها بيع."),
         "max_pos": 10,
-        "brain": {**LOOSE, "weights": {"trend": 30, "mom": 20, "vol": 10, "volat": 10, "struct": 15, "rr": 15}},
+        "brain": {**LOOSE, "sector_rank": 2, "weights": {"trend": 30, "mom": 20, "vol": 10, "volat": 10, "struct": 15, "rr": 15}},
     },
     "breakout": {
         "name": ("Breakout Hunter", "صياد الاختراقات"),
-        "idea": ("Any strategy, whichever fits the trade; it buys first the stocks near their highs on heavy volume, and drops "
+        "idea": ("Trades the fourth fastest-growing sector of the market (by its stocks' growth over the last 12 months, checked every month). Any strategy, alone or several agreeing, whichever fits the trade; it buys first the stocks near their highs on heavy volume, and drops "
                  "a trade that goes nowhere in 20 sessions.",
-                 "أي استراتيجية تناسب الصفقة؛ ويشتري أول الأسهم القريبة من قممها بحجم تداول عالي، ويطلع من الصفقة اللي ما تتحرك "
+                 "يتداول في القطاع الرابع نمواً في السوق (حسب نمو أسهمه في آخر 12 شهر، ويتحدّث كل شهر). أي استراتيجية تناسب الصفقة، لحالها أو عدة استراتيجيات متفقة؛ ويشتري أول الأسهم القريبة من قممها بحجم تداول عالي، ويطلع من الصفقة اللي ما تتحرك "
                  "خلال 20 جلسة."),
         "max_pos": 10,
-        "brain": {**LOOSE, "atr": 2.5, "time_bars": 20, "time_r": 0.5,
+        "brain": {**LOOSE, "sector_rank": 4, "atr": 2.5, "time_bars": 20, "time_r": 0.5,
                   "weights": {"trend": 15, "mom": 15, "vol": 25, "volat": 10, "struct": 20, "rr": 15}},
     },
     "momentum": {
         "name": ("Momentum Leaders", "قادة الزخم"),
-        "idea": ("Any strategy, whichever fits the trade; among the stocks that signal it buys the market's strongest first, "
+        "idea": ("Trades the fastest-growing sector of the market (by its stocks' growth over the last 12 months, checked every month). Any strategy, alone or several agreeing, whichever fits the trade; among the stocks that signal it buys the market's strongest first, "
                  "ranked by momentum.",
-                 "أي استراتيجية تناسب الصفقة؛ ومن الأسهم اللي تعطي إشارة يشتري أول أقوى أسهم السوق، مرتبة حسب الزخم."),
+                 "يتداول في القطاع الأسرع نمواً في السوق (حسب نمو أسهمه في آخر 12 شهر، ويتحدّث كل شهر). أي استراتيجية تناسب الصفقة، لحالها أو عدة استراتيجيات متفقة؛ ومن الأسهم اللي تعطي إشارة يشتري أول أقوى أسهم السوق، مرتبة حسب الزخم."),
         "max_pos": 10,
-        "brain": {**LOOSE, "weights": {"trend": 20, "mom": 35, "vol": 10, "volat": 10, "struct": 15, "rr": 10}},
+        "brain": {**LOOSE, "sector_rank": 1, "weights": {"trend": 20, "mom": 35, "vol": 10, "volat": 10, "struct": 15, "rr": 10}},
     },
     "pullback": {
         "name": ("Pullback Buyer", "صياد التصحيحات"),
-        "idea": ("Any strategy, whichever fits the trade; it buys first the stocks in an uptrend with the most room to their "
+        "idea": ("Trades the fifth fastest-growing sector of the market (by its stocks' growth over the last 12 months, checked every month). Any strategy, alone or several agreeing, whichever fits the trade; it buys first the stocks in an uptrend with the most room to their "
                  "recent high, and never holds a trade more than 10 sessions unless it's working.",
-                 "أي استراتيجية تناسب الصفقة؛ ويشتري أول الأسهم اللي اتجاهها صاعد وعندها أكبر مجال لين قمتها القريبة، وما يمسك "
+                 "يتداول في القطاع الخامس نمواً في السوق (حسب نمو أسهمه في آخر 12 شهر، ويتحدّث كل شهر). أي استراتيجية تناسب الصفقة، لحالها أو عدة استراتيجيات متفقة؛ ويشتري أول الأسهم اللي اتجاهها صاعد وعندها أكبر مجال لين قمتها القريبة، وما يمسك "
                  "الصفقة أكثر من 10 جلسات إلا إذا كانت ماشية."),
         "max_pos": 12,
-        "brain": {**LOOSE, "atr": 2.5, "time_bars": 10, "time_r": 0.0,
+        "brain": {**LOOSE, "sector_rank": 5, "atr": 2.5, "time_bars": 10, "time_r": 0.0,
                   "weights": {"trend": 30, "mom": 20, "vol": 5, "volat": 15, "struct": 10, "rr": 20}},
     },
 }

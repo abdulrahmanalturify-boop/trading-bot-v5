@@ -727,9 +727,12 @@ def simulate(bot, px, spy=None, record=None):
     # `window` sessions; the trade then follows the plan of the strategy whose signal it is
     pb_combo = combo and books_only
     labels = [COMBO] if combo and not pb_combo else names      # what opens a trade: each strategy, or the combined rule
-    S = len(labels)
     # a smart bot (brain.py): market regime, strategy families by regime, a score out of 100, risk sizing, circuit breakers
     brain = bot.get("brain") if isinstance(bot.get("brain"), dict) else None
+    multi = [m for m in (brain or {}).get("multi") or [] if m <= len(names)] if not combo and not any(map(is_playbook, names)) else []
+    if multi:                                                  # a smart bot may also trade when several strategies agree
+        labels = names + [BR.AGREE.format(m) for m in multi]
+    S = len(labels)
     b_atr = float(bot["atr_mult"] or (brain or {}).get("atr") or 3.0)
     BPX = {k: np.full((T, N), np.nan) for k in ("trend", "volp", "volat", "struct", "rr", "mraw", "above50")} if brain else None
     atr_on = bool(bot["atr_mult"]) or brain is not None
@@ -806,6 +809,12 @@ def simulate(bot, px, spy=None, record=None):
                 PENT[0, p, j] = (~cond & cond.shift(1, fill_value=False)).to_numpy()
                 PEXT[0, p, j] = cond.to_numpy()
         else:
+            if multi:                                          # "m strategies agree": in at least m buy states at once
+                cnt = sum(_state(e, x) for e, x in sig)
+                for i_, m in enumerate(multi):
+                    cond = cnt >= m
+                    ENT[len(names) + i_, p, j] = (cond & ~cond.shift(1, fill_value=False)).to_numpy()
+                    EXT[len(names) + i_, p, j] = (~cond).to_numpy()
             for k, (e, x) in enumerate(sig):
                 ENT[k, p, j] = e.fillna(False).astype(bool).to_numpy()
                 EXT[k, p, j] = x.fillna(False).astype(bool).to_numpy()
@@ -820,7 +829,7 @@ def simulate(bot, px, spy=None, record=None):
         # self-check on, only while its signals of the last year kept an edge over the average stock); 3) a signal counts
         # only with a score of at least min_score, and the best scores fill the free slots first
         codes, rparts = BR.regime(spy, idx, BPX["above50"], brain["stress_vol"], brain["stress_x"])
-        fams_ = [[BR.family_of(x_) for x_ in names] if nm == COMBO else [BR.family_of(nm)] for nm in labels]
+        fams_ = [[BR.family_of(x_) for x_ in names] if (nm == COMBO or BR.agree_level(nm)) else [BR.family_of(nm)] for nm in labels]
         allowed = np.array([[any(f_ in brain["allow"][r] for f_ in fl_) for r in BR.REGIMES] for fl_ in fams_], bool)
         muted = np.zeros((S, T), bool)
         EDGE = np.full((S, T), np.nan)                        # each strategy's recent edge (for the choice of strategy)
@@ -841,6 +850,11 @@ def simulate(bot, px, spy=None, record=None):
             ENT[k] &= (BSC0 + BON[k]) >= brain["min_score"]
         exit_now = np.isin(codes, [BR.REGIMES.index(r) for r in brain["exit"]])
         SECT = [sector_of(x_) for x_ in syms]
+        SEC_NOW, sec_changes = None, []
+        if brain["sector_rank"]:                              # a sector bot: only the sector of its rank this month
+            SEC_NOW, sec_changes = BR.sector_by_rank(CF, SECT, idx, brain["sector_rank"], brain["sector_days"])
+            IN_SEC = (np.array(SECT, dtype=object)[None, :] == SEC_NOW[:, None]) & (SEC_NOW != "")[:, None]
+            ENT &= IN_SEC[None, :, :]
     ENT &= live[None, :, None]                                 # no new trades before the start date
     ENT &= valid[None, :, :]
     # entry filters (off unless the bot turns them on): new buys only while the stock is above its 200-day average, and/or
@@ -993,6 +1007,8 @@ def simulate(bot, px, spy=None, record=None):
             elif brain is not None and q["kind"] == "Stock" and not q["exit"]:
                 if exit_now[t]:
                     q["exit"], q["why"] = True, "Regime Exit"   # the market turned into a regime the bot doesn't hold in
+                elif SEC_NOW is not None and SEC_NOW[t] and SECT[j] != SEC_NOW[t]:
+                    q["exit"], q["why"] = True, "Sector Change"  # a new month, a new sector: out of the old one
                 elif (brain["time_bars"] and K[t, j] - q["kb"] >= brain["time_bars"] - 1
                       and C[t, j] < q["entry"] + brain["time_r"] * q.get("R", 0.0)):
                     q["exit"], q["why"] = True, "Time Stop"     # went nowhere in time_bars sessions
@@ -1035,7 +1051,7 @@ def simulate(bot, px, spy=None, record=None):
                 if free[g] > 0:
                     extra = {}
                     if brain is not None and kind == "Stock":
-                        if brain["sector_cap"] and SECT[j] and secs.get(SECT[j], 0) >= brain["sector_cap"]:
+                        if brain["sector_cap"] and not brain["sector_rank"] and SECT[j] and secs.get(SECT[j], 0) >= brain["sector_cap"]:
                             continue
                         secs[SECT[j]] = secs.get(SECT[j], 0) + 1
                         extra = {"sc": int(round(BSC[t, j] + BON[k])), "rg": int(codes[t]), "pt": [int(round(BPTS[p_][t, j])) for p_ in BR.PARTS]}
@@ -1297,6 +1313,7 @@ def simulate(bot, px, spy=None, record=None):
                         "blocked": {r_: int(sum(1 for g_ in gates if g_ == r_)) for r_ in ("pause", "streak", "day", "regime")},
                         "regime_days": {r_: int(((codes == i_) & live).sum()) for i_, r_ in enumerate(BR.REGIMES)},
                         "muted": [labels[k_] for k_ in range(S) if muted[k_, -1]], "next": nxt,
+                        "sector": (SEC_NOW[-1] or None) if SEC_NOW is not None else None, "sectors": sec_changes[-60:],
                         "series": codes[live].astype(int).tolist()}
 
     if not live.any():
