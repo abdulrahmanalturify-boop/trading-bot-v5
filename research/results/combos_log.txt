@@ -1,0 +1,59 @@
+2026-09-29 06:11:27.247 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-09-29 06:11:27.248 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-09-29 06:11:27.248 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-09-29 06:11:27.249 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-09-29 06:11:27.249 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-09-29 06:11:27.249 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-09-29 06:11:27.250 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-09-29 06:11:27.250 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-09-29 06:11:27.250 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-09-29 06:11:27.251 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-09-29 06:11:27.251 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-09-29 06:11:27.252 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-09-29 06:11:27.252 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-09-29 06:11:27.253 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-09-29 06:11:27.253 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-09-29 06:11:27.254 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-09-29 06:11:27.254 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-09-29 06:11:27.255 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-09-29 06:11:27.255 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-09-29 06:11:27.256 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-09-29 06:11:27.257 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-09-29 06:11:27.257 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-09-29 06:11:27.258 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-09-29 06:11:27.258 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-09-29 06:11:27.260 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-09-29 06:11:27.260 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-09-29 06:11:27.283 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-09-29 06:11:27.283 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+state SMA Crossover
+state EMA Crossover
+state Golden Cross (50/200)
+state RSI Mean Reversion
+state MACD Crossover
+state Bollinger Breakout
+state Donchian Breakout (Turtle)
+state OBV Trend (Volume)
+state Volume Breakout
+state VWMA Crossover (Volume)
+state MFI Money Flow (Volume)
+state Trend Following
+state Moving Average Crossover
+state Momentum Strategy
+state Breakout Strategy
+state Volatility Breakout
+state Mean Reversion
+state VWAP Mean Reversion
+state VWAP Reclaim / Pullback
+state Relative Strength Strategy
+state Pairs Trading
+state Statistical Arbitrage
+state Multi-Factor Strategy
+state Regime-Based Strategy
+state Machine Learning Signal Combination
+state Portfolio-Level Strategy
+states in 31 s
+pairs done 34 s
+triples done 79 s
+quads done 87 s, 6541 combinations
+done in 1.5 min
