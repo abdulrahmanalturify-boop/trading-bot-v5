@@ -1288,7 +1288,13 @@ FX_JS = """<script>
     if (t !== d && t !== de && !(t.contains && t.contains(page))) return;       // only the page's own scrolling
     var top = (t === d || t === de) ? (w.scrollY || 0) : (t.scrollTop || 0);
     de.classList.toggle('ix-scrolled', top > 40);
+    past();
   }, {passive: true, capture: true});
+  // "Get started" comes in once the first screen is scrolled past
+  function past() {
+    var ix = d.querySelector('.ix');
+    de.classList.toggle('ix-past', !!ix && ix.getBoundingClientRect().bottom < w.innerHeight * .55);
+  }
   // "Get started" and the logo: back to the top of the page
   function toTop() {
     var m = d.querySelector('[data-testid="stMain"]') || d.querySelector('section.stMain') || d.querySelector('[data-testid="stAppViewContainer"]');
@@ -1297,12 +1303,16 @@ FX_JS = """<script>
   d.addEventListener('click', function (e) {
     var t = e.target;
     if (t && t.closest && t.closest('.st-key-introgo button, .st-key-logohome button')) { toTop(); w.setTimeout(toTop, 450); w.setTimeout(toTop, 1200); }
+    if (t && t.closest && t.closest('.ix-scroll')) {                       // "Scroll down": to the first section
+      var nx = d.querySelector('.ixp .ixs');
+      if (nx) nx.scrollIntoView({behavior: 'smooth', block: 'start'});
+    }
   }, true);
   w.setInterval(function () {
     // reveals: a section shows as it comes into view
     var rv = d.querySelectorAll('.rv:not(.in)');
     for (var i = 0; i < rv.length; i++) { if (rv[i].getBoundingClientRect().top < w.innerHeight * .9) rv[i].classList.add('in'); }
-    if (!d.querySelector('.ixp')) de.classList.remove('ix-scrolled');
+    if (!d.querySelector('.ixp')) { de.classList.remove('ix-scrolled'); de.classList.remove('ix-past'); } else past();
   }, 180);
   // the typing line: types each sentence, waits, deletes it, types the next
   w.setInterval(function () {
@@ -1914,4 +1924,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "12.7"
+BUILD = "12.8"

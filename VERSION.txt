@@ -1,2 +1,2 @@
-A.Alturaifi Pro - version 12.7 (the landing is a full scrolling page with sections; Get started follows you down)
+A.Alturaifi Pro - version 12.8 (the landing: "Scroll down" on the first screen, Get started from the second section down)
 If you can see this file on GitHub, the new version was uploaded correctly.

@@ -10,7 +10,7 @@ import theme as T
 import ui
 from i18n import L, is_ar
 
-BUILD = "12.7"
+BUILD = "12.8"
 
 _LINE = "rgba(150,140,250,"
 CSS = f"""
@@ -592,11 +592,15 @@ html.ix-scrolled header[data-testid="stHeader"] { background: rgba(14,9,24,.32) 
 .ix-chip.c4 { right: 7%; top: 56%; --d: 1.4; animation-delay: 1.55s, 3.15s; } .ix-chip.c4 .ms { background: #DD90D8; }
 .ix-chip.c5 { left: 50%; top: 13%; --d: .8; margin-left: -70px; animation-delay: 1.7s, 3.3s; } .ix-chip.c5 .ms { background: #D1C9FF; }
 @keyframes ixfloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
-.ix-scroll { left: 50%; bottom: clamp(128px, 17vh, 170px); translate: -50% 0; z-index: 3; display: flex; flex-direction: column; align-items: center; gap: 8px;
-  font-family: 'Roboto Mono', monospace; font-size: 10.5px; letter-spacing: .22em; text-transform: uppercase; color: rgba(245,245,247,.7);
-  opacity: 0; animation: ixin 1.6s cubic-bezier(.455,.03,.515,.955) 2s forwards; }
+.ix-scroll { left: 50%; bottom: clamp(26px, 5vh, 48px); translate: -50% 0; z-index: 4; display: flex; flex-direction: column; align-items: center; gap: 10px;
+  font-family: 'Roboto Mono', monospace; font-size: 11px; letter-spacing: .22em; text-transform: uppercase; color: rgba(245,245,247,.85);
+  cursor: pointer; padding: 12px 20px 10px; border-radius: 16px; transition: color .2s ease, background .2s ease;
+  background: rgba(11,8,24,.38); border: 1px solid rgba(255,255,255,.14); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  opacity: 0; animation: ixin 1.6s cubic-bezier(.455,.03,.515,.955) 1.4s forwards; text-shadow: 0 2px 12px rgba(11,8,24,.8); }
+.ix-scroll:hover { color: #fff; background: rgba(11,8,24,.55); border-color: rgba(255,255,255,.3); }
+.ix-scroll:hover i { border-color: #fff; }
 .ixp.ar .ix-scroll { font-family: 'Readex Pro', sans-serif; letter-spacing: 0; font-size: 12px; }
-.ix-scroll i { width: 22px; height: 34px; border: 1.5px solid rgba(245,245,247,.6); border-radius: 12px; position: relative; }
+.ix-scroll i { width: 24px; height: 38px; border: 1.5px solid rgba(245,245,247,.75); border-radius: 13px; position: relative; transition: border-color .2s ease; }
 .ix-scroll i::after { content: ""; position: absolute; left: 50%; top: 7px; width: 3px; height: 7px; margin-left: -1.5px; border-radius: 2px; background: #fff;
   animation: ixwheel 1.8s ease-in-out infinite; }
 @keyframes ixwheel { 0% { transform: translateY(0); opacity: 1; } 80% { transform: translateY(10px); opacity: 0; } 100% { opacity: 0; } }
@@ -744,7 +748,9 @@ html.ix-js .ixg .rv:nth-child(3), html.ix-js .ixw .rv:nth-child(3) { transition-
 html.ix-js .ixg .rv:nth-child(5) { transition-delay: .12s; } html.ix-js .ixg .rv:nth-child(6) { transition-delay: .24s; }
 /* "Get started": white on black, the only action, at the bottom in the middle all the way down */
 .st-key-introgo { position: fixed !important; left: 50%; bottom: clamp(26px, 5vh, 48px); translate: -50% 0; z-index: 999980; width: auto !important;
-  animation: ixin 1.6s cubic-bezier(.455,.03,.515,.955) 1.2s both; }
+  transition: opacity .5s cubic-bezier(.455,.03,.515,.955), translate .5s cubic-bezier(.455,.03,.515,.955); }
+html.ix-js .st-key-introgo { opacity: 0; translate: -50% 24px; pointer-events: none; }            /* the first screen shows "Scroll down" instead */
+html.ix-js.ix-past .st-key-introgo { opacity: 1; translate: -50% 0; pointer-events: auto; }
 .st-key-introgo .stElementContainer, .st-key-introgo [data-testid="stElementContainer"] { width: auto !important; }
 .st-key-introgo button { min-height: 52px !important; padding: 0 30px !important; border-radius: 8px !important; background: #FFFFFF !important;
   border: 1px solid #FFFFFF !important; box-shadow: 0 18px 50px -12px rgba(11,8,24,.75), 0 0 0 6px rgba(255,255,255,.08) !important;
@@ -757,7 +763,7 @@ html.ix-js .ixg .rv:nth-child(5) { transition-delay: .12s; } html.ix-js .ixg .rv
 @media (max-width: 1000px) { .ixg { grid-template-columns: repeat(2, minmax(0, 1fr)); } .ixf { grid-template-columns: 1fr; gap: 36px; }
   .ixf.rev > :first-child { order: 0; } .ixn { grid-template-columns: repeat(2, minmax(0, 1fr)); } .ixw { grid-template-columns: 1fr; } }
 @media (max-width: 900px) { .ix-chip { display: none; } .ix-center { top: 42%; } .ix-sub { font-size: 15px; } .ix-ask { padding: 12px 14px; }
-  .ix-scroll { display: none; } .ixs { padding-top: 84px; } }
+  .ixs { padding-top: 84px; } }
 @media (max-width: 640px) { .ixg { grid-template-columns: 1fr; } .ixc { min-height: 220px; } .mrad { grid-template-columns: 1fr; justify-items: center; }
   .mheat { grid-template-columns: repeat(3, minmax(0, 1fr)); } .ixn { grid-template-columns: 1fr 1fr; } }
 @media (prefers-reduced-motion: reduce) { .ixp *, .st-key-introgo { animation: none !important; opacity: 1 !important; }
@@ -841,7 +847,7 @@ def intro_html():
             f'<p class="ix-sub">{L("Paper-trading bots, a daily opportunity hunter and market research, in one place, in English and Arabic.", "بوتات تداول افتراضية، وصياد فرص يومي، وأبحاث السوق، في مكان واحد، بالعربي والإنجليزي.")}</p>'
             f'<div class="ix-ask"><span class="ms">auto_awesome</span>'
             f'<span class="ix-type" data-words="{_html.escape(_json.dumps(words, ensure_ascii=False))}">{words[0]}</span><span class="ix-caret"></span></div></div>'
-            f'<div class="ix-scroll"><i></i>{L("Scroll", "انزل")}</div></section>')
+            f'<div class="ix-scroll" role="button" tabindex="0"><i></i>{L("Scroll down", "انزل لتحت")}</div></section>')
     state = (f'<section class="ixs ix-state rv"><span class="ixl">{L("What it is", "وش هو")}</span>'
              f'<div class="ixh">{L("One place to learn the market, test your ideas and let them trade. <span>With virtual money, on real prices.</span>", "مكان واحد تتعلّم فيه السوق، وتجرّب أفكارك، وتخليها تتداول لحالها. <span>بفلوس افتراضية، على أسعار حقيقية.</span>")}</div></section>')
     parts = [
