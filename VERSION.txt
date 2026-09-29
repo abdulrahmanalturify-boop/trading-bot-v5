@@ -1,2 +1,2 @@
-A.Alturaifi Pro - version 12.8 (the landing: "Scroll down" on the first screen, Get started from the second section down)
+A.Alturaifi Pro - version 12.9 (the landing opens on "Beyond Investing" with a live 3D sculpture; it glides down by itself after 5 idle seconds)
 If you can see this file on GitHub, the new version was uploaded correctly.

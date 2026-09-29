@@ -1261,7 +1261,6 @@ FX_JS = """<script>
       if (y >= r.top && y <= r.bottom) {
         ix.style.setProperty('--px', ((x / w.innerWidth) * 2 - 1).toFixed(3));
         ix.style.setProperty('--py', (((y - r.top) / r.height) * 2 - 1).toFixed(3));
-        ix.style.setProperty('--cx', (x - r.left) + 'px'); ix.style.setProperty('--cy', (y - r.top) + 'px');
       }
     }
     var el = null, stack = d.elementsFromPoint(x, y);
@@ -1313,22 +1312,126 @@ FX_JS = """<script>
     var rv = d.querySelectorAll('.rv:not(.in)');
     for (var i = 0; i < rv.length; i++) { if (rv[i].getBoundingClientRect().top < w.innerHeight * .9) rv[i].classList.add('in'); }
     if (!d.querySelector('.ixp')) { de.classList.remove('ix-scrolled'); de.classList.remove('ix-past'); } else past();
-  }, 180);
-  // the typing line: types each sentence, waits, deletes it, types the next
-  w.setInterval(function () {
-    var els = d.querySelectorAll('.ix-type[data-words]');
-    for (var i = 0; i < els.length; i++) {
-      var el = els[i], s = el.__tw;
-      if (!s) { try { s = el.__tw = {w: JSON.parse(el.getAttribute('data-words')), i: 0, n: 0, dir: -1, hold: 26}; } catch (e) { continue; }
-        s.n = s.w[0].length; }
-      if (s.hold > 0) { s.hold--; continue; }
-      var word = s.w[s.i];
-      s.n += s.dir > 0 ? 1 : -2;
-      if (s.dir > 0 && s.n >= word.length) { s.n = word.length; s.dir = -1; s.hold = 34; }
-      else if (s.dir < 0 && s.n <= 0) { s.n = 0; s.dir = 1; s.i = (s.i + 1) % s.w.length; s.hold = 6; }
-      el.textContent = s.w[s.i].slice(0, Math.max(0, s.n));
+    // 5 seconds without a move on the first screen: the page glides to the first section by itself (once per landing)
+    var page = d.querySelector('.ixp'), hero = d.querySelector('.ix');
+    if (page && hero && !page.__auto) {
+      if (!page.__seen) page.__seen = Date.now();
+      if (hero.getBoundingClientRect().bottom < w.innerHeight * .8) page.__auto = 1;          // they scrolled themselves
+      else if (Date.now() - Math.max(idle, page.__seen) >= 5000) {
+        page.__auto = 1;
+        var nx = d.querySelector('.ixp .ixs');
+        if (nx) nx.scrollIntoView({behavior: 'smooth', block: 'start'});
+      }
     }
-  }, 55);
+  }, 180);
+  var idle = Date.now();
+  ['pointermove', 'pointerdown', 'wheel', 'keydown', 'touchstart'].forEach(function (ev) {
+    d.addEventListener(ev, function () { idle = Date.now(); }, {passive: true, capture: true});
+  });
+})();
+(function () {                                   // the landing's sculpture: an iridescent faceted crystal, drawn with WebGL
+  var w = window.parent, d = w.document;
+  if (w.__alturaifiGem) return;
+  w.__alturaifiGem = 1;
+  function mat4() { return new Float32Array(16); }
+  function persp(fov, asp, n, f) { var m = mat4(), t = 1 / Math.tan(fov / 2); m[0] = t / asp; m[5] = t; m[10] = (f + n) / (n - f); m[11] = -1; m[14] = 2 * f * n / (n - f); return m; }
+  function mul(a, b) { var o = mat4(); for (var i = 0; i < 4; i++) for (var j = 0; j < 4; j++) { var s = 0; for (var k = 0; k < 4; k++) s += a[k * 4 + j] * b[i * 4 + k]; o[i * 4 + j] = s; } return o; }
+  function rot(ax, ay, az) {
+    var cx = Math.cos(ax), sx = Math.sin(ax), cy = Math.cos(ay), sy = Math.sin(ay), cz = Math.cos(az), sz = Math.sin(az), m = mat4();
+    m[0] = cy * cz; m[1] = cy * sz; m[2] = -sy;
+    m[4] = sx * sy * cz - cx * sz; m[5] = sx * sy * sz + cx * cz; m[6] = sx * cy;
+    m[8] = cx * sy * cz + sx * sz; m[9] = cx * sy * sz - sx * cz; m[10] = cx * cy; m[15] = 1; return m;
+  }
+  function trans(x, y, z) { var m = mat4(); m[0] = m[5] = m[10] = m[15] = 1; m[12] = x; m[13] = y; m[14] = z; return m; }
+  // a crumpled crystal: an icosahedron split twice, pushed in and out, stretched, every face flat
+  function geometry() {
+    var t = (1 + Math.sqrt(5)) / 2, V = [[-1, t, 0], [1, t, 0], [-1, -t, 0], [1, -t, 0], [0, -1, t], [0, 1, t], [0, -1, -t], [0, 1, -t], [t, 0, -1], [t, 0, 1], [-t, 0, -1], [-t, 0, 1]];
+    var F = [[0, 11, 5], [0, 5, 1], [0, 1, 7], [0, 7, 10], [0, 10, 11], [1, 5, 9], [5, 11, 4], [11, 10, 2], [10, 7, 6], [7, 1, 8], [3, 9, 4], [3, 4, 2], [3, 2, 6], [3, 6, 8], [3, 8, 9], [4, 9, 5], [2, 4, 11], [6, 2, 10], [8, 6, 7], [9, 8, 1]];
+    function norm(v) { var l = Math.hypot(v[0], v[1], v[2]); return [v[0] / l, v[1] / l, v[2] / l]; }
+    V = V.map(norm);
+    for (var s = 0; s < 3; s++) {
+      var cache = {}, F2 = [];
+      var mid = function (a, b) { var k = a < b ? a + '_' + b : b + '_' + a; if (cache[k] === undefined) { V.push(norm([(V[a][0] + V[b][0]) / 2, (V[a][1] + V[b][1]) / 2, (V[a][2] + V[b][2]) / 2])); cache[k] = V.length - 1; } return cache[k]; };
+      F.forEach(function (f) { var a = mid(f[0], f[1]), b = mid(f[1], f[2]), c = mid(f[2], f[0]); F2.push([f[0], a, c], [f[1], b, a], [f[2], c, b], [a, b, c]); });
+      F = F2;
+    }
+    var seed = 7; function rnd() { seed = (seed * 16807) % 2147483647; return seed / 2147483647; }
+    V = V.map(function (v) {                    // smooth waves plus a little grain: sculpted, not rocky
+      var r = 1 + .16 * Math.sin(3.1 * v[0] + 1.3) * Math.sin(2.3 * v[1] + .4) + .1 * Math.sin(4.2 * v[2] + 2.1 * v[0]) + (rnd() - .5) * .06;
+      return [v[0] * r * 1.3, v[1] * r * .9, v[2] * r * 1.05]; });
+    // glossy panels with soft creases: each corner's normal is mostly the smooth one, a little of its face's
+    var FN = F.map(function (f) {
+      var a = V[f[0]], b = V[f[1]], c = V[f[2]];
+      var u = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], v = [c[0] - a[0], c[1] - a[1], c[2] - a[2]];
+      return norm([u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]]);
+    });
+    var SN = V.map(function () { return [0, 0, 0]; });
+    F.forEach(function (f, i) { f.forEach(function (k) { SN[k][0] += FN[i][0]; SN[k][1] += FN[i][1]; SN[k][2] += FN[i][2]; }); });
+    SN = SN.map(norm);
+    var P = [], N = [];
+    F.forEach(function (f, i) {
+      f.forEach(function (k) {
+        var p = V[k], n = norm([SN[k][0] * .72 + FN[i][0] * .28, SN[k][1] * .72 + FN[i][1] * .28, SN[k][2] * .72 + FN[i][2] * .28]);
+        P.push(p[0], p[1], p[2]); N.push(n[0], n[1], n[2]);
+      });
+    });
+    return {p: new Float32Array(P), n: new Float32Array(N), count: P.length / 3};
+  }
+  var VS = 'attribute vec3 p;attribute vec3 n;uniform mat4 mvp;uniform mat4 model;uniform mat3 nm;varying vec3 vN;varying vec3 vP;' +
+    'void main(){vN=nm*n;vP=(model*vec4(p,1.)).xyz;gl_Position=mvp*vec4(p,1.);}';
+  var FS = 'precision highp float;varying vec3 vN;varying vec3 vP;uniform vec3 eye;uniform float t;' +
+    'vec3 irid(float x){return .5+.5*cos(6.2831*(x+vec3(.0,.33,.67)));}' +
+    'void main(){vec3 N=normalize(vN);vec3 V=normalize(eye-vP);float ndv=max(dot(N,V),0.);float fr=pow(1.-ndv,3.);' +
+    'vec3 R=reflect(-V,N);' +
+    'float top=pow(smoothstep(.45,1.,R.y*.5+.5),3.);float hz=exp(-pow((R.y-.08)*13.,2.));float side=pow(max(R.x,0.),10.);float back=pow(max(-R.x,0.),12.);' +
+    'vec3 env=vec3(.004,.003,.009)+top*vec3(.55,.4,1.)*.7+hz*vec3(.95,.92,1.)*.85+side*vec3(.3,.75,.85)*.8+back*vec3(.55,.3,.9)*.6;' +
+    'vec3 L1=normalize(vec3(cos(t*.45)*2.2,1.6,1.8));vec3 L2=normalize(vec3(-2.2,.3,sin(t*.37)*2.));vec3 L3=normalize(vec3(.6,-1.,1.4));' +
+    'float s1=pow(max(dot(N,normalize(L1+V)),0.),320.);float s2=pow(max(dot(N,normalize(L2+V)),0.),120.);float s3=pow(max(dot(N,normalize(L3+V)),0.),60.);' +
+    'vec3 film=irid(fr*1.6+dot(N,vec3(.35,.55,.25))*.7+t*.03);' +
+    'vec3 col=vec3(.008,.006,.014)+env*(.18+.82*fr)+env*.35+film*fr*.55+s1*vec3(1.)*3.2+s2*vec3(.78,.66,1.)*1.6+s3*vec3(.35,.8,.9)*.7;' +
+    'col=col/(1.+col*.5);col=pow(col,vec3(.92));gl_FragColor=vec4(col,1.);}';
+  function mount(host) {
+    var cv = d.createElement('canvas'); cv.className = 'ix-gl'; host.appendChild(cv);
+    var gl = cv.getContext('webgl', {antialias: true, alpha: true, premultipliedAlpha: true});
+    if (!gl) { cv.remove(); return; }
+    function sh(type, src) { var s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); return gl.getShaderParameter(s, gl.COMPILE_STATUS) ? s : null; }
+    var vs = sh(gl.VERTEX_SHADER, VS), fs = sh(gl.FRAGMENT_SHADER, FS);
+    if (!vs || !fs) { cv.remove(); return; }
+    var pr = gl.createProgram(); gl.attachShader(pr, vs); gl.attachShader(pr, fs); gl.linkProgram(pr);
+    if (!gl.getProgramParameter(pr, gl.LINK_STATUS)) { cv.remove(); return; }
+    gl.useProgram(pr);
+    var g = geometry();
+    function buf(data, name) { var b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+      var loc = gl.getAttribLocation(pr, name); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 3, gl.FLOAT, false, 0, 0); }
+    buf(g.p, 'p'); buf(g.n, 'n');
+    var U = {}; ['mvp', 'model', 'nm', 'eye', 't'].forEach(function (k) { U[k] = gl.getUniformLocation(pr, k); });
+    gl.enable(gl.DEPTH_TEST); gl.clearColor(0, 0, 0, 0);
+    host.classList.add('gl-on');
+    var t0 = performance.now(), mx = 0, my = 0;
+    function frame(now) {
+      if (!cv.isConnected) { var ext = gl.getExtension('WEBGL_lose_context'); if (ext) ext.loseContext(); return; }
+      w.requestAnimationFrame(frame);
+      var r = cv.getBoundingClientRect();
+      if (r.bottom < 0 || r.top > w.innerHeight || r.width < 2) return;              // off screen: no work
+      var dpr = Math.min(w.devicePixelRatio || 1, 2), W = Math.round(r.width * dpr), H = Math.round(r.height * dpr);
+      if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+      gl.viewport(0, 0, W, H); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+      var t = (now - t0) / 1000, ix = d.querySelector('.ix');
+      if (ix) { mx += ((parseFloat(ix.style.getPropertyValue('--px')) || 0) - mx) * .05; my += ((parseFloat(ix.style.getPropertyValue('--py')) || 0) - my) * .05; }
+      var model = mul(trans(0, -.18, 0), rot(.32 + Math.sin(t * .3) * .08 + my * .15, t * .22 + mx * .5, Math.sin(t * .21) * .07));
+      var eye = [0, .2, 4.6], view = trans(-eye[0], -eye[1], -eye[2]);
+      var proj = persp(.62, W / H, .1, 50), mvp = mul(proj, mul(view, model));
+      var nm = new Float32Array([model[0], model[1], model[2], model[4], model[5], model[6], model[8], model[9], model[10]]);
+      gl.uniformMatrix4fv(U.mvp, false, mvp); gl.uniformMatrix4fv(U.model, false, model); gl.uniformMatrix3fv(U.nm, false, nm);
+      gl.uniform3fv(U.eye, eye); gl.uniform1f(U.t, t);
+      gl.drawArrays(gl.TRIANGLES, 0, g.count);
+    }
+    w.requestAnimationFrame(frame);
+  }
+  w.setInterval(function () {                     // the landing can appear at any rerun: give each new one its sculpture
+    var hosts = d.querySelectorAll('.ix-obj:not(.gl-try)');
+    for (var i = 0; i < hosts.length; i++) { hosts[i].classList.add('gl-try'); try { mount(hosts[i]); } catch (e) {} }
+  }, 250);
 })();
 (function () {                                   // the logo opens the home page's first screen
   var w = window.parent, d = w.document;
@@ -1924,4 +2027,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "12.8"
+BUILD = "12.9"

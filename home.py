@@ -10,7 +10,7 @@ import theme as T
 import ui
 from i18n import L, is_ar
 
-BUILD = "12.8"
+BUILD = "12.9"
 
 _LINE = "rgba(150,140,250,"
 CSS = f"""
@@ -424,66 +424,6 @@ def hero(chips_html=""):
 # landing, see-through; after "Get started" it is back to normal. Shown once per visit (the logo brings it back).
 # The motion (parallax, spotlight, typing line, reveals, tilting cards) is theme.FX_JS; without it everything still shows.
 # =====================================================================
-import html as _html
-import json as _json
-import random as _random
-
-
-def _stars(n=110, seed=11):
-    r = _random.Random(seed)
-    out = []
-    for i in range(n):
-        x, y, s = r.uniform(0, 1600), r.uniform(0, 620), r.choice((0.6, 0.8, 1.0, 1.0, 1.3, 1.7))
-        out.append(f'<circle cx="{x:.0f}" cy="{y:.0f}" r="{s}" class="tw{i % 4}" style="animation-delay:{r.uniform(0, 5):.2f}s"/>')
-    return ('<svg class="ix-stars" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">'
-            f'<g fill="#fff">{"".join(out)}</g></svg>')
-
-
-def _horizon(seed=5):
-    """The skyline: candles standing on the horizon, darker in front, with the brand's rising line drawn over them."""
-    r = _random.Random(seed)
-
-    def row(n, base, amp, w, fill, op):
-        x, lvl, bars = 0.0, 0.0, []
-        step = 1600 / n
-        for i in range(n):
-            lvl = max(-1.0, min(1.0, lvl + r.uniform(-.35, .38)))
-            h = amp * (0.55 + 0.45 * lvl) + r.uniform(0, amp * .35) + 18
-            wick = h + r.uniform(8, 26)
-            cx = x + step / 2
-            bars.append(f'<rect x="{cx - w / 2:.1f}" y="{base - h:.1f}" width="{w:.1f}" height="{h + 400:.1f}" rx="1.5"/>'
-                        f'<rect x="{cx - .8:.1f}" y="{base - wick:.1f}" width="1.6" height="{wick - h + 2:.1f}"/>')
-            x += step
-        return f'<g fill="{fill}" opacity="{op}">{"".join(bars)}</g>'
-
-    back = row(70, 815, 70, 10, "#2A2466", .5)
-    mid = row(52, 845, 55, 14, "#17123A", .85)
-    front = row(38, 880, 42, 20, "#0B0818", 1)
-    pts = [(0, 792), (140, 786), (260, 795), (380, 760), (520, 770), (640, 730), (760, 742), (880, 690), (1000, 702), (1120, 640),
-           (1240, 655), (1360, 590), (1480, 575), (1600, 520)]
-    path = "M" + " L".join(f"{x} {y}" for x, y in pts)
-    return ('<svg class="ix-horizon" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMax slice" aria-hidden="true">'
-            '<defs><linearGradient id="ixLine" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#847DFF" stop-opacity="0"/>'
-            '<stop offset=".25" stop-color="#847DFF"/><stop offset=".7" stop-color="#4AA2E2"/><stop offset="1" stop-color="#2DB6EB"/></linearGradient>'
-            '<filter id="ixGlow" x="-10%" y="-50%" width="120%" height="200%"><feGaussianBlur stdDeviation="6"/></filter>'
-            '<linearGradient id="ixFade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0E0918" stop-opacity="0"/>'
-            '<stop offset="1" stop-color="#0E0918"/></linearGradient></defs>'
-            f'<g class="ix-l3">{back}</g><g class="ix-l2">{mid}</g>'
-            f'<g class="ix-line"><path d="{path}" fill="none" stroke="url(#ixLine)" stroke-width="10" filter="url(#ixGlow)" opacity=".55"/>'
-            f'<path class="ix-draw" d="{path}" fill="none" stroke="url(#ixLine)" stroke-width="2.6" stroke-linecap="round"/>'
-            f'<circle class="ix-dot" r="5" fill="#fff" style="offset-path:path(\'{path}\')"/></g>'
-            f'<g class="ix-l1">{front}</g><rect x="0" y="800" width="1600" height="100" fill="url(#ixFade)"/></svg>')
-
-
-_IX_WORDS = {
-    "en": ["Which stocks are breaking out today?", "Build a bot that buys momentum leaders", "Test a strategy on years of real prices",
-           "Is this company Sharia compliant?", "What moved the S&P 500 this morning?"],
-    "ar": ["وش الأسهم اللي تخترق اليوم؟", "ابنِ بوت يشتري أقوى أسهم الزخم", "جرّب استراتيجية على سنين من الأسعار الحقيقية",
-           "هل الشركة متوافقة مع الشريعة؟", "وش اللي حرّك إس آند بي 500 اليوم؟"],
-}
-_IX_CHIPS = [("robot_2", "Paper bots", "بوتات افتراضية", "c1"), ("radar", "Opportunity radar", "رادار الفرص", "c2"),
-             ("summarize", "Daily brief", "الموجز اليومي", "c3"), ("verified", "Sharia check", "فحص الشريعة", "c4"),
-             ("school", "Academy", "الأكاديمية", "c5")]
 
 
 def _facts():
@@ -515,7 +455,7 @@ def _facts():
 
 
 INTRO_CSS = """<style>
-@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Roboto+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Instrument+Serif:ital@0;1&family=Roboto+Mono:wght@400;500&display=swap');
 /* while the landing shows: the page runs edge to edge under a see-through top bar, without the sidebar */
 header[data-testid="stHeader"] { background: transparent !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
   border-bottom-color: transparent !important; box-shadow: none !important; transition: background .3s ease, backdrop-filter .3s ease; }
@@ -528,86 +468,66 @@ html.ix-scrolled header[data-testid="stHeader"] { background: rgba(14,9,24,.32) 
 @media (max-width: 1023.98px) { .st-key-topnav { margin: 8px !important; } }
 .ixp { margin-top: -1rem; color: #F5F5F7; font-family: 'DM Sans', 'Readex Pro', system-ui, sans-serif; overflow: hidden; }
 .ixp.ar { font-family: 'Readex Pro', 'DM Sans', sans-serif; }
-/* ---------- the first screen ---------- */
-.ix { position: relative; min-height: 100vh; overflow: hidden;
-  background: linear-gradient(180deg, #0B0818 0%, #110C24 18%, #1B1850 38%, #2B3A96 60%, #3F74C8 80%, #6AAFE6 100%); }
+/* ---------- the first screen: a violet-lit void, a slowly turning iridescent sculpture, two lines of words ---------- */
+.ix { position: relative; min-height: 100vh; overflow: hidden; background: #100D17; }
 .ix > * { position: absolute; }
-.ix-stars { inset: 0; width: 100%; height: 100%; opacity: .9; transform: translate3d(calc(var(--px,0) * -6px), calc(var(--py,0) * -4px), 0); }
-.ix-stars .tw0 { animation: ixtw 3.2s ease-in-out infinite; } .ix-stars .tw1 { animation: ixtw 4.6s ease-in-out infinite; }
-.ix-stars .tw2 { animation: ixtw 5.8s ease-in-out infinite; } .ix-stars .tw3 { opacity: .45; }
-@keyframes ixtw { 0%,100% { opacity: .9; } 50% { opacity: .15; } }
-.ix-aurora { inset: -20%; pointer-events: none; transform: translate3d(calc(var(--px,0) * -22px), calc(var(--py,0) * -14px), 0); }
-.ix-aurora i { position: absolute; border-radius: 50%; filter: blur(70px); opacity: .55; mix-blend-mode: screen; }
-.ix-aurora i:nth-child(1) { width: 46vw; height: 30vw; left: 12%; top: 22%; background: #6B21EF; animation: ixdrift1 18s ease-in-out infinite alternate; }
-.ix-aurora i:nth-child(2) { width: 40vw; height: 26vw; right: 8%; top: 30%; background: #077AC7; animation: ixdrift2 22s ease-in-out infinite alternate; }
-.ix-aurora i:nth-child(3) { width: 30vw; height: 18vw; left: 40%; top: 48%; background: #847DFF; opacity: .35; animation: ixdrift1 26s ease-in-out infinite alternate-reverse; }
-@keyframes ixdrift1 { 0% { transform: translate(0,0) scale(1); } 100% { transform: translate(6vw,-3vw) scale(1.15); } }
-@keyframes ixdrift2 { 0% { transform: translate(0,0) scale(1.1); } 100% { transform: translate(-7vw,2vw) scale(.95); } }
-.ix-spot { inset: 0; pointer-events: none; background: radial-gradient(520px circle at var(--cx,50%) var(--cy,40%), rgba(209,201,255,.16), transparent 62%); }
-.ix-horizon { left: 0; right: 0; bottom: 0; width: 100%; height: 100%; transform: translate3d(calc(var(--px,0) * -10px), 0, 0); }
-.ix-horizon .ix-l3 { transform: translate3d(calc(var(--px,0) * 6px), 0, 0); }
-.ix-horizon .ix-l2 { transform: translate3d(calc(var(--px,0) * 12px), 0, 0); }
-.ix-horizon .ix-l1 { transform: translate3d(calc(var(--px,0) * 20px), 0, 0); }
-.ix-draw { stroke-dasharray: 2400; stroke-dashoffset: 2400; animation: ixdraw 2.5s cubic-bezier(.455,.03,.515,.955) .4s forwards; }
-@keyframes ixdraw { to { stroke-dashoffset: 0; } }
-.ix-dot { offset-distance: 0%; animation: ixrun 7s cubic-bezier(.455,.03,.515,.955) 2.9s infinite; filter: drop-shadow(0 0 8px #fff); opacity: 0; }
-@keyframes ixrun { 0% { offset-distance: 0%; opacity: 0; } 8% { opacity: 1; } 90% { opacity: 1; } 100% { offset-distance: 100%; opacity: 0; } }
-.ix-center { left: 50%; top: 45%; width: min(980px, 92vw); transform: translate(-50%, -50%); text-align: center; z-index: 3; }
-.ix-eyebrow { display: inline-flex; flex-wrap: wrap; justify-content: center; row-gap: 8px; align-items: center; gap: 12px;
-  font-family: 'Roboto Mono', monospace; font-size: 12px; letter-spacing: .18em; text-transform: uppercase; color: rgba(245,245,247,.72); }
-.ix-pill { padding: 5px 12px; border-radius: 9999px; background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.55); color: #fff;
-  font-size: 11px; letter-spacing: .16em; display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }
-.ix-pill i { width: 7px; height: 7px; border-radius: 50%; background: #4ADE80; animation: ixpulse 1.8s infinite; }
-@keyframes ixpulse { 0% { box-shadow: 0 0 0 0 rgba(74,222,128,.55); } 70% { box-shadow: 0 0 0 9px rgba(74,222,128,0); } 100% { box-shadow: 0 0 0 0 rgba(74,222,128,0); } }
-.ixp.ar .ix-eyebrow, .ixp.ar .ix-pill { font-family: 'Readex Pro', sans-serif; letter-spacing: 0; text-transform: none; font-size: 13px; }
-.ixp.ar .ix-eyebrow bdi { font-family: 'Roboto Mono', monospace; letter-spacing: .14em; font-size: 12px; }
-.ix-h { margin: 22px 0 18px; font-family: 'Instrument Serif', 'DM Serif Display', Georgia, serif; font-weight: 400;
-  font-size: clamp(46px, 7.2vw, 104px); line-height: .95; letter-spacing: -.02em; color: #F5F5F7; text-shadow: 0 10px 40px rgba(11,8,24,.45); }
+.ix-glow { inset: 0; pointer-events: none; transform: translate3d(calc(var(--px,0) * -16px), calc(var(--py,0) * -10px), 0); }
+.ix-glow i { position: absolute; border-radius: 50%; }
+.ix-glow .g1 { left: 50%; top: -14vh; width: 110vw; height: 96vh; margin-left: -55vw;
+  background: radial-gradient(closest-side, rgba(84,26,156,.95), rgba(58,16,112,.62) 42%, rgba(34,10,70,.25) 68%, transparent 82%);
+  animation: ixbreath 9s ease-in-out infinite alternate; }
+.ix-glow .g2 { left: -16vw; top: 26vh; width: 52vw; height: 84vh; background: radial-gradient(closest-side, rgba(36,104,124,.55), rgba(24,64,84,.22) 55%, transparent 80%);
+  animation: ixdrift 17s ease-in-out infinite alternate; }
+.ix-glow .g3 { right: -18vw; top: 10vh; width: 60vw; height: 90vh; background: radial-gradient(closest-side, rgba(6,5,10,.85), transparent 78%); }
+.ix-glow .g4 { left: 50%; bottom: -30vh; width: 70vw; height: 60vh; margin-left: -35vw;
+  background: radial-gradient(closest-side, rgba(123,69,240,.35), transparent 75%); animation: ixbreath 7s ease-in-out -3s infinite alternate; }
+@keyframes ixbreath { 0% { transform: scale(1) translateY(0); opacity: .86; } 100% { transform: scale(1.08) translateY(2.5%); opacity: 1; } }
+@keyframes ixdrift { 0% { transform: translate(0,0) scale(1); } 100% { transform: translate(5vw,-4vh) scale(1.12); } }
+.ix-grain { inset: 0; pointer-events: none; opacity: .07; mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>"); }
+.ix-obj { left: 50%; bottom: -15vh; width: min(1120px, 118vw); height: 68vh; translate: -50% 0; pointer-events: none;
+  transform: translate3d(calc(var(--px,0) * -14px), calc(var(--py,0) * -8px), 0);
+  opacity: 0; animation: ixrise 2.4s cubic-bezier(.455,.03,.515,.955) .5s forwards; }
+@keyframes ixrise { from { opacity: 0; filter: blur(14px); translate: -50% 60px; } to { opacity: 1; filter: none; translate: -50% 0; } }
+.ix-obj .ix-gl { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.ix-obj .ix-gem { position: absolute; left: 50%; bottom: 8%; width: 44%; translate: -50% 0; animation: ixturn 14s ease-in-out infinite alternate; }
+.ix-obj.gl-on .ix-gem { display: none; }                                    /* the WebGL sculpture replaces the drawing */
+@keyframes ixturn { 0% { transform: rotate(-4deg) scale(1); } 100% { transform: rotate(5deg) scale(1.04); } }
+.ix-spk { position: absolute; width: 34px; height: 34px; translate: -50% -50%; opacity: 0; z-index: 2;
+  background: radial-gradient(closest-side, #fff, rgba(255,255,255,.6) 18%, transparent 60%),
+    linear-gradient(90deg, transparent 47%, rgba(255,255,255,.95) 50%, transparent 53%),
+    linear-gradient(0deg, transparent 47%, rgba(255,255,255,.95) 50%, transparent 53%);
+  filter: drop-shadow(0 0 8px rgba(209,201,255,.9)); animation: ixspark 4.2s ease-in-out infinite; }
+.ix-spk.s1 { left: 34%; top: 40%; animation-delay: .8s; } .ix-spk.s2 { left: 61%; top: 30%; animation-delay: 2.1s; width: 26px; height: 26px; }
+.ix-spk.s3 { left: 47%; top: 62%; animation-delay: 3.3s; width: 42px; height: 42px; } .ix-spk.s4 { left: 70%; top: 58%; animation-delay: 1.5s; width: 22px; height: 22px; }
+@keyframes ixspark { 0%, 70%, 100% { opacity: 0; transform: scale(.2) rotate(0deg); } 80% { opacity: 1; transform: scale(1) rotate(45deg); } 90% { opacity: .5; transform: scale(.6) rotate(90deg); } }
+.ix-center { left: 50%; top: 40%; width: min(980px, 92vw); transform: translate(-50%, -50%); text-align: center; z-index: 3; }
+.ix-h { margin: 0 0 20px; font-family: 'DM Serif Display', 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: clamp(50px, 7.6vw, 112px);
+  line-height: 1.02; letter-spacing: .02em; color: #FFFFFF; text-shadow: 0 12px 50px rgba(16,13,23,.55); }
 .ix-h em, .ixh em { font-style: italic; background: linear-gradient(90deg, #D1C9FF, #9DCBF7 55%, #FFFFFF); -webkit-background-clip: text;
   background-clip: text; color: transparent; padding-inline-end: .06em; }
-.ixp.ar .ix-h { font-family: 'Readex Pro', sans-serif; font-weight: 300; font-size: clamp(38px, 5.6vw, 84px); line-height: 1.25; letter-spacing: 0; }
+.ixp.ar .ix-h { font-family: 'Readex Pro', sans-serif; font-weight: 500; font-size: clamp(42px, 6vw, 92px); line-height: 1.25; letter-spacing: 0; }
 .ixp.ar .ix-h em, .ixp.ar .ixh em { font-style: normal; font-weight: 400; }
-.ix-sub { margin: 0 auto; max-width: 620px; font-size: 17px; line-height: 1.6; font-weight: 300; color: rgba(245,245,247,.72); }
-.ixp.ar .ix-sub { font-size: 18px; line-height: 1.9; }
-.ix-ask { margin: 30px auto 0; width: min(560px, 100%); box-sizing: border-box; display: flex; align-items: center; gap: 12px; padding: 14px 18px;
-  border-radius: 14px; background: rgba(11,8,24,.42); border: 1px solid rgba(255,255,255,.22); backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px); box-shadow: inset 0 1px 0 rgba(255,255,255,.12), 0 20px 50px -20px rgba(11,8,24,.8); text-align: start; cursor: default; }
-.ix-ask .ms { color: #D1C9FF; font-size: 1.25rem; }
-.ix-ask .ix-type { font-size: 16px; color: #F5F5F7; white-space: nowrap; overflow: hidden; }
-.ix-ask .ix-caret { width: 2px; height: 20px; background: #D1C9FF; animation: ixcaret 1s steps(1) infinite; margin-inline-start: -8px; }
-@keyframes ixcaret { 50% { opacity: 0; } }
-.ix-chips { inset: 0; pointer-events: none; z-index: 2; }
-.ix-chip { position: absolute; pointer-events: auto; display: inline-flex; align-items: center; gap: 9px; padding: 10px 15px 10px 11px; border-radius: 9999px;
-  background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.28); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-  font-family: 'Roboto Mono', monospace; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: #F5F5F7;
-  transition: background .2s ease, border-color .2s ease, box-shadow .2s ease;
-  translate: calc(var(--px,0) * var(--d,1) * -26px) calc(var(--py,0) * var(--d,1) * -18px);
-  opacity: 0; animation: ixin 1.6s cubic-bezier(.455,.03,.515,.955) forwards, ixfloat 7s ease-in-out 1.6s infinite; }
-.ixp.ar .ix-chip { font-family: 'Readex Pro', sans-serif; font-size: 13.5px; letter-spacing: 0; text-transform: none; padding: 9px 11px 9px 15px; }
-.ix-chip .ms { width: 28px; height: 28px; border-radius: 50%; display: inline-grid; place-items: center; font-size: 1.05rem; color: #0B0818; }
-.ix-chip:hover { background: rgba(255,255,255,.18); border-color: #fff; box-shadow: 0 0 30px rgba(209,201,255,.35); }
-.ix-chip.c1 { left: 9%; top: 23%; --d: 1.6; animation-delay: 1.1s, 2.7s; } .ix-chip.c1 .ms { background: #847DFF; }
-.ix-chip.c2 { right: 10%; top: 20%; --d: 2.2; animation-delay: 1.25s, 2.85s; } .ix-chip.c2 .ms { background: #00B3DD; }
-.ix-chip.c3 { left: 6%; top: 58%; --d: 1.1; animation-delay: 1.4s, 3s; } .ix-chip.c3 .ms { background: #90B8F0; }
-.ix-chip.c4 { right: 7%; top: 56%; --d: 1.4; animation-delay: 1.55s, 3.15s; } .ix-chip.c4 .ms { background: #DD90D8; }
-.ix-chip.c5 { left: 50%; top: 13%; --d: .8; margin-left: -70px; animation-delay: 1.7s, 3.3s; } .ix-chip.c5 .ms { background: #D1C9FF; }
-@keyframes ixfloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
-.ix-scroll { left: 50%; bottom: clamp(26px, 5vh, 48px); translate: -50% 0; z-index: 4; display: flex; flex-direction: column; align-items: center; gap: 10px;
+.ix-sub { margin: 0 auto; max-width: 640px; font-size: clamp(16px, 1.35vw, 19px); line-height: 1.55; font-weight: 400; color: rgba(255,255,255,.74); }
+.ix-sub b { display: block; margin-top: 10px; font-weight: 500; color: rgba(255,255,255,.92); }
+.ixp.ar .ix-sub { font-size: clamp(17px, 1.4vw, 20px); line-height: 1.9; }
+.ix-scroll { left: 50%; bottom: clamp(22px, 4.5vh, 44px); translate: -50% 0; z-index: 4; display: flex; flex-direction: column; align-items: center; gap: 10px;
   font-family: 'Roboto Mono', monospace; font-size: 11px; letter-spacing: .22em; text-transform: uppercase; color: rgba(245,245,247,.85);
   cursor: pointer; padding: 12px 20px 10px; border-radius: 16px; transition: color .2s ease, background .2s ease;
-  background: rgba(11,8,24,.38); border: 1px solid rgba(255,255,255,.14); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-  opacity: 0; animation: ixin 1.6s cubic-bezier(.455,.03,.515,.955) 1.4s forwards; text-shadow: 0 2px 12px rgba(11,8,24,.8); }
-.ix-scroll:hover { color: #fff; background: rgba(11,8,24,.55); border-color: rgba(255,255,255,.3); }
+  background: rgba(16,13,23,.4); border: 1px solid rgba(255,255,255,.14); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  opacity: 0; animation: ixin 1.6s cubic-bezier(.455,.03,.515,.955) 1.8s forwards; }
+.ix-scroll:hover { color: #fff; background: rgba(16,13,23,.6); border-color: rgba(255,255,255,.3); }
 .ix-scroll:hover i { border-color: #fff; }
 .ixp.ar .ix-scroll { font-family: 'Readex Pro', sans-serif; letter-spacing: 0; font-size: 12px; }
 .ix-scroll i { width: 24px; height: 38px; border: 1.5px solid rgba(245,245,247,.75); border-radius: 13px; position: relative; transition: border-color .2s ease; }
 .ix-scroll i::after { content: ""; position: absolute; left: 50%; top: 7px; width: 3px; height: 7px; margin-left: -1.5px; border-radius: 2px; background: #fff;
   animation: ixwheel 1.8s ease-in-out infinite; }
 @keyframes ixwheel { 0% { transform: translateY(0); opacity: 1; } 80% { transform: translateY(10px); opacity: 0; } 100% { opacity: 0; } }
-.ix-center > * { opacity: 0; animation: ixin 1.6s cubic-bezier(.455,.03,.515,.955) forwards; }
-.ix-center > :nth-child(1) { animation-delay: .1s; } .ix-center > :nth-child(2) { animation-delay: .3s; }
-.ix-center > :nth-child(3) { animation-delay: .6s; } .ix-center > :nth-child(4) { animation-delay: .9s; }
-@keyframes ixin { from { opacity: 0; transform: translateY(14px); filter: blur(6px); } to { opacity: 1; transform: none; filter: none; } }
+.ix-center > * { opacity: 0; animation: ixin 1.8s cubic-bezier(.455,.03,.515,.955) forwards; }
+.ix-center > :nth-child(1) { animation-delay: .15s; } .ix-center > :nth-child(2) { animation-delay: .55s; }
+@keyframes ixin { from { opacity: 0; transform: translateY(14px); filter: blur(8px); } to { opacity: 1; transform: none; filter: none; } }
+@keyframes ixdraw { to { stroke-dashoffset: 0; } }
+@keyframes ixpulse { 0% { box-shadow: 0 0 0 0 rgba(74,222,128,.55); } 70% { box-shadow: 0 0 0 9px rgba(74,222,128,0); } 100% { box-shadow: 0 0 0 0 rgba(74,222,128,0); } }
 /* ---------- the sections under it ---------- */
 .ixs { position: relative; max-width: 1200px; margin: 0 auto; padding: 120px 24px 0; box-sizing: border-box; }
 .ixl { font-family: 'Roboto Mono', monospace; font-size: 12px; letter-spacing: .18em; text-transform: uppercase; color: #D1C9FF;
@@ -762,12 +682,11 @@ html.ix-js.ix-past .st-key-introgo { opacity: 1; translate: -50% 0; pointer-even
 .st-key-introgo button:active { transform: translateY(0) scale(.98); }
 @media (max-width: 1000px) { .ixg { grid-template-columns: repeat(2, minmax(0, 1fr)); } .ixf { grid-template-columns: 1fr; gap: 36px; }
   .ixf.rev > :first-child { order: 0; } .ixn { grid-template-columns: repeat(2, minmax(0, 1fr)); } .ixw { grid-template-columns: 1fr; } }
-@media (max-width: 900px) { .ix-chip { display: none; } .ix-center { top: 42%; } .ix-sub { font-size: 15px; } .ix-ask { padding: 12px 14px; }
-  .ixs { padding-top: 84px; } }
+@media (max-width: 900px) { .ix-center { top: 38%; } .ix-obj { height: 56vh; bottom: -10vh; } .ixs { padding-top: 84px; } }
 @media (max-width: 640px) { .ixg { grid-template-columns: 1fr; } .ixc { min-height: 220px; } .mrad { grid-template-columns: 1fr; justify-items: center; }
   .mheat { grid-template-columns: repeat(3, minmax(0, 1fr)); } .ixn { grid-template-columns: 1fr 1fr; } }
 @media (prefers-reduced-motion: reduce) { .ixp *, .st-key-introgo { animation: none !important; opacity: 1 !important; }
-  .ix-draw, .mbot .ln { stroke-dashoffset: 0; } html.ix-js .rv { opacity: 1; translate: none; } }
+  .mbot .ln { stroke-dashoffset: 0; } html.ix-js .rv { opacity: 1; translate: none; } .ix-obj { translate: -50% 0; filter: none; } }
 </style>"""
 
 
@@ -833,20 +752,20 @@ def _mock_courses(f):
 
 def intro_html():
     ar = is_ar()
-    lang = "ar" if ar else "en"
     f = _facts()
-    words = _IX_WORDS[lang]
     ex = L("EXAMPLE", "مثال")
-    chips = "".join(f'<span class="ix-chip {c}"><span class="ms">{ic}</span>{L(en, a)}</span>' for ic, en, a, c in _IX_CHIPS)
-    hero = (f'<section class="ix">'
-            '<div class="ix-aurora"><i></i><i></i><i></i></div>' + _stars() + '<div class="ix-spot"></div>' + _horizon()
-            + f'<div class="ix-chips">{chips}</div>'
-            f'<div class="ix-center"><div class="ix-eyebrow"><span class="ix-pill"><i></i>{L("Paper trading", "تداول افتراضي")}</span>'
-            f'<span>{L("A.Alturaifi Pro · US markets", "<bdi>A.ALTURAIFI PRO</bdi> · الأسواق الأمريكية")}</span></div>'
-            f'<div class="ix-h" role="heading" aria-level="1">{L("Trade the market<br><em>before you risk a dollar.</em>", "تداول السوق<br><em>قبل ما تخاطر بدولار.</em>")}</div>'
-            f'<p class="ix-sub">{L("Paper-trading bots, a daily opportunity hunter and market research, in one place, in English and Arabic.", "بوتات تداول افتراضية، وصياد فرص يومي، وأبحاث السوق، في مكان واحد، بالعربي والإنجليزي.")}</p>'
-            f'<div class="ix-ask"><span class="ms">auto_awesome</span>'
-            f'<span class="ix-type" data-words="{_html.escape(_json.dumps(words, ensure_ascii=False))}">{words[0]}</span><span class="ix-caret"></span></div></div>'
+    gem = ('<svg class="ix-gem" viewBox="0 0 400 260" aria-hidden="true"><defs>'
+           '<linearGradient id="gmA" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3A2A6E"/><stop offset=".5" stop-color="#0C0A14"/><stop offset="1" stop-color="#1D4C5C"/></linearGradient>'
+           '<linearGradient id="gmB" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#D1C9FF" stop-opacity=".9"/><stop offset="1" stop-color="#D1C9FF" stop-opacity="0"/></linearGradient></defs>'
+           '<path d="M40 210 L90 90 L170 40 L260 52 L340 110 L372 206 L300 250 L110 250 Z" fill="url(#gmA)" stroke="rgba(209,201,255,.35)"/>'
+           '<path d="M90 90 L170 40 L200 120 Z M170 40 L260 52 L200 120 Z M260 52 L340 110 L200 120 Z M90 90 L200 120 L110 250 L40 210 Z" fill="url(#gmB)" opacity=".18"/>'
+           '<path d="M200 120 L300 250 M200 120 L372 206 M200 120 L110 250" stroke="rgba(255,255,255,.25)"/></svg>')
+    hero = ('<section class="ix"><div class="ix-glow"><i class="g1"></i><i class="g2"></i><i class="g3"></i><i class="g4"></i></div>'
+            '<div class="ix-grain"></div>'
+            f'<div class="ix-obj">{gem}<span class="ix-spk s1"></span><span class="ix-spk s2"></span><span class="ix-spk s3"></span><span class="ix-spk s4"></span></div>'
+            f'<div class="ix-center"><div class="ix-h" role="heading" aria-level="1">{L("Beyond Investing", "أبعد من الاستثمار")}</div>'
+            f'<p class="ix-sub">{L("Paper-trading bots, a daily opportunity hunter and market research, in one place.", "بوتات تداول افتراضية، وصياد فرص يومي، وأبحاث السوق، في مكان واحد.")}'
+            f'<b>{L("Our goal is to teach you, and to let you trade on paper first.", "هدفنا نعلّمك، ونخليك تتداول افتراضياً.")}</b></p></div>'
             f'<div class="ix-scroll" role="button" tabindex="0"><i></i>{L("Scroll down", "انزل لتحت")}</div></section>')
     state = (f'<section class="ixs ix-state rv"><span class="ixl">{L("What it is", "وش هو")}</span>'
              f'<div class="ixh">{L("One place to learn the market, test your ideas and let them trade. <span>With virtual money, on real prices.</span>", "مكان واحد تتعلّم فيه السوق، وتجرّب أفكارك، وتخليها تتداول لحالها. <span>بفلوس افتراضية، على أسعار حقيقية.</span>")}</div></section>')
