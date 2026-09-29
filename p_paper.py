@@ -3797,15 +3797,15 @@ def ready_section(bots, can_add):
     sub = L("Five bots that read the market before they trade: the regime (bull, sideways, bear or panic) decides which of their "
             "strategies may open trades, every signal gets a score out of 100 (trend, momentum, volume, volatility, price structure "
             "and reward/risk) and only good ones are bought, the best first; each trade is sized by its risk, and the bot pauses "
-            "itself after a deep drawdown or a losing streak and mutes a strategy that lost its edge. Each trades three combined "
-            "strategies (a stock is bought when all or most strategies of a combination agree): the 15 best of every pair, triple "
+            "itself after a deep drawdown or a losing streak and mutes a strategy that lost its edge. Each trades six combined "
+            "strategies (a stock is bought when all or most strategies of a combination agree): the 30 best of every pair, triple "
             "and group of four of the site's strategies on 2010–2019, dealt in turn, and for each trade it takes the combination "
             "that has worked best lately. Each one was tested on real "
             f"prices of {n or 'all the'} companies from 2008 to now, period by period, through this site's own bot engine.",
             "خمس بوتات تقرأ السوق قبل ما تتداول: حالة السوق (صاعد، عرضي، هابط أو ذعر) تحدد أي استراتيجياتها تفتح صفقات، وكل إشارة "
             "تاخذ تقييم من 100 (الاتجاه، الزخم، الحجم، التذبذب، بنية السعر، والعائد مقابل المخاطرة) وما يشتري إلا الزينة والأفضل أول؛ "
             "وكل صفقة حجمها حسب مخاطرتها، والبوت يوقف نفسه بعد هبوط كبير أو خسائر متتالية ويسكّت الاستراتيجية اللي ضعفت. وكل بوت عنده "
-            "ثلاث استراتيجيات مركّبة (يشتري السهم لما تتفق كل أو أغلب استراتيجيات التركيبة): أفضل 15 تركيبة من كل ثنائي وثلاثي "
+            "ست استراتيجيات مركّبة (يشتري السهم لما تتفق كل أو أغلب استراتيجيات التركيبة): أفضل 30 تركيبة من كل ثنائي وثلاثي "
             "ورباعي من استراتيجيات الموقع على 2010–2019، موزعة بالدور، ولكل صفقة ياخذ التركيبة الأنجح مؤخراً. وكل واحد "
             f"منها مختبر على أسعار حقيقية لـ {n or 'كل'} شركة من 2008 لين اليوم، فترة بفترة، بمحرّك البوتات نفسه في الموقع.")
     ui.html(f'<div class="aihd"><span class="i">{T.icon("neurology")}</span><span class="t">{L("Ready bots", "بوتات جاهزة")}</span>'
