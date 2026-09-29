@@ -190,9 +190,15 @@ def run_one(job):
         closed = tr[tr["Exit Reason"] != "Open"]
         by_str = {s: {"n": int(len(g)), "pnl": float(g["P&L $"].sum()), "win": float((g["P&L $"] > 0).mean())}
                   for s, g in closed.groupby("Strategy")}
+        # the same on 2010-2019 only (trades closed then): what picks a bot's strategy or combination without looking at 2020-now
+        xd = pd.to_datetime(closed["Exit Date"])
+        xd = xd.dt.tz_localize(None) if getattr(xd.dt, "tz", None) is not None else xd
+        ins = closed[(xd >= pd.Timestamp("2010-01-04")) & (xd <= pd.Timestamp("2019-12-31"))]
+        by_str_ins = {s: {"n": int(len(g)), "pnl": float(g["P&L $"].sum()), "win": float((g["P&L $"] > 0).mean())}
+                      for s, g in ins.groupby("Strategy")}
         exits = {k: int(v) for k, v in closed["Exit Reason"].value_counts().items()}
         monthly = (eq.resample("ME").last() / CAP).round(4)
-        res.update(by_regime=by_reg, by_strategy=by_str, exits=exits, blocked=bb.get("blocked"), pauses=bb.get("pauses"),
+        res.update(by_regime=by_reg, by_strategy=by_str, by_strategy_ins=by_str_ins, exits=exits, blocked=bb.get("blocked"), pauses=bb.get("pauses"),
                    sector_now=bb.get("sector"), sectors=bb.get("sectors"),
                    regime_days=bb.get("regime_days"), regime_now=bb.get("regime"),
                    curve={"d": [f"{d:%Y-%m}" for d in monthly.index], "v": monthly.tolist()})
