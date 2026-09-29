@@ -254,9 +254,10 @@ def _story_rows(stories, lg_chg):
     for n in stories:
         iq = n["iq"]
         bg, fg, bd = newsiq.colors(iq["score"])
-        rows.append(f'<div class="bstory"><div class="sc" style="background:{bg};color:{fg};border-color:{bd}" title="{T.esc(L(*newsiq.level(iq["score"])))}">'
-                    f'{iq["score"]}<small>/10</small></div><div class="b"><a href="{T.esc(n["link"])}" target="_blank">{T.esc(n["title"])}</a>'
-                    f'<div class="m">{T.esc(n["source"])} · {T.time_ago(n["time"], is_ar())}</div>{T.kw_chips(iq, is_ar(), 3)}</div></div>')
+        # every story with its picture: the outlet's photo, or the topic picture with the company's logo (T.news_thumb)
+        rows.append(f'<div class="bstory">{T.news_thumb(n)}<div class="b"><a href="{T.esc(n["link"])}" target="_blank">{T.esc(n["title"])}</a>'
+                    f'<div class="m"><span class="sc" style="background:{bg};color:{fg};border-color:{bd}" title="{T.esc(L(*newsiq.level(iq["score"])))}">'
+                    f'{iq["score"]}<small>/10</small></span>{T.esc(n["source"])} · {T.time_ago(n["time"], is_ar())}</div>{T.kw_chips(iq, is_ar(), 3)}</div></div>')
     return "".join(rows)
 
 
@@ -679,4 +680,4 @@ def page_seasonality():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "14.2"
+BUILD = "14.3"

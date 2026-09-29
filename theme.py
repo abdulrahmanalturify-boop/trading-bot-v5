@@ -576,6 +576,12 @@ a.lnk {{ color:inherit !important; text-decoration:none !important; }} a.lnk:hov
 .brief .mood {{ display:inline-flex; align-items:center; gap:6px; padding:4px 11px; border-radius:20px; font-weight:600; font-size:.78rem; letter-spacing:0; text-transform:none; }}
 .bstory {{ display:flex; gap:12px; align-items:flex-start; padding:10px 4px; border-bottom:1px solid {BORDER}; }}
 .bstory:last-child {{ border-bottom:none; }}
+.bstory .nth {{ width:112px; height:76px; border-radius:11px; }}
+.bstory .nth.fb .ms {{ font-size:32px; }} .bstory .nth.fb em {{ display:none; }}
+.bstory .m {{ display:flex; align-items:center; flex-wrap:wrap; gap:6px; }}
+.bstory .m .sc {{ width:auto; height:auto; flex-direction:row; gap:1px; padding:1px 7px; border-radius:999px; font-size:.72rem; }}
+.bstory .m .sc small {{ margin-top:0; }}
+@media (max-width: 640px) {{ .bstory .nth {{ width:92px; height:64px; }} }}
 .bstory .sc {{ flex:none; width:46px; height:46px; border-radius:12px; display:flex; flex-direction:column; align-items:center; justify-content:center;
   font-weight:600; font-size:1.08rem; line-height:1; border:1px solid; direction:ltr; }}
 .bstory .sc small {{ font-size:.55rem; font-weight:600; opacity:.75; margin-top:3px; }}
@@ -2066,4 +2072,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "14.2"
+BUILD = "14.3"
