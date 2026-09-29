@@ -5,7 +5,8 @@ starts only when someone adds it.
 
 Every bot trades all companies (the S&P 500 + the site's largest companies) with shares, and runs the five parts of brain.py:
 the market regime, the strategy families allowed in each regime, the score out of 100, the risk sizing and the self-check.
-The settings were fixed before the test (no tuning on the results); the test then shows each bot period by period.
+The settings were chosen on 2010-2019 only (research/results/smart_rounds.md: four rounds, one rule fixed before looking);
+2020-now, which played no part in the choice, shows how they hold up on years they never saw.
 """
 import json
 import os
@@ -20,9 +21,9 @@ BOTS = {
     "adaptive": {
         "name": ("Adaptive All-Weather", "المتكيّف مع السوق"),
         "idea": ("Reads the market first, then picks the strategy that suits it: trends and breakouts in a bull market, strong "
-                 "stocks and dips in a sideways one, small dip-buys in a bear market, and nothing in a panic.",
+                 "stocks and dips in a sideways one, small dip-buys in a bear market, and nothing new in a panic.",
                  "يقرأ السوق أول، وبعدين يختار الاستراتيجية اللي تناسبه: الاتجاه والاختراقات في السوق الصاعد، والأسهم القوية "
-                 "والتصحيحات في العرضي، وشراء تصحيحات صغير في الهابط، وما يدخل أبداً وقت الذعر."),
+                 "والتصحيحات في العرضي، وشراء تصحيحات صغير في الهابط، وما يشتري شي جديد وقت الذعر."),
         "strategies": {"Trend Following": {}, "Breakout Strategy": {}, "Relative Strength Strategy": {}, "Mean Reversion": {},
                        "VWAP Reclaim / Pullback": {}},
         "max_pos": 10,
@@ -31,66 +32,68 @@ BOTS = {
                             "bear": ["reversion"], "stress": []},
                   "size": {"bull": 1.0, "neutral": 0.6, "bear": 0.3, "stress": 0.0},
                   "exposure": {"bull": 1.0, "neutral": 0.6, "bear": 0.3, "stress": 0.0},
-                  "exit": ["stress"], "risk": 1.0, "atr": 3.0, "sector_cap": 3, "be_r": 1.5, "trail_atr": 3.5, "time_bars": 0,
+                  "exit": [], "risk": 1.0, "atr": 3.0, "sector_cap": 3, "be_r": 1.5, "trail_atr": 3.5, "time_bars": 0,
                   "dd_half": 10, "dd_stop": 20, "pause": 20, "streak": 5, "cool": 5, "day_loss": 3, "decay": 1},
     },
     "trend": {
         "name": ("Trend Rider", "راكب الاتجاه"),
-        "idea": ("Only rides clear uptrends in a bull market, gives them room with a wide trailing stop, and sells everything "
-                 "when the market turns bear or panics.",
-                 "يركب الاتجاهات الصاعدة الواضحة بس في السوق الصاعد، ويعطيها مساحة بوقف متحرك واسع، ويبيع كل شي إذا صار "
-                 "السوق هابط أو دخل في ذعر."),
+        "idea": ("Rides uptrends in bull and sideways markets (smaller in sideways ones), lets a winner run until its strategy "
+                 "says sell, and buys nothing new in a bear market or a panic.",
+                 "يركب الاتجاهات الصاعدة في السوق الصاعد والعرضي (بحجم أصغر في العرضي)، ويخلّي الصفقة الرابحة تمشي لين تقول "
+                 "استراتيجيتها بيع، وما يشتري شي جديد في السوق الهابط أو وقت الذعر."),
         "strategies": {"Trend Following": {}, "Moving Average Crossover": {}, "Golden Cross (50/200)": {}, "EMA Crossover": {}},
         "max_pos": 10,
-        "brain": {"min_score": 65, "allow": {"bull": ["trend"], "neutral": [], "bear": [], "stress": []},
-                  "size": {"bull": 1.0, "neutral": 0.5, "bear": 0.0, "stress": 0.0},
-                  "exposure": {"bull": 1.0, "neutral": 1.0, "bear": 0.0, "stress": 0.0},
-                  "exit": ["bear", "stress"], "risk": 1.0, "atr": 3.0, "sector_cap": 3, "be_r": 0, "trail_atr": 4.0, "time_bars": 0,
-                  "dd_half": 10, "dd_stop": 20, "pause": 20, "streak": 6, "cool": 5, "day_loss": 3, "decay": 1},
+        "brain": {"min_score": 50, "allow": {"bull": ["trend"], "neutral": ["trend"], "bear": [], "stress": []},
+                  "size": {"bull": 1.0, "neutral": 0.8, "bear": 0.0, "stress": 0.0},
+                  "exposure": {"bull": 1.0, "neutral": 0.8, "bear": 0.0, "stress": 0.0},
+                  "exit": [], "risk": 1.5, "size_floor": 0.8, "atr": 3.0, "sector_cap": 3, "be_r": 0, "trail_atr": 0, "time_bars": 0,
+                  "dd_half": 15, "dd_stop": 25, "pause": 20, "streak": 8, "cool": 3, "day_loss": 3, "decay": 1,
+                  "stress_vol": 40, "stress_x": 2.5},
     },
     "breakout": {
         "name": ("Breakout Hunter", "صياد الاختراقات"),
-        "idea": ("Buys stocks breaking out to new highs on heavy volume, with a tight stop that moves to break-even early, "
-                 "and drops a breakout that goes nowhere in 20 sessions.",
-                 "يشتري الأسهم اللي تخترق لقمم جديدة بحجم تداول عالي، بوقف قريب ينتقل لسعر الدخول بدري، ويطلع من الاختراق "
-                 "اللي ما يتحرك خلال 20 جلسة."),
+        "idea": ("Buys stocks breaking out to new highs on heavy volume, with a close stop, drops a breakout that goes nowhere "
+                 "in 20 sessions, and sells everything when the market turns bear.",
+                 "يشتري الأسهم اللي تخترق لقمم جديدة بحجم تداول عالي، بوقف قريب، ويطلع من الاختراق اللي ما يتحرك خلال 20 جلسة، "
+                 "ويبيع كل شي إذا صار السوق هابط."),
         "strategies": {"Breakout Strategy": {}, "Donchian Breakout (Turtle)": {}, "Volume Breakout": {}, "Volatility Breakout": {}},
         "max_pos": 8,
         "brain": {"min_score": 65, "weights": {"trend": 15, "mom": 15, "vol": 25, "volat": 10, "struct": 20, "rr": 15},
                   "allow": {"bull": ["breakout"], "neutral": ["breakout"], "bear": [], "stress": []},
-                  "size": {"bull": 1.0, "neutral": 0.5, "bear": 0.0, "stress": 0.0},
-                  "exposure": {"bull": 1.0, "neutral": 0.5, "bear": 0.0, "stress": 0.0},
-                  "exit": ["bear", "stress"], "risk": 0.75, "atr": 2.5, "sector_cap": 2, "be_r": 1.0, "trail_atr": 3.0,
+                  "size": {"bull": 1.0, "neutral": 1.0, "bear": 0.0, "stress": 0.0},
+                  "exposure": {"bull": 1.0, "neutral": 1.0, "bear": 0.0, "stress": 0.0},
+                  "exit": ["bear"], "risk": 0.75, "size_floor": 1.0, "atr": 2.5, "sector_cap": 2, "be_r": 0, "trail_atr": 0,
                   "time_bars": 20, "time_r": 0.5, "dd_half": 10, "dd_stop": 20, "pause": 20, "streak": 6, "cool": 5,
-                  "day_loss": 3, "decay": 1},
+                  "day_loss": 3, "decay": 1, "stress_vol": 40, "stress_x": 2.5},
     },
     "momentum": {
         "name": ("Momentum Leaders", "قادة الزخم"),
-        "idea": ("Holds the market's strongest stocks against the S&P 500, ranked by momentum, half as many in a sideways "
-                 "market, none in a bear one.",
-                 "يمسك أقوى الأسهم مقارنة بالسوق، مرتبة حسب الزخم، ونصف العدد في السوق العرضي، ولا شي في الهابط."),
+        "idea": ("Holds the market's strongest stocks against the S&P 500, ranked by momentum; fewer in a sideways market, "
+                 "nothing new in a bear market or a panic.",
+                 "يمسك أقوى الأسهم مقارنة بالسوق، مرتبة حسب الزخم؛ وعدد أقل في السوق العرضي، ولا شي جديد في السوق الهابط أو وقت الذعر."),
         "strategies": {"Relative Strength Strategy": {}, "Momentum Strategy": {}, "Portfolio-Level Strategy": {}},
         "max_pos": 10,
-        "brain": {"min_score": 65, "weights": {"trend": 20, "mom": 35, "vol": 10, "volat": 10, "struct": 15, "rr": 10},
+        "brain": {"min_score": 60, "weights": {"trend": 20, "mom": 35, "vol": 10, "volat": 10, "struct": 15, "rr": 10},
                   "allow": {"bull": ["momentum"], "neutral": ["momentum"], "bear": [], "stress": []},
-                  "size": {"bull": 1.0, "neutral": 0.6, "bear": 0.0, "stress": 0.0},
-                  "exposure": {"bull": 1.0, "neutral": 0.5, "bear": 0.0, "stress": 0.0},
-                  "exit": ["bear", "stress"], "risk": 1.0, "atr": 3.0, "sector_cap": 3, "be_r": 2.0, "trail_atr": 4.0,
-                  "time_bars": 0, "dd_half": 10, "dd_stop": 20, "pause": 20, "streak": 6, "cool": 5, "day_loss": 3, "decay": 1},
+                  "size": {"bull": 1.0, "neutral": 0.8, "bear": 0.0, "stress": 0.0},
+                  "exposure": {"bull": 1.0, "neutral": 0.8, "bear": 0.0, "stress": 0.0},
+                  "exit": [], "risk": 1.5, "size_floor": 0.8, "atr": 3.0, "sector_cap": 3, "be_r": 0, "trail_atr": 0,
+                  "time_bars": 0, "dd_half": 15, "dd_stop": 25, "pause": 20, "streak": 8, "cool": 3, "day_loss": 3, "decay": 1,
+                  "stress_vol": 40, "stress_x": 2.5},
     },
     "pullback": {
         "name": ("Pullback Buyer", "صياد التصحيحات"),
         "idea": ("Buys short dips in stocks that are in an uptrend, sells on the bounce, and never waits more than 10 "
-                 "sessions for it; stays out of bear markets and panics.",
+                 "sessions for it; stays out of bear markets and sells everything in a panic.",
                  "يشتري الهبوط القصير في الأسهم اللي اتجاهها صاعد، ويبيع مع الارتداد، وما ينتظره أكثر من 10 جلسات؛ "
-                 "ويبتعد عن السوق الهابط ووقت الذعر."),
+                 "ويبتعد عن السوق الهابط ويبيع كل شي وقت الذعر."),
         "strategies": {"Mean Reversion": {}, "RSI Mean Reversion": {"period": 2, "buy_below": 10, "sell_above": 60},
                        "VWAP Mean Reversion": {}, "VWAP Reclaim / Pullback": {}},
         "max_pos": 12,
         "brain": {"min_score": 55, "weights": {"trend": 30, "mom": 20, "vol": 5, "volat": 15, "struct": 10, "rr": 20},
                   "allow": {"bull": ["reversion"], "neutral": ["reversion"], "bear": [], "stress": []},
-                  "size": {"bull": 1.0, "neutral": 0.7, "bear": 0.0, "stress": 0.0},
-                  "exposure": {"bull": 1.0, "neutral": 0.7, "bear": 0.0, "stress": 0.0},
+                  "size": {"bull": 1.0, "neutral": 1.0, "bear": 0.0, "stress": 0.0},
+                  "exposure": {"bull": 1.0, "neutral": 1.0, "bear": 0.0, "stress": 0.0},
                   "exit": ["stress"], "risk": 0.75, "atr": 2.5, "sector_cap": 3, "be_r": 0, "trail_atr": 0, "time_bars": 10,
                   "time_r": 0.0, "dd_half": 10, "dd_stop": 20, "pause": 20, "streak": 6, "cool": 5, "day_loss": 3, "decay": 1},
     },

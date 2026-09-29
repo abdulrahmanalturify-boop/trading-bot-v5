@@ -5,8 +5,8 @@ Yahoo Finance can be reached). Writes smart_results.json (read by the Paper Bots
 Each bot runs ONCE through the site's own engine (paperbots.simulate) from 2007-01-03 to today on all companies, with
 100,000 of virtual money and 0.10% per side for the fee and the slippage. Its balance is then read period by period:
   2008-2009 financial crisis · 2010-2014 · 2015-2019 · 2020 (COVID crash and rebound) · 2021 · 2022 bear market · 2023-now,
-  in-sample 2010-2019 (where the ideas behind the settings come from) and out-of-sample 2020-now (never looked at while
-  the settings were fixed), and the whole 2008-now.
+  in-sample 2010-2019 (where the settings were chosen: research/results/smart_rounds.md) and out-of-sample 2020-now (no
+  part in the choice), and the whole 2008-now.
 Each period is compared with the S&P 500 (SPY) and with holding all the same stocks equally (bought at the period's start).
 Variants of every bot show what each part adds and how sensitive it is: the same strategies without the brain, the brain
 without the regimes / the score / the self-check, and the minimum score and the ATR stop moved up and down.
@@ -62,32 +62,6 @@ def variants(key):
          "score_p10": {**br, "min_score": min(br["min_score"] + 10, 100)},
          "atr_m": {**br, "atr": br["atr"] - 0.5},
          "atr_p": {**br, "atr": br["atr"] + 0.5}}
-    # round 2: what makes the bot hold more of its money in good trades (judged on 2010-2019 only)
-    full = lambda x: {r: (1.0 if br["allow"][r] and x[r] > 0 else x[r]) for r in BR.REGIMES}
-    light = {**br, "size_floor": 1.0, "exit": [r for r in br["exit"] if r != "stress"], "size": full(br["size"]),
-             "exposure": full(br["exposure"]), "stress_vol": 40.0, "stress_x": 2.5}
-    v.update({"size_full": {**br, "size_floor": 1.0},
-              "hold_stress": {**br, "exit": [r for r in br["exit"] if r != "stress"]},
-              "no_trail": {**br, "trail_atr": 0.0, "be_r": 0.0},
-              "trail_wide": {**br, "trail_atr": br["trail_atr"] + 1.5 if br["trail_atr"] else 0.0, "be_r": 0.0},
-              "neutral_full": {**br, "size": full(br["size"]), "exposure": full(br["exposure"])},
-              "stress_strict": {**br, "stress_vol": 40.0, "stress_x": 2.5},
-              "light": light,
-              "light_notrail": {**light, "trail_atr": 0.0, "be_r": 0.0}})
-    # round 3: a lighter brain - the bot's strategies trade in bull and sideways markets (sideways at 80%), nothing new in a
-    # bear market or a panic, no forced selling, a mild size by score, drawdown sizing and the self-check kept
-    lite = {**br, "allow": {"bull": list(br["allow"]["bull"]) or list(BR.FAMILIES), "neutral": list(br["allow"]["bull"]) or list(BR.FAMILIES),
-                            "bear": [], "stress": []},
-            "size": {"bull": 1.0, "neutral": 0.8, "bear": 0.0, "stress": 0.0}, "exposure": {"bull": 1.0, "neutral": 0.8, "bear": 0.0, "stress": 0.0},
-            "exit": [], "min_score": 50.0, "size_floor": 0.8, "risk": 1.5, "trail_atr": 0.0, "be_r": 0.0, "streak": 8, "cool": 3,
-            "dd_half": 15.0, "dd_stop": 25.0, "stress_vol": 40.0, "stress_x": 2.5}
-    v.update({"lite": lite, "lite_bear_exit": {**lite, "exit": ["bear"]},
-              "lite_trail": {**lite, "trail_atr": br["trail_atr"] or 4.0}, "lite_score60": {**lite, "min_score": 60.0}})
-    # round 4: which of the risk rules costs the lite brain its return (still judged on 2010-2019 only)
-    w_novol = {p: (0.0 if p == "volat" else x) for p, x in br["weights"].items()}
-    v.update({"lite_nocap": {**lite, "sector_cap": 0}, "lite_novol": {**lite, "weights": w_novol},
-              "lite_bigrisk": {**lite, "risk": 3.0},
-              "lite_free": {**lite, "sector_cap": 0, "risk": 3.0, "size_floor": 1.0}})
     return {n: (b["strategies"], b["max_pos"], (BR.clean(x) if x else None), (x or br)["atr"]) for n, x in v.items()}
 
 
