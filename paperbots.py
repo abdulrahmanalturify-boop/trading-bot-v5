@@ -47,6 +47,7 @@ import streamlit as st
 
 from math import exp
 
+import brain as BR
 import data
 import engine
 import mcal
@@ -363,13 +364,14 @@ def _norm(r):
                 "trend_filter": int(bool(_num(params.get("trend_filter")))) if isinstance(params, dict) else 0,
                 "ml": str(params["ml"])[:40] if isinstance(params, dict) and params.get("ml") else None,
                 "fwd": params.get("fwd") if isinstance(params, dict) and isinstance(params.get("fwd"), dict) else None,
-                "fwd_prev": list(params.get("fwd_prev") or []) if isinstance(params, dict) else []}
+                "fwd_prev": list(params.get("fwd_prev") or []) if isinstance(params, dict) else [],
+                **({"brain": BR.clean(params.get("brain"))} if isinstance(params, dict) and BR.clean(params.get("brain")) else {})}
     except Exception:
         return None
 
 
 def make_record(name, kind, value, strategies, max_pos, capital, fee, stop_pct, atr_mult, tp_pct, trail_pct, start_date, combine=None,
-                instrument="stock", options=None, risk_pct=0.0, regime=0, trend_filter=0, ml=None):
+                instrument="stock", options=None, risk_pct=0.0, regime=0, trend_filter=0, ml=None, brain=None):
     """Settings from the form -> a row for the table (FIELDS).
     combine: None / {'mode': 'any'} = any strategy opens its own trades; {'mode': 'combo', 'min': n} = buy only when at least
     n of the strategies agree (see simulate)."""
@@ -395,7 +397,8 @@ def make_record(name, kind, value, strategies, max_pos, capital, fee, stop_pct, 
                       **({"risk_pct": round(min(max(float(risk_pct or 0), 0.0), 10.0), 4)} if risk_pct else {}),
                       **({"regime": int(min(max(int(regime), 0), 2))} if regime else {}),
                       **({"trend_filter": 1} if trend_filter else {}),
-                      **({"ml": str(ml)[:40]} if ml else {})},
+                      **({"ml": str(ml)[:40]} if ml else {}),
+                      **({"brain": BR.clean(brain)} if BR.clean(brain) else {})},
            "capital": float(capital), "fee": float(fee), "stop_pct": float(stop_pct), "atr_mult": float(atr_mult),
            "tp_pct": float(tp_pct), "trail_pct": float(trail_pct), "start_date": str(start_date)[:10]}
     rec["params"]["fwd"] = new_record(_settings_of_record(rec))
@@ -506,7 +509,7 @@ def _settings_of_record(rec):
     p = rec["params"]
     return {"kind": p["universe"]["kind"], "value": p["universe"]["value"], "strategies": p["strategies"], "combine": p["combine"],
             "max_pos": p["max_pos"], "instrument": p["instrument"], "options": p["options"], "risk_pct": p.get("risk_pct", 0.0),
-            "regime": p.get("regime", 0), "trend_filter": p.get("trend_filter", 0), "ml": p.get("ml"),
+            "regime": p.get("regime", 0), "trend_filter": p.get("trend_filter", 0), "ml": p.get("ml"), "brain": p.get("brain"),
             **{k: rec[k] for k in ("capital", "fee", "stop_pct", "atr_mult", "tp_pct", "trail_pct")}}
 
 
@@ -523,7 +526,8 @@ def settings_of(bot):
          **({"risk_pct": round(float(bot["risk_pct"]), 6)} if bot.get("risk_pct") else {}),
          **({"regime": int(bot["regime"])} if bot.get("regime") else {}),
          **({"trend_filter": 1} if bot.get("trend_filter") else {}),
-         **({"ml": str(bot["ml"])} if bot.get("ml") else {})}, default=float))
+         **({"ml": str(bot["ml"])} if bot.get("ml") else {}),
+         **({"brain": bot["brain"]} if bot.get("brain") else {})}, default=float))
 
 
 def settings_hash(bot):
@@ -565,6 +569,7 @@ def params_of(bot):
             **({"regime": int(bot["regime"])} if bot.get("regime") else {}),
             **({"trend_filter": 1} if bot.get("trend_filter") else {}),
             **({"ml": str(bot["ml"])} if bot.get("ml") else {}),
+            **({"brain": bot["brain"]} if bot.get("brain") else {}),
             "fwd_prev": bot.get("fwd_prev") or []}
 
 
@@ -703,7 +708,11 @@ def simulate(bot, px, spy=None, record=None):
     pb_combo = combo and books_only
     labels = [COMBO] if combo and not pb_combo else names      # what opens a trade: each strategy, or the combined rule
     S = len(labels)
-    atr_on = bool(bot["atr_mult"])
+    # a smart bot (brain.py): market regime, strategy families by regime, a score out of 100, risk sizing, circuit breakers
+    brain = bot.get("brain") if isinstance(bot.get("brain"), dict) else None
+    b_atr = float(bot["atr_mult"] or (brain or {}).get("atr") or 3.0)
+    BPX = {k: np.full((T, N), np.nan) for k in ("trend", "volp", "volat", "struct", "rr", "mraw", "above50")} if brain else None
+    atr_on = bool(bot["atr_mult"]) or brain is not None
     instrument = bot.get("instrument") if bot.get("instrument") in INSTRUMENTS else "stock"
     options = instrument in ("options", "both")
     oc = bot.get("options") or OPTION_DEFAULTS
@@ -738,6 +747,9 @@ def simulate(bot, px, spy=None, record=None):
             HVC[p, j], HVP[p, j] = hv, np.r_[np.nan, hv[:-1]]
         K[p, j] = np.arange(len(df))
         MOM[p, j] = df["Close"].pct_change(63).to_numpy(float)
+        if brain is not None:
+            for key_, arr_ in BR.stock_parts(df, b_atr).items():
+                BPX[key_][p, j] = arr_
         if trend_on:                                       # the stock above its own 200-day average (unknown = allowed)
             sma = df["Close"].rolling(200, min_periods=200).mean()
             TRD[p, j] = ((df["Close"] > sma) | sma.isna()).to_numpy(bool)
@@ -782,6 +794,24 @@ def simulate(bot, px, spy=None, record=None):
                     PEXT[k, p, j] = ENT[k, p, j]
     valid = ~np.isnan(C)
     CF = pd.DataFrame(C).ffill().to_numpy()                    # last known close, to value the portfolio every day
+    if brain is not None:
+        # 1) the regime of every session; 2) a strategy family trades only in the regimes the bot allows it (and, with the
+        # self-check on, only while its signals of the last year kept an edge over the average stock); 3) a signal counts
+        # only with a score of at least min_score, and the best scores fill the free slots first
+        codes, rparts = BR.regime(spy, idx, BPX["above50"])
+        allowed = np.array([[BR.family_of(nm) in brain["allow"][r] for r in BR.REGIMES] for nm in labels], bool)
+        muted = np.zeros((S, T), bool)
+        for k in range(S):
+            gate_k = allowed[k][codes]
+            if brain["decay"]:
+                ok_k = BR.edge_ok(ENT[k] & valid & gate_k[:, None], O, C)
+                muted[k] = gate_k & ~ok_k
+                gate_k = gate_k & ok_k
+            ENT[k] &= gate_k[:, None]
+        BSC, BPTS = BR.score(BPX, brain["weights"])
+        ENT &= (np.nan_to_num(BSC, nan=-1.0) >= brain["min_score"])[None, :, :]
+        exit_now = np.isin(codes, [BR.REGIMES.index(r) for r in brain["exit"]])
+        SECT = [sector_of(x_) for x_ in syms]
     ENT &= live[None, :, None]                                 # no new trades before the start date
     ENT &= valid[None, :, :]
     # entry filters (off unless the bot turns them on): new buys only while the stock is above its 200-day average, and/or
@@ -812,6 +842,8 @@ def simulate(bot, px, spy=None, record=None):
         out["ml_last"] = {"day": str(idx[-1])[:10], "threshold": float(model.get("threshold", 0.0)),
                           "signals": sorted(((syms[j], float(np.nanmax(last[:, j]))) for j in np.flatnonzero(~np.isnan(last).all(axis=0))),
                                             key=lambda x: -x[1])[:40]}
+    if brain is not None and SCORE is None:
+        SCORE = np.nan_to_num(BSC, nan=-1.0)
     if want_put:
         PENT &= live[None, :, None]
         PENT &= valid[None, :, :]
@@ -837,6 +869,9 @@ def simulate(bot, px, spy=None, record=None):
     cash, eq_prev = cap, cap
     pos, pend, trades = {}, [], []
     equity, invested, npos = np.empty(T), np.empty(T), np.zeros(T, int)
+    # the smart bot's own state: the balance's peak and drawdown, a pause after a deep drawdown, the closed trades (for the
+    # losing streak), why buying was blocked on each session, and the score of every order
+    bst = {"peak": cap, "dd": 0.0, "pause_until": -1, "pauses": 0, "closed": [], "gate": {}, "why": {}}
 
     def sigma_of(hv, fallback=0.35):
         return float(np.clip((hv if np.isfinite(hv) else fallback) * 1.1, 0.15, 1.5))
@@ -865,9 +900,39 @@ def simulate(bot, px, spy=None, record=None):
                        "Stop": q["stop"] if plan and q["stop"] > 0 else np.nan,
                        "Target": q["target"] if plan and np.isfinite(q["target"]) else np.nan, "Expiry": q.get("expiry")})
         cash += proceeds
+        if q["kind"] == "Stock":
+            bst["closed"].append((t, proceeds - cost))
 
-    def slots(group):
-        return max_pos - sum(1 for key, q in pos.items() if key[1] == group and not q["exit"])
+    def slots(group, cap_=None):
+        return (max_pos if cap_ is None else cap_) - sum(1 for key, q in pos.items() if key[1] == group and not q["exit"])
+
+    def raise_stop(q):
+        """A smart bot's open trade, at the end of a session: once it has been up be_r R the stop moves to the entry, and
+        it trails the highest high by trail_atr x the entry ATR (both count from the next session)."""
+        R_ = q.get("R", 0.0)
+        if brain["be_r"] and R_ > 0 and q["stop"] < q["entry"] and q["peak"] >= q["entry"] + brain["be_r"] * R_:
+            q["stop"], q["sk"] = q["entry"], "Break-even"
+        if brain["trail_atr"] and q.get("atr", 0) > 0:
+            tr_ = q["peak"] - brain["trail_atr"] * q["atr"]
+            if tr_ > q["stop"]:
+                q["stop"], q["sk"] = tr_, "Trailing Stop"
+
+    def blocked(t):
+        """Why a smart bot buys nothing at this close (None = it may buy): a pause after a deep drawdown, a losing streak,
+        a bad session, or a regime that allows no open trades."""
+        if bst["pause_until"] >= t:
+            return "pause"
+        cl = bst["closed"]
+        n_ = brain["streak"]
+        if n_ and len(cl) >= n_ and all(p_ < 0 for _, p_ in cl[-n_:]) and t - cl[-1][0] < brain["cool"]:
+            return "streak"
+        if brain["day_loss"] and t > 0 and live[t - 1] and equity[t - 1] > 0:
+            now_ = cash + sum(q["shares"] * CF[t, key[0]] if q["kind"] == "Stock" else q["shares"] * 100 * q["value"] for key, q in pos.items())
+            if now_ < equity[t - 1] * (1 - brain["day_loss"] / 100):
+                return "day"
+        if brain["exposure"][BR.REGIMES[codes[t]]] <= 0:
+            return "regime"
+        return None
 
     def decide(t):
         """4) signals at the close: the rule that opened a trade decides its exit; new signals fill the free slots.
@@ -882,9 +947,18 @@ def simulate(bot, px, spy=None, record=None):
                 q["exit"] = True                                # closed under the trade's own failure line (NaN = none)
             elif q.get("mb") and not q["exit"] and K[t, j] - q["kb"] >= q["mb"] - 1:
                 q["exit"], q["why"] = True, "Time Stop"         # held max_bars sessions: sell at the next open
+            elif brain is not None and q["kind"] == "Stock" and not q["exit"]:
+                if exit_now[t]:
+                    q["exit"], q["why"] = True, "Regime Exit"   # the market turned into a regime the bot doesn't hold in
+                elif (brain["time_bars"] and K[t, j] - q["kb"] >= brain["time_bars"] - 1
+                      and C[t, j] < q["entry"] + brain["time_r"] * q.get("R", 0.0)):
+                    q["exit"], q["why"] = True, "Time Stop"     # went nowhere in time_bars sessions
             if q["exit"] and not was:
                 signals.append({"d": days[t], "a": "S", "s": syms[j], "k": q["kind"], "l": labels[q["k"]], "r": q.get("why", "Signal")})
-        if live[t]:
+        gate_ = blocked(t) if brain is not None and live[t] else None
+        if brain is not None and live[t]:
+            bst["gate"][t] = gate_
+        if live[t] and gate_ is None:
             cand = []
             if want_stock or want_call:
                 row = ENT[:, t, :]
@@ -903,13 +977,28 @@ def simulate(bot, px, spy=None, record=None):
                         m_ = MOM[t, j]
                         cand.append(((m_ if not np.isnan(m_) else np.inf, syms[j]), int(j), int(np.argmax(row[:, j])), "Put"))
             cand.sort(key=lambda c: c[0])
-            free = {"S": slots("S"), "O": slots("O")}
+            if brain is None:
+                free = {"S": slots("S"), "O": slots("O")}
+            else:                                              # fewer open trades in a weaker regime, and a sector cap
+                cap_s = int(np.floor(max_pos * brain["exposure"][BR.REGIMES[codes[t]]] + 1e-9))
+                free = {"S": slots("S", cap_s), "O": slots("O", cap_s)}
+                secs = {}
+                for (j_, g_), q_ in pos.items():
+                    if g_ == "S" and not q_["exit"]:
+                        secs[SECT[j_]] = secs.get(SECT[j_], 0) + 1
             for _, j, k, kind in cand:
                 g = "S" if kind == "Stock" else "O"
                 if free[g] > 0:
+                    extra = {}
+                    if brain is not None and kind == "Stock":
+                        if brain["sector_cap"] and SECT[j] and secs.get(SECT[j], 0) >= brain["sector_cap"]:
+                            continue
+                        secs[SECT[j]] = secs.get(SECT[j], 0) + 1
+                        extra = {"sc": int(round(BSC[t, j])), "rg": int(codes[t]), "pt": [int(round(BPTS[p_][t, j])) for p_ in BR.PARTS]}
+                        bst["why"][(t, j)] = extra
                     pend.append((j, k, kind, t))
                     free[g] -= 1
-                    signals.append({"d": days[t], "a": "B", "s": syms[j], "k": kind, "l": labels[k]})
+                    signals.append({"d": days[t], "a": "B", "s": syms[j], "k": kind, "l": labels[k], **extra})
 
     def value(t):
         """5) value at the close (a recorded session keeps the balance it had when it was recorded)."""
@@ -923,6 +1012,13 @@ def simulate(bot, px, spy=None, record=None):
         eq_prev = equity[t]
         if live[t]:
             eq_rows[days[t]] = [float(equity[t]), float(invested[t]), int(npos[t])]
+            if brain is not None:
+                if 0 <= bst["pause_until"] < t:                 # the pause is over: a new start, from today's balance
+                    bst["peak"], bst["pause_until"] = equity[t], -1
+                bst["peak"] = max(bst["peak"], equity[t])
+                bst["dd"] = 1 - equity[t] / bst["peak"] if bst["peak"] > 0 else 0.0
+                if brain["pause"] and bst["pause_until"] < 0 and bst["dd"] >= brain["dd_stop"] / 100:
+                    bst["pause_until"], bst["pauses"] = t + brain["pause"], bst["pauses"] + 1
 
     def replay_day(t):
         """A recorded session: apply its fills as they were recorded, value the options, move the trailing peaks, and take
@@ -949,6 +1045,9 @@ def simulate(bot, px, spy=None, record=None):
                 pos[(j, "S")] = {"kind": "Stock", "shares": q_, "entry": p_, "t": t, "kb": K[t, j], "peak": p_,
                                  "stop": float(e.get("st") or 0.0), "target": float(e["tg"]) if e.get("tg") is not None else np.inf,
                                  "k": k, "exit": False, "contract": e["s"], "s0": p_}
+                if brain is not None:
+                    st_ = float(e.get("st") or 0.0)
+                    pos[(j, "S")].update(R=p_ - st_ if 0 < st_ < p_ else 0.0, atr=float(e.get("at") or ATRP[t, j] or 0.0), sk="Stop Loss")
                 if e.get("pl"):
                     pos[(j, "S")].update(plan=True, mb=int(e.get("mb") or 0), floor=float(e["fl"]) if e.get("fl") is not None else np.nan)
             else:
@@ -963,6 +1062,8 @@ def simulate(bot, px, spy=None, record=None):
                 continue
             if q["kind"] == "Stock":
                 q["peak"] = max(q["peak"], H[t, j])
+                if brain is not None:
+                    raise_stop(q)
             else:
                 t_left = (q["expiry"] - idx[t]).days
                 q["value"] = _bs(q["kind"], C[t, j], q["K"], max(t_left, 0) / 365, sigma_of(HVC[t, j], q["sigma"]))
@@ -1021,6 +1122,18 @@ def simulate(bot, px, spy=None, record=None):
                 shares = alloc / (o * (1 + fee))
                 if risk_pct and stops and o > max(stops) > 0:  # sized by risk: a stop-out loses risk_pct of the balance (at most the slot)
                     shares = min(shares, eq_prev * risk_pct / 100 / (o - max(stops)))
+                if brain is not None:
+                    # a smart bot: the stop is b_atr x ATR under the open; a full-size trade loses brain risk % there, and the
+                    # size shrinks with a lower score, a weaker regime and a drawdown
+                    a_ = ATRP[t, j]
+                    if not np.isfinite(a_) or a_ <= 0 or o - b_atr * a_ <= 0:
+                        continue
+                    stops.append(o - b_atr * a_)
+                    mult = BR.size_mult(float(np.nan_to_num(BSC[ts, j], nan=brain["min_score"])), brain["min_score"],
+                                        brain["size"][BR.REGIMES[codes[ts]]], bst["dd"], brain["dd_half"])
+                    shares = min(shares, eq_prev * brain["risk"] / 100 / (o - max(stops))) * mult
+                    if shares * o < 1:
+                        continue
                 cash -= shares * o * (1 + fee)
                 if tp_pct:
                     target = min(target, o * (1 + tp_pct / 100))
@@ -1029,10 +1142,13 @@ def simulate(bot, px, spy=None, record=None):
                                  "k": k, "exit": False, "contract": syms[j], "s0": o}
                 if i >= 0:
                     pos[(j, "S")].update(plan=True, mb=int(MB[i]), floor=PFLOOR[i, ts, j])
+                if brain is not None:
+                    pos[(j, "S")].update(R=o - max(stops), atr=float(ATRP[t, j]), sk="Stop Loss")
                 q = pos[(j, "S")]
                 events.append({"d": days[t], "a": "B", "s": syms[j], "k": "Stock", "l": labels[k], "p": float(o), "q": float(shares),
                                "st": float(q["stop"]), "tg": float(target) if np.isfinite(target) else None,
-                               **({"pl": 1, "mb": int(MB[i]), "fl": float(q["floor"]) if np.isfinite(q["floor"]) else None} if i >= 0 else {})})
+                               **({"pl": 1, "mb": int(MB[i]), "fl": float(q["floor"]) if np.isfinite(q["floor"]) else None} if i >= 0 else {}),
+                               **({"at": float(q["atr"]), **bst["why"].get((ts, j), {})} if brain is not None else {})})
             else:                                              # options: a % of the balance, priced with Black-Scholes
                 sigma = sigma_of(HVP[t, j])
                 strike = strike_for(o * (1 + oc["strike"] / 100) if kind == "Call" else o * (1 - oc["strike"] / 100))
@@ -1062,11 +1178,13 @@ def simulate(bot, px, spy=None, record=None):
                 trail = q["peak"] * (1 - trail_pct / 100) if trail_pct else 0.0
                 eff = max(q["stop"], trail)
                 if Lo[t, j] <= eff:
-                    close(key, t, min(O[t, j], eff), "Trailing Stop" if trail >= q["stop"] and trail_pct else "Stop Loss")
+                    close(key, t, min(O[t, j], eff), "Trailing Stop" if trail >= q["stop"] and trail_pct else q.get("sk", "Stop Loss"))
                 elif H[t, j] >= q["target"]:
                     close(key, t, max(O[t, j], q["target"]), "Take Profit")
                 else:
                     q["peak"] = max(q["peak"], H[t, j])
+                    if brain is not None:
+                        raise_stop(q)
                 continue
             t_left = (q["expiry"] - idx[t]).days
             q["value"] = _bs(q["kind"], C[t, j], q["K"], max(t_left, 0) / 365, sigma_of(HVC[t, j], q["sigma"]))
@@ -1114,6 +1232,20 @@ def simulate(bot, px, spy=None, record=None):
                eq_rows=eq_rows, mismatch=len(mismatch))
     if bot["kind"] == "company":
         out["frame"] = frames[syms[0]]
+    if brain is not None:
+        gates = [g_ for t_, g_ in bst["gate"].items()]
+        nxt = {}
+        for j, k, kind, ts in pend:
+            w_ = bst["why"].get((ts, j))
+            if w_:
+                nxt[syms[j]] = w_
+        out["brain"] = {"regime": BR.REGIMES[int(codes[-1])],
+                        "parts": {k_: (float(v_[-1]) if np.isfinite(v_[-1]) else None) for k_, v_ in rparts.items()},
+                        "gate": bst["gate"].get(T - 1), "dd": float(bst["dd"]), "pauses": int(bst["pauses"]),
+                        "blocked": {r_: int(sum(1 for g_ in gates if g_ == r_)) for r_ in ("pause", "streak", "day", "regime")},
+                        "regime_days": {r_: int(((codes == i_) & live).sum()) for i_, r_ in enumerate(BR.REGIMES)},
+                        "muted": [labels[k_] for k_ in range(S) if muted[k_, -1]], "next": nxt,
+                        "series": codes[live].astype(int).tolist()}
 
     if not live.any():
         out.update(waiting=True, equity=pd.Series(dtype=float), invested=pd.Series(dtype=float), npos=pd.Series(dtype=float),
