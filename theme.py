@@ -1388,13 +1388,13 @@ FX_JS = """<script>
   var FS = 'precision highp float;varying vec3 vN;varying vec3 vP;varying vec3 vB;varying vec3 vM;uniform vec3 eye;uniform float t;' +
     'void main(){vec3 N=normalize(vN);vec3 V=normalize(eye-vP);float ndv=max(dot(N,V),0.);float fr=pow(1.-ndv,4.);vec3 R=reflect(-V,N);' +
     'vec3 B1=normalize(vec3(-.75+.25*sin(t*.3),.45,.55));vec3 B2=normalize(vec3(.85,.05+.15*cos(t*.25),.5));' +
-    'float box=smoothstep(.93,.985,dot(R,B1))*1.25+smoothstep(.95,.99,dot(R,B2))*.8;float sky=pow(max(R.y,0.),5.)*.18;' +
+    'float box=smoothstep(.86,.985,dot(R,B1))*2.2+smoothstep(.9,.99,dot(R,B2))*1.5;float sky=pow(max(R.y,0.),4.)*.3;' +
     'vec3 env=vec3(.006,.006,.009)+box*vec3(1.)+sky*vec3(.7,.7,.85);' +
     'vec3 K=normalize(vec3(cos(t*.4)*1.8,1.2,1.6));vec3 O=normalize(vec3(1.6,-.5,sin(t*.33)*1.4+.6));vec3 C=normalize(vec3(-1.8,-.2,cos(t*.29)*1.2+.4));' +
     'float k=pow(max(dot(N,normalize(K+V)),0.),420.);float o=pow(max(dot(N,normalize(O+V)),0.),1400.);float c=pow(max(dot(N,normalize(C+V)),0.),1200.);' +
     'vec3 ed=(1.-smoothstep(vec3(0.),vec3(.022),vB))*vM;float edge=max(max(ed.x,ed.y),ed.z);' +
-    'float lit=pow(max(dot(N,normalize(K+V)),0.),14.)*3.+pow(max(dot(N,normalize(B1+V)),0.),18.)*2.2+pow(fr,1.5)*1.6;' +
-    'vec3 col=vec3(.009,.009,.012)+env*(.3+.7*fr)+k*vec3(1.)*3.4+o*vec3(1.,.62,.25)*3.+c*vec3(.35,.65,1.)*3.+edge*lit*vec3(.92,.93,1.)+fr*vec3(.35,.4,.55)*.35;' +
+    'float lit=pow(max(dot(N,normalize(K+V)),0.),10.)*4.+pow(max(dot(N,normalize(B1+V)),0.),14.)*3.+pow(fr,1.3)*2.4;' +
+    'vec3 col=vec3(.009,.009,.012)+env*(.3+.7*fr)+k*vec3(1.)*4.6+o*vec3(1.,.62,.25)*3.6+c*vec3(.35,.65,1.)*3.6+edge*lit*vec3(.92,.93,1.)+fr*vec3(.35,.4,.55)*.35;' +
     'col=col/(1.+col*.45);gl_FragColor=vec4(pow(col,vec3(.95)),1.);}';
   function mount(host) {
     var cv = d.createElement('canvas'); cv.className = 'ix-gl'; host.appendChild(cv);
@@ -1425,7 +1425,7 @@ FX_JS = """<script>
       var t = (now - t0) / 1000, ix = d.querySelector('.ix');
       if (ix) { mx += ((parseFloat(ix.style.getPropertyValue('--px')) || 0) - mx) * .05; my += ((parseFloat(ix.style.getPropertyValue('--py')) || 0) - my) * .05; }
       var model = mul(trans(0, -.12, 0), rot(.26 + Math.sin(t * .27) * .06 + my * .12, -.5 + t * .16 + mx * .45, Math.sin(t * .19) * .05));
-      var eye = [0, .2, 4.6], view = trans(-eye[0], -eye[1], -eye[2]);
+      var eye = [0, .15, 4.2], view = trans(-eye[0], -eye[1], -eye[2]);
       var proj = persp(.62, W / H, .1, 50), mvp = mul(proj, mul(view, model));
       var nm = new Float32Array([model[0], model[1], model[2], model[4], model[5], model[6], model[8], model[9], model[10]]);
       gl.uniformMatrix4fv(U.mvp, false, mvp); gl.uniformMatrix4fv(U.model, false, model); gl.uniformMatrix3fv(U.nm, false, nm);
@@ -2033,4 +2033,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "13.0"
+BUILD = "13.1"
