@@ -10,7 +10,7 @@ import theme as T
 import ui
 from i18n import L, is_ar
 
-BUILD = "12.5"
+BUILD = "12.6"
 
 _LINE = "rgba(150,140,250,"
 CSS = f"""
@@ -621,7 +621,7 @@ def intro():
     """The landing. Returns True while it shows (the caller then draws nothing else)."""
     if st.session_state.get("intro_done"):
         return False
-    ui.html('<span class="css-anchor"></span>' + INTRO_CSS
+    ui.html('<span class="css-anchor"></span>\n' + INTRO_CSS
             + ('<style>.st-key-introgo button p::after { content: "  \\2190" !important; }'
                '.st-key-introgo button:hover p::after { transform: translateX(-4px) !important; }</style>' if is_ar() else ""))
     ui.html(intro_html())

@@ -10,7 +10,7 @@ import streamlit as st
 # ---------------------------------------------------------------- always run the newest code
 # Streamlit Cloud re-reads app.py after every GitHub upload but can keep the other modules (theme, data, ...) from the
 # previous version in memory. Every module carries BUILD; if one in memory is older, all of them are reloaded in order.
-BUILD = "12.5"
+BUILD = "12.6"
 _ORDER = ["i18n", "flags", "mcal", "universe", "sp500", "taxonomy", "ta", "academy", "insight", "heatmap", "newsiq", "theme", "data",
           "caldata", "newsbot", "charts", "engine", "playbooks", "autotrader", "ui", "sharia", "lab", "tdash", "mlbots", "paperbots", "p_markets", "p_research", "p_insight",
           "p_academy", "p_paper", "p_calendar", "hunter", "p_scanner", "home"]
@@ -79,7 +79,7 @@ st.markdown('<span class="css-anchor"></span>' + T.CSS + T.background_css(_stati
 st.logo(T.LOGO_WORDMARK, icon_image=T.LOGO_ICON, size="large")
 try:                                   # interactive cards: the light follows the pointer (a script run once per browser tab)
     import streamlit.components.v1 as _components
-    st.markdown('<span class="css-anchor"></span>' + T.FX_CSS, unsafe_allow_html=True)
+    st.markdown('<span class="css-anchor"></span>\n' + T.FX_CSS, unsafe_allow_html=True)   # the style on its own line (else Markdown eats it)
     _components.html(T.FX_JS, height=0)
 except Exception:
     pass
@@ -280,6 +280,16 @@ try:
     nav_bar()
 except Exception:
     nav_fallback()
+
+
+def _logo_home():
+    """The logo was clicked: back to the landing (the home page's first screen)."""
+    ss["intro_done"] = False
+    ss["goto"] = "overview"
+
+
+with st.container(key="logohome"):          # hidden; theme.FX_JS presses it when the logo is clicked
+    st.button("home", key="logo_home_btn", on_click=_logo_home)
 
 # ---------------------------------------------------------------- sidebar: market pulse + watchlist
 PULSE = {"^GSPC": "S&P 500", "^IXIC": "Nasdaq", "^DJI": "Dow Jones", "^VIX": "VIX"}

@@ -1,2 +1,2 @@
-A.Alturaifi Pro - version 12.5 (an interactive landing before the home page; interactive cards; the n8n "midnight engine" look)
+A.Alturaifi Pro - version 12.6 (the landing and the interactive cards now reach the page; the logo opens the landing)
 If you can see this file on GitHub, the new version was uploaded correctly.

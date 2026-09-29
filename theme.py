@@ -1205,6 +1205,10 @@ FX_CSS = f"""<style>
 /* lift and press */
 :is({_lift}).fx-on {{ transform: translateY(-3px); box-shadow: 0 14px 30px -12px rgba(0,0,0,.7), 0 0 0 1px rgba(123,69,240,.12); }}
 :is({_lift}).fx-on:active {{ transform: translateY(-1px) scale(.99); }}
+/* the logo takes you home (FX_JS presses the hidden button) */
+[data-testid="stLogo"], img.stLogo, [data-testid="stLogoLink"], [data-testid="stSidebarHeader"] img, [data-testid="stHeaderLogo"] img {{ cursor:pointer; }}
+.st-key-logohome {{ position:absolute !important; width:1px !important; height:1px !important; overflow:hidden !important; opacity:0 !important;
+  pointer-events:none !important; margin:0 !important; }}
 /* the invisible frame that runs the script takes no room */
 [data-testid="stElementContainer"]:has(iframe[height="0"]), .element-container:has(iframe[height="0"]) {{ position:absolute !important; width:0 !important;
   height:0 !important; overflow:hidden !important; margin:0 !important; padding:0 !important; }}
@@ -1263,6 +1267,20 @@ FX_JS = """<script>
       el.textContent = s.w[s.i].slice(0, Math.max(0, s.n));
     }
   }, 55);
+})();
+(function () {                                   // the logo opens the home page's first screen
+  var w = window.parent, d = w.document;
+  if (w.__alturaifiLogo) return;
+  w.__alturaifiLogo = 1;
+  var LOGO = '[data-testid="stLogo"], img.stLogo, [data-testid="stLogoLink"], [data-testid="stSidebarHeader"] img, [data-testid="stHeaderLogo"]';
+  d.addEventListener('click', function (e) {
+    var t = e.target;
+    if (!t || !t.closest || !t.closest(LOGO)) return;
+    var b = d.querySelector('.st-key-logohome button');
+    if (!b) return;
+    e.preventDefault(); e.stopPropagation();
+    b.click();
+  }, true);
 })();
 </script>""".replace("__SEL__", json.dumps(_fx))
 
@@ -1844,4 +1862,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "12.5"
+BUILD = "12.6"
