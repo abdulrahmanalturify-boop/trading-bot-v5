@@ -449,6 +449,9 @@ a.pblink .ms {{ font-size:1rem; }}
 .aic .cs {{ display:flex; flex-wrap:wrap; gap:5px; margin:9px 0 8px; }}
 .aic .cs > span:not(.badge) {{ font-size:.68rem; font-weight:600; color:#CCC7D3; background:rgba(157,151,165,.10); border:1px solid {_BD}; border-radius:999px;
   padding:2px 9px; white-space:nowrap; }}
+.aic .cs > span.rk {{ display:inline-flex; align-items:center; gap:4px; color:#F2D38A; background:rgba(242,211,138,.09);
+  border-color:rgba(242,211,138,.30); }}
+.aic .cs > span.rk .material-symbols-rounded, .aic .cs > span.rk .ms {{ font-size:.85rem; }}
 .aic table {{ width:100%; border-collapse:separate; border-spacing:0 3px; font-size:.78rem; direction:ltr; }}
 .aic th {{ color:{_MU}; font-size:.6rem; letter-spacing:.07em; text-transform:uppercase; font-weight:600; text-align:right; padding:0 6px 2px; }}
 .aic th:first-child, .aic td:first-child {{ text-align:left; }}
@@ -1862,6 +1865,9 @@ def bot_header(sim):
         if br.get("sector_rank"):
             now_ = (sim.get("brain") or {}).get("sector")
             badges += T.badge(sector_rank_label(br["sector_rank"]) + ((" · " + sector_name(now_)) if now_ else ""), "gold", "category")
+        lvl = next((r_ for k_ in SB.ORDER for r_ in [SB.risk_of(b, k_)] if r_), None)
+        if lvl:
+            badges += T.badge(L("Risk tolerance: ", "تحمّل المخاطرة: ") + L(*SB.RISK_LABEL[lvl]), "gold", "speed")
         badges += (T.badge(L("Smart bot: reads the market, scores every signal", "بوت ذكي: يقرأ السوق ويقيّم كل إشارة"), "vio", "neurology")
                    + T.badge(L(f"Score ≥ {br['min_score']:g}/100 · risk {br['risk']:g}% per trade",
                                f"تقييم ≥ {br['min_score']:g}/100 · مخاطرة {br['risk']:g}% لكل صفقة"), "gold", "balance"))
@@ -3725,11 +3731,13 @@ def _smart_verdict(sm, spy):
     return T.badge(L(en, ar_), kind, ic)
 
 
-def _smart_card(key, res, have):
+def _smart_card(key, res, have, risk=None):
+    """A ready smart bot's card; with a risk tolerance, its rules and its test at that level."""
     b = SB.BOTS[key]
-    br = SB.brain_of(key)
+    risk = risk if risk in SB.RISK else SB.RISK_DEFAULT
+    br = SB.brain_of(key, risk)
     r = ((res or {}).get("bots") or {}).get(key) or {}
-    sm, plain = r.get("smart") or {}, r.get("plain") or {}
+    sm, plain = r.get(SB.RISK_VARIANT[risk]) or {}, r.get("plain") or {}
     bench = (res or {}).get("bench") or {}
     per = sm.get("periods") or {}
     oos, spy_oos = per.get("oos"), (bench.get("oos") or {}).get("spy")
@@ -3747,7 +3755,8 @@ def _smart_card(key, res, have):
         sub = L(f"{where} · up to {b['max_pos']} trades · {strats}", f"{where} · لين {b['max_pos']} صفقات · {strats}")
     else:
         sub = L(f"All companies · up to {b['max_pos']} trades · {strats}", f"كل الشركات · لين {b['max_pos']} صفقات · {strats}")
-    chips = "".join(f"<span>{T.esc(x)}</span>" for x in _smart_chips(br))
+    chips = (f'<span class="rk">{T.icon("speed")}{T.esc(L("Risk: ", "المخاطرة: ") + L(*SB.RISK_LABEL[risk]))}</span>'
+             + "".join(f"<span>{T.esc(x)}</span>" for x in _smart_chips(br)))
     table = ""
     if per and "error" not in sm:
         rows = "".join(f'<tr class="{"ai" if k in ("oos", "full") else ""}"><td>{T.esc(L(*SMART_PERIOD[k]))}</td>{_pct_cell(per.get(k), "cagr")}'
@@ -3779,14 +3788,31 @@ def _smart_card(key, res, have):
             yrs = max((pd.Timestamp.now() - pd.Timestamp("2020-01-02")).days / 365.25, 1)
             note += " " + L(f"About {oos['t_n'] / yrs:.0f} trades a year, {oos.get('t_win', 0) * 100:.0f}% winners.",
                             f"حوالي {oos['t_n'] / yrs:.0f} صفقة بالسنة، {oos.get('t_win', 0) * 100:.0f}% منها رابحة.")
-    elif not res:
-        note = L("Its test on real prices hasn't run yet.", "اختباره على الأسعار الحقيقية ما اشتغل للحين.")
+    elif not res or not sm:
+        note = L("Its test on real prices at this risk hasn't run yet.", "اختباره على الأسعار الحقيقية بهالمخاطرة ما اشتغل للحين.")
     if have:
         note += " " + L("Already running.", "شغّال عندك.")
     return (f'<div class="aic smart"><div class="hd"><span class="i">{T.icon("neurology")}</span><div class="tx"><div class="nm">'
             f'{T.esc(L(*b["name"]))}</div><div class="sub">{T.esc(sub)}</div></div></div>'
             f'<div class="idea">{T.esc(L(*b["idea"]))}</div>{_smart_mixes(br)}<div class="cs">{_smart_verdict(oos, spy_oos)}{chips}</div>'
             f'{_smart_rules(br)}{table}<div class="nt">{T.esc(note.strip())}</div></div>')
+
+
+RISK_HELP = {
+    "conservative": ("Careful: smaller in a sideways (60%) or bear (30%) market and sells everything in a panic; 1% risk a trade; "
+                     "half size from 10% under its peak, a 20-session break at 20%, and a break after 5 losses in a row or a day "
+                     "that lost 3%.",
+                     "حذر: حجم أصغر في السوق العرضي (60%) والهابط (30%) ويبيع كل شي وقت الذعر؛ 1% مخاطرة لكل صفقة؛ نص الحجم من "
+                     "هبوط 10% عن القمة، ووقفة 20 جلسة عند 20%، ووقفة بعد 5 خسائر ورا بعض أو يوم خسر 3%."),
+    "moderate": ("In between: smaller in a sideways (90%) or bear (50%) market and nothing new in a panic; 2% risk a trade; half "
+                 "size from 15% under its peak, a 15-session break at 30%, and a break after 10 losses in a row.",
+                 "وسط: حجم أصغر في السوق العرضي (90%) والهابط (50%) وما يشتري جديد وقت الذعر؛ 2% مخاطرة لكل صفقة؛ نص الحجم من "
+                 "هبوط 15% عن القمة، ووقفة 15 جلسة عند 30%، ووقفة بعد 10 خسائر ورا بعض."),
+    "aggressive": ("Bold: full size in every market and half size even in a panic; 3% risk a trade; half size only from 25% under "
+                   "its peak, and a 10-session break at 40%. Bigger gains in good years, deeper drops in bad ones.",
+                   "جريء: حجم كامل في كل الأسواق ونص الحجم حتى وقت الذعر؛ 3% مخاطرة لكل صفقة؛ نص الحجم بس من هبوط 25% عن القمة، "
+                   "ووقفة 10 جلسات عند 40%. ربح أكبر في السنين الزينة، وهبوط أعمق في السيئة."),
+}
 
 
 def _open_ready(key):
@@ -3846,16 +3872,22 @@ def _ready_body(key, bots):
         st.info(L(f"You have {PB.MAX_BOTS} bots, the maximum. Delete one to add another.",
                   f"عندك {PB.MAX_BOTS} بوتات، وهذا الحد الأعلى. احذف واحد عشان تضيف غيره."), icon=":material/block:")
         return
-    ui.html(_smart_card(key, SB.results(), False))
-    a, b = st.columns(2)
+    ui.valid("pb_rd_risk", list(SB.RISK))
+    if ss.get("pb_rd_risk") not in SB.RISK:
+        ss["pb_rd_risk"] = SB.RISK_DEFAULT
+    risk = ss["pb_rd_risk"]
+    ui.html(_smart_card(key, SB.results(), False, risk))
+    a, b, c = st.columns(3)
     a.number_input(L("Virtual capital ($)", "رأس المال الوهمي ($)"), 100, 100_000_000, value=100_000, step=10_000, key="pb_rd_cap")
     b.selectbox(L("Start", "البداية"), [0, 365], key="pb_rd_start",
                 format_func=lambda d: L("Today (forward test only)", "اليوم (تجربة أمامية فقط)") if d == 0 else
                 L("A year ago (adds a one-year simulation)", "قبل سنة (يضيف محاكاة سنة)"))
+    c.selectbox(L("Risk tolerance", "تحمّل المخاطرة"), list(SB.RISK), key="pb_rd_risk", format_func=lambda r_: L(*SB.RISK_LABEL[r_]))
+    st.caption(L(*RISK_HELP[risk]))
     if not st.button(L("Start the bot", "شغّل البوت"), type="primary", icon=":material/play_arrow:", key="pb_rd_go", width="stretch"):
         return
     start = PB.today_ny() - timedelta(days=int(ss.get("pb_rd_start") or 0))
-    ra = SB.record_args(key)
+    ra = SB.record_args(key, risk)
     rec = PB.make_record(L(*SB.BOTS[key]["name"])[:40], "all", "all", ra["strategies"], ra["max_pos"], float(ss.get("pb_rd_cap") or 100_000),
                          ra["fee"], 0.0, ra["atr_mult"], 0.0, 0.0, pd.Timestamp(start).strftime("%Y-%m-%d"), instrument="stock",
                          brain=ra["brain"])
@@ -4114,4 +4146,4 @@ def page_paper_bots():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "14.5"
+BUILD = "14.6"
