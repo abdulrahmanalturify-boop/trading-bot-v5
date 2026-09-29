@@ -1,0 +1,3 @@
+"""
+app.py - A.Alturaifi Pro · US Markets platform (entry point).
+Run locally:  
