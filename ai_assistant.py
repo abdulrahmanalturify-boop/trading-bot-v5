@@ -4,7 +4,7 @@ import os
 import requests
 import streamlit as st
 
-BUILD = "14.1"
+BUILD = "14.2"
 API_URL = "https://api.openai.com/v1/responses"
 MAX_Q = 1200
 
@@ -45,7 +45,7 @@ def secret(name, default=""):
     return str(os.getenv(name, default) or default)
 
 def settings():
-    key, model = secret("OPENAI_API_KEY"), secret("OPENAI_MODEL", "gpt-5.6-luna")
+    key, model = secret("OPENAI_API_KEY"), secret("OPENAI_MODEL", "gpt-6-luna")
     try:
         block = st.secrets.get("openai", {})
         key = key or str(block.get("api_key", "") or "")
