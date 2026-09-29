@@ -799,7 +799,8 @@ def simulate(bot, px, spy=None, record=None):
         # self-check on, only while its signals of the last year kept an edge over the average stock); 3) a signal counts
         # only with a score of at least min_score, and the best scores fill the free slots first
         codes, rparts = BR.regime(spy, idx, BPX["above50"], brain["stress_vol"], brain["stress_x"])
-        allowed = np.array([[BR.family_of(nm) in brain["allow"][r] for r in BR.REGIMES] for nm in labels], bool)
+        fams_ = [[BR.family_of(x_) for x_ in names] if nm == COMBO else [BR.family_of(nm)] for nm in labels]
+        allowed = np.array([[any(f_ in brain["allow"][r] for f_ in fl_) for r in BR.REGIMES] for fl_ in fams_], bool)
         muted = np.zeros((S, T), bool)
         for k in range(S):
             gate_k = allowed[k][codes]
@@ -926,11 +927,14 @@ def simulate(bot, px, spy=None, record=None):
         n_ = brain["streak"]
         if n_ and len(cl) >= n_ and all(p_ < 0 for _, p_ in cl[-n_:]) and t - cl[-1][0] < brain["cool"]:
             return "streak"
-        if brain["day_loss"] and t > 0 and live[t - 1] and equity[t - 1] > 0:
-            now_ = cash + sum(q["shares"] * CF[t, key[0]] if q["kind"] == "Stock" else q["shares"] * 100 * q["value"] for key, q in pos.items())
-            if now_ < equity[t - 1] * (1 - brain["day_loss"] / 100):
-                return "day"
-        if brain["exposure"][BR.REGIMES[codes[t]]] <= 0:
+        now_ = cash + sum(q["shares"] * CF[t, key[0]] if q["kind"] == "Stock" else q["shares"] * 100 * q["value"] for key, q in pos.items())
+        over_ = 0 <= bst["pause_until"] < t                 # a pause that ends at this close starts a fresh peak
+        if brain["pause"] and not over_ and bst["peak"] > 0 and 1 - now_ / max(bst["peak"], now_) >= brain["dd_stop"] / 100:
+            return "pause"                                  # the drawdown crosses the line at this very close
+        if brain["day_loss"] and t > 0 and live[t - 1] and equity[t - 1] > 0 and now_ < equity[t - 1] * (1 - brain["day_loss"] / 100):
+            return "day"
+        rg_ = BR.REGIMES[codes[t]]
+        if exit_now[t] or brain["exposure"][rg_] <= 0 or brain["size"][rg_] <= 0:
             return "regime"
         return None
 
@@ -980,7 +984,8 @@ def simulate(bot, px, spy=None, record=None):
             if brain is None:
                 free = {"S": slots("S"), "O": slots("O")}
             else:                                              # fewer open trades in a weaker regime, and a sector cap
-                cap_s = int(np.floor(max_pos * brain["exposure"][BR.REGIMES[codes[t]]] + 1e-9))
+                ex_ = brain["exposure"][BR.REGIMES[codes[t]]]
+                cap_s = max(1, int(np.floor(max_pos * ex_ + 1e-9))) if ex_ > 0 else 0
                 free = {"S": slots("S", cap_s), "O": slots("O", cap_s)}
                 secs = {}
                 for (j_, g_), q_ in pos.items():
@@ -1082,6 +1087,10 @@ def simulate(bot, px, spy=None, record=None):
                     mismatch.append(e)
                 else:
                     pend.append((j, k, e["k"], t))
+                    if brain is not None and "sc" in e:
+                        bst["why"][(t, j)] = {x_: e[x_] for x_ in ("sc", "rg", "pt") if x_ in e}
+        if brain is not None and live[t]:
+            bst["gate"][t] = blocked(t)
 
     for t in range(T):
         if frozen[t]:

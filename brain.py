@@ -43,6 +43,9 @@ FAMILY = {
     "RSI Mean Reversion": "reversion", "MFI Money Flow (Volume)": "reversion", "Mean Reversion": "reversion",
     "VWAP Mean Reversion": "reversion", "VWAP Reclaim / Pullback": "reversion", "Pairs Trading": "reversion",
     "Statistical Arbitrage": "reversion",
+    # the combined strategies (playbooks.py)
+    "Trend Pullback": "reversion", "Range Reversion": "reversion", "Breakout & Retest": "breakout", "Squeeze Breakout": "breakout",
+    "Opening Range Breakout": "breakout",
 }
 
 # the score: six parts, each worth its weight (the weights add up to 100)
@@ -100,7 +103,8 @@ def clean(b):
     if abs(tot - 100) >= 0.01:                     # scaled to 100 (a second clean leaves it as it is)
         w = {p: round(v * 100 / tot, 4) for p, v in w.items()}
     allow = b.get("allow") if isinstance(b.get("allow"), dict) else d["allow"]
-    allow = {r: [f for f in FAMILIES if f in (allow.get(r) or [])] for r in REGIMES}
+    lists = {r: allow.get(r, d["allow"][r]) for r in REGIMES}
+    allow = {r: [f for f in FAMILIES if isinstance(lists[r], (list, tuple)) and f in lists[r]] for r in REGIMES}
 
     def per_regime(key):
         x = b.get(key) if isinstance(b.get(key), dict) else {}
@@ -108,7 +112,7 @@ def clean(b):
     ints = lambda k, lo, hi: int(round(_f(b.get(k, d[k]), lo, hi, d[k])))
     return {"min_score": _f(b.get("min_score", d["min_score"]), 0, 100, d["min_score"]), "weights": w, "allow": allow,
             "size": per_regime("size"), "exposure": per_regime("exposure"),
-            "exit": [r for r in REGIMES if r in (b.get("exit") if isinstance(b.get("exit"), list) else d["exit"])],
+            "exit": [r for r in REGIMES if r in (b.get("exit") if isinstance(b.get("exit"), (list, tuple)) else d["exit"])],
             "risk": _f(b.get("risk", d["risk"]), 0.1, 5, d["risk"]), "atr": _f(b.get("atr", d["atr"]), 0.5, 10, d["atr"]),
             "size_floor": _f(b.get("size_floor", d["size_floor"]), 0, 1, d["size_floor"]),
             "stress_vol": _f(b.get("stress_vol", d["stress_vol"]), 10, 200, d["stress_vol"]),
@@ -127,11 +131,14 @@ def family_of(strategy):
 
 
 # ---------------------------------------------------------------- 1) the market regime
-def _row_mean(a):
-    """The mean of every row over its finite values (NaN for a row without any)."""
+MIN_CROSS = 5          # a day needs at least this many stocks with a value to compare a stock with the others
+
+
+def _row_mean(a, min_n=1):
+    """The mean of every row over its finite values (NaN for a row with fewer than min_n)."""
     fin = np.isfinite(a)
     cnt = fin.sum(axis=1)
-    return np.where(cnt > 0, np.where(fin, a, 0.0).sum(axis=1) / np.maximum(cnt, 1), np.nan)
+    return np.where(cnt >= min_n, np.where(fin, a, 0.0).sum(axis=1) / np.maximum(cnt, 1), np.nan)
 
 
 def _naive(ix):
@@ -217,7 +224,9 @@ def stock_parts(df, atr_mult):
 def score(P, weights):
     """The score (T, N) out of 100 and its parts {part: (T, N) points}, from the stacked stock_parts P."""
     with np.errstate(invalid="ignore"):
-        mom = pd.DataFrame(P["mraw"]).rank(axis=1, pct=True).to_numpy(float)     # momentum against the other stocks that day
+        mom = pd.DataFrame(P["mraw"]).rank(axis=1, pct=True).to_numpy(float, copy=True)   # momentum against the other stocks that day
+    few = np.isfinite(P["mraw"]).sum(axis=1) < MIN_CROSS                          # too few stocks to rank: a neutral half
+    mom[few] = np.where(np.isfinite(P["mraw"][few]), 0.5, np.nan)
     raw = {"trend": P["trend"], "mom": mom, "vol": P["volp"], "volat": P["volat"], "struct": P["struct"], "rr": P["rr"]}
     pts = {p: np.nan_to_num(raw[p], nan=0.0) * weights[p] for p in PARTS}
     total = sum(pts.values())
@@ -235,7 +244,7 @@ def edge_ok(ent, O, C, h=EDGE_H, window=EDGE_WIN, min_n=EDGE_MIN, cut=EDGE_CUT):
     if T > h + 1:
         with np.errstate(invalid="ignore", divide="ignore"):
             fr[:T - h] = C[h:] / O[1:T - h + 1] - 1
-    ex = fr - _row_mean(fr)[:, None]
+    ex = fr - np.nan_to_num(_row_mean(fr, MIN_CROSS), nan=0.0)[:, None]     # against the average stock (one stock: its raw return)
     m = ent & np.isfinite(ex)
     s = np.where(m, ex, 0.0).sum(axis=1)
     n = m.sum(axis=1).astype(float)
