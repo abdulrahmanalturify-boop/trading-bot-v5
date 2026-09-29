@@ -1,5 +1,5 @@
 {
-"run": "2026-09-29 08:12 UTC",
+"run": "2026-09-29 08:35 UTC",
 "start": "2007-01-03",
 "capital": 100000.0,
 "fee": 0.1,
@@ -803,7 +803,7 @@
 "invested": 0.5091087110510182
 }
 },
-"secs": 18.8,
+"secs": 16.1,
 "trades_total": 5949,
 "by_regime": {
 "bull": {
@@ -857,6 +857,38 @@
 "n": 1767,
 "pnl": 86177.02526423786,
 "win": 0.5314091680814941
+}
+},
+"by_strategy_ins": {
+"Mean Reversion & Multi-Factor Strategy & Regime-Based Strategy & Portfolio-Level Strategy (4/4)": {
+"n": 897,
+"pnl": 34179.24466969402,
+"win": 0.5440356744704571
+},
+"Mean Reversion & Multi-Factor Strategy & Regime-Based Strategy (3/3)": {
+"n": 335,
+"pnl": 9003.594937318536,
+"win": 0.5462686567164179
+},
+"Momentum Strategy & VWAP Mean Reversion & Multi-Factor Strategy (3/3)": {
+"n": 258,
+"pnl": 47592.75154480937,
+"win": 0.6124031007751938
+},
+"VWAP Mean Reversion & Multi-Factor Strategy & Momentum Strategy & Portfolio-Level Strategy (4/4)": {
+"n": 196,
+"pnl": 13910.658090507093,
+"win": 0.5204081632653061
+},
+"VWAP Mean Reversion & RSI Mean Reversion & Relative Strength Strategy & Portfolio-Level Strategy (3/4)": {
+"n": 457,
+"pnl": 46815.21050047051,
+"win": 0.6148796498905909
+},
+"VWAP Mean Reversion & Statistical Arbitrage & Multi-Factor Strategy & Relative Strength Strategy (3/4)": {
+"n": 976,
+"pnl": 34586.519109840505,
+"win": 0.5358606557377049
 }
 },
 "exits": {
@@ -1473,7 +1505,7 @@
 "invested": 0.9859945799626293
 }
 },
-"secs": 18.7,
+"secs": 18.4,
 "trades_total": 1372
 },
 "no_regime": {
@@ -1589,7 +1621,7 @@
 "invested": 0.5574330170344657
 }
 },
-"secs": 21.2,
+"secs": 24.9,
 "trades_total": 6504
 },
 "no_score": {
@@ -1705,7 +1737,7 @@
 "invested": 0.532809710547887
 }
 },
-"secs": 18.0,
+"secs": 6.9,
 "trades_total": 6045
 },
 "no_selfcheck": {
@@ -1821,7 +1853,7 @@
 "invested": 0.5093147152801021
 }
 },
-"secs": 10.8,
+"secs": 24.7,
 "trades_total": 6025
 },
 "score_m10": {
@@ -1937,7 +1969,7 @@
 "invested": 0.516430987040829
 }
 },
-"secs": 9.4,
+"secs": 7.2,
 "trades_total": 6041
 },
 "score_p10": {
@@ -2053,7 +2085,7 @@
 "invested": 0.43820515893003387
 }
 },
-"secs": 10.9,
+"secs": 10.6,
 "trades_total": 5341
 },
 "first_combo": {
@@ -2169,7 +2201,7 @@
 "invested": 0.5060151701522964
 }
 },
-"secs": 10.8,
+"secs": 7.1,
 "trades_total": 5850
 },
 "risk_1": {
@@ -2285,7 +2317,7 @@
 "invested": 0.48494460482955853
 }
 },
-"secs": 8.1,
+"secs": 11.5,
 "trades_total": 5949
 },
 "pos5": {
@@ -2401,7 +2433,7 @@
 "invested": 0.4945744023789974
 }
 },
-"secs": 11.2,
+"secs": 6.7,
 "trades_total": 3402
 },
 "pos7": {
@@ -2517,7 +2549,7 @@
 "invested": 0.5310956514338108
 }
 },
-"secs": 7.7,
+"secs": 10.9,
 "trades_total": 4534
 }
 },
@@ -2635,7 +2667,7 @@
 "invested": 0.5286397804931151
 }
 },
-"secs": 14.7,
+"secs": 9.6,
 "trades_total": 7248,
 "by_regime": {
 "bull": {
@@ -2689,6 +2721,38 @@
 "n": 2097,
 "pnl": 12357.869035726915,
 "win": 0.5441106342393897
+}
+},
+"by_strategy_ins": {
+"Pairs Trading & Regime-Based Strategy & Portfolio-Level Strategy (3/3)": {
+"n": 1451,
+"pnl": -10272.341289153843,
+"win": 0.5506547208821503
+},
+"Pairs Trading & VWAP Mean Reversion & MFI Money Flow (Volume) & Statistical Arbitrage (3/4)": {
+"n": 432,
+"pnl": -12748.529526632043,
+"win": 0.5902777777777778
+},
+"SMA Crossover & VWAP Mean Reversion & Multi-Factor Strategy (3/3)": {
+"n": 371,
+"pnl": 29925.191635735235,
+"win": 0.568733153638814
+},
+"VWAP Mean Reversion & Mean Reversion & Multi-Factor Strategy & Momentum Strategy (4/4)": {
+"n": 225,
+"pnl": 21225.919397498692,
+"win": 0.5866666666666667
+},
+"VWAP Mean Reversion & RSI Mean Reversion & Statistical Arbitrage & Momentum Strategy (3/4)": {
+"n": 347,
+"pnl": 4812.275004789223,
+"win": 0.547550432276657
+},
+"VWAP Mean Reversion & Statistical Arbitrage & Multi-Factor Strategy & Regime-Based Strategy (3/4)": {
+"n": 1113,
+"pnl": 18711.374316203917,
+"win": 0.550763701707098
 }
 },
 "exits": {
@@ -3305,7 +3369,7 @@
 "invested": 0.9842143743633829
 }
 },
-"secs": 13.2,
+"secs": 17.8,
 "trades_total": 1201
 },
 "no_regime": {
@@ -3421,7 +3485,7 @@
 "invested": 0.5498776149584592
 }
 },
-"secs": 15.2,
+"secs": 14.5,
 "trades_total": 7786
 },
 "no_score": {
@@ -3537,7 +3601,7 @@
 "invested": 0.5611894410814595
 }
 },
-"secs": 12.4,
+"secs": 8.9,
 "trades_total": 7441
 },
 "no_selfcheck": {
@@ -3653,7 +3717,7 @@
 "invested": 0.5196366894874086
 }
 },
-"secs": 9.5,
+"secs": 11.3,
 "trades_total": 7317
 },
 "score_m10": {
@@ -3769,7 +3833,7 @@
 "invested": 0.5508171895110001
 }
 },
-"secs": 11.5,
+"secs": 9.5,
 "trades_total": 7434
 },
 "score_p10": {
@@ -3885,7 +3949,7 @@
 "invested": 0.47149604829652203
 }
 },
-"secs": 11.7,
+"secs": 11.3,
 "trades_total": 6107
 },
 "first_combo": {
@@ -4001,7 +4065,7 @@
 "invested": 0.5293331548638089
 }
 },
-"secs": 7.8,
+"secs": 7.4,
 "trades_total": 7263
 },
 "risk_1": {
@@ -4117,7 +4181,7 @@
 "invested": 0.5179836605451691
 }
 },
-"secs": 12.1,
+"secs": 12.0,
 "trades_total": 7246
 },
 "pos5": {
@@ -4233,7 +4297,7 @@
 "invested": 0.5339419632046661
 }
 },
-"secs": 7.5,
+"secs": 8.2,
 "trades_total": 3835
 },
 "pos7": {
@@ -4349,7 +4413,7 @@
 "invested": 0.5165757828630101
 }
 },
-"secs": 11.9,
+"secs": 10.9,
 "trades_total": 5285
 }
 },
@@ -4467,7 +4531,7 @@
 "invested": 0.5910512132289817
 }
 },
-"secs": 8.6,
+"secs": 12.9,
 "trades_total": 7496,
 "by_regime": {
 "bull": {
@@ -4521,6 +4585,38 @@
 "n": 4447,
 "pnl": -28881.926732656684,
 "win": 0.47312795142792896
+}
+},
+"by_strategy_ins": {
+"Momentum Strategy & Mean Reversion & Statistical Arbitrage (3/3)": {
+"n": 499,
+"pnl": 1015.3030728996378,
+"win": 0.5450901803607214
+},
+"VWAP Mean Reversion & Mean Reversion & Multi-Factor Strategy & Portfolio-Level Strategy (4/4)": {
+"n": 194,
+"pnl": 29792.682514103988,
+"win": 0.6237113402061856
+},
+"VWAP Mean Reversion & Mean Reversion & Regime-Based Strategy & Portfolio-Level Strategy (4/4)": {
+"n": 294,
+"pnl": -5357.201097698029,
+"win": 0.5408163265306123
+},
+"VWAP Mean Reversion & Multi-Factor Strategy & Portfolio-Level Strategy (3/3)": {
+"n": 292,
+"pnl": 30429.589621494095,
+"win": 0.6164383561643836
+},
+"VWAP Mean Reversion & RSI Mean Reversion & Momentum Strategy & Relative Strength Strategy (3/4)": {
+"n": 217,
+"pnl": 16007.515959170985,
+"win": 0.543778801843318
+},
+"VWAP Reclaim / Pullback & Pairs Trading & Statistical Arbitrage (2/3)": {
+"n": 2508,
+"pnl": 12047.55478401275,
+"win": 0.48883572567783096
 }
 },
 "exits": {
@@ -5137,7 +5233,7 @@
 "invested": 0.9844301087204754
 }
 },
-"secs": 21.5,
+"secs": 13.2,
 "trades_total": 1333
 },
 "no_regime": {
@@ -5253,7 +5349,7 @@
 "invested": 0.6066458669760177
 }
 },
-"secs": 13.4,
+"secs": 13.1,
 "trades_total": 8217
 },
 "no_score": {
@@ -5369,7 +5465,7 @@
 "invested": 0.6041320159168867
 }
 },
-"secs": 7.9,
+"secs": 12.4,
 "trades_total": 7751
 },
 "no_selfcheck": {
@@ -5485,7 +5581,7 @@
 "invested": 0.5947693704403664
 }
 },
-"secs": 7.9,
+"secs": 8.4,
 "trades_total": 7564
 },
 "score_m10": {
@@ -5601,7 +5697,7 @@
 "invested": 0.5937337492873546
 }
 },
-"secs": 12.2,
+"secs": 12.1,
 "trades_total": 7696
 },
 "score_p10": {
@@ -5717,7 +5813,7 @@
 "invested": 0.5809583386967595
 }
 },
-"secs": 7.7,
+"secs": 7.2,
 "trades_total": 6892
 },
 "first_combo": {
@@ -5833,7 +5929,7 @@
 "invested": 0.6023232105276912
 }
 },
-"secs": 13.0,
+"secs": 11.9,
 "trades_total": 7554
 },
 "risk_1": {
@@ -5949,7 +6045,7 @@
 "invested": 0.5647197279277558
 }
 },
-"secs": 7.4,
+"secs": 7.9,
 "trades_total": 7501
 },
 "pos5": {
@@ -6065,7 +6161,7 @@
 "invested": 0.5554755297575783
 }
 },
-"secs": 11.8,
+"secs": 11.6,
 "trades_total": 3761
 },
 "pos7": {
@@ -6181,7 +6277,7 @@
 "invested": 0.5826399062505667
 }
 },
-"secs": 11.4,
+"secs": 11.1,
 "trades_total": 5314
 }
 },
@@ -6299,7 +6395,7 @@
 "invested": 0.5401078672716892
 }
 },
-"secs": 10.3,
+"secs": 10.9,
 "trades_total": 7620,
 "by_regime": {
 "bull": {
@@ -6353,6 +6449,38 @@
 "n": 904,
 "pnl": 22304.197634620432,
 "win": 0.5741150442477876
+}
+},
+"by_strategy_ins": {
+"SMA Crossover & Bollinger Breakout & Pairs Trading (3/3)": {
+"n": 595,
+"pnl": -2366.8354925644862,
+"win": 0.5142857142857142
+},
+"SMA Crossover & Momentum Strategy & VWAP Mean Reversion (3/3)": {
+"n": 630,
+"pnl": 23963.06599873852,
+"win": 0.5301587301587302
+},
+"Trend Following & Mean Reversion & Portfolio-Level Strategy (3/3)": {
+"n": 1609,
+"pnl": 12121.158359101057,
+"win": 0.45618396519577376
+},
+"VWAP Mean Reversion & MFI Money Flow (Volume) & Multi-Factor Strategy & Moving Average Crossover (3/4)": {
+"n": 552,
+"pnl": 52378.264281300086,
+"win": 0.552536231884058
+},
+"VWAP Mean Reversion & RSI Mean Reversion & Statistical Arbitrage & Regime-Based Strategy (3/4)": {
+"n": 250,
+"pnl": 8175.506470330847,
+"win": 0.584
+},
+"VWAP Mean Reversion & Regime-Based Strategy & Portfolio-Level Strategy (3/3)": {
+"n": 403,
+"pnl": 19062.006508680097,
+"win": 0.5732009925558312
 }
 },
 "exits": {
@@ -6969,7 +7097,7 @@
 "invested": 0.9855496143625737
 }
 },
-"secs": 25.1,
+"secs": 24.8,
 "trades_total": 1495
 },
 "no_regime": {
@@ -7085,7 +7213,7 @@
 "invested": 0.5737730789452795
 }
 },
-"secs": 16.8,
+"secs": 15.9,
 "trades_total": 8362
 },
 "no_score": {
@@ -7201,7 +7329,7 @@
 "invested": 0.5852493191543671
 }
 },
-"secs": 8.1,
+"secs": 8.2,
 "trades_total": 7790
 },
 "no_selfcheck": {
@@ -7317,7 +7445,7 @@
 "invested": 0.5756649749262782
 }
 },
-"secs": 8.2,
+"secs": 7.6,
 "trades_total": 7728
 },
 "score_m10": {
@@ -7433,7 +7561,7 @@
 "invested": 0.545289776574629
 }
 },
-"secs": 13.0,
+"secs": 12.8,
 "trades_total": 7778
 },
 "score_p10": {
@@ -7549,7 +7677,7 @@
 "invested": 0.5200145300264025
 }
 },
-"secs": 8.0,
+"secs": 7.5,
 "trades_total": 6925
 },
 "first_combo": {
@@ -7665,7 +7793,7 @@
 "invested": 0.5397610928297911
 }
 },
-"secs": 15.9,
+"secs": 15.5,
 "trades_total": 7837
 },
 "risk_1": {
@@ -7781,7 +7909,7 @@
 "invested": 0.5217575427222865
 }
 },
-"secs": 8.2,
+"secs": 8.6,
 "trades_total": 7620
 },
 "pos5": {
@@ -7897,7 +8025,7 @@
 "invested": 0.5101927168629324
 }
 },
-"secs": 11.8,
+"secs": 12.1,
 "trades_total": 3921
 },
 "pos7": {
@@ -8131,7 +8259,7 @@
 "invested": 0.6216427085850389
 }
 },
-"secs": 13.4,
+"secs": 13.3,
 "trades_total": 6204,
 "by_regime": {
 "bull": {
@@ -8185,6 +8313,38 @@
 "n": 1787,
 "pnl": 106280.72134629634,
 "win": 0.5920537213206492
+}
+},
+"by_strategy_ins": {
+"Golden Cross (50/200) & Pairs Trading & Regime-Based Strategy (3/3)": {
+"n": 562,
+"pnl": 6584.068912126104,
+"win": 0.5800711743772242
+},
+"Golden Cross (50/200) & VWAP Mean Reversion & Regime-Based Strategy (3/3)": {
+"n": 276,
+"pnl": 24517.52892886521,
+"win": 0.6123188405797102
+},
+"MACD Crossover & MFI Money Flow (Volume) & VWAP Reclaim / Pullback (3/3)": {
+"n": 627,
+"pnl": 9950.999712293282,
+"win": 0.4354066985645933
+},
+"Mean Reversion & Statistical Arbitrage & Momentum Strategy & Portfolio-Level Strategy (4/4)": {
+"n": 418,
+"pnl": -3776.0287704928287,
+"win": 0.5239234449760766
+},
+"Mean Reversion & Statistical Arbitrage & Regime-Based Strategy & Relative Strength Strategy (3/4)": {
+"n": 681,
+"pnl": 23724.841432384696,
+"win": 0.5491923641703378
+},
+"VWAP Mean Reversion & Pairs Trading & Multi-Factor Strategy (2/3)": {
+"n": 883,
+"pnl": 49729.70441344642,
+"win": 0.5866364665911665
 }
 },
 "exits": {
@@ -8801,7 +8961,7 @@
 "invested": 0.9822033984966414
 }
 },
-"secs": 16.1,
+"secs": 15.0,
 "trades_total": 1451
 },
 "no_regime": {
@@ -8917,7 +9077,7 @@
 "invested": 0.621622419029124
 }
 },
-"secs": 14.2,
+"secs": 13.8,
 "trades_total": 7072
 },
 "no_score": {
@@ -9033,7 +9193,7 @@
 "invested": 0.6055323882733251
 }
 },
-"secs": 9.6,
+"secs": 12.5,
 "trades_total": 6249
 },
 "no_selfcheck": {
@@ -9149,7 +9309,7 @@
 "invested": 0.63460854406673
 }
 },
-"secs": 12.2,
+"secs": 11.7,
 "trades_total": 6289
 },
 "score_m10": {
@@ -9265,7 +9425,7 @@
 "invested": 0.6019199234075951
 }
 },
-"secs": 12.9,
+"secs": 8.8,
 "trades_total": 6270
 },
 "score_p10": {
@@ -9381,7 +9541,7 @@
 "invested": 0.6332594696691636
 }
 },
-"secs": 8.1,
+"secs": 12.2,
 "trades_total": 5825
 },
 "first_combo": {
@@ -9497,7 +9657,7 @@
 "invested": 0.6073027030971777
 }
 },
-"secs": 12.2,
+"secs": 8.0,
 "trades_total": 6105
 },
 "risk_1": {
@@ -9613,7 +9773,7 @@
 "invested": 0.6117496110710263
 }
 },
-"secs": 7.6,
+"secs": 12.8,
 "trades_total": 6204
 },
 "pos5": {
@@ -9729,7 +9889,7 @@
 "invested": 0.5643641965327799
 }
 },
-"secs": 11.9,
+"secs": 9.9,
 "trades_total": 3123
 },
 "pos7": {
@@ -9845,7 +10005,7 @@
 "invested": 0.5827152567463274
 }
 },
-"secs": 8.1,
+"secs": 7.3,
 "trades_total": 4365
 }
 }
