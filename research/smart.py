@@ -62,7 +62,10 @@ def variants(key):
          "score_p10": {**br, "min_score": min(br["min_score"] + 10, 100)},
          "first_combo": {**br, "choose": "first"},
          "risk_1": {**br, "risk": 1.0}}
-    return {n: (b["strategies"], b["max_pos"], (BR.clean(x) if x else None), (x or br)["atr"]) for n, x in v.items()}
+    out = {n: (b["strategies"], b["max_pos"], (BR.clean(x) if x else None), (x or br)["atr"]) for n, x in v.items()}
+    # fewer open trades, each bigger: combined strategies hold few stocks at once (about 5 in research/combos.py)
+    out.update({f"pos{m}": (b["strategies"], m, br, br["atr"]) for m in (5, 7) if m != b["max_pos"]})
+    return out
 
 
 def make_bot(strategies, max_pos, brain, atr):
