@@ -4,9 +4,9 @@ smartbots.py - The five ready smart bots (brain.py on top of the bot engine): th
 starts only when someone adds it.
 
 Every bot trades all companies (the S&P 500 + the site's largest companies) with shares, has every strategy of the site at
-hand and runs the five parts of brain.py: the market regime, the strategy families allowed in each regime, the score out of
-100, the risk sizing and the self-check. For each trade it takes the strategy that suits the market and whose signals did
-best lately (its own style first); the five differ by that style, their score weights and how long they hold.
+hand and runs the five parts of brain.py: the market regime (which sizes the trades), the score out of 100, the risk sizing
+and the self-check; its strategies are open (every one may trade in every market but a panic), and for each trade it takes
+the one whose signals did best lately. The five differ by what their score values in a stock, and how long they hold.
 The risk rules are the lighter ones asked for (LOOSE); the test shows each bot period by period, 2008 to now.
 """
 import json
@@ -21,12 +21,13 @@ FEE = 0.10          # % per side: the broker fee and the slippage of a real fill
 
 ALL = {name: {} for name in engine.STRATEGIES}     # every bot has every strategy at hand, each at its own default settings
 
-# what every bot allows itself (lighter risk rules): all strategy families in a bull or a sideways market (a sideways one
-# at 90%), dip-buying and momentum at half size in a bear market, nothing new in a panic, no forced selling; 2% risk a
-# trade, up to 4 trades a sector, trades half size from 15% under the peak and a 15-session break at 30%
-LOOSE = {"min_score": 45, "choose": "edge", "bonus": 10,
-         "allow": {"bull": ["trend", "breakout", "momentum", "reversion"], "neutral": ["trend", "breakout", "momentum", "reversion"],
-                   "bear": ["momentum", "reversion"], "stress": []},
+# what every bot allows itself: every strategy in every market (open: no family is set aside, no style is preferred; the bot
+# takes, for each trade, the strategy whose signals did best lately), a sideways market at 90% of the size and a bear one at
+# half, nothing new in a panic, no forced selling; 2% risk a trade, up to 4 trades a sector, trades half size from 15% under
+# the peak and a 15-session break at 30%
+OPEN = ["trend", "breakout", "momentum", "reversion"]
+LOOSE = {"min_score": 45, "choose": "edge", "prefer": [], "bonus": 0,
+         "allow": {"bull": OPEN, "neutral": OPEN, "bear": OPEN, "stress": []},
          "size": {"bull": 1.0, "neutral": 0.9, "bear": 0.5, "stress": 0.0},
          "exposure": {"bull": 1.0, "neutral": 0.9, "bear": 0.5, "stress": 0.0},
          "exit": [], "risk": 2.0, "size_floor": 0.9, "atr": 3.0, "sector_cap": 4, "be_r": 0, "trail_atr": 0, "time_bars": 0,
@@ -36,47 +37,48 @@ LOOSE = {"min_score": 45, "choose": "edge", "bonus": 10,
 BOTS = {
     "adaptive": {
         "name": ("Adaptive All-Weather", "المتكيّف مع السوق"),
-        "idea": ("No style of its own: it reads the market, and for each trade takes whichever of its strategies suits the "
-                 "market and has worked best lately.",
-                 "ما عنده أسلوب ثابت: يقرأ السوق، ولكل صفقة ياخذ أي استراتيجية تناسب السوق وكانت الأنجح مؤخراً."),
+        "idea": ("Any strategy, whichever has worked best lately; it weighs the six parts of a trade's score evenly and trades "
+                 "smaller in a sideways or a bear market.",
+                 "أي استراتيجية، اللي كانت الأنجح مؤخراً؛ ويوزن أجزاء التقييم الستة بالتوازن، ويتداول بحجم أصغر في السوق العرضي "
+                 "والهابط."),
         "max_pos": 10,
-        "brain": {**LOOSE, "prefer": [], "bonus": 0},
+        "brain": dict(LOOSE),
     },
     "trend": {
         "name": ("Trend Rider", "راكب الاتجاه"),
-        "idea": ("Prefers riding trends, lets a winner run until its strategy says sell, and uses any other strategy when a "
-                 "trend isn't there.",
-                 "يفضّل ركوب الاتجاهات، ويخلّي الصفقة الرابحة تمشي لين تقول استراتيجيتها بيع، ويستخدم أي استراتيجية ثانية "
-                 "إذا ما فيه اتجاه."),
+        "idea": ("Any strategy, whichever fits the trade; among the stocks that signal it buys those with the strongest "
+                 "trends first, and lets a winner run until its strategy says sell.",
+                 "أي استراتيجية تناسب الصفقة؛ ومن الأسهم اللي تعطي إشارة يشتري أول اللي اتجاهها أقوى، ويخلّي الصفقة الرابحة تمشي "
+                 "لين تقول استراتيجيتها بيع."),
         "max_pos": 10,
-        "brain": {**LOOSE, "prefer": ["trend"], "weights": {"trend": 30, "mom": 20, "vol": 10, "volat": 10, "struct": 15, "rr": 15}},
+        "brain": {**LOOSE, "weights": {"trend": 30, "mom": 20, "vol": 10, "volat": 10, "struct": 15, "rr": 15}},
     },
     "breakout": {
         "name": ("Breakout Hunter", "صياد الاختراقات"),
-        "idea": ("Prefers breakouts to new highs on heavy volume, drops a trade that goes nowhere in 20 sessions, and uses any "
-                 "other strategy when the market offers no breakouts.",
-                 "يفضّل الاختراقات لقمم جديدة بحجم تداول عالي، ويطلع من الصفقة اللي ما تتحرك خلال 20 جلسة، ويستخدم أي "
-                 "استراتيجية ثانية إذا السوق ما فيه اختراقات."),
+        "idea": ("Any strategy, whichever fits the trade; it buys first the stocks near their highs on heavy volume, and drops "
+                 "a trade that goes nowhere in 20 sessions.",
+                 "أي استراتيجية تناسب الصفقة؛ ويشتري أول الأسهم القريبة من قممها بحجم تداول عالي، ويطلع من الصفقة اللي ما تتحرك "
+                 "خلال 20 جلسة."),
         "max_pos": 10,
-        "brain": {**LOOSE, "prefer": ["breakout"], "atr": 2.5, "time_bars": 20, "time_r": 0.5,
+        "brain": {**LOOSE, "atr": 2.5, "time_bars": 20, "time_r": 0.5,
                   "weights": {"trend": 15, "mom": 15, "vol": 25, "volat": 10, "struct": 20, "rr": 15}},
     },
     "momentum": {
         "name": ("Momentum Leaders", "قادة الزخم"),
-        "idea": ("Prefers the market's strongest stocks against the S&P 500, ranked by momentum, and uses any other strategy "
-                 "when leadership is unclear.",
-                 "يفضّل أقوى الأسهم مقارنة بالسوق، مرتبة حسب الزخم، ويستخدم أي استراتيجية ثانية إذا ما كان فيه قادة واضحين."),
+        "idea": ("Any strategy, whichever fits the trade; among the stocks that signal it buys the market's strongest first, "
+                 "ranked by momentum.",
+                 "أي استراتيجية تناسب الصفقة؛ ومن الأسهم اللي تعطي إشارة يشتري أول أقوى أسهم السوق، مرتبة حسب الزخم."),
         "max_pos": 10,
-        "brain": {**LOOSE, "prefer": ["momentum"], "weights": {"trend": 20, "mom": 35, "vol": 10, "volat": 10, "struct": 15, "rr": 10}},
+        "brain": {**LOOSE, "weights": {"trend": 20, "mom": 35, "vol": 10, "volat": 10, "struct": 15, "rr": 10}},
     },
     "pullback": {
         "name": ("Pullback Buyer", "صياد التصحيحات"),
-        "idea": ("Prefers buying short dips in stocks that are in an uptrend and never waits more than 10 sessions for the "
-                 "bounce; uses any other strategy when there are no good dips.",
-                 "يفضّل شراء الهبوط القصير في الأسهم اللي اتجاهها صاعد، وما ينتظر الارتداد أكثر من 10 جلسات؛ ويستخدم أي "
-                 "استراتيجية ثانية إذا ما فيه تصحيحات زينة."),
+        "idea": ("Any strategy, whichever fits the trade; it buys first the stocks in an uptrend with the most room to their "
+                 "recent high, and never holds a trade more than 10 sessions unless it's working.",
+                 "أي استراتيجية تناسب الصفقة؛ ويشتري أول الأسهم اللي اتجاهها صاعد وعندها أكبر مجال لين قمتها القريبة، وما يمسك "
+                 "الصفقة أكثر من 10 جلسات إلا إذا كانت ماشية."),
         "max_pos": 12,
-        "brain": {**LOOSE, "prefer": ["reversion"], "atr": 2.5, "time_bars": 10, "time_r": 0.0,
+        "brain": {**LOOSE, "atr": 2.5, "time_bars": 10, "time_r": 0.0,
                   "weights": {"trend": 30, "mom": 20, "vol": 5, "volat": 15, "struct": 10, "rr": 20}},
     },
 }
