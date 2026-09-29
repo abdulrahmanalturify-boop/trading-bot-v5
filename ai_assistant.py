@@ -73,8 +73,7 @@ def extract(data):
         if isinstance(item,dict) and item.get("type")=="message":
             for c in item.get("content") or []:
                 if isinstance(c,dict) and c.get("type")=="output_text" and c.get("text"): out.append(str(c["text"]))
-    return "
-".join(out).strip()
+    return "\n".join(out).strip()
 
 def ask(question, messages, ctx, lang):
     key, model = settings()
@@ -84,9 +83,7 @@ def ask(question, messages, ctx, lang):
     for m in messages[-8:]: transcript.append(("Visitor" if m.get("role")=="user" else "Assistant")+": "+str(m.get("content") or ""))
     transcript.append("Visitor: "+question)
     try:
-        r=requests.post(API_URL,headers={"Authorization":f"Bearer {key}","Content-Type":"application/json"},json={"model":model,"instructions":instructions(ctx),"input":"
-
-".join(transcript),"max_output_tokens":750,"store":False},timeout=35)
+        r=requests.post(API_URL,headers={"Authorization":f"Bearer {key}","Content-Type":"application/json"},json={"model":model,"instructions":instructions(ctx),"input":"\n\n".join(transcript),"max_output_tokens":750,"store":False},timeout=35)
         if r.status_code < 400:
             text=extract(r.json())
             if text: return text
