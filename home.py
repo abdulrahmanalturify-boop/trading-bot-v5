@@ -10,7 +10,7 @@ import theme as T
 import ui
 from i18n import L, is_ar
 
-BUILD = "12.9"
+BUILD = "13.0"
 
 _LINE = "rgba(150,140,250,"
 CSS = f"""
@@ -466,21 +466,31 @@ html.ix-scrolled header[data-testid="stHeader"] { background: rgba(14,9,24,.32) 
 .block-container, [data-testid="stMainBlockContainer"], [data-testid="stMainBlockContainer"]:has(.st-key-topnav) { max-width: none !important;
   padding: 0 !important; }
 @media (max-width: 1023.98px) { .st-key-topnav { margin: 8px !important; } }
-.ixp { margin-top: -1rem; color: #F5F5F7; font-family: 'DM Sans', 'Readex Pro', system-ui, sans-serif; overflow: hidden; }
+.ixp { margin-top: -1rem; color: #F5F5F7; font-family: 'DM Sans', 'Readex Pro', system-ui, sans-serif; overflow: hidden; isolation: isolate;
+  background: linear-gradient(180deg, #191B1F 0%, #191B1F 12%, #171623 22%, #151227 36%, #130F24 52%, #16112B 68%, #120D22 84%, #0E0918 100%); }
+.ixs::before { content: ""; position: absolute; z-index: -1; pointer-events: none; top: -10%; width: 80vw; height: 120%; left: -40vw;
+  background: radial-gradient(closest-side, rgba(74,20,140,.20), rgba(74,20,140,.06) 55%, transparent 80%); }
+.ixs:nth-of-type(2n)::before { left: auto; right: -40vw; background: radial-gradient(closest-side, rgba(40,112,132,.14), rgba(40,112,132,.04) 55%, transparent 80%); }
+.ixend::before { content: ""; position: absolute; z-index: -1; left: 50%; bottom: 0; width: 110vw; height: 90%; margin-left: -55vw; pointer-events: none;
+  background: radial-gradient(closest-side, rgba(74,20,140,.35), transparent 78%); }
+.ixend { position: relative; }
 .ixp.ar { font-family: 'Readex Pro', 'DM Sans', sans-serif; }
 /* ---------- the first screen: a violet-lit void, a slowly turning iridescent sculpture, two lines of words ---------- */
-.ix { position: relative; min-height: 100vh; overflow: hidden; background: #100D17; }
+.ix { position: relative; min-height: 100vh; overflow: hidden; background: #191B1F; }
+/* the first screen melts into the page under it: no hard line between the two */
+.ix::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 34vh; z-index: 3; pointer-events: none;
+  background: linear-gradient(180deg, rgba(25,27,31,0) 0%, rgba(25,27,31,.55) 55%, #191B1F 100%); }
 .ix > * { position: absolute; }
 .ix-glow { inset: 0; pointer-events: none; transform: translate3d(calc(var(--px,0) * -16px), calc(var(--py,0) * -10px), 0); }
 .ix-glow i { position: absolute; border-radius: 50%; }
-.ix-glow .g1 { left: 50%; top: -14vh; width: 110vw; height: 96vh; margin-left: -55vw;
-  background: radial-gradient(closest-side, rgba(84,26,156,.95), rgba(58,16,112,.62) 42%, rgba(34,10,70,.25) 68%, transparent 82%);
+.ix-glow .g1 { left: 50%; top: -18vh; width: 104vw; height: 104vh; margin-left: -52vw;
+  background: radial-gradient(closest-side, rgba(74,20,140,.96), rgba(52,14,100,.7) 38%, rgba(32,10,62,.32) 64%, transparent 84%);
   animation: ixbreath 9s ease-in-out infinite alternate; }
-.ix-glow .g2 { left: -16vw; top: 26vh; width: 52vw; height: 84vh; background: radial-gradient(closest-side, rgba(36,104,124,.55), rgba(24,64,84,.22) 55%, transparent 80%);
+.ix-glow .g2 { left: -20vw; top: 30vh; width: 50vw; height: 90vh; background: radial-gradient(closest-side, rgba(40,112,132,.62), rgba(26,70,90,.26) 55%, transparent 80%);
   animation: ixdrift 17s ease-in-out infinite alternate; }
-.ix-glow .g3 { right: -18vw; top: 10vh; width: 60vw; height: 90vh; background: radial-gradient(closest-side, rgba(6,5,10,.85), transparent 78%); }
-.ix-glow .g4 { left: 50%; bottom: -30vh; width: 70vw; height: 60vh; margin-left: -35vw;
-  background: radial-gradient(closest-side, rgba(123,69,240,.35), transparent 75%); animation: ixbreath 7s ease-in-out -3s infinite alternate; }
+.ix-glow .g3 { right: -22vw; top: 0; width: 62vw; height: 110vh; background: radial-gradient(closest-side, rgba(8,8,11,.92), transparent 78%); }
+.ix-glow .g4 { left: 50%; bottom: -34vh; width: 64vw; height: 60vh; margin-left: -32vw;
+  background: radial-gradient(closest-side, rgba(74,20,140,.32), transparent 75%); animation: ixbreath 7s ease-in-out -3s infinite alternate; }
 @keyframes ixbreath { 0% { transform: scale(1) translateY(0); opacity: .86; } 100% { transform: scale(1.08) translateY(2.5%); opacity: 1; } }
 @keyframes ixdrift { 0% { transform: translate(0,0) scale(1); } 100% { transform: translate(5vw,-4vh) scale(1.12); } }
 .ix-grain { inset: 0; pointer-events: none; opacity: .07; mix-blend-mode: overlay;
@@ -493,17 +503,23 @@ html.ix-scrolled header[data-testid="stHeader"] { background: rgba(14,9,24,.32) 
 .ix-obj .ix-gem { position: absolute; left: 50%; bottom: 8%; width: 44%; translate: -50% 0; animation: ixturn 14s ease-in-out infinite alternate; }
 .ix-obj.gl-on .ix-gem { display: none; }                                    /* the WebGL sculpture replaces the drawing */
 @keyframes ixturn { 0% { transform: rotate(-4deg) scale(1); } 100% { transform: rotate(5deg) scale(1.04); } }
-.ix-spk { position: absolute; width: 34px; height: 34px; translate: -50% -50%; opacity: 0; z-index: 2;
-  background: radial-gradient(closest-side, #fff, rgba(255,255,255,.6) 18%, transparent 60%),
-    linear-gradient(90deg, transparent 47%, rgba(255,255,255,.95) 50%, transparent 53%),
-    linear-gradient(0deg, transparent 47%, rgba(255,255,255,.95) 50%, transparent 53%);
-  filter: drop-shadow(0 0 8px rgba(209,201,255,.9)); animation: ixspark 4.2s ease-in-out infinite; }
-.ix-spk.s1 { left: 34%; top: 40%; animation-delay: .8s; } .ix-spk.s2 { left: 61%; top: 30%; animation-delay: 2.1s; width: 26px; height: 26px; }
-.ix-spk.s3 { left: 47%; top: 62%; animation-delay: 3.3s; width: 42px; height: 42px; } .ix-spk.s4 { left: 70%; top: 58%; animation-delay: 1.5s; width: 22px; height: 22px; }
-@keyframes ixspark { 0%, 70%, 100% { opacity: 0; transform: scale(.2) rotate(0deg); } 80% { opacity: 1; transform: scale(1) rotate(45deg); } 90% { opacity: .5; transform: scale(.6) rotate(90deg); } }
+.ix-fl { position: absolute; z-index: 2; width: 120px; height: 120px; translate: -50% -50%; opacity: 0; mix-blend-mode: screen;
+  background: radial-gradient(closest-side, #FFFFFF, rgba(255,255,255,.85) 12%, rgba(220,230,255,.35) 32%, transparent 70%);
+  animation: ixflare 5.5s ease-in-out infinite; }
+.ix-fl::after { content: ""; position: absolute; left: -60%; right: -60%; top: 50%; height: 2px; margin-top: -1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.75), transparent); filter: blur(.4px); }
+.ix-fl.f1 { left: 31%; top: 50%; animation-delay: .6s; }
+.ix-fl.f2 { left: 63%; top: 86%; width: 90px; height: 90px; animation-delay: 2.4s; }
+.ix-fl.f3 { left: 46%; top: 30%; width: 54px; height: 54px; animation-delay: 3.8s; }
+.ix-fl.f3::after { display: none; }
+.ix-gl-o, .ix-gl-b { position: absolute; z-index: 2; width: 26px; height: 26px; translate: -50% -50%; border-radius: 50%; opacity: 0; mix-blend-mode: screen;
+  animation: ixflare 4.6s ease-in-out infinite; }
+.ix-gl-o { left: 58%; top: 70%; background: radial-gradient(closest-side, #FFB054, rgba(255,140,40,.4) 45%, transparent 75%); animation-delay: 1.6s; }
+.ix-gl-b { left: 40%; top: 80%; background: radial-gradient(closest-side, #8EC5FF, rgba(80,150,255,.4) 45%, transparent 75%); animation-delay: 3.1s; }
+@keyframes ixflare { 0%, 100% { opacity: 0; transform: scale(.6); } 35% { opacity: .95; transform: scale(1); } 55% { opacity: .55; transform: scale(.85); } 70% { opacity: 0; } }
 .ix-center { left: 50%; top: 40%; width: min(980px, 92vw); transform: translate(-50%, -50%); text-align: center; z-index: 3; }
-.ix-h { margin: 0 0 20px; font-family: 'DM Serif Display', 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: clamp(50px, 7.6vw, 112px);
-  line-height: 1.02; letter-spacing: .02em; color: #FFFFFF; text-shadow: 0 12px 50px rgba(16,13,23,.55); }
+.ix-h { margin: 0 0 20px; font-family: 'DM Serif Display', 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: clamp(46px, 5.8vw, 86px);
+  line-height: 1.08; letter-spacing: .02em; color: #FFFFFF; text-shadow: 0 12px 50px rgba(16,13,23,.55); }
 .ix-h em, .ixh em { font-style: italic; background: linear-gradient(90deg, #D1C9FF, #9DCBF7 55%, #FFFFFF); -webkit-background-clip: text;
   background-clip: text; color: transparent; padding-inline-end: .06em; }
 .ixp.ar .ix-h { font-family: 'Readex Pro', sans-serif; font-weight: 500; font-size: clamp(42px, 6vw, 92px); line-height: 1.25; letter-spacing: 0; }
@@ -755,14 +771,14 @@ def intro_html():
     f = _facts()
     ex = L("EXAMPLE", "مثال")
     gem = ('<svg class="ix-gem" viewBox="0 0 400 260" aria-hidden="true"><defs>'
-           '<linearGradient id="gmA" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3A2A6E"/><stop offset=".5" stop-color="#0C0A14"/><stop offset="1" stop-color="#1D4C5C"/></linearGradient>'
-           '<linearGradient id="gmB" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#D1C9FF" stop-opacity=".9"/><stop offset="1" stop-color="#D1C9FF" stop-opacity="0"/></linearGradient></defs>'
-           '<path d="M40 210 L90 90 L170 40 L260 52 L340 110 L372 206 L300 250 L110 250 Z" fill="url(#gmA)" stroke="rgba(209,201,255,.35)"/>'
+           '<linearGradient id="gmA" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2A2A30"/><stop offset=".5" stop-color="#060608"/><stop offset="1" stop-color="#1A1C22"/></linearGradient>'
+           '<linearGradient id="gmB" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF" stop-opacity=".9"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/></linearGradient></defs>'
+           '<path d="M40 210 L90 90 L170 40 L260 52 L340 110 L372 206 L300 250 L110 250 Z" fill="url(#gmA)" stroke="rgba(255,255,255,.45)"/>'
            '<path d="M90 90 L170 40 L200 120 Z M170 40 L260 52 L200 120 Z M260 52 L340 110 L200 120 Z M90 90 L200 120 L110 250 L40 210 Z" fill="url(#gmB)" opacity=".18"/>'
            '<path d="M200 120 L300 250 M200 120 L372 206 M200 120 L110 250" stroke="rgba(255,255,255,.25)"/></svg>')
     hero = ('<section class="ix"><div class="ix-glow"><i class="g1"></i><i class="g2"></i><i class="g3"></i><i class="g4"></i></div>'
             '<div class="ix-grain"></div>'
-            f'<div class="ix-obj">{gem}<span class="ix-spk s1"></span><span class="ix-spk s2"></span><span class="ix-spk s3"></span><span class="ix-spk s4"></span></div>'
+            f'<div class="ix-obj">{gem}<span class="ix-fl f1"></span><span class="ix-fl f2"></span><span class="ix-fl f3"></span><span class="ix-gl-o"></span><span class="ix-gl-b"></span></div>'
             f'<div class="ix-center"><div class="ix-h" role="heading" aria-level="1">{L("Beyond Investing", "أبعد من الاستثمار")}</div>'
             f'<p class="ix-sub">{L("Paper-trading bots, a daily opportunity hunter and market research, in one place.", "بوتات تداول افتراضية، وصياد فرص يومي، وأبحاث السوق، في مكان واحد.")}'
             f'<b>{L("Our goal is to teach you, and to let you trade on paper first.", "هدفنا نعلّمك، ونخليك تتداول افتراضياً.")}</b></p></div>'

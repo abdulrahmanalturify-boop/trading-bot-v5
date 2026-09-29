@@ -1343,53 +1343,59 @@ FX_JS = """<script>
     m[8] = cx * sy * cz + sx * sz; m[9] = cx * sy * sz - sx * cz; m[10] = cx * cy; m[15] = 1; return m;
   }
   function trans(x, y, z) { var m = mat4(); m[0] = m[5] = m[10] = m[15] = 1; m[12] = x; m[13] = y; m[14] = z; return m; }
-  // a crumpled crystal: an icosahedron split twice, pushed in and out, stretched, every face flat
+  // a black sculpture of cut panels (after Letter's render): the hull of points scattered over a wide, low dome - big
+  // irregular flat facets with crisp creases, a rounded crown, a flat base. Each crease knows how sharp it is.
   function geometry() {
-    var t = (1 + Math.sqrt(5)) / 2, V = [[-1, t, 0], [1, t, 0], [-1, -t, 0], [1, -t, 0], [0, -1, t], [0, 1, t], [0, -1, -t], [0, 1, -t], [t, 0, -1], [t, 0, 1], [-t, 0, -1], [-t, 0, 1]];
-    var F = [[0, 11, 5], [0, 5, 1], [0, 1, 7], [0, 7, 10], [0, 10, 11], [1, 5, 9], [5, 11, 4], [11, 10, 2], [10, 7, 6], [7, 1, 8], [3, 9, 4], [3, 4, 2], [3, 2, 6], [3, 6, 8], [3, 8, 9], [4, 9, 5], [2, 4, 11], [6, 2, 10], [8, 6, 7], [9, 8, 1]];
+    var seed = 29; function rnd() { seed = (seed * 16807) % 2147483647; return seed / 2147483647; }
     function norm(v) { var l = Math.hypot(v[0], v[1], v[2]); return [v[0] / l, v[1] / l, v[2] / l]; }
-    V = V.map(norm);
-    for (var s = 0; s < 3; s++) {
-      var cache = {}, F2 = [];
-      var mid = function (a, b) { var k = a < b ? a + '_' + b : b + '_' + a; if (cache[k] === undefined) { V.push(norm([(V[a][0] + V[b][0]) / 2, (V[a][1] + V[b][1]) / 2, (V[a][2] + V[b][2]) / 2])); cache[k] = V.length - 1; } return cache[k]; };
-      F.forEach(function (f) { var a = mid(f[0], f[1]), b = mid(f[1], f[2]), c = mid(f[2], f[0]); F2.push([f[0], a, c], [f[1], b, a], [f[2], c, b], [a, b, c]); });
-      F = F2;
+    function sub(a, b) { return [a[0] - b[0], a[1] - b[1], a[2] - b[2]]; }
+    function cross(a, b) { return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]; }
+    function dot(a, b) { return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]; }
+    var Q = [];
+    for (var i = 0; i < 64; i++) {
+      var u = 2 * rnd() - 1, a = rnd() * 6.2832, q = Math.sqrt(1 - u * u), r = .9 + rnd() * .14, y = u;
+      if (y < -.3) y = -.3 - (y + .3) * .15;                               // pressed flat underneath
+      Q.push([q * Math.cos(a) * r * 1.42, y * r * 1.08, q * Math.sin(a) * r * 1.12]);
     }
-    var seed = 7; function rnd() { seed = (seed * 16807) % 2147483647; return seed / 2147483647; }
-    V = V.map(function (v) {                    // smooth waves plus a little grain: sculpted, not rocky
-      var r = 1 + .16 * Math.sin(3.1 * v[0] + 1.3) * Math.sin(2.3 * v[1] + .4) + .1 * Math.sin(4.2 * v[2] + 2.1 * v[0]) + (rnd() - .5) * .06;
-      return [v[0] * r * 1.3, v[1] * r * .9, v[2] * r * 1.05]; });
-    // glossy panels with soft creases: each corner's normal is mostly the smooth one, a little of its face's
-    var FN = F.map(function (f) {
-      var a = V[f[0]], b = V[f[1]], c = V[f[2]];
-      var u = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], v = [c[0] - a[0], c[1] - a[1], c[2] - a[2]];
-      return norm([u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0]]);
-    });
-    var SN = V.map(function () { return [0, 0, 0]; });
-    F.forEach(function (f, i) { f.forEach(function (k) { SN[k][0] += FN[i][0]; SN[k][1] += FN[i][1]; SN[k][2] += FN[i][2]; }); });
-    SN = SN.map(norm);
-    var P = [], N = [];
+    var F = [], n = Q.length;
+    for (var i = 0; i < n; i++) for (var j = i + 1; j < n; j++) for (var k = j + 1; k < n; k++) {
+      var nr = cross(sub(Q[j], Q[i]), sub(Q[k], Q[i]));
+      if (dot(nr, nr) < 1e-10) continue;
+      var pos = 0, neg = 0;
+      for (var l = 0; l < n && !(pos && neg); l++) { if (l === i || l === j || l === k) continue; var sd = dot(nr, sub(Q[l], Q[i])); if (sd > 1e-9) pos++; else if (sd < -1e-9) neg++; }
+      if (pos && neg) continue;
+      F.push(pos ? [i, k, j] : [i, j, k]);                                  // corners in order, the normal outwards
+    }
+    var FN = F.map(function (f) { return norm(cross(sub(Q[f[1]], Q[f[0]]), sub(Q[f[2]], Q[f[0]]))); });
+    var EDGE = {};
+    F.forEach(function (f, i) { for (var j = 0; j < 3; j++) { var a = f[(j + 1) % 3], b = f[(j + 2) % 3], key = a < b ? a + '_' + b : b + '_' + a; (EDGE[key] = EDGE[key] || []).push(i); } });
+    var P = [], N = [], B = [], M = [];
     F.forEach(function (f, i) {
-      f.forEach(function (k) {
-        var p = V[k], n = norm([SN[k][0] * .72 + FN[i][0] * .28, SN[k][1] * .72 + FN[i][1] * .28, SN[k][2] * .72 + FN[i][2] * .28]);
-        P.push(p[0], p[1], p[2]); N.push(n[0], n[1], n[2]);
-      });
+      var m = [0, 0, 0];
+      for (var j = 0; j < 3; j++) {
+        var a = f[(j + 1) % 3], b = f[(j + 2) % 3], key = a < b ? a + '_' + b : b + '_' + a, tris = EDGE[key];
+        var other = tris[0] === i ? tris[1] : tris[0];
+        if (other !== undefined) m[j] = Math.max(.25, Math.min(1, (1 - dot(FN[i], FN[other])) / .35));
+      }
+      f.forEach(function (k, j) { var p = Q[k], nn = FN[i]; P.push(p[0], p[1], p[2]); N.push(nn[0], nn[1], nn[2]); B.push(j === 0 ? 1 : 0, j === 1 ? 1 : 0, j === 2 ? 1 : 0); M.push(m[0], m[1], m[2]); });
     });
-    return {p: new Float32Array(P), n: new Float32Array(N), count: P.length / 3};
+    return {p: new Float32Array(P), n: new Float32Array(N), b: new Float32Array(B), m: new Float32Array(M), count: P.length / 3};
   }
-  var VS = 'attribute vec3 p;attribute vec3 n;uniform mat4 mvp;uniform mat4 model;uniform mat3 nm;varying vec3 vN;varying vec3 vP;' +
-    'void main(){vN=nm*n;vP=(model*vec4(p,1.)).xyz;gl_Position=mvp*vec4(p,1.);}';
-  var FS = 'precision highp float;varying vec3 vN;varying vec3 vP;uniform vec3 eye;uniform float t;' +
-    'vec3 irid(float x){return .5+.5*cos(6.2831*(x+vec3(.0,.33,.67)));}' +
-    'void main(){vec3 N=normalize(vN);vec3 V=normalize(eye-vP);float ndv=max(dot(N,V),0.);float fr=pow(1.-ndv,3.);' +
-    'vec3 R=reflect(-V,N);' +
-    'float top=pow(smoothstep(.45,1.,R.y*.5+.5),3.);float hz=exp(-pow((R.y-.08)*13.,2.));float side=pow(max(R.x,0.),10.);float back=pow(max(-R.x,0.),12.);' +
-    'vec3 env=vec3(.004,.003,.009)+top*vec3(.55,.4,1.)*.7+hz*vec3(.95,.92,1.)*.85+side*vec3(.3,.75,.85)*.8+back*vec3(.55,.3,.9)*.6;' +
-    'vec3 L1=normalize(vec3(cos(t*.45)*2.2,1.6,1.8));vec3 L2=normalize(vec3(-2.2,.3,sin(t*.37)*2.));vec3 L3=normalize(vec3(.6,-1.,1.4));' +
-    'float s1=pow(max(dot(N,normalize(L1+V)),0.),320.);float s2=pow(max(dot(N,normalize(L2+V)),0.),120.);float s3=pow(max(dot(N,normalize(L3+V)),0.),60.);' +
-    'vec3 film=irid(fr*1.6+dot(N,vec3(.35,.55,.25))*.7+t*.03);' +
-    'vec3 col=vec3(.008,.006,.014)+env*(.18+.82*fr)+env*.35+film*fr*.55+s1*vec3(1.)*3.2+s2*vec3(.78,.66,1.)*1.6+s3*vec3(.35,.8,.9)*.7;' +
-    'col=col/(1.+col*.5);col=pow(col,vec3(.92));gl_FragColor=vec4(col,1.);}';
+  var VS = 'attribute vec3 p;attribute vec3 n;attribute vec3 b;attribute vec3 m;uniform mat4 mvp;uniform mat4 model;uniform mat3 nm;varying vec3 vN;varying vec3 vP;varying vec3 vB;varying vec3 vM;' +
+    'void main(){vN=nm*n;vB=b;vM=m;vP=(model*vec4(p,1.)).xyz;gl_Position=mvp*vec4(p,1.);}';
+  // black lacquer in a dark studio: two softboxes that flash across the panels, a white key light, an orange and a blue
+  // glint, a cool rim, and the panel edges catching the light
+  var FS = 'precision highp float;varying vec3 vN;varying vec3 vP;varying vec3 vB;varying vec3 vM;uniform vec3 eye;uniform float t;' +
+    'void main(){vec3 N=normalize(vN);vec3 V=normalize(eye-vP);float ndv=max(dot(N,V),0.);float fr=pow(1.-ndv,4.);vec3 R=reflect(-V,N);' +
+    'vec3 B1=normalize(vec3(-.75+.25*sin(t*.3),.45,.55));vec3 B2=normalize(vec3(.85,.05+.15*cos(t*.25),.5));' +
+    'float box=smoothstep(.93,.985,dot(R,B1))*1.25+smoothstep(.95,.99,dot(R,B2))*.8;float sky=pow(max(R.y,0.),5.)*.18;' +
+    'vec3 env=vec3(.006,.006,.009)+box*vec3(1.)+sky*vec3(.7,.7,.85);' +
+    'vec3 K=normalize(vec3(cos(t*.4)*1.8,1.2,1.6));vec3 O=normalize(vec3(1.6,-.5,sin(t*.33)*1.4+.6));vec3 C=normalize(vec3(-1.8,-.2,cos(t*.29)*1.2+.4));' +
+    'float k=pow(max(dot(N,normalize(K+V)),0.),420.);float o=pow(max(dot(N,normalize(O+V)),0.),1400.);float c=pow(max(dot(N,normalize(C+V)),0.),1200.);' +
+    'vec3 ed=(1.-smoothstep(vec3(0.),vec3(.022),vB))*vM;float edge=max(max(ed.x,ed.y),ed.z);' +
+    'float lit=pow(max(dot(N,normalize(K+V)),0.),14.)*3.+pow(max(dot(N,normalize(B1+V)),0.),18.)*2.2+pow(fr,1.5)*1.6;' +
+    'vec3 col=vec3(.009,.009,.012)+env*(.3+.7*fr)+k*vec3(1.)*3.4+o*vec3(1.,.62,.25)*3.+c*vec3(.35,.65,1.)*3.+edge*lit*vec3(.92,.93,1.)+fr*vec3(.35,.4,.55)*.35;' +
+    'col=col/(1.+col*.45);gl_FragColor=vec4(pow(col,vec3(.95)),1.);}';
   function mount(host) {
     var cv = d.createElement('canvas'); cv.className = 'ix-gl'; host.appendChild(cv);
     var gl = cv.getContext('webgl', {antialias: true, alpha: true, premultipliedAlpha: true});
@@ -1403,7 +1409,7 @@ FX_JS = """<script>
     var g = geometry();
     function buf(data, name) { var b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
       var loc = gl.getAttribLocation(pr, name); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 3, gl.FLOAT, false, 0, 0); }
-    buf(g.p, 'p'); buf(g.n, 'n');
+    buf(g.p, 'p'); buf(g.n, 'n'); buf(g.b, 'b'); buf(g.m, 'm');
     var U = {}; ['mvp', 'model', 'nm', 'eye', 't'].forEach(function (k) { U[k] = gl.getUniformLocation(pr, k); });
     gl.enable(gl.DEPTH_TEST); gl.clearColor(0, 0, 0, 0);
     host.classList.add('gl-on');
@@ -1418,7 +1424,7 @@ FX_JS = """<script>
       gl.viewport(0, 0, W, H); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
       var t = (now - t0) / 1000, ix = d.querySelector('.ix');
       if (ix) { mx += ((parseFloat(ix.style.getPropertyValue('--px')) || 0) - mx) * .05; my += ((parseFloat(ix.style.getPropertyValue('--py')) || 0) - my) * .05; }
-      var model = mul(trans(0, -.18, 0), rot(.32 + Math.sin(t * .3) * .08 + my * .15, t * .22 + mx * .5, Math.sin(t * .21) * .07));
+      var model = mul(trans(0, -.12, 0), rot(.26 + Math.sin(t * .27) * .06 + my * .12, -.5 + t * .16 + mx * .45, Math.sin(t * .19) * .05));
       var eye = [0, .2, 4.6], view = trans(-eye[0], -eye[1], -eye[2]);
       var proj = persp(.62, W / H, .1, 50), mvp = mul(proj, mul(view, model));
       var nm = new Float32Array([model[0], model[1], model[2], model[4], model[5], model[6], model[8], model[9], model[10]]);
@@ -2027,4 +2033,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "12.9"
+BUILD = "13.0"
