@@ -3653,7 +3653,7 @@ def _smart_chips(br):
         out.append(L(f"Trailing stop {br['trail_atr']:g} ATR", f"وقف متحرك {br['trail_atr']:g} ATR"))
     if br["time_bars"]:
         out.append(L(f"Time stop {br['time_bars']} sessions", f"وقف زمني {br['time_bars']} جلسة"))
-    if br["sector_cap"]:
+    if br["sector_cap"] and not br.get("sector_rank"):
         out.append(L(f"Up to {br['sector_cap']} per sector", f"لين {br['sector_cap']} لكل قطاع"))
     if br["exit"]:
         out.append(L("Sells everything in: ", "يبيع الكل في: ") + L(", ", "، ").join(L(*BR.REGIME_LABEL[r]) for r in br["exit"]))
@@ -3740,8 +3740,8 @@ def _smart_card(key, res, have):
                   f"من 2020: {yr(oos)} سنوياً، وأكبر هبوط {dd(oos)}"
                   + (f" ({sp}: {yr(spy_oos)} سنوياً، {dd(spy_oos)})" if spy_oos else "") + ".")
         if pl:
-            note += " " + L(f"The same strategies without the brain since 2020: {yr(pl)} a year, worst drop {dd(pl)}.",
-                            f"نفس الاستراتيجيات بدون العقل من 2020: {yr(pl)} سنوياً، وأكبر هبوط {dd(pl)}.")
+            note += " " + L(f"The same strategies without the brain, on all companies, since 2020: {yr(pl)} a year, worst drop {dd(pl)}.",
+                            f"نفس الاستراتيجيات بدون العقل، على كل الشركات، من 2020: {yr(pl)} سنوياً، وأكبر هبوط {dd(pl)}.")
         if oos.get("t_n"):
             yrs = max((pd.Timestamp.now() - pd.Timestamp("2020-01-02")).days / 365.25, 1)
             note += " " + L(f"About {oos['t_n'] / yrs:.0f} trades a year, {oos.get('t_win', 0) * 100:.0f}% winners.",
@@ -4080,4 +4080,4 @@ def page_paper_bots():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "14.0"
+BUILD = "14.1"
