@@ -1,6 +1,6 @@
 # Smart bots · period test
 
-Run 2026-09-29 05:26 UTC · 515 stocks · from 2007-01-03 · fee+slippage 0.1% per side · took 8 min
+Run 2026-09-29 05:40 UTC · 515 stocks · from 2007-01-03 · fee+slippage 0.1% per side · took 11 min
 
 Each cell: return of the period (yearly for multi-year periods), Sharpe, max drop. Hold = all the same stocks bought equally at the start of the period. Survivorship bias: today's S&P 500 list, so compare with Hold.
 
