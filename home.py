@@ -10,7 +10,7 @@ import theme as T
 import ui
 from i18n import L, is_ar
 
-BUILD = "13.1"
+BUILD = "13.2"
 
 _LINE = "rgba(150,140,250,"
 CSS = f"""
@@ -457,11 +457,15 @@ def _facts():
 INTRO_CSS = """<style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Instrument+Serif:ital@0;1&family=Roboto+Mono:wght@400;500&display=swap');
 /* while the landing shows: the page runs edge to edge under a see-through top bar, without the sidebar */
-header[data-testid="stHeader"] { background: transparent !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+header[data-testid="stHeader"], header.stAppHeader, .stAppHeader, [data-testid="stHeader"] > div, [data-testid="stToolbar"] {
+  background: transparent !important; background-color: transparent !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
   border-bottom-color: transparent !important; box-shadow: none !important; transition: background .3s ease, backdrop-filter .3s ease; }
-header[data-testid="stHeader"]::after { opacity: 0; }
-html.ix-scrolled header[data-testid="stHeader"] { background: rgba(14,9,24,.32) !important; backdrop-filter: blur(14px) !important;
-  -webkit-backdrop-filter: blur(14px) !important; }
+header[data-testid="stHeader"]::after, header[data-testid="stHeader"]::before { opacity: 0 !important; }
+/* no dark strip on the right: the page scrolls without a visible bar while the landing shows */
+[data-testid="stMain"], section.stMain, [data-testid="stAppViewContainer"], .stApp { scrollbar-width: none !important; }
+[data-testid="stMain"]::-webkit-scrollbar, section.stMain::-webkit-scrollbar, [data-testid="stAppViewContainer"]::-webkit-scrollbar { width: 0 !important; height: 0 !important; }
+html.ix-scrolled header[data-testid="stHeader"] { background: rgba(14,9,24,.32) !important; background-color: rgba(14,9,24,.32) !important;
+  backdrop-filter: blur(14px) !important; -webkit-backdrop-filter: blur(14px) !important; }
 [data-testid="stSidebar"], [data-testid="stSidebarCollapsedControl"] { display: none !important; }
 .block-container, [data-testid="stMainBlockContainer"], [data-testid="stMainBlockContainer"]:has(.st-key-topnav) { max-width: none !important;
   padding: 0 !important; }
@@ -529,13 +533,15 @@ html.ix-scrolled header[data-testid="stHeader"] { background: rgba(14,9,24,.32) 
 .ixp.ar .ix-h em, .ixp.ar .ixh em { font-style: normal; font-weight: 400; }
 .ix-sub { margin: 0 auto; max-width: 640px; font-size: clamp(16px, 1.35vw, 19px); line-height: 1.55; font-weight: 400; color: rgba(255,255,255,.74); }
 .ix-sub b { display: block; margin-top: 10px; font-weight: 500; color: rgba(255,255,255,.92); }
+.ixp .ix-sub, .ixp .ixend .ixt { margin-left: auto !important; margin-right: auto !important; margin-bottom: 0 !important; }
+.ixp .ix-center { text-align: center !important; }
 .ixp.ar .ix-sub { font-size: clamp(17px, 1.4vw, 20px); line-height: 1.9; }
 .ix-scroll { left: 50%; bottom: clamp(22px, 4.5vh, 44px); translate: -50% 0; z-index: 4; display: flex; flex-direction: column; align-items: center; gap: 10px;
   font-family: 'Roboto Mono', monospace; font-size: 11px; letter-spacing: .22em; text-transform: uppercase; color: rgba(245,245,247,.85);
   cursor: pointer; padding: 12px 20px 10px; border-radius: 16px; transition: color .2s ease, background .2s ease;
-  background: rgba(16,13,23,.4); border: 1px solid rgba(255,255,255,.14); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  background: transparent; border: 1px solid rgba(255,255,255,.28);
   opacity: 0; animation: ixin 1.6s cubic-bezier(.455,.03,.515,.955) 1.8s forwards; }
-.ix-scroll:hover { color: #fff; background: rgba(16,13,23,.6); border-color: rgba(255,255,255,.3); }
+.ix-scroll:hover { color: #fff; background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.55); }
 .ix-scroll:hover i { border-color: #fff; }
 .ixp.ar .ix-scroll { font-family: 'Readex Pro', sans-serif; letter-spacing: 0; font-size: 12px; }
 .ix-scroll i { width: 24px; height: 38px; border: 1.5px solid rgba(245,245,247,.75); border-radius: 13px; position: relative; transition: border-color .2s ease; }

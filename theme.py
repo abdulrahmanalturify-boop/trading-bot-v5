@@ -1312,6 +1312,14 @@ FX_JS = """<script>
     var rv = d.querySelectorAll('.rv:not(.in)');
     for (var i = 0; i < rv.length; i++) { if (rv[i].getBoundingClientRect().top < w.innerHeight * .9) rv[i].classList.add('in'); }
     if (!d.querySelector('.ixp')) { de.classList.remove('ix-scrolled'); de.classList.remove('ix-past'); } else past();
+    var pg0 = d.querySelector('.ixp');
+    if (pg0) {
+      var pr = pg0.getBoundingClientRect();
+      de.classList.toggle('ix-scrolled', pr.top < -40);                   // measured, so the top bar never stays dark at the top
+      if (pr.top > .5 && pr.top < 200) {                                  // the landing starts at the very top, under the see-through bar
+        pg0.style.marginTop = (parseFloat(w.getComputedStyle(pg0).marginTop) - pr.top) + 'px';
+      }
+    }
     // 5 seconds without a move on the first screen: the page glides to the first section by itself (once per landing)
     var page = d.querySelector('.ixp'), hero = d.querySelector('.ix');
     if (page && hero && !page.__auto) {
@@ -2033,4 +2041,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "13.1"
+BUILD = "13.2"

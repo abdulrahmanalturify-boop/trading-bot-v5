@@ -1,2 +1,2 @@
-A.Alturaifi Pro - version 13.1 (the landing: very dark violet over the whole first screen, like Letter)
+A.Alturaifi Pro - version 13.2 (the landing: no dark band at the top or strip on the right, words centred, see-through Scroll down)
 If you can see this file on GitHub, the new version was uploaded correctly.
