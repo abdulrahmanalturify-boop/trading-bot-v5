@@ -22,6 +22,7 @@ if any(m in sys.modules and getattr(sys.modules[m], "BUILD", None) != BUILD for 
             except Exception:
                 sys.modules.pop(_m, None)       # imported fresh below
 
+import ai_assistant
 import data
 import newsbot
 # Reload the academy revision once for already-running sessions.
