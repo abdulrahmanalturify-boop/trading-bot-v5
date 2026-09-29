@@ -3617,6 +3617,8 @@ GATE_TXT = {"pause": ("It is taking a break after a deep drawdown: no new buys f
 
 
 def _smart_fams(fams):
+    if set(fams) == set(BR.FAMILIES):
+        return L("Any strategy", "أي استراتيجية")
     return " · ".join(L(*BR.FAMILY_LABEL[f]) for f in fams) or L("No new trades", "ولا صفقة جديدة")
 
 
@@ -4048,4 +4050,4 @@ def page_paper_bots():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "13.9"
+BUILD = "14.0"
