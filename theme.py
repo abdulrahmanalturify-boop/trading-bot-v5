@@ -1232,12 +1232,6 @@ FX_JS = """<script>
     raf = 0;
     var el = null, stack = d.elementsFromPoint(x, y);
     for (var i = 0; i < stack.length; i++) { var n = stack[i]; if (n.matches && n.matches(SEL)) { el = n; break; } }
-    var ix = d.querySelector('.ix');                 // the landing: parallax and the spotlight follow the pointer
-    if (ix) {
-      ix.style.setProperty('--px', ((x / w.innerWidth) * 2 - 1).toFixed(3));
-      ix.style.setProperty('--py', ((y / w.innerHeight) * 2 - 1).toFixed(3));
-      ix.style.setProperty('--cx', x + 'px'); ix.style.setProperty('--cy', y + 'px');
-    }
     set(el);
     if (el) {
       var r = el.getBoundingClientRect();
@@ -1252,13 +1246,71 @@ FX_JS = """<script>
   }, {passive: true});
   d.documentElement.addEventListener('mouseleave', function () { set(null); });
   w.addEventListener('scroll', function () { if (cur && !raf) raf = w.requestAnimationFrame(pick); }, {passive: true, capture: true});
-  // the landing's typing line: types each sentence, waits, deletes it, types the next
+})();
+(function () {                                   // the landing: parallax, spotlight, typing line, reveals, tilting cards
+  var w = window.parent, d = w.document, de = d.documentElement;
+  if (w.__alturaifiLanding) return;
+  w.__alturaifiLanding = 1;
+  de.classList.add('ix-js');
+  var raf = 0, x = 0, y = 0, tilt = null;
+  function frame() {
+    raf = 0;
+    var ix = d.querySelector('.ix');
+    if (ix) {
+      var r = ix.getBoundingClientRect();
+      if (y >= r.top && y <= r.bottom) {
+        ix.style.setProperty('--px', ((x / w.innerWidth) * 2 - 1).toFixed(3));
+        ix.style.setProperty('--py', (((y - r.top) / r.height) * 2 - 1).toFixed(3));
+        ix.style.setProperty('--cx', (x - r.left) + 'px'); ix.style.setProperty('--cy', (y - r.top) + 'px');
+      }
+    }
+    var el = null, stack = d.elementsFromPoint(x, y);
+    for (var i = 0; i < stack.length; i++) { if (stack[i].matches && stack[i].matches('.ixc, .ixm')) { el = stack[i]; break; } }
+    if (tilt && tilt !== el) { tilt.classList.remove('tilt'); tilt.style.setProperty('--tx', 0); tilt.style.setProperty('--ty', 0); }
+    tilt = el;
+    if (el) {
+      var b = el.getBoundingClientRect();
+      el.classList.add('tilt');
+      el.style.setProperty('--tx', (((x - b.left) / b.width) * 2 - 1).toFixed(3));
+      el.style.setProperty('--ty', (((y - b.top) / b.height) * 2 - 1).toFixed(3));
+      el.style.setProperty('--gx', (x - b.left) + 'px'); el.style.setProperty('--gy', (y - b.top) + 'px');
+    }
+  }
+  d.addEventListener('pointermove', function (e) {
+    if (e.pointerType && e.pointerType !== 'mouse') return;
+    x = e.clientX; y = e.clientY;
+    if (!raf && d.querySelector('.ixp')) raf = w.requestAnimationFrame(frame);
+  }, {passive: true});
+  // the top bar gets a light glass once the page has scrolled
+  d.addEventListener('scroll', function (e) {
+    var t = e.target, page = d.querySelector('.ixp');
+    if (!page) return;
+    if (t !== d && t !== de && !(t.contains && t.contains(page))) return;       // only the page's own scrolling
+    var top = (t === d || t === de) ? (w.scrollY || 0) : (t.scrollTop || 0);
+    de.classList.toggle('ix-scrolled', top > 40);
+  }, {passive: true, capture: true});
+  // "Get started" and the logo: back to the top of the page
+  function toTop() {
+    var m = d.querySelector('[data-testid="stMain"]') || d.querySelector('section.stMain') || d.querySelector('[data-testid="stAppViewContainer"]');
+    if (m && m.scrollTo) m.scrollTo({top: 0}); w.scrollTo(0, 0); de.classList.remove('ix-scrolled');
+  }
+  d.addEventListener('click', function (e) {
+    var t = e.target;
+    if (t && t.closest && t.closest('.st-key-introgo button, .st-key-logohome button')) { toTop(); w.setTimeout(toTop, 450); w.setTimeout(toTop, 1200); }
+  }, true);
+  w.setInterval(function () {
+    // reveals: a section shows as it comes into view
+    var rv = d.querySelectorAll('.rv:not(.in)');
+    for (var i = 0; i < rv.length; i++) { if (rv[i].getBoundingClientRect().top < w.innerHeight * .9) rv[i].classList.add('in'); }
+    if (!d.querySelector('.ixp')) de.classList.remove('ix-scrolled');
+  }, 180);
+  // the typing line: types each sentence, waits, deletes it, types the next
   w.setInterval(function () {
     var els = d.querySelectorAll('.ix-type[data-words]');
     for (var i = 0; i < els.length; i++) {
       var el = els[i], s = el.__tw;
-      if (!s) { try { s = el.__tw = {w: JSON.parse(el.getAttribute('data-words')), i: 0, n: 0, dir: 1, hold: 26}; } catch (e) { continue; }
-        s.n = s.w[0].length; s.dir = -1; }
+      if (!s) { try { s = el.__tw = {w: JSON.parse(el.getAttribute('data-words')), i: 0, n: 0, dir: -1, hold: 26}; } catch (e) { continue; }
+        s.n = s.w[0].length; }
       if (s.hold > 0) { s.hold--; continue; }
       var word = s.w[s.i];
       s.n += s.dir > 0 ? 1 : -2;
@@ -1862,4 +1914,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "12.6"
+BUILD = "12.7"

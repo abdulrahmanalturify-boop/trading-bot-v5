@@ -10,7 +10,7 @@ import theme as T
 import ui
 from i18n import L, is_ar
 
-BUILD = "12.6"
+BUILD = "12.7"
 
 _LINE = "rgba(150,140,250,"
 CSS = f"""
@@ -418,10 +418,11 @@ def hero(chips_html=""):
 
 
 # =====================================================================
-# THE LANDING: an interactive first screen before the home page (after Origin Financial's "nocturnal gallery"):
-# a dawn sky over a skyline of candles, the brand's rising line drawn across it, stars, slow auroras, a spotlight and
-# parallax that follow the pointer, a light serif headline, a line that types what the site can do, and "Get started"
-# at the bottom in the middle. The main top bar stays, see-through while the landing shows. Shown once per visit.
+# THE LANDING: the page a visit opens on, after Origin Financial's "nocturnal gallery": a full-screen dawn sky over a
+# skyline of candles, then sections about the site and its parts, scrolling like a product page. "Get started" stays
+# at the bottom in the middle all the way down and opens the home page as it was. The main top bar stays over the
+# landing, see-through; after "Get started" it is back to normal. Shown once per visit (the logo brings it back).
+# The motion (parallax, spotlight, typing line, reveals, tilting cards) is theme.FX_JS; without it everything still shows.
 # =====================================================================
 import html as _html
 import json as _json
@@ -465,33 +466,70 @@ def _horizon(seed=5):
             '<defs><linearGradient id="ixLine" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#847DFF" stop-opacity="0"/>'
             '<stop offset=".25" stop-color="#847DFF"/><stop offset=".7" stop-color="#4AA2E2"/><stop offset="1" stop-color="#2DB6EB"/></linearGradient>'
             '<filter id="ixGlow" x="-10%" y="-50%" width="120%" height="200%"><feGaussianBlur stdDeviation="6"/></filter>'
-            '<linearGradient id="ixFade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0B0818" stop-opacity="0"/>'
-            '<stop offset="1" stop-color="#0B0818"/></linearGradient></defs>'
+            '<linearGradient id="ixFade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0E0918" stop-opacity="0"/>'
+            '<stop offset="1" stop-color="#0E0918"/></linearGradient></defs>'
             f'<g class="ix-l3">{back}</g><g class="ix-l2">{mid}</g>'
             f'<g class="ix-line"><path d="{path}" fill="none" stroke="url(#ixLine)" stroke-width="10" filter="url(#ixGlow)" opacity=".55"/>'
             f'<path class="ix-draw" d="{path}" fill="none" stroke="url(#ixLine)" stroke-width="2.6" stroke-linecap="round"/>'
             f'<circle class="ix-dot" r="5" fill="#fff" style="offset-path:path(\'{path}\')"/></g>'
-            f'<g class="ix-l1">{front}</g><rect x="0" y="820" width="1600" height="80" fill="url(#ixFade)"/></svg>')
+            f'<g class="ix-l1">{front}</g><rect x="0" y="800" width="1600" height="100" fill="url(#ixFade)"/></svg>')
 
 
 _IX_WORDS = {
-    "en": ["Which stocks are breaking out today?", "Build a bot that buys momentum leaders", "Test a strategy on ten years of prices",
+    "en": ["Which stocks are breaking out today?", "Build a bot that buys momentum leaders", "Test a strategy on years of real prices",
            "Is this company Sharia compliant?", "What moved the S&P 500 this morning?"],
-    "ar": ["وش الأسهم اللي تخترق اليوم؟", "ابنِ بوت يشتري أقوى أسهم الزخم", "جرّب استراتيجية على أسعار عشر سنين",
+    "ar": ["وش الأسهم اللي تخترق اليوم؟", "ابنِ بوت يشتري أقوى أسهم الزخم", "جرّب استراتيجية على سنين من الأسعار الحقيقية",
            "هل الشركة متوافقة مع الشريعة؟", "وش اللي حرّك إس آند بي 500 اليوم؟"],
 }
 _IX_CHIPS = [("robot_2", "Paper bots", "بوتات افتراضية", "c1"), ("radar", "Opportunity radar", "رادار الفرص", "c2"),
              ("summarize", "Daily brief", "الموجز اليومي", "c3"), ("verified", "Sharia check", "فحص الشريعة", "c4"),
              ("school", "Academy", "الأكاديمية", "c5")]
 
+
+def _facts():
+    """The numbers on the landing, read from the site itself (never typed in by hand)."""
+    f = {"stocks": 500, "single": 0, "combined": 0, "bots": 10, "courses": 0, "labs": 0, "terms": 0}
+    try:
+        import sp500
+        f["stocks"] = len(sp500.SP500)
+    except Exception:
+        pass
+    try:
+        import engine
+        import playbooks
+        f["single"], f["combined"] = len(engine.STRATEGIES), len(playbooks.PLAYBOOKS)
+    except Exception:
+        pass
+    try:
+        import paperbots
+        f["bots"] = paperbots.MAX_BOTS
+    except Exception:
+        pass
+    try:
+        import academy as A
+        import academy_labs as AL
+        f["courses"], f["labs"], f["terms"] = len(A.COURSES), len(AL.LABS), len(A.GLOSSARY)
+    except Exception:
+        pass
+    return f
+
+
 INTRO_CSS = """<style>
 @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Roboto+Mono:wght@400;500&display=swap');
-/* the landing covers the page; the top bar stays over it, see-through */
+/* while the landing shows: the page runs edge to edge under a see-through top bar, without the sidebar */
 header[data-testid="stHeader"] { background: transparent !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
-  border-bottom-color: transparent !important; box-shadow: none !important; }
+  border-bottom-color: transparent !important; box-shadow: none !important; transition: background .3s ease, backdrop-filter .3s ease; }
 header[data-testid="stHeader"]::after { opacity: 0; }
+html.ix-scrolled header[data-testid="stHeader"] { background: rgba(14,9,24,.32) !important; backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important; }
 [data-testid="stSidebar"], [data-testid="stSidebarCollapsedControl"] { display: none !important; }
-.ix { position: fixed; inset: 0; z-index: 90; overflow: hidden; color: #F5F5F7; font-family: 'DM Sans', 'Readex Pro', system-ui, sans-serif;
+.block-container, [data-testid="stMainBlockContainer"], [data-testid="stMainBlockContainer"]:has(.st-key-topnav) { max-width: none !important;
+  padding: 0 !important; }
+@media (max-width: 1023.98px) { .st-key-topnav { margin: 8px !important; } }
+.ixp { margin-top: -1rem; color: #F5F5F7; font-family: 'DM Sans', 'Readex Pro', system-ui, sans-serif; overflow: hidden; }
+.ixp.ar { font-family: 'Readex Pro', 'DM Sans', sans-serif; }
+/* ---------- the first screen ---------- */
+.ix { position: relative; min-height: 100vh; overflow: hidden;
   background: linear-gradient(180deg, #0B0818 0%, #110C24 18%, #1B1850 38%, #2B3A96 60%, #3F74C8 80%, #6AAFE6 100%); }
 .ix > * { position: absolute; }
 .ix-stars { inset: 0; width: 100%; height: 100%; opacity: .9; transform: translate3d(calc(var(--px,0) * -6px), calc(var(--py,0) * -4px), 0); }
@@ -514,66 +552,198 @@ header[data-testid="stHeader"]::after { opacity: 0; }
 @keyframes ixdraw { to { stroke-dashoffset: 0; } }
 .ix-dot { offset-distance: 0%; animation: ixrun 7s cubic-bezier(.455,.03,.515,.955) 2.9s infinite; filter: drop-shadow(0 0 8px #fff); opacity: 0; }
 @keyframes ixrun { 0% { offset-distance: 0%; opacity: 0; } 8% { opacity: 1; } 90% { opacity: 1; } 100% { offset-distance: 100%; opacity: 0; } }
-/* the words in the middle */
-.ix-center { left: 50%; top: 44%; width: min(980px, 92vw); transform: translate(-50%, -50%); text-align: center; z-index: 3; }
-.ix-eyebrow { display: inline-flex; align-items: center; gap: 12px; font-family: 'Roboto Mono', monospace; font-size: 12px; letter-spacing: .18em;
-  text-transform: uppercase; color: rgba(245,245,247,.72); }
+.ix-center { left: 50%; top: 45%; width: min(980px, 92vw); transform: translate(-50%, -50%); text-align: center; z-index: 3; }
+.ix-eyebrow { display: inline-flex; flex-wrap: wrap; justify-content: center; row-gap: 8px; align-items: center; gap: 12px;
+  font-family: 'Roboto Mono', monospace; font-size: 12px; letter-spacing: .18em; text-transform: uppercase; color: rgba(245,245,247,.72); }
 .ix-pill { padding: 5px 12px; border-radius: 9999px; background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.55); color: #fff;
-  font-size: 11px; letter-spacing: .16em; display: inline-flex; align-items: center; gap: 7px; }
-.ix-pill i { width: 7px; height: 7px; border-radius: 50%; background: #4ADE80; box-shadow: 0 0 0 0 rgba(74,222,128,.6); animation: ixpulse 1.8s infinite; }
+  font-size: 11px; letter-spacing: .16em; display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }
+.ix-pill i { width: 7px; height: 7px; border-radius: 50%; background: #4ADE80; animation: ixpulse 1.8s infinite; }
 @keyframes ixpulse { 0% { box-shadow: 0 0 0 0 rgba(74,222,128,.55); } 70% { box-shadow: 0 0 0 9px rgba(74,222,128,0); } 100% { box-shadow: 0 0 0 0 rgba(74,222,128,0); } }
-.ix-h { margin: 22px 0 18px !important; padding: 0 !important; font-family: 'Instrument Serif', 'DM Serif Display', Georgia, serif !important;
-  font-weight: 400 !important; font-size: clamp(46px, 7.2vw, 104px) !important; line-height: .95 !important; letter-spacing: -.02em !important;
-  color: #F5F5F7 !important; text-shadow: 0 10px 40px rgba(11,8,24,.45); }
-.ix-h em { font-style: italic; background: linear-gradient(90deg, #D1C9FF, #9DCBF7 55%, #FFFFFF); -webkit-background-clip: text; background-clip: text;
-  color: transparent; padding-inline-end: .06em; }
-.ix.ar .ix-h { font-family: 'Readex Pro', sans-serif !important; font-weight: 300 !important; font-size: clamp(38px, 5.6vw, 84px) !important;
-  line-height: 1.25 !important; letter-spacing: 0 !important; }
-.ix.ar .ix-h em { font-style: normal; font-weight: 400; }
+.ixp.ar .ix-eyebrow, .ixp.ar .ix-pill { font-family: 'Readex Pro', sans-serif; letter-spacing: 0; text-transform: none; font-size: 13px; }
+.ixp.ar .ix-eyebrow bdi { font-family: 'Roboto Mono', monospace; letter-spacing: .14em; font-size: 12px; }
+.ix-h { margin: 22px 0 18px; font-family: 'Instrument Serif', 'DM Serif Display', Georgia, serif; font-weight: 400;
+  font-size: clamp(46px, 7.2vw, 104px); line-height: .95; letter-spacing: -.02em; color: #F5F5F7; text-shadow: 0 10px 40px rgba(11,8,24,.45); }
+.ix-h em, .ixh em { font-style: italic; background: linear-gradient(90deg, #D1C9FF, #9DCBF7 55%, #FFFFFF); -webkit-background-clip: text;
+  background-clip: text; color: transparent; padding-inline-end: .06em; }
+.ixp.ar .ix-h { font-family: 'Readex Pro', sans-serif; font-weight: 300; font-size: clamp(38px, 5.6vw, 84px); line-height: 1.25; letter-spacing: 0; }
+.ixp.ar .ix-h em, .ixp.ar .ixh em { font-style: normal; font-weight: 400; }
 .ix-sub { margin: 0 auto; max-width: 620px; font-size: 17px; line-height: 1.6; font-weight: 300; color: rgba(245,245,247,.72); }
-.ix.ar .ix-sub { font-size: 18px; line-height: 1.9; }
-.ix-ask { margin: 30px auto 0; width: min(560px, 100%); box-sizing: border-box; display: flex; align-items: center; gap: 12px; padding: 14px 18px; border-radius: 14px;
-  background: rgba(11,8,24,.42); border: 1px solid rgba(255,255,255,.22); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.12), 0 20px 50px -20px rgba(11,8,24,.8); text-align: start; cursor: default; }
+.ixp.ar .ix-sub { font-size: 18px; line-height: 1.9; }
+.ix-ask { margin: 30px auto 0; width: min(560px, 100%); box-sizing: border-box; display: flex; align-items: center; gap: 12px; padding: 14px 18px;
+  border-radius: 14px; background: rgba(11,8,24,.42); border: 1px solid rgba(255,255,255,.22); backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px); box-shadow: inset 0 1px 0 rgba(255,255,255,.12), 0 20px 50px -20px rgba(11,8,24,.8); text-align: start; cursor: default; }
 .ix-ask .ms { color: #D1C9FF; font-size: 1.25rem; }
 .ix-ask .ix-type { font-size: 16px; color: #F5F5F7; white-space: nowrap; overflow: hidden; }
 .ix-ask .ix-caret { width: 2px; height: 20px; background: #D1C9FF; animation: ixcaret 1s steps(1) infinite; margin-inline-start: -8px; }
 @keyframes ixcaret { 50% { opacity: 0; } }
-/* the features floating around the words, each on its own depth */
 .ix-chips { inset: 0; pointer-events: none; z-index: 2; }
 .ix-chip { position: absolute; pointer-events: auto; display: inline-flex; align-items: center; gap: 9px; padding: 10px 15px 10px 11px; border-radius: 9999px;
   background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.28); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
   font-family: 'Roboto Mono', monospace; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: #F5F5F7;
-  transition: background .2s ease, border-color .2s ease, box-shadow .2s ease; animation: ixfloat 7s ease-in-out infinite; }
-.ix.ar .ix-chip { font-family: 'Readex Pro', sans-serif; font-size: 13.5px; letter-spacing: 0; text-transform: none; padding: 9px 11px 9px 15px; }
+  transition: background .2s ease, border-color .2s ease, box-shadow .2s ease;
+  translate: calc(var(--px,0) * var(--d,1) * -26px) calc(var(--py,0) * var(--d,1) * -18px);
+  opacity: 0; animation: ixin 1.6s cubic-bezier(.455,.03,.515,.955) forwards, ixfloat 7s ease-in-out 1.6s infinite; }
+.ixp.ar .ix-chip { font-family: 'Readex Pro', sans-serif; font-size: 13.5px; letter-spacing: 0; text-transform: none; padding: 9px 11px 9px 15px; }
 .ix-chip .ms { width: 28px; height: 28px; border-radius: 50%; display: inline-grid; place-items: center; font-size: 1.05rem; color: #0B0818; }
 .ix-chip:hover { background: rgba(255,255,255,.18); border-color: #fff; box-shadow: 0 0 30px rgba(209,201,255,.35); }
-.ix-chip.c1 { left: 9%; top: 23%; --d: 1.6; } .ix-chip.c1 .ms { background: #847DFF; }
-.ix-chip.c2 { right: 10%; top: 20%; --d: 2.2; animation-delay: -2s; } .ix-chip.c2 .ms { background: #00B3DD; }
-.ix-chip.c3 { left: 6%; top: 58%; --d: 1.1; animation-delay: -4s; } .ix-chip.c3 .ms { background: #90B8F0; }
-.ix-chip.c4 { right: 7%; top: 56%; --d: 1.4; animation-delay: -1s; } .ix-chip.c4 .ms { background: #DD90D8; }
-.ix-chip.c5 { left: 50%; top: 13%; --d: .8; animation-delay: -3s; margin-left: -70px; } .ix-chip.c5 .ms { background: #D1C9FF; }
-.ix-chip { translate: calc(var(--px,0) * var(--d,1) * -26px) calc(var(--py,0) * var(--d,1) * -18px); }
+.ix-chip.c1 { left: 9%; top: 23%; --d: 1.6; animation-delay: 1.1s, 2.7s; } .ix-chip.c1 .ms { background: #847DFF; }
+.ix-chip.c2 { right: 10%; top: 20%; --d: 2.2; animation-delay: 1.25s, 2.85s; } .ix-chip.c2 .ms { background: #00B3DD; }
+.ix-chip.c3 { left: 6%; top: 58%; --d: 1.1; animation-delay: 1.4s, 3s; } .ix-chip.c3 .ms { background: #90B8F0; }
+.ix-chip.c4 { right: 7%; top: 56%; --d: 1.4; animation-delay: 1.55s, 3.15s; } .ix-chip.c4 .ms { background: #DD90D8; }
+.ix-chip.c5 { left: 50%; top: 13%; --d: .8; margin-left: -70px; animation-delay: 1.7s, 3.3s; } .ix-chip.c5 .ms { background: #D1C9FF; }
 @keyframes ixfloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
-/* the note at the bottom, under the button */
-.ix-foot { left: 50%; bottom: clamp(12px, 3vh, 26px); translate: -50% 0; z-index: 3; font-family: 'Roboto Mono', monospace; font-size: 11px;
-  letter-spacing: .18em; text-transform: uppercase; color: rgba(245,245,247,.62); white-space: nowrap; }
-.ix.ar .ix-foot { font-family: 'Readex Pro', sans-serif; letter-spacing: 0; font-size: 12.5px; }
-.ix-eyebrow { flex-wrap: wrap; justify-content: center; row-gap: 8px; }
-.ix-pill { white-space: nowrap; }
-.ix.ar .ix-eyebrow, .ix.ar .ix-pill { font-family: 'Readex Pro', sans-serif; letter-spacing: 0; text-transform: none; font-size: 13px; }
-.ix.ar .ix-eyebrow bdi { font-family: 'Roboto Mono', monospace; letter-spacing: .14em; font-size: 12px; }
-/* the reveal: slow, confident */
-.ix-center > *, .ix-chip, .ix-foot { opacity: 0; animation-name: ixin; animation-duration: 1.6s; animation-timing-function: cubic-bezier(.455,.03,.515,.955);
-  animation-fill-mode: forwards; }
-.ix-chip { animation: ixin 1.6s cubic-bezier(.455,.03,.515,.955) forwards, ixfloat 7s ease-in-out 1.6s infinite; }
+.ix-scroll { left: 50%; bottom: clamp(128px, 17vh, 170px); translate: -50% 0; z-index: 3; display: flex; flex-direction: column; align-items: center; gap: 8px;
+  font-family: 'Roboto Mono', monospace; font-size: 10.5px; letter-spacing: .22em; text-transform: uppercase; color: rgba(245,245,247,.7);
+  opacity: 0; animation: ixin 1.6s cubic-bezier(.455,.03,.515,.955) 2s forwards; }
+.ixp.ar .ix-scroll { font-family: 'Readex Pro', sans-serif; letter-spacing: 0; font-size: 12px; }
+.ix-scroll i { width: 22px; height: 34px; border: 1.5px solid rgba(245,245,247,.6); border-radius: 12px; position: relative; }
+.ix-scroll i::after { content: ""; position: absolute; left: 50%; top: 7px; width: 3px; height: 7px; margin-left: -1.5px; border-radius: 2px; background: #fff;
+  animation: ixwheel 1.8s ease-in-out infinite; }
+@keyframes ixwheel { 0% { transform: translateY(0); opacity: 1; } 80% { transform: translateY(10px); opacity: 0; } 100% { opacity: 0; } }
+.ix-center > * { opacity: 0; animation: ixin 1.6s cubic-bezier(.455,.03,.515,.955) forwards; }
 .ix-center > :nth-child(1) { animation-delay: .1s; } .ix-center > :nth-child(2) { animation-delay: .3s; }
 .ix-center > :nth-child(3) { animation-delay: .6s; } .ix-center > :nth-child(4) { animation-delay: .9s; }
-.ix-chip.c1 { animation-delay: 1.1s, 2.7s; } .ix-chip.c2 { animation-delay: 1.25s, 2.85s; } .ix-chip.c3 { animation-delay: 1.4s, 3s; }
-.ix-chip.c4 { animation-delay: 1.55s, 3.15s; } .ix-chip.c5 { animation-delay: 1.7s, 3.3s; } .ix-foot { animation-delay: 1.4s; }
 @keyframes ixin { from { opacity: 0; transform: translateY(14px); filter: blur(6px); } to { opacity: 1; transform: none; filter: none; } }
-/* "Get started": white on black, the only action, at the bottom in the middle */
-.st-key-introgo { position: fixed !important; left: 50%; bottom: clamp(48px, 9vh, 92px); translate: -50% 0; z-index: 95; width: auto !important;
+/* ---------- the sections under it ---------- */
+.ixs { position: relative; max-width: 1200px; margin: 0 auto; padding: 120px 24px 0; box-sizing: border-box; }
+.ixl { font-family: 'Roboto Mono', monospace; font-size: 12px; letter-spacing: .18em; text-transform: uppercase; color: #D1C9FF;
+  display: inline-flex; align-items: center; gap: 10px; }
+.ixl::before { content: ""; width: 26px; height: 1px; background: currentColor; opacity: .6; }
+.ixp.ar .ixl { font-family: 'Readex Pro', sans-serif; letter-spacing: 0; font-size: 13.5px; text-transform: none; }
+.ixh { margin: 18px 0 16px; font-family: 'Instrument Serif', 'DM Serif Display', Georgia, serif; font-weight: 400; font-size: clamp(38px, 5vw, 72px);
+  line-height: .98; letter-spacing: -.02em; color: #F5F5F7; }
+.ixp.ar .ixh { font-family: 'Readex Pro', sans-serif; font-weight: 300; font-size: clamp(32px, 3.8vw, 56px); line-height: 1.3; letter-spacing: 0; }
+.ixt { font-size: 17px; line-height: 1.7; font-weight: 300; color: rgba(245,245,247,.62); max-width: 560px; }
+.ixp.ar .ixt { font-size: 17.5px; line-height: 1.95; }
+.ix-state { text-align: center; }
+.ix-state .ixh { font-size: clamp(34px, 4.4vw, 64px); max-width: 980px; margin: 22px auto 0; line-height: 1.08; }
+.ix-state .ixh span { color: rgba(245,245,247,.38); }
+.ixp.ar .ix-state .ixh { font-size: clamp(28px, 3.2vw, 48px); line-height: 1.5; }
+/* the six parts of the site: one colour each */
+.ixg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin-top: 44px; perspective: 1200px; }
+.ixc { position: relative; overflow: hidden; border-radius: 30px; padding: 32px; min-height: 290px; box-sizing: border-box; display: flex; flex-direction: column;
+  color: #FFFFFF; transform-style: preserve-3d; transition: transform .35s cubic-bezier(.2,.8,.2,1), box-shadow .35s ease;
+  transform: rotateX(calc(var(--ty,0) * -7deg)) rotateY(calc(var(--tx,0) * 9deg)); }
+.ixc::after { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity .3s ease;
+  background: radial-gradient(380px circle at var(--gx,50%) var(--gy,50%), rgba(255,255,255,.35), transparent 55%); mix-blend-mode: soft-light; }
+.ixc.tilt { box-shadow: 0 30px 60px -20px rgba(0,0,0,.6); } .ixc.tilt::after { opacity: 1; }
+.ixc .n { font-family: 'Roboto Mono', monospace; font-size: 12px; letter-spacing: .16em; text-transform: uppercase; opacity: .8; display: flex;
+  justify-content: space-between; align-items: center; }
+.ixc .n .ms { font-size: 1.6rem; opacity: 1; }
+.ixc .h3 { margin: auto 0 10px !important; padding: 0 !important; font-family: 'Instrument Serif', 'DM Serif Display', Georgia, serif !important;
+  font-weight: 400 !important; font-size: 38px !important; line-height: 1 !important; letter-spacing: -.01em !important; color: inherit !important; }
+.ixp.ar .ixc .h3 { font-family: 'Readex Pro', sans-serif !important; font-weight: 400 !important; font-size: 28px !important; line-height: 1.35 !important; }
+.ixp.ar .ixc .n { font-family: 'Readex Pro', sans-serif; letter-spacing: 0; text-transform: none; font-size: 13px; }
+.ixc p { margin: 0; font-size: 15.5px; line-height: 1.55; opacity: .92; }
+.ixc.k1 { background: #847DFF; } .ixc.k2 { background: #00B3DD; color: #04121A; } .ixc.k3 { background: #90B8F0; color: #0B1630; }
+.ixc.k4 { background: #4B49AA; } .ixc.k5 { background: #DD90D8; color: #2A0B28; } .ixc.k6 { background: #D1C9FF; color: #1A1440; }
+/* a feature: words on one side, an example on the other */
+.ixf { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.08fr); gap: 64px; align-items: center; }
+.ixf.rev > :first-child { order: 2; }
+.ixf ul { list-style: none; margin: 26px 0 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
+.ixf li { display: flex; gap: 12px; align-items: flex-start; font-size: 16px; line-height: 1.6; color: rgba(245,245,247,.82); }
+.ixf li .ms { color: #D1C9FF; margin-top: 3px; }
+.ixm { position: relative; border-radius: 16px; background: #1B1728; padding: clamp(28px, 5vw, 64px); overflow: hidden;
+  border: 1px solid rgba(255,255,255,.06); transition: transform .35s cubic-bezier(.2,.8,.2,1);
+  transform: perspective(1200px) rotateX(calc(var(--ty,0) * -4deg)) rotateY(calc(var(--tx,0) * 5deg)); }
+.ixm::before { content: ""; position: absolute; inset: 0; background: radial-gradient(600px circle at 80% 0%, rgba(107,33,239,.28), transparent 60%),
+  radial-gradient(500px circle at 0% 100%, rgba(7,122,199,.2), transparent 60%); pointer-events: none; }
+.ixm .ex { position: absolute; top: 16px; inset-inline-end: 16px; font-family: 'Roboto Mono', monospace; font-size: 10px; letter-spacing: .18em;
+  padding: 4px 10px; border-radius: 9999px; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.3); color: #fff; z-index: 2; }
+.ixp.ar .ixm .ex { font-family: 'Readex Pro', sans-serif; letter-spacing: 0; font-size: 11px; }
+.ixm > :not(.ex) { position: relative; }
+/* example: a bot card */
+.mbot { border-radius: 18px; background: rgba(14,9,24,.78); border: 1px solid rgba(255,255,255,.1); padding: 20px; box-shadow: 0 30px 60px -24px rgba(0,0,0,.8); }
+.mbot .top { display: flex; justify-content: space-between; align-items: center; font-family: 'Roboto Mono', monospace; font-size: 11px; letter-spacing: .12em;
+  color: rgba(245,245,247,.6); text-transform: uppercase; }
+.mbot .live { display: inline-flex; align-items: center; gap: 6px; color: #4ADE80; background: rgba(34,197,94,.14); padding: 3px 8px; border-radius: 6px; }
+.mbot .live::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; animation: ixpulse 1.8s infinite; }
+.mbot .nm { margin-top: 14px; font-size: 20px; color: #fff; }
+.mbot .bd { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+.mbot .bd span { font-size: 12px; padding: 4px 10px; border-radius: 9999px; background: rgba(132,125,255,.18); color: #D1C9FF; }
+.mbot svg { display: block; width: 100%; height: 120px; margin: 18px 0 10px; }
+.mbot .ln { stroke-dasharray: 900; stroke-dashoffset: 900; }
+.rv.in .mbot .ln { animation: ixdraw 2.2s cubic-bezier(.455,.03,.515,.955) .3s forwards; }
+.mbot .row { display: flex; justify-content: space-between; align-items: flex-end; }
+.mbot .row .l { font-size: 12px; color: rgba(245,245,247,.55); } .mbot .row .v { font-size: 26px; color: #fff; font-weight: 300; direction: ltr; }
+.mbot .row .p { font-size: 14px; color: #4ADE80; background: rgba(34,197,94,.14); border: 1px solid rgba(74,222,128,.3); padding: 4px 10px; border-radius: 8px; direction: ltr; }
+.mbot .ft { margin-top: 12px; font-size: 12px; color: rgba(245,245,247,.5); }
+/* example: the radar */
+.mrad { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 22px; align-items: center; }
+.mrad svg { width: 200px; height: 200px; display: block; }
+.mrad .sw { transform-origin: 100px 100px; animation: ixspin 5s linear infinite; }
+@keyframes ixspin { to { transform: rotate(360deg); } }
+.mrad .rows { display: flex; flex-direction: column; gap: 8px; }
+.mrad .r { display: grid; grid-template-columns: minmax(0,1fr) auto auto; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 12px;
+  background: rgba(14,9,24,.7); border: 1px solid rgba(255,255,255,.08); font-size: 14px; direction: ltr; }
+.mrad .r b { color: #fff; font-weight: 500; } .mrad .r small { display: block; color: rgba(245,245,247,.5); font-size: 11.5px; }
+.mrad .g { font-family: 'Roboto Mono', monospace; font-size: 12px; padding: 3px 8px; border-radius: 6px; background: rgba(34,197,94,.16); color: #86EFAC; }
+.mrad .s { font-family: 'Roboto Mono', monospace; font-size: 13px; color: #fff; }
+/* example: the market map */
+.mheat { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); grid-auto-rows: 58px; gap: 5px; direction: ltr; }
+.mheat span { border-radius: 8px; display: flex; flex-direction: column; justify-content: center; align-items: center; font-size: 12.5px; color: #fff;
+  transition: transform .2s ease, filter .2s ease; }
+.mheat span:hover { transform: scale(1.06); filter: brightness(1.2); z-index: 2; }
+.mheat span b { font-weight: 500; } .mheat span small { font-size: 11px; opacity: .85; font-family: 'Roboto Mono', monospace; }
+.mheat .w2 { grid-column: span 2; } .mheat .h2 { grid-row: span 2; }
+/* example: the courses */
+.mcrs { display: flex; flex-direction: column; gap: 10px; }
+.mcrs .c { display: grid; grid-template-columns: 44px minmax(0,1fr) auto; gap: 14px; align-items: center; padding: 14px; border-radius: 14px;
+  background: rgba(14,9,24,.72); border: 1px solid rgba(255,255,255,.08); transition: transform .2s ease, border-color .2s ease; }
+.mcrs .c:hover { transform: translateX(4px); border-color: rgba(209,201,255,.4); }
+.ixp.ar .mcrs .c:hover { transform: translateX(-4px); }
+.mcrs .i { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; color: #0B0818; }
+.mcrs .t { color: #fff; font-size: 15px; } .mcrs .t small { display: block; color: rgba(245,245,247,.5); font-size: 12px; margin-top: 2px; }
+.mcrs .bar { height: 4px; border-radius: 3px; background: rgba(255,255,255,.1); margin-top: 8px; overflow: hidden; }
+.mcrs .bar i { display: block; height: 100%; border-radius: 3px; background: linear-gradient(90deg, #847DFF, #2DB6EB); }
+.mcrs .lv { font-family: 'Roboto Mono', monospace; font-size: 10.5px; letter-spacing: .12em; padding: 4px 8px; border-radius: 6px; background: rgba(255,255,255,.08); }
+.ixp.ar .mcrs .lv { font-family: 'Readex Pro', sans-serif; letter-spacing: 0; font-size: 11.5px; }
+/* the numbers: a light card that breaks the dark */
+.ixn { border-radius: 30px; background: #CACACA; color: #000; padding: clamp(32px, 5vw, 64px); display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px; }
+.ixn .v { font-family: 'Instrument Serif', 'DM Serif Display', Georgia, serif; font-size: clamp(56px, 7vw, 96px); line-height: .9; letter-spacing: -.03em; direction: ltr; }
+.ixn .l { margin-top: 14px; font-size: 15px; line-height: 1.5; color: #1C1C1E; max-width: 220px; }
+.ixn .k { font-family: 'Roboto Mono', monospace; font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: #3F4041; margin-bottom: 18px; }
+.ixp.ar .ixn .k { font-family: 'Readex Pro', sans-serif; letter-spacing: 0; font-size: 12.5px; }
+/* how it works */
+.ixw { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin-top: 44px; counter-reset: st; }
+.ixw .s { position: relative; border-radius: 22px; padding: 30px 28px; background: #1B1728; border: 1px solid rgba(255,255,255,.07); overflow: hidden;
+  transition: transform .3s ease, border-color .3s ease; }
+.ixw .s:hover { transform: translateY(-6px); border-color: rgba(209,201,255,.35); }
+.ixw .s .no { font-family: 'Roboto Mono', monospace; font-size: 12px; letter-spacing: .16em; color: #D1C9FF; }
+.ixw .s .h4 { margin: 40px 0 10px !important; padding: 0 !important; font-family: 'Instrument Serif', Georgia, serif !important; font-weight: 400 !important;
+  font-size: 30px !important; line-height: 1.05 !important; color: #fff !important; }
+.ixp.ar .ixw .s .h4 { font-family: 'Readex Pro', sans-serif !important; font-size: 22px !important; line-height: 1.4 !important; }
+.ixw .s p { margin: 0; color: rgba(245,245,247,.6); font-size: 15px; line-height: 1.65; }
+.ixw .s::after { content: ""; position: absolute; right: -40px; top: -40px; width: 140px; height: 140px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(132,125,255,.35), transparent 70%); }
+.ixp.ar .ixw .s::after { right: auto; left: -40px; }
+/* questions */
+.ixq { max-width: 860px; margin: 40px auto 0; display: flex; flex-direction: column; gap: 10px; }
+.ixq details { border-radius: 16px; background: #1B1728; border: 1px solid rgba(255,255,255,.07); padding: 0 22px; transition: border-color .2s ease, background .2s ease; }
+.ixq details[open] { border-color: rgba(209,201,255,.35); background: #201B30; }
+.ixq summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 20px 0;
+  font-size: 17px; color: #fff; }
+.ixq summary::-webkit-details-marker { display: none; }
+.ixq summary .ms { transition: transform .25s ease; color: #D1C9FF; }
+.ixq details[open] summary .ms { transform: rotate(45deg); }
+.ixq details p { margin: 0 0 20px; color: rgba(245,245,247,.62); line-height: 1.75; font-size: 15.5px; }
+/* the last words */
+.ixend { text-align: center; padding: 140px 24px 190px; }
+.ixend .ixh { font-size: clamp(44px, 7vw, 110px); margin: 20px auto 18px; max-width: 1000px; }
+.ixp.ar .ixend .ixh { font-size: clamp(36px, 5vw, 80px); }
+.ixend .ixt { margin: 0 auto; text-align: center; }
+.ixfoot { border-top: 1px solid rgba(255,255,255,.08); max-width: 1200px; margin: 0 auto; padding: 28px 24px 150px; display: flex; justify-content: space-between;
+  gap: 16px; flex-wrap: wrap; font-family: 'Roboto Mono', monospace; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: rgba(245,245,247,.45); }
+.ixp.ar .ixfoot { font-family: 'Readex Pro', sans-serif; letter-spacing: 0; font-size: 12.5px; text-transform: none; }
+/* reveals as the page scrolls (only when the page script runs: without it everything simply shows) */
+html.ix-js .rv { opacity: 0; translate: 0 34px; transition: opacity 1.1s cubic-bezier(.455,.03,.515,.955), translate 1.1s cubic-bezier(.455,.03,.515,.955),
+  transform .35s cubic-bezier(.2,.8,.2,1), box-shadow .35s ease; }
+html.ix-js .rv.in { opacity: 1; translate: 0 0; }
+html.ix-js .ixg .rv:nth-child(2), html.ix-js .ixw .rv:nth-child(2) { transition-delay: .12s; }
+html.ix-js .ixg .rv:nth-child(3), html.ix-js .ixw .rv:nth-child(3) { transition-delay: .24s; }
+html.ix-js .ixg .rv:nth-child(5) { transition-delay: .12s; } html.ix-js .ixg .rv:nth-child(6) { transition-delay: .24s; }
+/* "Get started": white on black, the only action, at the bottom in the middle all the way down */
+.st-key-introgo { position: fixed !important; left: 50%; bottom: clamp(26px, 5vh, 48px); translate: -50% 0; z-index: 999980; width: auto !important;
   animation: ixin 1.6s cubic-bezier(.455,.03,.515,.955) 1.2s both; }
 .st-key-introgo .stElementContainer, .st-key-introgo [data-testid="stElementContainer"] { width: auto !important; }
 .st-key-introgo button { min-height: 52px !important; padding: 0 30px !important; border-radius: 8px !important; background: #FFFFFF !important;
@@ -584,10 +754,14 @@ header[data-testid="stHeader"]::after { opacity: 0; }
 .st-key-introgo button:hover { transform: translateY(-2px); background: #EDEBFF !important; box-shadow: 0 22px 60px -12px rgba(132,125,255,.7), 0 0 0 8px rgba(255,255,255,.1) !important; }
 .st-key-introgo button:hover p::after { transform: translateX(4px); }
 .st-key-introgo button:active { transform: translateY(0) scale(.98); }
-@media (max-width: 900px) { .ix-chip { display: none; } .ix-center { top: 42%; } .ix-sub { font-size: 15px; }
-  .ix-foot { white-space: normal; width: 90vw; text-align: center; line-height: 1.7; } .ix-ask { padding: 12px 14px; } }
-@media (prefers-reduced-motion: reduce) { .ix *, .st-key-introgo { animation: none !important; opacity: 1 !important; transform: none; }
-  .ix-draw { stroke-dashoffset: 0; } .ix-center { transform: translate(-50%, -50%) !important; } }
+@media (max-width: 1000px) { .ixg { grid-template-columns: repeat(2, minmax(0, 1fr)); } .ixf { grid-template-columns: 1fr; gap: 36px; }
+  .ixf.rev > :first-child { order: 0; } .ixn { grid-template-columns: repeat(2, minmax(0, 1fr)); } .ixw { grid-template-columns: 1fr; } }
+@media (max-width: 900px) { .ix-chip { display: none; } .ix-center { top: 42%; } .ix-sub { font-size: 15px; } .ix-ask { padding: 12px 14px; }
+  .ix-scroll { display: none; } .ixs { padding-top: 84px; } }
+@media (max-width: 640px) { .ixg { grid-template-columns: 1fr; } .ixc { min-height: 220px; } .mrad { grid-template-columns: 1fr; justify-items: center; }
+  .mheat { grid-template-columns: repeat(3, minmax(0, 1fr)); } .ixn { grid-template-columns: 1fr 1fr; } }
+@media (prefers-reduced-motion: reduce) { .ixp *, .st-key-introgo { animation: none !important; opacity: 1 !important; }
+  .ix-draw, .mbot .ln { stroke-dashoffset: 0; } html.ix-js .rv { opacity: 1; translate: none; } }
 </style>"""
 
 
@@ -595,35 +769,162 @@ def _start():
     st.session_state["intro_done"] = True
 
 
+def _mock_bot():
+    pts = [(0, 96), (40, 90), (80, 94), (120, 78), (160, 82), (200, 66), (240, 70), (280, 52), (320, 58), (360, 40), (400, 44), (440, 26), (480, 18)]
+    line = "M" + " L".join(f"{x} {y}" for x, y in pts)
+    area = line + " L480 120 L0 120 Z"
+    return (f'<div class="mbot"><div class="top"><span>{L("All companies · 2 strategies", "كل الشركات · استراتيجيتين")}</span>'
+            f'<span class="live">LIVE</span></div><div class="nm">{L("Momentum Rider", "راكب الزخم")}</div>'
+            f'<div class="bd"><span>Trend Following</span><span>Breakout</span><span>{L("ATR stop ×3", "وقف ATR ×3")}</span></div>'
+            '<svg viewBox="0 0 480 120" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="mbA" x1="0" y1="0" x2="0" y2="1">'
+            '<stop offset="0" stop-color="#4ADE80" stop-opacity=".35"/><stop offset="1" stop-color="#4ADE80" stop-opacity="0"/></linearGradient></defs>'
+            f'<path d="{area}" fill="url(#mbA)"/><path class="ln" d="{line}" fill="none" stroke="#4ADE80" stroke-width="2.4" stroke-linejoin="round"/></svg>'
+            f'<div class="row"><div><div class="l">{L("Balance", "الرصيد")}</div><div class="v">$112,480</div></div><div class="p">+12.5%</div></div>'
+            f'<div class="ft">{L("Forward test · recorded session by session", "اختبار أمامي · مسجّل جلسة بجلسة")}</div></div>')
+
+
+def _mock_radar():
+    dots = [(100, 58, "#4ADE80"), (136, 80, "#4ADE80"), (70, 122, "#86EFAC"), (128, 138, "#4ADE80"), (58, 76, "#86EFAC")]
+    svg = ('<svg viewBox="0 0 200 200" aria-hidden="true"><defs><linearGradient id="mrS" x1="0" y1="0" x2="1" y2="1">'
+           '<stop offset="0" stop-color="#2DB6EB" stop-opacity=".55"/><stop offset="1" stop-color="#2DB6EB" stop-opacity="0"/></linearGradient></defs>'
+           + "".join(f'<circle cx="100" cy="100" r="{r}" fill="none" stroke="rgba(255,255,255,.14)"/>' for r in (30, 60, 92))
+           + '<line x1="100" y1="8" x2="100" y2="192" stroke="rgba(255,255,255,.08)"/><line x1="8" y1="100" x2="192" y2="100" stroke="rgba(255,255,255,.08)"/>'
+           '<path class="sw" d="M100 100 L100 8 A92 92 0 0 1 180 55 Z" fill="url(#mrS)"/>'
+           + "".join(f'<circle cx="{x}" cy="{y}" r="4.5" fill="{c}"><animate attributeName="r" values="4.5;7;4.5" dur="2.4s" begin="{i * .4}s" repeatCount="indefinite"/></circle>'
+                     for i, (x, y, c) in enumerate(dots)) + '<circle cx="100" cy="100" r="4" fill="#2DB6EB"/></svg>')
+    rows = [("MSFT", "Microsoft", "A+", 90), ("CRWD", "CrowdStrike", "A+", 87), ("TMO", "Thermo Fisher", "A", 83)]
+    return (f'<div class="mrad">{svg}<div class="rows">'
+            + "".join(f'<div class="r"><div><b>{t}</b><small>{n}</small></div><span class="g">{g}</span><span class="s">{s}</span></div>' for t, n, g, s in rows)
+            + "</div></div>")
+
+
+def _mock_heat():
+    cells = [("NVDA", 3.2, "w2 h2"), ("MSFT", 0.8, "w2"), ("AAPL", -0.6, ""), ("AMZN", 1.4, ""), ("GOOGL", 0.4, ""), ("META", -1.9, ""),
+             ("AVGO", 2.1, "w2"), ("TSLA", -2.8, ""), ("JPM", 0.2, ""), ("LLY", -0.9, ""), ("XOM", 1.1, ""), ("V", 0.3, ""), ("WMT", -0.2, "")]
+
+    def col(p):
+        if p >= 2:
+            return "#1F8A4E"
+        if p >= 0.5:
+            return "#17643A"
+        if p >= 0:
+            return "#1E3A2C"
+        if p > -1:
+            return "#4A1F29"
+        return "#8C2B38"
+    return ('<div class="mheat">' + "".join(f'<span class="{c}" style="background:{col(p)}"><b>{t}</b><small>{p:+.1f}%</small></span>'
+                                           for t, p, c in cells) + "</div>")
+
+
+def _mock_courses(f):
+    items = [("#847DFF", "candlestick_chart", L("Reading candles", "قراءة الشموع"), L("Beginner · 6 lessons", "مبتدئ · 6 دروس"), 100, L("DONE", "مكتملة")),
+             ("#00B3DD", "trending_up", L("Trend and momentum", "الاتجاه والزخم"), L("Essential · 5 lessons", "أساسي · 5 دروس"), 60, "60%"),
+             ("#DD90D8", "shield", L("Risk and position size", "المخاطرة وحجم الصفقة"), L("Intermediate · 7 lessons", "متوسط · 7 دروس"), 0, L("NEW", "جديدة"))]
+    return ('<div class="mcrs">' + "".join(
+        f'<div class="c"><span class="i" style="background:{bg}"><span class="ms">{ic}</span></span><div class="t">{t}<small>{sub}</small>'
+        f'<div class="bar"><i style="width:{w}%"></i></div></div><span class="lv">{lv}</span></div>' for bg, ic, t, sub, w, lv in items) + "</div>")
+
+
 def intro_html():
     ar = is_ar()
     lang = "ar" if ar else "en"
+    f = _facts()
     words = _IX_WORDS[lang]
+    ex = L("EXAMPLE", "مثال")
     chips = "".join(f'<span class="ix-chip {c}"><span class="ms">{ic}</span>{L(en, a)}</span>' for ic, en, a, c in _IX_CHIPS)
-    head = L("Trade the market<br><em>before you risk a dollar.</em>", "تداول السوق<br><em>قبل ما تخاطر بدولار.</em>")
-    sub = L("Paper-trading bots, a daily opportunity hunter and market research, in one place, in English and Arabic.",
-            "بوتات تداول افتراضية، وصياد فرص يومي، وأبحاث السوق، في مكان واحد، بالعربي والإنجليزي.")
-    eyebrow = L("A.Alturaifi Pro · US markets", "<bdi>A.ALTURAIFI PRO</bdi> · الأسواق الأمريكية")
-    pill = L("Paper trading", "تداول افتراضي")
-    foot = L("Virtual money only · real prices · no real funds at risk", "فلوس افتراضية فقط · أسعار حقيقية · بدون أي مخاطرة بأموال حقيقية")
-    return (f'<div class="ix{" ar" if ar else ""}" dir="{"rtl" if ar else "ltr"}">'
+    hero = (f'<section class="ix">'
             '<div class="ix-aurora"><i></i><i></i><i></i></div>' + _stars() + '<div class="ix-spot"></div>' + _horizon()
             + f'<div class="ix-chips">{chips}</div>'
-            f'<div class="ix-center"><div class="ix-eyebrow"><span class="ix-pill"><i></i>{pill}</span><span>{eyebrow}</span></div>'
-            f'<div class="ix-h" role="heading" aria-level="1">{head}</div><p class="ix-sub">{sub}</p>'
+            f'<div class="ix-center"><div class="ix-eyebrow"><span class="ix-pill"><i></i>{L("Paper trading", "تداول افتراضي")}</span>'
+            f'<span>{L("A.Alturaifi Pro · US markets", "<bdi>A.ALTURAIFI PRO</bdi> · الأسواق الأمريكية")}</span></div>'
+            f'<div class="ix-h" role="heading" aria-level="1">{L("Trade the market<br><em>before you risk a dollar.</em>", "تداول السوق<br><em>قبل ما تخاطر بدولار.</em>")}</div>'
+            f'<p class="ix-sub">{L("Paper-trading bots, a daily opportunity hunter and market research, in one place, in English and Arabic.", "بوتات تداول افتراضية، وصياد فرص يومي، وأبحاث السوق، في مكان واحد، بالعربي والإنجليزي.")}</p>'
             f'<div class="ix-ask"><span class="ms">auto_awesome</span>'
-            f'<span class="ix-type" data-words="{_html.escape(_json.dumps(words, ensure_ascii=False))}">{words[0]}</span>'
-            '<span class="ix-caret"></span></div></div>'
-            f'<div class="ix-foot">{foot}</div></div>')
+            f'<span class="ix-type" data-words="{_html.escape(_json.dumps(words, ensure_ascii=False))}">{words[0]}</span><span class="ix-caret"></span></div></div>'
+            f'<div class="ix-scroll"><i></i>{L("Scroll", "انزل")}</div></section>')
+    state = (f'<section class="ixs ix-state rv"><span class="ixl">{L("What it is", "وش هو")}</span>'
+             f'<div class="ixh">{L("One place to learn the market, test your ideas and let them trade. <span>With virtual money, on real prices.</span>", "مكان واحد تتعلّم فيه السوق، وتجرّب أفكارك، وتخليها تتداول لحالها. <span>بفلوس افتراضية، على أسعار حقيقية.</span>")}</div></section>')
+    parts = [
+        ("k1", "robot_2", L("Paper Bots", "البوتات الافتراضية"), L(f"Up to {f['bots']} bots trade on their own, each with a forward test recorded session by session.", f"لين {f['bots']} بوتات تتداول لحالها، ولكل واحد اختبار أمامي مسجّل جلسة بجلسة.")),
+        ("k2", "radar", L("Opportunity Hunter", "صائد الفرص"), L("Every stock scored from 0 to 100 on trend, strength and setup, with a full trade plan.", "كل سهم يتقيّم من 0 لين 100 على الاتجاه والقوة ونمط الدخول، مع خطة تداول كاملة.")),
+        ("k3", "query_stats", L("Markets & Research", "الأسواق والأبحاث"), L("Indices, futures, options, the economy, a screener and a page for every company.", "المؤشرات والعقود الآجلة والخيارات والاقتصاد، وفلتر للأسهم، وصفحة لكل شركة.")),
+        ("k4", "lightbulb", L("Insight", "رؤى"), L("The daily brief, fear & greed, seasonality and articles that explain the moves.", "الموجز اليومي، ومؤشر الخوف والطمع، والموسمية، ومقالات تشرح الحركة.")),
+        ("k5", "calendar_month", L("Calendars", "التقويم"), L("Earnings, economic events, dividends, splits, IPOs and market holidays.", "الأرباح والأحداث الاقتصادية والتوزيعات والتقسيمات والاكتتابات وعطلات السوق.")),
+        ("k6", "school", L("Academy", "الأكاديمية"), L(f"{f['courses']} courses, {f['labs']} interactive labs and a glossary of {f['terms']} terms.", f"{f['courses']} دورة، و{f['labs']} مختبرات تفاعلية، وقاموس فيه {f['terms']} مصطلحاً.")),
+    ]
+    grid = (f'<section class="ixs"><div class="rv"><span class="ixl">{L("Inside the site", "داخل الموقع")}</span>'
+            f'<div class="ixh">{L("Six parts, <em>one purpose.</em>", "ستة أقسام، <em>وهدف واحد.</em>")}</div></div><div class="ixg">'
+            + "".join(f'<div class="ixc {k} rv"><div class="n"><span>0{i + 1}</span><span class="ms">{ic}</span></div><div class="h3" role="heading" aria-level="3">{t}</div><p>{d}</p></div>'
+                      for i, (k, ic, t, d) in enumerate(parts)) + "</div></section>")
+
+    def feature(label, title, text, bullets, mock, rev=False):
+        li = "".join(f'<li><span class="ms">check_circle</span><span>{b}</span></li>' for b in bullets)
+        return (f'<section class="ixs"><div class="ixf{" rev" if rev else ""}"><div class="rv"><span class="ixl">{label}</span>'
+                f'<div class="ixh">{title}</div><p class="ixt">{text}</p><ul>{li}</ul></div>'
+                f'<div class="ixm rv"><span class="ex">{ex}</span>{mock}</div></div></section>')
+
+    bots = feature(L("Paper Bots", "البوتات الافتراضية"), L("Your strategy,<br><em>running on its own.</em>", "استراتيجيتك،<br><em>تشتغل لحالها.</em>"),
+                   L("Pick what the bot trades and how it decides, then watch it buy and sell with virtual money on real prices.",
+                     "اختر وش يتداول البوت وكيف يقرر، وبعدها شوفه يشتري ويبيع بفلوس افتراضية على أسعار حقيقية."),
+                   [L(f"{f['single']} strategies, alone or together, plus {f['combined']} ready-made combined playbooks.", f"{f['single']} استراتيجية لحالها أو مع بعض، و{f['combined']} استراتيجيات مركّبة جاهزة."),
+                    L("A lab that tested every strategy on 2012–2019 and again on 2020–now.", "مختبر جرّب كل استراتيجية على 2012–2019 ومرة ثانية على 2020 لين اليوم."),
+                    L("Forward tests kept apart from the historical simulation, so the record stays honest.", "الاختبار الأمامي منفصل عن المحاكاة التاريخية، عشان يبقى السجل صادق.")],
+                   _mock_bot())
+    hunt = feature(L("Opportunity Hunter", "صائد الفرص"), L("Every stock,<br><em>checked every day.</em>", "كل سهم،<br><em>يتفحّص كل يوم.</em>"),
+                   L("The hunter scores the market on exact setups and shows only what passes, with the entry, the stop and the target.",
+                     "الصياد يقيّم السوق على أنماط دقيقة ويعرض بس اللي يجتازها، مع نقطة الدخول والوقف والهدف."),
+                   [L("A grade and a score from 0 to 100 for every pick.", "درجة وتقييم من 0 لين 100 لكل فرصة."),
+                    L("How the same setup did on the same stock before.", "كيف كان نفس النمط على نفس السهم قبل."),
+                    L("Analyst ratings, insider trades, events and news in one view.", "تقييمات المحللين وصفقات المطّلعين والأحداث والأخبار في مكان واحد.")],
+                   _mock_radar(), rev=True)
+    mkts = feature(L("Markets & Research", "الأسواق والأبحاث"), L("The whole market<br><em>on one screen.</em>", "السوق كله<br><em>في شاشة وحدة.</em>"),
+                   L("From the heatmap of the S&P 500 to a single company: prices, charts, financials and what moves them.",
+                     "من خريطة إس آند بي 500 لين شركة وحدة: الأسعار والرسوم والقوائم المالية واللي يحرّكها."),
+                   [L("Futures, options chains, rates and the economy.", "العقود الآجلة وسلاسل الخيارات والفوائد والاقتصاد."),
+                    L("A screener and technical signals for every stock.", "فلتر للأسهم وإشارات فنية لكل سهم."),
+                    L("A Sharia check on every company page.", "فحص شرعي في صفحة كل شركة.")],
+                   _mock_heat())
+    nums = [(f"{f['stocks']}", L("S&P 500", "إس آند بي 500"), L("companies covered, each with its own page", "شركة، ولكل وحدة صفحة خاصة")),
+            (f"{f['single'] + f['combined']}", L("Strategies", "استراتيجيات"), L("to build your bots with, alone or combined", "تبني فيها بوتاتك، لحالها أو مركّبة")),
+            (f"{f['bots']}", L("Bots", "بوتات"), L("trading at the same time, on virtual money", "تتداول في نفس الوقت، بفلوس افتراضية")),
+            (f"{f['courses']}", L("Courses", "دورات"), L("from beginner to advanced, in both languages", "من المبتدئ للمتقدم، باللغتين"))]
+    numbers = ('<section class="ixs"><div class="ixn rv">'
+               + "".join(f'<div><div class="k">{k}</div><div class="v">{v}</div><div class="l">{t}</div></div>' for v, k, t in nums) + "</div></section>")
+    steps = [(L("Choose", "اختر"), L("Pick a strategy", "اختر استراتيجية"), L("One rule set or several, on one company, a sector or the whole market.", "مجموعة قواعد وحدة أو أكثر، على شركة أو قطاع أو السوق كله.")),
+             (L("Test", "جرّب"), L("See it on history", "شوفها على التاريخ"), L("The same engine runs it on years of real prices, with the lab's verdict.", "نفس المحرك يشغّلها على سنين من الأسعار الحقيقية، مع حكم المختبر.")),
+             (L("Run", "شغّل"), L("Let it trade forward", "خلّها تتداول للأمام"), L("From today on, every signal and every fill is saved, session by session.", "من اليوم ورايح، كل إشارة وكل تنفيذ ينحفظ، جلسة بجلسة."))]
+    how = (f'<section class="ixs"><div class="rv"><span class="ixl">{L("How it works", "كيف يشتغل")}</span>'
+           f'<div class="ixh">{L("Three steps, <em>no real money.</em>", "ثلاث خطوات، <em>بدون فلوس حقيقية.</em>")}</div></div><div class="ixw">'
+           + "".join(f'<div class="s rv"><div class="no">0{i + 1} · {k}</div><div class="h4" role="heading" aria-level="3">{t}</div><p>{d}</p></div>' for i, (k, t, d) in enumerate(steps)) + "</div></section>")
+    learn = feature(L("Academy", "الأكاديمية"), L("Learn first,<br><em>then trade.</em>", "تعلّم أول،<br><em>وبعدين تداول.</em>"),
+                    L("Short courses that end with a quiz, labs to try the ideas yourself and a glossary for every term you meet.",
+                      "دورات قصيرة تنتهي باختبار، ومختبرات تجرّب فيها الأفكار بنفسك، وقاموس لكل مصطلح يمرّ عليك."),
+                    [L("From reading a candle to sizing a position.", "من قراءة الشمعة لين تحديد حجم الصفقة."),
+                     L("In Arabic and English, side by side.", "بالعربي والإنجليزي."),
+                     L("Your progress is kept as you go.", "تقدّمك ينحفظ أول بأول.")],
+                    _mock_courses(f), rev=True)
+    qa = [(L("Is any of this real money?", "هل فيه فلوس حقيقية؟"), L("No. Every bot trades virtual money. The prices are real market prices, the orders are not sent anywhere.", "لا. كل البوتات تتداول بفلوس افتراضية. الأسعار حقيقية من السوق، والأوامر ما تنرسل لأي مكان.")),
+          (L("Which markets does it cover?", "وش الأسواق اللي يغطيها؟"), L("US stocks and ETFs, with futures, options, rates, commodities, currencies and crypto on the market pages.", "الأسهم والصناديق الأمريكية، ومعها العقود الآجلة والخيارات والفوائد والسلع والعملات والعملات الرقمية في صفحات السوق.")),
+          (L("Is it investment advice?", "هل هذي نصيحة استثمارية؟"), L("No. It is a place to learn and to test ideas. Past results, real or simulated, do not promise future ones.", "لا. هذا مكان للتعلّم وتجربة الأفكار. النتائج السابقة، حقيقية كانت أو محاكاة، ما تضمن اللي جاي.")),
+          (L("Does it work in Arabic?", "هل يشتغل بالعربي؟"), L("Yes, all of it. Switch the language from the flag at the top.", "إيه، كله. غيّر اللغة من العلم اللي فوق."))]
+    faq = (f'<section class="ixs"><div class="rv" style="text-align:center"><span class="ixl">{L("Questions", "أسئلة")}</span>'
+           f'<div class="ixh">{L("Good to know.", "حلو تعرف.")}</div></div><div class="ixq rv">'
+           + "".join(f'<details><summary><span>{q}</span><span class="ms">add</span></summary><p>{a}</p></details>' for q, a in qa) + "</div></section>")
+    end = (f'<section class="ixend rv"><span class="ixl">{L("Ready when you are", "جاهز متى ما كنت جاهز")}</span>'
+           f'<div class="ixh">{L("Your next trade<br><em>starts on paper.</em>", "صفقتك الجاية<br><em>تبدأ افتراضية.</em>")}</div>'
+           f'<p class="ixt">{L("Press Get started to open the markets, the hunter and your bots.", "اضغط ابدأ الآن عشان تفتح الأسواق والصياد وبوتاتك.")}</p></section>')
+    foot = (f'<div class="ixfoot"><span>© A.Alturaifi Pro</span><span>{L("Virtual money only · real prices · not investment advice", "فلوس افتراضية فقط · أسعار حقيقية · ليست نصيحة استثمارية")}</span></div>')
+    return (f'<div class="ixp{" ar" if ar else ""}" dir="{"rtl" if ar else "ltr"}">' + hero + state + grid + bots + hunt + mkts + numbers + how + learn
+            + faq + end + foot + "</div>")
 
 
 def intro():
     """The landing. Returns True while it shows (the caller then draws nothing else)."""
     if st.session_state.get("intro_done"):
         return False
-    ui.html('<span class="css-anchor"></span>\n' + INTRO_CSS
-            + ('<style>.st-key-introgo button p::after { content: "  \\2190" !important; }'
-               '.st-key-introgo button:hover p::after { transform: translateX(-4px) !important; }</style>' if is_ar() else ""))
+    rtl = ('<style>.st-key-introgo button p::after { content: "  \\2190" !important; }'
+           '.st-key-introgo button:hover p::after { transform: translateX(-4px) !important; }</style>') if is_ar() else ""
+    ui.html('<span class="css-anchor"></span>\n' + INTRO_CSS + rtl)          # the style on its own line (else Markdown eats it)
     ui.html(intro_html())
     with st.container(key="introgo"):
         st.button(L("Get started", "ابدأ الآن"), key="intro_go", on_click=_start)

@@ -1,2 +1,2 @@
-A.Alturaifi Pro - version 12.6 (the landing and the interactive cards now reach the page; the logo opens the landing)
+A.Alturaifi Pro - version 12.7 (the landing is a full scrolling page with sections; Get started follows you down)
 If you can see this file on GitHub, the new version was uploaded correctly.
