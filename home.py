@@ -10,7 +10,7 @@ import theme as T
 import ui
 from i18n import L, is_ar
 
-BUILD = "13.5"
+BUILD = "13.6"
 
 _LINE = "rgba(150,140,250,"
 CSS = f"""
@@ -674,16 +674,6 @@ html.ix-scrolled header[data-testid="stHeader"] { background: rgba(14,9,24,.32) 
 .ixw .s::after { content: ""; position: absolute; right: -40px; top: -40px; width: 140px; height: 140px; border-radius: 50%;
   background: radial-gradient(circle, rgba(132,125,255,.35), transparent 70%); }
 .ixp.ar .ixw .s::after { right: auto; left: -40px; }
-/* questions */
-.ixq { max-width: 860px; margin: 40px auto 0; display: flex; flex-direction: column; gap: 10px; }
-.ixq details { border-radius: 16px; background: #1B1728; border: 1px solid rgba(255,255,255,.07); padding: 0 22px; transition: border-color .2s ease, background .2s ease; }
-.ixq details[open] { border-color: rgba(209,201,255,.35); background: #201B30; }
-.ixq summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 20px 0;
-  font-size: 17px; color: #fff; }
-.ixq summary::-webkit-details-marker { display: none; }
-.ixq summary .ms { transition: transform .25s ease; color: #D1C9FF; }
-.ixq details[open] summary .ms { transform: rotate(45deg); }
-.ixq details p { margin: 0 0 20px; color: rgba(245,245,247,.62); line-height: 1.75; font-size: 15.5px; }
 /* the last words */
 .ixend { text-align: center; padding: 140px 24px 190px; }
 .ixend .ixh { font-size: clamp(44px, 7vw, 110px); margin: 20px auto 18px; max-width: 1000px; }
@@ -861,19 +851,12 @@ def intro_html():
                      L("In Arabic and English, side by side.", "بالعربي والإنجليزي."),
                      L("Your progress is kept as you go.", "تقدّمك ينحفظ أول بأول.")],
                     _mock_courses(f), rev=True)
-    qa = [(L("Is any of this real money?", "هل فيه فلوس حقيقية؟"), L("No. Every bot trades virtual money. The prices are real market prices, the orders are not sent anywhere.", "لا. كل البوتات تتداول بفلوس افتراضية. الأسعار حقيقية من السوق، والأوامر ما تنرسل لأي مكان.")),
-          (L("Which markets does it cover?", "وش الأسواق اللي يغطيها؟"), L("US stocks and ETFs, with futures, options, rates, commodities, currencies and crypto on the market pages.", "الأسهم والصناديق الأمريكية، ومعها العقود الآجلة والخيارات والفوائد والسلع والعملات والعملات الرقمية في صفحات السوق.")),
-          (L("Is it investment advice?", "هل هذي نصيحة استثمارية؟"), L("No. It is a place to learn and to test ideas. Past results, real or simulated, do not promise future ones.", "لا. هذا مكان للتعلّم وتجربة الأفكار. النتائج السابقة، حقيقية كانت أو محاكاة، ما تضمن اللي جاي.")),
-          (L("Does it work in Arabic?", "هل يشتغل بالعربي؟"), L("Yes, all of it. Switch the language from the flag at the top.", "إيه، كله. غيّر اللغة من العلم اللي فوق."))]
-    faq = (f'<section class="ixs"><div class="rv" style="text-align:center"><span class="ixl">{L("Questions", "أسئلة")}</span>'
-           f'<div class="ixh">{L("Good to know.", "حلو تعرف.")}</div></div><div class="ixq rv">'
-           + "".join(f'<details><summary><span>{q}</span><span class="ms">add</span></summary><p>{a}</p></details>' for q, a in qa) + "</div></section>")
     end = (f'<section class="ixend rv"><span class="ixl">{L("Ready when you are", "جاهز متى ما كنت جاهز")}</span>'
            f'<div class="ixh">{L("Your next trade<br><em>starts on paper.</em>", "صفقتك الجاية<br><em>تبدأ افتراضية.</em>")}</div>'
            f'<p class="ixt">{L("Press Get started to open the markets, the hunter and your bots.", "اضغط ابدأ الآن عشان تفتح الأسواق والصياد وبوتاتك.")}</p></section>')
     foot = (f'<div class="ixfoot"><span>© A.Alturaifi Pro</span><span>{L("Virtual money only · real prices · not investment advice", "فلوس افتراضية فقط · أسعار حقيقية · ليست نصيحة استثمارية")}</span></div>')
     return (f'<div class="ixp{" ar" if ar else ""}" dir="{"rtl" if ar else "ltr"}">' + hero + state + grid + bots + hunt + mkts + numbers + how + learn
-            + faq + end + foot + "</div>")
+            + end + foot + "</div>")
 
 
 def intro():
