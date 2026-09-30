@@ -1348,6 +1348,15 @@ FX_JS = """<script>
           var mt = parseFloat(w.getComputedStyle(nav).marginTop) || 0;
           nav.style.setProperty('margin-top', Math.max(0, mt + want - gapNow).toFixed(1) + 'px', 'important');
         }
+        // ... and the landing's words start under the card, never behind it (measured from where they would be without it)
+        var ctr = pg0.querySelector('.ix-center');
+        if (ctr) {
+          var drop = parseFloat(pg0.style.getPropertyValue('--ixdrop')) || 0;
+          var need = Math.max(0, Math.round(nav.getBoundingClientRect().bottom + 22 - (ctr.getBoundingClientRect().top - drop)));
+          if (Math.abs(need - drop) > 1) pg0.style.setProperty('--ixdrop', need + 'px');
+        }
+      } else if (w.innerWidth >= 1024 && pg0.style.getPropertyValue('--ixdrop')) {
+        pg0.style.removeProperty('--ixdrop');
       }
     }
     // 5 seconds without a move on the first screen: the page glides to the first section by itself (once per landing)
@@ -2084,4 +2093,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "15.0"
+BUILD = "15.1"

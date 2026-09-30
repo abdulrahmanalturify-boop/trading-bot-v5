@@ -10,7 +10,7 @@ import theme as T
 import ui
 from i18n import L, is_ar
 
-BUILD = "15.0"
+BUILD = "15.1"
 
 _LINE = "rgba(150,140,250,"
 CSS = f"""
@@ -531,7 +531,8 @@ html.ix-scrolled header[data-testid="stHeader"] { background: rgba(14,9,24,.32) 
 .ix-gl-b { left: 40%; top: 80%; background: radial-gradient(closest-side, #8EC5FF, rgba(80,150,255,.4) 45%, transparent 75%); animation-delay: 3.1s; }
 @keyframes ixglow { 0%, 100% { opacity: .6; transform: scale(.9); } 45% { opacity: 1; transform: scale(1.08); } 70% { opacity: .75; transform: scale(.95); } }
 @keyframes ixflare { 0%, 100% { opacity: 0; transform: scale(.6); } 35% { opacity: .95; transform: scale(1); } 55% { opacity: .55; transform: scale(.85); } 70% { opacity: 0; } }
-.ix-center { left: 50%; top: 42%; width: min(980px, 92vw); transform: translate(-50%, -50%); text-align: center; z-index: 3; }
+.ix-center { left: 50%; top: 42%; width: min(980px, 92vw); transform: translate(-50%, -50%); text-align: center; z-index: 3;
+  margin-top: var(--ixdrop, 0px); }                                  /* phones: moved under the menu card by the page's script */
 .ix-h { margin: 0 0 20px; font-family: 'DM Serif Display', 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: clamp(46px, 5.8vw, 86px);
   line-height: 1.08; letter-spacing: .02em; color: #FFFFFF; text-shadow: 0 12px 50px rgba(16,13,23,.55); }
 .ix-h em, .ixh em { font-style: italic; background: linear-gradient(90deg, #D1C9FF, #9DCBF7 55%, #FFFFFF); -webkit-background-clip: text;

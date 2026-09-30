@@ -1,2 +1,2 @@
-A.Alturaifi Pro - version 15.0 (phones: the menu card on the landing sits a little under the top line)
+A.Alturaifi Pro - version 15.1 (phones: the landing words start under the menu card)
 If you can see this file on GitHub, the new version was uploaded correctly.
