@@ -1,2 +1,2 @@
-A.Alturaifi Pro - version 14.8 (fix: the site hanging - small price downloads never wait behind the big ones; big ones in chunks of 20)
+A.Alturaifi Pro - version 14.9 (analyst rating: the verdict and the average from the same analysts as the ring)
 If you can see this file on GitHub, the new version was uploaded correctly.

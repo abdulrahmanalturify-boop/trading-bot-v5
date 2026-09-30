@@ -268,6 +268,7 @@ CSS = f"""<style>
 .hnrate .rl b {{ color:#fff; font-weight:600; direction:ltr; unicode-bidi:isolate; }}
 .hnrate .mr {{ text-align:center; color:#BCB6C7; font-size:.8rem; margin-top:12px; }}
 .hnrate .mr b {{ color:#fff; direction:ltr; unicode-bidi:isolate; }} .hnrate .mr span {{ color:{_MU}; }}
+.hnrate .mr.ym {{ margin-top:6px; font-size:.72rem; color:{_MU}; }} .hnrate .mr.ym b {{ color:#CCC7D3; }}
 /* ---------- analysts: the rating card as tall as the tiles + the targets card next to it ---------- */
 .hnang {{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.25fr); gap:16px; align-items:stretch; }}
 @media (max-width: 900px) {{ .hnang {{ grid-template-columns:1fr; }} }}
@@ -1051,11 +1052,16 @@ def _counts_from_ratings(rr):
     return out if sum(out.values()) else None
 
 
+def counts_mean(counts):
+    """The average rating (1 = strong buy .. 5 = sell) of the analysts counted (None without any)."""
+    tot = sum(counts.values()) if counts else 0
+    return sum(w * counts[k] for w, (k, *_) in zip((5, 4, 3, 2, 1), RATING)) / tot if tot else None
+
+
 def rating_label(counts, mean=None):
     """(en, ar, color) of the consensus: from the mean rating (1-5), or the weighted counts."""
     if mean is None and counts:
-        tot = sum(counts.values())
-        mean = sum(w * counts[k] for w, (k, *_) in zip((5, 4, 3, 2, 1), RATING)) / tot if tot else None
+        mean = counts_mean(counts)
     if mean is None or not np.isfinite(mean):
         return "—", "—", _MU
     for hi, idx in ((1.5, 4), (2.5, 3), (3.5, 2), (4.5, 1), (9, 0)):
@@ -1115,6 +1121,12 @@ def analyst_section(sym, price):
     if not n and counts:
         n = sum(counts.values())
     ui.sec("groups", "Analysts", "المحللون")
+    # the verdict, the ring and the average all come from the same analysts: Yahoo's own average (recommendationMean) comes
+    # from another panel and can disagree with its counts (1.37 "strong buy" over 73% buy and 18% strong buy, whose average
+    # is 1.92 "buy"), so it is only the fallback when there are no counts, and a side note when it says something else
+    yahoo_mean = mean_r
+    if counts:
+        mean_r = counts_mean(counts)
     en, ar_, color = rating_label(counts, mean_r)
     tot = sum(counts.values()) if counts else 0
     legend = "".join(f'<div class="rl"><i style="background:{col}"></i>{T.esc(L(e_, a_))} <b>{counts[k] / tot * 100:.0f}%</b></div>'
@@ -1123,12 +1135,16 @@ def analyst_section(sym, price):
     if source == "firms":
         sub = L(f"Based on the latest rating of {n} firms (90 days). Updated on {when} ET.",
                 f"بناءً على آخر توصية لـ {n} جهة (90 يوم). آخر تحديث {when} بتوقيت نيويورك.")
-    elif n:
-        sub = L(f"Based on {n} analysts. Updated on {when} ET.", f"بناءً على {n} محلل. آخر تحديث {when} بتوقيت نيويورك.")
+    elif tot or n:
+        sub = L(f"Based on {tot or n} analysts. Updated on {when} ET.", f"بناءً على {tot or n} محلل. آخر تحديث {when} بتوقيت نيويورك.")
     else:
         sub = L("Yahoo Finance sent no analyst data for this stock right now; it is tried again on the next view.",
                 "ياهو فاينانس ما أرسل بيانات المحللين لهذا السهم الحين، وتنطلب من جديد مع الفتح القادم.")
     mean_txt = f'<div class="mr">{L("Average rating", "متوسط التقييم")} <b>{mean_r:.2f}</b> / 5 <span>{L("(1 = strong buy, 5 = sell)", "(1 = شراء قوي، 5 = بيع)")}</span></div>' if mean_r else ""
+    if counts and yahoo_mean is not None and rating_label(None, yahoo_mean)[0] != en:
+        ye, ya, _ = rating_label(None, yahoo_mean)
+        yt = L("Yahoo Finance's own average, from another panel of analysts:", "متوسط ياهو فاينانس نفسه، من مجموعة محللين ثانية:")
+        mean_txt += f'<div class="mr ym">{T.esc(yt)} <b>{yahoo_mean:.2f}</b> <span>({T.esc(L(ye, ya))})</span></div>'
     card = (f'<div class="hnrate"><div class="t">{L("Analyst Rating", "تقييم المحللين")}</div><div class="s">{T.esc(sub)}</div>'
             f'<div class="g">{rating_gauge(counts, L(en, ar_), color)}</div><div class="lgs">{legend}</div>{mean_txt}</div>')
     ups = downs = 0
@@ -1509,4 +1525,4 @@ def page_scanner():
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "14.8"
+BUILD = "14.9"
