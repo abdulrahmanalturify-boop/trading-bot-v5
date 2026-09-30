@@ -2525,7 +2525,42 @@ def can_edit():
     return False
 
 
-FORM_KEYS = list(DEFAULTS) + ["pb_min", "pb_pbmin", "pb_start", "pb_edit_id", "pb_capital_txt", "pb_cap_bad", "pb_maxpos_keep"]
+FORM_KEYS = list(DEFAULTS) + ["pb_min", "pb_pbmin", "pb_start", "pb_edit_id", "pb_capital_txt", "pb_cap_bad", "pb_maxpos_keep", "pb_risktol"]
+
+# the risk tolerance of a bot built by hand: each one fills the risk fields of the form (they can still be changed one by one,
+# then the drop-down says "your own settings"). Aggressive is what a new bot always had: a full slot a trade, a 3-ATR stop.
+RISK_TOL = {
+    "conservative": {"pb_riskpt": 1.0, "pb_atr": 2.5, "pb_stop": 0.0, "pb_tp": 0.0, "pb_trail": 0.0, "pb_regime": 2, "pb_trend": True},
+    "moderate": {"pb_riskpt": 2.0, "pb_atr": 3.0, "pb_stop": 0.0, "pb_tp": 0.0, "pb_trail": 0.0, "pb_regime": 1, "pb_trend": False},
+    "aggressive": {"pb_riskpt": 0.0, "pb_atr": 3.0, "pb_stop": 0.0, "pb_tp": 0.0, "pb_trail": 0.0, "pb_regime": 0, "pb_trend": False},
+}
+RISK_TOL_HELP = {
+    "conservative": ("Careful: each trade risks 1% of the balance at its stop (2.5 × ATR), only stocks above their own 200-day average "
+                     "are bought, and the shares are sold when the S&P 500 closes under its 200-day average.",
+                     "حذر: كل صفقة تخاطر بـ 1% من الرصيد عند وقفها (2.5 × ATR)، وما يشتري إلا الأسهم اللي فوق متوسط 200 يوم، "
+                     "ويبيع الأسهم لما يقفل S&P 500 تحت متوسط 200 يوم."),
+    "moderate": ("In between: each trade risks 2% of the balance at its stop (3 × ATR), and nothing new is bought while the S&P 500 "
+                 "is under its 200-day average.",
+                 "وسط: كل صفقة تخاطر بـ 2% من الرصيد عند وقفها (3 × ATR)، وما يشتري جديد والـ S&P 500 تحت متوسط 200 يوم."),
+    "aggressive": ("Bold: each trade gets its full share of the balance, a 3 × ATR stop, and it buys in any market.",
+                   "جريء: كل صفقة تاخذ نصيبها كامل من الرصيد، بوقف 3 × ATR، ويشتري في أي سوق."),
+    None: ("Your own settings: the risk fields below were changed by hand.", "إعداداتك الخاصة: غيّرت خانات المخاطرة تحت بنفسك."),
+}
+
+
+def _risk_tol_now():
+    """The risk tolerance the form's risk fields match now (None when they were changed by hand)."""
+    for k, pre in RISK_TOL.items():
+        if all((bool(ss.get(f)) == v) if isinstance(v, bool) else abs(float(ss.get(f) or 0) - v) < 1e-9 for f, v in pre.items()):
+            return k
+    return None
+
+
+def _risk_tol_pick():
+    """The drop-down changed: fill the risk fields with that tolerance."""
+    pre = RISK_TOL.get(ss.get("pb_risktol"))
+    if pre:
+        ss.update(pre)
 FORM_PREFIXES = ("pb_strats_", "pb_pp_", "pb_ms_")
 
 
@@ -3349,6 +3384,12 @@ def bot_form(mode, bot=None):
     with st.container(key="pbf_4"):
         form_head(4, "tune", "Trades and filters", "الصفقات والفلاتر", "How many at once, how much in each, and when not to buy",
                   "كم صفقة مع بعض، وكم في كل وحدة، ومتى ما يشتري")
+        if not orb and not (mode == "edit" and (bot or {}).get("brain")):
+            ss["pb_risktol"] = _risk_tol_now()             # the drop-down always says what the fields below are
+            t1, t2 = st.columns([1, 2], vertical_alignment="center")
+            t1.selectbox(L("Risk tolerance", "تحمّل المخاطرة"), list(RISK_TOL), key="pb_risktol", on_change=_risk_tol_pick,
+                         format_func=lambda k: L(*SB.RISK_LABEL[k]), placeholder=L("Your own settings", "إعداداتك الخاصة"))
+            t2.caption(L(*RISK_TOL_HELP[ss.get("pb_risktol")]))
         if kind != "company":
             m1, m2 = st.columns([1, 2], vertical_alignment="bottom")
             maxpos = m1.number_input(L("Max open trades", "أقصى عدد صفقات مفتوحة"), 1, PB.MAX_POS_LIMIT, step=1, key="pb_maxpos",
@@ -4146,4 +4187,4 @@ def page_paper_bots():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "15.1"
+BUILD = "15.2"

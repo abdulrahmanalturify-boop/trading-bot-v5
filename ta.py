@@ -235,4 +235,4 @@ def label_for(s):
     return "Neutral"
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "15.1"
+BUILD = "15.2"
