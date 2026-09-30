@@ -10,7 +10,7 @@ import streamlit as st
 # ---------------------------------------------------------------- always run the newest code
 # Streamlit Cloud re-reads app.py after every GitHub upload but can keep the other modules (theme, data, ...) from the
 # previous version in memory. Every module carries BUILD; if one in memory is older, all of them are reloaded in order.
-BUILD = "15.2"
+BUILD = "15.3"
 _ORDER = ["i18n", "ai_assistant", "flags", "mcal", "universe", "sp500", "taxonomy", "ta", "academy", "insight", "heatmap", "newsiq", "theme", "data",
           "caldata", "newsbot", "charts", "engine", "playbooks", "autotrader", "ui", "sharia", "lab", "tdash", "mlbots", "brain", "paperbots", "smartbots", "p_markets", "p_research", "p_insight",
           "p_academy", "p_paper", "p_calendar", "hunter", "p_scanner", "home"]
@@ -44,7 +44,8 @@ import universe as U
 from i18n import L
 
 SITE_NAME = "A.Alturaifi Pro"
-st.set_page_config(page_title=f"{SITE_NAME} · US Markets", page_icon=":material/candlestick_chart:", layout="wide")
+st.set_page_config(page_title=f"{SITE_NAME} · US Markets", page_icon=":material/candlestick_chart:", layout="wide",
+                   menu_items={"About": f"**{SITE_NAME}** · version {BUILD}"})      # the ⋮ menu → About: which version is running
 
 ss = st.session_state
 # language: remembered in the session, starts from ?lang= (kept by links and by the address bar) or English

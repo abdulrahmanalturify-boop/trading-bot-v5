@@ -1,2 +1,2 @@
-A.Alturaifi Pro - version 15.2 (Add a bot: a risk tolerance drop-down - conservative, moderate, aggressive)
+A.Alturaifi Pro - version 15.3 (the version is shown in the ⋮ menu → About)
 If you can see this file on GitHub, the new version was uploaded correctly.
