@@ -1337,6 +1337,18 @@ FX_JS = """<script>
       if (pr.top > .5 && pr.top < 200) {                                  // the landing starts at the very top, under the see-through bar
         pg0.style.marginTop = (parseFloat(w.getComputedStyle(pg0).marginTop) - pr.top) + 'px';
       }
+      // phones: the menu card sits clear under the top line (Streamlit's bar with the logo), a little gap between them,
+      // whatever comes before it on the page; measured at the top of the page only
+      var nav = d.querySelector('.st-key-topnav'), hd = d.querySelector('header[data-testid="stHeader"]');
+      var mm = d.querySelector('[data-testid="stMain"]') || d.querySelector('section.stMain');
+      var atTop = ((mm && mm.scrollTop) || 0) < 2 && (w.scrollY || 0) < 2;
+      if (nav && hd && w.innerWidth < 1024 && atTop) {
+        var gapNow = nav.getBoundingClientRect().top - hd.getBoundingClientRect().bottom, want = 14;
+        if (Math.abs(gapNow - want) > 1) {
+          var mt = parseFloat(w.getComputedStyle(nav).marginTop) || 0;
+          nav.style.setProperty('margin-top', Math.max(0, mt + want - gapNow).toFixed(1) + 'px', 'important');
+        }
+      }
     }
     // 5 seconds without a move on the first screen: the page glides to the first section by itself (once per landing)
     var page = d.querySelector('.ixp'), hero = d.querySelector('.ix');
@@ -2072,4 +2084,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "14.9"
+BUILD = "15.0"

@@ -10,7 +10,7 @@ import theme as T
 import ui
 from i18n import L, is_ar
 
-BUILD = "14.9"
+BUILD = "15.0"
 
 _LINE = "rgba(150,140,250,"
 CSS = f"""
@@ -476,7 +476,7 @@ html.ix-scrolled header[data-testid="stHeader"] { background: rgba(14,9,24,.32) 
 .st-key-langsec:hover .langbtn, [class*="st-key-navsec_"]:hover .navbtn { background: rgba(255,255,255,.08) !important; }
 .block-container, [data-testid="stMainBlockContainer"], [data-testid="stMainBlockContainer"]:has(.st-key-topnav) { max-width: none !important;
   padding: 0 !important; }
-@media (max-width: 1023.98px) { .st-key-topnav { margin: 8px !important; } }
+@media (max-width: 1023.98px) { .st-key-topnav { margin: 22px 8px 8px !important; } }   /* phones: a little under the top line (the page's script sets the exact gap) */
 .ixp { margin-top: -1rem; color: #F5F5F7; font-family: 'DM Sans', 'Readex Pro', system-ui, sans-serif; overflow: hidden; isolation: isolate;
   background: linear-gradient(180deg, #14101A 0%, #14101A 12%, #150F22 22%, #160E28 36%, #130D24 52%, #170F2C 68%, #110B21 84%, #0E0918 100%); }
 .ixs::before { content: ""; position: absolute; z-index: -1; pointer-events: none; top: -10%; width: 80vw; height: 120%; left: -40vw;
