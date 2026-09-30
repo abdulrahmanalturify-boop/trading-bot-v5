@@ -10,9 +10,9 @@ import streamlit as st
 # ---------------------------------------------------------------- always run the newest code
 # Streamlit Cloud re-reads app.py after every GitHub upload but can keep the other modules (theme, data, ...) from the
 # previous version in memory. Every module carries BUILD; if one in memory is older, all of them are reloaded in order.
-BUILD = "15.5"
+BUILD = "15.6"
 _ORDER = ["i18n", "ai_assistant", "flags", "mcal", "universe", "sp500", "taxonomy", "ta", "academy", "insight", "heatmap", "newsiq", "theme", "data",
-          "caldata", "newsbot", "charts", "engine", "playbooks", "autotrader", "ui", "sharia", "lab", "tdash", "mlbots", "brain", "paperbots", "smartbots", "p_markets", "p_research", "p_insight",
+          "caldata", "newsbot", "newsintel", "charts", "engine", "playbooks", "autotrader", "ui", "sharia", "lab", "tdash", "mlbots", "brain", "paperbots", "smartbots", "p_markets", "p_newsintel", "p_research", "p_insight",
           "p_academy", "p_paper", "p_calendar", "hunter", "p_scanner", "home"]
 if any(m in sys.modules and getattr(sys.modules[m], "BUILD", None) != BUILD for m in _ORDER):
     for _m in _ORDER:
@@ -35,6 +35,7 @@ import p_academy
 import p_calendar
 import p_insight
 import p_markets
+import p_newsintel
 import p_paper
 import p_research
 import p_scanner
@@ -163,6 +164,8 @@ P.update({
     "economy": st.Page(p_markets.page_economy, title=L("Economy", "الاقتصاد"), icon=":material/account_balance:", url_path="economy"),
     "trending": st.Page(p_markets.page_trending, title=L("What's Trending", "الأكثر رواجاً"), icon=":material/local_fire_department:", url_path="trending"),
     "news": st.Page(p_markets.page_news, title=L("News", "الأخبار"), icon=":material/newspaper:", url_path="news"),
+    "newsintel": st.Page(p_newsintel.page_news_intel, title=L("News Intelligence Engine", "محرك ذكاء الأخبار"), icon=":material/neurology:",
+                         url_path="news-intelligence"),
     "stock": st.Page(p_research.page_stock, title=L("Stock", "السهم"), icon=":material/candlestick_chart:", url_path="stock"),
     "screener": st.Page(p_research.page_screener, title=L("Screener", "فلتر الأسهم"), icon=":material/filter_alt:", url_path="screener"),
     "brief": st.Page(p_insight.page_brief, title=L("Daily Brief", "الموجز اليومي"), icon=":material/summarize:", url_path="brief"),
@@ -186,7 +189,7 @@ P.update({
 })
 SECTIONS = [
     (L("Markets", "الأسواق"), "monitoring", ["overview", "futures", "options", "economy"]),
-    (L("Discover", "اكتشف"), "explore", ["trending", "news"]),
+    (L("Discover", "اكتشف"), "explore", ["trending", "news", "newsintel"]),
     (L("Research", "الأبحاث"), "query_stats", ["stock", "screener"]),
     (L("Calendar", "التقويم"), "calendar_month", ["earnings", "results", "econcal", "holidays", "dividends", "splits", "ipos"]),
     (L("Insight", "رؤى"), "lightbulb", ["brief", "articles", "sentiment", "seasonality"]),

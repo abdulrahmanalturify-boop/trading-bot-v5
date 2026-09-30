@@ -4,7 +4,7 @@ import os
 import requests
 import streamlit as st
 
-BUILD = "15.5"
+BUILD = "15.6"
 API_URL = "https://api.openai.com/v1/responses"
 MAX_Q = 1200
 
@@ -27,7 +27,7 @@ div.st-key-alturaifi_ai_prompt input{min-height:42px!important;border-radius:13p
 PAGES = {
     "overview":("market overview dashboard","لوحة نظرة عامة على السوق"),"futures":("futures page","صفحة العقود الآجلة"),
     "options":("options page","صفحة الخيارات"),"economy":("macroeconomy page","صفحة الاقتصاد الكلي"),
-    "trending":("trending topics","المواضيع الرائجة"),"news":("market news","أخبار السوق"),
+    "trending":("trending topics","المواضيع الرائجة"),"news":("market news","أخبار السوق"),"news-intelligence":("news intelligence engine","محرك ذكاء الأخبار"),
     "stock":("single-stock research","أبحاث سهم واحد"),"screener":("stock screener","فلتر الأسهم"),
     "brief":("daily market brief","الموجز اليومي"),"articles":("articles","المقالات"),
     "sentiment":("market sentiment","معنويات السوق"),"seasonality":("seasonality","الموسمية"),
