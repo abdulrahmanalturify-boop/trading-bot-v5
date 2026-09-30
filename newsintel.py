@@ -303,6 +303,8 @@ def analyze(n, px=None, chg=None, spy_regime="mixed", now=None):
     s, lab, words = sentiment(title, summ, ev)
     main = tick[0] if tick else "SPY"                  # a story without a company is read on the whole market (the S&P 500)
     fa = price_facts(px.get(main), n.get("time"))
+    if fa and main in chg and chg[main][1] is not None and pd.notna(chg[main][1]):
+        fa["chg"] = float(chg[main][1])                 # today's change: the live quote (the daily bar can still be yesterday's)
     if fa is None and main and main in chg:
         fa = {"close": chg[main][0], "chg": chg[main][1], "rvol": None, "atr_pct": None, "sma20": None, "sma50": None, "sma200": None,
               "ret21": None, "ret5": None, "hi": None, "lo": None, "pre": None}
@@ -395,34 +397,45 @@ def setup(impact, d, fa, spy_regime):
     return {"parts": {k: round(v, 1) for k, v in parts.items()}, "total": total, "dir": d, "label": lab}
 
 
-def scenario(a):
-    """A trading scenario with its levels (education: the rules above decide it, not a recommendation):
-    (english, arabic) or None when there is no setup or no prices."""
+def plan(a):
+    """The trading scenario's levels (education: the rules above decide it, not a recommendation), or None when there is no
+    setup or no prices: {"dir", "price", "trigger", "stop", "target", "risk_pct", "reward_pct"}."""
     st_, fa = a["setup"], a["facts"]
     if not fa or not st_["dir"] or st_["total"] < 40 or not fa.get("hi") or not fa.get("atr_pct"):
         return None
     c, hi, lo, atrp = fa["close"], fa["hi"], fa["lo"], fa["atr_pct"]
     atr = c * atrp / 100
-    fmt = lambda x: f"${x:,.2f}"
     if st_["dir"] > 0:
         stop = min(lo, c - 1.5 * atr)
-        tgt = c + 2 * (c - stop)
-        return (f"Continuation if the price closes above today's high ({fmt(hi)}) with volume above its average. The idea is wrong "
-                f"below {fmt(stop)} (today's low or 1.5 ATR under the price). A first target at 2× the risk: {fmt(tgt)}.",
-                f"استمرار الصعود إذا أغلق السعر فوق أعلى سعر اليوم ({fmt(hi)}) بحجم تداول فوق متوسطه. الفكرة تسقط تحت {fmt(stop)} "
-                f"(أدنى سعر اليوم أو 1.5 ATR تحت السعر). أول هدف عند ضعف المخاطرة: {fmt(tgt)}.")
-    stop = max(hi, c + 1.5 * atr)
-    tgt = c - 2 * (stop - c)
-    return (f"Continuation down if the price closes below today's low ({fmt(lo)}) with volume above its average. The idea is wrong "
-            f"above {fmt(stop)} (today's high or 1.5 ATR over the price). A first target at 2× the risk: {fmt(tgt)}.",
-            f"استمرار الهبوط إذا أغلق السعر تحت أدنى سعر اليوم ({fmt(lo)}) بحجم تداول فوق متوسطه. الفكرة تسقط فوق {fmt(stop)} "
-            f"(أعلى سعر اليوم أو 1.5 ATR فوق السعر). أول هدف عند ضعف المخاطرة: {fmt(tgt)}.")
+        trig, tgt = hi, c + 2 * (c - stop)
+    else:
+        stop = max(hi, c + 1.5 * atr)
+        trig, tgt = lo, c - 2 * (stop - c)
+    return {"dir": st_["dir"], "price": c, "trigger": trig, "stop": stop, "target": tgt,
+            "risk_pct": abs(c - stop) / c * 100, "reward_pct": abs(tgt - c) / c * 100}
+
+
+def scenario(a):
+    """The trading scenario in words: (english, arabic) or None."""
+    p = plan(a)
+    if not p:
+        return None
+    fmt = lambda x: f"${x:,.2f}"
+    if p["dir"] > 0:
+        return (f"Continuation if the price closes above today's high ({fmt(p['trigger'])}) with volume above its average. The idea is wrong "
+                f"below {fmt(p['stop'])} (today's low or 1.5 ATR under the price). A first target at 2× the risk: {fmt(p['target'])}.",
+                f"استمرار الصعود إذا أغلق السعر فوق أعلى سعر اليوم ({fmt(p['trigger'])}) بحجم تداول فوق متوسطه. الفكرة تسقط تحت {fmt(p['stop'])} "
+                f"(أدنى سعر اليوم أو 1.5 ATR تحت السعر). أول هدف عند ضعف المخاطرة: {fmt(p['target'])}.")
+    return (f"Continuation down if the price closes below today's low ({fmt(p['trigger'])}) with volume above its average. The idea is wrong "
+            f"above {fmt(p['stop'])} (today's high or 1.5 ATR over the price). A first target at 2× the risk: {fmt(p['target'])}.",
+            f"استمرار الهبوط إذا أغلق السعر تحت أدنى سعر اليوم ({fmt(p['trigger'])}) بحجم تداول فوق متوسطه. الفكرة تسقط فوق {fmt(p['stop'])} "
+            f"(أعلى سعر اليوم أو 1.5 ATR فوق السعر). أول هدف عند ضعف المخاطرة: {fmt(p['target'])}.")
 
 
 def why(a):
     """Why it matters, in plain words: (english, arabic)."""
     ev, main = a["event"], a["main"]
-    name = company(main)[0] if main else ""
+    name = company(main)[0].rstrip(".") if main and a["direct"] else ""
     en_ev, ar_ev = EVENT.get(ev, EVENT["other"])[:2]
     sec = a["sectors"][0] if a["sectors"] else None
     peers_ = ", ".join(a["indirect"][:3])
@@ -479,5 +492,11 @@ def analyze_all(items, px=None, chg=None, spy=None, now=None):
             continue
     return out
 
+
+
+def word_sign(w):
+    """+1 for a word that reads bullish, -1 bearish (for the chips of the words that decided the sentiment)."""
+    return 1 if _POS.fullmatch(w or "") else -1
+
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "15.6"
+BUILD = "15.7"

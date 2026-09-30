@@ -57,6 +57,76 @@ CSS = """<style>
 .nie-li { margin:0; padding-inline-start:18px; color:#DDD8E6; font-size:.88rem; line-height:1.7; }
 @media (max-width: 700px) { .nie-card { flex-direction:column; } .nie-card .nth.big { width:100%; height:150px; }
   .nie-grid { grid-template-columns: minmax(0, 1fr); } }
+/* ---------- the tabs: tiles, bars, chips, rows, a trade plan ---------- */
+.nx-tiles { display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:10px; margin:6px 0 12px; }
+.nx-tile { position:relative; background:linear-gradient(180deg, rgba(36,26,60,.88), rgba(20,14,34,.92)); border:1px solid rgba(157,151,165,.2);
+  border-radius:14px; padding:12px 14px; min-width:0; }
+.nx-tile .l { display:flex; align-items:center; gap:6px; color:#A59FB0; font-size:.68rem; font-weight:700; letter-spacing:.07em; text-transform:uppercase; }
+.nx-tile .l .ms { font-size:1rem; color:#A78BFA; }
+.nx-tile .v { color:#fff; font-size:1.25rem; font-weight:800; margin-top:6px; line-height:1.2; font-variant-numeric:tabular-nums; }
+.nx-tile .v small { font-size:.75rem; color:#9D97A5; font-weight:600; }
+.nx-tile .s { color:#9D97A5; font-size:.74rem; margin-top:4px; line-height:1.4; }
+.nx-bar { height:6px; border-radius:6px; background:rgba(157,151,165,.18); margin-top:9px; overflow:hidden; }
+.nx-bar i { display:block; height:100%; border-radius:6px; }
+.nx-chips { display:flex; flex-wrap:wrap; gap:6px; margin:4px 0 10px; }
+.nx-chip { display:inline-flex; align-items:center; gap:5px; padding:4px 11px; border-radius:999px; font-size:.78rem; font-weight:700; border:1px solid; }
+.nx-chip.up { color:#4ADE80; border-color:rgba(74,222,128,.35); background:rgba(74,222,128,.08); }
+.nx-chip.dn { color:#F87171; border-color:rgba(248,113,113,.35); background:rgba(248,113,113,.08); }
+.nx-chip.nu { color:#C4B5FD; border-color:rgba(196,181,253,.35); background:rgba(124,58,237,.1); }
+.nx-h { color:#DCD6F7; font-size:.8rem; font-weight:700; margin:12px 0 6px; display:flex; align-items:center; gap:6px; }
+.nx-h .ms { color:#A78BFA; font-size:1rem; }
+.nx-note { display:flex; gap:8px; align-items:flex-start; color:#9D97A5; font-size:.76rem; line-height:1.55; margin-top:10px; padding:9px 12px;
+  border-radius:12px; background:rgba(124,58,237,.07); border:1px dashed rgba(167,139,250,.28); }
+.nx-note .ms { color:#A78BFA; font-size:1rem; flex:none; }
+.nx-list { display:flex; flex-direction:column; gap:8px; margin:6px 0; }
+.nx-row { display:grid; grid-template-columns: auto minmax(0, 1.4fr) auto minmax(0, 1.2fr) auto; align-items:center; gap:12px;
+  background:linear-gradient(180deg, rgba(34,24,56,.86), rgba(20,14,34,.9)); border:1px solid rgba(157,151,165,.18); border-radius:14px;
+  padding:10px 14px; text-decoration:none !important; transition:border-color .15s, transform .15s; }
+a.nx-row:hover { border-color:rgba(167,139,250,.5); transform:translateY(-1px); }
+.nx-row .tk { color:#fff; font-weight:800; font-size:.92rem; }
+.nx-row .nm { color:#9D97A5; font-size:.74rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.nx-row .sc { color:#CFC9DA; font-size:.78rem; line-height:1.35; min-width:0; }
+.nx-row .sc span { display:block; color:#8F899B; font-size:.7rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.nx-badge { display:inline-flex; align-items:center; gap:4px; font-size:.68rem; font-weight:800; letter-spacing:.04em; padding:3px 9px;
+  border-radius:999px; white-space:nowrap; }
+.nx-badge.dir { color:#FDE68A; background:rgba(251,191,36,.12); border:1px solid rgba(251,191,36,.35); }
+.nx-badge.ind { color:#C4B5FD; background:rgba(124,58,237,.12); border:1px solid rgba(167,139,250,.35); }
+.nx-callout { display:flex; gap:14px; align-items:flex-start; padding:16px 18px; border-radius:16px; margin:6px 0;
+  background:linear-gradient(135deg, rgba(124,58,237,.16), rgba(20,14,34,.9) 60%); border:1px solid rgba(167,139,250,.28);
+  border-inline-start:4px solid #8B5CF6; }
+.nx-callout .ms { font-size:1.6rem; color:#C4B5FD; flex:none; }
+.nx-callout p { margin:0; color:#EDE9F5; font-size:.95rem; line-height:1.75; }
+.nx-sec { display:grid; grid-template-columns: minmax(110px, 1.2fr) minmax(0, 1.8fr) 48px 92px 122px; align-items:center; gap:12px;
+  padding:9px 14px; border-radius:12px; background:rgba(22,16,36,.86); border:1px solid rgba(157,151,165,.16); }
+.nx-sec .n { color:#fff; font-weight:700; font-size:.84rem; }
+.nx-sec > .pill, .nx-sec > .nx-ok { justify-self:stretch; text-align:center; }
+.nx-row .tk, .nx-row .nm, .nx-row .sc span, .nx-sec .e { unicode-bidi:plaintext; }
+.nx-sec .e { color:#8F899B; font-size:.72rem; font-weight:700; }
+.nx-div { position:relative; height:8px; border-radius:8px; background:rgba(157,151,165,.16); direction:ltr; }
+.nx-div::before { content:""; position:absolute; left:50%; top:-3px; bottom:-3px; width:1px; background:rgba(220,214,247,.45); }
+.nx-div i { position:absolute; top:0; bottom:0; border-radius:8px; }
+.nx-ok { font-size:.72rem; font-weight:800; padding:3px 9px; border-radius:999px; white-space:nowrap; }
+.nx-ok.y { color:#4ADE80; background:rgba(74,222,128,.1); } .nx-ok.n { color:#F87171; background:rgba(248,113,113,.1); }
+.nx-ok.z { color:#9D97A5; background:rgba(157,151,165,.1); }
+.nx-plan { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:10px; margin:6px 0 12px; }
+.nx-lv { border-radius:14px; padding:12px 14px; border:1px solid; }
+.nx-lv .l { font-size:.68rem; font-weight:800; letter-spacing:.07em; text-transform:uppercase; }
+.nx-lv .v { font-size:1.35rem; font-weight:800; margin-top:5px; font-variant-numeric:tabular-nums; direction:ltr; unicode-bidi:isolate; }
+.nx-lv .s { font-size:.74rem; color:#B7B1C2; margin-top:4px; line-height:1.45; }
+.nx-lv.go { border-color:rgba(96,165,250,.4); background:rgba(59,130,246,.09); } .nx-lv.go .l, .nx-lv.go .v { color:#93C5FD; }
+.nx-lv.st { border-color:rgba(248,113,113,.4); background:rgba(239,68,68,.08); } .nx-lv.st .l, .nx-lv.st .v { color:#FCA5A5; }
+.nx-lv.tg { border-color:rgba(74,222,128,.4); background:rgba(34,197,94,.08); } .nx-lv.tg .l, .nx-lv.tg .v { color:#86EFAC; }
+.nx-ladder { position:relative; height:46px; margin:8px 6px 4px; direction:ltr; }
+.nx-ladder .tr { position:absolute; left:0; right:0; top:20px; height:6px; border-radius:6px;
+  background:linear-gradient(90deg, rgba(248,113,113,.55), rgba(157,151,165,.25) 50%, rgba(74,222,128,.55)); }
+.nx-ladder .mk { position:absolute; top:0; transform:translateX(-50%); text-align:center; font-size:.68rem; font-weight:800; white-space:nowrap; }
+.nx-ladder .mk i { display:block; width:12px; height:12px; border-radius:50%; margin:15px auto 0; border:2px solid #0E0918; }
+.nx-ladder .mk b { position:absolute; top:-2px; left:50%; transform:translateX(-50%); }
+@media (max-width: 700px) {
+  .nx-row { grid-template-columns: auto minmax(0, 1fr) auto; } .nx-row .sc, .nx-row .nx-badge { display:none; }
+  .nx-sec { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 86px; } .nx-sec .e, .nx-sec .nx-ok { display:none; }
+  .nx-plan { grid-template-columns: minmax(0, 1fr); }
+  .nx-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap:8px; } .nx-tile { padding:10px 11px; } .nx-tile .v { font-size:1.05rem; } }
 </style>"""
 
 IMPACT_LEVELS = [(70, "High", "عالي"), (45, "Medium", "متوسط"), (0, "Low", "منخفض")]
@@ -193,6 +263,24 @@ def _pipeline(n_items, n_co, n_macro, n_setups):
     return f'<div class="nie-pipe">{"".join(out)}</div><div class="nie-lv">{lvh}</div>'
 
 
+def _bar(frac, color):
+    return f'<div class="nx-bar"><i style="width:{max(0, min(1, frac)) * 100:.0f}%;background:{color}"></i></div>'
+
+
+def _tile(ic, label, value, sub="", bar=None):
+    return (f'<div class="nx-tile"><div class="l">{T.icon(ic)}{T.esc(label)}</div><div class="v">{value}</div>'
+            + (f'<div class="s">{sub}</div>' if sub else "") + (bar or "") + "</div>")
+
+
+def _note(text, ic="info"):
+    return f'<div class="nx-note">{T.icon(ic)}<span>{T.esc(text)}</span></div>'
+
+
+def _heat(x):
+    """A colour from red (0) through amber to green (1)."""
+    return "#F87171" if x < .34 else "#FBBF24" if x < .67 else "#4ADE80"
+
+
 def _fact(label, value):
     return f'<div class="nie-f"><div class="l">{T.esc(label)}</div><div class="v">{value}</div></div>'
 
@@ -273,84 +361,191 @@ def _detail(a, chg, sec_chg, titles_ar):
                     L("Expected Market Impact", "الأثر المتوقع على السوق"), L("Technical Confirmation", "التأكيد الفني"),
                     L("Trading Scenario", "سيناريو التداول")])
     with tabs[0]:
-        lines = _engine_summary(a)
-        key, _m = _ai_key()
+        _tab_ai(a, n, ar)
+    with tabs[1]:
+        _tab_stocks(a, chg)
+    with tabs[2]:
+        ui.html(f'<div class="nx-callout">{T.icon("lightbulb")}<p>{T.esc(L(why_en, why_ar))}</p></div>')
+        if a["words"]:
+            ui.html(f'<div class="nx-h">{T.icon("key")}{T.esc(L("What in the headline decided it", "وش في العنوان حدد الاتجاه"))}</div>' + _word_chips(a))
+    with tabs[3]:
+        _tab_impact(a, sec_chg)
+    with tabs[4]:
+        _tab_tech(a)
+    with tabs[5]:
+        _tab_plan(a)
+
+
+def _word_chips(a):
+    return '<div class="nx-chips">' + "".join(
+        f'<span class="nx-chip {"up" if NI.word_sign(w) > 0 else "dn"}">{"▲" if NI.word_sign(w) > 0 else "▼"} {T.esc(w.lower())}</span>'
+        for w in dict.fromkeys(a["words"][:8])) + "</div>"
+
+
+def _tab_ai(a, n, ar):
+    lines = _engine_summary(a)
+    key, _m = _ai_key()
+    if key:
         payload = json.dumps({"headline": n["title"], "summary": (n.get("summary") or "")[:600], "source": n.get("source"),
                               "engine": [ln[0] for ln in lines], "companies_direct": a["direct"], "companies_indirect": a["indirect"],
                               "setup": {"score": a["setup"]["total"], "label": a["setup"]["label"][0], "parts": a["setup"]["parts"]}})
-        if key:
-            k_ = "nie_ai_" + str(abs(hash(n.get("link") or n["title"])))
-            if st.button(L("Analyse this story with AI", "حلّل هالخبر بالذكاء الاصطناعي"), icon=":material/auto_awesome:", key=k_):
-                ss[k_ + "_on"] = True
-            if ss.get(k_ + "_on"):
-                with st.spinner(L("The AI analyst is reading the story...", "محلل الذكاء الاصطناعي يقرأ الخبر...")):
-                    txt = _ai_analysis(payload, "ar" if ar else "en")
-                st.markdown(txt or L("The AI could not answer this time; the engine's reading is below.",
-                                     "الذكاء الاصطناعي ما رد هالمرة، وقراءة المحرك تحت."))
-        ui.html('<ul class="nie-li">' + "".join(f"<li>{T.esc(L(*ln))}</li>" for ln in lines) + "</ul>")
-        if not key:
-            ui.html(f'<div class="nie-note">{T.esc(L("This is the engine’s own reading (rules and numbers). With an AI key (OPENAI_API_KEY in the site’s Secrets) a button here asks the AI analyst to explain the story in words.", "هذي قراءة المحرك نفسه (قواعد وأرقام). ولما يكون للموقع مفتاح ذكاء اصطناعي (OPENAI_API_KEY في Secrets) يطلع هنا زر يطلب من محلل الذكاء الاصطناعي يشرح الخبر بالكلام."))}</div>')
-    with tabs[1]:
+        k_ = "nie_ai_" + str(abs(hash(n.get("link") or n["title"])))
+        if st.button(L("Analyse this story with AI", "حلّل هالخبر بالذكاء الاصطناعي"), icon=":material/auto_awesome:", key=k_):
+            ss[k_ + "_on"] = True
+        if ss.get(k_ + "_on"):
+            with st.spinner(L("The AI analyst is reading the story...", "محلل الذكاء الاصطناعي يقرأ الخبر...")):
+                txt = _ai_analysis(payload, "ar" if ar else "en")
+            if txt:
+                ui.html(f'<div class="nx-callout">{T.icon("auto_awesome")}<p>{T.esc(txt).replace(chr(10), "<br>")}</p></div>')
+            else:
+                st.caption(L("The AI could not answer this time; the engine's reading is below.", "الذكاء الاصطناعي ما رد هالمرة، وقراءة المحرك تحت."))
+    en_ev, ar_ev, ic, hz = NI.EVENT.get(a["event"], NI.EVENT["other"])
+    sen, sar, scol = NI.SENT[a["lab"]]
+    fa = a["facts"] or {}
+    who = _stock_txt(a)
+    imp, mat, conf = a["impact"], a["materiality"], a["confidence"]
+    tiles = [
+        _tile(ic, L("Event", "الحدث"), T.esc(L(en_ev, ar_ev)), T.esc(who)),
+        _tile("balance", L("Reading", "القراءة"), f'<span style="color:{scol}">{T.esc(L(sen, sar))}</span> <small>{a["sent"]:+.2f}</small>',
+              T.esc(L("from the words and the price", "من الكلمات والسعر"))),
+        _tile("bolt", L("Impact", "الأثر"), f"{imp:.0f}<small>/100</small>", T.esc(impact_level(imp)), _bar(imp / 100, _heat(imp / 100))),
+        _tile("priority_high", L("Materiality", "الأهمية"), f"{mat:.1f}<small>/10</small>",
+              T.esc(L("material", "مهم فعلاً") if mat >= 6 else L("worth watching", "يستحق المتابعة") if mat >= 4 else L("mostly noise", "غالباً ضوضاء")),
+              _bar(mat / 10, _heat(mat / 10))),
+        _tile("verified", L("Confidence", "الثقة"), f"{conf}<small>%</small>", "", _bar(conf / 100, _heat((conf - 20) / 75))),
+        _tile("schedule", L("Horizon", "الأفق"), T.esc(L(*NI.HORIZON[hz])), T.esc(L("how long it may last", "كم ممكن يدوم"))),
+    ]
+    if fa.get("chg") is not None:
+        rv = fa.get("rvol")
+        tiles.append(_tile("show_chart", L("Price today", "السعر اليوم"), T.pill(fa["chg"]),
+                           T.esc(L(f"volume {rv:.1f}× its average", f"الحجم {rv:.1f}× متوسطه")) if rv else "",
+                           _bar(min(rv / 3, 1), "#60A5FA") if rv else None))
+    ui.html(f'<div class="nx-tiles">{"".join(tiles)}</div>')
+    if a["words"]:
+        ui.html(f'<div class="nx-h">{T.icon("key")}{T.esc(L("Words that decided the sentiment", "الكلمات اللي حددت الاتجاه"))}</div>' + _word_chips(a))
+    if not key:
+        ui.html(_note(L("This is the engine’s own reading (rules and numbers). With an AI key (OPENAI_API_KEY in the site’s Secrets) a button here "
+                        "asks the AI analyst to explain the story in words.",
+                        "هذي قراءة المحرك نفسه (قواعد وأرقام). ولما يكون للموقع مفتاح ذكاء اصطناعي (OPENAI_API_KEY في Secrets) يطلع هنا زر "
+                        "يطلب من محلل الذكاء الاصطناعي يشرح الخبر بالكلام."), "auto_awesome"))
+
+
+def _tab_stocks(a, chg):
+    rows = []
+    for kind, cls, syms in ((L("Direct", "مباشر"), "dir", a["direct"]), (L("Indirect", "غير مباشر"), "ind", a["indirect"])):
+        for sym in syms:
+            name, sec, sub = NI.company(sym)
+            c = chg.get(sym)
+            secn = L(sec, SECTOR_AR.get(sec, sec)) if sec else ""
+            rows.append(f'<a class="nx-row" href="stock?symbol={T.esc(sym)}" target="_self">{T.logo_obj(sym, 36)}'
+                        f'<div style="min-width:0"><div class="tk">{T.esc(sym)}</div><div class="nm" dir="auto">{T.esc(name)}</div></div>'
+                        f'<span class="nx-badge {cls}">{T.esc(kind)}</span>'
+                        f'<div class="sc">{T.esc(secn)}<span>{T.esc(sub or "")}</span></div>{T.pill(c[1] if c else None)}</a>')
+    if rows:
+        ui.html(f'<div class="nx-list">{"".join(rows)}</div>')
+        ui.html(_note(L("Direct: named in the story. Indirect: suppliers, customers and closest rivals the site knows, then the largest "
+                        "companies of the same industry. Open one for its full research page.",
+                        "مباشر: مذكور في الخبر. غير مباشر: الموردين والعملاء وأقرب المنافسين اللي يعرفهم الموقع، وبعدهم أكبر شركات نفس "
+                        "الصناعة. اضغط على أي سهم عشان تفتح صفحة أبحاثه."), "hub"))
+    else:
+        ui.html(_note(L("No single company: this story moves the market as a whole (see the expected impact by sector).",
+                        "ما فيه شركة محددة: هالخبر يحرك السوق كله (شف الأثر المتوقع حسب القطاع)."), "public"))
+
+
+def _tab_impact(a, sec_chg):
+    sen, sar, scol = NI.SENT[a["lab"]]
+    hz = NI.HORIZON[a["horizon"]]
+    cls = {"bull": "up", "bear": "dn", "neutral": "nu"}[a["lab"]]
+    ui.html('<div class="nx-chips">'
+            f'<span class="nx-chip {cls}">{T.esc(L(sen, sar))}</span>'
+            f'<span class="nx-chip nu">{T.icon("schedule")}{T.esc(L(*hz))}</span>'
+            f'<span class="nx-chip nu">{T.esc(L("Severity", "الشدة"))} {a["severity"]}/10</span>'
+            f'<span class="nx-chip nu">{T.esc(L("Confidence", "الثقة"))} {a["confidence"]}%</span></div>')
+    if a["macro"]:
+        key_, en_m, ar_m, eff = a["macro"]
+        ui.html(f'<div class="nx-h">{T.icon("public")}{T.esc(L(f"{en_m}: how each sector usually takes it, and how it moved today", f"{ar_m}: كيف يتأثر كل قطاع عادةً، وكيف تحرك اليوم"))}</div>')
+        etf_of = {v: k for k, v in U.SECTOR_ETFS.items()}
         rows = []
-        for kind, syms in ((L("Direct", "مباشر"), a["direct"]), (L("Indirect", "غير مباشر"), a["indirect"])):
-            for sym in syms:
-                name, sec, sub = NI.company(sym)
-                c = chg.get(sym)
-                rows.append({L("Link", "العلاقة"): kind, L("Stock", "السهم"): sym, L("Company", "الشركة"): name,
-                             L("Sector", "القطاع"): L(sec, SECTOR_AR.get(sec, sec)) if sec else "", L("Industry", "الصناعة"): sub or "",
-                             L("Today", "اليوم"): (f"{c[1]:+.2f}%" if c and c[1] is not None else "—")})
-        if rows:
-            st.dataframe(pd.DataFrame(rows), hide_index=True, width="stretch")
-            ui.html(f'<div class="nie-note">{T.esc(L("Indirect: suppliers, customers and closest rivals the site knows, then the largest companies of the same industry.", "غير مباشر: الموردين والعملاء وأقرب المنافسين اللي يعرفهم الموقع، وبعدهم أكبر شركات نفس الصناعة."))}</div>')
-        else:
-            st.caption(L("No single company: this story moves the market as a whole (see the expected impact by sector).",
-                         "ما فيه شركة محددة: هالخبر يحرك السوق كله (شف الأثر المتوقع حسب القطاع)."))
-    with tabs[2]:
-        st.markdown(L(why_en, why_ar))
-    with tabs[3]:
-        st.markdown(L(f"**{sen}** · {hzt[0]} · severity **{a['severity']}/10** · confidence **{a['confidence']}%**",
-                      f"**{sar}** · {hzt[1]} · الشدة **{a['severity']}/10** · الثقة **{a['confidence']}%**"))
-        if a["macro"]:
-            key_, en_m, ar_m, eff = a["macro"]
-            st.caption(L(f"{en_m}: how each sector usually takes it (a rule of thumb) and how its fund actually moved today.",
-                         f"{ar_m}: كيف يتأثر كل قطاع عادةً (قاعدة عامة) وكيف تحرك صندوقه فعلاً اليوم."))
-            etf_of = {v: k for k, v in U.SECTOR_ETFS.items()}
-            rows = []
-            for sec, e in sorted(eff.items(), key=lambda x: -x[1]):
-                etf = etf_of.get(sec)
-                c = sec_chg.get(etf) if etf else None
-                agree = "—" if not c or e == 0 else ("✓" if (c[1] > 0) == (e > 0) else "✗")
-                rows.append({L("Sector", "القطاع"): L(sec, SECTOR_AR.get(sec, sec)), L("Usually", "عادةً"): {2: "▲▲", 1: "▲", 0: "●", -1: "▼", -2: "▼▼"}[e],
-                             L("Fund", "الصندوق"): etf or "", L("Today", "اليوم"): f"{c[1]:+.2f}%" if c else "—", L("As usual?", "مثل العادة؟"): agree})
-            st.dataframe(pd.DataFrame(rows), hide_index=True, width="stretch")
-        elif a["direct"]:
-            st.caption(L("The story's weight on the stock is the impact score; the related companies usually move less, in the same direction.",
-                         "وزن الخبر على السهم هو درجة الأثر، والشركات المرتبطة غالباً تتحرك أقل وبنفس الاتجاه."))
-    with tabs[4]:
-        if fa:
-            sym = a["main"]
-            items = []
-            c = fa.get("close")
-            for k, en, ar_ in (("sma20", "20-day", "20 يوم"), ("sma50", "50-day", "50 يوم"), ("sma200", "200-day", "200 يوم")):
-                v = fa.get(k)
-                if v and c:
-                    items.append(L(f"{sym} is {'above' if c > v else 'below'} its {en} average ({v:,.2f}), {c / v - 1:+.1%}",
-                                   f"{sym} {'فوق' if c > v else 'تحت'} متوسط {ar_} ({v:,.2f})، {c / v - 1:+.1%}"))
-            if fa.get("rvol"):
-                items.append(L(f"Volume today: {fa['rvol']:.1f}× its 20-day average", f"حجم التداول اليوم: {fa['rvol']:.1f}× متوسط 20 يوم"))
-            if a["move"] is not None and fa.get("chg") is not None:
-                items.append(L(f"Today's move {fa['chg']:+.2f}% = {abs(a['move']):.1f}× a normal day (ATR {fa['atr_pct']:.1f}%)" if fa.get("atr_pct") else f"Today's move {fa['chg']:+.2f}%",
-                               f"حركة اليوم {fa['chg']:+.2f}% = {abs(a['move']):.1f} ضعف اليوم العادي (ATR {fa['atr_pct']:.1f}%)" if fa.get("atr_pct") else f"حركة اليوم {fa['chg']:+.2f}%"))
-            if fa.get("ret21") is not None:
-                items.append(L(f"Last month: {fa['ret21']:+.1f}%", f"آخر شهر: {fa['ret21']:+.1f}%"))
-            ui.html('<ul class="nie-li">' + "".join(f"<li>{T.esc(x)}</li>" for x in items) + "</ul>")
-        else:
-            st.caption(L("No prices for this stock right now.", "ما فيه أسعار لهالسهم الحين."))
-    with tabs[5]:
-        sc = NI.scenario(a)
-        st.markdown(L(*sc) if sc else L("No trading scenario: the news and the price do not line up enough (the setup is under 40/100).",
-                                        "ما فيه سيناريو تداول: الخبر والسعر ما يتفقون كفاية (الفرصة أقل من 40/100)."))
-        ui.html(f'<div class="nie-note">{T.esc(L("Education, not a recommendation. The rules above decide the setup; a language model only explains a story and never trades.", "للتعليم، مو توصية. القواعد فوق هي اللي تحدد الفرصة، والذكاء الاصطناعي يشرح الخبر بس وما يتداول أبداً."))}</div>')
+        for sec, e in sorted(eff.items(), key=lambda x: -x[1]):
+            etf = etf_of.get(sec)
+            c = sec_chg.get(etf) if etf else None
+            w = abs(e) / 2 * 50
+            bar = (f'<i style="left:50%;width:{w:.0f}%;background:linear-gradient(90deg,#22C55E88,#4ADE80)"></i>' if e > 0 else
+                   f'<i style="left:{50 - w:.0f}%;width:{w:.0f}%;background:linear-gradient(90deg,#F87171,#EF444488)"></i>' if e < 0 else "")
+            if not c or e == 0:
+                ok_ = '<span class="nx-ok z">—</span>'
+            elif (c[1] > 0) == (e > 0):
+                ok_ = f'<span class="nx-ok y">✓ {T.esc(L("as usual", "مثل العادة"))}</span>'
+            else:
+                ok_ = f'<span class="nx-ok n">✗ {T.esc(L("not today", "مو اليوم"))}</span>'
+            rows.append(f'<div class="nx-sec"><span class="n">{T.esc(L(sec, SECTOR_AR.get(sec, sec)))}</span><div class="nx-div">{bar}</div>'
+                        f'<span class="e">{T.esc(etf or "")}</span>{T.pill(c[1] if c else None)}{ok_}</div>')
+        ui.html(f'<div class="nx-list">{"".join(rows)}</div>')
+        ui.html(_note(L("The bar is a rule of thumb of how the sector usually reacts (left hurt, right helped); the change is its sector fund today.",
+                        "الشريط قاعدة عامة لتفاعل القطاع عادةً (يسار يتضرر، يمين يستفيد)، والنسبة حركة صندوق القطاع اليوم."), "info"))
+    elif a["direct"]:
+        ui.html(_note(L("The story's weight on the stock is its impact score; the related companies usually move less, in the same direction.",
+                        "وزن الخبر على السهم هو درجة الأثر، والشركات المرتبطة غالباً تتحرك أقل وبنفس الاتجاه."), "info"))
+
+
+def _tab_tech(a):
+    fa = a["facts"]
+    if not fa:
+        ui.html(_note(L("No prices for this stock right now.", "ما فيه أسعار لهالسهم الحين."), "hourglass_empty"))
+        return
+    sym, d, c = a["main"], a["dir"] or 1, fa.get("close")
+    ok_ = lambda good: (f'<span class="nx-ok y">✓ {T.esc(L("confirms", "يؤكد"))}</span>' if good else
+                        f'<span class="nx-ok n">✗ {T.esc(L("against", "يعاكس"))}</span>')
+    tiles = []
+    for k, en, ar_ in (("sma20", "20-day average", "متوسط 20 يوم"), ("sma50", "50-day average", "متوسط 50 يوم"), ("sma200", "200-day average", "متوسط 200 يوم")):
+        v = fa.get(k)
+        if v and c:
+            above = c > v
+            tiles.append(_tile("trending_up" if above else "trending_down", L(en, ar_), f"{c / v - 1:+.1%}",
+                               T.esc(L(f"{sym} {'above' if above else 'below'} it ({v:,.2f})", f"{sym} {'فوقه' if above else 'تحته'} ({v:,.2f})"))
+                               + " " + (ok_((above and d > 0) or (not above and d < 0)) if a["dir"] else "")))
+    rv = fa.get("rvol")
+    if rv:
+        tiles.append(_tile("bar_chart", L("Volume", "حجم التداول"), f"{rv:.1f}<small>×</small>",
+                           T.esc(L("of its 20-day average", "من متوسط 20 يوم")), _bar(min(rv / 3, 1), "#60A5FA")))
+    if a["move"] is not None and fa.get("chg") is not None:
+        mv = abs(a["move"])
+        tiles.append(_tile("bolt", L("Today's move", "حركة اليوم"), T.pill(fa["chg"]),
+                           T.esc(L(f"{mv:.1f}× a normal day (ATR {fa['atr_pct']:.1f}%)", f"{mv:.1f} ضعف اليوم العادي (ATR {fa['atr_pct']:.1f}%)"))
+                           if fa.get("atr_pct") else "", _bar(min(mv / 3, 1), "#A78BFA")))
+    if fa.get("ret21") is not None:
+        tiles.append(_tile("calendar_month", L("Last month", "آخر شهر"), T.pill(fa["ret21"]),
+                           ok_((fa["ret21"] > 0) == (d > 0)) if a["dir"] else ""))
+    ui.html(f'<div class="nx-tiles">{"".join(tiles)}</div>')
+
+
+def _tab_plan(a):
+    p = NI.plan(a)
+    if not p:
+        ui.html(_note(L("No trading scenario: the news and the price do not line up enough (the setup is under 40/100).",
+                        "ما فيه سيناريو تداول: الخبر والسعر ما يتفقون كفاية (الفرصة أقل من 40/100)."), "block"))
+    else:
+        up = p["dir"] > 0
+        fmt = lambda x: f"${x:,.2f}"
+        cards = [("go", L("Trigger", "إشارة الدخول"), fmt(p["trigger"]),
+                  L("a close above today's high, with volume above its average" if up else "a close below today's low, with volume above its average",
+                    "إغلاق فوق أعلى سعر اليوم بحجم فوق متوسطه" if up else "إغلاق تحت أدنى سعر اليوم بحجم فوق متوسطه")),
+                 ("st", L("Invalidation", "إلغاء الفكرة"), fmt(p["stop"]),
+                  L(f"today's {'low' if up else 'high'} or 1.5 ATR away · risk {p['risk_pct']:.1f}%",
+                    f"{'أدنى' if up else 'أعلى'} سعر اليوم أو 1.5 ATR · المخاطرة {p['risk_pct']:.1f}%")),
+                 ("tg", L("First target", "أول هدف"), fmt(p["target"]),
+                  L(f"2× the risk · {p['reward_pct']:+.1f}%" if up else f"2× the risk · -{p['reward_pct']:.1f}%",
+                    f"ضعف المخاطرة · {p['reward_pct']:+.1f}%" if up else f"ضعف المخاطرة · -{p['reward_pct']:.1f}%"))]
+        ui.html('<div class="nx-plan">' + "".join(f'<div class="nx-lv {c}"><div class="l">{T.esc(t)}</div><div class="v">{v}</div>'
+                                                   f'<div class="s">{T.esc(s_)}</div></div>' for c, t, v, s_ in cards) + "</div>")
+        lo_, hi_ = min(p["stop"], p["target"]), max(p["stop"], p["target"])
+        pos = lambda x: 4 + 92 * (x - lo_) / (hi_ - lo_) if hi_ > lo_ else 50
+        marks = [(p["stop"], "#F87171", L("stop", "الإلغاء")), (p["price"], "#E7E3EB", L("now", "الحين")),
+                 (p["trigger"], "#60A5FA", L("trigger", "الدخول")), (p["target"], "#4ADE80", L("target", "الهدف"))]
+        ui.html('<div class="nx-ladder"><div class="tr"></div>' + "".join(
+            f'<div class="mk" style="left:{pos(x):.1f}%;color:{col}"><b>{T.esc(lb)}</b><i style="background:{col}"></i></div>' for x, col, lb in marks) + "</div>")
+    ui.html(_note(L("Education, not a recommendation. The rules above decide the setup; a language model only explains a story and never trades.",
+                    "للتعليم، مو توصية. القواعد فوق هي اللي تحدد الفرصة، والذكاء الاصطناعي يشرح الخبر بس وما يتداول أبداً."), "school"))
 
 
 def page_news_intel():
@@ -415,18 +610,25 @@ def page_news_intel():
     titles_ar = _translate(tuple(a["n"]["title"] for a in rows)) if tr else {}
     df = pd.DataFrame([{"pic": picture(a), "time": _ny_time(a["n"]["time"]), "stock": _stock_txt(a),
                         "news": (titles_ar.get(a["n"]["title"]) if titles_ar else None) or a["n"]["title"],
-                        "event": L(*NI.EVENT[a["event"]][:2]), "impact": f"{impact_level(a['impact'])} · {a['impact']:.0f}",
+                        "event": L(*NI.EVENT[a["event"]][:2]), "impact": int(round(a["impact"])),
                         "sent": _sent_txt(a["lab"]), "score": a["setup"]["total"]} for a in rows])
     cfg = {"pic": st.column_config.ImageColumn("", width="small"),
            "time": st.column_config.TextColumn(L("Time (NY)", "الوقت (نيويورك)"), width="small"),
            "stock": st.column_config.TextColumn(L("Stock", "السهم"), width="small"),
            "news": st.column_config.TextColumn(L("News", "الخبر"), width="large"),
            "event": st.column_config.TextColumn(L("Event", "الحدث")),
-           "impact": st.column_config.TextColumn(L("Impact", "الأثر")),
+           "impact": st.column_config.ProgressColumn(L("Impact", "الأثر"), min_value=0, max_value=100, format="%d"),
            "sent": st.column_config.TextColumn(L("Sentiment", "الاتجاه")),
            "score": st.column_config.ProgressColumn(L("Setup", "الفرصة"), min_value=0, max_value=100, format="%d")}
+    def _tone(v):                                      # the sentiment in its colour, the stock in bold
+        return ("color:#4ADE80;font-weight:700" if str(v).startswith("▲") else "color:#F87171;font-weight:700" if str(v).startswith("▼")
+                else "color:#C4B5FD")
     try:
-        ev = st.dataframe(df, hide_index=True, width="stretch", height=min(38 * len(df) + 40, 520), column_config=cfg,
+        view = df.style.map(_tone, subset=["sent"]).map(lambda v: "font-weight:800;color:#FFFFFF", subset=["stock"])
+    except Exception:                                  # an older pandas without Styler.map
+        view = df
+    try:
+        ev = st.dataframe(view, hide_index=True, width="stretch", height=min(44 * len(df) + 42, 560), row_height=44, column_config=cfg,
                           on_select="rerun", selection_mode="single-row", key="nie_tbl")
         sel = list(getattr(getattr(ev, "selection", None), "rows", None) or [])
     except TypeError:                                  # an older Streamlit without row selection
@@ -447,4 +649,4 @@ def page_news_intel():
     _detail(a, chg2, sec_chg, titles_ar)
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "15.6"
+BUILD = "15.7"
