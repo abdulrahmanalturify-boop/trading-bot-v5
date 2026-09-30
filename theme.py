@@ -168,9 +168,12 @@ FLAG_US, FLAG_SA = flags.US, flags.SA
 
 
 # ---------------------------------------------------------------- the night behind every page
-# No photo: n8n's void (#0E0918), a violet glow rising from the bottom, a blue one at the top corner and the faint dot grid of an
-# automation canvas that fades out down the page. static_ok is kept for app.py (the photo of the old design is no longer used).
-BG_FILE = "bg_globe.jpg"
+# Every page of the top bar: the owner's picture of a violet night with a dotted globe, market moves floating in the air and
+# a grid floor (static/bg_markets.jpg: its title and menu bar taken out, very lightly blurred), under a light veil; fixed
+# while the page scrolls, and on a phone the globe stays in view. The landing keeps its own night (landing_bg_css).
+BG_FILE = "bg_markets.jpg"
+BG_CDN = f"https://cdn.jsdelivr.net/gh/abdulrahmanalturify-boop/trading-bot-v5@main/static/{BG_FILE}"
+BG_VEIL = "linear-gradient(180deg, rgba(14,9,24,.20) 0%, rgba(14,9,24,.28) 45%, rgba(14,9,24,.48) 100%)"
 BG_GLOWS = ("radial-gradient(1200px 620px at 50% 118%, rgba(107,33,239,.30), transparent 62%), "
             "radial-gradient(900px 520px at 8% -12%, rgba(7,122,199,.20), transparent 60%), "
             "radial-gradient(760px 460px at 96% 4%, rgba(123,69,240,.13), transparent 62%)")
@@ -178,9 +181,17 @@ BG_DOTS = "radial-gradient(rgba(255,255,255,.075) 1px, transparent 1.3px) 0 0 / 
 
 
 def background_css(static_ok=False):
-    """The page background: the void with its glows and the canvas dots, fixed while the page scrolls."""
-    return (f'<style>.stApp::before {{ background: {BG_GLOWS}, {BG}; }}'
-            f'.stApp::after {{ background: {BG_DOTS}; -webkit-mask-image: linear-gradient(180deg,#000 0%,rgba(0,0,0,.35) 45%,transparent 85%);'
+    """The page background: the globe picture under its veil (the site's own static file, else the same file on the CDN)."""
+    url = f"app/static/{BG_FILE}" if static_ok else BG_CDN
+    return (f'<style>.stApp::before {{ background: {BG_VEIL}, url("{url}") 68% 40% / cover no-repeat, {BG}; }}'
+            f'.stApp::after {{ background: none; }}'
+            f'@media (max-width: 768px) {{ .stApp::before {{ background-position: 0 0, 72% 30%; }} }}</style>')
+
+
+def landing_bg_css():
+    """The landing keeps the night it was designed on: the glows and the canvas dots, no picture."""
+    return (f'<style>.stApp::before {{ background: {BG_GLOWS}, {BG} !important; }}'
+            f'.stApp::after {{ background: {BG_DOTS} !important; -webkit-mask-image: linear-gradient(180deg,#000 0%,rgba(0,0,0,.35) 45%,transparent 85%);'
             f' mask-image: linear-gradient(180deg,#000 0%,rgba(0,0,0,.35) 45%,transparent 85%); }}</style>')
 
 
@@ -2093,4 +2104,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "15.3"
+BUILD = "15.4"

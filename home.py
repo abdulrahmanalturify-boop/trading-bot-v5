@@ -10,7 +10,7 @@ import theme as T
 import ui
 from i18n import L, is_ar
 
-BUILD = "15.3"
+BUILD = "15.4"
 
 _LINE = "rgba(150,140,250,"
 CSS = f"""
@@ -866,7 +866,7 @@ def intro():
         return False
     rtl = ('<style>.st-key-introgo button p::after { content: "  \\2190" !important; }'
            '.st-key-introgo button:hover p::after { transform: translateX(-4px) !important; }</style>') if is_ar() else ""
-    ui.html('<span class="css-anchor"></span>\n' + INTRO_CSS + rtl)          # the style on its own line (else Markdown eats it)
+    ui.html('<span class="css-anchor"></span>\n' + INTRO_CSS + T.landing_bg_css() + rtl)   # the style on its own line (else Markdown eats it)
     ui.html(intro_html())
     with st.container(key="introgo"):
         st.button(L("Get started", "ابدأ الآن"), key="intro_go", on_click=_start)

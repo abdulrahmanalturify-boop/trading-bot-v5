@@ -1,2 +1,2 @@
-A.Alturaifi Pro - version 15.3 (the version is shown in the ⋮ menu → About)
+A.Alturaifi Pro - version 15.4 (the globe picture behind every page of the top bar; the landing unchanged)
 If you can see this file on GitHub, the new version was uploaded correctly.
