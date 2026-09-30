@@ -1,2 +1,2 @@
-A.Alturaifi Pro - version 15.4 (the globe picture behind every page of the top bar; the landing unchanged)
+A.Alturaifi Pro - version 15.5 (phones: the menu card back under the top line on every page; icons and flag on one line)
 If you can see this file on GitHub, the new version was uploaded correctly.

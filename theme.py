@@ -753,6 +753,8 @@ a.lnk {{ color:inherit !important; text-decoration:none !important; }} a.lnk:hov
   .st-key-navright .status b {{ display:none; }} .st-key-navright .status {{ padding: 0 12px; }} }}
 @container topnav (max-width: 1030px) {{ .navbtn > span:not(.ms) {{ display:none; }} .navbtn {{ padding:0 10px; }} .navbtn .ms {{ font-size:1.18rem; }} }}
 @container topnav (max-width: 760px) {{ .st-key-navright .status {{ display:none; }} .langbtn .chev {{ display:none; }} }}
+@container topnav (max-width: 440px) {{ .navbtn {{ padding:0 6px; }} .langbtn {{ padding:0 6px; }} }}
+@container topnav (max-width: 350px) {{ .navbtn {{ padding:0 4px; }} .navbtn .ms {{ font-size:1.05rem; }} .langbtn {{ padding:0 4px; }} }}
 /* desktop: the bar IS the site's top line. It is anchored to the main area's own box (the same box as Streamlit's header),
    so it spans from the sidebar edge to the menu button, follows the sidebar when it is opened/closed/resized and never scrolls away. */
 @media (min-width: 1024px) {{
@@ -1358,6 +1360,7 @@ FX_JS = """<script>
         if (Math.abs(gapNow - want) > 1) {
           var mt = parseFloat(w.getComputedStyle(nav).marginTop) || 0;
           nav.style.setProperty('margin-top', Math.max(0, mt + want - gapNow).toFixed(1) + 'px', 'important');
+          nav.dataset.ixmt = '1';
         }
         // ... and the landing's words start under the card, never behind it (measured from where they would be without it)
         var ctr = pg0.querySelector('.ix-center');
@@ -1369,6 +1372,10 @@ FX_JS = """<script>
       } else if (w.innerWidth >= 1024 && pg0.style.getPropertyValue('--ixdrop')) {
         pg0.style.removeProperty('--ixdrop');
       }
+    } else {
+      // another page: the menu card is the same element as on the landing, so the landing's gap must not follow it
+      var nv = d.querySelector('.st-key-topnav');
+      if (nv && nv.dataset.ixmt) { nv.style.removeProperty('margin-top'); delete nv.dataset.ixmt; }
     }
     // 5 seconds without a move on the first screen: the page glides to the first section by itself (once per landing)
     var page = d.querySelector('.ixp'), hero = d.querySelector('.ix');
@@ -2104,4 +2111,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "15.4"
+BUILD = "15.5"
