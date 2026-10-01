@@ -31,7 +31,7 @@ TERMS = [
      "Closing a trade after a set number of sessions if it hasn't worked yet, so the money is free for better ideas.",
      "إغلاق الصفقة بعد عدد جلسات محدد إذا ما اشتغلت، عشان تتحرر الفلوس لفرص أفضل."),
     ("stop_loss", "Stop loss", "وقف الخسارة",
-     [r"stop[- ]?loss(?:es)?", "=Stops?", "=STOP", r"(?:ال)?وقف(?: (?:ال)?خسارة)?"],
+     [r"stop[- ]?loss(?:es)?", "~=Stops?", "~=STOP", r"وقف (?:ال)?خسارة", r"~(?:ال)?وقف(?! (?:إطلاق|ال?نار|ال?حرب|ال?عمل|ال?تصعيد|ال?قتال|ال?هجمات|ال?عدوان|ال?إنتاج|ال?تصدير|ال?ضخ|ال?مساعدات|ال?دعم|ال?تمويل))"],
      "An exit price set in advance: if the price falls to it, the position is sold so the loss stays small. The site's bots set "
      "it from the ATR, e.g. 'Stop 3 ATR' = three average daily moves below the entry.",
      "سعر خروج تحدده مسبقاً: إذا نزل السعر له يُباع المركز عشان تبقى الخسارة صغيرة. بوتات الموقع تحدده من ATR، مثلاً "
@@ -45,12 +45,12 @@ TERMS = [
      "The price analysts expect the stock to reach in about 12 months.",
      "السعر اللي يتوقع المحللون يوصل له السهم خلال 12 شهر تقريباً."),
     ("target", "Target", "الهدف",
-     ["=Targets?(?! Corp)", "=TARGETS?", r"(?:ال)?هدف"],
+     ["~=Targets?(?! Corp)", "~=TARGETS?", r"~(?:ال)?هدف"],
      "The price where the trade plan takes profit. The distance from the entry to the target, against the distance from the "
      "entry to the stop, gives the reward-to-risk.",
      "السعر اللي تجني عنده خطة الصفقة الربح. المسافة من الدخول للهدف مقارنة بالمسافة من الدخول للوقف تعطيك نسبة العائد إلى المخاطرة."),
     ("entry", "Entry", "سعر الدخول",
-     ["=Entry", "=ENTRY", r"entry price", r"(?:سعر|نقطة) (?:ال)?دخول"],
+     ["~=Entry", "~=ENTRY", r"entry price", r"(?:سعر|نقطة) (?:ال)?دخول"],
      "The price at which a trade is opened, the buy price.",
      "السعر اللي تنفتح عنده الصفقة، يعني سعر الشراء."),
     ("rr", "Reward-to-risk (R:R)", "العائد إلى المخاطرة",
@@ -86,11 +86,11 @@ TERMS = [
      "Return per unit of risk (yearly return ÷ yearly volatility). Above 1 is good, above 2 very good; it compares strategies fairly.",
      "العائد لكل وحدة مخاطرة (العائد السنوي ÷ التذبذب السنوي). فوق 1 جيد وفوق 2 ممتاز، ويقارن الاستراتيجيات بعدل."),
     ("drawdown", "Max drawdown (max drop)", "أكبر هبوط",
-     [r"max(?:imum)?\.? (?:drops?|drawdowns?)", r"worst drops?", r"drawdowns?", r"(?:أكبر|أقصى|أسوأ) (?:هبوط|تراجع|انخفاض)"],
+     [r"max(?:imum)?\\.? (?:drops?|drawdowns?)", r"worst drops?", r"~drawdowns?", r"(?:أكبر|أقصى|أسوأ) (?:هبوط|تراجع|انخفاض)"],
      "The biggest fall from a peak to the low that followed, in %. It shows the worst stretch you would have lived through.",
      "أكبر نزول من قمة لأدنى نقطة بعدها، بالنسبة المئوية. يبين أسوأ فترة كنت بتعيشها."),
     ("cagr", "Yearly return (CAGR)", "العائد السنوي",
-     ["=CAGR", r"yearly(?: returns?)?", r"annual(?:ized)? returns?", r"(?:ال)?عائد (?:ال)?سنوي", r"سنوياً"],
+     ["=CAGR", r"~yearly(?: returns?)?", r"annual(?:ized)? returns?", r"(?:ال)?عائد (?:ال)?سنوي", r"~سنوياً"],
      "The steady growth per year that turns the starting value into the final value (compound annual growth rate).",
      "النمو السنوي الثابت اللي يحوّل القيمة في البداية للقيمة في النهاية (معدل النمو السنوي المركب)."),
     ("win_rate", "Win rate", "نسبة الصفقات الرابحة",
@@ -122,7 +122,7 @@ TERMS = [
      "Data a strategy was not built on (here: 2020 to now, after building on 2010–2019). Results there are the realistic ones.",
      "بيانات ما انبنت عليها الاستراتيجية (هنا: من 2020 لين اليوم بعد ما انبنت على 2010–2019). نتائجها هي الواقعية."),
     ("regime", "Market regime", "حالة السوق",
-     [r"(?:market )?regimes?", r"حال(?:ة|ات) (?:ال)?سوق"],
+     [r"market regimes?", r"~regimes?", r"حال(?:ة|ات) (?:ال)?سوق"],
      "The market's state: bull, sideways, bear or panic. The site's bots size their trades by it, trading smaller (or not at "
      "all) in a panic.",
      "حالة السوق: صاعد أو عرضي أو هابط أو ذعر. بوتات الموقع تحدد حجم صفقاتها حسبها، وتصغّرها أو توقف وقت الذعر."),
@@ -138,7 +138,7 @@ TERMS = [
      "Relative Strength Index: momentum from 0 to 100 over the last 14 days. Above 70 is often called overbought, below 30 oversold.",
      "مؤشر القوة النسبية: يقيس الزخم من 0 إلى 100 خلال آخر 14 يوم. فوق 70 يُعتبر تشبع شرائي، وتحت 30 تشبع بيعي."),
     ("rs", "RS rating (relative strength)", "القوة النسبية",
-     [r"=RS(?: rating)?", r"relative strength(?: rating)?", r"(?:ال)?قوة (?:ال)?نسبية"],
+     ["~=RS(?: rating)?", r"relative strength(?: rating)?", r"(?:ال)?قوة (?:ال)?نسبية"],
      "How a stock did against the whole market over the past months, ranked from 1 to 99. 90 means it beat 90% of stocks.",
      "أداء السهم مقارنة بالسوق كله خلال الشهور الماضية، مرتب من 1 إلى 99. 90 يعني تفوق على 90% من الأسهم."),
     ("macd", "MACD", "الماكد",
@@ -151,8 +151,7 @@ TERMS = [
      "Golden cross: the 50-day average crosses above the 200-day, a long-term bullish sign. Death cross: the opposite.",
      "التقاطع الذهبي: متوسط 50 يوم يقطع فوق متوسط 200 يوم، إشارة صعود طويلة. تقاطع الموت: العكس."),
     ("moving_average", "Moving average (SMA / EMA)", "المتوسط المتحرك",
-     [r"moving averages?", r"=(?:SMA|EMA)s?(?: ?\d+)?", r"(?:9|10|20|21|50|100|150|200)[- ]day(?: (?:moving )?average| (?:SMA|EMA|MA))?",
-      r"(?:ال)?متوسط(?:ات)? (?:ال)?متحرك(?:ة)?", r"(?:ال)?متوسط (?:الـ ?)?\d+(?: يوم(?:اً)?)?"],
+     [r"moving averages?", "=(?:SMA|EMA)s?(?: ?\d+)?", r"(?:9|10|20|21|50|100|150|200)[- ]day (?:(?:moving )?average|SMA|EMA|MA)", r"~(?:9|10|20|21|50|100|150|200)[- ]day", r"(?:ال)?متوسط(?:ات)? (?:ال)?متحرك(?:ة)?", r"~(?:ال)?متوسط (?:الـ ?)?\\d+(?: يوم(?:اً)?)?"],
      "The average closing price of the last N days, redrawn every day. The 50-day shows the medium trend, the 200-day the long "
      "one; an SMA weighs every day the same, an EMA weighs recent days more.",
      "متوسط أسعار الإغلاق لآخر N يوم، ويتحدث كل يوم. متوسط 50 يوم يبين الاتجاه المتوسط و200 يوم الاتجاه الطويل؛ SMA يعطي "
@@ -194,7 +193,7 @@ TERMS = [
      "Overbought: the price rose so fast it may pause or dip (RSI above 70). Oversold: it fell so fast it may bounce (RSI below 30).",
      "تشبع شرائي: السعر صعد بسرعة لدرجة ممكن يرتاح أو ينزل (RSI فوق 70). تشبع بيعي: نزل بسرعة لدرجة ممكن يرتد (RSI تحت 30)."),
     ("pivot", "Pivot points", "نقاط الارتكاز",
-     [r"pivot(?: points?)?", r"(?:نقاط|نقطة) (?:ال)?ارتكاز"],
+     [r"pivot points?", r"~pivots?", r"(?:نقاط|نقطة) (?:ال)?ارتكاز"],
      "Levels worked out from yesterday's high, low and close that traders watch as possible support and resistance today.",
      "مستويات محسوبة من أعلى وأدنى وإغلاق أمس، يراقبها المتداولين كدعم ومقاومة محتملة اليوم."),
     ("heikin", "Heikin Ashi", "هايكن آشي",
@@ -202,26 +201,26 @@ TERMS = [
      "Smoothed candles built from averages, which make a trend easier to see as a string of same-colour candles.",
      "شموع منعّمة مبنية على متوسطات، تسهّل رؤية الاتجاه كسلسلة شموع بنفس اللون."),
     ("candle", "Candlestick", "الشمعة",
-     [r"candlesticks?", r"candles?", r"(?:ال)?شم(?:عة|وع)(?: (?:ال)?يابانية)?"],
+     [r"candlesticks?", r"~candles?", r"(?:ال)?شم(?:عة|وع) (?:ال)?يابانية", r"~(?:ال)?شم(?:عة|وع)"],
      "A bar that shows one period's open, high, low and close. Green = it closed higher than it opened, red = lower.",
      "شكل يبين الافتتاح والأعلى والأدنى والإغلاق لفترة وحدة. الأخضر يعني أغلق أعلى من افتتاحه، والأحمر أقل."),
 
     # ---- setups and price action
     ("donchian", "Donchian breakout (Turtle)", "اختراق دونشيان",
-     [r"donchian(?: breakout| channel)?", r"turtles?", r"دونشيان", r"(?:ال)?سلاحف"],
+     [r"donchian(?: breakout| channel)?", r"~turtles?", r"دونشيان", r"~(?:ال)?سلاحف"],
      "Buying when the price closes above its highest high of the last 20 (or 55) days, the famous 'Turtle' rule, and exiting on "
      "a new low.",
      "الشراء لما يغلق السعر فوق أعلى قمة لآخر 20 (أو 55) يوم، وهي قاعدة «السلاحف» المشهورة، والخروج على قاع جديد."),
     ("orb", "Opening range breakout", "اختراق نطاق الافتتاح",
-     [r"opening[- ]range(?: breakout)?", "=ORB", r"(?:ال)?نطاق (?:ال)?افتتاحي", r"(?:نطاق|اختراق) (?:ال)?افتتاح"],
+     [r"opening[- ]range(?: breakout)?", "~=ORB", r"(?:ال)?نطاق (?:ال)?افتتاحي", r"(?:نطاق|اختراق) (?:ال)?افتتاح"],
      "Mark the high and low of the first minutes after the open, then trade the break out of that range.",
      "تحدد أعلى وأدنى سعر في أول دقائق بعد الافتتاح، وتتداول على كسر هذا النطاق."),
     ("breakout", "Breakout", "الاختراق",
-     [r"break[- ]?outs?", r"breaking out", r"(?:ال)?اختراق(?:ات)?"],
+     [r"~break[- ]?outs?", r"~breaking out", r"~(?:ال)?اختراق(?:ات)?"],
      "The price pushing above a recent high or a resistance, best on strong volume; often the start of a new move up.",
      "دفع السعر فوق قمة قريبة أو مقاومة، والأفضل بحجم قوي، وغالباً يكون بداية موجة صعود جديدة."),
     ("pullback", "Pullback", "الارتداد",
-     [r"pull[- ]?backs?", r"(?:ال)?ارتداد(?:ات)?"],
+     [r"~pull[- ]?backs?", r"~(?:ال)?ارتداد(?:ات)?"],
      "A short dip inside an uptrend. Buying a pullback means entering a strong stock after it rests, at a better price.",
      "نزول قصير داخل اتجاه صاعد. شراء الارتداد يعني تدخل سهم قوي بعد ما يرتاح، بسعر أفضل."),
     ("mean_reversion", "Mean reversion", "العودة للمتوسط",
@@ -235,32 +234,32 @@ TERMS = [
      "rides it until it ends.",
      "الاتجاه العام للسعر مع الوقت: قمم وقيعان أعلى = اتجاه صاعد. تتبع الاتجاه يشتري القوة ويركبها لين تنتهي."),
     ("momentum", "Momentum", "الزخم",
-     [r"momentum", r"(?:ال)?زخم"],
+     [r"~momentum", r"~(?:ال)?زخم"],
      "The speed of a price move. Stocks that rose strongly in recent months tend to keep beating the market for a while.",
      "سرعة حركة السعر. الأسهم اللي صعدت بقوة في الشهور الأخيرة تميل تستمر متفوقة على السوق لفترة."),
     ("support", "Support", "الدعم",
-     [r"support (?:levels?|zones?|lines?)", "=Support", "=SUPPORT", r"(?:ال)?دعم"],
+     [r"support (?:levels?|zones?|lines?)", "~=Support", "~=SUPPORT", r"~(?:ال)?دعم"],
      "A price area where falls have stopped before because buyers stepped in. A clear break below it is a warning sign.",
      "منطقة سعرية توقف عندها النزول قبل لأن المشترين دخلوا. كسرها بوضوح لتحت علامة تحذير."),
     ("resistance", "Resistance", "المقاومة",
-     [r"resistance(?: levels?| zones?)?", r"(?:ال)?مقاومة"],
+     [r"resistance (?:levels?|zones?|lines?)", r"~resistance", r"~(?:ال)?مقاومة"],
      "A price area where rises have stalled before because sellers stepped in. A break above it on strong volume is a breakout.",
      "منطقة سعرية توقف عندها الصعود قبل لأن البائعين دخلوا. اختراقها لفوق بحجم قوي يسمى اختراق."),
     ("gap", "Gap", "الفجوة السعرية",
-     [r"gap[- ]?(?:up|down)s?", "=Gaps?", "=GAPS?", r"(?:ال)?فجو(?:ة|ات)(?: (?:ال)?سعرية)?"],
+     [r"~gap[- ]?(?:up|down)s?", "~=Gaps?", "~=GAPS?", r"~(?:ال)?فجو(?:ة|ات)(?: (?:ال)?سعرية)?"],
      "When a stock opens well above or below the previous close and leaves an empty space on the chart, usually after news.",
      "لما يفتح السهم أعلى أو أقل بوضوح من إغلاق أمس ويترك فراغ في الشارت، وغالباً بعد خبر."),
     ("squeeze", "Squeeze", "الضغط",
-     [r"(?:short |gamma |volatility )?squeezes?", r"(?:ال)?ضغط (?:ال)?قسري", r"موجة شراء قسرية"],
+     [r"(?:short|gamma|volatility) squeezes?", r"~squeezes?", r"(?:ال)?ضغط (?:ال)?قسري", r"موجة شراء قسرية"],
      "Short squeeze: a rising price forces short sellers to buy back, which pushes it higher still. A volatility squeeze is when "
      "the price range narrows before a big move.",
      "موجة الضغط: صعود السعر يجبر البائعين على المكشوف يشترون، فيرتفع أكثر. وضغط التذبذب يعني ضيق نطاق السعر قبل حركة كبيرة."),
     ("accumulation", "Accumulation", "التجميع",
-     [r"accumulation(?:/distribution)?", r"(?:ال)?تجميع"],
+     [r"~accumulation(?:/distribution)?", r"~(?:ال)?تجميع"],
      "Big investors quietly buying a stock, seen as more volume on up days than on down days.",
      "مستثمرين كبار يشترون السهم بهدوء، ويبان من حجم أكبر في أيام الصعود مقارنة بأيام النزول."),
     ("correction", "Correction", "التصحيح",
-     [r"corrections?", r"(?:ال)?تصحيح"],
+     [r"(?:market|stock) corrections?", r"~corrections?", r"~(?:ال)?تصحيح"],
      "A fall of 10% or more from a recent high, short of a bear market (20%).",
      "نزول 10% أو أكثر من قمة قريبة، أقل من السوق الهابط (20%)."),
     ("high52", "52-week high / low", "قمة وقاع 52 أسبوع",
@@ -274,15 +273,15 @@ TERMS = [
      "Today's volume ÷ the stock's usual volume. 2× means twice the normal trading: something is drawing attention.",
      "حجم تداول اليوم ÷ حجم السهم المعتاد. 2× يعني ضعف التداول الطبيعي، يعني فيه شي جاذب الانتباه."),
     ("volume", "Volume", "حجم التداول",
-     [r"volume", r"حجم (?:ال)?تداول"],
+     [r"trading volume", r"~volume", r"حجم (?:ال)?تداول"],
      "How many shares traded in a period. A big move on high volume is more trustworthy than one on thin volume.",
      "عدد الأسهم المتداولة خلال فترة. الحركة القوية مع حجم عالي أوثق من حركة بحجم ضعيف."),
     ("liquidity", "Liquidity", "السيولة",
-     [r"liquidity", r"(?:ال)?سيولة"],
+     [r"~liquidity", r"~(?:ال)?سيولة"],
      "How easily you can buy or sell without moving the price. Big, heavily traded stocks are liquid.",
      "سهولة الشراء والبيع بدون ما تحرك السعر. الأسهم الكبيرة كثيرة التداول سيولتها عالية."),
     ("spread", "Bid / ask spread", "السبريد",
-     [r"bid[- /]ask(?: spread)?", "=Spread", "=Bid", "=BID", "=ASK", r"(?:ال)?سبريد"],
+     [r"bid[- /]ask(?: spread)?", "~=Spread", "~=Bid", "~=BID", "~=ASK", r"(?:ال)?سبريد"],
      "The bid is the best price buyers offer, the ask the best price sellers want; the gap between them (the spread) is a hidden "
      "cost, wide in thinly traded stocks and options.",
      "سعر العرض (Bid) أفضل سعر يدفعه المشترين، وسعر الطلب (Ask) أفضل سعر يبيع فيه البائعين؛ والفرق بينهم (السبريد) تكلفة خفية، "
@@ -294,7 +293,7 @@ TERMS = [
      "بيع أسهم مستلفة عشان تربح إذا نزل السعر. لما يكون البيع على المكشوف عالي يعني كثير يراهنون على النزول، وأي صعود ممكن "
      "يجبرهم يشترون بسرعة (موجة ضغط)."),
     ("volatility", "Volatility", "التذبذب",
-     [r"implied vol(?:atility)?", "=IV"],
+     [r"volatility", r"~volatile", r"(?:ال)?تذبذب(?! (?:ال)?ضمني)", r"~(?:ال)?تقلب(?:ات)?"],
      "", ""),   # placeholder, replaced below (implied volatility must be tried before plain volatility)
 
     # ---- market gauges
@@ -308,7 +307,7 @@ TERMS = [
      "The S&P 500 swings options traders expect over the next 30 days. Below 15 = calm, above 20 = nervous, above 30 = fearful.",
      "التذبذب اللي يتوقعه متداولو الخيارات لمؤشر إس آند بي 500 خلال 30 يوم. تحت 15 هدوء، فوق 20 توتر، وفوق 30 خوف."),
     ("breadth", "Market breadth", "اتساع السوق",
-     [r"(?:market )?breadth", r"اتساع (?:ال)?سوق"],
+     [r"market breadth", r"~breadth", r"اتساع (?:ال)?سوق"],
      "How many stocks take part in a move. An index rising while most stocks fall is a weak rally.",
      "كم سهم مشارك في حركة السوق. لو المؤشر يصعد وأغلب الأسهم تنزل فالصعود ضعيف."),
     ("bull_bear", "Bull / bear market", "السوق الصاعد والهابط",
@@ -318,7 +317,7 @@ TERMS = [
      "Bullish / bearish = expecting a rise / a fall.",
      "السوق الصاعد: ارتفاع مستمر لشهور (20% أو أكثر من القاع). السوق الهابط: نزول 20% أو أكثر من القمة. صعودي أو هبوطي = توقع صعود أو نزول."),
     ("sentiment", "Sentiment", "معنويات السوق",
-     [r"(?:market |news |investor )?sentiment", r"(?:ال)?معنويات", r"مزاج (?:ال)?سوق"],
+     [r"(?:market|investor) sentiment", r"~sentiment", r"~(?:ال)?معنويات", r"مزاج (?:ال)?سوق"],
      "Whether investors feel optimistic or fearful. Extremes often come before a turn: too much fear near lows, too much greed "
      "near highs.",
      "هل المستثمرين متفائلين ولا خايفين. الحالات المتطرفة غالباً تسبق انعكاس: خوف زايد قرب القيعان وطمع زايد قرب القمم."),
@@ -341,7 +340,7 @@ TERMS = [
      "The Dow Jones Industrial Average: 30 large US companies, weighted by share price. The oldest US index.",
      "مؤشر داو جونز الصناعي: 30 شركة أمريكية كبيرة، موزون حسب سعر السهم. أقدم مؤشر أمريكي."),
     ("russell", "Russell 2000", "راسل 2000",
-     [r"russell(?: 2000)?", r"راسل(?: 2000)?"],
+     [r"russell 2000", r"~russell", r"راسل 2000", r"~راسل"],
      "An index of 2,000 small US companies, a gauge of how riskier, more domestic businesses are doing.",
      "مؤشر لـ 2000 شركة أمريكية صغيرة، يقيس أداء الشركات المحلية الأعلى مخاطرة."),
     ("etf", "ETF", "الصندوق المتداول",
@@ -361,23 +360,23 @@ TERMS = [
      "clock and hint at how stocks will open.",
      "عقود لشراء أو بيع شي (مؤشر، نفط، ذهب) بسعر محدد في تاريخ قادم. تتداول تقريباً طول اليوم وتلمّح كيف بتفتح الأسهم."),
     ("call_put", "Call / put option", "خيار الشراء وخيار البيع",
-     ["=CALLS?", "=PUTS?", "=Calls?", "=Puts?", r"(?:call|put) options?", r"خيار(?:ات)? (?:ال)?(?:شراء|بيع)"],
+     ["~=CALLS?", "~=PUTS?", "~=Calls?", "~=Puts?", r"(?:call|put) options?", r"خيار(?:ات)? (?:ال)?(?:شراء|بيع)"],
      "A call gains when the stock rises above the strike; a put gains when it falls below it. A buyer can lose at most what he paid.",
      "خيار الشراء (Call) يربح إذا صعد السهم فوق سعر التنفيذ، وخيار البيع (Put) يربح إذا نزل تحته. المشتري أقصى خسارته اللي دفعه."),
     ("options", "Options", "عقود الخيارات",
-     [r"options? (?:chains?|contracts?|markets?|trading)", "=Options", r"(?:عقود|سلسلة|سلاسل|سوق) (?:ال)?خيارات"],
+     [r"options? (?:chains?|contracts?|markets?|trading)", "~=Options", r"(?:عقود|سلسلة|سلاسل|سوق) (?:ال)?خيارات"],
      "Contracts that give the right, not the duty, to buy (a call) or sell (a put) 100 shares at a set price before a set date.",
      "عقود تعطيك الحق (مو الإلزام) تشتري (Call) أو تبيع (Put) 100 سهم بسعر محدد قبل تاريخ محدد."),
     ("strike", "Strike price", "سعر التنفيذ",
-     [r"strikes?(?: prices?)?", r"سعر (?:ال)?تنفيذ"],
+     [r"strike prices?", "~=Strikes?", "~=STRIKES?", r"سعر (?:ال)?تنفيذ"],
      "The fixed price at which an option lets you buy or sell the stock.",
      "السعر الثابت اللي يسمح لك الخيار تشتري أو تبيع عنده السهم."),
     ("expiry", "Expiration", "تاريخ الانتهاء",
-     [r"expir(?:ation|y|ies)(?: dates?)?", r"(?:تاريخ )?(?:ال)?انتهاء"],
+     [r"expiration dates?", r"~expir(?:ation|y|ies)", r"~(?:تاريخ )?(?:ال)?انتهاء"],
      "The last day of an option. After it, the option is worth only what it pays at that day's price, or nothing.",
      "آخر يوم للخيار. بعده ما يسوى إلا اللي يستحقه على سعر ذاك اليوم، أو صفر."),
     ("open_interest", "Open interest", "العقود المفتوحة",
-     [r"open interest", "=OI", r"(?:ال)?عقود (?:ال)?مفتوحة"],
+     [r"open interest", "~=OI", r"(?:ال)?عقود (?:ال)?مفتوحة"],
      "How many option contracts are still open at a strike. Large numbers mark prices many traders care about.",
      "عدد عقود الخيارات اللي لسا مفتوحة عند سعر تنفيذ. الأرقام الكبيرة تحدد أسعار يهتم فيها متداولين كثير."),
 
@@ -387,7 +386,7 @@ TERMS = [
      "The company's net profit divided by its number of shares. Companies report it every quarter.",
      "صافي ربح الشركة مقسوم على عدد أسهمها. تعلنه الشركات كل ربع سنة."),
     ("surprise", "Earnings surprise", "مفاجأة الأرباح",
-     [r"(?:earnings |eps |revenue )?surprises?", r"(?:ال)?مفاجأ(?:ة|ت)"],
+     [r"(?:earnings|eps|revenue) surprises?", r"~surprises?", r"~(?:ال)?مفاجأ(?:ة|ت)"],
      "How far the reported results came above (a beat) or below (a miss) what analysts expected, in %. Stocks often jump on big surprises.",
      "قد إيش النتائج المعلنة طلعت أعلى (تجاوز) أو أقل (إخفاق) من توقعات المحللين بالنسبة. الأسهم كثير تقفز مع المفاجآت الكبيرة."),
     ("earnings", "Earnings", "إعلان الأرباح",
@@ -395,7 +394,7 @@ TERMS = [
      "A company's quarterly results: revenue, profit and outlook. Prices often move sharply on the day they come out.",
      "نتائج الشركة الفصلية: الإيرادات والأرباح والتوقعات. الأسعار كثير تتحرك بقوة يوم إعلانها."),
     ("estimate", "Analyst estimate", "توقعات المحللين",
-     [r"(?:analysts?'? |consensus )?estimates?", r"consensus", r"توقعات (?:ال)?محللين", r"متوسط (?:ال)?توقعات", r"(?:ال)?تقديرات"],
+     [r"(?:analysts?'?|consensus) estimates?", r"~consensus", r"~estimates?", r"توقعات (?:ال)?محللين", r"متوسط (?:ال)?توقعات", r"~(?:ال)?تقديرات"],
      "The average forecast of analysts for a company's earnings or revenue. Results are judged against it.",
      "متوسط توقعات المحللين لأرباح أو إيرادات الشركة. النتائج تنقاس مقارنة فيه."),
     ("analyst_rating", "Analyst rating", "تقييم المحللين",
@@ -403,7 +402,7 @@ TERMS = [
      "What Wall Street analysts advise: strong buy, buy, hold, sell or strong sell. Useful context, not a guarantee.",
      "نصيحة محللي وول ستريت: شراء قوي، شراء، احتفاظ، بيع أو بيع قوي. معلومة مفيدة مو ضمان."),
     ("guidance", "Guidance", "التوجيهات المستقبلية",
-     [r"(?:forward |company )?guidance", r"(?:ال)?توجيهات(?: (?:ال)?مستقبلية)?", r"(?:ال)?توقعات (?:ال)?مستقبلية"],
+     [r"(?:forward|company|earnings|full[- ]year) guidance", r"~guidance", r"(?:ال)?توجيهات (?:ال)?مستقبلية", r"~(?:ال)?توجيهات", r"(?:ال)?توقعات (?:ال)?مستقبلية"],
      "The company's own forecast for the coming quarters. Raising it often moves the stock more than the results themselves.",
      "توقعات الشركة نفسها للأرباع الجاية. رفعها كثير يحرك السهم أكثر من النتائج نفسها."),
     ("revenue", "Revenue", "الإيرادات",
@@ -443,7 +442,7 @@ TERMS = [
      "Total debt ÷ shareholders' equity: how much the company runs on borrowed money. Above 2 is heavy for most businesses.",
      "إجمالي الديون ÷ حقوق المساهمين: قد إيش الشركة معتمدة على فلوس مقترضة. فوق 2 ثقيل لأغلب الشركات."),
     ("beta", "Beta", "بيتا",
-     ["=Beta", "=beta", "=BETA", r"بيتا"],
+     ["~=Beta", "~=beta", "~=BETA", r"~بيتا"],
      "How much a stock moves with the market: 1.5 ≈ moves 50% bigger than the S&P 500, 0.5 ≈ half as big.",
      "قد إيش السهم يتحرك مع السوق: 1.5 يعني تقريباً حركة أكبر من إس آند بي 500 بـ 50%، و0.5 تقريباً نصها."),
     ("dividend_yield", "Dividend yield", "عائد التوزيعات",
@@ -463,7 +462,7 @@ TERMS = [
      "A company buying back its own shares, which lowers the share count and lifts earnings per share.",
      "الشركة تشتري أسهمها، فيقل عدد الأسهم وترتفع ربحية السهم."),
     ("split", "Stock split", "تقسيم الأسهم",
-     [r"(?:stock |reverse )?splits?", r"(?:ال)?تقسيم(?:ات)?(?: (?:ال)?أسهم)?", r"(?:ال)?تجزئة"],
+     [r"(?:stock|reverse) splits?", r"~splits?", r"تقسيم (?:ال)?أسهم", r"~(?:ال)?تقسيم(?:ات)?", r"~(?:ال)?تجزئة"],
      "A company divides each share into several (e.g. 4-for-1): more shares at a lower price, same total value. A reverse split does the opposite.",
      "الشركة تقسم كل سهم لعدة أسهم (مثلاً 4 مقابل 1): أسهم أكثر بسعر أقل ونفس القيمة الإجمالية. التقسيم العكسي يسوي العكس."),
     ("ipo", "IPO", "الاكتتاب العام",
@@ -471,11 +470,11 @@ TERMS = [
      "Initial public offering: the first time a company sells its shares to the public and lists on the stock market.",
      "الطرح العام الأولي: أول مرة تبيع الشركة أسهمها للعامة وتنزل في سوق الأسهم."),
     ("insider", "Insiders", "المطّلعين",
-     [r"insiders?(?: (?:trades?|trading|transactions?|buying|selling|purchases?))?", r"(?:ال)?مطّ?لع(?:ين|ون)"],
+     [r"insider (?:trades?|trading|transactions?|buying|selling|purchases?)", r"~insiders?", r"~(?:ال)?مطّ?لع(?:ين|ون)"],
      "A company's executives, directors and big owners. Their buying with their own money is often read as confidence.",
      "مدراء الشركة وأعضاء مجلسها وكبار ملاكها. شراؤهم بفلوسهم غالباً يُقرأ كثقة."),
     ("catalyst", "Catalyst", "المحفز",
-     [r"catalysts?", r"(?:ال)?محفز(?:ات)?"],
+     [r"~catalysts?", r"~(?:ال)?محفز(?:ات)?"],
      "An event that can move a stock: earnings, a product launch, a regulator's decision, a rate decision…",
      "حدث ممكن يحرك السهم: إعلان أرباح، إطلاق منتج، قرار جهة رقابية، قرار فائدة…"),
     ("materiality", "Materiality", "الأهمية الجوهرية",
@@ -483,8 +482,7 @@ TERMS = [
      "How much a news item can change a company's value or outlook, from 0 to 10.",
      "قد إيش الخبر ممكن يغيّر قيمة الشركة أو توقعاتها، من 0 إلى 10."),
     ("sharia", "Sharia check", "الفحص الشرعي",
-     [r"shariah?(?:[- ]compliant| compliance| check| screen(?:ing)?)?", r"halal", r"(?:ال)?فحص (?:ال)?شرعي", r"متوافق(?:ة)? مع (?:ال)?شريعة",
-      r"(?:ال)?ضوابط (?:ال)?شرعية"],
+     [r"shariah?(?:[- ]compliant| compliance| check| screen(?:ing)?)?", r"~halal", r"(?:ال)?فحص (?:ال)?شرعي", r"متوافق(?:ة)? مع (?:ال)?شريعة", r"(?:ال)?ضوابط (?:ال)?شرعية"],
      "A check that a company's business is allowed in Islam and that its debt and interest income stay under set limits.",
      "فحص إن نشاط الشركة مباح شرعاً وإن ديونها ودخلها من الفوائد تحت حدود معينة."),
 
@@ -500,7 +498,7 @@ TERMS = [
      "One basis point = 0.01%. A yield moving from 4.20% to 4.45% rose 25 bps.",
      "نقطة الأساس = 0.01%. العائد لما يتحرك من 4.20% لـ 4.45% ارتفع 25 نقطة أساس."),
     ("fed", "The Fed", "الاحتياطي الفيدرالي",
-     ["=Fed", "=FOMC", r"federal reserve", r"(?:ال)?(?:احتياطي )?(?:ال)?فيدرالي"],
+     ["=Fed", "=FOMC", r"federal reserve", r"(?:ال)?احتياطي (?:ال)?فيدرالي", r"~(?:ال)?فيدرالي"],
      "The US central bank. It sets interest rates: cutting them tends to lift stocks, raising them tends to cool them.",
      "البنك المركزي الأمريكي. يحدد أسعار الفائدة: خفضها غالباً يرفع الأسهم، ورفعها يبردها."),
     ("rates", "Interest rates", "أسعار الفائدة",
@@ -521,7 +519,7 @@ TERMS = [
 _VOL_I = next(i for i, t in enumerate(TERMS) if t[0] == "volatility")
 TERMS[_VOL_I:_VOL_I + 1] = [
     ("implied_vol", "Implied volatility", "التذبذب الضمني",
-     [r"implied vol(?:atility)?", "=IV", r"(?:ال)?تذبذب (?:ال)?ضمني"],
+     [r"implied vol(?:atility)?", "~=IV", r"(?:ال)?تذبذب (?:ال)?ضمني"],
      "The future volatility that option prices imply. It rises before events like earnings, when traders expect a big move.",
      "التذبذب المستقبلي اللي تعكسه أسعار الخيارات. يرتفع قبل الأحداث مثل إعلان الأرباح لما يتوقع المتداولون حركة كبيرة."),
     ("volatility", "Volatility", "التذبذب",
@@ -537,10 +535,15 @@ _EN_B, _EN_A = r"(?<![A-Za-z0-9])", r"(?![A-Za-z0-9])"
 _AR_B, _AR_A = "(?<![ء-ي])(?:[وفبلك]{1,2})?", "(?![ء-ي])"
 
 
-def _variants(pats):
-    """[(kind, wrapped)] with kind 'ci' (case-insensitive English or Arabic) or 'cs' (case-sensitive English)."""
+def _variants(pats, strict=False):
+    """[(kind, wrapped)] with kind 'ci' (case-insensitive English or Arabic) or 'cs' (case-sensitive English).
+    strict: leave out the "~" patterns (everyday words: strikes, support, pullback, وقف ...), as in news text."""
     out = []
-    for p in sorted(pats, key=lambda x: -len(x)):
+    for p in sorted(pats, key=lambda x: -len(x.lstrip("~="))):
+        if p.startswith("~"):
+            if strict:
+                continue
+            p = p[1:]
         cs = p.startswith("=")
         p = p[1:] if cs else p
         if _AR.search(p):
@@ -645,10 +648,12 @@ def _first(items):
     return out
 
 
-def _dispatch():
+def _dispatch(strict=False):
     by, anyc = {}, []
     for i, (key, *_r) in enumerate(TERMS):
         for j, (kind, w) in enumerate(_variants(_r[2])):
+            if strict and (kind, w) not in _variants(_r[2], True):
+                continue
             part = f"(?P<g{i}_{j}>{'(?-i:' + w + ')' if kind == 'cs' else w})"
             try:
                 f = _first(_sp.parse(w, re.I if kind == "ci" else 0).data)
@@ -663,6 +668,7 @@ def _dispatch():
 
 
 _BY_CHAR, _ANY = _dispatch()
+_BY_CHAR_S, _ANY_S = _dispatch(strict=True)          # inside news text: only the plainly financial words
 _START = re.compile(r"(?<![A-Za-z0-9\u0621-\u064A])[A-Za-z0-9\u0621-\u064A]")
 
 
@@ -678,6 +684,9 @@ _TAG = re.compile(r"<(/?)([a-zA-Z][a-zA-Z0-9-]*)([^>]*)>")
 _CLS = re.compile(r"""class\s*=\s*["']([^"']*)["']""")
 _STYLE_BLOCK = re.compile(r"(<style[^>]*>.*?</style>)", re.S | re.I)
 _BODY_SKIP = ('class="ixp', "class='ixp", 'class="ai-', 'data-nogq')
+# news headlines and summaries are everyday language ("strikes on Iran", "a pullback of troops", "وقف إطلاق النار"): inside them
+# only the plainly financial words get a "?"
+_NEWS_CLASS = {"news", "story", "nie-card", "nb", "bstory", "sum"}
 
 
 def _skip_open(name, attrs):
@@ -697,7 +706,7 @@ def mark(key, ar=False):
     return f'<span class="gq" role="button" tabindex="0" data-g="{key}" aria-label="{label}">?</span>'
 
 
-def _annotate_text(text, seen):
+def _annotate_text(text, seen, strict=False):
     if not _WORD.search(text):
         return text
     out, last, pos, n = [], 0, 0, len(text)
@@ -706,7 +715,7 @@ def _annotate_text(text, seen):
         if not w:
             break
         at = w.start()
-        rx = _BY_CHAR.get(text[at].lower(), _ANY)
+        rx = (_BY_CHAR_S.get(text[at].lower(), _ANY_S) if strict else _BY_CHAR.get(text[at].lower(), _ANY))
         m = rx.match(text, at) if rx else None
         if not m:
             pos = at + 1
@@ -725,31 +734,39 @@ def _annotate_text(text, seen):
     return "".join(out)
 
 
+def _is_news(attrs):
+    m = _CLS.search(attrs)
+    return bool(m and _NEWS_CLASS.intersection(m.group(1).split()))
+
+
 def _annotate_html(html):
     seen, out, pos = set(), [], 0
-    stack = []                      # (tag, skips)
-    skipping = 0
+    stack = []                      # (tag, skips, news)
+    skipping = news = 0
     for m in _TAG.finditer(html):
         text = html[pos:m.start()]
         if text:
-            out.append(text if skipping else _annotate_text(text, seen))
+            out.append(text if skipping else _annotate_text(text, seen, news > 0))
         closing, name, attrs = m.group(1) == "/", m.group(2).lower(), m.group(3)
         if closing:
             for k in range(len(stack) - 1, -1, -1):          # close back to the matching open tag
                 if stack[k][0] == name:
-                    for _t, sk in stack[k:]:
+                    for _t, sk, nw in stack[k:]:
                         skipping -= sk
+                        news -= nw
                     del stack[k:]
                     break
         elif name not in _VOID and not attrs.rstrip().endswith("/"):
             sk = 1 if (skipping or _skip_open(name, attrs)) else 0
-            stack.append((name, sk))
+            nw = 1 if _is_news(attrs) else 0
+            stack.append((name, sk, nw))
             skipping += sk
+            news += nw
         out.append(m.group(0))
         pos = m.end()
     tail = html[pos:]
     if tail:
-        out.append(tail if skipping else _annotate_text(tail, seen))
+        out.append(tail if skipping else _annotate_text(tail, seen, news > 0))
     return "".join(out)
 
 
@@ -791,15 +808,14 @@ def glossary(extra=()):
 
 # ---------------------------------------------------------------- the list for the page script
 def client():
-    """{"t": {key: [en name, ar name, en text, ar text]}, "p": [[key, ci pattern, cs pattern], ...]} in list order."""
+    """{"t": {key: [en name, ar name, en text, ar text]}, "p": [[key, ci, cs, strict ci, strict cs], ...]} in list order."""
     t, p = {}, []
     for key, en, ar, pats, den, dar in TERMS:
         t[key] = [en, ar, den, dar]
-        v = _variants(pats)
-        ci = "|".join(w for k, w in v if k == "ci")
-        cs = "|".join(w for k, w in v if k == "cs")
-        p.append([key, ci, cs])
+        v, vs = _variants(pats), _variants(pats, True)
+        p.append([key, "|".join(w for k, w in v if k == "ci"), "|".join(w for k, w in v if k == "cs"),
+                  "|".join(w for k, w in vs if k == "ci"), "|".join(w for k, w in vs if k == "cs")])
     return {"t": t, "p": p}
 
 
-BUILD = "17.0"
+BUILD = "17.1"

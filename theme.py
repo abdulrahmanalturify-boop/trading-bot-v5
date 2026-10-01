@@ -1849,7 +1849,8 @@ FX_JS = """<script>
   var G = __GLOSS__, T = G.t, P = [], PK = {}, QCI = null, QCS = null;
   try {
     G.p.forEach(function (x) {
-      var o = {k: x[0], ci: x[1] ? new RegExp(x[1], 'iu') : null, cs: x[2] ? new RegExp(x[2], 'u') : null};
+      var o = {k: x[0], ci: x[1] ? new RegExp(x[1], 'iu') : null, cs: x[2] ? new RegExp(x[2], 'u') : null,
+               sci: x[3] ? new RegExp(x[3], 'iu') : null, scs: x[4] ? new RegExp(x[4], 'u') : null};
       P.push(o); PK[o.k] = o;
     });
     QCI = new RegExp(G.p.map(function (x) { return x[1]; }).filter(Boolean).join('|'), 'iu');
@@ -1920,7 +1921,13 @@ FX_JS = """<script>
            + '[aria-hidden="true"], [data-testid="stTooltipIcon"], .lg, .lgo, .nth, .gqpop, [data-nogq], .as, .tk, .tkc, .lnk, .co, .mchip, .mvr, .wlr, .hm';
   var WORD = /[A-Za-z0-9\u0621-\u064A]/, AR = /[\u0600-\u06FF]/;
   var seen = new WeakMap();
-  function find(x, t) { var m = x.ci && x.ci.exec(t), n = x.cs && x.cs.exec(t); return m && n ? (n.index < m.index ? n : m) : (m || n); }
+  // news headlines and summaries are everyday language ("strikes on Iran"): there only the plainly financial words count
+  var NEWS = '.news, .story, .nie-card, .nb, .bstory, .sum';
+  function find(x, t, strict) {
+    var a = strict ? x.sci : x.ci, b = strict ? x.scs : x.cs;
+    var m = a && a.exec(t), n = b && b.exec(t);
+    return m && n ? (n.index < m.index ? n : m) : (m || n);
+  }
   function mk(m) {
     var g = d.createElement('span');
     g.className = 'gq cl'; g.setAttribute('role', 'button'); g.tabIndex = 0; g.setAttribute('data-g', m.k); g.textContent = '?';
@@ -1933,7 +1940,7 @@ FX_JS = """<script>
     if (seen.get(box) === txt) return;
     each(box.querySelectorAll('.gq.cl'), function (g) {                 // a "?" whose term has gone (the text changed)
       var p = g.previousSibling, x = PK[g.getAttribute('data-g')];
-      if (!x || !p || p.nodeType !== 3 || !find(x, p.nodeValue)) g.remove();
+      if (!x || !p || p.nodeType !== 3 || !find(x, p.nodeValue, !!g.closest(NEWS))) g.remove();
     });
     var have = {};
     each(box.querySelectorAll('.gq'), function (g) { have[g.getAttribute('data-g')] = 1; });
@@ -1942,10 +1949,10 @@ FX_JS = """<script>
     nodes.forEach(function (node) {
       var t = node.nodeValue, par = node.parentElement;
       if (!t || !par || !WORD.test(t) || !(QCI.test(t) || QCS.test(t)) || par.closest(SKIP)) return;
-      var ms = [];
+      var ms = [], strict = !!par.closest(NEWS);
       P.forEach(function (x, i) {
         if (have[x.k]) return;
-        var m = find(x, t);
+        var m = find(x, t, strict);
         if (m) ms.push({s: m.index, e: m.index + m[0].length, k: x.k, i: i, a: AR.test(m[0])});
       });
       if (!ms.length) return;
@@ -2552,4 +2559,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "17.0"
+BUILD = "17.1"

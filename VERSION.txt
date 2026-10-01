@@ -1,2 +1,2 @@
-A.Alturaifi Pro - version 17.0 (news intelligence: a clear, interactive trade map instead of the crowded price bar)
+A.Alturaifi Pro - version 17.1 (the ? reads news as everyday language: "strikes on Iran" is no strike price)
 If you can see this file on GitHub, the new version was uploaded correctly.
