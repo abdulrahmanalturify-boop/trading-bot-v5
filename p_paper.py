@@ -339,8 +339,8 @@ a.pblink:hover {{ color:#fff !important; border-color:{_A}; background:{_A}33; }
 a.pblink .ms {{ font-size:1rem; }}
 .pbanchor {{ scroll-margin-top:96px; height:1px; }}
 
-/* ---------- monthly returns: every month is a button that opens its calendar ---------- */
-[class*="st-key-pbmg_"] {{ overflow-x:auto; overflow-y:hidden; max-width:860px; gap:5px !important; padding:10px 12px 12px;
+/* ---------- monthly returns: every month is a button that opens its calendar; as wide as the tables above and below ---------- */
+[class*="st-key-pbmg_"] {{ overflow-x:auto; overflow-y:hidden; width:100%; box-sizing:border-box; gap:5px !important; padding:10px 12px 12px;
   background:{T.BOX_BG}; border:1px solid {_BD}; border-radius:16px; }}
 [class*="st-key-pbmg_"] [data-testid="stHorizontalBlock"] {{ min-width:680px; flex-wrap:nowrap !important; gap:4px !important;
   align-items:center !important; }}
@@ -358,7 +358,7 @@ a.pblink .ms {{ font-size:1rem; }}
 [class*="st-key-pbmo_"] button:hover {{ transform:translateY(-2px); box-shadow:0 6px 16px rgba(0,0,0,.35); }}
 [class*="st-key-pbmo_"][class*="_on_"] button {{ box-shadow:0 0 0 2px {T.BG}, 0 0 0 4px {_A} !important; transform:translateY(-2px); }}
 [class*="st-key-pbcalbox_"] {{ background:{T.BOX_BG}; border:1px solid {_A}66; border-radius:18px; padding:14px 16px;
-  box-shadow:0 12px 30px rgba(59,139,235,.12); margin-top:6px; max-width:1100px; }}
+  box-shadow:0 12px 30px rgba(59,139,235,.12); margin-top:6px; width:100%; box-sizing:border-box; }}
 .pbct {{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; font-weight:600; font-size:1rem; color:#fff; }}
 .pbct .ms {{ color:#fff; background:{T.PANEL}; box-shadow:{T.GLOW}; border-radius:8px; padding:4px; font-size:1rem; }}
 .pbct .muted {{ font-size:.78rem; font-weight:600; }} .pbct .pill {{ min-width:0; padding:2px 8px; font-size:.76rem; }}
@@ -4187,4 +4187,4 @@ def page_paper_bots():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "16.6"
+BUILD = "16.7"

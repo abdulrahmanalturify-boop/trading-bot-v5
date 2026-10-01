@@ -1,2 +1,2 @@
-A.Alturaifi Pro - version 16.6 (charts no longer cut at the edges; every table sorts, filters and highlights)
+A.Alturaifi Pro - version 16.7 (paper bots: the monthly returns and its calendar as wide as the tables around them)
 If you can see this file on GitHub, the new version was uploaded correctly.

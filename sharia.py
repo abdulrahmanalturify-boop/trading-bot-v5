@@ -18,7 +18,7 @@ import theme as T
 import ui
 from i18n import L, industry_name, is_ar
 
-BUILD = "16.6"
+BUILD = "16.7"
 
 REV_MAX, RATIO_MAX = 5.0, 30.0
 HALAL, DOUBT, HARAM = "#4ADE80", "#F5B94A", "#F87171"
