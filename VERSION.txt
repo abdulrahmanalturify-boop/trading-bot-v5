@@ -1,2 +1,2 @@
-A.Alturaifi Pro - version 16.4 (light look: the same globe picture in light tones)
+A.Alturaifi Pro - version 16.5 (trending: stories ranked by size; a new interactive market summary)
 If you can see this file on GitHub, the new version was uploaded correctly.

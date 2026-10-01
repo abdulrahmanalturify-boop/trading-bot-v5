@@ -433,6 +433,99 @@ a.lnk {{ color:inherit !important; text-decoration:none !important; }} a.lnk:hov
 .ico {{ flex:none; width:26px; height:26px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; }}
 .ico .ms {{ font-size:1.05rem; vertical-align:0; }}
 .summary li {{ margin-bottom:6px; line-height:1.8; }}
+/* ---------- the top stories, ranked by size: the first card is the biggest, the second a step smaller, the third smaller again ---------- */
+.stories {{ display:grid; grid-template-columns: 1.16fr 1fr .86fr; gap:16px; align-items:stretch; }}
+.stories.n2 {{ grid-template-columns: 1.16fr 1fr; }} .stories.n1 {{ grid-template-columns: 1fr; }}
+.stories > .story {{ height:auto; min-width:0; }}
+.stories > .story.r2 {{ margin-bottom:30px; }}
+.stories > .story.r3 {{ margin-bottom:60px; }}
+.stories > .story.r1 .nth.big {{ height:176px; }}
+.stories > .story.r2 .nth.big {{ height:152px; }}
+.stories > .story.r3 .nth.big {{ height:130px; }}
+.stories > .story.r1 a.t {{ font-size:1.12rem; }}
+.stories > .story.r3 a.t {{ font-size:.96rem; }}
+@media (max-width: 900px) {{ .stories, .stories.n2 {{ grid-template-columns:1fr; }} .stories > .story.r2, .stories > .story.r3 {{ margin-bottom:0; }} }}
+/* ---------- market summary: the day's tone and breadth, then a tile for each part of the market ---------- */
+.msum {{ display:flex; flex-direction:column; gap:14px; }}
+.msum .upt {{ color:{POS_FG}; }} .msum .dnt {{ color:{NEG_FG}; }}
+.msh {{ display:grid; grid-template-columns: minmax(0,1.1fr) minmax(0,1fr); gap:18px; align-items:center; padding:18px 20px; border-radius:18px;
+  background:{BOX_BG}; border:1px solid {BORDER}; position:relative; overflow:hidden; }}
+.msh::before {{ content:""; position:absolute; inset:0; pointer-events:none; opacity:.9;
+  background: radial-gradient(520px 160px at 0% 0%, rgba(123,69,240,.20), transparent 70%); }}
+.msh.t-u::before {{ background: radial-gradient(520px 160px at 0% 0%, rgba(34,197,94,.18), transparent 70%); }}
+.msh.t-d::before {{ background: radial-gradient(520px 160px at 0% 0%, rgba(239,68,68,.18), transparent 70%); }}
+.msh > * {{ position:relative; }}
+.msh .tone {{ display:flex; gap:14px; align-items:center; }}
+.msh .ti {{ flex:none; width:52px; height:52px; border-radius:16px; display:flex; align-items:center; justify-content:center; background:{VIO_BG};
+  box-shadow:{GLOW}; }}
+.msh .ti .ms {{ font-size:28px; color:{VIO_FG}; }}
+.msh.t-u .ti {{ background:{POS_BG}; }} .msh.t-u .ti .ms {{ color:{POS_FG}; }}
+.msh.t-d .ti {{ background:{NEG_BG}; }} .msh.t-d .ti .ms {{ color:{NEG_FG}; }}
+.msh .tt {{ font-size:1.35rem; font-weight:600; letter-spacing:-.01em; color:#fff; }}
+.msh .ix {{ margin-top:4px; color:{MUTED}; font-size:.86rem; display:flex; flex-wrap:wrap; gap:4px 10px; }}
+.msh .ix b {{ font-weight:600; font-variant-numeric:tabular-nums; }}
+.brd .bl {{ display:flex; justify-content:space-between; align-items:baseline; font-size:.8rem; color:{MUTED}; font-weight:600; letter-spacing:.02em; }}
+.brd .bl b {{ color:#fff; font-size:1.05rem; }}
+.brd .bar {{ display:flex; gap:3px; height:12px; margin:8px 0 7px; border-radius:8px; overflow:hidden; background:rgba(255,255,255,.06); }}
+.brd .bar i {{ display:block; height:100%; transform-origin:left; animation: msgrow .9s cubic-bezier(.2,.8,.2,1) both; }}
+.brd .bar i.u {{ background:linear-gradient(90deg,#16A34A,{POS_FG}); border-radius:8px; }}
+.brd .bar i.d {{ background:linear-gradient(90deg,{NEG_FG},#DC2626); border-radius:8px; margin-inline-start:auto; transform-origin:right; }}
+.rtl .brd .bar i.u, .rtl .mst .rows .b i {{ transform-origin:right; }} .rtl .brd .bar i.d {{ transform-origin:left; }}
+.brd .bc {{ display:flex; justify-content:space-between; font-size:.78rem; font-weight:600; font-variant-numeric:tabular-nums; }}
+@keyframes msgrow {{ from {{ transform:scaleX(0); }} to {{ transform:scaleX(1); }} }}
+.msg {{ display:grid; grid-template-columns: minmax(0,1.25fr) repeat(2, minmax(0,1fr)); gap:14px; }}
+.mst {{ position:relative; display:flex; flex-direction:column; gap:8px; padding:14px 16px; border-radius:16px; background:{BOX_BG}; border:1px solid {BORDER};
+  color:{TEXT} !important; text-decoration:none !important; transition: border-color .2s, transform .2s; min-width:0; }}
+a.mst:hover {{ border-color: rgba(123,69,240,.45); }}
+.mst.wide {{ grid-row: span 2; }}
+.mst .mh {{ display:flex; align-items:center; gap:8px; font-size:.74rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:{MUTED}; }}
+.mst .mh .ms {{ font-size:18px; color:{VIO_FG}; }}
+.mst .mh .go {{ margin-inline-start:auto; font-size:17px; color:{MUTED}; opacity:0; transform:translate(-4px,4px); transition: opacity .2s, transform .2s; }}
+a.mst:hover .mh .go {{ opacity:1; transform:none; color:{VIO_FG}; }}
+.rtl .mst .mh .go {{ transform:translate(4px,4px) scaleX(-1); }} .rtl a.mst:hover .mh .go {{ transform:scaleX(-1); }}
+.mst .mb {{ flex:1; display:flex; flex-direction:column; gap:6px; }}
+.mst .big {{ font-size:1.5rem; font-weight:600; color:#fff; font-variant-numeric:tabular-nums; display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; }}
+.mst .big b {{ font-size:.9rem; font-weight:600; }}
+.mst .sub {{ font-size:.8rem; color:{MUTED}; }}
+.mst .why {{ font-size:.72rem; line-height:1.5; color:{MUTED}; opacity:.85; border-top:1px dashed {BORDER}; padding-top:8px; }}
+.mst .gauge {{ position:relative; height:8px; margin-top:6px; border-radius:6px;
+  background:linear-gradient(90deg, #16A34A 0%, #84CC16 30%, {GOLD} 55%, #F97316 75%, #DC2626 100%); opacity:.9; }}
+.mst .gauge span {{ position:absolute; top:-2px; bottom:-2px; width:1px; background:rgba(255,255,255,.35); }}
+.mst .gauge i {{ position:absolute; top:50%; width:16px; height:16px; margin-left:-8px; translate:0 -50%; border-radius:50%; background:#fff;
+  box-shadow:0 0 0 3px rgba(14,9,24,.85), 0 2px 10px rgba(0,0,0,.5); transition: left .6s ease; }}
+.mst .gl {{ display:flex; justify-content:space-between; font-size:.64rem; color:{MUTED}; font-variant-numeric:tabular-nums; }}
+.mst .rows {{ display:flex; flex-direction:column; gap:10px; margin-top:2px; }}
+.mst .rows .r, .mst .secs .sr {{ display:grid; grid-template-columns: minmax(0,1fr) minmax(0,1.2fr) auto; gap:10px; align-items:center; font-size:.84rem; }}
+.mst .rows .n, .mst .secs .n {{ color:{TEXT}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
+.mst .rows .b {{ height:8px; border-radius:6px; background:rgba(255,255,255,.06); overflow:hidden; display:flex; }}
+.mst .rows .b i {{ display:block; height:100%; border-radius:6px; transform-origin:left; animation: msgrow .9s cubic-bezier(.2,.8,.2,1) both; }}
+.mst :is(.rows, .secs) .b i.u {{ background:{POS_FG}; }} .mst :is(.rows, .secs) .b i.d {{ background:{NEG_FG}; }}
+.mst :is(.rows, .secs) .b i.z {{ background:{MUTED}; }}
+.mst :is(.rows, .secs) b {{ font-size:.82rem; font-variant-numeric:tabular-nums; min-width:58px; text-align:end; }}
+.mst .secs {{ flex:1; display:flex; flex-direction:column; justify-content:space-between; gap:3px; }}
+.mst .secs .sr {{ grid-template-columns: minmax(0,1.15fr) minmax(0,1fr) auto; padding:5px 8px; border-radius:9px; transition: background .15s; }}
+.mst .secs .sr:hover {{ background:rgba(123,69,240,.14); }}
+.mst .secs .b {{ position:relative; height:10px; }}
+.mst .secs .b::before {{ content:""; position:absolute; inset-inline-start:50%; top:-3px; bottom:-3px; width:1px; background:rgba(255,255,255,.18); }}
+.mst .secs .b i {{ position:absolute; top:0; bottom:0; display:block; border-radius:5px; animation: msgrow .9s cubic-bezier(.2,.8,.2,1) both; }}
+.mst .secs .b i.u {{ inset-inline-start:50%; transform-origin:left; }}
+.mst .secs .b i.d {{ inset-inline-end:50%; transform-origin:right; }}
+.rtl .mst .secs .b i.u {{ transform-origin:right; }} .rtl .mst .secs .b i.d {{ transform-origin:left; }}
+.mst .mvr {{ display:flex; align-items:center; gap:10px; padding:8px; margin:0 -8px; border-radius:12px; text-decoration:none !important; color:{TEXT} !important;
+  transition: background .15s; }}
+.mst .mvr:hover {{ background:rgba(123,69,240,.14); }}
+.mst .mvr .nm {{ flex:1; min-width:0; display:flex; flex-direction:column; line-height:1.25; }}
+.mst .mvr small {{ font-size:.66rem; color:{MUTED}; font-weight:600; text-transform:uppercase; letter-spacing:.05em; }}
+.mst .mvr b {{ font-size:.95rem; color:#fff; }}
+.mst .mvr em {{ font-style:normal; font-size:.72rem; color:{MUTED}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
+.mst .chips {{ display:flex; flex-wrap:wrap; gap:6px; }}
+.mst .mchip {{ display:inline-flex; gap:6px; align-items:baseline; padding:4px 10px; border-radius:20px; font-size:.78rem; font-weight:600;
+  border:1px solid {BORDER}; background:{CARD2}; color:{TEXT} !important; text-decoration:none !important; transition: border-color .15s; }}
+.mst .mchip:hover {{ border-color: rgba(123,69,240,.55); }} .mst .mchip b {{ font-size:.74rem; }}
+.mst .shl {{ margin-top:6px; font-size:.66rem; color:{MUTED}; font-weight:600; text-transform:uppercase; letter-spacing:.05em; }}
+@media (max-width: 1100px) {{ .msg {{ grid-template-columns: repeat(2, minmax(0,1fr)); }} .mst.wide {{ grid-row:auto; }} }}
+@media (max-width: 700px) {{ .msh {{ grid-template-columns: 1fr; }} .msg {{ grid-template-columns: 1fr; }} .mst.wide {{ grid-column:auto; grid-row:auto; }} }}
+@media (prefers-reduced-motion: reduce) {{ .msum *, .msum *::before {{ animation:none !important; transition:none !important; }} }}
 .kpi {{ background:{BOX_BG}; border:1px solid {BORDER}; border-radius:14px; padding:12px 14px; height:100%; }}
 .kpi.pos, .kpi.neg {{ border-color:transparent; }}
 .kpi .l {{ color:{MUTED}; font-size:.75rem; font-weight:500; display:flex; gap:6px; align-items:center; }}
@@ -1191,7 +1284,7 @@ FX_CARDS = (
     ".card", ".tile", ".kpi", ".mcard", ".lc", ".stat", ".plan .p", ".prof .it", ".news", ".story", ".rmeter", ".lr", ".secgrid .sc",
     ".course", ".dcard", ".lesson", ".hmwrap", ".tdc", ".tdp", ".cal .d", ".cal .wk", ".opos .o", ".mx .m", ".perfrow .pc2", ".sigs .sg",
     ".brief", ".evt", ".acard", ".tkw", ".fgc", ".pulse", ".wlr", ".ehub .day", ".etab", ".ecard", ".evday", ".hrow", ".sprow", ".iplist",
-    ".botbar", ".srcc", ".xtp", ".chainwrap", ".sgcol", '[data-testid="stMetric"]', '[data-testid="stPlotlyChart"]',
+    ".botbar", ".srcc", ".xtp", ".chainwrap", ".sgcol", ".msh", ".mst", '[data-testid="stMetric"]', '[data-testid="stPlotlyChart"]',
     '[data-testid="stExpander"] details',
     # home page
     ".czcard", ".czn",
@@ -1203,11 +1296,11 @@ FX_CARDS = (
     # Sharia check
     ".shc", ".shbn")
 FX_NO_RING = (".hnkt", ".hnplan .p")                                  # their ::after is taken: the spotlight only
-FX_NO_GLOW = (".pbc", ".hnc", ".xtp", ".sgcol", ".pbid", ".pbp", ".hnrate", ".hndh", ".etab", ".iplist", ".chainwrap", ".evday",
+FX_NO_GLOW = (".pbc", ".hnc", ".msh", ".xtp", ".sgcol", ".pbid", ".pbp", ".hnrate", ".hndh", ".etab", ".iplist", ".chainwrap", ".evday",
               '[class*="st-key-hnbar"]', '[class*="st-key-hnfilt"]')   # their ::before is taken: the edge light only (.pbc draws its own)
 FX_LIFT = (".kpi", ".mcard", ".story", ".news", ".lc", ".tdc", ".dcard", ".fgc", ".stat", ".ecard", ".shc", ".secgrid .sc", ".sprow", ".hrow",
            ".evt", ".prof .it", ".plan .p", ".mx .m", ".pbph", ".pbkd", ".pbmode", ".lr", ".opos .o", ".perfrow .pc2", ".sigs .sg", ".srcc",
-           ".cal .d", ".czn", ".aic", '[data-testid="stMetric"]')
+           ".cal .d", ".czn", ".aic", ".mst", '[data-testid="stMetric"]')
 _fx = ",".join(FX_CARDS)
 _lift = ",".join(FX_LIFT)
 _ring = f":is({_fx}):not({','.join(FX_NO_RING)})"
@@ -2154,4 +2247,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "16.4"
+BUILD = "16.5"

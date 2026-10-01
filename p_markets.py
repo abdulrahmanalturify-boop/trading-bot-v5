@@ -2,6 +2,7 @@
 p_markets.py - Overview (TradingView-style heatmap, sector rotation, market breadth) · Futures · Options market ·
 Economy · What's Trending · News
 """
+import re
 import time
 
 import numpy as np
@@ -738,6 +739,136 @@ def summary_points(px, moves, lists):
     return pts
 
 
+def summary_data(px, moves, lists):
+    """Everything the market summary shows, as numbers (None when a feed is missing)."""
+    d = {}
+    for k, sym in (("sp", "^GSPC"), ("nq", "^IXIC"), ("dj", "^DJI"), ("vix", "^VIX"), ("tnx", "^TNX"), ("oil", "CL=F"), ("gold", "GC=F"),
+                   ("btc", "BTC-USD"), ("eth", "ETH-USD"), ("usd", "DX-Y.NYB")):
+        d[k] = _last(px, sym)
+    d["up"] = d["down"] = d["n"] = 0
+    if not moves.empty:
+        ch = moves["Chg %"]
+        d["up"], d["down"], d["n"] = int((ch > 0).sum()), int((ch < 0).sum()), int(len(ch))
+    sec = data.history_many(tuple(U.SECTOR_ETFS), "5d")
+    d["sectors"] = sorted(((U.SECTOR_ETFS[e], (df["Close"].iloc[-1] / df["Close"].iloc[-2] - 1) * 100) for e, df in sec.items() if len(df) > 1),
+                          key=lambda x: -x[1])
+    g, lo, sh = lists["day_gainers"][0], lists["day_losers"][0], lists["most_shorted_stocks"][0]
+    d["gainer"] = (g.iloc[0]["Symbol"], str(g.iloc[0].get("Name") or ""), float(g.iloc[0]["Chg %"])) if not g.empty else None
+    d["loser"] = (lo.iloc[0]["Symbol"], str(lo.iloc[0].get("Name") or ""), float(lo.iloc[0]["Chg %"])) if not lo.empty else None
+    d["shorted"] = [(r["Symbol"], float(r["Chg %"])) for _, r in sh.head(5).iterrows()] if not sh.empty else []
+    return d
+
+
+def _sgn(v, digits=2, suffix="%"):
+    return f'<b class="{T.txt(v)}" dir="ltr">{v:+.{digits}f}{suffix}</b>' if v is not None else '<b class="muted">—</b>'
+
+
+def _ud(v):
+    return "u" if v > 0 else "d" if v < 0 else "z"
+
+
+def _mst(icon, title, body, why, link=None, cls=""):
+    """One tile of the market summary: a link to the page with the details when there is one; why = what the number means."""
+    head = (f'<div class="mh">{T.icon(icon)}<span>{title}</span>'
+            + ('<span class="ms go">arrow_outward</span>' if link else "") + "</div>")
+    inner = f'{head}<div class="mb">{body}</div><div class="why">{why}</div>'
+    tip = T.esc(re.sub("<[^>]+>", "", why))
+    if link:
+        return f'<a class="mst{cls}" href="{link}" target="_self" title="{tip}">{inner}</a>'
+    return f'<div class="mst{cls}" title="{tip}">{inner}</div>'
+
+
+def summary_html(d, lg):
+    """The market summary: the day's tone and breadth on top, then a tile for each part of the market. Every tile opens the
+    page with the details; hover a tile or a sector for what the number means."""
+    lg_ = lang()
+    page = lambda path: f"{path}?lang={lg_}"
+    sp, nq, dj = d["sp"][2], d["nq"][2], d["dj"][2]
+    # the tone of the day, from the S&P 500
+    if sp is None:
+        tone, tic, tcls = L("Waiting for prices", "بانتظار الأسعار"), "hourglass_empty", "t-z"
+    elif sp >= 1:
+        tone, tic, tcls = L("Stocks are rallying", "الأسهم في صعود قوي"), "rocket_launch", "t-u"
+    elif sp >= .25:
+        tone, tic, tcls = L("Stocks are higher", "الأسهم على ارتفاع"), "trending_up", "t-u"
+    elif sp > -.25:
+        tone, tic, tcls = L("Stocks are little changed", "الأسهم شبه مستقرة"), "trending_flat", "t-z"
+    elif sp > -1:
+        tone, tic, tcls = L("Stocks are lower", "الأسهم على انخفاض"), "trending_down", "t-d"
+    else:
+        tone, tic, tcls = L("Stocks are selling off", "الأسهم تحت ضغط بيع"), "south", "t-d"
+    idx = " · ".join(f'<span>{n} {_sgn(v)}</span>' for n, v in (("S&P 500", sp), ("Nasdaq", nq), ("Dow", dj)) if v is not None)
+    n, up, dn = d["n"], d["up"], d["down"]
+    pu = up / n * 100 if n else 0
+    breadth = (f'<div class="brd" title="{T.esc(L("How many of the 175 biggest US stocks are up today.", "كم سهم من أكبر 175 سهم أمريكي صاعد اليوم."))}">'
+               f'<div class="bl"><span>{L("Breadth", "اتساع السوق")}</span><b dir="ltr">{pu:.0f}% {L("up", "صاعدة")}</b></div>'
+               f'<div class="bar"><i class="u" style="width:{pu:.1f}%"></i><i class="d" style="width:{(dn / n * 100 if n else 0):.1f}%"></i></div>'
+               f'<div class="bc"><span class="upt" dir="ltr">▲ {up}</span><span class="muted">{L(f"of {n} stocks", f"من {n} سهم")}</span>'
+               f'<span class="dnt" dir="ltr">▼ {dn}</span></div></div>') if n else ""
+    top = (f'<div class="msh {tcls}"><div class="tone"><span class="ti">{T.icon(tic)}</span><div><div class="tt">{tone}</div>'
+           f'<div class="ix">{idx}</div></div></div>{breadth}</div>')
+    tiles = []
+    # sectors: every sector as a bar, best first
+    if d["sectors"]:
+        mx = max(.5, max(abs(p) for _, p in d["sectors"]))
+        rows = "".join(f'<div class="sr" title="{T.esc(sector_name(nm))}: {p:+.2f}%"><span class="n">{T.esc(sector_name(nm))}</span>'
+                       f'<span class="b"><i class="{_ud(p)}" style="width:{abs(p) / mx * 50:.1f}%"></i></span>{_sgn(p)}</div>'
+                       for nm, p in d["sectors"])
+        best, worst = d["sectors"][0], d["sectors"][-1]
+        why = L(f"Leading: {best[0]} ({best[1]:+.2f}%). Lagging: {worst[0]} ({worst[1]:+.2f}%).",
+                f"الأقوى: {sector_name(best[0])} ({best[1]:+.2f}%)، والأضعف: {sector_name(worst[0])} ({worst[1]:+.2f}%).")
+        tiles.append(_mst("donut_small", L("Sectors today", "القطاعات اليوم"), f'<div class="secs">{rows}</div>', why, page("overview"), " wide"))
+    # fear gauge
+    v = d["vix"]
+    if v[0] is not None:
+        lvl = v[0]
+        word = (L("calm", "هدوء") if lvl < 15 else L("normal", "طبيعي") if lvl < 20 else L("nervous", "توتر") if lvl < 30 else L("fearful", "خوف"))
+        trend = L("rising fear", "القلق يرتفع") if (v[2] or 0) > 0 else L("easing fear", "القلق يتراجع")
+        pos = min(100, max(0, (lvl - 10) / 30 * 100))
+        body = (f'<div class="big" dir="ltr">{lvl:.2f} {_sgn(v[2])}</div><div class="sub">{word} · {trend}</div>'
+                f'<div class="gauge" dir="ltr"><i style="left:{pos:.1f}%"></i><span style="left:33.3%"></span>'
+                f'<span style="left:66.6%"></span></div><div class="gl" dir="ltr"><span>10</span><span>20</span><span>30</span><span>40</span></div>')
+        tiles.append(_mst("speed", L("Fear gauge · VIX", "مؤشر الخوف · VIX"), body,
+                          L("The S&P 500 swings traders expect over the next 30 days: above 20 is nervous, above 30 fearful.",
+                            "التذبذب اللي يتوقعه المتداولون لمؤشر إس آند بي 500 خلال 30 يوم: فوق 20 توتر، وفوق 30 خوف."), page("sentiment")))
+    # 10-year yield
+    y = d["tnx"]
+    if y[0] is not None:
+        bps = y[1] * 100
+        body = (f'<div class="big" dir="ltr">{y[0]:.2f}% <b class="{T.txt(-bps)}">{bps:+.0f} {L("bps", "نقطة")}</b></div>'
+                f'<div class="sub">{L("10-year Treasury yield", "عائد سندات الخزانة لأجل 10 سنوات")}</div>')
+        tiles.append(_mst("account_balance", L("Bond yields", "عوائد السندات"), body,
+                          L("Higher yields make borrowing dearer and usually weigh on growth stocks.",
+                            "ارتفاع العوائد يرفع كلفة الاقتراض وغالباً يضغط على أسهم النمو."), page("economy")))
+    # oil, gold, bitcoin
+    rows = [(L("Oil", "النفط"), d["oil"][2]), (L("Gold", "الذهب"), d["gold"][2]), (L("US dollar", "الدولار"), d["usd"][2]),
+            (L("Bitcoin", "بيتكوين"), d["btc"][2]), (L("Ethereum", "إيثريوم"), d["eth"][2])]
+    rows = [(nm, p) for nm, p in rows if p is not None]
+    if rows:
+        mx = max(1.0, max(abs(p) for _, p in rows))
+        body = '<div class="rows">' + "".join(
+            f'<div class="r"><span class="n">{nm}</span><span class="b"><i class="{_ud(p)}" style="width:{abs(p) / mx * 100:.0f}%"></i></span>{_sgn(p)}</div>'
+            for nm, p in rows) + "</div>"
+        tiles.append(_mst("oil_barrel", L("Commodities, dollar & crypto", "السلع والدولار والعملات الرقمية"), body,
+                          L("Since yesterday's close. The dollar is its index against six major currencies.",
+                            "منذ إغلاق أمس. الدولار هنا مؤشره مقابل ست عملات رئيسية."), page("futures")))
+    # biggest movers
+    mv = []
+    for key, lab in (("gainer", L("Biggest gainer", "الأكثر ارتفاعاً")), ("loser", L("Biggest loser", "الأكثر انخفاضاً"))):
+        m = d[key]
+        if m:
+            mv.append(f'<a class="mvr" href="{ui.href(m[0])}" target="_self">{T.logo_circle(m[0], lg.get(m[0]), 34)}'
+                      f'<span class="nm"><small>{lab}</small><b>{T.esc(m[0])}</b><em>{T.esc(m[1][:24])}</em></span>{T.pill(m[2])}</a>')
+    if d["shorted"]:                       # the heavily shorted names, under the movers
+        chips = "".join(f'<a class="mchip" href="{ui.href(s_)}" target="_self">{T.esc(s_)} {_sgn(p, 1)}</a>' for s_, p in d["shorted"][:5])
+        mv.append(f'<div class="shl">{L("Heavily shorted", "بيع على المكشوف مرتفع")}</div><div class="chips">{chips}</div>')
+    if mv:
+        tiles.append(_mst("swap_vert", L("Biggest movers", "الأكثر حركة"), "".join(mv),
+                          L("The day's top gainer and loser, and the names many traders bet against (their moves can be sharp).",
+                            "أكثر سهم ارتفع وأكثر سهم نزل اليوم، والأسهم اللي متداولين كثير يراهنون على نزولها (حركتها ممكن تكون حادة).")))
+    return f'<div class="msum{" rtl" if is_ar() else ""}">{top}<div class="msg">{"".join(tiles)}</div></div>'
+
+
 def _leaderboard(df, lg, n=12):
     cards = []
     for i, (_, r) in enumerate(df.head(n).iterrows(), 1):
@@ -772,8 +903,8 @@ def page_trending():
         if is_ar():
             titles = data.translate(titles)
         chg = data.changes(tick) if tick else {}
-        cols = st.columns(len(stories))
-        for i, (col, n, t) in enumerate(zip(cols, stories, titles)):
+        cards = []
+        for i, (n, t) in enumerate(zip(stories, titles)):
             ch = ui.chips(n["tickers"], chg, lg) or f'<span class="muted">{L("Broad market", "السوق بشكل عام")}</span>'
             iq = n.get("iq")
             score = ""
@@ -781,18 +912,18 @@ def page_trending():
                 bg, fg, bd = newsiq.colors(iq["score"])
                 lv = newsiq.level(iq["score"])
                 score = (f'<span class="iqs" style="background:{bg};color:{fg};border-color:{bd}">{iq["score"]}/10 · {T.esc(L(*lv))}</span>')
-            col.markdown(f'<div class="story{" rtl" if is_ar() else ""}">{T.news_thumb(n, big=True)}<div class="rank">0{i + 1}</div>'
+            cards.append(f'<div class="story r{i + 1}{" rtl" if is_ar() else ""}">{T.news_thumb(n, big=True)}<div class="rank">0{i + 1}</div>'
                          f'<a class="t" href="{T.esc(n["link"])}" target="_blank">{T.esc(t)}</a>'
                          f'<div class="muted" style="font-size:.78rem;margin-top:6px">{T.esc(n["source"])} · {T.time_ago(n["time"], is_ar())}</div>'
                          f'<div style="margin-top:8px">{score}</div>' + (T.kw_chips(iq, is_ar(), 3) if iq else "") +
-                         f'<div class="aff"><span class="lbl" style="width:100%">{L("Affected companies", "الشركات المتأثرة")}</span>{ch}</div></div>',
-                         unsafe_allow_html=True)
+                         f'<div class="aff"><span class="lbl" style="width:100%">{L("Affected companies", "الشركات المتأثرة")}</span>{ch}</div></div>')
+        # ranked by size: the first story is the biggest card, the second a step smaller, the third smaller again
+        ui.html(f'<div class="stories n{len(cards)}">' + "".join(cards) + "</div>")
     else:
         st.caption(L("No trending stories right now.", "لا توجد أخبار رائجة حالياً."))
 
     ui.sec("summarize", "Market summary", "ملخص السوق")
-    ui.html(f'<div class="card{" rtl" if is_ar() else ""}"><ul class="summary">' +
-            "".join(f"<li>{T.esc(L(e, a))}</li>" for e, a in summary_points(px, moves, lists)) + "</ul></div>")
+    ui.html(summary_html(summary_data(px, moves, lists), lg))
 
     ui.sec("leaderboard", "Movers at a glance", "الأسهم الأكثر حركة")
     keys = list(LISTS)
@@ -972,4 +1103,4 @@ def page_news():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "16.4"
+BUILD = "16.5"
