@@ -1,5 +1,5 @@
 """
-terms.py - a small "?" next to every trading term on the site; pressing it explains the term in Arabic and English.
+terms.py - a small "?" next to every trading term on the site; pressing it explains the term in the page's language.
 
 TERMS holds each term once: its key, its name in both languages, the ways the site writes it (English and Arabic
 patterns) and a short explanation in both languages. Two places use it:
@@ -802,4 +802,4 @@ def client():
     return {"t": t, "p": p}
 
 
-BUILD = "16.8"
+BUILD = "16.9"

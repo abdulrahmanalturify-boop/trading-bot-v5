@@ -1174,7 +1174,7 @@ table[data-tx] tbody tr.tx-hide {{ display:none; }}
   text-decoration:none !important; color:#C4B5FD !important; background:rgba(123,69,240,.16); border:1px solid rgba(167,139,250,.38);
   cursor:pointer; user-select:none; -webkit-user-select:none; transition: background .15s, color .15s, border-color .15s, transform .15s; }}
 .gq:hover, .gq:focus-visible, .gq.on {{ background:#7B45F0; border-color:#A78BFA; color:#FFFFFF !important; transform:scale(1.15); outline:none; }}
-.gqpop {{ position:fixed; z-index:1000300; width:min(360px, calc(100vw - 24px)); box-sizing:border-box; padding:14px 16px 12px; border-radius:16px;
+.gqpop {{ position:fixed; z-index:1000300; width:min(340px, calc(100vw - 24px)); box-sizing:border-box; padding:14px 16px 12px; border-radius:16px;
   background:#1A1624; border:1px solid rgba(167,139,250,.38); color:#E7E3EB; box-shadow:0 22px 56px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.03);
   font-family:{FONT_LATIN}, {FONT_AR}, system-ui, sans-serif; animation: gqin .16s ease-out both; }}
 .gqpop::before {{ content:""; position:absolute; top:-6px; left:var(--ax, 50%); width:10px; height:10px; margin-left:-5px; transform:rotate(45deg);
@@ -1835,7 +1835,7 @@ FX_JS = """<script>
   }, {passive: true});
   every(scan, 700); scan();
 })();
-(function () {                                   // the "?" next to every trading term: pressed, it explains the term in Arabic and English
+(function () {                                   // the "?" next to every trading term: pressed, it explains the term in the page's language
   var w = window.parent, d = w.document;
   var VER = '__VER__', KEY = '__alturaifiTermsV';
   if (w[KEY] === VER) return;                       // this version already runs in this tab
@@ -1881,12 +1881,11 @@ FX_JS = """<script>
     if (anchor === el) { close(); return; }
     close();
     var a = ar();
-    var en = '<div class="gqb" dir="ltr" lang="en"><span class="gql">English</span><b>' + esc(t[0]) + '</b><p>' + esc(t[2]) + '</p></div>';
-    var arb = '<div class="gqb" dir="rtl" lang="ar"><span class="gql">\u0627\u0644\u0639\u0631\u0628\u064a\u0629</span><b>' + esc(t[1]) + '</b><p>' + esc(t[3]) + '</p></div>';
+    var body = a ? '<div class="gqb" dir="rtl" lang="ar"><b>' + esc(t[1]) + '</b><p>' + esc(t[3]) + '</p></div>'
+                 : '<div class="gqb" dir="ltr" lang="en"><b>' + esc(t[0]) + '</b><p>' + esc(t[2]) + '</p></div>';   // the page's language only
     pop = d.createElement('div');
     pop.className = 'gqpop'; pop.setAttribute('role', 'dialog'); pop.setAttribute('aria-label', a ? t[1] : t[0]); pop.dir = a ? 'rtl' : 'ltr';
-    pop.innerHTML = '<button type="button" class="gqx" aria-label="' + (a ? '\u0625\u063a\u0644\u0627\u0642' : 'Close') + '">\u00d7</button>'
-                    + (a ? arb + en : en + arb);
+    pop.innerHTML = '<button type="button" class="gqx" aria-label="' + (a ? '\u0625\u063a\u0644\u0627\u0642' : 'Close') + '">\u00d7</button>' + body;
     d.body.appendChild(pop);
     anchor = el; el.classList.add('on');
     place();
@@ -2553,4 +2552,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "16.8"
+BUILD = "16.9"

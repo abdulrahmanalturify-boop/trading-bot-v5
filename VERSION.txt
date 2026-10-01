@@ -1,2 +1,2 @@
-A.Alturaifi Pro - version 16.8 (a ? next to every trading term: press it for the meaning in Arabic and English; glossary of 113 terms)
+A.Alturaifi Pro - version 16.9 (the ? explanation in the page language only: English or Arabic)
 If you can see this file on GitHub, the new version was uploaded correctly.
