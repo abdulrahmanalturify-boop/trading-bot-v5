@@ -10,7 +10,7 @@ import theme as T
 import ui
 from i18n import L, is_ar
 
-BUILD = "16.7"
+BUILD = "16.8"
 
 _LINE = "rgba(150,140,250,"
 CSS = f"""
@@ -448,7 +448,8 @@ def _facts():
     try:
         import academy as A
         import academy_labs as AL
-        f["courses"], f["labs"], f["terms"] = len(A.COURSES), len(AL.LABS), len(A.GLOSSARY)
+        import terms
+        f["courses"], f["labs"], f["terms"] = len(A.COURSES), len(AL.LABS), len(terms.glossary(A.GLOSSARY))
     except Exception:
         pass
     return f

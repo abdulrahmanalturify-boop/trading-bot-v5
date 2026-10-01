@@ -18,6 +18,7 @@ import pandas as pd
 
 import flags
 import lightmode as LM
+import terms as GL
 import mcal
 
 # ---------------------------------------------------------------- palette
@@ -1166,6 +1167,38 @@ table[data-tx] tbody tr.tx-hide {{ display:none; }}
   color:{TEXT}; font:inherit; font-size:.82rem; padding:0; }}
 .tx-q input::placeholder {{ color:{MUTED}; opacity:1; }}
 .tx-n {{ font-size:.74rem; color:{MUTED}; font-weight:600; font-variant-numeric:tabular-nums; white-space:nowrap; }}
+/* ---------- the "?" next to every trading term (terms.py) and the box that explains it in Arabic and English (theme.FX_JS) ---------- */
+.gq {{ display:inline-flex !important; align-items:center; justify-content:center; flex:none; width:15px; height:15px; box-sizing:border-box;
+  margin-inline-start:4px; padding:0 !important; border-radius:50%; vertical-align:1px; position:relative; z-index:3;
+  font:700 10px/1 {FONT_LATIN}, system-ui, sans-serif !important; letter-spacing:0 !important; text-transform:none !important; font-style:normal;
+  text-decoration:none !important; color:#C4B5FD !important; background:rgba(123,69,240,.16); border:1px solid rgba(167,139,250,.38);
+  cursor:pointer; user-select:none; -webkit-user-select:none; transition: background .15s, color .15s, border-color .15s, transform .15s; }}
+.gq:hover, .gq:focus-visible, .gq.on {{ background:#7B45F0; border-color:#A78BFA; color:#FFFFFF !important; transform:scale(1.15); outline:none; }}
+.gqpop {{ position:fixed; z-index:1000300; width:min(360px, calc(100vw - 24px)); box-sizing:border-box; padding:14px 16px 12px; border-radius:16px;
+  background:#1A1624; border:1px solid rgba(167,139,250,.38); color:#E7E3EB; box-shadow:0 22px 56px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.03);
+  font-family:{FONT_LATIN}, {FONT_AR}, system-ui, sans-serif; animation: gqin .16s ease-out both; }}
+.gqpop::before {{ content:""; position:absolute; top:-6px; left:var(--ax, 50%); width:10px; height:10px; margin-left:-5px; transform:rotate(45deg);
+  background:#1A1624; border-left:1px solid rgba(167,139,250,.38); border-top:1px solid rgba(167,139,250,.38); }}
+.gqpop.up::before {{ top:auto; bottom:-6px; transform:rotate(225deg); }}
+.gqpop.up {{ animation-name: gqup; }}
+@keyframes gqin {{ from {{ opacity:0; transform:translateY(-4px); }} to {{ opacity:1; transform:none; }} }}
+@keyframes gqup {{ from {{ opacity:0; transform:translateY(4px); }} to {{ opacity:1; transform:none; }} }}
+.gqpop .gqx {{ position:absolute; top:8px; inset-inline-end:8px; width:26px; height:26px; border-radius:8px; border:0; cursor:pointer; padding:0;
+  background:rgba(255,255,255,.06); color:#9D97A5; font-size:17px; line-height:26px; }}
+.gqpop .gqx:hover {{ background:rgba(255,255,255,.12); color:#FFFFFF; }}
+.gqpop .gqb {{ padding:2px 0; }}
+.gqpop .gqb + .gqb {{ margin-top:10px; padding-top:10px; border-top:1px dashed rgba(255,255,255,.12); }}
+.gqpop .gql {{ display:inline-block; font-size:.62rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:#C4B5FD;
+  background:rgba(123,69,240,.16); border-radius:6px; padding:2px 7px; margin-bottom:6px; }}
+.gqpop .gqb[dir="rtl"] .gql {{ letter-spacing:0; }}
+.gqpop b {{ display:block; font-size:.98rem; font-weight:700; color:#FFFFFF; margin:0 30px 4px 0; line-height:1.35; }}
+.gqpop .gqb[dir="rtl"] b {{ margin:0 0 4px 30px; }}
+.gqpop .gqb + .gqb b {{ margin-left:0; margin-right:0; }}
+.gqpop .gqb:first-of-type .gql {{ margin-inline-end:30px; }}
+.gqpop p {{ margin:0; font-size:.86rem; line-height:1.65; color:#CFCAD6; }}
+.gqpop .gqb[dir="rtl"] {{ text-align:right; font-family:{FONT_AR}, {FONT_LATIN}, system-ui, sans-serif; }}
+.gqpop .gqb[dir="ltr"] {{ text-align:left; }}
+@media (prefers-reduced-motion: reduce) {{ .gqpop {{ animation:none; }} .gq {{ transition:none; }} }}
 /* ---------- the hand-built tables in the same look: a box with the brand bar on its left, rounded rows, muted header ---------- */
 .chainwrap, .etab, .iplist {{ position:relative; background:{BOX_BG} !important; border:1px solid {BORDER}; border-radius:18px; padding:8px 12px 8px 17px; }}
 .chainwrap::before, .etab::before, .iplist::before, .evday::before {{ content:""; position:absolute; top:0; bottom:0; left:0; width:3px; z-index:2;
@@ -1780,14 +1813,14 @@ FX_JS = """<script>
   }
   on(d, 'click', function (e) {
     var t = e.target;
-    if (!t || !t.closest) return;
+    if (!t || !t.closest || t.closest('.gq')) return;
     var th = t.closest('th.tx-s');
     if (th) { sortBy(th); return; }
     var td = t.closest('table[data-tx] tbody td');
     if (td && !t.closest('a, button, input, label, summary')) td.parentNode.classList.toggle('tx-pin');   // a row stays lit until clicked again
   }, true);
   on(d, 'keydown', function (e) {
-    var th = e.target && e.target.closest && e.target.closest('th.tx-s');
+    var th = e.target && e.target.closest && !e.target.closest('.gq') && e.target.closest('th.tx-s');
     if (th && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); sortBy(th); }
   }, true);
   var hc = null;
@@ -1802,7 +1835,144 @@ FX_JS = """<script>
   }, {passive: true});
   every(scan, 700); scan();
 })();
-</script>""".replace("__SEL__", json.dumps(_fx))
+(function () {                                   // the "?" next to every trading term: pressed, it explains the term in Arabic and English
+  var w = window.parent, d = w.document;
+  var VER = '__VER__', KEY = '__alturaifiTermsV';
+  if (w[KEY] === VER) return;                       // this version already runs in this tab
+  if (typeof w[KEY + 'Off'] === 'function') { try { w[KEY + 'Off'](); } catch (e) {} }   // an older one stops first
+  w[KEY] = VER;
+  var offs = [];
+  w[KEY + 'Off'] = function () { offs.forEach(function (f) { try { f(); } catch (e) {} }); offs = []; close(); };
+  function on(t, ev, fn, o) { t.addEventListener(ev, fn, o); offs.push(function () { t.removeEventListener(ev, fn, o); }); }
+  function every(fn, ms) { var id = w.setInterval(fn, ms); offs.push(function () { w.clearInterval(id); }); }
+  function each(list, fn) { Array.prototype.forEach.call(list, fn); }
+  var G = __GLOSS__, T = G.t, P = [], PK = {}, QCI = null, QCS = null;
+  try {
+    G.p.forEach(function (x) {
+      var o = {k: x[0], ci: x[1] ? new RegExp(x[1], 'iu') : null, cs: x[2] ? new RegExp(x[2], 'u') : null};
+      P.push(o); PK[o.k] = o;
+    });
+    QCI = new RegExp(G.p.map(function (x) { return x[1]; }).filter(Boolean).join('|'), 'iu');
+    QCS = new RegExp(G.p.map(function (x) { return x[2]; }).filter(Boolean).join('|'), 'u');
+  } catch (e) { P = null; }                         // a browser too old for these patterns: the "?" the server placed still work
+  function ar() { var m = d.querySelector('[data-testid="stMainBlockContainer"], .block-container'); return !!m && w.getComputedStyle(m).direction === 'rtl'; }
+  function esc(x) { return String(x).replace(/[&<>"]/g, function (c) { return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]; }); }
+  // ---- the box with the explanation, next to the "?" that was pressed
+  var pop = null, anchor = null;
+  function close() {
+    if (pop) { pop.remove(); pop = null; }
+    if (anchor) { anchor.classList.remove('on'); anchor = null; }
+  }
+  function place() {
+    if (!pop || !anchor) return;
+    if (!anchor.isConnected) { close(); return; }
+    var r = anchor.getBoundingClientRect(), vw = w.innerWidth, vh = w.innerHeight, pw = pop.offsetWidth, ph = pop.offsetHeight;
+    var left = Math.min(Math.max(12, r.left + r.width / 2 - pw / 2), Math.max(12, vw - pw - 12));
+    var below = r.bottom + 10, top = below;
+    if (below + ph > vh - 12 && r.top - ph - 10 >= 12) top = r.top - ph - 10;
+    top = Math.max(12, Math.min(top, vh - ph - 12));
+    pop.classList.toggle('up', top < r.top);
+    pop.style.left = left + 'px'; pop.style.top = top + 'px';
+    pop.style.setProperty('--ax', Math.max(18, Math.min(pw - 18, r.left + r.width / 2 - left)) + 'px');
+  }
+  function open(el) {
+    var k = el.getAttribute('data-g'), t = T[k];
+    if (!t) return;
+    if (anchor === el) { close(); return; }
+    close();
+    var a = ar();
+    var en = '<div class="gqb" dir="ltr" lang="en"><span class="gql">English</span><b>' + esc(t[0]) + '</b><p>' + esc(t[2]) + '</p></div>';
+    var arb = '<div class="gqb" dir="rtl" lang="ar"><span class="gql">\u0627\u0644\u0639\u0631\u0628\u064a\u0629</span><b>' + esc(t[1]) + '</b><p>' + esc(t[3]) + '</p></div>';
+    pop = d.createElement('div');
+    pop.className = 'gqpop'; pop.setAttribute('role', 'dialog'); pop.setAttribute('aria-label', a ? t[1] : t[0]); pop.dir = a ? 'rtl' : 'ltr';
+    pop.innerHTML = '<button type="button" class="gqx" aria-label="' + (a ? '\u0625\u063a\u0644\u0627\u0642' : 'Close') + '">\u00d7</button>'
+                    + (a ? arb + en : en + arb);
+    d.body.appendChild(pop);
+    anchor = el; el.classList.add('on');
+    place();
+  }
+  function gqAt(e) {
+    var t = e.target, el = t && t.closest ? t.closest('.gq') : null;
+    if (el || typeof e.clientX !== 'number' || (!e.clientX && !e.clientY)) return el;
+    var stack = d.elementsFromPoint(e.clientX, e.clientY);          // a "?" under a card's invisible button
+    for (var i = 0; i < stack.length && i < 10; i++) if (stack[i].classList && stack[i].classList.contains('gq')) return stack[i];
+    return null;
+  }
+  on(d, 'click', function (e) {
+    var t = e.target;
+    if (pop && t && t.closest && t.closest('.gqpop')) { if (t.closest('.gqx')) close(); return; }
+    var el = gqAt(e);
+    if (el) { e.preventDefault(); e.stopPropagation(); open(el); return; }
+    if (pop) close();
+  }, true);
+  on(d, 'keydown', function (e) {
+    if (e.key === 'Escape' && pop) { close(); return; }
+    var el = e.target && e.target.closest && e.target.closest('.gq');
+    if (el && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); e.stopPropagation(); open(el); }
+  }, true);
+  on(w, 'scroll', function () { if (pop) place(); }, {passive: true, capture: true});
+  on(w, 'resize', function () { if (pop) place(); });
+  // ---- the "?" for the text Streamlit draws itself (field labels, captions, plain text): the server marks the site's own HTML
+  if (!P) return;
+  var BOX = '[data-testid="stMarkdownContainer"], [data-testid="stCaptionContainer"]';
+  var SKIP = 'button, [role="button"]:not(.gq), script, style, svg, textarea, select, option, code, pre, kbd, .gq, .ms, .material-symbols-rounded, '
+           + '.st-key-topnav, .ixp, .st-key-introgo, .tape, .navbtn, .langbtn, .lopt, [class*="st-key-alturaifi_ai"], [class*="ai-"], .tx-tools, '
+           + '[data-baseweb="select"], [data-baseweb="tab"], [data-baseweb="popover"], [role="listbox"], [role="option"], [data-testid="stPageLink"], '
+           + '[aria-hidden="true"], [data-testid="stTooltipIcon"], .lg, .lgo, .nth, .gqpop, [data-nogq], .as, .tk, .tkc, .lnk, .co, .mchip, .mvr, .wlr, .hm';
+  var WORD = /[A-Za-z0-9\u0621-\u064A]/, AR = /[\u0600-\u06FF]/;
+  var seen = new WeakMap();
+  function find(x, t) { var m = x.ci && x.ci.exec(t), n = x.cs && x.cs.exec(t); return m && n ? (n.index < m.index ? n : m) : (m || n); }
+  function mk(m) {
+    var g = d.createElement('span');
+    g.className = 'gq cl'; g.setAttribute('role', 'button'); g.tabIndex = 0; g.setAttribute('data-g', m.k); g.textContent = '?';
+    var t = T[m.k] || ['', ''];
+    g.setAttribute('aria-label', m.a ? '\u0645\u0627 \u0645\u0639\u0646\u0649 ' + t[1] + '\u061f' : 'What does ' + t[0] + ' mean?');
+    return g;
+  }
+  function scanBox(box) {
+    var txt = box.textContent;
+    if (seen.get(box) === txt) return;
+    each(box.querySelectorAll('.gq.cl'), function (g) {                 // a "?" whose term has gone (the text changed)
+      var p = g.previousSibling, x = PK[g.getAttribute('data-g')];
+      if (!x || !p || p.nodeType !== 3 || !find(x, p.nodeValue)) g.remove();
+    });
+    var have = {};
+    each(box.querySelectorAll('.gq'), function (g) { have[g.getAttribute('data-g')] = 1; });
+    var tw = d.createTreeWalker(box, 4, null), node, nodes = [];
+    while ((node = tw.nextNode())) nodes.push(node);
+    nodes.forEach(function (node) {
+      var t = node.nodeValue, par = node.parentElement;
+      if (!t || !par || !WORD.test(t) || !(QCI.test(t) || QCS.test(t)) || par.closest(SKIP)) return;
+      var ms = [];
+      P.forEach(function (x, i) {
+        if (have[x.k]) return;
+        var m = find(x, t);
+        if (m) ms.push({s: m.index, e: m.index + m[0].length, k: x.k, i: i, a: AR.test(m[0])});
+      });
+      if (!ms.length) return;
+      ms.sort(function (a, b) { return a.s - b.s || a.i - b.i; });     // first in the text; at the same place the list order decides
+      var keep = [], end = -1;
+      ms.forEach(function (m) { if (m.s >= end && !have[m.k]) { keep.push(m); have[m.k] = 1; end = m.e; } });
+      if (par.childNodes.length === 1) {            // a text on its own (redrawn whole by Streamlit): the "?" right after the term
+        for (var j = keep.length - 1; j >= 0; j--) { var rest = node.splitText(keep[j].e); par.insertBefore(mk(keep[j]), rest); }
+      } else {                                      // text between other tags: the "?" after this piece of text
+        var after = node.nextSibling;
+        keep.forEach(function (m) { par.insertBefore(mk(m), after); });
+      }
+    });
+    seen.set(box, box.textContent);
+  }
+  function scan() {
+    each(d.querySelectorAll(BOX), function (box) {
+      if (box.parentElement && box.parentElement.closest(BOX)) return;   // inside another box: scanned with it
+      if (box.closest(SKIP)) return;
+      try { scanBox(box); } catch (e) {}
+    });
+    if (pop) place();
+  }
+  every(scan, 800); scan();
+})();
+</script>""".replace("__SEL__", json.dumps(_fx)).replace("__GLOSS__", json.dumps(GL.client(), ensure_ascii=False))
 FX_JS = FX_JS.replace("__VER__", hashlib.md5(FX_JS.encode()).hexdigest()[:10])   # a new script replaces the old one in open tabs
 
 
@@ -2383,4 +2553,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "16.7"
+BUILD = "16.8"

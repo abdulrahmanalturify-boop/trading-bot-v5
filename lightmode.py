@@ -356,9 +356,16 @@ def figure(fig):
 
 # ---------------------------------------------------------------- hooks: every st.markdown / st.html on the way out
 def _body(name, body, a, k):
-    """The body to send: converted while the light look is on (HTML and styles only; plain Markdown text is left alone)."""
-    if on() and isinstance(body, str) and (name == "html" or k.get("unsafe_allow_html") or (a and a[0] is True)):
-        return convert(body)
+    """The body to send (HTML and styles only; plain Markdown text is left alone): a "?" after every trading term (terms.py),
+    and the colours converted while the light look is on."""
+    if isinstance(body, str) and (name == "html" or k.get("unsafe_allow_html") or (a and a[0] is True)):
+        try:
+            import terms
+            body = terms.annotate(body)
+        except Exception:
+            pass
+        if on():
+            return convert(body)
     return body
 
 
@@ -431,4 +438,4 @@ def landing_css():
             '.st-key-langdd button, .st-key-langdd button * { color: #E7E3EB !important; }</style>')
 
 
-BUILD = "16.7"
+BUILD = "16.8"

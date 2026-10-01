@@ -408,15 +408,19 @@ def page_glossary():
     ui.header("menu_book", "Glossary", "قاموس المصطلحات",
               "Key investing and trading terms explained simply.", "أهم مصطلحات الاستثمار والتداول بشرح مبسط.")
     q = st.text_input(L("Search a term", "ابحث عن مصطلح"), "", placeholder=L("e.g. RSI, spread, option", "مثال: RSI، السبريد، الخيارات")).strip().lower()
-    items = [g for g in A.GLOSSARY if not q or q in " ".join(g).lower()]
+    import terms
+    allg = sorted(terms.glossary(A.GLOSSARY), key=lambda g: (g[1] if is_ar() else g[0]).lower())
+    items = [g for g in allg if not q or q in " ".join(g).lower()]
     rtl = " rtl" if is_ar() else ""
-    ui.html(f'<div class="card{rtl}">' + "".join(
+    st.caption(L(f"{len(allg)} terms. Anywhere on the site, press the small ? next to a term to read it there.",
+                 f"{len(allg)} مصطلح. وفي أي مكان بالموقع اضغط علامة ؟ الصغيرة جنب المصطلح عشان تقرأ شرحه."))
+    ui.html(f'<div class="card{rtl}" data-nogq="1">' + "".join(
         f'<div class="gl"><b>{T.esc(L(en, ar))}</b> <span class="muted">· {T.esc(ar if not is_ar() else en)}</span>'
         f'<div class="d">{T.esc(L(den, dar))}</div></div>' for en, ar, den, dar in items) + "</div>"
         if items else f'<div class="muted">{L("No matching terms.", "لا توجد مصطلحات مطابقة.")}</div>')
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "16.7"
+BUILD = "16.8"
 
 
