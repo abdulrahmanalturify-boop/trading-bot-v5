@@ -1,2 +1,2 @@
-A.Alturaifi Pro - version 16.9 (the ? explanation in the page language only: English or Arabic)
+A.Alturaifi Pro - version 17.0 (news intelligence: a clear, interactive trade map instead of the crowded price bar)
 If you can see this file on GitHub, the new version was uploaded correctly.

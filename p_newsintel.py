@@ -117,12 +117,87 @@ a.nx-row:hover { border-color:rgba(167,139,250,.5); transform:translateY(-1px); 
 .nx-lv.go { border-color:rgba(96,165,250,.4); background:rgba(59,130,246,.09); } .nx-lv.go .l, .nx-lv.go .v { color:#93C5FD; }
 .nx-lv.st { border-color:rgba(248,113,113,.4); background:rgba(239,68,68,.08); } .nx-lv.st .l, .nx-lv.st .v { color:#FCA5A5; }
 .nx-lv.tg { border-color:rgba(74,222,128,.4); background:rgba(34,197,94,.08); } .nx-lv.tg .l, .nx-lv.tg .v { color:#86EFAC; }
-.nx-ladder { position:relative; height:46px; margin:8px 6px 4px; direction:ltr; }
-.nx-ladder .tr { position:absolute; left:0; right:0; top:20px; height:6px; border-radius:6px;
-  background:linear-gradient(90deg, rgba(248,113,113,.55), rgba(157,151,165,.25) 50%, rgba(74,222,128,.55)); }
-.nx-ladder .mk { position:absolute; top:0; transform:translateX(-50%); text-align:center; font-size:.68rem; font-weight:800; white-space:nowrap; }
-.nx-ladder .mk i { display:block; width:12px; height:12px; border-radius:50%; margin:15px auto 0; border:2px solid #0E0918; }
-.nx-ladder .mk b { position:absolute; top:-2px; left:50%; transform:translateX(-50%); }
+/* ---- the trade map: stop and target at the two ends; the bar from the stop to the entry is the risk (red), from the entry to the
+   target the reward (green); the entry is marked above the bar and the price now below it, so the two never sit on each other.
+   Every part explains itself when the pointer is on it or when it is tapped. */
+.nx-pm { position:relative; margin:4px 0 12px; padding:14px 16px 12px; border-radius:16px; border:1px solid rgba(196,181,253,.18);
+  background:linear-gradient(180deg, rgba(34,24,58,.72), rgba(20,14,34,.82)); }
+.nx-pm .hd { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
+.nx-pm .hd .t { display:flex; align-items:center; gap:8px; font-weight:800; font-size:.92rem; color:#fff; }
+.nx-pm .hd .t .ms { font-size:19px; color:#C4B5FD; }
+.nx-pm .rr { font-size:.74rem; font-weight:800; color:#C4B5FD; background:rgba(123,69,240,.16); border:1px solid rgba(167,139,250,.35);
+  border-radius:999px; padding:4px 10px; white-space:nowrap; }
+.nx-pm .rr b { color:#fff; direction:ltr; unicode-bidi:isolate; }
+.nx-pm .ends { display:flex; justify-content:space-between; gap:12px; margin-bottom:6px; }
+.nx-pm .cap { display:flex; flex-direction:column; gap:1px; padding:6px 10px; border-radius:11px; outline:none; cursor:help; position:relative;
+  transition: background .15s, box-shadow .15s; }
+.nx-pm .cap.st { align-items:flex-start; background:rgba(239,68,68,.09); }
+.nx-pm .cap.tg { align-items:flex-end; background:rgba(34,197,94,.09); text-align:end; }
+.nx-pm .cap small { font-size:.66rem; font-weight:800; letter-spacing:.06em; text-transform:uppercase; display:flex; align-items:center; gap:6px; }
+.nx-pm .cap small i { width:9px; height:9px; border-radius:50%; display:inline-block; }
+.nx-pm .cap.st small { color:#FCA5A5; } .nx-pm .cap.st small i { background:#F87171; box-shadow:0 0 0 3px rgba(248,113,113,.2); }
+.nx-pm .cap.tg small { color:#86EFAC; } .nx-pm .cap.tg small i { background:#4ADE80; box-shadow:0 0 0 3px rgba(74,222,128,.2); }
+.nx-pm .cap b { font-size:1.02rem; font-weight:800; color:#fff; direction:ltr; unicode-bidi:isolate; font-variant-numeric:tabular-nums; }
+.nx-pm .band { position:relative; height:40px; }
+.nx-pm .pin { position:absolute; inset-inline-start:var(--x); transform:translateX(-50%); display:flex; flex-direction:column; align-items:center;
+  white-space:nowrap; outline:none; cursor:help; z-index:2; }
+.nx-pm.rtl .pin { transform:translateX(50%); }
+.nx-pm .pin .lb { font-size:.7rem; font-weight:800; padding:3px 9px; border-radius:999px; display:flex; gap:6px; align-items:center;
+  transition: transform .15s, box-shadow .15s; }
+.nx-pm .pin .lb b { direction:ltr; unicode-bidi:isolate; font-variant-numeric:tabular-nums; }
+.nx-pm .pin.go .lb { color:#BFDBFE; background:rgba(59,130,246,.22); border:1px solid rgba(96,165,250,.5); }
+.nx-pm .pin.now .lb { color:#fff; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.3); }
+.nx-pm .band.top .pin { bottom:0; } .nx-pm .band.bot .pin { top:0; }
+.nx-pm .pin .cn { display:block; width:2px; height:9px; border-radius:2px; }
+.nx-pm .pin.go .cn { background:#60A5FA; } .nx-pm .pin.now .cn { background:rgba(255,255,255,.7); }
+.nx-pm .track { position:relative; height:28px; border-radius:10px; background:rgba(157,151,165,.12); direction:inherit; }
+.nx-pm .seg { position:absolute; top:0; bottom:0; display:flex; align-items:center; justify-content:center; outline:none; cursor:help;
+  font-size:.74rem; font-weight:800; white-space:nowrap; animation: nxgrow .8s cubic-bezier(.2,.8,.2,1) both; transition: filter .15s, box-shadow .15s; }
+.nx-pm .seg.r { inset-inline-start:0; width:var(--w); color:#FFE4E6; border-start-start-radius:10px; border-end-start-radius:10px;
+  background:linear-gradient(90deg, rgba(220,38,38,.85), rgba(248,113,113,.55)); transform-origin:right; }
+.nx-pm .seg.g { inset-inline-end:0; width:var(--w); color:#DCFCE7; border-start-end-radius:10px; border-end-end-radius:10px;
+  background:linear-gradient(90deg, rgba(74,222,128,.5), rgba(22,163,74,.9)); transform-origin:left; }
+.nx-pm.rtl .seg.r { background:linear-gradient(270deg, rgba(220,38,38,.85), rgba(248,113,113,.55)); transform-origin:left; }
+.nx-pm.rtl .seg.g { background:linear-gradient(270deg, rgba(74,222,128,.5), rgba(22,163,74,.9)); transform-origin:right; }
+@keyframes nxgrow { from { transform:scaleX(0); opacity:.3; } to { transform:none; opacity:1; } }
+.nx-pm .tick { position:absolute; top:-5px; bottom:-5px; width:3px; margin-inline-start:-1.5px; inset-inline-start:var(--x); border-radius:3px; z-index:2;
+  pointer-events:none; }
+.nx-pm .tick.go { background:#60A5FA; box-shadow:0 0 0 2px rgba(14,9,24,.9), 0 0 12px rgba(96,165,250,.8); }
+.nx-pm .dot { position:absolute; top:50%; inset-inline-start:var(--x); width:14px; height:14px; margin-top:-7px; margin-inline-start:-7px; border-radius:50%;
+  background:#fff; box-shadow:0 0 0 3px rgba(14,9,24,.9); z-index:3; pointer-events:none; }
+.nx-pm .dot::after { content:""; position:absolute; inset:-3px; border-radius:50%; border:2px solid rgba(255,255,255,.7); animation: nxping 1.8s ease-out infinite; }
+@keyframes nxping { from { transform:scale(.6); opacity:1; } to { transform:scale(2.2); opacity:0; } }
+.nx-pm .ft { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+.nx-pm .ft span { font-size:.76rem; color:#CFCAD6; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); border-radius:10px;
+  padding:6px 10px; line-height:1.5; }
+.nx-pm .ft b { direction:ltr; unicode-bidi:isolate; font-variant-numeric:tabular-nums; }
+.nx-pm .ft .lo { color:#FCA5A5; } .nx-pm .ft .hi { color:#86EFAC; } .nx-pm .ft .bl { color:#93C5FD; }
+/* the explanation of each part: on the pointer, or tapped (focus) on a phone */
+.nx-pm [data-tip]::before { content:attr(data-tip); position:absolute; bottom:calc(100% + 8px); left:50%; width:max-content; max-width:240px;
+  transform:translate(-50%, 4px); padding:8px 11px; border-radius:11px; background:#0E0918; border:1px solid rgba(167,139,250,.4); color:#E7E3EB;
+  font-size:.74rem; font-weight:600; line-height:1.5; letter-spacing:0; text-transform:none; white-space:normal; text-align:center;
+  box-shadow:0 12px 30px rgba(0,0,0,.5); opacity:0; pointer-events:none; transition: opacity .15s, transform .15s; z-index:20; }
+.nx-pm .cap.st[data-tip]::before { left:auto; inset-inline-start:0; transform:translateY(4px); }
+.nx-pm .cap.tg[data-tip]::before { left:auto; inset-inline-end:0; transform:translateY(4px); }
+/* a pin's note leans away from the nearer edge: at the start it opens toward the end, at the end toward the start */
+.nx-pm .pin[data-tip]::before { transform:translate(calc(-1 * var(--x)), 4px); }
+.nx-pm.rtl .pin[data-tip]::before { transform:translate(calc(var(--x) - 100%), 4px); }
+.nx-pm [data-tip]:is(:hover, :focus, :focus-within)::before { opacity:1; transform:translate(-50%, 0); }
+.nx-pm .cap[data-tip]:is(:hover, :focus, :focus-within)::before { transform:none; }
+.nx-pm .pin[data-tip]:is(:hover, :focus)::before { transform:translate(calc(-1 * var(--x)), 0); }
+.nx-pm.rtl .pin[data-tip]:is(:hover, :focus)::before { transform:translate(calc(var(--x) - 100%), 0); }
+.nx-pm .band.bot .pin[data-tip]::before { bottom:auto; top:calc(100% + 8px); }
+.nx-pm .seg:is(:hover, :focus) { z-index:5; box-shadow: inset 0 0 0 2px rgba(255,255,255,.55), 0 0 18px rgba(255,255,255,.12); }
+.nx-pm .pin:is(:hover, :focus), .nx-pm .cap:is(:hover, :focus) { z-index:6; }
+/* the red part's note opens from its own edge, the green part's from its own: they never leave the box */
+.nx-pm .seg.r[data-tip]::before { left:auto; inset-inline-start:0; transform:translateY(4px); }
+.nx-pm .seg.g[data-tip]::before { left:auto; inset-inline-end:0; transform:translateY(4px); }
+.nx-pm .seg[data-tip]:is(:hover, :focus)::before { transform:none; }
+.nx-pm .pin:is(:hover, :focus) .lb { transform:translateY(-2px); box-shadow:0 6px 16px rgba(0,0,0,.4); }
+.nx-pm .cap:is(:hover, :focus) { box-shadow: inset 0 0 0 1px rgba(255,255,255,.2); }
+.nx-pm:has(.seg.r:is(:hover, :focus)) .cap.st, .nx-pm:has(.cap.st:is(:hover, :focus)) .seg.r { box-shadow: inset 0 0 0 2px rgba(248,113,113,.7); }
+.nx-pm:has(.seg.g:is(:hover, :focus)) .cap.tg, .nx-pm:has(.cap.tg:is(:hover, :focus)) .seg.g { box-shadow: inset 0 0 0 2px rgba(74,222,128,.7); }
+@media (prefers-reduced-motion: reduce) { .nx-pm .seg, .nx-pm .dot::after { animation:none; } }
 @media (max-width: 700px) {
   .nx-row { grid-template-columns: auto minmax(0, 1fr) auto; } .nx-row .sc, .nx-row .nx-badge { display:none; }
   .nx-sec { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 86px; } .nx-sec .e, .nx-sec .nx-ok { display:none; }
@@ -520,6 +595,51 @@ def _tab_tech(a):
     ui.html(f'<div class="nx-tiles">{"".join(tiles)}</div>')
 
 
+def _price_map(p):
+    """The trade map: the stop at the start, the target at the end; risk in red up to the entry, reward in green after it; the entry
+    above the bar and the price now below it (they are often a few cents apart); each part explains itself on hover or tap."""
+    up = p["dir"] > 0
+    span = p["target"] - p["stop"]
+    pos = lambda x: max(2.0, min(98.0, (x - p["stop"]) / span * 100)) if span else 50.0
+    fmt = lambda x: f"${x:,.2f}"
+    iso = lambda x: f"\u2066{x}\u2069"                     # a number in a note keeps its sign on the right side in Arabic
+    stop_, tgt_, trg_, now_ = fmt(p["stop"]), fmt(p["target"]), fmt(p["trigger"]), fmt(p["price"])
+    s_, t_, g_ = iso(stop_), iso(tgt_), iso(trg_)
+    xe, xn = pos(p["trigger"]), pos(p["price"])
+    risk, reward = p["risk_pct"], p["reward_pct"]          # from the price now, as on the three cards above
+    rr = reward / risk if risk else 0
+    gap = abs(p["trigger"] - p["price"]) / p["price"] * 100
+    lose, win = 1000 * risk / 100, 1000 * reward / 100
+    side_en, side_ar = ("above", "فوق") if up else ("below", "تحت")
+    rk, rw, gp = iso(f"-{risk:.1f}%"), iso(f"+{reward:.1f}%"), iso(f"{gap:.1f}%")
+    t_stop = L(f"The idea is wrong if the price reaches {s_}: get out, about {rk} from the price now.",
+               f"الفكرة تسقط إذا وصل السعر {s_}: اطلع، تقريباً {rk} من السعر الحين.")
+    t_tgt = L(f"The first target, twice the risk: {t_}, about {rw} from the price now.",
+              f"أول هدف، ضعف المخاطرة: {t_}، تقريباً {rw} من السعر الحين.")
+    t_go = L(f"The trade starts only on a close {side_en} {g_} with volume above its average.",
+             f"الصفقة تبدأ بس إذا أغلق السعر {side_ar} {g_} بحجم فوق متوسطه.")
+    t_r = L(f"Risk: down to the invalidation, {rk}.", f"المخاطرة: لين الإلغاء، {rk}.")
+    t_g = L(f"Reward: up to the target, {rw}.", f"العائد: لين الهدف، {rw}.")
+    t_now = L(f"The last price, {gp} from the entry.", f"آخر سعر، بعيد عن الدخول {gp}.")
+    e = T.esc
+    caps = (f'<div class="ends"><div class="cap st" tabindex="0" data-tip="{e(t_stop)}"><small><i></i>{L("Invalidation", "الإلغاء")}</small>'
+            f'<b>{stop_}</b></div><div class="cap tg" tabindex="0" data-tip="{e(t_tgt)}"><small>{L("Target", "الهدف")}<i></i></small>'
+            f'<b>{tgt_}</b></div></div>')
+    entry = (f'<div class="band top"><div class="pin go" style="--x:{xe:.1f}%" tabindex="0" data-tip="{e(t_go)}">'
+             f'<span class="lb">{L("Entry", "الدخول")} <b>{trg_}</b></span><i class="cn"></i></div></div>')
+    track = (f'<div class="track"><div class="seg r" style="--w:{xe:.1f}%" tabindex="0" data-tip="{e(t_r)}"><bdi dir="ltr">-{risk:.1f}%</bdi></div>'
+             f'<div class="seg g" style="--w:{100 - xe:.1f}%" tabindex="0" data-tip="{e(t_g)}"><bdi dir="ltr">+{reward:.1f}%</bdi></div>'
+             f'<i class="tick go" style="--x:{xe:.1f}%"></i><i class="dot" style="--x:{xn:.1f}%"></i></div>')
+    now = (f'<div class="band bot"><div class="pin now" style="--x:{xn:.1f}%" tabindex="0" data-tip="{e(t_now)}">'
+           f'<i class="cn"></i><span class="lb">{L("Now", "الحين")} <b>{now_}</b></span></div></div>')
+    head = (f'<div class="hd"><div class="t">{T.icon("route")}{L("Trade map", "خريطة الصفقة")}</div>'
+            f'<span class="rr">{L("Reward : risk", "العائد : المخاطرة")} <b><bdi dir="ltr">{rr:.1f} : 1</bdi></b></span></div>')
+    foot = (f'<div class="ft"><span>{L("With $1,000:", "بـ 1,000 دولار:")} <b class="lo"><bdi dir="ltr">-${lose:,.0f}</bdi></b> {L("at the invalidation", "عند الإلغاء")} · '
+            f'<b class="hi"><bdi dir="ltr">+${win:,.0f}</bdi></b> {L("at the target", "عند الهدف")}</span>'
+            f'<span>{L("The price now is", "السعر الحين بعيد")} <b class="bl"><bdi dir="ltr">{gap:.1f}%</bdi></b> {L("from the entry", "عن الدخول")}</span></div>')
+    return f'<div class="nx-pm{" rtl" if is_ar() else ""}">{head}{caps}{entry}{track}{now}{foot}</div>'
+
+
 def _tab_plan(a):
     p = NI.plan(a)
     if not p:
@@ -539,12 +659,7 @@ def _tab_plan(a):
                     f"ضعف المخاطرة · {p['reward_pct']:+.1f}%" if up else f"ضعف المخاطرة · -{p['reward_pct']:.1f}%"))]
         ui.html('<div class="nx-plan">' + "".join(f'<div class="nx-lv {c}"><div class="l">{T.esc(t)}</div><div class="v">{v}</div>'
                                                    f'<div class="s">{T.esc(s_)}</div></div>' for c, t, v, s_ in cards) + "</div>")
-        lo_, hi_ = min(p["stop"], p["target"]), max(p["stop"], p["target"])
-        pos = lambda x: 4 + 92 * (x - lo_) / (hi_ - lo_) if hi_ > lo_ else 50
-        marks = [(p["stop"], "#F87171", L("stop", "الإلغاء")), (p["price"], "#E7E3EB", L("now", "الحين")),
-                 (p["trigger"], "#60A5FA", L("trigger", "الدخول")), (p["target"], "#4ADE80", L("target", "الهدف"))]
-        ui.html('<div class="nx-ladder"><div class="tr"></div>' + "".join(
-            f'<div class="mk" style="left:{pos(x):.1f}%;color:{col}"><b>{T.esc(lb)}</b><i style="background:{col}"></i></div>' for x, col, lb in marks) + "</div>")
+        ui.html(_price_map(p))
     ui.html(_note(L("Education, not a recommendation. The rules above decide the setup; a language model only explains a story and never trades.",
                     "للتعليم، مو توصية. القواعد فوق هي اللي تحدد الفرصة، والذكاء الاصطناعي يشرح الخبر بس وما يتداول أبداً."), "school"))
 
@@ -651,4 +766,4 @@ def page_news_intel():
     _detail(a, chg2, sec_chg, titles_ar)
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "16.9"
+BUILD = "17.0"
