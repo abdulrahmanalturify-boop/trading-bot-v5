@@ -59,10 +59,10 @@ def rtl_text(t):
 
 
 def style(fig, height=420, title=None, legend=True):
-    top = (84 if legend else 48) if title else 14
+    top = (84 if legend else 50) if title else 16
     title = rtl_text(title)
     fig.update_layout(
-        template=TEMPLATE, height=height, margin=dict(l=8, r=8, t=top, b=8), hovermode="x unified",
+        template=TEMPLATE, height=height, margin=dict(l=16, r=14, t=top, b=12), hovermode="x unified",
         title=dict(text=f"<b>{title}</b>", yref="container", y=0.985, yanchor="top") if title else None,
         showlegend=legend, legend=dict(orientation="h", y=1.02, x=0, yanchor="bottom", traceorder="normal"),
     )
@@ -632,7 +632,7 @@ def hunt_map(res, title=None, words=("From 52-week high %", "RS rating (1-99)", 
     top = set(d.nlargest(18, "Score")["Symbol"])
     fig = go.Figure(go.Scatter(
         x=d["From high %"], y=d["RS"], mode="markers+text", text=[s if s in top else "" for s in d["Symbol"]], customdata=d[["Symbol", "Score"]],
-        textposition="top center", textfont=dict(size=9, color="#CAC5D1"),
+        textposition="top center", textfont=dict(size=9, color="#CAC5D1"), cliponaxis=False,
         marker=dict(size=size, color=d["Score"], cmin=20, cmax=95, colorscale=[[0, DOWN], [0.45, GOLD], [0.7, CYAN], [1, UP]], showscale=True,
                     colorbar=dict(title=words[2], thickness=10), line=dict(width=0.5, color="rgba(255,255,255,.25)"), opacity=0.9),
         hovertemplate="<b>%{customdata[0]}</b><br>" + words[1] + ": %{y:.0f}<br>" + words[0] + ": %{x:.1f}%<br>" + words[2]
@@ -642,7 +642,7 @@ def hunt_map(res, title=None, words=("From 52-week high %", "RS rating (1-99)", 
     style(fig, 460, title, legend=False)
     fig.update_layout(hovermode="closest")
     fig.update_xaxes(title_text=words[0], showgrid=True, gridcolor=GRID)
-    fig.update_yaxes(title_text=words[1], side="left", range=[0, 102])
+    fig.update_yaxes(title_text=words[1], side="left", range=[0, 106])
     return fig
 
 
@@ -1189,4 +1189,4 @@ def seasonal_path(avg, cur=None, title=None, names=("Average year", "This year")
     return fig
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "16.5"
+BUILD = "16.6"

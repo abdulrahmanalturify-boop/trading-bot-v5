@@ -1,2 +1,2 @@
-A.Alturaifi Pro - version 16.5 (trending: stories ranked by size; a new interactive market summary)
+A.Alturaifi Pro - version 16.6 (charts no longer cut at the edges; every table sorts, filters and highlights)
 If you can see this file on GitHub, the new version was uploaded correctly.

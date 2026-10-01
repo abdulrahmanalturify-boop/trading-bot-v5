@@ -1142,6 +1142,30 @@ a.mst:hover .mh .go {{ opacity:1; transform:none; color:{VIO_FG}; }}
 .xtbl .xbar i {{ display:block; height:100%; border-radius:6px; background:linear-gradient(90deg,{ACCENT},{VIOLET},{CYAN}); }}
 .xtbl .xgr {{ display:inline-block; min-width:30px; text-align:center; padding:1px 8px; border-radius:999px; font-weight:600; font-size:.74rem;
   color:var(--g); border:1px solid var(--g); background:rgba(255,255,255,.04); }}
+/* ---------- every table is interactive (theme.FX_JS): press a column's name to sort by it (again: the other way, a third time: the
+   original order), long tables get a filter box with a count, the column under the pointer lights its name, a pressed row stays lit ---------- */
+th.tx-s {{ cursor:pointer; user-select:none; transition: color .15s, background .15s; }}
+th.tx-s:hover, th.tx-s:focus-visible, th.tx-hc {{ color:#fff !important; }}
+th.tx-s:focus-visible {{ outline:2px solid rgba(123,69,240,.6); outline-offset:-2px; border-radius:6px; }}
+th.tx-s::after {{ content:"↕"; display:inline-block; margin-inline-start:5px; font-size:.95em; opacity:0; transition: opacity .15s; }}
+th.tx-s:hover::after, th.tx-hc::after {{ opacity:.45; }}
+th.tx-s[aria-sort="ascending"]::after {{ content:"▲"; opacity:1; color:{VIO_FG}; font-size:.8em; }}
+th.tx-s[aria-sort="descending"]::after {{ content:"▼"; opacity:1; color:{VIO_FG}; font-size:.8em; }}
+th.tx-s:is([aria-sort="ascending"], [aria-sort="descending"]) {{ color:#fff !important; }}
+table[data-tx] tbody tr {{ transition: opacity .15s; }}
+table[data-tx] tbody tr:hover td:first-child {{ box-shadow: inset 3px 0 0 {ACCENT}; }}
+table[data-tx] tbody tr.tx-pin td {{ background: rgba(123,69,240,.18) !important; }}
+table[data-tx] tbody tr.tx-pin td:first-child {{ box-shadow: inset 3px 0 0 {VIOLET}; }}
+table[data-tx] tbody tr.tx-hide {{ display:none; }}
+.tx-tools {{ display:flex; align-items:center; gap:10px; margin:0 0 8px; direction:inherit; }}
+.tx-q {{ flex:1; max-width:340px; display:flex; align-items:center; gap:7px; height:34px; padding:0 11px; border-radius:11px; box-sizing:border-box;
+  background:rgba(255,255,255,.04); border:1px solid {BORDER}; transition: border-color .15s, box-shadow .15s; cursor:text; }}
+.tx-q:focus-within {{ border-color: rgba(123,69,240,.6); box-shadow: 0 0 0 3px rgba(123,69,240,.18); }}
+.tx-q .ms {{ font-size:18px; color:{MUTED}; }}
+.tx-q input {{ flex:1; min-width:0; height:100%; background:none !important; border:0 !important; outline:0 !important; box-shadow:none !important;
+  color:{TEXT}; font:inherit; font-size:.82rem; padding:0; }}
+.tx-q input::placeholder {{ color:{MUTED}; opacity:1; }}
+.tx-n {{ font-size:.74rem; color:{MUTED}; font-weight:600; font-variant-numeric:tabular-nums; white-space:nowrap; }}
 /* ---------- the hand-built tables in the same look: a box with the brand bar on its left, rounded rows, muted header ---------- */
 .chainwrap, .etab, .iplist {{ position:relative; background:{BOX_BG} !important; border:1px solid {BORDER}; border-radius:18px; padding:8px 12px 8px 17px; }}
 .chainwrap::before, .etab::before, .iplist::before, .evday::before {{ content:""; position:absolute; top:0; bottom:0; left:0; width:3px; z-index:2;
@@ -1173,10 +1197,12 @@ a.mst:hover .mh .go {{ opacity:1; transform:none; color:{VIO_FG}; }}
 .rtab td:last-child {{ border-right:1px solid rgba(255,255,255,.045) !important; border-radius:0 10px 10px 0; }}
 .rtab tr:hover td {{ background:rgba(59,139,235,.10); }}
 /* ---------- every chart sits in a box (never straight on the night sky); boxes in one row share one height ---------- */
-[data-testid="stPlotlyChart"] {{ background:{BOX_BG}; border:1px solid {BORDER}; border-radius:16px; padding:10px 12px 6px; box-sizing:border-box;
-  overflow:hidden; }}
+/* Streamlit draws the chart exactly as wide and as tall as this box, so the box takes no padding (it used to cut the chart's
+   bottom and right edge: axis titles, colour-bar titles); its line is drawn inside it and the chart's own margins give the air */
+[data-testid="stPlotlyChart"] {{ background:{BOX_BG}; border:0 !important; box-shadow: inset 0 0 0 1px {BORDER}; border-radius:16px; padding:0 !important;
+  box-sizing:border-box; overflow:hidden; }}
 :is([class*="st-key-pbcalbox_"], [class*="st-key-pbf_"], [class*="st-key-hnbar"], [class*="st-key-pbmg_"], .st-key-czhero) [data-testid="stPlotlyChart"]
-  {{ background:none; border:none; padding:0; }}
+  {{ background:none; box-shadow:none; }}
 [data-testid="stColumn"] > [data-testid="stVerticalBlock"] > [data-testid="stElementContainer"]:only-child,
 [data-testid="stColumn"] > [data-testid="stVerticalBlock"] > [data-testid="stElementContainer"]:only-child > .stMarkdown,
 [data-testid="stColumn"] > [data-testid="stVerticalBlock"] > [data-testid="stElementContainer"]:only-child [data-testid="stMarkdownContainer"],
@@ -1243,7 +1269,7 @@ a.mst:hover .mh .go {{ opacity:1; transform:none; color:{VIO_FG}; }}
 [class*="st-key-navsec_"]:hover .navbtn {{ background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.16); }}
 [class*="st-key-navdd_"], .st-key-langdd {{ background: rgba(26,22,36,.97) !important; border-color:{SMOKE} !important; box-shadow:{GLOW}, 0 24px 50px rgba(0,0,0,.6) !important; }}
 /* charts sit on the card surface with a hairline */
-[data-testid="stPlotlyChart"] {{ border-color:{BORDER}; }}
+
 /* the big light headlines: the highlighted words stay light too, in the electric colours */
 :is(.pbhero .t, .hnhero .t, .hero .title, .article .at, .brief .hl) b {{ font-weight:400; }}
 /* motion: nothing moves for people who ask for less */
@@ -1665,6 +1691,116 @@ FX_JS = """<script>
     tries++; last = Date.now(); b.click();
   }
   every(check, 400); check();
+})();
+(function () {                                   // every table: sort by any column, filter the long ones, the column under the pointer lights up
+  var w = window.parent, d = w.document;
+  var VER = '__VER__', KEY = '__alturaifiTablesV';
+  if (w[KEY] === VER) return;                       // this version already runs in this tab
+  if (typeof w[KEY + 'Off'] === 'function') { try { w[KEY + 'Off'](); } catch (e) {} }   // an older one stops first
+  w[KEY] = VER;
+  var offs = [];
+  w[KEY + 'Off'] = function () { offs.forEach(function (f) { try { f(); } catch (e) {} }); offs = []; };
+  function on(t, ev, fn, o) { t.addEventListener(ev, fn, o); offs.push(function () { t.removeEventListener(ev, fn, o); }); }
+  function every(fn, ms) { var id = w.setInterval(fn, ms); offs.push(function () { w.clearInterval(id); }); }
+  var ROOT = '[data-testid="stMain"], [data-testid="stMainBlockContainer"], section.main';
+  var MULT = {K: 1e3, M: 1e6, B: 1e9, T: 1e12};
+  function ar() { var m = d.querySelector('[data-testid="stMainBlockContainer"], .block-container'); return !!m && w.getComputedStyle(m).direction === 'rtl'; }
+  function each(list, fn) { Array.prototype.forEach.call(list, fn); }
+  function headRow(t) { return t.tHead && t.tHead.rows.length ? t.tHead.rows[t.tHead.rows.length - 1] : null; }
+  // what a cell sorts by: a number when it reads as one ($1.2B, -3.4%, 2.1x, 1,250), a date, else its words; empty cells go last
+  function key(cell) {
+    var s = (cell ? cell.textContent : '').replace(/[\u2212\u2012\u2013]/g, '-').replace(/\s+/g, ' ').trim();
+    if (!s || /^[-\u2014]+$/.test(s)) return null;
+    var m = s.replace(/,/g, '').match(/^[^\d+\-.]{0,3}([+-]?)\$?(\d+(?:\.\d+)?)\s*([KMBT](?![a-z]))?/i);
+    if (m) { var v = parseFloat(m[2]) * (MULT[(m[3] || '').toUpperCase()] || 1); return m[1] === '-' ? -v : v; }
+    return s.toLowerCase();
+  }
+  function setup(t) {
+    t.setAttribute('data-tx', '1');
+    if (t.hasAttribute('data-nosort')) return;
+    var hr = headRow(t), body = t.tBodies[0];
+    if (!hr || !body || body.rows.length < 3) return;
+    each(hr.cells, function (th) {
+      if (!th.textContent.trim() || th.colSpan > 1) return;
+      th.classList.add('tx-s'); th.tabIndex = 0; th.setAttribute('aria-sort', 'none');
+      th.title = ar() ? 'رتّب حسب هذا العمود' : 'Sort by this column';
+    });
+    each(body.rows, function (r, i) { r.setAttribute('data-i', i); });
+    if (body.rows.length >= 12) filter(t, body);
+  }
+  function filter(t, body) {
+    var bar = d.createElement('div');
+    bar.className = 'tx-tools';
+    bar.innerHTML = '<label class="tx-q"><span class="ms">search</span><input type="search" autocomplete="off"></label><span class="tx-n"></span>';
+    var inp = bar.querySelector('input'), n = bar.querySelector('.tx-n'), total = body.rows.length;
+    inp.placeholder = ar() ? 'ابحث في الجدول…' : 'Filter the table…';
+    function count(k) { n.textContent = ar() ? (k + ' من ' + total) : (k + ' of ' + total); }
+    count(total);
+    inp.addEventListener('input', function () {
+      var q = inp.value.trim().toLowerCase(), k = 0;
+      each(body.rows, function (r) { var hit = !q || r.textContent.toLowerCase().indexOf(q) >= 0; r.classList.toggle('tx-hide', !hit); if (hit) k++; });
+      count(k);
+    });
+    var box = t.closest('.xtp');
+    var at = box ? box.querySelector('.xtsc') : (t.parentElement && t.parentElement.querySelector(':scope > table') === t
+             && /wrap|scroll|sc\b/.test(t.parentElement.className) ? t.parentElement : t);
+    if (at && at.parentNode) at.parentNode.insertBefore(bar, at);
+  }
+  // first click: numbers biggest first, words A to Z; second click the other way; third click back to the original order
+  function sortBy(th) {
+    var t = th.closest('table'), body = t.tBodies[0], idx = th.cellIndex, hr = headRow(t);
+    var st = th.getAttribute('aria-sort'), rows = Array.prototype.slice.call(body.rows);
+    var fixed = rows.filter(function (r) { return r.classList.contains('ai') || r.classList.contains('tx-fix'); });
+    var free = rows.filter(function (r) { return fixed.indexOf(r) < 0; });
+    var items = free.map(function (r) { return {r: r, k: key(r.cells[idx]), i: +r.getAttribute('data-i')}; });
+    var known = items.filter(function (o) { return o.k !== null; });
+    var numeric = known.length && known.filter(function (o) { return typeof o.k === 'number'; }).length >= .7 * known.length;
+    var next = st === 'descending' ? (numeric ? 'ascending' : 'none') : st === 'ascending' ? (numeric ? 'none' : 'descending')
+             : (numeric ? 'descending' : 'ascending');
+    each(hr.cells, function (c) { if (c.classList.contains('tx-s')) c.setAttribute('aria-sort', 'none'); });
+    th.setAttribute('aria-sort', next);
+    if (next === 'none') items.sort(function (a, b) { return a.i - b.i; });
+    else items.sort(function (a, b) {
+      var x = a.k, y = b.k, c;
+      if (x === null || y === null) return x === y ? a.i - b.i : (x === null ? 1 : -1);
+      if (typeof x === 'number' && typeof y === 'number') c = x - y;
+      else if (typeof x === 'number') c = -1;
+      else if (typeof y === 'number') c = 1;
+      else c = String(x).localeCompare(String(y), undefined, {numeric: true, sensitivity: 'base'});
+      return (next === 'descending' ? -c : c) || a.i - b.i;
+    });
+    var f = d.createDocumentFragment();
+    items.forEach(function (o) { f.appendChild(o.r); });
+    fixed.sort(function (a, b) { return a.getAttribute('data-i') - b.getAttribute('data-i'); }).forEach(function (r) { f.appendChild(r); });
+    body.appendChild(f);
+  }
+  function scan() {
+    var roots = d.querySelectorAll(ROOT);
+    each(roots, function (root) { each(root.querySelectorAll('table:not([data-tx])'), setup); });
+  }
+  on(d, 'click', function (e) {
+    var t = e.target;
+    if (!t || !t.closest) return;
+    var th = t.closest('th.tx-s');
+    if (th) { sortBy(th); return; }
+    var td = t.closest('table[data-tx] tbody td');
+    if (td && !t.closest('a, button, input, label, summary')) td.parentNode.classList.toggle('tx-pin');   // a row stays lit until clicked again
+  }, true);
+  on(d, 'keydown', function (e) {
+    var th = e.target && e.target.closest && e.target.closest('th.tx-s');
+    if (th && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); sortBy(th); }
+  }, true);
+  var hc = null;
+  on(d, 'mouseover', function (e) {
+    var td = e.target && e.target.closest && e.target.closest('table[data-tx] td');
+    var th = null;
+    if (td) { var hr = headRow(td.closest('table')); th = hr && hr.cells[td.cellIndex] || null; }
+    if (th === hc) return;
+    if (hc) hc.classList.remove('tx-hc');
+    hc = th;
+    if (hc) hc.classList.add('tx-hc');
+  }, {passive: true});
+  every(scan, 700); scan();
 })();
 </script>""".replace("__SEL__", json.dumps(_fx))
 FX_JS = FX_JS.replace("__VER__", hashlib.md5(FX_JS.encode()).hexdigest()[:10])   # a new script replaces the old one in open tabs
@@ -2247,4 +2383,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "16.5"
+BUILD = "16.6"
