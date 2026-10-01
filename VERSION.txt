@@ -1,2 +1,2 @@
-A.Alturaifi Pro - version 16.2 (Movers at a glance: a gap between the two rows of cards)
+A.Alturaifi Pro - version 16.3 (⋮ menu: System / Light / Dark; the whole site has a light look)
 If you can see this file on GitHub, the new version was uploaded correctly.

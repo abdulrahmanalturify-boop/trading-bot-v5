@@ -1,13 +1,22 @@
 [theme]
-base = "dark"
+# shared by both looks; a [theme.light] and a [theme.dark] make Streamlit's ⋮ menu offer System / Light / Dark
 primaryColor = "#3B8BEB"
+baseRadius = "0.5rem"
+font = "DM Sans:https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap"
+
+[theme.light]
+backgroundColor = "#F6F4FB"
+secondaryBackgroundColor = "#ECE8F5"
+textColor = "#1B1530"
+linkColor = "#2563C9"
+borderColor = "#DCD6E8"
+
+[theme.dark]
 backgroundColor = "#0E0918"
 secondaryBackgroundColor = "#1B1728"
 textColor = "#E7E3EB"
 linkColor = "#79B8F4"
 borderColor = "#2C2738"
-baseRadius = "0.5rem"
-font = "DM Sans:https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap"
 
 [server]
 enableStaticServing = true

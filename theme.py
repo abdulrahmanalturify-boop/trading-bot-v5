@@ -17,6 +17,7 @@ import numpy as np
 import pandas as pd
 
 import flags
+import lightmode as LM
 import mcal
 
 # ---------------------------------------------------------------- palette
@@ -1230,7 +1231,7 @@ FX_CSS = f"""<style>
 :is({_lift}).fx-on:active {{ transform: translateY(-1px) scale(.99); }}
 /* the logo takes you home (FX_JS presses the hidden button) */
 [data-testid="stLogo"], img.stLogo, [data-testid="stLogoLink"], [data-testid="stSidebarHeader"] img, [data-testid="stHeaderLogo"] img {{ cursor:pointer; }}
-.st-key-logohome {{ position:absolute !important; width:1px !important; height:1px !important; overflow:hidden !important; opacity:0 !important;
+.st-key-logohome, .st-key-lmsync {{ position:absolute !important; width:1px !important; height:1px !important; overflow:hidden !important; opacity:0 !important;
   pointer-events:none !important; margin:0 !important; }}
 /* the invisible frame that runs the script takes no room */
 [data-testid="stElementContainer"]:has(iframe[height="0"]), .element-container:has(iframe[height="0"]) {{ position:absolute !important; width:0 !important;
@@ -1546,6 +1547,32 @@ FX_JS = """<script>
     b.click();
   }, true);
 })();
+(function () {                                   // the site's colours follow Streamlit's theme (⋮ → System / Light / Dark)
+  var w = window.parent, d = w.document;
+  var VER = '__VER__', KEY = '__alturaifiThemeV';
+  if (w[KEY] === VER) return;                       // this version already runs in this tab
+  if (typeof w[KEY + 'Off'] === 'function') { try { w[KEY + 'Off'](); } catch (e) {} }   // an older one stops first
+  w[KEY] = VER;
+  var offs = [];
+  w[KEY + 'Off'] = function () { offs.forEach(function (f) { try { f(); } catch (e) {} }); offs = []; };
+  function every(fn, ms) { var id = w.setInterval(fn, ms); offs.push(function () { w.clearInterval(id); }); }
+  // Streamlit paints the page body in the active theme's background; the server marks the theme it drew the page for.
+  // When the two differ (the visitor just picked another look, or the first run could not know it yet), the hidden button
+  // reruns the page once, so the server draws it again in the right look.
+  var seen = '', tries = 0, last = 0;
+  function check() {
+    var m = (w.getComputedStyle(d.body).backgroundColor || '').match(/[\d.]+/g);
+    if (!m || m.length < 3) return;
+    var want = (0.2126 * m[0] + 0.7152 * m[1] + 0.0722 * m[2]) / 255 > 0.5 ? 'light' : 'dark';
+    if (want !== seen) { seen = want; tries = 0; }
+    var a = d.querySelector('.css-anchor[data-th]');
+    if (!a || a.getAttribute('data-th') === want || tries >= 3 || Date.now() - last < 2500) return;
+    var b = d.querySelector('.st-key-lmsync button');
+    if (!b) return;
+    tries++; last = Date.now(); b.click();
+  }
+  every(check, 400); check();
+})();
 </script>""".replace("__SEL__", json.dumps(_fx))
 FX_JS = FX_JS.replace("__VER__", hashlib.md5(FX_JS.encode()).hexdigest()[:10])   # a new script replaces the old one in open tabs
 
@@ -1590,9 +1617,9 @@ def color_style(v):
     """Pandas Styler: light-green cell + dark-green text / light-red cell + dark-red text."""
     try:
         if v > 0:
-            return f"background-color: {POS_BG}; color: {POS_FG}; font-weight: 600"
+            return LM.css(f"background-color: {POS_BG}; color: {POS_FG}; font-weight: 600")
         if v < 0:
-            return f"background-color: {NEG_BG}; color: {NEG_FG}; font-weight: 600"
+            return LM.css(f"background-color: {NEG_BG}; color: {NEG_FG}; font-weight: 600")
     except TypeError:
         pass
     return ""
@@ -1600,9 +1627,9 @@ def color_style(v):
 
 def signal_style(v, buy, sell):
     if v == buy:
-        return f"background-color: {POS_BG}; color: {POS_FG}; font-weight: 600"
+        return LM.css(f"background-color: {POS_BG}; color: {POS_FG}; font-weight: 600")
     if v == sell:
-        return f"background-color: {NEG_BG}; color: {NEG_FG}; font-weight: 600"
+        return LM.css(f"background-color: {NEG_BG}; color: {NEG_FG}; font-weight: 600")
     return ""
 
 
@@ -2127,4 +2154,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "16.2"
+BUILD = "16.3"

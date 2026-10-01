@@ -12,6 +12,7 @@ import requests
 import streamlit as st
 
 import data
+import lightmode as LM
 import newsintel as NI
 import newsiq
 import theme as T
@@ -621,10 +622,11 @@ def page_news_intel():
            "sent": st.column_config.TextColumn(L("Sentiment", "الاتجاه")),
            "score": st.column_config.ProgressColumn(L("Setup", "الفرصة"), min_value=0, max_value=100, format="%d")}
     def _tone(v):                                      # the sentiment in its colour, the stock in bold
-        return ("color:#4ADE80;font-weight:700" if str(v).startswith("▲") else "color:#F87171;font-weight:700" if str(v).startswith("▼")
-                else "color:#C4B5FD")
+        return LM.css("color:#4ADE80;font-weight:700" if str(v).startswith("▲") else "color:#F87171;font-weight:700" if str(v).startswith("▼")
+                      else "color:#C4B5FD")
+    bold = LM.css("font-weight:800;color:#FFFFFF")
     try:
-        view = df.style.map(_tone, subset=["sent"]).map(lambda v: "font-weight:800;color:#FFFFFF", subset=["stock"])
+        view = df.style.map(_tone, subset=["sent"]).map(lambda v: bold, subset=["stock"])
     except Exception:                                  # an older pandas without Styler.map
         view = df
     try:
@@ -649,4 +651,4 @@ def page_news_intel():
     _detail(a, chg2, sec_chg, titles_ar)
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "16.2"
+BUILD = "16.3"

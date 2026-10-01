@@ -8,6 +8,7 @@ import pandas as pd
 import streamlit as st
 
 import data
+import lightmode as LM
 import newsiq
 import theme as T
 from i18n import L, is_ar, lang
@@ -156,8 +157,8 @@ def table_chip(label, value_html):
 
 
 def chart(fig, key=None, container=None):
-    """Every Plotly chart goes through here: unified theme (no Streamlit override), clean toolbar."""
-    (container or st).plotly_chart(fig, theme=None, key=key, config=CHART_CONFIG)
+    """Every Plotly chart goes through here: unified theme (no Streamlit override), clean toolbar, in the visitor's look."""
+    (container or st).plotly_chart(LM.figure(fig), theme=None, key=key, config=CHART_CONFIG)
 
 
 def safe(fn, *args, **kwargs):
@@ -262,4 +263,4 @@ def multiselect_free(label, options, key, placeholder="", max_n=4):
         return st.multiselect(label, options, key=key, max_selections=max_n, placeholder=placeholder)
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "16.2"
+BUILD = "16.3"

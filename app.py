@@ -10,8 +10,8 @@ import streamlit as st
 # ---------------------------------------------------------------- always run the newest code
 # Streamlit Cloud re-reads app.py after every GitHub upload but can keep the other modules (theme, data, ...) from the
 # previous version in memory. Every module carries BUILD; if one in memory is older, all of them are reloaded in order.
-BUILD = "16.2"
-_ORDER = ["i18n", "ai_assistant", "flags", "mcal", "universe", "sp500", "taxonomy", "ta", "academy", "insight", "heatmap", "newsiq", "theme", "data",
+BUILD = "16.3"
+_ORDER = ["lightmode", "i18n", "ai_assistant", "flags", "mcal", "universe", "sp500", "taxonomy", "ta", "academy", "insight", "heatmap", "newsiq", "theme", "data",
           "caldata", "newsbot", "newsintel", "charts", "engine", "playbooks", "autotrader", "ui", "sharia", "lab", "tdash", "mlbots", "brain", "paperbots", "smartbots", "p_markets", "p_newsintel", "p_research", "p_insight",
           "p_academy", "p_paper", "p_calendar", "hunter", "p_scanner", "home"]
 if any(m in sys.modules and getattr(sys.modules[m], "BUILD", None) != BUILD for m in _ORDER):
@@ -21,6 +21,10 @@ if any(m in sys.modules and getattr(sys.modules[m], "BUILD", None) != BUILD for 
                 importlib.reload(sys.modules[_m])
             except Exception:
                 sys.modules.pop(_m, None)       # imported fresh below
+
+import lightmode as LM
+
+LM.install()                           # the light look: the site's own colours follow Streamlit's theme (⋮ → System / Light / Dark)
 
 import ai_assistant
 import data
@@ -74,18 +78,6 @@ try:
 except Exception:
     pass
 
-try:
-    _static = bool(st.get_option("server.enableStaticServing"))
-except Exception:
-    _static = False
-st.markdown('<span class="css-anchor"></span>' + T.CSS + T.background_css(_static) + (T.RTL_CSS if ss.lang == "ar" else ""), unsafe_allow_html=True)
-st.logo(T.LOGO_WORDMARK, icon_image=T.LOGO_ICON, size="large")
-try:                                   # interactive cards: the light follows the pointer (a script run once per browser tab)
-    import streamlit.components.v1 as _components
-    st.markdown('<span class="css-anchor"></span>\n' + T.FX_CSS, unsafe_allow_html=True)   # the style on its own line (else Markdown eats it)
-    _components.html(T.FX_JS, height=0)
-except Exception:
-    pass
 
 ETF_NAMES = {"SPY": "SPDR S&P 500 ETF", "QQQ": "Invesco QQQ · Nasdaq 100", "IWM": "iShares Russell 2000", "DIA": "SPDR Dow Jones",
              "VOO": "Vanguard S&P 500", "VTI": "Vanguard Total Market", "GLD": "SPDR Gold", "TLT": "20+ Year Treasury", "ARKK": "ARK Innovation",
@@ -214,6 +206,26 @@ if ss.get("_page") != _cur:
     if _cur == "articles" and ss.get("_page") is not None and not st.query_params.get("a"):
         ss.pop("article", None)
     ss["_page"] = _cur
+
+# ---------------------------------------------------------------- the site's styles, in the visitor's look
+# Light or dark follows the theme picked in Streamlit's ⋮ menu (System / Light / Dark); the landing keeps its night in both.
+_light = LM.start(landing=_cur in ("", "overview") and not ss.get("intro_done"))
+try:
+    _static = bool(st.get_option("server.enableStaticServing"))
+except Exception:
+    _static = False
+_bg = LM.background_css(f"app/static/{T.BG_FILE}" if _static else T.BG_CDN) if _light else T.background_css(_static)
+st.markdown(f'<span class="css-anchor" data-th="{ss.get(LM.THEME_KEY, "dark")}"></span>' + T.CSS + _bg + (T.RTL_CSS if ss.lang == "ar" else "")
+            + LM.landing_css(), unsafe_allow_html=True)
+st.logo(LM.html(T.LOGO_WORDMARK), icon_image=T.LOGO_ICON, size="large")
+try:                                   # interactive cards: the light follows the pointer (a script run once per browser tab)
+    import streamlit.components.v1 as _components
+    st.markdown('<span class="css-anchor"></span>\n' + T.FX_CSS, unsafe_allow_html=True)   # the style on its own line (else Markdown eats it)
+    _components.html(T.FX_JS, height=0)
+except Exception:
+    pass
+with st.container(key="lmsync"):          # hidden; theme.FX_JS presses it when the page was drawn for the other look
+    st.button("theme", key="lm_sync_btn")
 
 
 # ---------------------------------------------------------------- top bar (in the site's top line): menus · search · market status · language
