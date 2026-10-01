@@ -217,18 +217,6 @@ except Exception:
 _bg = LM.background_css(f"app/static/{LM.BG_FILE}" if _static else LM.BG_CDN) if _light else T.background_css(_static)
 st.markdown(f'<span class="css-anchor" data-th="{ss.get(LM.THEME_KEY, "dark")}"></span>' + T.CSS + _bg + (T.RTL_CSS if ss.lang == "ar" else "")
             + LM.landing_css(), unsafe_allow_html=True)
-# Keep the top bar red in both themes, including the landing and its scrolled state.
-st.markdown("""
-<style data-lm="keep">
-html:root body header[data-testid="stHeader"] {
-    background: #DC2626 !important;
-    background-color: #DC2626 !important;
-}
-@media (max-width: 1023.98px) {
-    html:root body .st-key-topnav { background: #DC2626 !important; }
-}
-</style>
-""", unsafe_allow_html=True)
 st.logo(LM.html(T.LOGO_WORDMARK), icon_image=T.LOGO_ICON, size="large")
 try:                                   # interactive cards: the light follows the pointer (a script run once per browser tab)
     import streamlit.components.v1 as _components
