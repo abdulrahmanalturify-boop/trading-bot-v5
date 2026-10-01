@@ -1,2 +1,2 @@
-A.Alturaifi Pro - version 16.3 (⋮ menu: System / Light / Dark; the whole site has a light look)
+A.Alturaifi Pro - version 16.4 (light look: the same globe picture in light tones)
 If you can see this file on GitHub, the new version was uploaded correctly.

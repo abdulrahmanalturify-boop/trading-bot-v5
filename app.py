@@ -10,7 +10,7 @@ import streamlit as st
 # ---------------------------------------------------------------- always run the newest code
 # Streamlit Cloud re-reads app.py after every GitHub upload but can keep the other modules (theme, data, ...) from the
 # previous version in memory. Every module carries BUILD; if one in memory is older, all of them are reloaded in order.
-BUILD = "16.3"
+BUILD = "16.4"
 _ORDER = ["lightmode", "i18n", "ai_assistant", "flags", "mcal", "universe", "sp500", "taxonomy", "ta", "academy", "insight", "heatmap", "newsiq", "theme", "data",
           "caldata", "newsbot", "newsintel", "charts", "engine", "playbooks", "autotrader", "ui", "sharia", "lab", "tdash", "mlbots", "brain", "paperbots", "smartbots", "p_markets", "p_newsintel", "p_research", "p_insight",
           "p_academy", "p_paper", "p_calendar", "hunter", "p_scanner", "home"]
@@ -214,7 +214,7 @@ try:
     _static = bool(st.get_option("server.enableStaticServing"))
 except Exception:
     _static = False
-_bg = LM.background_css(f"app/static/{T.BG_FILE}" if _static else T.BG_CDN) if _light else T.background_css(_static)
+_bg = LM.background_css(f"app/static/{LM.BG_FILE}" if _static else LM.BG_CDN) if _light else T.background_css(_static)
 st.markdown(f'<span class="css-anchor" data-th="{ss.get(LM.THEME_KEY, "dark")}"></span>' + T.CSS + _bg + (T.RTL_CSS if ss.lang == "ar" else "")
             + LM.landing_css(), unsafe_allow_html=True)
 st.logo(LM.html(T.LOGO_WORDMARK), icon_image=T.LOGO_ICON, size="large")

@@ -266,10 +266,16 @@ def convert(s):
     return _convert_cached(s) if "<style" in s else _convert(s)
 
 
+_KEEP = re.compile(r'<style data-lm="keep">.*?</style>', re.S)
+
+
 def _convert(s):
     out, last = [], 0
+    keep = [(k.start(), k.end()) for k in _KEEP.finditer(s)] if 'data-lm="keep"' in s else []
     for m in COLOR.finditer(s):
         i = m.start()
+        if keep and any(a <= i < b for a, b in keep):
+            continue                                         # written for the light look already
         kind, name = _context(s, i)
         tok = m.group(0)
         if kind == "css":
@@ -397,16 +403,19 @@ def install():
 
 
 # ---------------------------------------------------------------- the page behind everything, in the light look
+BG_FILE = "bg_markets_light.jpg"     # the site's background picture in light tones (static/, made from bg_markets.jpg)
+BG_CDN = f"https://cdn.jsdelivr.net/gh/abdulrahmanalturify-boop/trading-bot-v5@main/static/{BG_FILE}"
+
+
 def background_css(url):
-    """The globe picture as a faint watermark under a pale lavender veil, with soft violet and blue light."""
-    veil = ("linear-gradient(180deg, rgba(246,244,251,.90) 0%, rgba(246,244,251,.93) 50%, rgba(246,244,251,.97) 100%)")
-    glows = ("radial-gradient(1100px 560px at 50% 112%, rgba(123,69,240,.10), transparent 62%), "
-             "radial-gradient(900px 520px at 6% -10%, rgba(7,122,199,.08), transparent 60%)")
+    """The same globe picture as the dark look, in light tones (its lightness turned over, its colours kept: a pale lavender
+    sky, the globe and the market numbers in dark dots), under a light veil that deepens a little towards the bottom."""
+    veil = "linear-gradient(180deg, rgba(246,244,251,.16) 0%, rgba(246,244,251,.26) 45%, rgba(246,244,251,.46) 100%)"
     keep_white = ".lg, .lgo .ini, .nth.fb .ms, .nth.fb em, .nth img::after"   # white letters on a coloured tile stay white
-    return (f'<style>:root {{ color-scheme: light; }} {keep_white} {{ color: white !important; }}'
-            f'.stApp::before {{ background: {glows}, {veil}, url("{url}") 68% 40% / cover no-repeat, #F6F4FB !important; }}'
+    return (f'<style data-lm="keep">:root {{ color-scheme: light; }} {keep_white} {{ color: white !important; }}'
+            f'.stApp::before {{ background: {veil}, url("{url}") 68% 40% / cover no-repeat, #F6F4FB !important; }}'
             f'.stApp::after {{ background: none !important; }}'
-            f'@media (max-width: 768px) {{ .stApp::before {{ background-position: 0 0, 0 0, 0 0, 72% 30%; }} }}</style>')
+            f'@media (max-width: 768px) {{ .stApp::before {{ background-position: 0 0, 72% 30%; }} }}</style>')
 
 
 def landing_css():
@@ -422,4 +431,4 @@ def landing_css():
             '.st-key-langdd button, .st-key-langdd button * { color: #E7E3EB !important; }</style>')
 
 
-BUILD = "16.3"
+BUILD = "16.4"
