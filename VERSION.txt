@@ -1,2 +1,2 @@
-A.Alturaifi Pro - version 15.8 (the landing gem: a cut amethyst; same size, rotation and shine)
+A.Alturaifi Pro - version 15.9 (Get started: the landing fades out at once, no scroll up first)
 If you can see this file on GitHub, the new version was uploaded correctly.

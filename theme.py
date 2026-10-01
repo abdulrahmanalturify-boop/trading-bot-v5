@@ -1326,13 +1326,19 @@ FX_JS = """<script>
     de.classList.toggle('ix-past', !!ix && ix.getBoundingClientRect().bottom < w.innerHeight * .55);
   }
   // "Get started" and the logo: back to the top of the page
+  var leaving = 0;
   function toTop() {
     var m = d.querySelector('[data-testid="stMain"]') || d.querySelector('section.stMain') || d.querySelector('[data-testid="stAppViewContainer"]');
     if (m && m.scrollTo) m.scrollTo({top: 0}); w.scrollTo(0, 0); de.classList.remove('ix-scrolled');
   }
   on(d, 'click', function (e) {
     var t = e.target;
-    if (t && t.closest && t.closest('.st-key-introgo button, .st-key-logohome button')) { toTop(); w.setTimeout(toTop, 450); w.setTimeout(toTop, 1200); }
+    if (t && t.closest && t.closest('.st-key-introgo button')) {
+      // "Get started": the landing fades out at once, the jump back to the top happens while it is hidden, and the main
+      // page then opens at its top (no visible scroll up the landing first)
+      de.classList.add('ix-leaving'); leaving = Date.now();
+      w.setTimeout(toTop, 170); w.setTimeout(toTop, 600); w.setTimeout(toTop, 1300);
+    } else if (t && t.closest && t.closest('.st-key-logohome button')) { toTop(); w.setTimeout(toTop, 450); w.setTimeout(toTop, 1200); }
     if (t && t.closest && t.closest('.ix-scroll')) {                       // "Scroll down": to the first section
       var nx = d.querySelector('.ixp .ixs');
       if (nx) nx.scrollIntoView({behavior: 'smooth', block: 'start'});
@@ -1342,7 +1348,8 @@ FX_JS = """<script>
     // reveals: a section shows as it comes into view
     var rv = d.querySelectorAll('.rv:not(.in)');
     for (var i = 0; i < rv.length; i++) { if (rv[i].getBoundingClientRect().top < w.innerHeight * .9) rv[i].classList.add('in'); }
-    if (!d.querySelector('.ixp')) { de.classList.remove('ix-scrolled'); de.classList.remove('ix-past'); } else past();
+    if (!d.querySelector('.ixp')) { de.classList.remove('ix-scrolled'); de.classList.remove('ix-past'); de.classList.remove('ix-leaving'); } else past();
+    if (leaving && d.querySelector('.ixp') && Date.now() - leaving > 8000) { de.classList.remove('ix-leaving'); leaving = 0; }   // it did not leave
     var pg0 = d.querySelector('.ixp');
     if (pg0) {
       var pr = pg0.getBoundingClientRect();
@@ -2116,4 +2123,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "15.8"
+BUILD = "15.9"

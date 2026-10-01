@@ -10,7 +10,7 @@ import theme as T
 import ui
 from i18n import L, is_ar
 
-BUILD = "15.8"
+BUILD = "15.9"
 
 _LINE = "rgba(150,140,250,"
 CSS = f"""
@@ -704,6 +704,9 @@ html.ix-js.ix-past .st-key-introgo { opacity: 1; translate: -50% 0; pointer-even
 .st-key-introgo button:hover { transform: translateY(-2px); background: #EDEBFF !important; box-shadow: 0 22px 60px -12px rgba(132,125,255,.7), 0 0 0 8px rgba(255,255,255,.1) !important; }
 .st-key-introgo button:hover p::after { transform: translateX(4px); }
 .st-key-introgo button:active { transform: translateY(0) scale(.98); }
+/* "Get started" pressed: the landing fades out at once while the main page loads (the page's script adds the class) */
+html.ix-leaving .ixp, html.ix-leaving .st-key-introgo, html.ix-leaving .ix-scroll { opacity: 0 !important; pointer-events: none !important;
+  transition: opacity .16s ease !important; }
 @media (max-width: 1000px) { .ixg { grid-template-columns: repeat(2, minmax(0, 1fr)); } .ixf { grid-template-columns: 1fr; gap: 36px; }
   .ixf.rev > :first-child { order: 0; } .ixn { grid-template-columns: repeat(2, minmax(0, 1fr)); } .ixw { grid-template-columns: 1fr; } }
 @media (max-width: 900px) { .ix-center { top: 38%; } .ix-sc { height: 44vh; bottom: -6vh; } .ixs { padding-top: 84px; } }
