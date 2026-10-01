@@ -1394,7 +1394,7 @@ FX_JS = """<script>
     on(d, ev, function () { idle = Date.now(); }, {passive: true, capture: true});
   });
 })();
-(function () {                                   // the landing's sculpture: an iridescent faceted crystal, drawn with WebGL
+(function () {                                   // the landing's sculpture: a cut amethyst, drawn with WebGL
   var w = window.parent, d = w.document;
   var VER = '__VER__', KEY = '__alturaifiSculpture';
   if (w[KEY] === VER) return;                       // this version already runs in this tab
@@ -1452,12 +1452,17 @@ FX_JS = """<script>
     });
     return {p: new Float32Array(P), n: new Float32Array(N), b: new Float32Array(B), m: new Float32Array(M), count: P.length / 3};
   }
-  var VS = 'attribute vec3 p;attribute vec3 n;attribute vec3 b;attribute vec3 m;uniform mat4 mvp;uniform mat4 model;uniform mat3 nm;varying vec3 vN;varying vec3 vP;varying vec3 vB;varying vec3 vM;' +
-    'void main(){vN=nm*n;vB=b;vM=m;vP=(model*vec4(p,1.)).xyz;gl_Position=mvp*vec4(p,1.);}';
-  // black lacquer in a dark studio: two softboxes that flash across the panels, a white key light, an orange and a blue
-  // glint, a cool rim, and the panel edges catching the light
-  var FS = 'precision highp float;varying vec3 vN;varying vec3 vP;varying vec3 vB;varying vec3 vM;uniform vec3 eye;uniform float t;' +
+  var VS = 'attribute vec3 p;attribute vec3 n;attribute vec3 b;attribute vec3 m;uniform mat4 mvp;uniform mat4 model;uniform mat3 nm;varying vec3 vN;varying vec3 vP;varying vec3 vB;varying vec3 vM;varying vec3 vO;' +
+    'void main(){vN=nm*n;vO=n;vB=b;vM=m;vP=(model*vec4(p,1.)).xyz;gl_Position=mvp*vec4(p,1.);}';
+  // a cut amethyst in a dark studio: the stone's own violet, each facet a little lighter or deeper (as light travels a
+  // different way through a real cut gem), lighter where it faces the eye and deeper towards the edges; on it the same shine
+  // as before - two softboxes that flash across the panels, a white key light, an orange and a blue glint, a cool rim, and
+  // the panel edges catching the light
+  var FS = 'precision highp float;varying vec3 vN;varying vec3 vP;varying vec3 vB;varying vec3 vM;varying vec3 vO;uniform vec3 eye;uniform float t;' +
     'void main(){vec3 N=normalize(vN);vec3 V=normalize(eye-vP);float ndv=max(dot(N,V),0.);float fr=pow(1.-ndv,4.);vec3 R=reflect(-V,N);' +
+    'vec3 q=floor(normalize(vO)*40.+.5);float h=fract(sin(dot(q,vec3(12.9898,78.233,37.719)))*43758.5453);' +
+    'vec3 gem=mix(vec3(.17,.035,.40),vec3(.60,.26,.98),h*h);float lt=pow(max(dot(N,normalize(vec3(cos(t*.4)*1.8,1.2,1.6))),0.),2.);' +
+    'vec3 body=mix(vec3(.028,.004,.075),gem,.12+.88*pow(ndv,1.1))*(.48+.62*h)+gem*lt*.22;' +
     'vec3 B1=normalize(vec3(-.75+.25*sin(t*.3),.45,.55));vec3 B2=normalize(vec3(.85,.05+.15*cos(t*.25),.5));' +
     'float box=smoothstep(.86,.985,dot(R,B1))*2.2+smoothstep(.9,.99,dot(R,B2))*1.5;float sky=pow(max(R.y,0.),4.)*.3;' +
     'vec3 env=vec3(.006,.006,.009)+box*vec3(1.)+sky*vec3(.7,.7,.85);' +
@@ -1465,7 +1470,7 @@ FX_JS = """<script>
     'float k=pow(max(dot(N,normalize(K+V)),0.),420.);float o=pow(max(dot(N,normalize(O+V)),0.),1400.);float c=pow(max(dot(N,normalize(C+V)),0.),1200.);' +
     'vec3 ed=(1.-smoothstep(vec3(0.),vec3(.022),vB))*vM;float edge=max(max(ed.x,ed.y),ed.z);' +
     'float lit=pow(max(dot(N,normalize(K+V)),0.),10.)*4.+pow(max(dot(N,normalize(B1+V)),0.),14.)*3.+pow(fr,1.3)*2.4;' +
-    'vec3 col=vec3(.009,.009,.012)+env*(.3+.7*fr)+k*vec3(1.)*4.6+o*vec3(1.,.62,.25)*3.6+c*vec3(.35,.65,1.)*3.6+edge*lit*vec3(.92,.93,1.)+fr*vec3(.35,.4,.55)*.35;' +
+    'vec3 col=body+env*(.3+.7*fr)+k*vec3(1.)*4.6+o*vec3(1.,.62,.25)*3.6+c*vec3(.35,.65,1.)*3.6+edge*lit*vec3(.92,.93,1.)+fr*vec3(.35,.4,.55)*.35;' +
     'col=col/(1.+col*.45);gl_FragColor=vec4(pow(col,vec3(.95)),1.);}';
   function mount(host) {
     var cv = d.createElement('canvas'); cv.className = 'ix-gl'; host.appendChild(cv);
@@ -2111,4 +2116,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "15.7"
+BUILD = "15.8"
