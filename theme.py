@@ -1461,15 +1461,18 @@ FX_JS = """<script>
   }
   var VS = 'attribute vec3 p;attribute vec3 n;attribute vec3 b;attribute vec3 m;uniform mat4 mvp;uniform mat4 model;uniform mat3 nm;varying vec3 vN;varying vec3 vP;varying vec3 vB;varying vec3 vM;varying vec3 vO;' +
     'void main(){vN=nm*n;vO=n;vB=b;vM=m;vP=(model*vec4(p,1.)).xyz;gl_Position=mvp*vec4(p,1.);}';
-  // a cut amethyst in a dark studio: the stone's own violet, each facet a little lighter or deeper (as light travels a
-  // different way through a real cut gem), lighter where it faces the eye and deeper towards the edges; on it the same shine
+  // a pearl in a dark studio: ivory-white nacre, each facet a little lighter or deeper, with the soft pink / green / blue
+  // orient of real nacre that drifts with the viewing angle, brightest where it faces the eye and greyer towards the edges;
+  // on it the same shine
   // as before - two softboxes that flash across the panels, a white key light, an orange and a blue glint, a cool rim, and
   // the panel edges catching the light
   var FS = 'precision highp float;varying vec3 vN;varying vec3 vP;varying vec3 vB;varying vec3 vM;varying vec3 vO;uniform vec3 eye;uniform float t;' +
     'void main(){vec3 N=normalize(vN);vec3 V=normalize(eye-vP);float ndv=max(dot(N,V),0.);float fr=pow(1.-ndv,4.);vec3 R=reflect(-V,N);' +
     'vec3 q=floor(normalize(vO)*40.+.5);float h=fract(sin(dot(q,vec3(12.9898,78.233,37.719)))*43758.5453);' +
-    'vec3 gem=mix(vec3(.17,.035,.40),vec3(.60,.26,.98),h*h);float lt=pow(max(dot(N,normalize(vec3(cos(t*.4)*1.8,1.2,1.6))),0.),2.);' +
-    'vec3 body=mix(vec3(.028,.004,.075),gem,.12+.88*pow(ndv,1.1))*(.48+.62*h)+gem*lt*.22;' +
+    'vec3 nac=mix(vec3(.90,.86,.84),vec3(1.,.95,.90),h);float lt=pow(max(dot(N,normalize(vec3(cos(t*.4)*1.8,1.2,1.6))),0.),2.);' +
+    'float a=6.2832*((1.-ndv)*.95+h*.7);vec3 ir=(vec3(1.,.74,.82)*(.5+.5*cos(a))+vec3(.76,.84,1.)*(.5+.5*cos(a-2.094))+vec3(.88,.98,.93)*(.5+.5*cos(a-4.189)))/1.5;' +
+    'ir=mix(vec3(dot(ir,vec3(.3333))),ir,1.7);vec3 gem=nac*mix(vec3(1.),ir,.7+.3*(1.-ndv));' +
+    'vec3 body=mix(nac*vec3(.16,.13,.19),gem,.08+.92*pow(ndv,.9))*(.72+.40*h)+nac*lt*.20;' +
     'vec3 B1=normalize(vec3(-.75+.25*sin(t*.3),.45,.55));vec3 B2=normalize(vec3(.85,.05+.15*cos(t*.25),.5));' +
     'float box=smoothstep(.86,.985,dot(R,B1))*2.2+smoothstep(.9,.99,dot(R,B2))*1.5;float sky=pow(max(R.y,0.),4.)*.3;' +
     'vec3 env=vec3(.006,.006,.009)+box*vec3(1.)+sky*vec3(.7,.7,.85);' +
@@ -2123,4 +2126,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "15.9"
+BUILD = "16.0"

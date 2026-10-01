@@ -164,4 +164,4 @@ def verdict(strategy, view, lab=None):
     return L("2020 → now it did worse than simply holding all the stocks.", "من 2020 لين اليوم كان أضعف من مجرد الاحتفاظ بكل الأسهم.")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "15.9"
+BUILD = "16.0"
