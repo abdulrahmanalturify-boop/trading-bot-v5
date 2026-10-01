@@ -796,8 +796,9 @@ def page_trending():
 
     ui.sec("leaderboard", "Movers at a glance", "الأسهم الأكثر حركة")
     keys = list(LISTS)
-    for row in (keys[:3], keys[3:]):
-        cols = st.columns(3)
+    for i, row in enumerate((keys[:3], keys[3:])):
+        with st.container(key=f"mvrow_{i}"):
+            cols = st.columns(3)
         for col, kind in zip(cols, row):
             df, _ = lists[kind]
             en, ar, ic = LISTS[kind]
@@ -971,4 +972,4 @@ def page_news():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "16.1"
+BUILD = "16.2"

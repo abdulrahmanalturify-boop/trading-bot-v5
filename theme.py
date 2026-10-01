@@ -358,6 +358,10 @@ a.lnk {{ color:inherit !important; text-decoration:none !important; }} a.lnk:hov
 .mcard .hd {{ display:flex; align-items:center; gap:8px; font-weight:600; margin-bottom:6px; }}
 .mcard .hd .ms {{ color:#fff; background:{PANEL}; box-shadow:{GLOW}; border-radius:8px; padding:4px; font-size:1.05rem; }}
 .mcard .hd .cnt {{ margin-inline-start:auto; color:{MUTED}; font-size:.75rem; font-weight:600; }}
+/* Movers at a glance: Streamlit pulls every markdown block 1rem up (margin-bottom:-1rem), so a card stretched to its
+   column ran 1rem past it and the two rows of cards touched; without that pull the rows (and the cards stacked on a
+   phone) keep the same 1rem gap as the cards side by side */
+[class*="st-key-mvrow_"] :is(.stMarkdown, [data-testid="stMarkdownContainer"]) {{ margin-bottom:0 !important; }}
 .lead {{ display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:10px; }}
 .lc {{ background:{BOX_BG}; border:1px solid {BORDER}; border-radius:14px; padding:12px; direction:ltr; }}
 .lc .top {{ display:flex; justify-content:space-between; align-items:center; gap:8px; }}
@@ -2123,4 +2127,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "16.1"
+BUILD = "16.2"

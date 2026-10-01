@@ -1,2 +1,2 @@
-A.Alturaifi Pro - version 16.1 (the landing gem back to the amethyst colour)
+A.Alturaifi Pro - version 16.2 (Movers at a glance: a gap between the two rows of cards)
 If you can see this file on GitHub, the new version was uploaded correctly.
