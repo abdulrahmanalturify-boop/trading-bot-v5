@@ -1,2 +1,2 @@
-A.Alturaifi Pro - version 17.1 (the ? reads news as everyday language: "strikes on Iran" is no strike price)
+A.Alturaifi Pro - version 17.2 (phones: the top bar sits right under the top line and stays while scrolling; no style text spilling onto Paper Bots)
 If you can see this file on GitHub, the new version was uploaded correctly.

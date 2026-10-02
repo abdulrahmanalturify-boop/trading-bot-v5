@@ -581,7 +581,6 @@ PAGE_RTL_CSS = """<style>
 .pbhero .eb, .pbc .it, .pbmh, .pbt th, .pbfb .eb, .pbfs, .pbmode .ct, .pbrl .gt { letter-spacing:0; }
 .pbp::before, .pbid::before { left:auto; right:0; }
 .pbp { padding:14px 19px 8px 16px; }
-
 [class*="st-key-pbq_row"] button { padding:3px 10px 3px 14px !important; }
 /* smart bots: their tables read right to left, the numbers stay whole */
 .aic.smart table { direction:rtl; }
@@ -4187,4 +4186,4 @@ def page_paper_bots():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "17.1"
+BUILD = "17.2"

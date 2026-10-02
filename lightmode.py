@@ -355,10 +355,28 @@ def figure(fig):
 
 
 # ---------------------------------------------------------------- hooks: every st.markdown / st.html on the way out
+_STYLE_BLOCK = re.compile(r"<style[^>]*>.*?</style>", re.S | re.I)
+_STYLE_START = re.compile(r"(?<=[^\n])(<style\b)", re.I)
+_BLANK = re.compile(r"\n[ \t]*(?:\n[ \t]*)+")
+
+
+def tidy_styles(body):
+    """Markdown reads a <style> as styles only when it starts a line and runs without a blank line: otherwise the rest of it
+    shows on the page as text (it happened after "</style><style>" and a blank line in the Arabic styles of Paper Bots)."""
+    if "<style" not in body:
+        return body
+    body = _STYLE_START.sub(r"\n\1", body)
+    return _STYLE_BLOCK.sub(lambda m: _BLANK.sub("\n", m.group(0)), body)
+
+
 def _body(name, body, a, k):
-    """The body to send (HTML and styles only; plain Markdown text is left alone): a "?" after every trading term (terms.py),
-    and the colours converted while the light look is on."""
+    """The body to send (HTML and styles only; plain Markdown text is left alone): styles kept whole, a "?" after every trading
+    term (terms.py), and the colours converted while the light look is on."""
     if isinstance(body, str) and (name == "html" or k.get("unsafe_allow_html") or (a and a[0] is True)):
+        try:
+            body = tidy_styles(body)
+        except Exception:
+            pass
         try:
             import terms
             body = terms.annotate(body)
@@ -438,4 +456,4 @@ def landing_css():
             '.st-key-langdd button, .st-key-langdd button * { color: #E7E3EB !important; }</style>')
 
 
-BUILD = "17.1"
+BUILD = "17.2"

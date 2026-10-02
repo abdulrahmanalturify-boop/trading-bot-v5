@@ -872,6 +872,14 @@ a.mst:hover .mh .go {{ opacity:1; transform:none; color:{VIO_FG}; }}
   [data-testid="stLayoutWrapper"]:has(> .st-key-navsearch), .st-key-topnav > .st-key-navsearch {{ flex: 1 1 100% !important; order: 3; margin: 0 !important; }}
   [class*="st-key-navsec_"] {{ position: static; }}
   [class*="st-key-navdd_"] {{ left: 8px !important; right: 8px !important; width: auto !important; min-width: 0 !important; top: calc(100% + 4px); }}
+  /* the card sits right under the top line and stays there while the page scrolls (Streamlit wraps it in a layout wrapper:
+     the wrapper is what sticks; the landing keeps its own layout) */
+  .stApp:not(:has(.ixp)) [data-testid="stMainBlockContainer"]:has(.st-key-topnav) {{ padding-top: calc(3.75rem + 6px) !important; }}
+  .stApp:not(:has(.ixp)) [data-testid="stLayoutWrapper"]:has(> .st-key-topnav),
+  .stApp:not(:has(.ixp)) [data-testid="stVerticalBlock"] > .st-key-topnav {{ position: sticky !important; top: calc(3.75rem + 6px); z-index: 90; }}
+  .stApp:not(:has(.ixp)) .st-key-topnav {{ margin-top: 0 !important; background: rgba(18,13,30,.9);
+    backdrop-filter: blur(16px) saturate(140%); -webkit-backdrop-filter: blur(16px) saturate(140%);
+    box-shadow: 0 10px 28px -12px rgba(0,0,0,.7); }}
 }}
 /* ---------- sidebar: market pulse + watchlist ---------- */
 [data-testid="stSidebar"] [data-testid="stVerticalBlock"] {{ gap: .45rem; }}
@@ -2559,4 +2567,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "17.1"
+BUILD = "17.2"
