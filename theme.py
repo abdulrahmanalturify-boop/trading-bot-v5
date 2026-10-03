@@ -792,6 +792,10 @@ a.mst:hover .mh .go {{ opacity:1; transform:none; color:{VIO_FG}; }}
 @media (hover: none) {{  /* touch screens: a tap opens the menu */
   [class*="st-key-navsec_"]:focus-within [class*="st-key-navdd_"], .st-key-langsec:focus-within .st-key-langdd {{ opacity: 1; visibility: visible; transform: none;
     pointer-events: auto; }} }}
+/* a link/option was just chosen in a menu (FX_JS sets the flag on <html>): the menu closes at once, whatever hover or focus says,
+   and opens again when a menu button is pressed or hovered */
+html[data-menu-closed] [class*="st-key-navdd_"], html[data-menu-closed] .st-key-langdd {{ opacity: 0 !important; visibility: hidden !important;
+  transition: none !important; pointer-events: none !important; }}
 .navhd {{ font-size:.64rem; letter-spacing:.14em; text-transform:uppercase; color:{MUTED}; font-weight:600; padding: 0 10px 7px; line-height:1.2;
   border-bottom: 1px solid {BORDER}; margin-bottom: 4px; }}
 [class*="st-key-navdd_"] [data-testid="stPageLink"] a {{ border-radius: 11px; padding: 8px 10px; margin: 0; min-height: 38px; box-sizing: border-box;
@@ -1436,6 +1440,23 @@ FX_JS = """<script>
   }, {passive: true});
   on(d.documentElement, 'mouseleave', function () { set(null); });
   on(w, 'scroll', function () { if (cur && !raf) raf = w.requestAnimationFrame(pick); }, {passive: true, capture: true});
+  // top menus: choosing a page (or a language) closes the menu at once. Hover and keyboard focus would keep it open over the
+  // page that is loading, so the flag on <html> forces it shut until a menu button is hovered or pressed again.
+  var ROOT = d.documentElement, MENU_ITEM = '[class*="st-key-navdd_"] a, .st-key-langdd button, .st-key-langdd [class*="st-key-langopt_"]';
+  on(d, 'click', function (e) {
+    var t = e.target;
+    if (!t || !t.closest || !t.closest(MENU_ITEM)) return;
+    ROOT.setAttribute('data-menu-closed', '1');
+    var a = d.activeElement;
+    if (a && a.blur && a.closest && a.closest('[class*="st-key-navdd_"], .st-key-langdd')) a.blur();
+  }, true);
+  function reopen(e) {
+    if (!ROOT.hasAttribute('data-menu-closed')) return;
+    var t = e.target;
+    if (t && t.closest && t.closest('.navbtn, .langbtn')) ROOT.removeAttribute('data-menu-closed');
+  }
+  on(d, 'pointerdown', reopen, true);
+  on(d, 'pointerover', function (e) { if (!e.pointerType || e.pointerType === 'mouse') reopen(e); }, true);
 })();
 (function () {                                   // the landing: parallax, spotlight, typing line, reveals, tilting cards
   var w = window.parent, d = w.document, de = d.documentElement;
