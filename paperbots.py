@@ -33,12 +33,14 @@ Without Supabase the bots live in a temporary file that is lost when the app res
 The table is the one from SETUP_SQL; what the bot trades and its strategies are kept inside the `params` JSON, so bots
 saved by the first version of this page keep working.
 """
+import copy
 import hashlib
 import hmac
 import json
 import os
 import tempfile
 import threading
+import time
 
 import numpy as np
 import pandas as pd
@@ -1608,6 +1610,87 @@ def run_all(bots):
         sims.append(sim)
     period = max((period_for(b["start_date"]) for b in bots), key=PERIODS.index) if bots else "2y"
     return sims, data.history("SPY", period)
+
+
+# ---------------------------------------------------------------- warm start: the Paper Bots page opens at once
+# run_all() results live 10 minutes (st.cache_data); after that the first visit had to wait for the whole replay (up to a minute for
+# groups of stocks). The last full replay is kept here instead: the page shows it at once and a newer one is prepared in the
+# background. The replay also starts when the site opens (warm), before the page is ever visited.
+FRESH = 600                       # seconds a replay is as fresh as the cached prices behind it
+KEEP = 1800                       # seconds the last replay may still be shown (while a newer one runs) before the page waits again
+_LAST = {}                        # the bots' key -> (time, sims, spy)
+_REPLAY = threading.Lock()        # held while a background replay runs (one at a time, for all visitors)
+_WARM_AT = [0.0]
+
+
+def _bots_key(bots):
+    """The bots as they trade (their forward-test records change after every closed session, so they are not part of it)."""
+    return json.dumps([{**b, "fwd": None, "fwd_prev": None} for b in bots], sort_keys=True, default=str)
+
+
+def remember(bots, sims, spy):
+    """Keep this replay as the last one of these bots (copies, so no page can change it)."""
+    try:
+        _LAST[_bots_key(bots)] = (time.time(), copy.deepcopy(sims), copy.deepcopy(spy))
+        while len(_LAST) > 4:
+            _LAST.pop(min(_LAST, key=lambda k: _LAST[k][0]), None)
+    except Exception:
+        pass
+
+
+def _replay_later(bots=None, delay=0):
+    """Replay the bots in the background and keep the result (bots=None: the saved ones). One replay at a time."""
+    snapshot = copy.deepcopy(bots) if bots is not None else None
+    if not _REPLAY.acquire(blocking=False):
+        return False
+
+    def _go():
+        try:
+            if delay:
+                time.sleep(delay)                 # the page that is opening gets the network first
+            bs = snapshot if snapshot is not None else list_bots()
+            if bs:
+                sims, spy = run_all(bs)
+                remember(bs, sims, spy)
+        except Exception:
+            pass
+        finally:
+            _REPLAY.release()
+    try:
+        threading.Thread(target=_go, name="paper-bots-replay", daemon=True).start()
+    except RuntimeError:
+        _REPLAY.release()
+        return False
+    return True
+
+
+def last_all(bots):
+    """(sims, spy, age in seconds) of the last replay of these bots, or None (then run_all() and remember() it).
+    A replay older than FRESH is still shown at once, and a newer one starts in the background."""
+    try:
+        hit = _LAST.get(_bots_key(bots))
+        if not hit:
+            return None
+        age = time.time() - hit[0]
+        if age > KEEP:
+            return None
+        if age >= FRESH:
+            _replay_later(bots)
+        return copy.deepcopy(hit[1]), copy.deepcopy(hit[2]), age
+    except Exception:
+        return None
+
+
+def warm(delay=3):
+    """Called on every run of the site: starts the background replay of the saved bots when there is none yet or it is old, so
+    the Paper Bots page finds it ready. Nothing happens (and nothing waits) when no replay is due."""
+    now = time.time()
+    if now - _WARM_AT[0] < 60:
+        return
+    _WARM_AT[0] = now
+    if _LAST and now - max(v[0] for v in _LAST.values()) < FRESH:
+        return
+    _replay_later(None, delay)
 
 
 def journal(sim):

@@ -4135,17 +4135,26 @@ def page_paper_bots():
     except PB.StoreError as e:
         bots, err = [], e
 
-    sims, spy = [], None
+    sims, spy, stale = [], None, 0
     if bots:
-        big = any(b["kind"] != "company" for b in bots)
-        with st.spinner(L("Updating the bots with the latest prices" + (" (groups of stocks can take up to a minute)..." if big else "..."),
-                          "جاري تحديث البوتات بآخر الأسعار" + (" (مجموعات الأسهم قد تاخذ لين دقيقة)..." if big else "..."))):
-            sims, spy = PB.run_all(bots)
+        hit = PB.last_all(bots)                    # the last replay of these bots: shown at once, refreshed in the background
+        if hit:
+            sims, spy, stale = hit
+        else:                                      # nothing ready yet (first visit after the site started, or the bots changed)
+            big = any(b["kind"] != "company" for b in bots)
+            with st.spinner(L("Updating the bots with the latest prices" + (" (groups of stocks can take up to a minute)..." if big else "..."),
+                              "جاري تحديث البوتات بآخر الأسعار" + (" (مجموعات الأسهم قد تاخذ لين دقيقة)..." if big else "..."))):
+                sims, spy = PB.run_all(bots)
+            PB.remember(bots, sims, spy)
     if sims and "pb_phase" not in ss:              # the forward tests once a session has been saved, else the simulations
         ss["pb_phase"] = "live" if _saved_sessions(sims) else "sim"
     shown = phase_sims(sims, phase())
     ui.html(hero_html(shown, len(bots)))
     storage_notice(err)
+    if stale >= PB.FRESH:
+        st.caption(L(f"Showing the results from {int(stale // 60)} minutes ago. A newer update is being prepared in the background; reopen the page "
+                     "in a minute to see it.",
+                     f"المعروض نتائج قبل {int(stale // 60)} دقيقة. فيه تحديث أحدث يتجهز بالخلفية، افتح الصفحة بعد دقيقة وتشوفه."))
     if sims:
         ui.safe(phase_switch, sims)
     sel = ui.safe(leaderboard, shown, len(bots), err is None and len(bots) < PB.MAX_BOTS) or []

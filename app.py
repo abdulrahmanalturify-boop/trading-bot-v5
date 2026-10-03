@@ -191,6 +191,11 @@ SECTIONS = [
 # the built-in menu is hidden; the bar below opens its menus on hover and navigates without reloading the site
 pg = st.navigation({label: [P[k] for k in keys] for label, _, keys in SECTIONS}, position="hidden")
 
+try:                                   # the saved paper bots are replayed in the background, so the Paper Bots page opens at once
+    p_paper.PB.warm()
+except Exception:
+    pass
+
 if ss.get("goto"):
     ui.goto(ss.pop("goto"))
 if ss.get("search_miss"):
