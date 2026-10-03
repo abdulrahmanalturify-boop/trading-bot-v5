@@ -269,6 +269,8 @@ CSS = f"""<style>
 .hnrate .mr {{ text-align:center; color:#BCB6C7; font-size:.8rem; margin-top:12px; }}
 .hnrate .mr b {{ color:#fff; direction:ltr; unicode-bidi:isolate; }} .hnrate .mr span {{ color:{_MU}; }}
 .hnrate .mr.ym {{ margin-top:6px; font-size:.72rem; color:{_MU}; }} .hnrate .mr.ym b {{ color:#CCC7D3; }}
+.hnrate .mr.why {{ margin-top:6px; font-size:.76rem; line-height:1.45; }}
+.hnrate .rl.top {{ color:#fff; font-weight:600; }} .hnrate .rl.top i {{ box-shadow:0 0 0 3px rgba(255,255,255,.18), 0 0 10px currentColor; }}
 /* ---------- analysts: the rating card as tall as the tiles + the targets card next to it ---------- */
 .hnang {{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.25fr); gap:16px; align-items:stretch; }}
 @media (max-width: 900px) {{ .hnang {{ grid-template-columns:1fr; }} }}
@@ -1058,10 +1060,8 @@ def counts_mean(counts):
     return sum(w * counts[k] for w, (k, *_) in zip((5, 4, 3, 2, 1), RATING)) / tot if tot else None
 
 
-def rating_label(counts, mean=None):
-    """(en, ar, color) of the consensus: from the mean rating (1-5), or the weighted counts."""
-    if mean is None and counts:
-        mean = counts_mean(counts)
+def mean_band(mean):
+    """(en, ar, color) of an average rating (1 = strong buy .. 5 = sell) on Yahoo's bands (below 1.5 strong buy, 2.5 buy, ...)."""
     if mean is None or not np.isfinite(mean):
         return "—", "—", _MU
     for hi, idx in ((1.5, 4), (2.5, 3), (3.5, 2), (4.5, 1), (9, 0)):
@@ -1069,6 +1069,27 @@ def rating_label(counts, mean=None):
             _, en, ar_, col = RATING[idx]
             return en, ar_, col
     return "—", "—", _MU
+
+
+def rating_top(counts):
+    """Index in RATING of the rating most analysts give; a tie goes to the tied rating nearest their average
+    (then to the one nearest Hold). None without any analysts."""
+    tot = sum(counts.values()) if counts else 0
+    if not tot:
+        return None
+    mean, top = counts_mean(counts), max(counts.get(k, 0) for k, *_ in RATING)
+    tied = [i for i, (k, *_) in enumerate(RATING) if counts.get(k, 0) == top]
+    return min(tied, key=lambda i: (abs((5 - i) - mean), abs(i - 2)))
+
+
+def rating_label(counts, mean=None):
+    """(en, ar, color) of the consensus: the rating the most analysts give (9 of 19 on Hold is a Hold, even when the
+    rest lean to buying and pull the average into the Buy band); the average's band only when there are no counts."""
+    i = rating_top(counts)
+    if i is None:
+        return mean_band(mean)
+    _, en, ar_, col = RATING[i]
+    return en, ar_, col
 
 
 def rating_gauge(counts, label, color):
@@ -1129,8 +1150,9 @@ def analyst_section(sym, price):
         mean_r = counts_mean(counts)
     en, ar_, color = rating_label(counts, mean_r)
     tot = sum(counts.values()) if counts else 0
-    legend = "".join(f'<div class="rl"><i style="background:{col}"></i>{T.esc(L(e_, a_))} <b>{counts[k] / tot * 100:.0f}%</b></div>'
-                     for k, e_, a_, col in RATING) if tot else ""
+    top_i = rating_top(counts)
+    legend = "".join(f'<div class="rl{" top" if i_ == top_i else ""}"><i style="background:{col}"></i>{T.esc(L(e_, a_))} <b>{counts[k] / tot * 100:.0f}%</b></div>'
+                     for i_, (k, e_, a_, col) in enumerate(RATING)) if tot else ""
     when = _today_ny().strftime("%m/%d/%Y")
     if source == "firms":
         sub = L(f"Based on the latest rating of {n} firms (90 days). Updated on {when} ET.",
@@ -1141,8 +1163,18 @@ def analyst_section(sym, price):
         sub = L("Yahoo Finance sent no analyst data for this stock right now; it is tried again on the next view.",
                 "ياهو فاينانس ما أرسل بيانات المحللين لهذا السهم الحين، وتنطلب من جديد مع الفتح القادم.")
     mean_txt = f'<div class="mr">{L("Average rating", "متوسط التقييم")} <b>{mean_r:.2f}</b> / 5 <span>{L("(1 = strong buy, 5 = sell)", "(1 = شراء قوي، 5 = بيع)")}</span></div>' if mean_r else ""
-    if counts and yahoo_mean is not None and rating_label(None, yahoo_mean)[0] != en:
-        ye, ya, _ = rating_label(None, yahoo_mean)
+    if top_i is not None:
+        k_top = RATING[top_i][0]
+        c_top = counts[k_top]
+        why = L(f"The verdict is the rating most analysts give: <b>{c_top}</b> of <b>{tot}</b> ({c_top / tot * 100:.0f}%).",
+                f"التقييم هو التوصية اللي يعطيها أكثر المحللين: <b>{c_top}</b> من <b>{tot}</b> (\u2066{c_top / tot * 100:.0f}%\u2069).")
+        be, ba, _ = mean_band(mean_r)
+        if mean_r and be != en:
+            why += " " + L(f"The average ({mean_r:.2f}) falls in the {be} band because the other analysts lean that way.",
+                           f"والمتوسط (\u2066{mean_r:.2f}\u2069) يقع في نطاق «{ba}» لأن باقي المحللين يميلون له.")
+        mean_txt += f'<div class="mr why">{why}</div>'
+    if counts and yahoo_mean is not None and mean_band(yahoo_mean)[0] != mean_band(mean_r)[0]:
+        ye, ya, _ = mean_band(yahoo_mean)
         yt = L("Yahoo Finance's own average, from another panel of analysts:", "متوسط ياهو فاينانس نفسه، من مجموعة محللين ثانية:")
         mean_txt += f'<div class="mr ym">{T.esc(yt)} <b>{yahoo_mean:.2f}</b> <span>({T.esc(L(ye, ya))})</span></div>'
     card = (f'<div class="hnrate"><div class="t">{L("Analyst Rating", "تقييم المحللين")}</div><div class="s">{T.esc(sub)}</div>'
@@ -1525,4 +1557,4 @@ def page_scanner():
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "17.2"
+BUILD = "17.3"

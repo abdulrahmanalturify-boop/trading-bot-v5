@@ -1,2 +1,2 @@
-A.Alturaifi Pro - version 17.2 (phones: the top bar sits right under the top line and stays while scrolling; no style text spilling onto Paper Bots)
+A.Alturaifi Pro - version 17.3 (analyst rating: the verdict is the rating most analysts give, e.g. 9 of 19 on Hold shows Hold, with the average kept as a note)
 If you can see this file on GitHub, the new version was uploaded correctly.
