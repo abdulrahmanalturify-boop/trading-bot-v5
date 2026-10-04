@@ -6,9 +6,10 @@ so a temporary error doesn't stick for hours.
 import io
 import json
 import os
+import re
 import threading
 import time
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, wait
 from datetime import date, timedelta
 
 import numpy as np
@@ -448,15 +449,42 @@ def trending_stories(k=3):
     return picked
 
 
-_TR_FAIL = {"t": 0.0}
+# ---------------------------------------------------------------- translation (headlines, summaries, company descriptions)
+# Free services that need no key. Every answer is kept for the life of the server and shared by all visitors, so a headline is
+# translated once (the news bot translates the new ones in the background, see newsbot.NewsBot._warm). A failure is never kept:
+# that text is simply tried again on the next view. A service that refuses or does not answer rests a little while the others
+# carry on, instead of the old rule that switched translation off for the whole site for 10 minutes after one bad call.
+_TR_MEMO = {}                    # (target, text) -> translation
+_TR_LOCK = threading.Lock()
+_TR_MAX = 40000
+_TR_REST = {}                    # service -> time it may be asked again
+_TR_SEEN = {"ar": 0.0}           # last time a visitor asked for Arabic (the background warm-up runs only while Arabic is in use)
+_AR_CHARS = re.compile("[؀-ۿ]")
+_LATIN_WORD = re.compile("[a-z]{3,}")        # an English word (tickers and figures alone may come back as they are)
+_UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0 Safari/537.36"}
 
 
 def _gtx(text, target):
     r = requests.get("https://translate.googleapis.com/translate_a/single", timeout=8,
-                     params={"client": "gtx", "sl": "auto", "tl": target, "dt": "t", "q": text},
-                     headers={"User-Agent": "Mozilla/5.0"})
+                     params={"client": "gtx", "sl": "auto", "tl": target, "dt": "t", "q": text}, headers=_UA)
     r.raise_for_status()
     return "".join(seg[0] for seg in r.json()[0] if seg and seg[0])
+
+
+def _dict_ext(text, target):
+    """Google's dictionary-extension endpoint: another door to the same translator, often open when the first is busy."""
+    r = requests.get("https://clients5.google.com/translate_a/t", timeout=8,
+                     params={"client": "dict-chrome-ex", "sl": "auto", "tl": target, "q": text}, headers=_UA)
+    r.raise_for_status()
+    js = r.json()
+    if isinstance(js, dict):                       # the older shape: {"sentences": [{"trans": ...}, ...]}
+        return "".join(x.get("trans", "") for x in js.get("sentences", []))
+    out = js[0] if isinstance(js, list) and js else None
+    while isinstance(out, list) and out:           # [["ترجمة", "en"]] or ["ترجمة"]
+        out = out[0]
+    if not isinstance(out, str):
+        raise Empty("dict-ext")
+    return out
 
 
 def _mymemory(text, target):
@@ -473,74 +501,121 @@ def _deep(text, target):
     return GoogleTranslator(source="auto", target=target).translate(text[:4500])
 
 
+# (name, function, longest text it takes)
+_SERVICES = (("gtx", _gtx, 4000), ("dict", _dict_ext, 1800), ("deep", _deep, 4500), ("mymemory", _mymemory, 480))
+
+
+def _looks_done(src, out, target):
+    """A real translation: not empty, and into Arabic it has Arabic letters whenever the source had English words."""
+    if not out or not out.strip():
+        return False
+    return not (target == "ar" and _LATIN_WORD.search(src) and not _AR_CHARS.search(out))
+
+
 def _translate_one(text, target):
     last = None
-    for fn in (_gtx, _deep, _mymemory):
+    for name, fn, cap in _SERVICES:
+        if len(text) > cap or time.time() < _TR_REST.get(name, 0):
+            continue
         try:
             out = fn(text, target)
-            if out and out.strip():
-                return out
         except Exception as e:
             last = e
+            code = getattr(getattr(e, "response", None), "status_code", None)
+            if code is None or code in (403, 429) or code >= 500:      # refused, overloaded or unreachable: let it rest
+                _TR_REST[name] = time.time() + (120 if code == 429 else 60)
+            continue
+        if _looks_done(text, out, target):
+            return out
+        last = Empty(name)
     raise last or Empty("translate")
+
+
+def _remember(pairs, target):
+    if not pairs:
+        return
+    with _TR_LOCK:
+        if len(_TR_MEMO) + len(pairs) > _TR_MAX:                       # the oldest quarter goes
+            for k in list(_TR_MEMO)[: _TR_MAX // 4]:
+                _TR_MEMO.pop(k, None)
+        for src, out in pairs.items():
+            _TR_MEMO[(target, src)] = out
+
+
+def _all_resting():
+    now = time.time()
+    return all(now < _TR_REST.get(name, 0) for name, *_ in _SERVICES)
+
+
+def _batch(texts, target, deadline):
+    """Several lines in one request (split back by line); the lines that did not come back are tried one by one."""
+    got = {}
+    if len(texts) > 1:
+        try:
+            res = [x.strip() for x in _translate_one("\n".join(texts), target).split("\n")]
+            if len(res) == len(texts):
+                got = {s_: r for s_, r in zip(texts, res) if _looks_done(s_, r, target)}
+        except Exception:
+            pass
+    for t in texts:
+        if t in got:
+            continue
+        if time.time() > deadline or _all_resting():
+            break
+        try:
+            got[t] = _translate_one(t, target)
+        except Exception:
+            pass
+    _remember(got, target)                     # kept even when the page stopped waiting: the next view has it
+    return got
 
 
 def _chunks(texts, limit=1400):
     batch, size = [], 0
-    for i, t in enumerate(texts):
-        t = (t or "").replace("\n", " ").strip()
-        if batch and size + len(t) > limit:
+    for t in texts:
+        if batch and (size + len(t) > limit or len(batch) >= 25):
             yield batch
             batch, size = [], 0
-        batch.append((i, t))
+        batch.append(t)
         size += len(t) + 1
     if batch:
         yield batch
 
 
-@st.cache_data(ttl=86400, show_spinner=False)
-def _translate(texts, target):
+def translate(texts, target="ar", budget=15, workers=4, warm=False):
+    """Translates a list of strings; a string that could not be translated comes back as it was. Never raises.
+    Waits at most `budget` seconds; whatever arrives later is kept for the next view."""
+    texts = list(texts)
+    if target == "ar" and not warm:
+        if not arabic_in_use():                # Arabic is back after a quiet spell: the news bot translates the day's headlines now
+            threading.Thread(target=_warm_news, daemon=True).start()
+        _TR_SEEN["ar"] = time.time()
+    keys = [(t or "").replace("\n", " ").strip() if isinstance(t, str) else "" for t in texts]
+    todo = list(dict.fromkeys(k for k in keys if k and (target, k) not in _TR_MEMO))
+    if todo and not _all_resting():
+        deadline = time.time() + budget
+        ex = ThreadPoolExecutor(max_workers=workers)
+        futs = [ex.submit(_batch, c, target, deadline) for c in _chunks(todo)]
+        wait(futs, timeout=budget + 1)
+        ex.shutdown(wait=False, cancel_futures=True)
     out = list(texts)
-    ok = 0
-
-    def do_batch(batch):
-        joined = "\n".join(t for _, t in batch)
-        try:
-            res = _translate_one(joined, target).split("\n")
-            if len(res) == len(batch):
-                return [(i, r) for (i, _), r in zip(batch, res)]
-        except Exception:
-            pass
-        pairs = []
-        for i, t in batch:
-            try:
-                pairs.append((i, _translate_one(t, target) if t else t))
-            except Exception:
-                pairs.append((i, None))
-        return pairs
-
-    with ThreadPoolExecutor(max_workers=4) as ex:
-        for pairs in ex.map(do_batch, list(_chunks(texts))):
-            for i, r in pairs:
-                if r:
-                    out[i] = r
-                    ok += 1
-    if texts and ok == 0:
-        raise Empty("translate")
+    for i, k in enumerate(keys):
+        hit = _TR_MEMO.get((target, k)) if k else None
+        if hit:
+            out[i] = hit
     return out
 
 
-def translate(texts, target="ar"):
-    """Translates a list of strings (Google gtx -> deep-translator -> MyMemory). Never raises."""
-    import time
-    texts = tuple(texts)
-    if not texts or time.time() - _TR_FAIL["t"] < 600:
-        return list(texts)
+def arabic_in_use(hours=12):
+    return time.time() - _TR_SEEN.get("ar", 0) < hours * 3600
+
+
+def _warm_news():
     try:
-        return _translate(texts, target)
+        import newsbot
+        newsbot.bot(wait=False)._warm()
     except Exception:
-        _TR_FAIL["t"] = time.time()
-        return list(texts)
+        pass
 
 
 def translate_long(text, target="ar"):
@@ -1237,4 +1312,4 @@ def revenues(symbols, limit=100):
     return out
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "17.3"
+BUILD = "17.4"

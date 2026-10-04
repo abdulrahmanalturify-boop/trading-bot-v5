@@ -258,9 +258,9 @@ def _ny_time(ts):
         return ""
 
 
-@st.cache_data(ttl=3600, show_spinner=False)
 def _translate(titles):
-    """{english headline: arabic} (the translator keeps the order; a headline it could not translate keeps its english)."""
+    """{english headline: arabic} (data.translate keeps every answer for all visitors; a headline it could not translate keeps
+    its english and is tried again on the next view)."""
     try:
         out = data.translate(list(titles), "ar")
     except Exception:
@@ -683,7 +683,7 @@ def page_news_intel():
                                 format_func=lambda k: L("All", "الكل") if k == "all" else L(*NI.SENT[k][:2])) or "all"
     sort = c4.segmented_control(L("Sort by", "الترتيب"), ["impact", "setup", "new"], default="impact", key="nie_sort",
                                 format_func=lambda k: {"impact": L("Impact", "الأثر"), "setup": L("Setup", "الفرصة"), "new": L("Latest", "الأحدث")}[k]) or "impact"
-    tr = c5.toggle(L("Translate to Arabic", "ترجمة للعربية"), value=is_ar(), key="nie_tr")
+    tr = c5.toggle(L("Translate to Arabic", "ترجمة للعربية"), value=is_ar(), key=f"nie_tr_{'ar' if is_ar() else 'en'}")   # one per language: switching to Arabic turns it on
     with st.spinner(L("Reading the news and the prices...", "يقرأ الأخبار والأسعار...")):
         items = data.market_news(96)
         now = pd.Timestamp.now(tz="UTC")
@@ -766,4 +766,4 @@ def page_news_intel():
     _detail(a, chg2, sec_chg, titles_ar)
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "17.3"
+BUILD = "17.4"

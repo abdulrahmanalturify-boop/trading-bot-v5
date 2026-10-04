@@ -1,2 +1,2 @@
-A.Alturaifi Pro - version 17.3 (analyst rating: the verdict is the rating most analysts give, e.g. 9 of 19 on Hold shows Hold, with the average kept as a note)
+A.Alturaifi Pro - version 17.4 (news in Arabic: every headline translated once and kept for all visitors, a busy translator no longer switches Arabic off for 10 minutes, the briefing and News Intelligence follow the language)
 If you can see this file on GitHub, the new version was uploaded correctly.

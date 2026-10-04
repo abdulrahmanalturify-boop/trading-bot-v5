@@ -412,7 +412,20 @@ class NewsBot:
                 self.collect()
             except Exception:
                 self.first.set()
+            self._warm()
             time.sleep(INTERVAL)
+
+    def _warm(self):
+        """While visitors use the site in Arabic: the headlines of the last day are translated here, in the background, a few at a
+        time, so the Arabic pages show them at once (each headline is translated once; data.translate keeps the answers)."""
+        try:
+            import data
+            if not data.arabic_in_use():
+                return
+            titles = [it["title"] for it in self.items(24)[:400] if it.get("title")]
+            data.translate(titles, "ar", budget=45, workers=2, warm=True)
+        except Exception:
+            pass
 
     def start(self):
         if self.stopped:
@@ -504,4 +517,4 @@ def headlines(hours=48):
         return []
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "17.3"
+BUILD = "17.4"

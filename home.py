@@ -10,7 +10,7 @@ import theme as T
 import ui
 from i18n import L, is_ar
 
-BUILD = "17.3"
+BUILD = "17.4"
 
 _LINE = "rgba(150,140,250,"
 CSS = f"""
@@ -321,23 +321,19 @@ def _top_news(ar):
         chg = {}
     newsiq.enrich(items, chg)
     top = newsiq.rank(items)[:2]
-    titles = [n["title"] for n in top]
-    if ar:
-        try:
-            tr = data.translate(titles)
-            if tr and tr != titles:
-                titles = tr
-        except Exception:
-            pass
-    return [{"title": t, "link": n.get("link", ""), "source": n.get("source", ""), "time": n.get("time"), "img": n.get("img"),
-             "tickers": list(n.get("tickers") or []), "iq": n["iq"]} for n, t in zip(top, titles)]
+    return [{"title": n["title"], "link": n.get("link", ""), "source": n.get("source", ""), "time": n.get("time"), "img": n.get("img"),
+             "tickers": list(n.get("tickers") or []), "iq": n["iq"]} for n in top]
 
 
 def top_news():
     try:
-        return _top_news(is_ar())
+        items = [dict(n) for n in _top_news(False)]
     except Exception:
         return []
+    if is_ar() and items:
+        for n, t in zip(items, data.translate([n["title"] for n in items], budget=8)):
+            n["title"] = t
+    return items
 
 
 def news_pane(n):
