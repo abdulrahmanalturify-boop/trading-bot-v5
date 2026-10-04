@@ -230,10 +230,18 @@ def _ev_pic(ev):
 
 
 def picture(a):
-    """Every story has a picture: the outlet's photo, else the company's logo, else the kind of event."""
+    """Every story has a picture: the outlet's photo, else a free photo of its topic (newspics), else the company's logo,
+    else the kind of event."""
     img = str(a["n"].get("img") or "")
     if img.startswith("http"):
         return img
+    try:
+        import newspics
+        tp = newspics.topic_photo(newspics.topic_of(a["n"]), a["n"].get("link") or a["n"].get("title"))
+        if tp:
+            return tp["u"]
+    except Exception:
+        pass
     if a["direct"]:
         return data.logo_url(a["direct"][0])
     return _ev_pic(a["event"])
@@ -766,4 +774,4 @@ def page_news_intel():
     _detail(a, chg2, sec_chg, titles_ar)
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "17.4"
+BUILD = "17.5"

@@ -1,2 +1,2 @@
-A.Alturaifi Pro - version 17.4 (news in Arabic: every headline translated once and kept for all visitors, a busy translator no longer switches Arabic off for 10 minutes, the briefing and News Intelligence follow the language)
+A.Alturaifi Pro - version 17.5 (a picture with every headline: the article's own photo found in the background, else a free topic photo from Wikimedia Commons, else the topic card)
 If you can see this file on GitHub, the new version was uploaded correctly.

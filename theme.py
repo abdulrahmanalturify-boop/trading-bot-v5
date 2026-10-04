@@ -1754,6 +1754,33 @@ FX_JS = """<script>
   }
   every(check, 400); check();
 })();
+(function () {                                   // news pictures: a story photo that cannot load gives way to its topic photo
+  var w = window.parent, d = w.document;
+  var VER = '__VER__', KEY = '__alturaifiPicsV';
+  if (w[KEY] === VER) return;
+  if (typeof w[KEY + 'Off'] === 'function') { try { w[KEY + 'Off'](); } catch (e) {} }
+  w[KEY] = VER;
+  var offs = [];
+  w[KEY + 'Off'] = function () { offs.forEach(function (f) { try { f(); } catch (e) {} }); offs = []; };
+  function swap(img) {
+    var alt = img.getAttribute('data-alt');
+    if (!alt) return;
+    img.removeAttribute('data-alt');
+    var c = img.getAttribute('data-altc');
+    if (c && img.parentNode) img.parentNode.setAttribute('title', c);
+    img.src = alt;
+  }
+  function onErr(e) { var t = e.target; if (t && t.tagName === 'IMG' && t.hasAttribute('data-alt')) swap(t); }
+  d.addEventListener('error', onErr, true);
+  offs.push(function () { d.removeEventListener('error', onErr, true); });
+  function sweep() {                               // photos that failed before this ran
+    var l = d.querySelectorAll('.nth img[data-alt]');
+    for (var i = 0; i < l.length; i++) { if (l[i].complete && !l[i].naturalWidth) swap(l[i]); }
+  }
+  sweep();
+  var id = w.setInterval(sweep, 2000);
+  offs.push(function () { w.clearInterval(id); });
+})();
 (function () {                                   // every table: sort by any column, filter the long ones, the column under the pointer lights up
   var w = window.parent, d = w.document;
   var VER = '__VER__', KEY = '__alturaifiTablesV';
@@ -2272,9 +2299,18 @@ def news_thumb(n, big=False):
     lg = f'<span class="nlg">{logo_obj(tick[0], 34 if big else 30)}</span>' if tick else ""
     url = _safe_img(n.get("img"))
     cls = "nth big" if big else "nth"
-    if url:
+    try:                                             # a free photo of the story's topic (newspics): stands in when the story has none
+        import newspics
+        tp = newspics.topic_photo(topic, n.get("link") or n.get("title"), big)
+    except Exception:
+        tp = None
+    if url:                                          # the story's own photo; if it cannot load, the topic photo takes its place
+        alt = f' data-alt="{esc(tp["u"])}" data-altc="{esc(tp["c"])}"' if tp else ""
         return (f'<span class="{cls}" style="--g:{grad}"><img src="{esc(url)}" alt="" loading="lazy" referrerpolicy="no-referrer" '
-                f'data-ic="{ic}">{lg}</span>')
+                f'data-ic="{ic}"{alt}>{lg}</span>')
+    if tp:
+        return (f'<span class="{cls} tp" style="--g:{grad}" title="{esc(tp["c"])}"><img src="{esc(tp["u"])}" alt="" loading="lazy" '
+                f'referrerpolicy="no-referrer" data-ic="{ic}">{lg}</span>')
     return (f'<span class="{cls} fb" style="--g:{grad}"><span class="ms">{ic}</span>'
             f'<em data-en="{esc(lab[0])}" data-ar="{esc(lab[1])}"></em>{lg}</span>')
 
@@ -2588,4 +2624,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "17.4"
+BUILD = "17.5"

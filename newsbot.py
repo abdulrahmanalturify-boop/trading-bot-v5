@@ -412,8 +412,47 @@ class NewsBot:
                 self.collect()
             except Exception:
                 self.first.set()
-            self._warm()
+            self._side()
             time.sleep(INTERVAL)
+
+    def _side(self):
+        """The Arabic titles and the pictures are prepared beside the collector (one such thread at a time), so they never
+        delay the next round of headlines."""
+        t = getattr(self, "_side_t", None)
+        if t is not None and t.is_alive():
+            return
+        def run():
+            self._warm()
+            self._pics()
+        self._side_t = threading.Thread(target=run, daemon=True, name="news-side")
+        self._side_t.start()
+
+    def _pics(self, limit=80, budget=60):
+        """Stories whose feed sent no picture get the photo of their own article page (newspics.find_images), newest first,
+        each story tried at most twice; then the topic photos are looked up if they are missing or a week old."""
+        try:
+            import newspics
+        except Exception:
+            return
+        try:
+            cut = pd.Timestamp.now(tz="UTC") - pd.Timedelta(hours=48)
+            with self.lock:
+                todo = sorted((v for v in self.store.values() if not v.get("img") and v.get("_pic", 0) < 2 and v["time"] >= cut),
+                              key=lambda v: v["time"], reverse=True)[:limit]
+                for v in todo:
+                    v["_pic"] = v.get("_pic", 0) + 1
+            found = newspics.find_images([{"link": v["link"]} for v in todo], budget=budget) if todo else {}
+            if found:
+                with self.lock:
+                    for v in todo:
+                        if not v.get("img") and found.get(v["link"]):
+                            v["img"] = found[v["link"]]
+        except Exception:
+            pass
+        try:
+            newspics.fill(budget=45)
+        except Exception:
+            pass
 
     def _warm(self):
         """While visitors use the site in Arabic: the headlines of the last day are translated here, in the background, a few at a
@@ -517,4 +556,4 @@ def headlines(hours=48):
         return []
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "17.4"
+BUILD = "17.5"
