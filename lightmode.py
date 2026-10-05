@@ -436,7 +436,8 @@ def background_css(url):
     """The same globe picture as the dark look, in light tones (its lightness turned over, its colours kept: a pale lavender
     sky, the globe and the market numbers in dark dots), under a light veil that deepens a little towards the bottom."""
     veil = "linear-gradient(180deg, rgba(246,244,251,.16) 0%, rgba(246,244,251,.26) 45%, rgba(246,244,251,.46) 100%)"
-    keep_white = ".lg, .lgo .ini, .nth.fb .ms, .nth.fb em, .nth img::after"   # white letters on a coloured tile stay white
+    keep_white = (".lg, .lgo .ini, .nth.fb .ms, .nth.fb em, .nth img::after, "        # white letters on a coloured tile stay white
+                  '[data-testid="stTabs"] [role="tab"][data-selected], [data-testid="stTabs"] [role="tab"][data-selected] [role="img"]')
     return (f'<style data-lm="keep">:root {{ color-scheme: light; }} {keep_white} {{ color: white !important; }}'
             f'.stApp::before {{ background: {veil}, url("{url}") 68% 40% / cover no-repeat, #F6F4FB !important; }}'
             f'.stApp::after {{ background: none !important; }}'
@@ -456,4 +457,4 @@ def landing_css():
             '.st-key-langdd button, .st-key-langdd button * { color: #E7E3EB !important; }</style>')
 
 
-BUILD = "18.2"
+BUILD = "18.3"

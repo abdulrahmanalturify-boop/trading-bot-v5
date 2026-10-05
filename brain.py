@@ -369,4 +369,4 @@ def size_mult(sc, min_score, regime_size, dd, dd_half, floor=0.5):
     return s * regime_size * (0.5 if dd >= dd_half / 100 else 1.0)
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "18.2"
+BUILD = "18.3"

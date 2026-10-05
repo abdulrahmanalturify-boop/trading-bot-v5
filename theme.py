@@ -251,6 +251,35 @@ h3 {{ font-weight: 500 !important; letter-spacing: -.01em; color:#fff; }}
 [data-testid="stTabs"] button[role="tab"][aria-selected="true"] {{ color:#fff; }}
 [data-testid="stTabs"] button[role="tab"] p {{ color:inherit; }}
 [data-testid="stTabs"] [data-baseweb="tab-highlight"] {{ background:{ELECTRIC} !important; height:2px; }}
+/* tabs (Streamlit's React Aria tabs): a frosted track; the chosen tab is a lit blue-violet pill that slides over to the tab you
+   press (Streamlit's own selection indicator, grown to the tab's full size); the others light up under the pointer */
+[data-testid="stTabs"] [role="tablist"] {{ gap:4px; padding:5px; margin:0 0 6px; border-radius:14px; scroll-padding-inline:40px;
+  background:linear-gradient(180deg, rgba(30,24,46,.80), rgba(16,12,28,.80)); border:1px solid rgba(157,151,165,.20);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05), 0 10px 26px -16px rgba(0,0,0,.8); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); }}
+[data-testid="stTabs"] [role="tablist"]::after {{ display:none !important; }}
+[data-testid="stTabs"] [role="tab"] {{ height:40px; padding:0 15px; border-radius:10px; color:#B4AEC0; font-weight:500; font-size:.93rem;
+  transition:color .2s, background-color .2s; }}
+[data-testid="stTabs"] [role="tab"] p {{ color:inherit; font-size:inherit; font-weight:inherit; margin:0; }}
+[data-testid="stTabs"] [role="tab"] [role="img"] {{ color:#79B8F4; font-size:1.15em; margin-inline-end:3px; transition:transform .25s cubic-bezier(.3,1.6,.5,1), color .2s; }}
+[data-testid="stTabs"] [role="tab"][data-hovered]:not([data-selected]) {{ color:#fff; background-color:rgba(255,255,255,.06); }}
+[data-testid="stTabs"] [role="tab"][data-hovered] [role="img"] {{ transform:translateY(-1px) scale(1.12); }}
+[data-testid="stTabs"] [role="tab"][data-selected] {{ color:#fff; font-weight:600; }}
+[data-testid="stTabs"] [role="tab"][data-selected] [role="img"] {{ color:#fff; }}
+[data-testid="stTabs"] [role="tab"] .react-aria-SelectionIndicator {{ top:0; bottom:0 !important; height:auto !important; border-radius:10px !important; z-index:-1;
+  transition:translate .32s cubic-bezier(.3,1.3,.5,1), background-color .2s !important; }}
+[data-testid="stTabs"] [role="tab"][data-selected] .react-aria-SelectionIndicator {{ background:linear-gradient(135deg, #3B8BEB, #7B45F0) !important;
+  box-shadow:0 8px 20px -8px rgba(91,124,242,.8), inset 0 1px 0 rgba(255,255,255,.25); }}
+[data-testid="stTabs"] [role="tab"][data-focus-visible] {{ box-shadow:0 0 0 2px rgba(121,184,244,.75); }}
+/* Streamlit's scroll arrows: the end of the track, where the tabs fade out, with the arrow in a small chip */
+[data-testid="stTabsScrollLeft"], [data-testid="stTabsScrollRight"] {{ top:1px !important; height:50px !important; width:52px !important; padding:0 !important;
+  border:0 !important; color:#E7E3EB !important; }}
+[data-testid="stTabsScrollRight"] {{ right:1px !important; justify-content:flex-end !important; padding-right:8px !important; border-radius:0 13px 13px 0 !important;
+  background:linear-gradient(to right, rgba(22,17,36,0), rgba(22,17,36,.97) 48%) !important; }}
+[data-testid="stTabsScrollLeft"] {{ left:1px !important; justify-content:flex-start !important; padding-left:8px !important; border-radius:13px 0 0 13px !important;
+  background:linear-gradient(to left, rgba(22,17,36,0), rgba(22,17,36,.97) 48%) !important; }}
+[data-testid="stTabsScrollLeft"] > *, [data-testid="stTabsScrollRight"] > * {{ display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px;
+  border-radius:9px; background:rgba(44,36,66,.95); box-shadow:inset 0 0 0 1px rgba(157,151,165,.3), 0 4px 12px rgba(0,0,0,.45); transition:box-shadow .2s, color .2s; }}
+[data-testid="stTabsScrollLeft"]:hover > *, [data-testid="stTabsScrollRight"]:hover > * {{ color:#fff; box-shadow:inset 0 0 0 1px rgba(121,184,244,.7), 0 4px 14px rgba(59,139,235,.35); }}
 [data-testid="stVerticalBlockBorderWrapper"] {{ border-radius:16px !important; }}
 /* buttons: the call to action in the logo's blue -> cyan; everything else frosted glass with a hairline */
 .stButton > button, .stDownloadButton > button, .stFormSubmitButton > button, .stLinkButton > a {{ border-radius:8px; font-weight:500;
@@ -434,7 +463,7 @@ a.lnk {{ color:inherit !important; text-decoration:none !important; }} a.lnk:hov
 .stats {{ display:grid; grid-template-columns:repeat(auto-fill,minmax(134px,1fr)); gap:8px; margin:8px 0; }}
 .stat {{ background:{BOX_BG}; border:1px solid {BORDER}; border-radius:10px; padding:8px 11px; }}
 .stat .l {{ color:{MUTED}; font-size:.72rem; }} .stat .v {{ font-weight:600; font-size:.93rem; }}
-.range {{ position:relative; height:6px; background:linear-gradient(90deg,{DOWN},{GOLD},{UP}); border-radius:3px; margin:10px 0 4px; opacity:.85; }}
+.range {{ position:relative; height:6px; background:linear-gradient(90deg,{DOWN},{GOLD},{UP}); border-radius:3px; margin:10px 0 22px; opacity:.85; }}
 .range .dot {{ position:absolute; top:-5px; width:16px; height:16px; border-radius:50%; background:#fff; border:3px solid {BG}; }}
 .plan {{ display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:8px; }}
 .plan .p {{ background:{BOX_BG}; border-radius:12px; padding:10px 13px; border:1px solid {BORDER}; }}
@@ -1388,6 +1417,7 @@ RTL_CSS = f"""
 .stPlotlyChart, .js-plotly-plot, [data-testid="stDataFrame"], .tape, .t-row, [data-testid="stMetricValue"], [data-testid="stMetricDelta"] {{ direction: ltr; }}
 .stPlotlyChart *, .js-plotly-plot *, [data-testid="stPlotlyChart"] *, .hm, .hm * {{ direction: ltr !important; }}
 [data-testid="stMetricValue"] {{ text-align: right; }}
+[data-testid="stTabsScrollLeft"], [data-testid="stTabsScrollRight"] {{ display:none !important; }}   /* they read the scroll the left-to-right way: in Arabic the strip is swiped */
 [class*="st-key-stkact_"] button::before {{ content:"arrow_back"; transform:translate(8px,-50%); }}
 .st-key-stkact_wl_on button::before {{ content:"check_circle"; transform:translate(0,-50%); }}
 @media (hover:hover) {{ .st-key-stkact_wl_on button:hover::before {{ content:"close"; }} }}
@@ -2692,4 +2722,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "18.2"
+BUILD = "18.3"

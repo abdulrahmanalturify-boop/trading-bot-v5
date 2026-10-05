@@ -1,2 +1,2 @@
-A.Alturaifi Pro - version 18.2 (the glossary "?" no longer lands inside icons or tab labels: the stock page's Chart tab shows its candlestick icon again)
+A.Alturaifi Pro - version 18.3 (tabs: a frosted strip where the chosen tab is a lit blue-violet pill that slides to the tab pressed; the 52-week range gets room above them)
 If you can see this file on GitHub, the new version was uploaded correctly.
