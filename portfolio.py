@@ -16,9 +16,9 @@ days), so a stop that was hit at 11:05 fills at 11:05's price even if nobody loo
 positions, dividends, splits, fees, the equity curve) is rebuilt day by day from the fills and the real closing prices.
 Prices are Yahoo's raw prices (not adjusted), the ones the trades really happened at.
 
-Storage: rows of the paper bots' table, so nothing new has to be set up in Supabase. The site owner's portfolio is the row
-strategy = "__portfolio__" (only whoever knows BOTS_PASSWORD opens it); every visitor has a portfolio of their own, the row
-"__portfolio__:<their code>", where the code is a random key kept in their browser (see p_portfolio).
+Storage: rows of the paper bots' table, so nothing new has to be set up in Supabase. Every visitor has a portfolio of their
+own, the row "__portfolio__:<their code>", where the code is a random key kept in their browser (see p_portfolio). The row
+"__portfolio__" is the old shared portfolio of the site owner: no page opens it any more, and it is kept as it was.
 """
 import hashlib
 import copy
@@ -1044,4 +1044,4 @@ def save(state, row_id=None, expect="any", key=KEY):
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "18.7"
+BUILD = "18.8"

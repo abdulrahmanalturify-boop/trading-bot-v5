@@ -3,10 +3,9 @@ p_portfolio.py - Paper Portfolio (top bar): Dashboard, Trade, Analytics, Orders 
 
 A margin account traded by hand with virtual money on real prices (portfolio.py does the bookkeeping): buy, sell, SELL
 SHORT and cover, with market / limit / stop / trailing-stop orders and a stop loss + take profit attached to new positions.
-Every visitor has a portfolio of their own, new on their first visit and kept for them: a random code is written into their
-browser (a cookie for a year) and their account is saved under it, so the next visit opens the same portfolio; the code is
-also shown to them, to open the portfolio on another device. The site owner's portfolio is separate and private: only
-BOTS_PASSWORD opens it (as for the Paper Bots). Visitors never see it, and the owner's orders never touch theirs.
+Everyone has a portfolio of their own, with no password: new on the first visit and kept for them. A random code is written
+into their browser (a cookie for a year) and their account is saved under it, so the next visit opens the same portfolio; the
+code is also shown to them (Account settings), to open the portfolio on another device. Nobody sees anyone else's portfolio.
 """
 import math
 import re
@@ -316,11 +315,6 @@ CSS = f"""<style>
 # =====================================================================
 # the account behind the page
 # =====================================================================
-def _owner():
-    adm = PB.admin_mode()
-    return adm == "open" or (adm == "password" and bool(ss.get("pb_admin")))
-
-
 COOKIE = "alt_pf"                                    # the browser cookie that holds a visitor's portfolio code
 _CODE = re.compile(r"^[A-Za-z0-9_-]{16,64}$")
 
@@ -350,18 +344,13 @@ def _remember(code):
         pass
 
 
-def _mode():
-    """'saved' (the site owner, unlocked, trades their own portfolio) · 'mine' (a visitor's own portfolio)."""
-    return "saved" if _owner() else "mine"
-
-
 def ctx():
-    """The account of this page view: its open orders checked against the real prices, then rebuilt day by day."""
-    mode = _mode()
-    code = _vid() if mode == "mine" else None
-    key = PF.KEY if mode == "saved" else PF.visitor_key(code)
-    if mode == "mine":
-        _remember(code)
+    """The account of this page view (this visitor's own portfolio): its open orders checked against the real prices, then
+    rebuilt day by day."""
+    mode = "mine"
+    code = _vid()
+    key = PF.visitor_key(code)
+    _remember(code)
     mkt = PF.Market()
     err, row = None, None
     try:
@@ -381,7 +370,7 @@ def ctx():
     # fills and expiries are kept at once; a mere "checked up to" mark (and a trailing stop's high) at most once an hour,
     # since they are found again from the bars anyway
     stale = (PF.utcnow() - PF.parse(state.get("ck_saved") or "2000-01-01T00:00:00Z")).total_seconds() > 3600
-    if err is None and (mark() != before or (moved and stale)) and (row or mode == "saved"):
+    if err is None and (mark() != before or (moved and stale)) and row:
         try:
             state["ck_saved"] = PF.iso(PF.utcnow())
             PF.save(state, row, expect=rev0, key=key)
@@ -390,14 +379,13 @@ def ctx():
             pass
     view = PF.rebuild(state, mkt)
     acct = PF.account(view, state["settings"])
-    return SimpleNamespace(state=state, row=row, mode=mode, key=key, code=code, can_trade=err is None or mode == "mine", mkt=mkt,
+    return SimpleNamespace(state=state, row=row, mode=mode, key=key, code=code, can_trade=True, mkt=mkt,
                            view=view, acct=acct, err=err, rev=rev0)
 
 
 def commit(c, flash=None):
-    """Keeps a change (this visitor's portfolio or the owner's, in Supabase; this visit's copy while the store is down) and
-    reloads the page. If the portfolio changed meanwhile (another tab saved a fill first), nothing is overwritten: the page
-    reloads with the new copy."""
+    """Keeps a change (this visitor's portfolio in Supabase; this visit's copy while the store is down) and reloads the page.
+    If the portfolio changed meanwhile (another tab saved a fill first), nothing is overwritten: the page reloads with the new copy."""
     if c.err is not None:
         ss["pf_practice"] = c.state
     else:
@@ -502,9 +490,6 @@ def _spark(eq, w=520, h=120):
 def mode_badge(c):
     if c.err is not None:
         return f'<span class="pfmode prac">{T.icon("science")}{L("This visit only (not saved)", "لهالزيارة فقط (ما ينحفظ)")}</span>'
-    if c.mode == "saved":
-        lab = T.esc(L("Owner's portfolio", "محفظة المالك"))
-        return f'<span class="pfmode saved">{T.icon("admin_panel_settings")}{lab}</span>'
     return f'<span class="pfmode mine">{T.icon("person")}{L("Your own portfolio", "محفظتك الخاصة")}</span>'
 
 
@@ -556,7 +541,7 @@ def empty(ic, title, text):
 
 
 def access_bar(c):
-    """Whose portfolio this is: the visitor's own (with the owner's lock tucked away) or the owner's (with Lock)."""
+    """Whose portfolio this is: the visitor's own (no password)."""
     if c.err is not None:
         st.warning(L("Your portfolio can't be reached right now (Supabase). You can keep trading; what you do in this visit isn't saved.",
                      "ما نقدر نوصل لمحفظتك الحين (Supabase). تقدر تكمل تداول، بس اللي تسويه بهالزيارة ما ينحفظ."), icon=":material/database:")
@@ -566,32 +551,11 @@ def access_bar(c):
                      "وضع التجربة: المحافظ محفوظة مؤقتاً وتنحذف إذا أعاد الموقع التشغيل. اربط Supabase (مثل البوتات الافتراضية) عشان تنحفظ بشكل دائم."),
                    icon=":material/info:")
     with st.container(key="pfbar"):
-        a, b = st.columns([1.6, 1], vertical_alignment="center")
-        with a:
-            if c.mode == "saved":
-                txt = L("You are trading the site owner's portfolio. Every order is kept, and visitors never see it.",
-                        "أنت تتداول بمحفظة المالك. كل أمر ينحفظ، والزوار ما يشوفونها.")
-                st.markdown(f'<div class="pfinfo">{T.icon("verified_user")}<div>{T.esc(txt)}</div></div>', unsafe_allow_html=True)
-            else:
-                txt = L("Your own portfolio: it starts with $100,000 of virtual money, only you see it, and it is kept for you in this "
-                        "browser. To open it on another device, use your portfolio code (Account settings).",
-                        "محفظتك الخاصة: تبدأ بـ 100,000$ افتراضية، ما يشوفها غيرك، وتنحفظ لك في هالمتصفح. "
-                        "عشان تفتحها من جهاز ثاني استخدم رمز محفظتك (إعدادات الحساب).")
-                st.markdown(f'<div class="pfinfo">{T.icon("person")}<div>{T.esc(txt)}</div></div>', unsafe_allow_html=True)
-        with b:
-            if c.mode == "saved":
-                if PB.admin_mode() == "password" and st.button(L("Lock (back to my visitor portfolio)", "قفل (ارجع لمحفظة الزائر)"),
-                                                               icon=":material/lock:", key="pf_lock", width="stretch"):
-                    ss["pb_admin"] = False
-                    st.rerun()
-            elif PB.admin_mode() == "password":
-                with st.popover(L("Site owner", "مالك الموقع"), icon=":material/admin_panel_settings:", width="stretch"):
-                    st.text_input(L("Password", "كلمة المرور"), type="password", key="pf_pw")
-                    if st.button(L("Open the owner's portfolio", "افتح محفظة المالك"), icon=":material/lock_open:", key="pf_unlock", width="stretch"):
-                        if PB.check_password(ss.get("pf_pw")):
-                            ss["pb_admin"] = True
-                            st.rerun()
-                        st.error(L("Wrong password.", "كلمة المرور غلط."))
+        txt = L("Your own portfolio: it starts with $100,000 of virtual money, only you see it, and it is kept for you in this "
+                "browser. To open it on another device, use your portfolio code (Account settings).",
+                "محفظتك الخاصة: تبدأ بـ 100,000$ افتراضية، ما يشوفها غيرك، وتنحفظ لك في هالمتصفح. "
+                "عشان تفتحها من جهاز ثاني استخدم رمز محفظتك (إعدادات الحساب).")
+        st.markdown(f'<div class="pfinfo">{T.icon("person")}<div>{T.esc(txt)}</div></div>', unsafe_allow_html=True)
 
 
 def code_box(c):
@@ -1493,10 +1457,6 @@ def ticket(c, sym, q, inf, held):
                     commit(c, _done(o))
                 except PF.OrderError as e:
                     st.error(_err(e))
-        else:
-            msg = T.esc(L("The owner's portfolio can't be reached right now, so it can't be traded. Try again in a moment.",
-                          "محفظة المالك ما نقدر نوصل لها الحين، فما يمكن التداول فيها. جرّب بعد شوي."))
-            ui.html(f'<div class="pfinfo">{T.icon("lock")}<div>{msg}</div></div>')
         if not pv or not pv.get("open"):
             ui.html(f'<div class="pfinfo">{T.icon("schedule")}<div>{T.esc(L("The market is closed: market orders fill at the next open, limit and stop orders when their price is reached during the session.", "السوق مسكّر: أوامر السوق تتنفذ مع الافتتاح القادم، والمحددة والوقف لما يوصل السعر لها خلال الجلسة."))}</div></div>')
     return spec, pv
@@ -1848,4 +1808,4 @@ def page_history():
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "18.7"
+BUILD = "18.8"
