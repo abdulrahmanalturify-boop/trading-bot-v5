@@ -1,2 +1,2 @@
-A.Alturaifi Pro - version 18.5 (paper portfolio: every visitor has their own, new on the first visit and kept in their browser with a portfolio code; the owner's is private behind BOTS_PASSWORD)
+A.Alturaifi Pro - version 18.6 (paper portfolio: health score with next steps, holdings heat map, trend lines, P&L calendar, 13 achievements, trade journal notes)
 If you can see this file on GitHub, the new version was uploaded correctly.

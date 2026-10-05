@@ -1044,4 +1044,4 @@ def save(state, row_id=None, expect="any", key=KEY):
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "18.5"
+BUILD = "18.6"

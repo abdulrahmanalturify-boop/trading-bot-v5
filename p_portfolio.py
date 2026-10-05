@@ -115,6 +115,93 @@ CSS = f"""<style>
 .pfk .bar {{ height:6px; border-radius:6px; background:rgba(157,151,165,.18); margin-top:9px; overflow:hidden; direction:ltr; }}
 .pfk .bar i {{ display:block; height:100%; border-radius:6px; }}
 
+/* ---------- portfolio health: the score ring, its five factors, the next steps ---------- */
+.pfhs {{ display:grid; grid-template-columns:230px minmax(0,1fr) minmax(0,1.1fr); gap:14px; margin:4px 0 14px; }}
+@media (max-width: 1100px) {{ .pfhs {{ grid-template-columns:210px minmax(0,1fr); }} .pfhs .tips {{ grid-column:1 / -1; }} }}
+@media (max-width: 640px) {{ .pfhs {{ grid-template-columns:1fr; }} }}
+.pfhs > div {{ position:relative; overflow:hidden; background:{T.BOX_BG}; border:1px solid {_BD}; border-radius:18px; padding:16px; }}
+.pfhs .sc {{ display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center;
+  background:radial-gradient(120% 90% at 50% 0%, var(--hg, rgba(45,182,235,.16)), transparent 70%), {T.BOX_BG}; }}
+.pfhs .ring {{ position:relative; width:150px; height:150px; }}
+.pfhs .ring svg {{ width:100%; height:100%; transform:rotate(-90deg); overflow:visible; }}
+.pfhs .ring .tr {{ fill:none; stroke:rgba(157,151,165,.16); stroke-width:11; }}
+.pfhs .ring .vl {{ fill:none; stroke-width:11; stroke-linecap:round; animation:pfring 1.2s cubic-bezier(.2,.8,.2,1) both;
+  filter:drop-shadow(0 0 8px var(--hc, rgba(45,182,235,.55))); }}
+@keyframes pfring {{ from {{ stroke-dashoffset:var(--c0); }} }}
+.pfhs .ring .num {{ position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }}
+.pfhs .ring .num b {{ font-size:2.6rem; font-weight:800; color:#fff; line-height:1; letter-spacing:-.03em; }}
+.pfhs .ring .num span {{ color:{_MU}; font-size:.75rem; margin-top:3px; }}
+.pfhs .gr {{ margin-top:10px; display:inline-flex; align-items:center; gap:8px; font-weight:700; color:#fff; font-size:.95rem; }}
+.pfhs .gr i {{ font-style:normal; border-radius:8px; padding:2px 9px; font-size:.82rem; color:#0E0918; background:var(--hc2, #2DB6EB); }}
+.pfhs .cap {{ color:{_MU}; font-size:.74rem; margin-top:6px; line-height:1.45; }}
+.pfhs .hd {{ display:flex; align-items:center; gap:8px; color:#fff; font-weight:700; font-size:.92rem; margin-bottom:10px; }}
+.pfhs .hd .ms {{ color:{_C}; }}
+.pfhs .f {{ padding:7px 0; border-top:1px solid rgba(44,39,56,.7); }} .pfhs .f:first-of-type {{ border-top:0; }}
+.pfhs .f .t {{ display:flex; align-items:center; gap:8px; font-size:.84rem; color:#E7E3EB; font-weight:600; }}
+.pfhs .f .t .ms {{ font-size:1.05rem; color:{_MU}; }} .pfhs .f .t b {{ margin-inline-start:auto; color:#fff; unicode-bidi:isolate; }}
+.pfhs .f .t b.na {{ color:{_MU}; font-weight:500; }}
+.pfhs .f .bar {{ height:6px; border-radius:6px; background:rgba(157,151,165,.16); margin:6px 0 4px; overflow:hidden; direction:ltr; }}
+.pfhs .f .bar i {{ display:block; height:100%; border-radius:6px; animation:pfgrow 1s cubic-bezier(.2,.8,.2,1) both; }}
+@keyframes pfgrow {{ from {{ width:0; }} }}
+.pfhs .f .d {{ color:{_MU}; font-size:.74rem; }}
+.pfhs .tip {{ display:flex; gap:10px; align-items:flex-start; border-radius:12px; padding:10px 12px; margin-top:8px; font-size:.84rem; line-height:1.5;
+  color:#E2DDE8; border:1px solid; }}
+.pfhs .tip .ms {{ font-size:1.15rem; margin-top:1px; }}
+.pfhs .tip.warn {{ background:rgba(245,185,74,.08); border-color:rgba(245,185,74,.32); }} .pfhs .tip.warn .ms {{ color:#F5B94A; }}
+.pfhs .tip.info {{ background:rgba(59,139,235,.08); border-color:rgba(121,184,244,.3); }} .pfhs .tip.info .ms {{ color:#79B8F4; }}
+.pfhs .tip.good {{ background:rgba(34,197,94,.08); border-color:rgba(74,222,128,.32); }} .pfhs .tip.good .ms {{ color:#4ADE80; }}
+.pfhs .tip p {{ margin:0; }}
+.memo {{ display:flex; align-items:flex-start; gap:6px; margin-top:4px; color:#CFC3F5; font-size:.76rem; font-style:italic; line-height:1.4; }}
+.memo .ms {{ font-size:.95rem; color:#A78BFA; font-style:normal; }}
+.pfhs .bdg {{ margin-top:12px; padding-top:10px; border-top:1px solid rgba(44,39,56,.7); display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+  color:{_MU}; font-size:.78rem; }}
+.pfhs .bdg .row {{ display:flex; gap:5px; flex-wrap:wrap; }}
+.pfhs .bdg .b {{ width:26px; height:26px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:.9rem;
+  background:rgba(157,151,165,.12); color:#5E586A; border:1px solid rgba(157,151,165,.18); }}
+.pfhs .bdg .b.on {{ background:linear-gradient(135deg,#F5B94A,#7B45F0); color:#fff; border-color:transparent; box-shadow:0 0 10px rgba(245,185,74,.35); }}
+.pfhs .bdg b {{ color:#fff; }}
+/* ---------- achievements ---------- */
+.pfach .top {{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin:2px 0 12px; color:{_MU}; font-size:.85rem; }}
+.pfach .top b {{ color:#fff; font-size:1.1rem; }}
+.pfach .top .tb {{ flex:1; min-width:160px; height:8px; border-radius:8px; background:rgba(157,151,165,.16); overflow:hidden; direction:ltr; }}
+.pfach .top .tb i {{ display:block; height:100%; background:linear-gradient(90deg,#F5B94A,#A78BFA,#2DB6EB); border-radius:8px; }}
+.pfach .gr {{ display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:10px; }}
+.pfach .a {{ position:relative; overflow:hidden; background:{T.BOX_BG}; border:1px solid {_BD}; border-radius:16px; padding:14px; transition:transform .18s, border-color .18s; }}
+.pfach .a:hover {{ transform:translateY(-2px); }}
+.pfach .a .md {{ width:46px; height:46px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.45rem;
+  background:rgba(157,151,165,.10); color:#6E6879; border:1px dashed rgba(157,151,165,.3); }}
+.pfach .a.on {{ border-color:rgba(245,185,74,.35); background:radial-gradient(120% 90% at 0% 0%, rgba(245,185,74,.12), transparent 60%), {T.BOX_BG}; }}
+.pfach .a.on .md {{ background:conic-gradient(from 200deg,#F5B94A,#A78BFA,#2DB6EB,#F5B94A); color:#fff; border:0;
+  box-shadow:0 0 0 3px rgba(18,14,30,.9) inset, 0 6px 18px rgba(245,185,74,.28); }}
+.pfach .a.on::after {{ content:"verified"; font-family:'Material Symbols Rounded'; position:absolute; top:10px; inset-inline-end:12px; color:#F5B94A; font-size:1.1rem; }}
+.pfach .a .t {{ color:#fff; font-weight:700; font-size:.9rem; margin-top:10px; }}
+.pfach .a:not(.on) .t {{ color:#CFC8DA; }}
+.pfach .a .d {{ color:{_MU}; font-size:.75rem; margin-top:3px; line-height:1.4; min-height:2.1em; }}
+.pfach .a .pb {{ height:5px; border-radius:5px; background:rgba(157,151,165,.16); margin-top:9px; overflow:hidden; direction:ltr; }}
+.pfach .a .pb i {{ display:block; height:100%; border-radius:5px; background:linear-gradient(90deg,{_A},{_V}); }}
+.pfach .a.on .pb i {{ background:linear-gradient(90deg,#F5B94A,#4ADE80); }}
+.pfach .a .pt {{ color:{_MU}; font-size:.7rem; margin-top:4px; direction:ltr; unicode-bidi:isolate; text-align:end; }}
+/* ---------- the P&L calendar ---------- */
+.pfcal {{ display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:12px; margin:4px 0 12px; }}
+.pfcal .m {{ background:{T.BOX_BG}; border:1px solid {_BD}; border-radius:16px; padding:12px; }}
+.pfcal .mh {{ display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px; }}
+.pfcal .mh b {{ color:#fff; font-size:.92rem; }} .pfcal .mh span {{ font-weight:700; font-size:.85rem; direction:ltr; unicode-bidi:isolate; }}
+.pfcal .ms2 {{ color:{_MU}; font-size:.72rem; margin:-4px 0 8px; }}
+.pfcal .g {{ display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:4px; }}
+.pfcal .wd {{ color:{_MU}; font-size:.66rem; text-align:center; font-weight:600; }}
+.pfcal .c {{ border-radius:8px; min-height:42px; padding:3px 4px; display:flex; flex-direction:column; justify-content:space-between;
+  background:rgba(157,151,165,.07); border:1px solid rgba(157,151,165,.08); }}
+.pfcal .c i {{ font-style:normal; color:{_MU}; font-size:.62rem; }}
+.pfcal .c em {{ font-style:normal; font-weight:700; font-size:.68rem; color:#fff; text-align:center; white-space:nowrap; direction:ltr; unicode-bidi:isolate; }}
+.pfcal .c.x {{ background:transparent; border-color:transparent; }}
+.pfcal .c.h {{ background:rgba(157,151,165,.04); }}
+.pflg {{ display:flex; gap:6px; align-items:center; color:{_MU}; font-size:.72rem; margin-top:2px; }}
+.pflg span {{ width:14px; height:10px; border-radius:3px; display:inline-block; }}
+/* ---------- holdings map ---------- */
+.pfmap .hmwrap {{ border-radius:18px; }}
+.pfmapcap {{ display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; color:{_MU}; font-size:.78rem; margin:6px 2px 12px; }}
+.spk {{ display:block; width:96px; height:28px; direction:ltr; }}
+
 /* ---------- positions ---------- */
 .pfpos {{ background:{T.BOX_BG}; border:1px solid {_BD}; border-radius:18px; overflow:hidden; margin:2px 0 10px; }}
 .pfpos .hd {{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:12px 16px; border-bottom:1px solid {_BD}; flex-wrap:wrap; }}
@@ -551,7 +638,7 @@ def positions_html(c):
         lg = {}
     head = [L("Symbol", "الرمز"), L("Side", "الاتجاه"), L("Shares", "الأسهم"), L("Avg cost", "متوسط التكلفة"), L("Price", "السعر"),
             L("Market value", "القيمة السوقية"), L("Unrealized P&L", "الربح غير المحقق"), L("Today", "اليوم"), L("Weight", "الوزن"),
-            L("Protection", "الحماية"), L("Held", "المدة")]
+            L("Trend", "الاتجاه"), L("Protection", "الحماية"), L("Held", "المدة")]
     num = {2, 3, 4, 5, 6, 7}
     th = "".join(f'<th class="{"r" if i in num else ""}">{T.esc(h)}</th>' for i, h in enumerate(head))
     rows = []
@@ -573,7 +660,7 @@ def positions_html(c):
             f'<td class="r"><span class="n {cls_u}">{_m(p["upnl"], 2, True)}</span><span class="sub n {cls_u}">{_p(p["upnl_pct"])}</span>{extra}</td>'
             f'<td class="r"><span class="n {cls_d}">{_m(p["day_pnl"], 0, True)}</span></td>'
             f'<td><span class="wb{" s" if sd == "short" else ""}"><i style="width:{min(p["weight"], 100):.0f}%"></i></span><span class="n">{p["weight"]:.1f}%</span></td>'
-            f'<td>{_protection(c, p["sym"], sd)}</td><td>{T.esc(held)}</td></tr>')
+            f'<td>{_mini(_trend(c, p["sym"]))}</td><td>{_protection(c, p["sym"], sd)}</td><td>{T.esc(held)}</td></tr>')
     n_l = sum(1 for p in pos if p["qty"] > 0)
     n_s = len(pos) - n_l
     u = v["unrealized"]
@@ -599,10 +686,11 @@ def order_card(o):
     when = _ago(o.get("filled_at") or o["placed"])
     fill = f' · {L("at", "بسعر")} {_bdi(_m(o["fill_px"]))}' if o.get("fill_px") else ""
     note = f' · {T.esc(L(*NOTE[o["note"]]))}' if o.get("note") in NOTE else ""
+    memo = f'<div class="memo">{T.icon("edit_note")}{T.esc(o["note_user"])}</div>' if o.get("note_user") else ""
     qn = _bdi(f"{int(o['qty']):,}")
     return (f'<div class="pfo"><div class="ic {k}">{T.icon(ic)}</div><div class="tx"><div class="t1">{T.esc(lab)} {qn} '
             f'<b>{T.esc(o["sym"])}</b> {T.badge(L(st_en, st_ar), st_k)}</div>'
-            f'<div class="t2">{_otext(o)}{extra}{fill}{note} · {T.esc(when)}</div></div></div>')
+            f'<div class="t2">{_otext(o)}{extra}{fill}{note} · {T.esc(when)}</div>{memo}</div></div>')
 
 
 def open_orders(c, sym=None, key="pfo", limit=12):
@@ -625,14 +713,17 @@ def activity_html(c, n=8):
     fills = sorted(c.state["fills"], key=lambda f: (f["time"], f["id"]), reverse=True)[:n]
     if not fills:
         return empty("history", L("No trades yet", "ما فيه صفقات للحين"), L("Your fills will show here.", "تنفيذات أوامرك بتظهر هنا."))
+    memo = {o["id"]: o.get("note_user") for o in c.state["orders"] if o.get("note_user")}
     out = []
     for f in fills:
         lab, k, _ = _side(f["side"])
         cls = "dn" if f["side"] == "sell" else "sh" if f["side"] == "short" else ""
         qn = _bdi(f"{int(f['qty']):,}")
+        m_ = memo.get(f.get("order"))
+        mh = f'<div class="memo">{T.icon("edit_note")}{T.esc(m_)}</div>' if m_ else ""
         out.append(f'<div class="it {cls}"><div class="a">{T.esc(lab)} {qn} <b>{T.esc(f["sym"])}</b> '
                    f'{L("at", "بسعر")} {_bdi(_m(f["px"]))} · {_bdi(_m(f["qty"] * f["px"], 0))}</div>'
-                   f'<div class="w">{T.esc(_when(f["time"]))} · {T.esc(_ago(f["time"]))}</div></div>')
+                   f'<div class="w">{T.esc(_when(f["time"]))} · {T.esc(_ago(f["time"]))}</div>{mh}</div>')
     return f'<div class="pfact">{"".join(out)}</div>'
 
 
@@ -802,6 +893,8 @@ def page_dashboard():
         ("inventory_2", L("Positions", "المراكز"), f"{len(v['positions'])}",
          f'{L("Long", "شراء")} <b>{n_l}</b> · {L("Short", "مكشوف")} <b>{n_s}</b> · {L("orders", "أوامر")} <b>{n_open}</b>', None, None),
     ]))
+    ui.sec("health_and_safety", "Portfolio health", "صحة المحفظة")
+    ui.html(health_html(health_of(c, st_), badges_of(c, st_)))
     ui.sec("monitoring", "Performance", "الأداء")
     if len(v["curve"]) >= 2:
         rng = st.segmented_control(L("Range", "المدة"), ["1m", "3m", "ytd", "1y", "all"], default="all", key="pf_rng", label_visibility="collapsed",
@@ -817,13 +910,12 @@ def page_dashboard():
     if v["positions"] and c.can_trade:
         quick_actions(c)
     if v["positions"]:
+        ui.sec("grid_view", "Holdings map", "خريطة المراكز")
+        holdings_map(c)
         g1, g2 = st.columns([1, 1])
         with g1:
-            fig = alloc_fig(c)
-            if fig:
-                ui.chart(fig, key="pf_alloc")
-        with g2:
             ui.chart(exposure_fig(c), key="pf_expo")
+        with g2:
             fig = sector_fig(c)
             if fig:
                 ui.chart(fig, key="pf_sect")
@@ -837,6 +929,188 @@ def page_dashboard():
     if c.can_trade:
         settings_box(c)
     ui.foot()
+
+
+def health_html(h, bdg=None):
+    """The health card: the score ring (it fills up as the page opens), the five factors with a bar each, the next steps, and
+    a strip of the achievements (lit when earned)."""
+    sc = h["score"]
+    col = (lambda x: T.POS_FG if x >= 75 else "#2DB6EB" if x >= 55 else T.GOLD if x >= 40 else T.NEG_FG)
+    r, circ = 52, 2 * math.pi * 52
+    if sc is None:
+        ring_c, glow, val, num = "#9D97A5", "rgba(157,151,165,.18)", 0.0, "—"
+        gr = f'<div class="gr">{T.esc(L("Not rated yet", "بدون تقييم للحين"))}</div>'
+    else:
+        ring_c = col(sc)
+        glow = C.rgba(ring_c, 0.22) if ring_c.startswith("#") else "rgba(45,182,235,.2)"
+        val, num = sc / 100, f"{sc}"
+        gr = f'<div class="gr"><i>{T.esc(h["grade"])}</i>{T.esc(L(*h["name"]))}</div>'
+    off = circ * (1 - val)
+    ring = (f'<div class="ring"><svg viewBox="0 0 120 120"><defs><linearGradient id="pfhg" x1="0" y1="0" x2="1" y2="1">'
+            f'<stop offset="0" stop-color="{ring_c}"/><stop offset="1" stop-color="#7B45F0"/></linearGradient></defs>'
+            f'<circle class="tr" cx="60" cy="60" r="{r}"/>'
+            f'<circle class="vl" cx="60" cy="60" r="{r}" stroke="url(#pfhg)" stroke-dasharray="{circ:.1f}" stroke-dashoffset="{off:.1f}" '
+            f'style="--c0:{circ:.1f}"/></svg><div class="num"><b>{num}</b><span>/ 100</span></div></div>')
+    cap = L("Diversification, concentration, stops, risk and the result against the market, scored together.",
+            "التنويع والتركيز والوقف والمخاطرة والأداء مقابل السوق، في تقييم واحد.")
+    left = (f'<div class="sc" style="--hg:{glow};--hc:{glow};--hc2:{ring_c}">{ring}{gr}<div class="cap">{T.esc(cap)}</div></div>')
+    rows = []
+    for f in h["factors"]:
+        v = f["score"]
+        bar = (f'<div class="bar"><i style="width:{max(v, 3):.0f}%;background:linear-gradient(90deg,{col(v)},{C.rgba(col(v), .55) if col(v).startswith("#") else col(v)})"></i></div>'
+               if v is not None else '<div class="bar"></div>')
+        b = f'<b>{v:.0f}</b>' if v is not None else f'<b class="na">{T.esc(L("n/a", "—"))}</b>'
+        rows.append(f'<div class="f"><div class="t">{T.icon(f["icon"])}{T.esc(L(*f["name"]))}{b}</div>{bar}'
+                    f'<div class="d">{T.esc(L(*f["detail"]))}</div></div>')
+    mid = f'<div><div class="hd">{T.icon("analytics")}{T.esc(L("What makes the score", "مكونات التقييم"))}</div>{"".join(rows)}</div>'
+    tips = "".join(f'<div class="tip {t["kind"]}">{T.icon(t["icon"])}<p>{T.esc(L(*t["text"]))}</p></div>' for t in h["tips"])
+    strip = ""
+    if bdg:
+        n_on = sum(1 for b in bdg if b["earned"])
+        dots = "".join(f'<span class="b{" on" if b["earned"] else ""}" title="{T.esc(L(*b["name"]))}">{T.icon(b["icon"])}</span>' for b in bdg)
+        strip = (f'<div class="bdg"><span>{T.esc(L("Achievements", "الإنجازات"))} <b>{n_on}</b> / {len(bdg)}</span><div class="row">{dots}</div>'
+                 f'<span>{T.esc(L("all of them on the Analytics page", "كلها في صفحة التحليلات"))}</span></div>')
+    right = f'<div class="tips"><div class="hd">{T.icon("tips_and_updates")}{T.esc(L("Next steps", "الخطوات الجاية"))}</div>{tips}{strip}</div>'
+    return f'<div class="pfhs">{left}{mid}{right}</div>'
+
+
+def health_of(c, stats):
+    import pfinsight as PI
+    return PI.health(c.view, c.acct, stats, c.state["orders"], _sector, sec_name=sector_name)
+
+
+def badges_of(c, stats):
+    import pfinsight as PI
+    return PI.badges(c.view, stats, c.state, _sector)
+
+
+def achievements_html(bdg):
+    """The achievements wall: earned medals lit (gold), the others with how far along they are."""
+    n_on = sum(1 for b in bdg if b["earned"])
+    pct = n_on / max(len(bdg), 1) * 100
+    tiles = []
+    for b in sorted(bdg, key=lambda b: (not b["earned"], -b["prog"])):
+        tiles.append(f'<div class="a{" on" if b["earned"] else ""}"><div class="md">{T.icon(b["icon"] if b["earned"] else "lock")}</div>'
+                     f'<div class="t">{T.esc(L(*b["name"]))}</div><div class="d">{T.esc(L(*b["desc"]))}</div>'
+                     f'<div class="pb"><i style="width:{b["prog"] * 100:.0f}%"></i></div><div class="pt">{T.esc(L(*b["txt"]))}</div></div>')
+    head = (f'<div class="top">{T.icon("military_tech")}<span><b>{n_on}</b> / {len(bdg)} {T.esc(L("earned", "محققة"))}</span>'
+            f'<div class="tb"><i style="width:{pct:.0f}%"></i></div></div>')
+    return f'<div class="pfach">{head}<div class="gr">{"".join(tiles)}</div></div>'
+
+
+def calendar_html(c, n_months=3):
+    """The P&L calendar: the last months, one card each, a cell per session coloured by the day's profit or loss."""
+    import calendar as _cal
+    import pfinsight as PI
+    d = PI.pnl_days(c.view["curve"], c.state["start_cash"])
+    if d.empty:
+        return None
+    first_d, last_d = d.index.min().date(), d.index.max().date()
+    mx = float(d.abs().max()) or 1.0
+    wds = [L("Mon", "إثنين"), L("Tue", "ثلاثاء"), L("Wed", "أربعاء"), L("Thu", "خميس"), L("Fri", "جمعة")]
+    months_en = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+    cards = []
+    for y, m in sorted({(t.year, t.month) for t in d.index})[-n_months:]:
+        sub = d[(d.index.year == y) & (d.index.month == m)]
+        by = {t.date(): float(v) for t, v in sub.items()}
+        tot = float(sub.sum())
+        up, dn = int((sub > 0).sum()), int((sub < 0).sum())
+        cells = [f'<div class="wd">{T.esc(w)}</div>' for w in wds]
+        start = date(y, m, 1)
+        start -= timedelta(days=start.weekday())                   # the Monday of the first week
+        end = date(y, m, _cal.monthrange(y, m)[1])
+        day = start
+        while day <= end:
+            if day.weekday() < 5:
+                if day.month != m:
+                    cells.append('<div class="c x"></div>')
+                elif day in by:
+                    v = by[day]
+                    a = 0.16 + 0.6 * min(abs(v) / mx, 1.0)
+                    bg = f"rgba(34,197,94,{a:.2f})" if v > 0 else f"rgba(239,68,68,{a:.2f})" if v < 0 else "rgba(157,151,165,.14)"
+                    cells.append(f'<div class="c" style="background:{bg};border-color:transparent" title="{day.isoformat()} · {_m(v, 2, True)}">'
+                                 f'<i>{day.day}</i><em>{PI.short_money(v)}</em></div>')
+                elif first_d <= day <= last_d:
+                    cells.append(f'<div class="c h" title="{T.esc(L("Market closed", "السوق مقفل"))}"><i>{day.day}</i><em>·</em></div>')
+                else:
+                    cells.append(f'<div class="c h"><i>{day.day}</i><em></em></div>')
+            day += timedelta(days=1)
+        name = (MONTHS_AR[m - 1] if is_ar() else months_en[m - 1]) + f" {y}"
+        col = T.POS_FG if tot > 0 else T.NEG_FG if tot < 0 else _MU
+        cards.append(f'<div class="m"><div class="mh"><b>{T.esc(name)}</b><span style="color:{col}">{_m(tot, 0, True)}</span></div>'
+                     f'<div class="ms2">{T.esc(L(f"{up} up · {dn} down", f"{up} صاعد · {dn} نازل"))}</div><div class="g">{"".join(cells)}</div></div>')
+    lg = (f'<div class="pflg"><span style="background:rgba(239,68,68,.7)"></span>{T.esc(L("loss", "خسارة"))}'
+          f'<span style="background:rgba(157,151,165,.14)"></span>{T.esc(L("flat / closed", "ثابت / مقفل"))}'
+          f'<span style="background:rgba(34,197,94,.7)"></span>{T.esc(L("profit", "ربح"))} · {T.esc(L("darker = bigger day", "اللون الأغمق = يوم أكبر"))}</div>')
+    return f'<div class="pfcal">{"".join(cards)}</div>{lg}'
+
+
+def holdings_map(c):
+    """The positions as a heat map: each tile sized by its money, coloured by its result (since bought or today); longs and
+    shorts in their own groups. A tile opens the stock."""
+    import heatmap as HM
+    pos = c.view["positions"]
+    mode = st.segmented_control(L("Colour by", "اللون حسب"), ["total", "today"], default="total", key="pf_hm_mode", label_visibility="collapsed",
+                                format_func=lambda k: L("Since bought", "من الشراء") if k == "total" else L("Today", "اليوم")) or "total"
+    rows = []
+    for p in pos:
+        sgn = 1 if p["qty"] > 0 else -1
+        val = p["upnl_pct"] if mode == "total" else p["day_pct"] * sgn
+        rows.append({"Symbol": p["sym"], "Group": "long" if sgn > 0 else "short", "Size": abs(p["mv"]), "Val": val,
+                     "P&L": p["upnl"] if mode == "total" else p["day_pnl"], "W": p["weight"]})
+    df = pd.DataFrame(rows)
+    rng = 20.0 if mode == "total" else 3.0
+    W_, H_ = 1200, 520 if len(pos) > 3 else 380
+    tiles, groups = HM.layout(df, "Group", "Size", W_, H_)
+    try:
+        lg = {k: u for k, u in data.logos([t["Symbol"] for t in tiles]).items() if u}
+    except Exception:
+        lg = {}
+    label = lambda g: L("Long", "شراء") if g == "long" else L("Short ▼", "مكشوف ▼")
+
+    def tip(t):
+        side = L("long", "شراء") if t["Group"] == "long" else L("short", "مكشوف")
+        return f'{t["Symbol"]} · {side} · {t["Val"]:+.2f}% · {_m(t["P&L"], 0, True)} · {t["W"]:.1f}%'
+    ui.html('<div class="pfmap">' + HM.render(tiles, groups, lg, rng, "ar" if is_ar() else "en", label, tip, rtl=is_ar(), width=W_, height=H_, uid="pfm")
+            + "</div>" + HM.legend(rng))
+    best = max(pos, key=lambda p: p["upnl_pct"] if mode == "total" else p["day_pct"] * (1 if p["qty"] > 0 else -1))
+    worst = min(pos, key=lambda p: p["upnl_pct"] if mode == "total" else p["day_pct"] * (1 if p["qty"] > 0 else -1))
+    if len(pos) > 1:
+        bv = best["upnl_pct"] if mode == "total" else best["day_pct"] * (1 if best["qty"] > 0 else -1)
+        wv = worst["upnl_pct"] if mode == "total" else worst["day_pct"] * (1 if worst["qty"] > 0 else -1)
+        ui.html(f'<div class="pfmapcap"><span>{T.esc(L("Size = money in the position · colour = its result", "الحجم = فلوس المركز · اللون = نتيجته"))}</span>'
+                f'<span>{T.esc(L("Best", "الأفضل"))} <b style="color:{_col(bv)}">{T.esc(best["sym"])} {_bdi(_p(bv))}</b> · '
+                f'{T.esc(L("Weakest", "الأضعف"))} <b style="color:{_col(wv)}">{T.esc(worst["sym"])} {_bdi(_p(wv))}</b></span></div>')
+
+
+def _col(v):
+    return T.POS_FG if v > 0 else T.NEG_FG if v < 0 else _MU
+
+
+def _mini(vals, w=96, h=28):
+    """A small trend line for a position (its last month of closes), filled under the line."""
+    vals = [float(x) for x in vals if x == x]
+    if len(vals) < 2:
+        return ""
+    lo, hi = min(vals), max(vals)
+    span = (hi - lo) or max(abs(hi) * 0.01, 1e-6)
+    pts = [(i / (len(vals) - 1) * w, h - 3 - (v - lo) / span * (h - 6)) for i, v in enumerate(vals)]
+    line = " ".join(f"{x:.1f},{y:.1f}" for x, y in pts)
+    col = "#34D27A" if vals[-1] >= vals[0] else "#F26B6B"
+    return (f'<svg class="spk" viewBox="0 0 {w} {h}" preserveAspectRatio="none"><polygon points="0,{h} {line} {w},{h}" fill="{col}" fill-opacity=".14"/>'
+            f'<polyline points="{line}" fill="none" stroke="{col}" stroke-width="1.6" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>'
+            f'<circle cx="{pts[-1][0]:.1f}" cy="{pts[-1][1]:.1f}" r="2.2" fill="{col}"/></svg>')
+
+
+def _trend(c, sym):
+    """The last ~month of closes of a held stock (the same daily prices the account is built from)."""
+    try:
+        fills = c.state["fills"]
+        first = min([PF.et_date(c.state["created"])] + [PF.et_date(f["time"]) for f in fills])
+        d = c.mkt.daily(sym, (first - timedelta(days=7)).isoformat())
+        return list(d["Close"].tail(22)) if d is not None and len(d) else []
+    except Exception:
+        return []
 
 
 def quick_actions(c):
@@ -1160,6 +1434,12 @@ def ticket(c, sym, q, inf, held):
         if typ != "market":
             spec["tif"] = st.segmented_control(L("Time in force", "مدة الأمر"), ["day", "gtc"], default="gtc" if typ == "trail" else "day",
                                                key=f"pf_tif_{typ}", format_func=lambda k: L("Day", "اليوم") if k == "day" else L("Until cancelled", "حتى الإلغاء")) or "day"
+        # the trade journal: why this trade (kept with the order, shown in the activity and the history)
+        note = st.text_input(L("Note for your journal (optional)", "ملاحظة لسجلك (اختياري)"), key=f"pf_note_{ss.get('pf_note_n', 0)}", max_chars=120,
+                             placeholder=L("Why this trade? e.g. breakout above $200, earnings next week",
+                                           "ليش هالصفقة؟ مثلاً اختراق فوق 200$، والنتائج الأسبوع الجاي"))
+        if str(note or "").strip():
+            spec["note"] = str(note).strip()
         pv, err = None, None
         try:
             pv = PF.preview(c.state, c.view, c.mkt, spec)
@@ -1179,6 +1459,7 @@ def ticket(c, sym, q, inf, held):
                 try:
                     o = PF.place(c.state, c.view, c.mkt, spec)
                     ss["pf_sym"] = sym
+                    ss["pf_note_n"] = ss.get("pf_note_n", 0) + 1        # a fresh, empty note box for the next order
                     commit(c, _done(o))
                 except PF.OrderError as e:
                     st.error(_err(e))
@@ -1331,6 +1612,10 @@ def page_analytics():
                 ui.chart(C.monthly_heatmap(tab, L("Monthly returns", "العائد الشهري"), months=MONTHS_AR if is_ar() else None), key="pf_mh")
         with g4:
             ui.chart(C.histogram(r * 100, L("Daily returns (%)", "العائد اليومي (%)")), key="pf_hist")
+        cal = calendar_html(c)
+        if cal:
+            ui.sec("calendar_month", "P&L calendar", "تقويم الأرباح والخسائر")
+            ui.html(cal)
     else:
         ui.html(empty("insights", L("Return charts need a few sessions", "رسوم العائد تحتاج كم جلسة"),
                       L("They fill in after the account has lived through a few market closes.", "تتعبى بعد ما يمر الحساب بكم إغلاق.")))
@@ -1359,6 +1644,8 @@ def page_analytics():
         ui.html(empty("tag", L("No closed trades yet", "ما فيه صفقات مغلقة للحين"),
                       L("Win rate, profit factor and the long vs short comparison appear once trades are closed.",
                         "نسبة الفوز ومعامل الربح ومقارنة الشراء بالمكشوف تطلع بعد ما تتسكر صفقات.")))
+    ui.sec("military_tech", "Achievements", "الإنجازات")
+    ui.html(achievements_html(badges_of(c, s)))
     ui.sec("shield", "Risk now", "المخاطرة الحين")
     rk = risk_now(c) if v["positions"] else None
     ui.html(kpis([
@@ -1445,7 +1732,8 @@ def page_history():
                                 L("Type", "النوع"): L(*TYPE[o["type"]]), L("Price", "السعر"): o.get("limit") or o.get("stop") or (f'{o["trail"]}%' if o.get("trail") else "—"),
                                 L("Time in force", "المدة"): L("Day", "اليوم") if o.get("tif") != "gtc" else L("GTC", "حتى الإلغاء"),
                                 L("Status", "الحالة"): L(*STATUS[o["status"]][:2]), L("Fill", "التنفيذ"): o.get("fill_px"),
-                                L("Note", "ملاحظة"): L(*NOTE[o["note"]]) if o.get("note") in NOTE else ""} for o in rows])
+                                L("Note", "ملاحظة"): L(*NOTE[o["note"]]) if o.get("note") in NOTE else "",
+                                L("Your journal", "سجلك"): o.get("note_user") or ""} for o in rows])
             ui.table(df, sym=L("Symbol", "الرمز"), height=520, fmt={L("Fill", "التنفيذ"): "{:,.2f}"},
                      words={L("Status", "الحالة"): (L("Filled", "منفذ"), L("Rejected", "مرفوض"))})
             st.download_button(L("Download CSV", "تحميل CSV"), df.to_csv(index=False).encode("utf-8-sig"), "paper_orders.csv", "text/csv",
@@ -1490,4 +1778,4 @@ def page_history():
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "18.5"
+BUILD = "18.6"
