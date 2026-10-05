@@ -1,2 +1,2 @@
-A.Alturaifi Pro - version 17.8 (fair value for every company: cash flows, its usual P/E and Graham blended, bear and bull range, valuation band; in the scanner and on the stock page)
+A.Alturaifi Pro - version 17.9 (every input box is clearly a box: a darker well with a visible edge, blue on hover, a ring when typing; dark and light)
 If you can see this file on GitHub, the new version was uploaded correctly.

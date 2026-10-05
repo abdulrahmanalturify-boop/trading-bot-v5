@@ -36,6 +36,7 @@ NEU_BG, NEU_FG = "#26212F", "#C9C3D1"
 FONT = "DM Sans, Readex Pro, system-ui, sans-serif"
 # n8n's own tokens
 PANEL, SMOKE, SHELL = "#1B1728", "#3E3A46", "#2C2834"          # deep panel, nav/container borders, ghost-button fill
+FIELD, FIELD_EDGE = "#0F0B1A", "rgba(157,151,165,.42)"         # every input box: a darker well with a visible edge
 CTA = "linear-gradient(30deg,#3D68C6,#2DB6EB)"                   # the call to action: the logo's blue -> cyan
 CTA_HOVER = "linear-gradient(30deg,#4A78D8,#45C2F0)"
 ELECTRIC = "linear-gradient(141deg,#077AC7,#6B21EF)"             # n8n's "electric current": links, focus, connecting lines
@@ -265,12 +266,30 @@ button[data-testid="stBaseButton-secondary"], button[kind="secondary"], [data-te
 button[data-testid="stBaseButton-secondary"]:hover, button[kind="secondary"]:hover, .stDownloadButton > button:hover {{
   background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.24); color:#fff; }}
 button[data-testid="stBaseButton-tertiary"]:hover {{ color:#fff; }}
-/* inputs: the deep panel with a smoke hairline, the electric ring when focused */
-[data-baseweb="input"], [data-baseweb="base-input"], [data-baseweb="select"] > div, [data-baseweb="textarea"], .stNumberInput [data-baseweb="input"] {{
-  background-color:{PANEL} !important; border-color:{SMOKE} !important; border-radius:8px !important; }}
-[data-baseweb="input"] input, [data-baseweb="textarea"] textarea {{ background-color:transparent !important; }}
-[data-baseweb="input"]:focus-within, [data-baseweb="select"]:focus-within > div, [data-baseweb="textarea"]:focus-within {{
-  border-color:#5B7CF2 !important; box-shadow:0 0 0 3px rgba(107,33,239,.22) !important; }}
+/* inputs: every box you type in or pick from is clearly a box, a darker well than the card around it with a visible edge,
+   a blue edge under the pointer and the electric ring when focused. Streamlit's own boxes (text, number, text area, date,
+   selectbox / multiselect groups of the newer versions) and the older base-web ones. */
+[data-testid="stTextInputRootElement"], [data-testid="stNumberInputContainer"], [data-testid="stTextAreaRootElement"],
+[data-testid="stDateInputField"], [data-testid="stTimeInput"] [role="group"], [data-testid="stSelectbox"] [role="group"],
+[data-testid="stMultiSelect"] [role="group"], [data-baseweb="select"] > div, [data-baseweb="textarea"],
+div[data-baseweb="input"]:not([data-testid="stTextInputRootElement"] *):not([data-testid="stNumberInputContainer"] *) {{
+  background-color:{FIELD} !important; border:1px solid {FIELD_EDGE} !important; border-radius:10px !important;
+  box-shadow:inset 0 1px 3px rgba(0,0,0,.35) !important; transition:border-color .15s, box-shadow .15s; }}
+[data-testid="stTextInputRootElement"] input, [data-testid="stNumberInputContainer"] input, [data-testid="stTextAreaRootElement"] textarea,
+[data-baseweb="base-input"], [data-baseweb="input"] input, [data-baseweb="textarea"] textarea, [data-testid="stSelectbox"] [role="group"] input,
+[data-testid="stMultiSelect"] [role="group"] input {{ background-color:transparent !important; color:#F2EFF6 !important; }}
+[data-testid="stTextInputRootElement"] input::placeholder, [data-testid="stNumberInputContainer"] input::placeholder, [data-testid="stTextAreaRootElement"] textarea::placeholder,
+[data-testid="stSelectbox"] input::placeholder, [data-testid="stMultiSelect"] input::placeholder {{ color:#8F889B !important; opacity:1; }}
+[data-testid="stNumberInputStepUp"], [data-testid="stNumberInputStepDown"] {{ background:transparent !important; border-inline-start:1px solid rgba(157,151,165,.22) !important;
+  color:#CFC8DA !important; }}
+[data-testid="stNumberInputStepUp"]:hover, [data-testid="stNumberInputStepDown"]:hover {{ background:rgba(59,139,235,.16) !important; color:#fff !important; }}
+[data-testid="stTextInputRootElement"]:hover, [data-testid="stNumberInputContainer"]:hover, [data-testid="stTextAreaRootElement"]:hover,
+[data-testid="stDateInputField"]:hover, [data-testid="stSelectbox"] [role="group"]:hover, [data-testid="stMultiSelect"] [role="group"]:hover,
+[data-baseweb="select"] > div:hover, div[data-baseweb="input"]:hover {{ border-color:rgba(121,184,244,.6) !important; }}
+[data-testid="stTextInputRootElement"]:focus-within, [data-testid="stNumberInputContainer"]:focus-within, [data-testid="stTextAreaRootElement"]:focus-within,
+[data-testid="stDateInputField"]:focus-within, [data-testid="stSelectbox"] [role="group"][data-focus-within], [data-testid="stSelectbox"] [role="group"]:focus-within,
+[data-testid="stMultiSelect"] [role="group"]:focus-within, [data-baseweb="select"]:focus-within > div, [data-baseweb="textarea"]:focus-within,
+div[data-baseweb="input"]:focus-within {{ border-color:#5B7CF2 !important; box-shadow:0 0 0 3px rgba(107,33,239,.24) !important; }}
 [data-baseweb="popover"] ul, [data-baseweb="menu"] {{ background:{PANEL} !important; border:1px solid {SMOKE}; border-radius:12px; }}
 [data-baseweb="popover"] li:hover, [data-baseweb="menu"] li:hover {{ background:rgba(255,255,255,.05) !important; }}
 [data-testid="stDialog"] [role="dialog"] {{ background:{CARD} !important; border:1px solid {SHELL}; border-radius:24px !important; box-shadow:{GLOW}, 0 30px 80px rgba(0,0,0,.6); }}
@@ -2625,4 +2644,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "17.8"
+BUILD = "17.9"
