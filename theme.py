@@ -849,13 +849,14 @@ html[data-menu-closed] [class*="st-key-navdd_"], html[data-menu-closed] .st-key-
 [class*="st-key-langopt_"] .stButton {{ position:absolute !important; inset:0; z-index:4; margin:0 !important; }}
 [class*="st-key-langopt_"] .stButton button {{ width:100% !important; height:100% !important; min-height:0 !important; opacity:0; cursor:pointer; }}
 [class*="st-key-langopt_"]:hover .lopt:not(.on) {{ background: rgba(59,139,235,.1); }}
-/* narrower screens: the bar compacts itself step by step instead of wrapping (7 menus + search + status + language) */
+/* narrower screens: the bar compacts itself step by step instead of wrapping (8 menus + search + status + language) */
 @container topnav (max-width: 1760px) {{ .navbtn .chev {{ display:none; }} }}
 @container topnav (max-width: 1560px) {{ .st-key-navright .status .muted {{ display:none; }} .navbtn {{ padding:0 10px; gap:6px; }} }}
 @container topnav (max-width: 1400px) {{ .navbtn {{ padding:0 8px; gap:5px; font-size:.85rem; }} .navbtn .ms {{ font-size:1.05rem; }}
   .st-key-navright .status b {{ display:none; }} .st-key-navright .status {{ padding: 0 12px; }} }}
 @container topnav (max-width: 1030px) {{ .navbtn > span:not(.ms) {{ display:none; }} .navbtn {{ padding:0 10px; }} .navbtn .ms {{ font-size:1.18rem; }} }}
 @container topnav (max-width: 760px) {{ .st-key-navright .status {{ display:none; }} .langbtn .chev {{ display:none; }} }}
+@container topnav (max-width: 600px) {{ .navbtn {{ padding:0 8px; }} }}      /* eight menus (Portfolio added) keep to one row on phones */
 @container topnav (max-width: 440px) {{ .navbtn {{ padding:0 6px; }} .langbtn {{ padding:0 6px; }} }}
 @container topnav (max-width: 350px) {{ .navbtn {{ padding:0 4px; }} .navbtn .ms {{ font-size:1.05rem; }} .langbtn {{ padding:0 4px; }} }}
 /* desktop: the bar IS the site's top line. It is anchored to the main area's own box (the same box as Streamlit's header),
@@ -2624,4 +2625,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "17.6"
+BUILD = "17.7"

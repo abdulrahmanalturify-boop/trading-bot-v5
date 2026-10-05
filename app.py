@@ -10,10 +10,10 @@ import streamlit as st
 # ---------------------------------------------------------------- always run the newest code
 # Streamlit Cloud re-reads app.py after every GitHub upload but can keep the other modules (theme, data, ...) from the
 # previous version in memory. Every module carries BUILD; if one in memory is older, all of them are reloaded in order.
-BUILD = "17.6"
+BUILD = "17.7"
 _ORDER = ["terms", "lightmode", "i18n", "ai_assistant", "flags", "mcal", "universe", "sp500", "taxonomy", "ta", "academy", "insight", "heatmap", "newsiq", "newspics", "theme", "data",
-          "caldata", "newsbot", "newsintel", "charts", "engine", "playbooks", "autotrader", "ui", "sharia", "lab", "tdash", "mlbots", "brain", "paperbots", "smartbots", "p_markets", "p_newsintel", "p_research", "p_insight",
-          "p_academy", "p_paper", "p_calendar", "hunter", "p_scanner", "home"]
+          "caldata", "newsbot", "newsintel", "charts", "engine", "playbooks", "autotrader", "ui", "sharia", "lab", "tdash", "mlbots", "brain", "paperbots", "smartbots", "portfolio", "p_markets", "p_newsintel", "p_research", "p_insight",
+          "p_academy", "p_paper", "p_portfolio", "p_calendar", "hunter", "p_scanner", "home"]
 if any(m in sys.modules and getattr(sys.modules[m], "BUILD", None) != BUILD for m in _ORDER):
     for _m in _ORDER:
         if _m in sys.modules:
@@ -41,6 +41,7 @@ import p_insight
 import p_markets
 import p_newsintel
 import p_paper
+import p_portfolio
 import p_research
 import p_scanner
 import theme as T
@@ -176,6 +177,11 @@ P.update({
     "ipos": st.Page(p_calendar.page_ipos, title=L("IPO Calendar", "الاكتتابات العامة"), icon=":material/rocket_launch:", url_path="ipo-calendar"),
     "academy": st.Page(p_academy.page_academy, title=L("Courses", "الدورات"), icon=":material/school:", url_path="academy"),
     "glossary": st.Page(p_academy.page_glossary, title=L("Glossary", "قاموس المصطلحات"), icon=":material/menu_book:", url_path="glossary"),
+    "pf_dash": st.Page(p_portfolio.page_dashboard, title=L("Dashboard", "لوحة المحفظة"), icon=":material/space_dashboard:", url_path="portfolio"),
+    "pf_trade": st.Page(p_portfolio.page_trade, title=L("Trade", "تداول"), icon=":material/swap_horiz:", url_path="portfolio-trade"),
+    "pf_analytics": st.Page(p_portfolio.page_analytics, title=L("Analytics", "التحليلات"), icon=":material/query_stats:", url_path="portfolio-analytics"),
+    "pf_history": st.Page(p_portfolio.page_history, title=L("Orders & History", "الأوامر والسجل"), icon=":material/receipt_long:",
+                          url_path="portfolio-history"),
     "paper": st.Page(p_paper.page_paper_bots, title=L("Paper Bots", "البوتات الافتراضية"), icon=":material/robot_2:", url_path="paper-bots"),
     "scanner": st.Page(p_scanner.page_scanner, title=L("Scanner", "صائد الفرص"), icon=":material/radar:", url_path="scanner"),
 })
@@ -186,6 +192,7 @@ SECTIONS = [
     (L("Calendar", "التقويم"), "calendar_month", ["earnings", "results", "econcal", "holidays", "dividends", "splits", "ipos"]),
     (L("Insight", "رؤى"), "lightbulb", ["brief", "articles", "sentiment", "seasonality"]),
     (L("Academy", "الأكاديمية"), "school", ["academy", "glossary"]),
+    (L("Portfolio", "المحفظة"), "account_balance_wallet", ["pf_dash", "pf_trade", "pf_analytics", "pf_history"]),
     (L("Trading Bot", "بوت التداول"), "smart_toy", ["paper", "scanner"]),
 ]
 # the built-in menu is hidden; the bar below opens its menus on hover and navigates without reloading the site

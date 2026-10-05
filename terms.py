@@ -80,6 +80,43 @@ TERMS = [
      "Market order: buy or sell now at the best price available. Limit order: only at your price or better, so it may not fill.",
      "أمر السوق: شراء أو بيع فوراً بأفضل سعر متاح. الأمر المحدد: فقط بسعرك أو أفضل، فممكن ما يتنفذ."),
 
+    ("buying_power", "Buying power", "القوة الشرائية",
+     [r"buying power", r"(?:ال)?قوة (?:ال)?شرائية"],
+     "How much more you can buy, or sell short, right now with the cash and margin left in the account. Open orders keep their share of it.",
+     "كم تقدر تشتري أو تبيع على المكشوف الحين بالكاش والهامش المتبقي في الحساب. الأوامر المفتوحة تحجز نصيبها منه."),
+    ("margin_call", "Margin and margin call", "الهامش ونداء الهامش",
+     [r"margin calls?", r"maintenance (?:margin|requirement)", r"margin (?:account|used|cushion|requirement)s?", r"نداء (?:ال)?هامش",
+      r"حساب (?:ال)?هامش", r"(?:ال)?هامش (?:ال)?(?:مستخدم|آمن|المطلوب)"],
+     "In a margin account the broker lends money (to buy) or shares (to sell short). The rules: a short needs 150% of its value in the "
+     "account, and equity must stay above 25% of the longs and 30% of the shorts. Below that comes a margin call: add money or close positions.",
+     "في حساب الهامش الوسيط يقرضك فلوس (للشراء) أو أسهم (للبيع على المكشوف). القواعد: المكشوف يحتاج 150% من قيمته في الحساب، وقيمة الحساب "
+     "لازم تبقى فوق 25% من الشراء و30% من المكشوف. تحت كذا يجي نداء الهامش: تضيف فلوس أو تسكّر مراكز."),
+    ("borrow_fee", "Borrow fee", "رسوم الاقتراض",
+     [r"borrow(?:ing)? fees?", r"hard[- ]to[- ]borrow", r"رسوم (?:ال)?(?:اقتراض|استلاف)"],
+     "What a short seller pays every night to borrow the shares, as a yearly %. Easy-to-borrow stocks cost well under 1%; heavily shorted "
+     "ones can cost 10% or more.",
+     "اللي يدفعه البائع على المكشوف كل ليلة عشان يستلف الأسهم، كنسبة سنوية. الأسهم السهلة أقل من 1%، والمبيوعة على المكشوف بكثرة ممكن 10% أو أكثر."),
+    ("bracket", "Bracket order (OCO)", "الأمر المرفق (OCO)",
+     [r"bracket(?: orders?| legs?)?", "=OCO", r"(?:ال)?أمر (?:ال)?مرفق"],
+     "A new position sent with its stop loss and take profit attached. When one of the two fills, the other is cancelled (one cancels the other).",
+     "مركز جديد ينرسل ومعه وقف الخسارة وجني الأرباح. لما يتنفذ واحد منهم ينلغي الثاني تلقائياً."),
+    ("cover", "Buy to cover", "الشراء للتغطية",
+     [r"buy to cover", r"short cover(?:ing)?", r"(?:ال)?شراء للتغطية", r"تغطية (?:ال)?(?:مكشوف|مركز (?:ال)?مكشوف)"],
+     "Closing a short: buying back the borrowed shares and returning them. The profit is the sale price minus the buy-back price, minus fees.",
+     "إغلاق المكشوف: تشتري الأسهم المستلفة وترجعها. ربحك = سعر البيع ناقص سعر الشراء، ناقص الرسوم."),
+    ("leverage", "Leverage", "الرافعة المالية",
+     [r"leverage", r"(?:ال)?رافعة(?: (?:ال)?مالية)?"],
+     "Positions worth more than the account itself (long + short ÷ equity). 2× doubles the gains and the losses.",
+     "مراكز قيمتها أكبر من الحساب نفسه (الشراء + المكشوف ÷ قيمة الحساب). 2× تضاعف الأرباح والخسائر."),
+    ("var", "Value at Risk (VaR)", "القيمة المعرضة للخطر (VaR)",
+     ["=VaR", r"value at risk", r"(?:ال)?قيمة (?:ال)?معرضة للخطر"],
+     "The loss of a bad day: 95% VaR is the amount lost on the worst 1 day in 20, measured on past returns.",
+     "خسارة يوم سيء: VaR بنسبة 95% هي الخسارة في أسوأ يوم من كل 20 يوم، محسوبة من العوائد السابقة."),
+    ("exposure", "Exposure (long, short, net, gross)", "الانكشاف (شراء، مكشوف، صافي، إجمالي)",
+     [r"(?:gross|net|long|short) exposure", r"~exposure", r"(?:ال)?انكشاف(?: (?:ال)?(?:إجمالي|صافي))?"],
+     "How much money rides on the market, as % of equity: long minus short is the net (the bet on the market's direction), long plus short the gross.",
+     "قد إيش فلوسك معرضة للسوق كنسبة من الحساب: الشراء ناقص المكشوف = الصافي (رهانك على اتجاه السوق)، والشراء زائد المكشوف = الإجمالي."),
+
     # ---- results of a strategy
     ("sharpe", "Sharpe ratio", "نسبة شارب",
      [r"sharpe(?: ratio)?", r"(?:نسبة )?شارب"],
@@ -818,4 +855,4 @@ def client():
     return {"t": t, "p": p}
 
 
-BUILD = "17.6"
+BUILD = "17.7"

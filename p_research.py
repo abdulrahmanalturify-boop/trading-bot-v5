@@ -729,6 +729,9 @@ def page_stock():
         if st.button(L("Opportunity Hunter", "صائد الفرص"), icon=":material/radar:", width="stretch"):
             ss["hn_look"] = ss["hn_look_in"] = sym          # the Scanner opens this stock's full analysis
             ui.goto("scanner")
+        if st.button(L("Paper trade", "تداول افتراضي"), icon=":material/account_balance_wallet:", width="stretch", key="stk_pf"):
+            ss["pf_sym"] = sym                              # the paper portfolio's ticket opens on this stock
+            ui.goto("pf_trade")
     key_stats(daily, inf)
     tabs = st.tabs([L(":material/candlestick_chart: Chart", ":material/candlestick_chart: الرسم البياني"),
                     L(":material/apartment: Company", ":material/apartment: عن الشركة"),
@@ -1442,4 +1445,4 @@ def page_screener():
 # SCANNER
 # =====================================================================
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "17.6"
+BUILD = "17.7"

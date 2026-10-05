@@ -409,7 +409,7 @@ def make_record(name, kind, value, strategies, max_pos, capital, fee, stop_pct, 
 
 def list_bots():
     """Saved bots, oldest first. Raises StoreError when Supabase is set up but can't be used."""
-    return [b for b in (_norm(r) for r in _list_raw(backend())) if b]
+    return [b for b in (_norm(r) for r in _list_raw(backend()) if r.get("strategy") != "__portfolio__") if b]   # not the paper portfolio's row
 
 
 def create_bot(rec):
@@ -1704,4 +1704,4 @@ def journal(sim):
                          "Days": tr["Bars"], "Exit Reason": tr["Exit Reason"]})
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "17.6"
+BUILD = "17.7"

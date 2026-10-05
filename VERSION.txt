@@ -1,2 +1,2 @@
-A.Alturaifi Pro - version 17.6 (analyst rating: when Yahoo skips the count of each rating it is asked again on the next view instead of staying empty for 6 hours, and the ring shows the average on its bands instead of an empty grey ring)
+A.Alturaifi Pro - version 17.7 (new Portfolio menu: a paper margin account with short selling, market / limit / stop / trailing orders, stop loss + take profit brackets, dashboard, analytics and order history)
 If you can see this file on GitHub, the new version was uploaded correctly.
