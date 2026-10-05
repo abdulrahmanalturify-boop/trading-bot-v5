@@ -16,9 +16,11 @@ days), so a stop that was hit at 11:05 fills at 11:05's price even if nobody loo
 positions, dividends, splits, fees, the equity curve) is rebuilt day by day from the fills and the real closing prices.
 Prices are Yahoo's raw prices (not adjusted), the ones the trades really happened at.
 
-Storage: one row of the paper bots' table (strategy = "__portfolio__"), so nothing new has to be set up in Supabase.
-Only whoever knows BOTS_PASSWORD can trade it; visitors see it, and can practise on their own portfolio for their visit.
+Storage: rows of the paper bots' table, so nothing new has to be set up in Supabase. The site owner's portfolio is the row
+strategy = "__portfolio__" (only whoever knows BOTS_PASSWORD opens it); every visitor has a portfolio of their own, the row
+"__portfolio__:<their code>", where the code is a random key kept in their browser (see p_portfolio).
 """
+import hashlib
 import copy
 import json
 import math
@@ -36,7 +38,11 @@ import mcal
 
 ET = ZoneInfo("America/New_York")
 UTC = ZoneInfo("UTC")
-KEY = "__portfolio__"                      # its row in the paper_bots table
+KEY = "__portfolio__"                      # the owner's row in the paper_bots table; a visitor's is KEY + ":" + their code
+
+
+def visitor_key(code):
+    return f"{KEY}:{code}"
 DEFAULTS = {"start_cash": 100000.0, "leverage": 1.0, "commission": 0.0, "per_share": 0.0, "min_fee": 0.0, "slippage_bps": 2.0,
             "borrow_rate": 0.3, "margin_rate": 8.0, "allow_short": True}
 LONG_MAINT, SHORT_INIT, SHORT_MAINT = 0.25, 0.50, 0.30     # FINRA / Reg T
@@ -952,12 +958,18 @@ def _pb():
     return paperbots
 
 
+def _local_path(key):
+    if key == KEY:
+        return _LOCAL
+    return os.path.join(tempfile.gettempdir(), f"alturaifi_paper_portfolio_{hashlib.sha256(key.encode()).hexdigest()[:20]}.json")
+
+
 @st.cache_data(ttl=30, show_spinner=False)
-def _load_raw(kind, rev):
+def _load_raw(kind, rev, key=KEY):
     PB = _pb()
     if kind == "supabase":
         url, h = PB._sb()
-        r = PB._request("GET", url, headers=h, params={"select": "id,params", "strategy": f"eq.{KEY}", "order": "id.asc", "limit": "1"})
+        r = PB._request("GET", url, headers=h, params={"select": "id,params", "strategy": f"eq.{key}", "order": "id.asc", "limit": "1"})
         PB._check(r)
         rows = r.json()
         if rows:
@@ -968,15 +980,16 @@ def _load_raw(kind, rev):
         return None
     with _LOCK:
         try:
-            with open(_LOCAL, encoding="utf-8") as f:
+            with open(_local_path(key), encoding="utf-8") as f:
                 return {"id": 0, "state": json.load(f)}
         except (OSError, ValueError):
             return None
 
 
-def load():
-    """(state, row id) of the saved portfolio; a new account when there is none yet. Raises paperbots.StoreError."""
-    raw = _load_raw(_pb().backend(), _REV["n"])
+def load(key=KEY):
+    """(state, row id) of a portfolio (the owner's by default, or a visitor's: key=visitor_key(code)); a new account when
+    there is none yet (nothing is written until the first order or setting). Raises paperbots.StoreError."""
+    raw = _load_raw(_pb().backend(), _REV["n"], key)
     st_ = clean(raw["state"]) if raw else None
     return (st_ or new_state()), (raw or {}).get("id")
 
@@ -985,7 +998,7 @@ class Conflict(Exception):
     """The saved portfolio changed since it was read (another page saved first)."""
 
 
-def save(state, row_id=None, expect="any"):
+def save(state, row_id=None, expect="any", key=KEY):
     """Keeps the account. `expect`: the revision it was read at; the save is refused (Conflict) when the stored one has moved
     on, so a page that read an older copy can never overwrite a newer order."""
     PB = _pb()
@@ -995,8 +1008,8 @@ def save(state, row_id=None, expect="any"):
     try:
         if PB.backend() == "supabase":
             url, h = PB._sb()
-            rec = {"name": body.get("name") or "Paper Portfolio", "symbol": "PORTFOLIO", "strategy": KEY, "params": {"pf": body},
-                   "capital": float(body.get("start_cash") or 0), "start_date": body["created"][:10]}
+            rec = {"name": body.get("name") or ("Paper Portfolio" if key == KEY else "Visitor portfolio"), "symbol": "PORTFOLIO",
+                   "strategy": key, "params": {"pf": body}, "capital": float(body.get("start_cash") or 0), "start_date": body["created"][:10]}
             if row_id:
                 q = {"id": f"eq.{int(row_id)}", "select": "id"}
                 if expect != "any":
@@ -1009,19 +1022,20 @@ def save(state, row_id=None, expect="any"):
                 r = PB._request("POST", url, headers={**h, "Prefer": "return=minimal"}, data=json.dumps(rec))
                 PB._check(r)
         else:
+            path = _local_path(key)
             with _LOCK:
                 if expect != "any":
                     try:
-                        with open(_LOCAL, encoding="utf-8") as f:
+                        with open(path, encoding="utf-8") as f:
                             cur = json.load(f).get("rev")
                     except (OSError, ValueError):
                         cur = None
                     if cur != expect:
                         raise Conflict()
-                tmp = _LOCAL + ".tmp"
+                tmp = path + ".tmp"
                 with open(tmp, "w", encoding="utf-8") as f:
                     json.dump(body, f)
-                os.replace(tmp, _LOCAL)
+                os.replace(tmp, path)
     except Exception:
         state["rev"] = prev
         raise
@@ -1030,4 +1044,4 @@ def save(state, row_id=None, expect="any"):
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "18.4"
+BUILD = "18.5"

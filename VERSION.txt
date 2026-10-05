@@ -1,2 +1,2 @@
-A.Alturaifi Pro - version 18.4 (screener: results always follow the filters on screen; a theme lists exactly its companies, each checked against every filter; revenues abroad in US dollars; main US exchanges only)
+A.Alturaifi Pro - version 18.5 (paper portfolio: every visitor has their own, new on the first visit and kept in their browser with a portfolio code; the owner's is private behind BOTS_PASSWORD)
 If you can see this file on GitHub, the new version was uploaded correctly.

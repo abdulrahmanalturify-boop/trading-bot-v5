@@ -241,7 +241,9 @@ def sector_of(sym):
 def _list_raw(kind):
     if kind == "supabase":
         url, h = _sb()
-        r = _request("GET", url, headers=h, params={"select": "*", "order": "id.asc"})
+        # the paper portfolios (the owner's and every visitor's) live in the same table: left out here, so the bots' list
+        # never downloads them
+        r = _request("GET", url, headers=h, params={"select": "*", "order": "id.asc", "strategy": "not.like.__portfolio__*"})
         _check(r)
         rows = r.json()
         return rows if isinstance(rows, list) else []
@@ -409,7 +411,7 @@ def make_record(name, kind, value, strategies, max_pos, capital, fee, stop_pct, 
 
 def list_bots():
     """Saved bots, oldest first. Raises StoreError when Supabase is set up but can't be used."""
-    return [b for b in (_norm(r) for r in _list_raw(backend()) if r.get("strategy") != "__portfolio__") if b]   # not the paper portfolio's row
+    return [b for b in (_norm(r) for r in _list_raw(backend()) if not str(r.get("strategy") or "").startswith("__portfolio__")) if b]   # not a paper portfolio
 
 
 def create_bot(rec):
@@ -1704,4 +1706,4 @@ def journal(sim):
                          "Days": tr["Bars"], "Exit Reason": tr["Exit Reason"]})
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "18.4"
+BUILD = "18.5"
