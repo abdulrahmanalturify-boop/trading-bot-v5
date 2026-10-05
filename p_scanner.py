@@ -24,6 +24,7 @@ import caldata
 import charts
 import data
 import engine
+import fairvalue as FV
 import hunter as H
 import mcal
 import paperbots as PB
@@ -1359,6 +1360,7 @@ def detail(r, det, got):
                 ui.chart(charts.price_chart(d.tail(190), "Candles", ["SMA 20", "SMA 50", "SMA 200"], [], False, levels=levels, height=470),
                          key=f"hn_chart_{_key(sym)}")
             ui.safe(fundamentals_box, sym)
+            ui.safe(FV.section, sym, float(r["Price"]), f"fv_{_key(sym)}")
         with right:
             ui.sec("donut_large", "Why this score", "ليش هالتقييم")
             parts = {"trend": r["Trend"], "rs": r["RS"], "volume": r["Accum"], "setup": r["SetupPts"], "risk": r["RiskPts"]}
@@ -1579,4 +1581,4 @@ def page_scanner():
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "17.7"
+BUILD = "17.8"

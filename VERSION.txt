@@ -1,2 +1,2 @@
-A.Alturaifi Pro - version 17.7 (new Portfolio menu: a paper margin account with short selling, market / limit / stop / trailing orders, stop loss + take profit brackets, dashboard, analytics and order history)
+A.Alturaifi Pro - version 17.8 (fair value for every company: cash flows, its usual P/E and Graham blended, bear and bull range, valuation band; in the scanner and on the stock page)
 If you can see this file on GitHub, the new version was uploaded correctly.

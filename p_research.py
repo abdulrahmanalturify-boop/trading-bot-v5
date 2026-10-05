@@ -10,6 +10,7 @@ import streamlit as st
 
 import charts
 import data
+import fairvalue as FV
 import engine
 import sharia
 import ta
@@ -308,7 +309,7 @@ def _peers(sym, n=12):
     return sorted(out, key=lambda x: -cap(x))[:n]
 
 
-def financials_tab(sym, inf):
+def financials_tab(sym, inf, price=None):
     def pct(k):
         v = inf.get(k)
         return (f"{v * 100:.2f}%", T.cls(v)) if isinstance(v, (int, float)) else ("—", "neu")
@@ -317,6 +318,7 @@ def financials_tab(sym, inf):
         v = inf.get(k)
         return (f"{v:,.{dec}f}", "neu") if isinstance(v, (int, float)) else ("—", "neu")
     big = lambda k: (T.fmt_big(inf.get(k)), "neu")
+    ui.safe(FV.section, sym, price or inf.get("currentPrice") or inf.get("regularMarketPrice"), "fv_stock")
     groups = {
         ("Valuation", "التقييم", "price_check"): [
             (L("Market cap", "القيمة السوقية"), big("marketCap")), (L("Enterprise value", "قيمة المنشأة"), big("enterpriseValue")),
@@ -747,7 +749,7 @@ def page_stock():
     with tabs[2]:
         ui.safe(technicals_tab, daily)
     with tabs[3]:
-        ui.safe(financials_tab, sym, inf)
+        ui.safe(financials_tab, sym, inf, float(price))
     with tabs[4]:
         ui.safe(analysts_tab, sym, inf, price)
     with tabs[5]:
@@ -1445,4 +1447,4 @@ def page_screener():
 # SCANNER
 # =====================================================================
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "17.7"
+BUILD = "17.8"
