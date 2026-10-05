@@ -155,6 +155,17 @@ CSS = f"""<style>
 [class*="st-key-hncard_"] [data-testid="stElementContainer"] {{ position:static !important; }}
 [class*="st-key-hncard_"] [data-testid="stMarkdownContainer"] {{ margin-bottom:0 !important; }}
 [class*="st-key-hncard_"] [class*="st-key-hn_pick_"] {{ position:absolute !important; inset:0; z-index:4; margin:0 !important; width:auto !important; }}
+/* the logo and the name open the company's page: the card sits above the invisible "open this analysis" button but lets clicks
+   through, except on the company link and the glossary marks */
+[class*="st-key-hncard_"] .hnc {{ z-index:5; pointer-events:none; }}
+[class*="st-key-hncard_"] .hnc a.co, [class*="st-key-hncard_"] .hnc .gq {{ pointer-events:auto; }}
+.hnc .hd a.co, .hndh a.co {{ display:flex; align-items:center; gap:10px; min-width:0; flex:1; text-decoration:none !important; color:inherit !important;
+  border-radius:12px; cursor:pointer; }}
+.hndh a.co {{ gap:14px; flex:none; }}
+.hnc .hd a.co .nm, .hndh a.co .nm {{ transition:color .15s; }}
+.hnc .hd a.co:hover .nm b, .hndh a.co:hover .nm b {{ color:#79B8F4; text-decoration:underline; text-underline-offset:3px; }}
+.hnc .hd a.co .lgo, .hndh a.co .lgo {{ transition:transform .18s, box-shadow .18s; }}
+.hnc .hd a.co:hover .lgo, .hndh a.co:hover .lgo {{ transform:scale(1.06); box-shadow:0 0 0 3px rgba(121,184,244,.45); }}
 [class*="st-key-hncard_"] [class*="st-key-hn_pick_"] .stButton, [class*="st-key-hncard_"] [class*="st-key-hn_pick_"] button
   {{ width:100% !important; height:100% !important; opacity:0; cursor:pointer; }}
 
@@ -664,8 +675,9 @@ def card(r, det, selected):
     side = r["Side"] or 1
     top = (f'<div class="top"><span class="su">{T.icon(ic)}<span class="tx">{T.esc(short_name(k))}</span></span>'
            f'{status_tag(r["Status"], r["Age"])}</div>')
-    hd = (f'<div class="hd">{T.logo_obj(sym, 36)}<div class="nm"><b>{T.esc(sym)}</b><span>{T.esc(str(r["Name"]))}</span></div>'
-          f'{ring(r["Score"], r["Grade"])}</div>')
+    go_ = L(f"Open the {sym} page", f"افتح صفحة {sym}")
+    hd = (f'<div class="hd"><a class="co" href="{T.esc(ui.href(sym))}" target="_self" title="{T.esc(go_)}">{T.logo_obj(sym, 36)}'
+          f'<div class="nm"><b>{T.esc(sym)}</b><span>{T.esc(str(r["Name"]))}</span></div></a>{ring(r["Score"], r["Grade"])}</div>')
     sp = f'<div class="spk">{spark(det.get("spark", []), entry, stop, tgt, sym.replace(".", "_").replace("-", "_"))}</div>'
     watch = r["Status"] == "watch"
     lv = (f'<div class="lv"><div><span>{L("Buy above", "شراء فوق") if watch else L("Entry", "الدخول")}</span><b>{_money_px(entry)}</b></div>'
@@ -1343,7 +1355,8 @@ def detail(r, det, got):
                               H.SETUPS[s_["key"]][2])
         for ic_, txt, kind in flags_of(r):
             badges += T.badge(txt, kind, ic_)
-        ui.html(f'<div class="card hndh">{T.logo_obj(sym, 48)}<div class="nm"><b>{T.esc(sym)}</b><span>{T.esc(str(r["Name"]))}</span></div>'
+        ui.html(f'<div class="card hndh"><a class="co" href="{T.esc(ui.href(sym))}" target="_self" title="{T.esc(L(f"Open the {sym} page", f"افتح صفحة {sym}"))}">'
+                f'{T.logo_obj(sym, 48)}<div class="nm"><b>{T.esc(sym)}</b><span>{T.esc(str(r["Name"]))}</span></div></a>'
                 f'{ring(r["Score"], r["Grade"], 62)}<div class="bd">{badges}</div>'
                 f'<div class="px"><b>{_money_px(r["Price"])}</b>{T.pill(r["Chg %"])}</div></div>')
         if k in H.SETUPS:
@@ -1581,4 +1594,4 @@ def page_scanner():
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "17.9"
+BUILD = "18.0"

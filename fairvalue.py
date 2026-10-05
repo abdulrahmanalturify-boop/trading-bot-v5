@@ -530,4 +530,4 @@ def explain(r):
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "17.9"
+BUILD = "18.0"

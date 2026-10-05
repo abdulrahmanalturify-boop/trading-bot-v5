@@ -1,2 +1,2 @@
-A.Alturaifi Pro - version 17.9 (every input box is clearly a box: a darker well with a visible edge, blue on hover, a ring when typing; dark and light)
+A.Alturaifi Pro - version 18.0 (Opportunity Hunter: the logo and the name of a company open its page; the rest of the card still opens the analysis)
 If you can see this file on GitHub, the new version was uploaded correctly.
