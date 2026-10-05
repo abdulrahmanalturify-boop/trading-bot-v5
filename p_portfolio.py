@@ -263,6 +263,23 @@ CSS = f"""<style>
 .pfq .rng .tr {{ position:relative; height:8px; border-radius:8px; background:linear-gradient(90deg,{T.NEG_BD},#3E3A46,{T.POS_BD}); margin:5px 0 2px; direction:ltr; }}
 .pfq .rng .tr i {{ position:absolute; top:50%; width:14px; height:14px; border-radius:50%; background:#fff; border:3px solid {_A}; transform:translate(-50%,-50%);
   box-shadow:0 0 0 4px rgba(59,139,235,.22); }}
+/* buying power, inside the ticket: what's available, the most shares it buys, and how much of it this order takes */
+.pfbp {{ position:relative; overflow:hidden; border-radius:16px; padding:12px 14px; margin:2px 0 6px; border:1px solid rgba(121,184,244,.3);
+  background:radial-gradient(120% 140% at 100% 0%, rgba(45,182,235,.16), transparent 60%), linear-gradient(135deg, rgba(59,139,235,.10), rgba(123,69,240,.08)); }}
+.pfbp.sh {{ border-color:rgba(249,115,22,.35); background:radial-gradient(120% 140% at 100% 0%, rgba(249,115,22,.14), transparent 60%),
+  linear-gradient(135deg, rgba(249,115,22,.08), rgba(123,69,240,.06)); }}
+.pfbp .t {{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }}
+.pfbp .l {{ display:flex; align-items:center; gap:7px; color:#CFC8DA; font-size:.74rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }}
+.pfbp .l .ms {{ color:{_C}; font-size:1.1rem; }} .pfbp.sh .l .ms {{ color:#FB923C; }}
+.pfbp .v {{ color:#fff; font-size:1.55rem; font-weight:800; letter-spacing:-.02em; direction:ltr; unicode-bidi:isolate; }}
+.pfbp .s {{ color:{_MU}; font-size:.76rem; margin-top:2px; line-height:1.5; }} .pfbp .s b {{ color:#E7E3EB; direction:ltr; unicode-bidi:isolate; }}
+.pfbp .mx {{ display:inline-flex; align-items:center; gap:6px; margin-top:8px; border-radius:9px; padding:4px 9px; font-size:.78rem; color:#DCEBFA;
+  background:rgba(59,139,235,.14); border:1px solid rgba(121,184,244,.3); }} .pfbp .mx b {{ color:#fff; direction:ltr; unicode-bidi:isolate; }}
+.pfbp .u {{ margin-top:10px; }}
+.pfbp .u .bar {{ height:8px; border-radius:8px; background:rgba(157,151,165,.18); overflow:hidden; direction:ltr; }}
+.pfbp .u .bar i {{ display:block; height:100%; border-radius:8px; transition:width .3s; }}
+.pfbp .u .cap {{ display:flex; justify-content:space-between; gap:8px; color:{_MU}; font-size:.74rem; margin-top:4px; }}
+.pfbp .u .cap b {{ color:#fff; direction:ltr; unicode-bidi:isolate; }} .pfbp .u .cap b.dn {{ color:{T.NEG_FG}; }}
 .pfprev {{ background:{T.BOX_BG}; border:1px solid {_BD}; border-radius:18px; padding:14px 16px; margin:6px 0 8px; }}
 .pfprev .h {{ display:flex; align-items:center; gap:8px; color:#fff; font-weight:600; margin-bottom:8px; }} .pfprev .h .ms {{ color:{_C}; }}
 .pfprev .r {{ display:flex; justify-content:space-between; gap:10px; padding:6px 0; border-top:1px solid rgba(44,39,56,.7); font-size:.86rem; color:#CFC8DA; }}
@@ -1382,6 +1399,7 @@ def ticket(c, sym, q, inf, held):
         types = ["market", "limit", "stop"] + (["trail"] if side in ("sell", "cover") else [])
         typ = st.segmented_control(L("Order type", "نوع الأمر"), types, default="market", key=f"pf_type_{side}",
                                    format_func=lambda k: L(*TYPE[k])) or "market"
+        bp_slot = st.empty()                    # buying power: drawn here once the size of the order is known
         spec = {"sym": sym, "side": side, "type": typ}
         if typ == "limit":
             spec["limit"] = st.number_input(L("Limit price ($)", "السعر المحدد ($)"), 0.01, 1e6, round(price * (0.99 if side in ("buy", "cover") else 1.01), 2),
@@ -1416,7 +1434,18 @@ def ticket(c, sym, q, inf, held):
             maxq = int(abs(held))
             qty = st.number_input(L("Shares", "الأسهم"), 1, max(maxq, 1), maxq or 1, 1, key=f"pf_q_{sym}_{side}_{maxq}")
         elif mode == "shares":
-            qty = st.number_input(L("Shares", "الأسهم"), 1, 10_000_000, 10, 1, key=f"pf_q_{sym}_{side}")
+            qk = f"pf_q_{sym}_{side}"
+            a_ = c.acct
+            room_ = max(a_["excess"] - PF.reserved(c.state, a_), 0.0)
+            r_ = PF.SHORT_INIT if side == "short" else a_["r_long"]
+            mq = int(max(room_ - PF.fee_of(c.state["settings"], 1), 0) / (r_ * ref)) if ref and r_ else 0
+            q1, q2 = st.columns([3, 1], vertical_alignment="bottom")
+            with q1:
+                qty = st.number_input(L("Shares", "الأسهم"), 1, 10_000_000, 10, 1, key=qk)
+            with q2:
+                st.button(L(f"Max {mq:,}", f"الأقصى {mq:,}"), key=f"pf_max_{side}", width="stretch", disabled=mq < 1,
+                          on_click=lambda k=qk, v=max(mq, 1): ss.__setitem__(k, v),
+                          help=L("The most shares your buying power covers at this price", "أكثر عدد أسهم تغطيه قوتك الشرائية بهالسعر"))
         elif mode == "dollars":
             amt = st.number_input(L("Amount ($)", "المبلغ ($)"), 1.0, 1e9, 5000.0, 500.0, key=f"pf_amt_{side}")
             qty = int(amt // ref) if ref else 0
@@ -1431,6 +1460,7 @@ def ticket(c, sym, q, inf, held):
             qty = int(eq * rk / 100 // dist) if dist > 0 else 0
             st.caption(L(f"= {qty:,} shares: a stop-out loses about {_m(qty * dist, 0)}", f"= {qty:,} سهم: لو ضرب الوقف تخسر تقريباً {_m(qty * dist, 0)}"))
         spec["qty"] = int(qty or 0)
+        bp_slot.markdown(bp_html(c, side, sym, ref, spec["qty"], held), unsafe_allow_html=True)
         if typ != "market":
             spec["tif"] = st.segmented_control(L("Time in force", "مدة الأمر"), ["day", "gtc"], default="gtc" if typ == "trail" else "day",
                                                key=f"pf_tif_{typ}", format_func=lambda k: L("Day", "اليوم") if k == "day" else L("Until cancelled", "حتى الإلغاء")) or "day"
@@ -1470,6 +1500,46 @@ def ticket(c, sym, q, inf, held):
         if not pv or not pv.get("open"):
             ui.html(f'<div class="pfinfo">{T.icon("schedule")}<div>{T.esc(L("The market is closed: market orders fill at the next open, limit and stop orders when their price is reached during the session.", "السوق مسكّر: أوامر السوق تتنفذ مع الافتتاح القادم، والمحددة والوقف لما يوصل السعر لها خلال الجلسة."))}</div></div>')
     return spec, pv
+
+
+def bp_html(c, side, sym, ref, qty, held):
+    """Buying power inside the ticket: what's free now (after what open orders hold), the most shares it buys at this price,
+    and how much of it this order takes. A sale or a cover shows what it gives back."""
+    a, s_ = c.acct, c.state["settings"]
+    held_for = PF.reserved(c.state, a)
+    room = max(a["excess"] - held_for, 0.0)
+    short = side == "short"
+    r = PF.SHORT_INIT if short else a["r_long"]
+    bp = room / r if r else 0.0
+    fee = PF.fee_of(s_, max(int(qty or 0), 1))
+    maxq = int(max(room - fee, 0) / (r * ref)) if ref and r else 0
+    lab = L("Short buying power", "القوة الشرائية للمكشوف") if short else L("Buying power", "القوة الشرائية")
+    sub = [f'{L("Cash", "الكاش")} <b>{_m(a["cash"], 0)}</b>']
+    if held_for > 0.5:
+        sub.append(f'{L("held for open orders", "محجوز لأوامر مفتوحة")} <b>{_m(held_for / r if r else held_for, 0)}</b>')
+    if not short and a["r_long"] < 1:
+        sub.append(L("2× margin on", "هامش 2× مفعّل"))
+    if short:
+        sub.append(L("a short needs 50% of its value as margin", "المكشوف يحتاج 50% من قيمته هامش"))
+    head = (f'<div class="t"><div class="l">{T.icon("bolt")}{T.esc(lab)}</div><div class="v">{_m(bp, 0)}</div></div>'
+            f'<div class="s">{" · ".join(sub)}</div>')
+    if side in ("sell", "cover"):
+        free = (a["r_long"] if side == "sell" else PF.SHORT_INIT) * qty * ref
+        body = (f'<div class="mx">{T.icon("inventory_2")}{T.esc(L("You hold", "عندك"))} <b>{abs(int(held)):,}</b> {T.esc(sym)} · '
+                f'{T.esc(L("this order frees about", "هالأمر يحرر تقريباً"))} <b>{_m(free / (a["r_long"] or 1), 0)}</b></div>')
+        return f'<div class="pfbp">{head}{body}</div>'
+    body = (f'<div class="mx">{T.icon("calculate")}{T.esc(L("Max now", "الحد الأعلى الحين"))} <b>{maxq:,}</b> {T.esc(sym)} '
+            f'{T.esc(L("at", "بسعر"))} <b>{_m(ref)}</b></div>')
+    need = r * qty * ref + fee if qty else 0.0
+    if qty:
+        pct = need / room * 100 if room > 0 else 999.0
+        col = T.POS_FG if pct < 50 else T.GOLD if pct < 90 else T.ORANGE if pct <= 100 else T.NEG_FG
+        over = pct > 100
+        body += (f'<div class="u"><div class="bar"><i style="width:{min(pct, 100):.0f}%;background:{col}"></i></div>'
+                 f'<div class="cap"><span>{T.esc(L("This order uses", "هالأمر يستخدم"))} <b>{_m(need / r if r else need, 0)}</b></span>'
+                 f'<span><b class="{"dn" if over else ""}">{min(pct, 999):.1f}%</b> '
+                 f'{T.esc(L("— more than you have" if over else "of it", "— أكثر من المتاح" if over else "منها"))}</span></div></div>')
+    return f'<div class="pfbp{" sh" if short else ""}">{head}{body}</div>'
 
 
 def preview_html(pv, c):
@@ -1778,4 +1848,4 @@ def page_history():
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "18.6"
+BUILD = "18.7"

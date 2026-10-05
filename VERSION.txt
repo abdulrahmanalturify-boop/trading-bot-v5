@@ -1,2 +1,2 @@
-A.Alturaifi Pro - version 18.6 (paper portfolio: health score with next steps, holdings heat map, trend lines, P&L calendar, 13 achievements, trade journal notes)
+A.Alturaifi Pro - version 18.7 (paper portfolio: buying power inside the order ticket - free now, held for open orders, the most shares it buys with a Max button, and how much of it the order uses)
 If you can see this file on GitHub, the new version was uploaded correctly.
