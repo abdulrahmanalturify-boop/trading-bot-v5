@@ -231,9 +231,15 @@ def screen(name, count=25):
         return pd.DataFrame()
 
 
+# the US exchanges the screener covers: Nasdaq (Global Select / Global / Capital), NYSE, NYSE American, NYSE Arca and Cboe BZX.
+# Over-the-counter listings (pink sheets, foreign ordinary shares) are left out: their figures are often in another currency
+# or out of date, and they are not what "the US market" means on a screener.
+US_EXCHANGES = ("NMS", "NGM", "NCM", "NYQ", "ASE", "PCX", "BTS")
+
+
 def build_query(filters):
-    """filters: list of (op, field, *values). Region US is always added."""
-    parts = [EquityQuery("eq", ["region", "us"])]
+    """filters: list of (op, field, *values). Region US and the main US exchanges are always added."""
+    parts = [EquityQuery("eq", ["region", "us"]), EquityQuery("is-in", ["exchange", *US_EXCHANGES])]
     for f in filters:
         op, field, *vals = f
         if op == "or_eq":
@@ -1335,18 +1341,76 @@ def yield_curve():
     return pd.DataFrame(), None
 
 
+# currencies quoted in their small unit (pence, cents, agorot): code -> (ISO code, factor)
+_MINOR = {"GBp": ("GBP", .01), "GBX": ("GBP", .01), "ZAc": ("ZAR", .01), "ZAC": ("ZAR", .01), "ILA": ("ILS", .01)}
+
+
+def _iso(cur):
+    """(ISO currency code, factor to it) for a currency as Yahoo writes it."""
+    if not cur:
+        return "USD", 1.0
+    if cur in _MINOR:
+        return _MINOR[cur]
+    return str(cur).upper(), 1.0
+
+
+@st.cache_data(ttl=21600, show_spinner=False)
+def _fx_rates(codes):
+    """ISO code -> US dollars for one unit, from Yahoo's currency quotes (TWDUSD=X, JPYUSD=X, ...)."""
+    raw = _quotes(tuple(f"{c}USD=X" for c in codes))
+    out = {}
+    for q in raw:
+        sym, px = str(q.get("symbol") or ""), q.get("regularMarketPrice")
+        if sym.endswith("USD=X") and isinstance(px, (int, float)) and px > 0:
+            out[sym[:-5]] = float(px)
+    if not out:
+        raise Empty("fx")
+    return out
+
+
+def usd_rates(currencies):
+    """ISO code -> US dollars for one unit for the currencies given (USD is 1; a currency whose rate can't be read is absent)."""
+    codes = tuple(sorted({_iso(c)[0] for c in currencies if c} - {"USD"}))
+    rates = {"USD": 1.0}
+    if codes:
+        try:
+            rates.update(_fx_rates(codes))
+        except Exception:
+            pass
+    return rates
+
+
+def to_usd(value, cur, rates):
+    """value in currency cur -> US dollars, or None when the rate is unknown."""
+    code, k = _iso(cur)
+    r = rates.get(code)
+    return None if r is None or value is None else float(value) * k * r
+
+
 def revenues(symbols, limit=100):
-    """symbol -> trailing-12-month revenue (from the company profile, cached 6 hours)."""
+    """symbol -> trailing-12-month revenue in US dollars (from the company profile, cached 6 hours).
+    Companies abroad report in their own currency (TSMC in Taiwan dollars, Toyota in yen, Alibaba in yuan): their revenue
+    is turned into dollars at today's rate. A revenue whose currency can't be converted is left out (None) rather than
+    added as if it were dollars, and so is one that is clearly a unit slip in the source (over 30 times the company's
+    whole market value)."""
     syms = [s for s in dict.fromkeys(symbols) if s][:limit]
 
     def one(s):
-        v = info(s).get("totalRevenue")
-        return s, float(v) if isinstance(v, (int, float)) and v > 0 else None
-    out = {}
+        i = info(s)
+        v = i.get("totalRevenue")
+        if not isinstance(v, (int, float)) or v <= 0:
+            return s, None, None, None
+        return s, float(v), i.get("financialCurrency") or i.get("currency") or "USD", i.get("marketCap")
     with ThreadPoolExecutor(max_workers=8) as ex:
-        for s, v in ex.map(one, syms):
-            out[s] = v
+        rows = list(ex.map(one, syms))
+    rates = usd_rates(cur for _, v, cur, _ in rows if v)
+    out = {}
+    for s, v, cur, cap in rows:
+        usd = to_usd(v, cur, rates) if v else None
+        if usd is not None and isinstance(cap, (int, float)) and cap > 0 and usd > 30 * cap:
+            usd = None
+        out[s] = usd
     return out
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "18.3"
+BUILD = "18.4"

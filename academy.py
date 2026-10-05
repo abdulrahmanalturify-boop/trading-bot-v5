@@ -369,7 +369,7 @@ CANDLE_ANATOMY = """<svg viewBox="0 0 520 240" xmlns="http://www.w3.org/2000/svg
 </svg>"""
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "18.3"
+BUILD = "18.4"
 
 
 # Academy expansion: original courses retain their identifiers and progress.

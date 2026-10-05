@@ -1,6 +1,7 @@
 """
 p_research.py - Stock · Screener (Finviz-style) · Scanner · Catalyst Pro
 """
+import json
 import time
 from datetime import datetime
 
@@ -318,6 +319,10 @@ def financials_tab(sym, inf, price=None):
         v = inf.get(k)
         return (f"{v:,.{dec}f}", "neu") if isinstance(v, (int, float)) else ("—", "neu")
     big = lambda k: (T.fmt_big(inf.get(k)), "neu")
+    # figures from the financial statements are in the currency the company reports in (TSMC: Taiwan dollars): say which
+    fc = str(inf.get("financialCurrency") or "USD")
+    cur_ = (lambda v: f' <span class="muted" style="font-size:.7em">{fc}</span>' if fc.upper() != "USD" and isinstance(v, (int, float)) else "")
+    bigf = lambda k: (T.fmt_big(inf.get(k)) + cur_(inf.get(k)), "neu")
     ui.safe(FV.section, sym, price or inf.get("currentPrice") or inf.get("regularMarketPrice"), "fv_stock")
     groups = {
         ("Valuation", "التقييم", "price_check"): [
@@ -330,11 +335,11 @@ def financials_tab(sym, inf, price=None):
         ("Growth", "النمو", "trending_up"): [
             (L("Revenue growth", "نمو الإيرادات"), pct("revenueGrowth")), (L("Earnings growth", "نمو الأرباح"), pct("earningsGrowth")),
             (L("Qtr earnings growth", "نمو الأرباح الفصلي"), pct("earningsQuarterlyGrowth")),
-            (L("Revenue (TTM)", "الإيرادات"), big("totalRevenue")), ("EBITDA", big("ebitda"))],
+            (L("Revenue (TTM)", "الإيرادات"), bigf("totalRevenue")), ("EBITDA", bigf("ebitda"))],
         ("Balance sheet", "الميزانية", "account_balance_wallet"): [
-            (L("Total cash", "النقد"), big("totalCash")), (L("Total debt", "الديون"), big("totalDebt")),
+            (L("Total cash", "النقد"), bigf("totalCash")), (L("Total debt", "الديون"), bigf("totalDebt")),
             (L("Debt/Equity", "الديون/الملكية"), num("debtToEquity", 1)), (L("Current ratio", "نسبة التداول"), num("currentRatio")),
-            (L("Free cash flow", "التدفق النقدي الحر"), (T.fmt_big(inf.get("freeCashflow")), T.cls(inf.get("freeCashflow"))))],
+            (L("Free cash flow", "التدفق النقدي الحر"), (T.fmt_big(inf.get("freeCashflow")) + cur_(inf.get("freeCashflow")), T.cls(inf.get("freeCashflow"))))],
     }
     cols = st.columns(4)
     for col, ((gen, gar, ic), items) in zip(cols, groups.items()):
@@ -994,19 +999,35 @@ def _local_screen(filters, sort, asc, size):
         raw = data._quotes(tuple(syms))
     except Exception:
         return None, []
-    df = data._quotes_df(raw)
+    df = _fix52(data._quotes_df(raw))
     if df.empty:
         return None, []
-    if df["52W %"].notna().sum() > 5 and pd.to_numeric(df["52W %"], errors="coerce").abs().median() < 1.5:
+    keep, skipped = _eval_local(df, filters)
+    return _sort_local(df[keep], sort, asc).head(size).reset_index(drop=True), skipped
+
+
+def _fix52(df):
+    """Some versions of Yahoo's quote send the 52-week change as a fraction: as a percent like the rest."""
+    if not df.empty and "52W %" in df and df["52W %"].notna().sum() > 5 and pd.to_numeric(df["52W %"], errors="coerce").abs().median() < 1.5:
         df["52W %"] = pd.to_numeric(df["52W %"], errors="coerce") * 100
+    return df
+
+
+def _sort_local(df, sort, asc):
+    sc = LOCAL_SORT.get(sort, "Mkt Cap")
+    return df.sort_values(sc, ascending=asc, na_position="last") if sc in df else df
+
+
+def _eval_local(df, filters):
+    """(rows that pass, filter fields that can't be checked here) for screener filters checked on live quotes."""
     meta = data.classify(df["Symbol"].tolist(), limit=0)
-    sec_ = df["Symbol"].map(lambda x: meta.get(x, (None, None))[0])
-    ind_ = df["Symbol"].map(lambda x: meta.get(x, (None, None))[1])
+    sec_ = df["Symbol"].map(lambda x: meta.get(x, (None, None))[0] or U.sector_of(x))
+    ind_ = df["Symbol"].map(lambda x: meta.get(x, (None, None))[1] or U.industry_of(x))
     keep = pd.Series(True, index=df.index)
     skipped = []
     for f in filters:
         op, field, *vals = f
-        if field == "region":
+        if field in ("region", "exchange"):
             continue
         if op == "or_eq":
             keep &= (sec_ if field == "sector" else ind_).isin(list(vals[0]))
@@ -1022,11 +1043,71 @@ def _local_screen(filters, sort, asc, size):
         m = v > vals[0] if op == "gt" else (v < vals[0] if op == "lt" else ((v >= vals[0]) & (v <= vals[1]) if op == "btwn" else None))
         if m is not None:
             keep &= m.fillna(False)
-    df = df[keep]
-    sc = LOCAL_SORT.get(sort, "Mkt Cap")
-    if sc in df:
-        df = df.sort_values(sc, ascending=asc, na_position="last")
-    return df.head(size).reset_index(drop=True), list(dict.fromkeys(skipped))
+    return keep, list(dict.fromkeys(skipped))
+
+
+def _theme_passing(qdf, filters):
+    """(symbols of the theme that pass every Yahoo filter, error, symbols that couldn't be checked).
+    One screen over the theme's sectors, between its smallest and largest company; when Yahoo's 250-row window comes back
+    full, each company still outside it is asked about on its own (its sector, a narrow band around its market cap), so a
+    company is kept only when Yahoo's screener says it passes."""
+    caps = pd.to_numeric(qdf["Mkt Cap"], errors="coerce") if "Mkt Cap" in qdf else pd.Series(np.nan, index=qdf.index)
+    cap_of = dict(zip(qdf["Symbol"], caps))
+    secs = {t: U.sector_of(t) for t in qdf["Symbol"]}
+    known = sorted(set(secs.values()) - {"Other"})
+    q = list(filters)
+    if known and all(v != "Other" for v in secs.values()):
+        q.append(["or_eq", "sector", known])
+    if caps.notna().any():
+        q.append(["btwn", "intradaymarketcap", float(caps.min()) * 0.9, float(caps.max()) * 1.1])
+    first, err = data.screen_custom(q, "intradaymarketcap", False, 250)
+    if err:
+        return set(), err, []
+    passed = set(first["Symbol"]) if not first.empty else set()
+    unsure = []
+    if len(first) >= 250:
+        for t in qdf["Symbol"]:
+            if t in passed:
+                continue
+            c = cap_of.get(t)
+            if c is None or not np.isfinite(c) or c <= 0:
+                unsure.append(t)
+                continue
+            qq = list(filters) + ([["eq", "sector", secs[t]]] if secs[t] != "Other" else []) + [["btwn", "intradaymarketcap", c * 0.97, c * 1.03]]
+            d2, e2 = data.screen_custom(qq, "intradaymarketcap", False, 250)
+            if e2:
+                unsure.append(t)
+            elif not d2.empty and t in set(d2["Symbol"]):
+                passed.add(t)
+    return passed, None, unsure
+
+
+def _theme_screen(theme_syms, filters, sort, asc):
+    """(DataFrame, error, source, skipped filters, unchecked symbols) for an investment theme: exactly its own companies,
+    with live quotes, each one kept only if it passes every chosen filter."""
+    try:
+        raw = data._quotes(tuple(theme_syms))
+    except Exception:
+        raw = []
+    df = _fix52(data._quotes_df(raw))
+    source = "live"
+    if df.empty:                                         # quotes unavailable: the last daily prices
+        ch = data.changes(tuple(theme_syms))
+        df = pd.DataFrame([{"Symbol": t, "Name": U.name_of(t), "Price": ch[t][0], "Chg %": ch[t][1]} for t in theme_syms if t in ch])
+        source = "history"
+        if df.empty:
+            return df, None, source, [], []
+    df = df[df["Symbol"].isin(theme_syms)].drop_duplicates("Symbol")
+    df["Name"] = [n if isinstance(n, str) and n and n != t else U.name_of(t) for t, n in zip(df["Symbol"], df.get("Name", df["Symbol"]))]
+    err, skipped, unsure = None, [], []
+    if filters:
+        passed, err, unsure = _theme_passing(df, filters) if source == "live" else (set(), "quotes", [])
+        if err:                                          # Yahoo's screener refused: check what the quotes can, list the rest
+            keep, skipped = _eval_local(df, filters)
+            df = df[keep]
+        else:
+            df = df[df["Symbol"].isin(passed)]
+    return _sort_local(df, sort, asc).reset_index(drop=True), err, source, skipped, unsure
 
 
 def _reset_filters():
@@ -1249,39 +1330,35 @@ def page_screener():
         ui.html(" ".join(chips))
 
     theme_syms = X.theme_tickers(th, None if ss.get("sf_subtheme", "Any") == "Any" else ss.sf_subtheme) if th != "Any" else None
-    if run or "screen" not in ss:
-        filters = []
-        for k in F:
-            v = ss.get(f"sf_{k}", 0)
-            if v and F[k][2] not in LOCAL_GROUPS:
-                filters += [list(f) for f in F[k][3][v][2]]
-        if sec != "Any":
-            filters.append(["eq", "sector", sec])
-        if ss.get("sf_industry", "Any") != "Any":
-            filters.append(["eq", "industry", ss.sf_industry])
-        if theme_syms and sec == "Any":
-            filters.append(["or_eq", "sector", sorted({U.sector_of(t) for t in theme_syms} - {"Other"})])
+    filters = []
+    for k in F:
+        v = ss.get(f"sf_{k}", 0)
+        if v and F[k][2] not in LOCAL_GROUPS:
+            filters += [list(f) for f in F[k][3][v][2]]
+    if sec != "Any":
+        filters.append(["eq", "sector", sec])
+    if ss.get("sf_industry", "Any") != "Any":
+        filters.append(["eq", "industry", ss.sf_industry])
+    # the results always answer the filters on screen: any change of a filter, the theme, the order or the count screens again
+    # (before, a theme picked without pressing Screen kept the old list - the top 100 of the whole market - under the theme's name)
+    sig_ = json.dumps([filters, th, ss.get("sf_subtheme", "Any"), sort, size], default=str)
+    if run or ss.get("screen", {}).get("sig") != sig_:
         with st.spinner(L("Screening the US market...", "جاري فلترة السوق الأمريكي...")):
-            n_want = 250 if theme_syms else size
-            if time.time() < _LIVE_DOWN["until"]:          # Yahoo refused a moment ago: don't hammer it, use the backup directly
-                df, err = pd.DataFrame(), _LIVE_DOWN["err"]
+            skipped, unsure = [], []
+            if theme_syms is not None:                     # a theme: exactly its companies, each checked against the filters
+                df, err, source, skipped, unsure = _theme_screen(theme_syms, filters, sort, SORTS[sort][2])
+                source = "live" if not err else "theme_local"
+            elif time.time() < _LIVE_DOWN["until"]:        # Yahoo refused a moment ago: don't hammer it, use the backup directly
+                df, err, source = pd.DataFrame(), _LIVE_DOWN["err"], "live"
             else:
-                df, err = data.screen_custom(filters, sort, SORTS[sort][2], n_want)
+                df, err = data.screen_custom(filters, sort, SORTS[sort][2], size)
+                source = "live"
                 if err:
                     _LIVE_DOWN.update(until=time.time() + 600, err=err)
-            source, skipped = "live", []
-            if err:
-                ldf, skipped = _local_screen(filters, sort, SORTS[sort][2], n_want)
+            if err and theme_syms is None:
+                ldf, skipped = _local_screen(filters, sort, SORTS[sort][2], size)
                 if ldf is not None:
                     df, source = ldf, "local"
-            if theme_syms is not None:
-                have = set(df["Symbol"]) if not df.empty else set()
-                df = df[df["Symbol"].isin(theme_syms)] if not df.empty else df
-                missing = [t for t in theme_syms if t not in have]
-                if missing:
-                    ch = data.changes(missing)
-                    extra = pd.DataFrame([{"Symbol": t, "Name": U.name_of(t), "Price": ch[t][0], "Chg %": ch[t][1]} for t in missing if t in ch])
-                    df = pd.concat([df, extra], ignore_index=True) if not df.empty else extra
             if df.empty and theme_syms is None and err and source == "live":     # both the live and the backup screener are down
                 source = "fallback"
                 fb = data.changes(tuple(U.US_UNIVERSE))
@@ -1289,7 +1366,7 @@ def page_screener():
                                    for s_, (p_, c_) in fb.items()])
                 if sec != "Any" and not df.empty:
                     df = df[df["Symbol"].map(U.sector_of) == sec]
-        ss.screen = {"df": df, "err": err, "source": source, "skipped": skipped}
+        ss.screen = {"df": df, "err": err, "source": source, "skipped": skipped, "unsure": unsure, "sig": sig_}
 
     res = ss.screen
     df = _pre_filters(res["df"].copy()) if not res["df"].empty else res["df"]
@@ -1303,9 +1380,17 @@ def page_screener():
                   "(S&P 500 + top 175 US stocks, live prices). Everything else on the page works normally.",
                   "فلتر ياهو المباشر لا يستجيب لخادم الموقع حالياً، لذلك النتائج مفلترة من بياناتنا "
                   "(أسهم إس آند بي 500 + أكبر 175 سهم أمريكي بأسعار مباشرة). وباقي الصفحة يعمل بشكل طبيعي."), icon=":material/cloud_sync:")
-        if res.get("skipped"):
-            st.caption(L("Filters that need the live screener and were skipped: ", "فلاتر تحتاج الفلتر المباشر وتم تجاهلها: ")
-                       + " · ".join(_field_label(f_) for f_ in res["skipped"]))
+    if res["source"] == "theme_local":
+        st.info(L("Yahoo's live screener isn't answering our server right now, so the theme's companies are checked against the "
+                  "filters with their live quotes.",
+                  "فلتر ياهو المباشر لا يستجيب لخادم الموقع حالياً، لذلك نتحقق من شركات الثيم مقابل الفلاتر بأسعارها المباشرة."),
+                icon=":material/cloud_sync:")
+    if res["source"] in ("local", "theme_local") and res.get("skipped"):
+        st.caption(L("Filters that need the live screener and were skipped: ", "فلاتر تحتاج الفلتر المباشر وتم تجاهلها: ")
+                   + " · ".join(_field_label(f_) for f_ in res["skipped"]))
+    if res.get("unsure"):
+        st.caption(L("Couldn't check these against the filters right now, so they're left out: ",
+                     "تعذّر التحقق من هذه الأسهم مقابل الفلاتر الآن، فتم استبعادها: ") + " · ".join(res["unsure"]))
     if res["source"] == "fallback":
         st.warning(L("Live screener unavailable right now; showing the top 175 US stocks with price filters only.",
                      "الفلتر المباشر غير متاح حالياً؛ نعرض أكبر 175 سهم أمريكي مع فلاتر السعر فقط."), icon=":material/cloud_off:")
@@ -1456,4 +1541,4 @@ def page_screener():
 # SCANNER
 # =====================================================================
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "18.3"
+BUILD = "18.4"

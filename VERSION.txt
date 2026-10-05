@@ -1,2 +1,2 @@
-A.Alturaifi Pro - version 18.3 (tabs: a frosted strip where the chosen tab is a lit blue-violet pill that slides to the tab pressed; the 52-week range gets room above them)
+A.Alturaifi Pro - version 18.4 (screener: results always follow the filters on screen; a theme lists exactly its companies, each checked against every filter; revenues abroad in US dollars; main US exchanges only)
 If you can see this file on GitHub, the new version was uploaded correctly.
