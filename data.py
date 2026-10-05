@@ -701,11 +701,56 @@ def _empty_fundamentals():
 
 def fundamentals(symbol):
     """Earnings date, analyst ratings / targets / recommendations, EPS history, quarterly income, insiders.
-    A fetch that brings nothing back (Yahoo busy) isn't kept, so the next page view tries again."""
+    A fetch that brings nothing back (Yahoo busy) isn't kept, so the next page view tries again. The two analyst tables
+    are kept apart: when Yahoo answers the rest but skips them (it often does when busy), they are asked again on the next
+    view instead of staying empty for 6 hours with the rest."""
     try:
-        return _fundamentals(symbol)
+        out = dict(_fundamentals(symbol))
     except Exception:
-        return _empty_fundamentals()
+        out = _empty_fundamentals()
+    if any(not isinstance(out.get(k), pd.DataFrame) or out[k].empty for k in ("rec_summary", "ratings")):
+        got = analyst_tables(symbol)
+        for k in ("rec_summary", "ratings"):
+            if (not isinstance(out.get(k), pd.DataFrame) or out[k].empty) and not got[k].empty:
+                out[k] = got[k]
+    return out
+
+
+def analyst_tables(symbol):
+    """{"rec_summary", "ratings"}: the count of analysts per rating, and the rating changes of the last 90 days.
+    Kept 6 hours once Yahoo sends them; an empty answer is not kept."""
+    try:
+        return _analyst_tables(symbol)
+    except Exception:
+        return {"rec_summary": pd.DataFrame(), "ratings": pd.DataFrame()}
+
+
+def _ratings_90d(t):
+    r = t.upgrades_downgrades
+    if r is None or r.empty:
+        return pd.DataFrame()
+    r = r.copy()
+    idx = pd.to_datetime(r.index, errors="coerce")
+    if getattr(idx, "tz", None) is not None:
+        idx = idx.tz_localize(None)
+    r.index = idx
+    return r[r.index >= pd.Timestamp.now() - pd.Timedelta(days=90)].sort_index(ascending=False)
+
+
+@st.cache_data(ttl=21600, show_spinner=False)
+def _analyst_tables(symbol):
+    t = yf.Ticker(symbol)
+    out = {"rec_summary": pd.DataFrame(), "ratings": pd.DataFrame()}
+    for k, fn in (("rec_summary", lambda: t.recommendations_summary), ("ratings", lambda: _ratings_90d(t))):
+        try:
+            v = fn()
+            if isinstance(v, pd.DataFrame):
+                out[k] = v
+        except Exception:
+            pass
+    if out["rec_summary"].empty:
+        raise Empty(symbol)                  # not cached: asked again on the next view
+    return out
 
 
 @st.cache_data(ttl=21600, show_spinner=False)
@@ -729,15 +774,7 @@ def _fundamentals(symbol):
         return min(dates) if dates else None
 
     def ratings():
-        r = t.upgrades_downgrades
-        if r is None or r.empty:
-            return pd.DataFrame()
-        r = r.copy()
-        idx = pd.to_datetime(r.index, errors="coerce")
-        if getattr(idx, "tz", None) is not None:
-            idx = idx.tz_localize(None)
-        r.index = idx
-        return r[r.index >= pd.Timestamp.now() - pd.Timedelta(days=90)].sort_index(ascending=False)
+        return _ratings_90d(t)
 
     def earnings_hist():
         e = t.get_earnings_dates(limit=12)
@@ -1312,4 +1349,4 @@ def revenues(symbols, limit=100):
     return out
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "17.5"
+BUILD = "17.6"

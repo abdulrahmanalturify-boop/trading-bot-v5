@@ -4,7 +4,7 @@ import os
 import requests
 import streamlit as st
 
-BUILD = "17.5"
+BUILD = "17.6"
 API_URL = "https://api.openai.com/v1/responses"
 MAX_Q = 1200
 

@@ -1092,12 +1092,18 @@ def rating_label(counts, mean=None):
     return en, ar_, col
 
 
-def rating_gauge(counts, label, color):
-    """A half-ring split by the share of each rating (sell on the left, strong buy on the right), the consensus in the middle."""
+def rating_gauge(counts, label, color, mean=None):
+    """A half-ring split by the share of each rating (sell on the left, strong buy on the right), the consensus in the middle.
+    Without the counts but with the average, the ring shows the five bands of the average (Yahoo's own cut-offs) and a
+    marker on the average, instead of an empty grey ring."""
     cx, cy, ro, ri = 170, 160, 132, 96
     tot = sum(counts.values()) if counts else 0
     parts, a0, gap = [], 180.0, 1.6
     segs = [(k, en, ar_, col, counts[k] / tot) for k, en, ar_, col in RATING if counts and counts[k]] if tot else []
+    band = not segs and mean is not None and np.isfinite(mean)
+    if band:                                   # sell 4.5-5, underperform 3.5-4.5, hold 2.5-3.5, buy 1.5-2.5, strong buy 1-1.5
+        lab_en = mean_band(mean)[0]
+        segs = [(k, en, ar_, col if en == lab_en else col + "55", w / 4) for (k, en, ar_, col), w in zip(RATING, (0.5, 1, 1, 1, 0.5))]
     for n_, (k, en, ar_, col, frac) in enumerate(segs):
         a1 = a0 - frac * 180
         s_, e_ = a0 - (gap / 2 if n_ else 0), a1 + (gap / 2 if n_ < len(segs) - 1 else 0)
@@ -1108,10 +1114,16 @@ def rating_gauge(counts, label, color):
         (x1, y1), (x2, y2), (x3, y3), (x4, y4) = pt(ro, s_), pt(ro, e_), pt(ri, e_), pt(ri, s_)
         big = 1 if s_ - e_ > 180 else 0
         parts.append(f'<path d="M{x1:.1f} {y1:.1f} A{ro} {ro} 0 {big} 1 {x2:.1f} {y2:.1f} L{x3:.1f} {y3:.1f} A{ri} {ri} 0 {big} 0 {x4:.1f} {y4:.1f} Z" '
-                     f'fill="{col}"><title>{T.esc(L(en, ar_))} {frac * 100:.0f}%</title></path>')
+                     f'fill="{col}"><title>{T.esc(L(en, ar_))}{"" if band else f" {frac * 100:.0f}%"}</title></path>')
         a0 = a1
     if not segs:
         parts.append(f'<path d="M{cx - ro} {cy} A{ro} {ro} 0 0 1 {cx + ro} {cy} L{cx + ri} {cy} A{ri} {ri} 0 0 0 {cx - ri} {cy} Z" fill="rgba(157,151,165,.25)"/>')
+    if band:                                   # the average on the ring: 5 (sell) at the far left, 1 (strong buy) at the far right
+        a = np.radians(180 * (min(max(mean, 1), 5) - 1) / 4)
+        rm = (ro + ri) / 2
+        mx, my = cx + rm * np.cos(a), cy - rm * np.sin(a)
+        parts.append(f'<circle cx="{mx:.1f}" cy="{my:.1f}" r="12" fill="{color}" stroke="#fff" stroke-width="3.5">'
+                     f'<title>{mean:.2f}</title></circle>')
     return (f'<svg viewBox="0 0 340 176" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'
             f'<defs><radialGradient id="hnrg2" cx="50%" cy="100%" r="80%"><stop offset="0" stop-color="#7B45F0" stop-opacity=".22"/>'
             f'<stop offset="1" stop-color="#0E0918" stop-opacity=".0"/></radialGradient></defs>{"".join(parts)}'
@@ -1136,6 +1148,11 @@ def analyst_section(sym, price):
     except (TypeError, ValueError):
         mean_r = None
     source = "summary"
+    if not counts:                             # the page's copy came without them: ask Yahoo again (kept once it answers)
+        fresh = data.analyst_tables(sym)
+        counts = _rating_counts(fresh["rec_summary"])
+        if not len(rr) and len(fresh["ratings"]):
+            rr = fresh["ratings"]
     if not counts:
         counts = _counts_from_ratings(rr)
         source = "firms" if counts else "none"
@@ -1177,8 +1194,13 @@ def analyst_section(sym, price):
         ye, ya, _ = mean_band(yahoo_mean)
         yt = L("Yahoo Finance's own average, from another panel of analysts:", "متوسط ياهو فاينانس نفسه، من مجموعة محللين ثانية:")
         mean_txt += f'<div class="mr ym">{T.esc(yt)} <b>{yahoo_mean:.2f}</b> <span>({T.esc(L(ye, ya))})</span></div>'
+    if not tot and mean_r:                     # only Yahoo's average came: say so, the ring shows where it falls
+        miss = L("Yahoo Finance did not send how many analysts gave each rating this time, so the marker shows their average "
+                 "instead. It is asked again on the next view.",
+                 "ياهو فاينانس ما أرسل هالمرة كم محلل أعطى كل توصية، فالمؤشر يوضح متوسطهم بدالها. وتنطلب من جديد مع الفتح القادم.")
+        mean_txt += f'<div class="mr why">{T.esc(miss)}</div>'
     card = (f'<div class="hnrate"><div class="t">{L("Analyst Rating", "تقييم المحللين")}</div><div class="s">{T.esc(sub)}</div>'
-            f'<div class="g">{rating_gauge(counts, L(en, ar_), color)}</div><div class="lgs">{legend}</div>{mean_txt}</div>')
+            f'<div class="g">{rating_gauge(counts, L(en, ar_), color, None if tot else mean_r)}</div><div class="lgs">{legend}</div>{mean_txt}</div>')
     ups = downs = 0
     if len(rr) and "Action" in rr:
         recent = rr[rr.index >= pd.Timestamp.now() - pd.Timedelta(days=30)]
@@ -1557,4 +1579,4 @@ def page_scanner():
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "17.5"
+BUILD = "17.6"

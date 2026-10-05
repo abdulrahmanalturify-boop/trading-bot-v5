@@ -1,2 +1,2 @@
-A.Alturaifi Pro - version 17.5 (a picture with every headline: the article's own photo found in the background, else a free topic photo from Wikimedia Commons, else the topic card)
+A.Alturaifi Pro - version 17.6 (analyst rating: when Yahoo skips the count of each rating it is asked again on the next view instead of staying empty for 6 hours, and the ring shows the average on its bands instead of an empty grey ring)
 If you can see this file on GitHub, the new version was uploaded correctly.
