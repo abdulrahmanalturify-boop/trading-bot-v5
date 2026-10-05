@@ -1,2 +1,2 @@
-A.Alturaifi Pro - version 18.9 (paper portfolio: the owner's old portfolio opens again, with its own private code or link - no password)
+A.Alturaifi Pro - version 19.0 (paper portfolio: the owner's own portfolio opens directly on the owner's devices - once per device with the Paper Bots password, then nothing to type; visitors each keep their own)
 If you can see this file on GitHub, the new version was uploaded correctly.

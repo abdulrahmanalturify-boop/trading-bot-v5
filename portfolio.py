@@ -18,7 +18,7 @@ Prices are Yahoo's raw prices (not adjusted), the ones the trades really happene
 
 Storage: rows of the paper bots' table, so nothing new has to be set up in Supabase. Every visitor has a portfolio of their
 own, the row "__portfolio__:<their code>", where the code is a random key kept in their browser (see p_portfolio). The row
-"__portfolio__" is the old shared portfolio of the site owner: no page opens it any more, and it is kept as it was.
+"__portfolio__" is the site owner's own portfolio: it opens on the owner's devices (owner_code), never for visitors.
 """
 import hashlib
 import copy
@@ -43,6 +43,16 @@ KEY = "__portfolio__"                      # the owner's row in the paper_bots t
 
 def visitor_key(code):
     return f"{KEY}:{code}"
+
+
+def owner_code():
+    """The site owner's device code: a fingerprint of BOTS_PASSWORD (kept nowhere, not in the repository). A device that has
+    it in its cookie opens the owner's own portfolio directly, with nothing to type. None when no password is set."""
+    import hmac
+    pw = _pb()._secret("BOTS_PASSWORD")
+    if not pw:
+        return None
+    return hmac.new(pw.encode(), b"alturaifi-paper-portfolio-owner-v1", hashlib.sha256).hexdigest()[:40]
 DEFAULTS = {"start_cash": 100000.0, "leverage": 1.0, "commission": 0.0, "per_share": 0.0, "min_fee": 0.0, "slippage_bps": 2.0,
             "borrow_rate": 0.3, "margin_rate": 8.0, "allow_short": True}
 LONG_MAINT, SHORT_INIT, SHORT_MAINT = 0.25, 0.50, 0.30     # FINRA / Reg T
@@ -1044,4 +1054,4 @@ def save(state, row_id=None, expect="any", key=KEY):
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "18.9"
+BUILD = "19.0"

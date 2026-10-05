@@ -6,6 +6,8 @@ SHORT and cover, with market / limit / stop / trailing-stop orders and a stop lo
 Everyone has a portfolio of their own, with no password: new on the first visit and kept for them. A random code is written
 into their browser (a cookie for a year) and their account is saved under it, so the next visit opens the same portfolio; the
 code is also shown to them (Account settings), to open the portfolio on another device. Nobody sees anyone else's portfolio.
+The site owner's own portfolio opens on the owner's devices: a device becomes one once (the Paper Bots password, here or on the
+Paper Bots page), then opens it directly every time, with nothing to type.
 """
 import math
 import re
@@ -322,10 +324,18 @@ _CODE = re.compile(r"^[A-Za-z0-9_-]{16,64}$")
 _LEGACY = "885f9c44e9287b4bce07e2588eb061108ea64ac8b01f1438a88e1bbea373a7ab"
 
 
-def key_of(code):
-    """The stored row of a portfolio code: the owner's old portfolio for its code, else that visitor's own row."""
+def is_owner(code):
+    """True for the site owner's device code (or the owner's code from 18.9)."""
     import hashlib
-    return PF.KEY if hashlib.sha256(str(code).encode()).hexdigest() == _LEGACY else PF.visitor_key(code)
+    import hmac
+    oc = PF.owner_code()
+    return bool(code) and ((oc is not None and hmac.compare_digest(str(code), oc))
+                           or hashlib.sha256(str(code).encode()).hexdigest() == _LEGACY)
+
+
+def key_of(code):
+    """The stored row of a portfolio code: the owner's own portfolio on the owner's devices, else that visitor's own row."""
+    return PF.KEY if is_owner(code) else PF.visitor_key(code)
 
 
 def _from_link():
@@ -385,6 +395,8 @@ def ctx():
     """The account of this page view (this visitor's own portfolio): its open orders checked against the real prices, then
     rebuilt day by day."""
     mode = "mine"
+    if ss.get("pb_admin") and PF.owner_code() and not is_owner(ss.get("pf_vid")):
+        ss["pf_vid"] = PF.owner_code()       # the owner unlocked the Paper Bots on this device: it opens the owner's portfolio from now on
     code = _vid()
     key = key_of(code)
     _remember(code)
@@ -527,6 +539,8 @@ def _spark(eq, w=520, h=120):
 def mode_badge(c):
     if c.err is not None:
         return f'<span class="pfmode prac">{T.icon("science")}{L("This visit only (not saved)", "لهالزيارة فقط (ما ينحفظ)")}</span>'
+    if is_owner(c.code):
+        return f'<span class="pfmode saved">{T.icon("verified_user")}{L("Your portfolio", "محفظتك")}</span>'
     return f'<span class="pfmode mine">{T.icon("person")}{L("Your own portfolio", "محفظتك الخاصة")}</span>'
 
 
@@ -588,16 +602,44 @@ def access_bar(c):
                      "وضع التجربة: المحافظ محفوظة مؤقتاً وتنحذف إذا أعاد الموقع التشغيل. اربط Supabase (مثل البوتات الافتراضية) عشان تنحفظ بشكل دائم."),
                    icon=":material/info:")
     with st.container(key="pfbar"):
-        txt = L("Your own portfolio: it starts with $100,000 of virtual money, only you see it, and it is kept for you in this "
-                "browser. To open it on another device, use your portfolio code (Account settings).",
-                "محفظتك الخاصة: تبدأ بـ 100,000$ افتراضية، ما يشوفها غيرك، وتنحفظ لك في هالمتصفح. "
-                "عشان تفتحها من جهاز ثاني استخدم رمز محفظتك (إعدادات الحساب).")
-        st.markdown(f'<div class="pfinfo">{T.icon("person")}<div>{T.esc(txt)}</div></div>', unsafe_allow_html=True)
+        if is_owner(c.code):
+            txt = L("Your portfolio (site owner). This device opens it directly, with nothing to type; visitors each have their own.",
+                    "محفظتك (مالك الموقع). هالجهاز يفتحها مباشرة بدون ما تكتب شي، وكل زائر له محفظته الخاصة.")
+            st.markdown(f'<div class="pfinfo">{T.icon("verified_user")}<div>{T.esc(txt)}</div></div>', unsafe_allow_html=True)
+            return
+        a, b = st.columns([1.6, 1], vertical_alignment="center")
+        with a:
+            txt = L("Your own portfolio: it starts with $100,000 of virtual money, only you see it, and it is kept for you in this "
+                    "browser. To open it on another device, use your portfolio code (Account settings).",
+                    "محفظتك الخاصة: تبدأ بـ 100,000$ افتراضية، ما يشوفها غيرك، وتنحفظ لك في هالمتصفح. "
+                    "عشان تفتحها من جهاز ثاني استخدم رمز محفظتك (إعدادات الحساب).")
+            st.markdown(f'<div class="pfinfo">{T.icon("person")}<div>{T.esc(txt)}</div></div>', unsafe_allow_html=True)
+        with b:
+            if PF.owner_code():
+                # once per device: the owner's password makes this device open the owner's portfolio from then on
+                with st.popover(L("Site owner?", "مالك الموقع؟"), icon=":material/admin_panel_settings:", width="stretch"):
+                    st.caption(L("Once on each device: after this, it opens your portfolio directly, with nothing to type.",
+                                 "مرة وحدة لكل جهاز: بعدها يفتح محفظتك مباشرة بدون ما تكتب شي."))
+                    st.text_input(L("Paper Bots password", "كلمة مرور البوتات"), type="password", key="pf_pw")
+                    if st.button(L("This is my device", "هذا جهازي"), icon=":material/devices:", key="pf_claim", width="stretch"):
+                        if PB.check_password(ss.get("pf_pw")):
+                            ss["pb_admin"] = True
+                            ss["pf_vid"] = PF.owner_code()
+                            ss["pf_flash"] = L("Your portfolio is open, and this device will open it directly from now on",
+                                               "انفتحت محفظتك، وهالجهاز بيفتحها مباشرة من الحين")
+                            st.rerun()
+                        st.error(L("Wrong password.", "كلمة المرور غلط."))
 
 
 def code_box(c):
     """A visitor's portfolio code: copy it to open the same portfolio on another device, or paste one here."""
     if c.mode != "mine" or not c.code:
+        return
+    if is_owner(c.code):                    # the owner's devices: nothing to copy (another device: "Site owner?" once)
+        st.markdown(f'<div class="pfcode">{T.icon("verified_user")}<div>'
+                    + T.esc(L("This device opens your portfolio directly. On another device, tap “Site owner?” once.",
+                              "هالجهاز يفتح محفظتك مباشرة. على جهاز ثاني اضغط «مالك الموقع؟» مرة وحدة."))
+                    + "</div></div>", unsafe_allow_html=True)
         return
     st.markdown(f'<div class="pfcode">{T.icon("key")}<div><b>{T.esc(L("Your portfolio code", "رمز محفظتك"))}</b> · '
                 + T.esc(L("It opens this portfolio on any device. Keep it to yourself: whoever has it can trade your portfolio.",
@@ -1845,4 +1887,4 @@ def page_history():
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "18.9"
+BUILD = "19.0"
