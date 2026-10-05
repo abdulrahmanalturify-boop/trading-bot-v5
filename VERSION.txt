@@ -1,2 +1,2 @@
-A.Alturaifi Pro - version 18.1 (stock page: the watchlist, Opportunity Hunter and paper-trade buttons are colour cards with an icon tile, a light sweep and a sliding arrow; the watchlist card is a toggle)
+A.Alturaifi Pro - version 18.2 (the glossary "?" no longer lands inside icons or tab labels: the stock page's Chart tab shows its candlestick icon again)
 If you can see this file on GitHub, the new version was uploaded correctly.

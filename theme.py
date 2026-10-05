@@ -2032,10 +2032,13 @@ FX_JS = """<script>
   // ---- the "?" for the text Streamlit draws itself (field labels, captions, plain text): the server marks the site's own HTML
   if (!P) return;
   var BOX = '[data-testid="stMarkdownContainer"], [data-testid="stCaptionContainer"]';
+  // icons are words drawn by the icon font ("candlestick_chart"): a "?" inside one breaks it into letters; tab labels stay plain too
+  var ICONS = '[data-testid="stIconMaterial"], [role="img"], [translate="no"]';
   var SKIP = 'button, [role="button"]:not(.gq), script, style, svg, textarea, select, option, code, pre, kbd, .gq, .ms, .material-symbols-rounded, '
            + '.st-key-topnav, .ixp, .st-key-introgo, .tape, .navbtn, .langbtn, .lopt, [class*="st-key-alturaifi_ai"], [class*="ai-"], .tx-tools, '
            + '[data-baseweb="select"], [data-baseweb="tab"], [data-baseweb="popover"], [role="listbox"], [role="option"], [data-testid="stPageLink"], '
-           + '[aria-hidden="true"], [data-testid="stTooltipIcon"], .lg, .lgo, .nth, .gqpop, [data-nogq], .as, .tk, .tkc, .lnk, .co, .mchip, .mvr, .wlr, .hm';
+           + '[aria-hidden="true"], [data-testid="stTooltipIcon"], .lg, .lgo, .nth, .gqpop, [data-nogq], .as, .tk, .tkc, .lnk, .co, .mchip, .mvr, .wlr, .hm, '
+           + ICONS + ', [role="tab"], [data-testid="stTab"], [role="tablist"]';
   var WORD = /[A-Za-z0-9\u0621-\u064A]/, AR = /[\u0600-\u06FF]/;
   var seen = new WeakMap();
   // news headlines and summaries are everyday language ("strikes on Iran"): there only the plainly financial words count
@@ -2086,6 +2089,10 @@ FX_JS = """<script>
     seen.set(box, box.textContent);
   }
   function scan() {
+    each(d.querySelectorAll('.gq.cl'), function (g) {      // a "?" an older script put inside an icon or a tab: out, the word whole again
+      var q = g.parentElement;
+      if (q && q.closest(ICONS + ', [role="tab"], [data-testid="stTab"]')) { g.remove(); q.normalize(); }
+    });
     each(d.querySelectorAll(BOX), function (box) {
       if (box.parentElement && box.parentElement.closest(BOX)) return;   // inside another box: scanned with it
       if (box.closest(SKIP)) return;
@@ -2685,4 +2692,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "18.1"
+BUILD = "18.2"

@@ -727,8 +727,8 @@ _NEWS_CLASS = {"news", "story", "nie-card", "nb", "bstory", "sum"}
 
 
 def _skip_open(name, attrs):
-    if name in _SKIP_TAGS or 'aria-hidden="true"' in attrs:
-        return True
+    if name in _SKIP_TAGS or 'aria-hidden="true"' in attrs or 'translate="no"' in attrs or 'role="img"' in attrs:
+        return True                                   # icons are words drawn by the icon font: a "?" inside one breaks it
     m = _CLS.search(attrs)
     if m:
         for c in m.group(1).split():
@@ -855,4 +855,4 @@ def client():
     return {"t": t, "p": p}
 
 
-BUILD = "18.1"
+BUILD = "18.2"
