@@ -317,10 +317,47 @@ CSS = f"""<style>
 # =====================================================================
 COOKIE = "alt_pf"                                    # the browser cookie that holds a visitor's portfolio code
 _CODE = re.compile(r"^[A-Za-z0-9_-]{16,64}$")
+# the site owner's portfolio from before every visitor had their own (the row "__portfolio__"): it now opens like any other
+# portfolio, with its own code. Only the code's SHA-256 is here (the repository is public); the owner has the code itself.
+_LEGACY = "885f9c44e9287b4bce07e2588eb061108ea64ac8b01f1438a88e1bbea373a7ab"
+
+
+def key_of(code):
+    """The stored row of a portfolio code: the owner's old portfolio for its code, else that visitor's own row."""
+    import hashlib
+    return PF.KEY if hashlib.sha256(str(code).encode()).hexdigest() == _LEGACY else PF.visitor_key(code)
+
+
+def _from_link():
+    """A link with ?pf=<code> opens that portfolio on this device (then the code leaves the address bar)."""
+    try:
+        v = st.query_params.get("pf")
+    except Exception:
+        return None
+    if v is None:
+        return None
+    try:
+        del st.query_params["pf"]
+    except Exception:
+        pass
+    v = str(v).strip()
+    if not _CODE.match(v):
+        return None
+    try:
+        _, row = PF.load(key_of(v))
+    except PB.StoreError:
+        return None
+    return v if row is not None else None
 
 
 def _vid():
-    """This visitor's portfolio code: the one their browser sent (cookie), else a new random one (a new portfolio)."""
+    """This visitor's portfolio code: from a ?pf= link, else the one already open, else the one their browser sent (cookie),
+    else a new random one (a new portfolio)."""
+    v = _from_link()
+    if v:
+        ss["pf_vid"] = v
+        ss["pf_flash"] = L("Your portfolio is open on this device", "انفتحت محفظتك على هالجهاز")
+        return v
     v = ss.get("pf_vid")
     if isinstance(v, str) and _CODE.match(v):
         return v
@@ -349,7 +386,7 @@ def ctx():
     rebuilt day by day."""
     mode = "mine"
     code = _vid()
-    key = PF.visitor_key(code)
+    key = key_of(code)
     _remember(code)
     mkt = PF.Market()
     err, row = None, None
@@ -575,7 +612,7 @@ def code_box(c):
             st.error(L("That isn't a portfolio code.", "هذا مو رمز محفظة."))
         else:
             try:
-                _, row = PF.load(PF.visitor_key(v))
+                _, row = PF.load(key_of(v))
             except PB.StoreError:
                 row = "?"
             if row is None:
@@ -1808,4 +1845,4 @@ def page_history():
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "18.8"
+BUILD = "18.9"

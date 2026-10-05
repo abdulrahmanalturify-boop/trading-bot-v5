@@ -1,2 +1,2 @@
-A.Alturaifi Pro - version 18.8 (paper portfolio: no owner portfolio and no password - everyone, the owner included, has their own portfolio kept in their browser; the old owner row is left untouched)
+A.Alturaifi Pro - version 18.9 (paper portfolio: the owner's old portfolio opens again, with its own private code or link - no password)
 If you can see this file on GitHub, the new version was uploaded correctly.
