@@ -721,19 +721,28 @@ def page_stock():
     h1, h2 = st.columns([4, 1])
     with h1:
         price = quote_header(sym, daily, inf)
-    with h2:
-        if sym not in ss.watchlist:
-            if st.button(L("Add to watchlist", "أضف للمتابعة"), icon=":material/star:", width="stretch"):
-                ss.watchlist.append(sym)
+    with h2, st.container(key="stkact"):
+        # three action cards, each in its own colour: the watchlist star (a toggle), the hunter's analysis, the paper ticket
+        inwl = sym in ss.watchlist
+        with st.container(key="stkact_wl_on" if inwl else "stkact_wl"):
+            if st.button(L("In watchlist", "في المتابعة") if inwl else L("Add to watchlist", "أضف للمتابعة"), icon=":material/star:", width="stretch",
+                         key="stk_wl", help=L("Tap to remove it from the watchlist", "اضغط لإزالته من المتابعة") if inwl else
+                         L("Follow it in the sidebar watchlist", "تابعه في قائمة المتابعة الجانبية")):
+                if inwl:
+                    ss.watchlist.remove(sym)
+                else:
+                    ss.watchlist.append(sym)
                 st.rerun()
-        else:
-            st.button(L("In watchlist", "في المتابعة"), icon=":material/star:", disabled=True, width="stretch")
-        if st.button(L("Opportunity Hunter", "صائد الفرص"), icon=":material/radar:", width="stretch"):
-            ss["hn_look"] = ss["hn_look_in"] = sym          # the Scanner opens this stock's full analysis
-            ui.goto("scanner")
-        if st.button(L("Paper trade", "تداول افتراضي"), icon=":material/account_balance_wallet:", width="stretch", key="stk_pf"):
-            ss["pf_sym"] = sym                              # the paper portfolio's ticket opens on this stock
-            ui.goto("pf_trade")
+        with st.container(key="stkact_hn"):
+            if st.button(L("Opportunity Hunter", "صائد الفرص"), icon=":material/radar:", width="stretch", key="stk_hn",
+                         help=L("Its full setup analysis: score, entry, stop and target", "تحليل الفرصة الكامل: التقييم والدخول والوقف والهدف")):
+                ss["hn_look"] = ss["hn_look_in"] = sym      # the Scanner opens this stock's full analysis
+                ui.goto("scanner")
+        with st.container(key="stkact_pf"):
+            if st.button(L("Paper trade", "تداول افتراضي"), icon=":material/account_balance_wallet:", width="stretch", key="stk_pf",
+                         help=L("Buy or sell it short with virtual money", "اشترِه أو بعه على المكشوف بفلوس افتراضية")):
+                ss["pf_sym"] = sym                          # the paper portfolio's ticket opens on this stock
+                ui.goto("pf_trade")
     key_stats(daily, inf)
     tabs = st.tabs([L(":material/candlestick_chart: Chart", ":material/candlestick_chart: الرسم البياني"),
                     L(":material/apartment: Company", ":material/apartment: عن الشركة"),
@@ -1447,4 +1456,4 @@ def page_screener():
 # SCANNER
 # =====================================================================
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "18.0"
+BUILD = "18.1"

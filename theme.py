@@ -266,6 +266,44 @@ button[data-testid="stBaseButton-secondary"], button[kind="secondary"], [data-te
 button[data-testid="stBaseButton-secondary"]:hover, button[kind="secondary"]:hover, .stDownloadButton > button:hover {{
   background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.24); color:#fff; }}
 button[data-testid="stBaseButton-tertiary"]:hover {{ color:#fff; }}
+/* the stock page's actions: three cards, each in its own colour, with an icon tile, a light that sweeps across and an arrow
+   that slides in under the pointer; the watchlist card stays lit (filled star and a tick) while the stock is followed, and a
+   tap on it removes the stock */
+.st-key-stkact {{ gap:10px !important; }}
+[class*="st-key-stkact_"] button {{ position:relative; overflow:hidden; isolation:isolate; min-height:56px !important; border-radius:14px !important;
+  padding-block:0 !important; padding-inline:10px 42px !important; color:#E4E0EA !important; border:1px solid var(--edge) !important;
+  background:linear-gradient(135deg, var(--bg1), rgba(16,12,28,.55) 72%) !important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06), 0 6px 18px -10px rgba(0,0,0,.6) !important;
+  transition:transform .2s ease, box-shadow .25s, border-color .25s, background .25s, color .25s !important; }}
+[class*="st-key-stkact_"] button > div {{ justify-content:flex-start !important; }}
+[class*="st-key-stkact_"] button > div > span {{ gap:12px !important; text-align:start; }}
+[class*="st-key-stkact_"] button p {{ font-size:.95rem !important; font-weight:600 !important; line-height:1.25 !important; }}
+[class*="st-key-stkact_"] button [data-testid="stIconMaterial"] {{ width:36px; height:36px; flex:none; border-radius:11px; display:inline-flex;
+  align-items:center; justify-content:center; font-size:1.3rem !important; color:var(--acc) !important; background:var(--bg2);
+  box-shadow:inset 0 0 0 1px var(--edge), 0 6px 14px -6px var(--glow); transition:transform .3s cubic-bezier(.3,1.6,.5,1); }}
+[class*="st-key-stkact_"] button::before {{ content:"arrow_forward"; font-family:'Material Symbols Rounded'; font-size:1.2rem; line-height:1;
+  position:absolute; inset-inline-end:14px; top:50%; color:var(--acc); opacity:0; transform:translate(-8px,-50%); transition:opacity .2s, transform .25s; }}
+[class*="st-key-stkact_"] button::after {{ content:""; position:absolute; top:0; bottom:0; left:-60%; width:40%; z-index:-1; pointer-events:none;
+  transform:skewX(-20deg); background:linear-gradient(100deg, transparent, rgba(255,255,255,.12), transparent); transition:left .75s ease; }}
+[class*="st-key-stkact_"] button:hover {{ transform:translateY(-2px); color:#fff !important; border-color:var(--acc) !important;
+  background:linear-gradient(135deg, var(--bg2), rgba(16,12,28,.5) 78%) !important;
+  box-shadow:0 16px 30px -14px var(--glow), inset 0 1px 0 rgba(255,255,255,.08) !important; }}
+[class*="st-key-stkact_"] button:hover::before {{ opacity:.95; transform:translate(0,-50%); }}
+[class*="st-key-stkact_"] button:hover::after {{ left:130%; }}
+[class*="st-key-stkact_"] button:hover [data-testid="stIconMaterial"] {{ transform:scale(1.12) rotate(-8deg); }}
+[class*="st-key-stkact_"] button:active {{ transform:translateY(0) scale(.98); box-shadow:0 6px 14px -10px var(--glow), inset 0 2px 8px rgba(0,0,0,.3) !important; }}
+[class*="st-key-stkact_"] button:focus-visible {{ box-shadow:0 0 0 3px var(--glow) !important; }}
+.st-key-stkact_wl, .st-key-stkact_wl_on {{ --acc:#F5B94A; --bg1:rgba(245,185,74,.10); --bg2:rgba(245,185,74,.20); --edge:rgba(245,185,74,.30); --glow:rgba(245,185,74,.55); }}
+.st-key-stkact_hn {{ --acc:#2DB6EB; --bg1:rgba(45,182,235,.10); --bg2:rgba(45,182,235,.20); --edge:rgba(45,182,235,.30); --glow:rgba(45,182,235,.55); }}
+.st-key-stkact_pf {{ --acc:#A78BFA; --bg1:rgba(167,139,250,.11); --bg2:rgba(167,139,250,.22); --edge:rgba(167,139,250,.32); --glow:rgba(123,69,240,.6); }}
+.st-key-stkact_wl_on button {{ color:#FCE3A6 !important; border-color:rgba(245,185,74,.62) !important;
+  background:linear-gradient(135deg, rgba(245,185,74,.24), rgba(16,12,28,.5) 78%) !important;
+  box-shadow:0 0 0 1px rgba(245,185,74,.16), 0 12px 26px -14px rgba(245,185,74,.7) !important; }}
+.st-key-stkact_wl_on button [data-testid="stIconMaterial"] {{ font-variation-settings:'FILL' 1; animation:wlpop .55s ease; }}
+.st-key-stkact_wl_on button::before {{ content:"check_circle"; font-variation-settings:'FILL' 1; opacity:.9; transform:translate(0,-50%); }}
+@media (hover:hover) {{ .st-key-stkact_wl_on button:hover::before {{ content:"close"; font-variation-settings:'FILL' 0; }} }}
+@keyframes wlpop {{ 0% {{ transform:scale(.5) rotate(-30deg); }} 60% {{ transform:scale(1.25) rotate(8deg); }} 100% {{ transform:scale(1); }} }}
+@media (prefers-reduced-motion: reduce) {{ [class*="st-key-stkact_"] button, [class*="st-key-stkact_"] button * {{ transition:none !important; animation:none !important; }} }}
 /* inputs: every box you type in or pick from is clearly a box, a darker well than the card around it with a visible edge,
    a blue edge under the pointer and the electric ring when focused. Streamlit's own boxes (text, number, text area, date,
    selectbox / multiselect groups of the newer versions) and the older base-web ones. */
@@ -1350,6 +1388,9 @@ RTL_CSS = f"""
 .stPlotlyChart, .js-plotly-plot, [data-testid="stDataFrame"], .tape, .t-row, [data-testid="stMetricValue"], [data-testid="stMetricDelta"] {{ direction: ltr; }}
 .stPlotlyChart *, .js-plotly-plot *, [data-testid="stPlotlyChart"] *, .hm, .hm * {{ direction: ltr !important; }}
 [data-testid="stMetricValue"] {{ text-align: right; }}
+[class*="st-key-stkact_"] button::before {{ content:"arrow_back"; transform:translate(8px,-50%); }}
+.st-key-stkact_wl_on button::before {{ content:"check_circle"; transform:translate(0,-50%); }}
+@media (hover:hover) {{ .st-key-stkact_wl_on button:hover::before {{ content:"close"; }} }}
 input, textarea {{ text-align: right; }}
 html, body, .stApp, .stMarkdown, button, input, textarea, select, label, [data-baseweb] {{ font-family: {FONT_AR}, {FONT_LATIN}, system-ui, sans-serif; }}
 .sec::after {{ background: linear-gradient(270deg, rgba(107,33,239,.45), rgba(7,122,199,.18) 30%, transparent); }}
@@ -2644,4 +2685,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "18.0"
+BUILD = "18.1"

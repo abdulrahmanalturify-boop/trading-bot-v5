@@ -1,2 +1,2 @@
-A.Alturaifi Pro - version 18.0 (Opportunity Hunter: the logo and the name of a company open its page; the rest of the card still opens the analysis)
+A.Alturaifi Pro - version 18.1 (stock page: the watchlist, Opportunity Hunter and paper-trade buttons are colour cards with an icon tile, a light sweep and a sliding arrow; the watchlist card is a toggle)
 If you can see this file on GitHub, the new version was uploaded correctly.
