@@ -1,2 +1,2 @@
-TURA Pro - version 19.7 (New action cards on the stock page: glass cards with a gradient icon tile, a line under each title, a flowing edge, lift, tilt and press on touch; following a stock pops the star; on phones three tiles side by side)
+TURA Pro - version 19.8 (Analyst ratings on Webull's scale: Yahoo's Buy and Strong Buy columns swapped into place, so AMZN reads Strong Buy 71% / Buy 25% / Hold 3% like Webull; 'Updated on' is the latest analyst action, not today)
 If you can see this file on GitHub, the new version was uploaded correctly.

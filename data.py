@@ -722,6 +722,15 @@ def fundamentals(symbol):
     return out
 
 
+def _webull_scale(rec):
+    """Yahoo's count of analysts per rating, on the scale Webull and Yahoo's own average use: Yahoo's "buy" column holds the
+    analysts that scale calls Strong Buy, and its "strongBuy" column the ones it calls Buy (AMZN: 42 / 15 / 2 of 59 is
+    "Strong Buy 71%, Buy 25%, Hold 3%" on Webull, and the same 42 sit under "buy" at Yahoo)."""
+    if isinstance(rec, pd.DataFrame) and {"strongBuy", "buy"} <= set(rec.columns):
+        rec = rec.rename(columns={"strongBuy": "buy", "buy": "strongBuy"})
+    return rec
+
+
 def analyst_tables(symbol):
     """{"rec_summary", "ratings"}: the count of analysts per rating, and the rating changes of the last 90 days.
     Kept 6 hours once Yahoo sends them; an empty answer is not kept."""
@@ -747,7 +756,7 @@ def _ratings_90d(t):
 def _analyst_tables(symbol):
     t = yf.Ticker(symbol)
     out = {"rec_summary": pd.DataFrame(), "ratings": pd.DataFrame()}
-    for k, fn in (("rec_summary", lambda: t.recommendations_summary), ("ratings", lambda: _ratings_90d(t))):
+    for k, fn in (("rec_summary", lambda: _webull_scale(t.recommendations_summary)), ("ratings", lambda: _ratings_90d(t))):
         try:
             v = fn()
             if isinstance(v, pd.DataFrame):
@@ -792,7 +801,7 @@ def _fundamentals(symbol):
     attempt("earnings_date", earn_date)
     attempt("ratings", ratings)
     attempt("targets", lambda: dict(t.analyst_price_targets or {}))
-    attempt("rec_summary", lambda: t.recommendations_summary)
+    attempt("rec_summary", lambda: _webull_scale(t.recommendations_summary))
     attempt("earnings_hist", earnings_hist)
     attempt("income_q", lambda: t.quarterly_income_stmt)
     attempt("insiders", lambda: t.insider_transactions)
@@ -1413,4 +1422,4 @@ def revenues(symbols, limit=100):
     return out
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "19.7"
+BUILD = "19.8"

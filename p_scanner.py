@@ -1034,11 +1034,12 @@ def _rating_counts(rec):
 
 
 def _bucket(grade):
-    """A broker's grade (Overweight, Market Perform, ...) on the five-step scale; None when unknown."""
+    """A broker's grade (Overweight, Market Perform, ...) on the five-step scale Webull uses: a plain Buy (and Strong Buy,
+    Top Pick) is Strong Buy, Outperform / Overweight / Accumulate is Buy; None when unknown."""
     g = str(grade or "").strip().lower()
     if not g or g == "nan":
         return None
-    if any(w in g for w in ("strong buy", "top pick", "conviction buy")):
+    if any(w in g for w in ("strong buy", "top pick", "conviction buy")) or g in ("buy", "conviction list buy"):
         return "strongBuy"
     if any(w in g for w in ("strong sell",)):
         return "strongSell"
@@ -1183,12 +1184,18 @@ def analyst_section(sym, price):
     top_i = rating_top(counts)
     legend = "".join(f'<div class="rl{" top" if i_ == top_i else ""}"><i style="background:{col}"></i>{T.esc(L(e_, a_))} <b>{counts[k] / tot * 100:.0f}%</b></div>'
                      for i_, (k, e_, a_, col) in enumerate(RATING)) if tot else ""
-    when = _today_ny().strftime("%m/%d/%Y")
+    # the date of the latest analyst action (not the day the page was opened); none when no action came with the data
+    try:
+        last = pd.to_datetime(rr.index).max() if len(rr) else None
+        when = None if last is None or pd.isna(last) else last.strftime("%m/%d/%Y")
+    except (TypeError, ValueError):
+        when = None
+    upd_en = f" Updated on {when} ET." if when else ""
+    upd_ar = f" آخر تحديث {when} بتوقيت نيويورك." if when else ""
     if source == "firms":
-        sub = L(f"Based on the latest rating of {n} firms (90 days). Updated on {when} ET.",
-                f"بناءً على آخر توصية لـ {n} جهة (90 يوم). آخر تحديث {when} بتوقيت نيويورك.")
+        sub = L(f"Based on the latest rating of {n} firms (90 days).{upd_en}", f"بناءً على آخر توصية لـ {n} جهة (90 يوم).{upd_ar}")
     elif tot or n:
-        sub = L(f"Based on {tot or n} analysts. Updated on {when} ET.", f"بناءً على {tot or n} محلل. آخر تحديث {when} بتوقيت نيويورك.")
+        sub = L(f"Based on {tot or n} analysts.{upd_en}", f"بناءً على {tot or n} محلل.{upd_ar}")
     else:
         sub = L("Yahoo Finance sent no analyst data for this stock right now; it is tried again on the next view.",
                 "ياهو فاينانس ما أرسل بيانات المحللين لهذا السهم الحين، وتنطلب من جديد مع الفتح القادم.")
@@ -1227,7 +1234,8 @@ def analyst_section(sym, price):
         up = (mean_t / price - 1) * 100
         tiles.append(tile("flag", L("Mean price target", "متوسط السعر المستهدف"), _money_px(mean_t), L(f"{up:+.1f}% from now", f"\u2066{up:+.1f}%\u2069 من السعر الحالي"), up >= 0))
     if lo_t and hi_t:
-        tiles.append(tile("straighten", L("Target range", "مدى الأهداف"), f"{_money_px(lo_t)} – {_money_px(hi_t)}",
+        rng = (f"${lo_t:,.0f} – ${hi_t:,.0f}" if min(lo_t, hi_t) >= 100 else f"{_money_px(lo_t)} – {_money_px(hi_t)}")   # fits a phone
+        tiles.append(tile("straighten", L("Target range", "مدى الأهداف"), rng,
                           L(f"low {_pct(price, lo_t):+.0f}% · high {_pct(price, hi_t):+.0f}%",
                             f"الأدنى \u2066{_pct(price, lo_t):+.0f}%\u2069 · الأعلى \u2066{_pct(price, hi_t):+.0f}%\u2069")))
     tiles.append(tile("swap_vert", L("Rating changes (30 days)", "تغييرات التقييم (30 يوم)"), f"↑{ups} · ↓{downs}",
@@ -1594,4 +1602,4 @@ def page_scanner():
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "19.7"
+BUILD = "19.8"

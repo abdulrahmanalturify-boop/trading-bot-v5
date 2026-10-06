@@ -666,6 +666,7 @@ def returns_bars(d, title="Performance"):
 
 
 def rec_chart(rec, title="Analyst recommendations"):
+    """rec: data.analyst_tables / fundamentals rec_summary (already on Webull's scale)."""
     cols = [("strongBuy", "Strong Buy", "#16A34A"), ("buy", "Buy", "#86EFAC"), ("hold", "Hold", "#FDE68A"),
             ("sell", "Sell", "#FCA5A5"), ("strongSell", "Strong Sell", "#DC2626")]
     fig = go.Figure()
@@ -1189,4 +1190,4 @@ def seasonal_path(avg, cur=None, title=None, names=("Average year", "This year")
     return fig
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "19.7"
+BUILD = "19.8"
