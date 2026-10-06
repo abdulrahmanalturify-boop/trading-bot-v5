@@ -1,48 +1,82 @@
-2026-10-06 01:06:52.532 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
-2026-10-06 01:06:52.534 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-10-06 01:20:00.216 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-10-06 01:20:00.219 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
 SEC refused the agent: AAlturaifiPro research actions@github.com - HTTP 403 https://www.sec.gov/files/company_tickers.json
 SEC answered with the agent: A.Alturaifi Pro research research@abdulrahman.streamlit.app
 570 symbols, 10434 SEC filers known, 570 already read
-  [MSFT] instance msft-20260630_htm.xml · labels None (0) · rows ['msft:ServerProductsAndCloudServicesMember', 'msft:MicrosoftThreeSixFiveCommercialProductsAndCloudServicesMember', 'msft:XBOXMember', 'msft:LinkedInCorporationMember', 'msft:WindowsAndDevicesMember', 'msft:SearchAdvertisingMember', 'msft:MicrosoftThreeSixFiveConsumerProductsAndCloudServicesMember', 'msft:DynamicsProductsAndCloudServicesMember', 'msft:EnterpriseAndPartnerServicesMember', 'msft:OtherProductsAndServicesMember']
-  [MSFT] label keys like: []
-25/570 · 16s · {'ok': 23, 'same': 0, 'none': 2, 'error': 0}
-  [GOOGL] instance goog-20251231_htm.xml · labels goog-20251231_lab.xml (963) · rows ['country:US', 'us-gaap:EMEAMember', 'srt:AsiaPacificMember', 'goog:AmericasExcludingUnitedStatesMember']
-  [GOOGL] label keys like: ['us-gaap_EmployeeStockOptionMember', 'us-gaap_FairValueMeasurementsRecurringMember', 'us-gaap_StateAndLocalJurisdictionMember', 'srt_MaximumMember', 'us-gaap_OperatingSegmentsMember', 'us-gaap_AccumulatedTranslationAdjustmentMember']
-50/570 · 32s · {'ok': 47, 'same': 0, 'none': 3, 'error': 0}
-75/570 · 46s · {'ok': 69, 'same': 0, 'none': 6, 'error': 0}
-100/570 · 62s · {'ok': 91, 'same': 0, 'none': 9, 'error': 0}
-  [LLY] instance lly-20251231_htm.xml · labels lly-20251231_lab.xml (851) · rows ['country:US', 'srt:EuropeMember', 'lly:RestOfWorldMember', 'country:JP', 'country:CN']
-  [LLY] label keys like: ['lly_NotesDue20312040Member', 'lly_NotesDue20612070Member', 'lly_NeuroscienceMember', 'us-gaap_AdditionalPaidInCapitalMember', 'lly_FloatingRateNotesMember', 'lly_A1.375EuroDenominatedNotesDue2061Member']
-125/570 · 77s · {'ok': 111, 'same': 0, 'none': 14, 'error': 0}
-150/570 · 93s · {'ok': 133, 'same': 0, 'none': 17, 'error': 0}
-175/570 · 108s · {'ok': 153, 'same': 0, 'none': 22, 'error': 0}
-200/570 · 124s · {'ok': 174, 'same': 0, 'none': 26, 'error': 0}
-225/570 · 139s · {'ok': 196, 'same': 0, 'none': 29, 'error': 0}
-250/570 · 154s · {'ok': 215, 'same': 0, 'none': 35, 'error': 0}
-275/570 · 169s · {'ok': 233, 'same': 0, 'none': 42, 'error': 0}
-300/570 · 184s · {'ok': 249, 'same': 0, 'none': 51, 'error': 0}
-325/570 · 202s · {'ok': 267, 'same': 0, 'none': 58, 'error': 0}
-350/570 · 217s · {'ok': 288, 'same': 0, 'none': 62, 'error': 0}
-375/570 · 232s · {'ok': 310, 'same': 0, 'none': 65, 'error': 0}
-400/570 · 248s · {'ok': 333, 'same': 0, 'none': 67, 'error': 0}
-425/570 · 264s · {'ok': 356, 'same': 0, 'none': 69, 'error': 0}
-450/570 · 280s · {'ok': 376, 'same': 0, 'none': 74, 'error': 0}
-475/570 · 294s · {'ok': 398, 'same': 0, 'none': 77, 'error': 0}
-500/570 · 309s · {'ok': 417, 'same': 0, 'none': 83, 'error': 0}
-525/570 · 324s · {'ok': 438, 'same': 0, 'none': 87, 'error': 0}
-550/570 · 336s · {'ok': 455, 'same': 0, 'none': 95, 'error': 0}
-570/570 · 346s · {'ok': 471, 'same': 0, 'none': 99, 'error': 0}
+  [CIK 789019] MICROSOFT CORP · 1002 recent filings · [('4', 744), ('8-K', 56), ('144', 45), ('PX14A6G', 37), ('11-K', 18), ('10-Q', 18), ('DEFA14A', 11), ('3', 10), ('SC 13G/A', 8), ('10-K', 6), ('SD', 6), ('DEF 14A', 6)] · more pages ['CIK0000789019-submissions-001.json', 'CIK0000789019-submissions-002.json']
+  [MSFT] instance msft-20260630_htm.xml · label file None · xsd msft-20260630.xsd
+  [MSFT]   RevenueFromContractWithCustomerExcludingAssessedTax · ProductOrServiceAxis · 12 lines · sum 2.000 of 331.8B · picked 10 exact=True cov=1.000
+  [MSFT]   RevenueFromContractWithCustomerExcludingAssessedTax · StatementBusinessSegmentsAxis · 3 lines · sum 1.000 of 331.8B · picked 3 exact=True cov=1.000
+  [MSFT]   RevenueFromContractWithCustomerExcludingAssessedTax · StatementGeographicalAxis · 2 lines · sum 1.000 of 331.8B · picked 2 exact=True cov=1.000
+  [MSFT] labels 852 · e.g. ['msft_O2025Q3DividendsMember', 'msft_IssuanceOfLongTermDebtElevenMember', 'us-gaap_ContractualRightsMember', 'msft_IssuanceOfLongTermDebtTwoMember']
+25/570 · 17s · {'ok': 23, 'same': 0, 'none': 2, 'error': 0}
+  [CIK 1652044] Alphabet Inc. · 1000 recent filings · [('4', 532), ('144', 258), ('8-K', 41), ('424B5', 19), ('PX14A6G', 19), ('5', 16), ('FWP', 13), ('13F-HR', 13), ('10-Q', 10), ('424B2', 9), ('4/A', 7), ('3', 6)] · more pages ['CIK0001652044-submissions-001.json']
+  [GOOGL] instance goog-20251231_htm.xml · label file goog-20251231_lab.xml · xsd goog-20251231.xsd
+  [GOOGL]   RevenueFromContractWithCustomerExcludingAssessedTax · StatementBusinessSegmentsAxis · 2 lines · sum 0.996 of 402.8B · picked 2 exact=True cov=0.996
+  [GOOGL]   RevenueFromContractWithCustomerExcludingAssessedTax · StatementGeographicalAxis · 4 lines · sum 1.000 of 402.8B · picked 4 exact=True cov=1.000
+  [GOOGL] labels 963 · e.g. ['us-gaap_EmployeeStockOptionMember', 'us-gaap_FairValueMeasurementsRecurringMember', 'us-gaap_StateAndLocalJurisdictionMember', 'srt_MaximumMember']
+  [CIK 1326801] Meta Platforms, Inc. · 1003 recent filings · [('4', 549), ('144', 372), ('8-K', 22), ('PX14A6G', 12), ('S-8 POS', 8), ('10-Q', 7), ('3', 7), ('424B2', 6), ('SCHEDULE 13G/A', 3), ('FWP', 3), ('SD', 2), ('ARS', 2)] · more pages ['CIK0001326801-submissions-001.json', 'CIK0001326801-submissions-002.json']
+  [META] instance meta-20251231_htm.xml · label file meta-20251231_lab.xml · xsd meta-20251231.xsd
+  [META]   RevenueFromContractWithCustomerExcludingAssessedTax · StatementBusinessSegmentsAxis · 2 lines · sum 1.000 of 201.0B · picked 2 exact=True cov=1.000
+  [META]   RevenueFromContractWithCustomerExcludingAssessedTax · StatementGeographicalAxis · 5 lines · sum 1.372 of 201.0B · picked 4 exact=True cov=1.000
+  [META] labels 797 · e.g. ['us-gaap_AdditionalPaidInCapitalMember', 'us-gaap_EmployeeStockOptionMember', 'us-gaap_StateAndLocalJurisdictionMember', 'meta_AsociacionDeMediosDeInformacionAMIV.MetaIrelandMember']
+50/570 · 34s · {'ok': 47, 'same': 0, 'none': 3, 'error': 0}
+75/570 · 50s · {'ok': 69, 'same': 0, 'none': 6, 'error': 0}
+100/570 · 68s · {'ok': 91, 'same': 0, 'none': 9, 'error': 0}
+  [CIK 59478] ELI LILLY & Co · 1000 recent filings · [('4', 690), ('144', 68), ('8-K', 45), ('SC TO-T/A', 23), ('SC 13G/A', 22), ('PX14A6G', 17), ('10-Q', 14), ('3', 14), ('424B2', 12), ('SCHEDULE 13G/A', 11), ('SC TO-T', 7), ('SC TO-C', 7)] · more pages ['CIK0000059478-submissions-001.json', 'CIK0000059478-submissions-002.json']
+  [LLY] instance lly-20251231_htm.xml · label file lly-20251231_lab.xml · xsd lly-20251231.xsd
+  [LLY]   Revenues · ProductOrServiceAxis · 3 lines · sum 1.053 of 65.2B · picked 2 exact=True cov=1.000
+  [LLY]   Revenues · StatementGeographicalAxis · 6 lines · sum 1.333 of 65.2B · picked 5 exact=True cov=1.000
+  [LLY]   Revenues · StatementBusinessSegmentsAxis · 1 lines · sum 1.000 of 65.2B · picked 0 exact=False cov=0.000
+  [LLY] labels 851 · e.g. ['lly_NotesDue20312040Member', 'lly_NotesDue20612070Member', 'lly_NeuroscienceMember', 'us-gaap_AdditionalPaidInCapitalMember']
+125/570 · 84s · {'ok': 111, 'same': 0, 'none': 14, 'error': 0}
+  [CIK 2115436] ExxonMobil Holdings Corp · 34 recent filings · [('S-8 POS', 23), ('8-K', 4), ('SD', 1), ('424B2', 1), ('FWP', 1), ('424B3', 1), ('10-Q', 1), ('POSASR', 1), ('8-K12B', 1)] · more pages []
+150/570 · 101s · {'ok': 133, 'same': 0, 'none': 17, 'error': 0}
+175/570 · 117s · {'ok': 153, 'same': 0, 'none': 22, 'error': 0}
+200/570 · 133s · {'ok': 174, 'same': 0, 'none': 26, 'error': 0}
+225/570 · 148s · {'ok': 196, 'same': 0, 'none': 29, 'error': 0}
+250/570 · 164s · {'ok': 215, 'same': 0, 'none': 35, 'error': 0}
+275/570 · 179s · {'ok': 233, 'same': 0, 'none': 42, 'error': 0}
+300/570 · 194s · {'ok': 249, 'same': 0, 'none': 51, 'error': 0}
+325/570 · 209s · {'ok': 267, 'same': 0, 'none': 58, 'error': 0}
+350/570 · 226s · {'ok': 288, 'same': 0, 'none': 62, 'error': 0}
+375/570 · 242s · {'ok': 310, 'same': 0, 'none': 65, 'error': 0}
+400/570 · 259s · {'ok': 333, 'same': 0, 'none': 67, 'error': 0}
+425/570 · 274s · {'ok': 356, 'same': 0, 'none': 69, 'error': 0}
+450/570 · 289s · {'ok': 376, 'same': 0, 'none': 74, 'error': 0}
+475/570 · 305s · {'ok': 398, 'same': 0, 'none': 77, 'error': 0}
+500/570 · 320s · {'ok': 417, 'same': 0, 'none': 83, 'error': 0}
+525/570 · 336s · {'ok': 438, 'same': 0, 'none': 87, 'error': 0}
+550/570 · 349s · {'ok': 455, 'same': 0, 'none': 95, 'error': 0}
+570/570 · 361s · {'ok': 471, 'same': 0, 'none': 99, 'error': 0}
 AAPL: 10-K 2025-09-27 product USD 416.2B -> iPhone 50.4%, Services 26.2%, Wearables, Home and Accessories 8.6%, Mac 8.1%, iPad 6.7%
-MSFT: 10-K 2026-06-30 product USD 331.8B -> Server Products And Cloud Services 39.0%, Microsoft Three Six Five Commercial Products And Cloud Services 30.7%, XBOX 6.6%, Linked In Corporation 6.0%, Windows And Devices 5.1%, Search Advertising 4.6%, Microsoft Three Six Five Consumer Products And Cloud Services 2.8%, Dynamics Products And Cloud Services 2.7%, Enterprise And Partner Services 2.5%
+    and region: Other countries 48.1%, U.S. 36.5%, China 15.5%
+MSFT: 10-K 2026-06-30 product USD 331.8B -> Server Products and Cloud Services 39.0%, Microsoft 365 Commercial Products and Cloud Services 30.7%, XBOX 6.6%, LinkedIn 6.0%, Windows and Devices 5.1%, Search advertising 4.6%, Microsoft 365 Consumer products and cloud services 2.8%, Dynamics products and cloud services 2.7%, Enterprise and partner services 2.5%
+    and region: United States 51.5%, Other Countries 48.5%
 NVDA: 10-K 2026-01-25 product USD 215.9B -> Compute 75.2%, Networking 14.5%, Gaming 7.4%, Professional Visualization 1.5%, Automotive 1.1%, OEM and Other 0.3%
+    and region: UNITED STATES 69.3%, Taiwan 19.6%, China (including Hong Kong) 9.1%, Other 2.0%
 AMZN: 10-K 2025-12-31 product USD 716.9B -> Online stores 37.6%, Third-party seller services 24.0%, AWS 18.0%, Advertising services 9.6%, Subscription services 6.9%, Physical stores 3.1%, Other 0.8%
-GOOGL: 10-K 2025-12-31 region USD 402.8B -> United States 48.2%, EMEA 29.1%, APAC 16.8%, Other Americas 5.9%
-META: 10-K 2025-12-31 region USD 201.0B -> US & Canada 39.2%, Asia Pacific 26.8%, Europe 23.2%, Rest Of World 10.8%
+    and region: United States 68.3%, Rest of world 15.0%, Germany 6.4%, United Kingdom 6.0%, Japan 4.3%
+GOOGL: 10-K 2025-12-31 segment USD 402.8B -> Google Services 85.1%, Google Cloud 14.6%
+    and region: United States 48.2%, EMEA 29.1%, APAC 16.8%, Other Americas 5.9%
+META: 10-K 2025-12-31 segment USD 201.0B -> Family of Apps 98.9%, Reality Labs 1.1%
+    and region: US & Canada 39.2%, Asia Pacific 26.8%, Europe 23.2%, Rest Of World 10.8%
 TSLA: 10-K 2025-12-31 product USD 94.8B -> Automotive sales 69.4%, Services and other 13.2%, Energy generation and storage sales 12.9%, Automotive regulatory credits 2.1%, Automotive leasing 1.8%, Energy generation and storage leasing 0.5%
+    and region: United States 50.2%, Other international 27.7%, China 22.1%
 JPM: 10-K 2025-12-31 region USD 182.4B -> North America 76.6%, Europe/Middle East/Africa 13.4%, Asia-Pacific 7.7%, Latin America/Caribbean 2.3%
-TSM: 20-F 2025-12-31 region TWD 3809.1B -> United States 74.4%, China 8.6%, Taiwan 7.9%, Japan 3.9%, Europe, the Middle East and Africa 3.3%, Others 1.8%
+TSM: 20-F 2025-12-31 product TWD 3809.1B -> Wafer 85.9%, Others 14.1%
+    and region: United States 74.4%, China 8.6%, Taiwan 7.9%, Japan 3.9%, Europe, the Middle East and Africa 3.3%, Others 1.8%
 XOM: none (no annual report)
-LLY: 10-K 2025-12-31 region USD 65.2B -> United States 66.7%, Europe 17.7%, Rest of world 9.3%, JAPAN 3.3%, China 3.0%
+LLY: 10-K 2025-12-31 product USD 65.2B -> Net product revenue 93.5%, Collaboration and Other Revenue 6.5%
+    and region: United States 66.7%, Europe 17.7%, Rest of world 9.3%, JAPAN 3.3%, China 3.0%
 KO: 10-K 2025-12-31 product USD 47.9B -> Concentrate operations 59.4%, Finished product operations 40.6%
-IONQ: 10-K 2025-12-31 region USD 0.1B -> United States 66.9%, Non Us 20.3%, Switzerland 12.8%
+    and region: International 60.1%, United States 39.9%
+IONQ: 10-K 2025-12-31 product USD 0.1B -> Quantum Hardware 53.8%, Platform, Consulting and Support Services 46.2%
+    and region: United States 66.9%, Other International 20.3%, Switzerland 12.8%
+AVGO: 10-K 2025-11-02 product USD 63.9B -> Products 70.2%, Subscriptions and services 29.8%
+    and region: Other 29.7%, United States 25.8%, China (including Hong Kong) 17.5%, SINGAPORE 16.9%, Taiwan 10.1%
+V: 10-K 2025-09-30 region USD 40.0B -> International 60.9%, UNITED STATES 39.1%
+COST: 10-K 2025-08-31 product USD 275.2B -> Food and Sundries 39.8%, Non-Foods 25.9%, Warehouse ancillary and other businesses 18.6%, Fresh Foods 13.8%, Membership fees 1.9%
+NFLX: none (no breakdown)
+PLTR: none (no breakdown)
 without a breakdown: {'no breakdown': 96, 'no SEC filer': 1, 'no annual report': 2}
