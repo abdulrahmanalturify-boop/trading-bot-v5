@@ -1,2 +1,2 @@
-A.Alturaifi Pro - version 19.2 (Revenue sources on every company's About tab: a donut of where the money comes from - product lines or segments, and regions - read from each company's latest SEC annual report, refreshed monthly)
+A.Alturaifi Pro - version 19.3 (The stock page's action cards on phones: the icon tile sits inside the card with room before the words; a tap no longer leaves a card lifted)
 If you can see this file on GitHub, the new version was uploaded correctly.
