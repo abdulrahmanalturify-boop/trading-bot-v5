@@ -30,11 +30,7 @@ def main():
     except (OSError, ValueError):
         prev = {}
     # the SEC asks automated tools to say who they are; try the declared agents in turn (SEC_USER_AGENT first, when set)
-    agents = [a for a in (os.environ.get("SEC_USER_AGENT"),
-                          "AAlturaifiPro research actions@github.com",
-                          "A.Alturaifi Pro research research@abdulrahman.streamlit.app",
-                          "Mozilla/5.0 (compatible; AAlturaifiPro/1.0; +https://abdulrahman.streamlit.app)",
-                          SG.UA) if a]
+    agents = list(SG.AGENTS) + ["Mozilla/5.0 (compatible; TURAPro/1.0; +https://abdulrahman.streamlit.app)"]
     ciks = None
     for a in agents:
         SG.UA = a

@@ -3,7 +3,7 @@ from html import escape
 import hashlib
 ACADEMY_REVISION = "2026-09-27.6"
 MARK = '''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="Academy university emblem"><defs><linearGradient id="acmark" x2="1" y2="1"><stop stop-color="#3B8BEB"/><stop offset="1" stop-color="#7B45F0"/></linearGradient></defs><rect x="2" y="2" width="92" height="92" rx="25" fill="url(#acmark)"/><path d="M20 36 48 20 76 36M24 40H72M29 43V63M42 43V59M54 43V59M67 43V63M20 73H76" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M25 63Q37 58 48 65Q59 58 71 63V78Q59 73 48 80Q37 73 25 78ZM48 65V80" fill="#1F1839" stroke="#79E6F3" stroke-width="2.5" stroke-linejoin="round"/></svg>'''
-WORDMARK = MARK.replace('viewBox="0 0 96 96"','viewBox="0 0 420 96"').replace('</svg>','<text x="114" y="43" fill="#EDF2FF" font-family="Arial,sans-serif" font-size="25" font-weight="700">ALTURAIFI</text><text x="114" y="72" fill="#A9BFFF" font-family="Arial,sans-serif" font-size="20" letter-spacing="5">ACADEMY</text></svg>')
+WORDMARK = MARK.replace('viewBox="0 0 96 96"','viewBox="0 0 420 96"').replace('</svg>','<text x="114" y="43" fill="#EDF2FF" font-family="Arial,sans-serif" font-size="25" font-weight="700">TURA</text><text x="114" y="72" fill="#A9BFFF" font-family="Arial,sans-serif" font-size="20" letter-spacing="5">ACADEMY</text></svg>')
 
 
 def vector_cover(kind, uid="course"):
@@ -151,7 +151,17 @@ def cover(kind, uid="course"):
 
 def academy_wordmark(brand):
     mark = MARK.replace('<svg ', '<svg x="0" y="12" width="96" height="96" ', 1)
-    letters = brand.replace('<svg ', '<svg x="116" y="25" width="470" height="50" ', 1)
-    return ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 610 130">'
+    try:                                            # as wide as the name needs (it is short now), never narrower than ACADEMY
+        vb = brand.split('viewBox="', 1)[1].split('"', 1)[0].split()
+        lw = 50 * float(vb[2]) / float(vb[3])
+    except (IndexError, ValueError, ZeroDivisionError):
+        lw = 470
+    width = 116 + max(lw, 215) + 8
+    letters = brand.replace('<svg ', f'<svg x="116" y="25" width="{lw:.0f}" height="50" preserveAspectRatio="xMinYMid meet" ', 1)
+    return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width:.0f} 130">'
             + mark + letters + '<text x="116" y="108" fill="#A9BFFF" font-family="Arial,sans-serif" '
             'font-size="22" letter-spacing="7">ACADEMY</text></svg>')
+
+
+# version stamp: app.py reloads any module still in memory from an older version of the site
+BUILD = "19.4"

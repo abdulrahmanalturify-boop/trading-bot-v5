@@ -1,5 +1,5 @@
 """
-theme.py - Design system v5 "Midnight engine" (A.Alturaifi Pro), after n8n's style: a violet-black void, surfaces one step
+theme.py - Design system v5 "Midnight engine" (TURA Pro), after n8n's style: a violet-black void, surfaces one step
 lighter each (page -> card -> panel, no drop shadows), light restrained headings, frosted chips with hairlines, a violet glow
 behind the page. Two changes from n8n for a trading site: the call-to-action buttons use the logo's blue -> cyan (never red),
 and green / red are kept for gains and losses only.
@@ -125,15 +125,16 @@ def _word(text, x, scale=1.0, y=0.0):
     return (f'<path d="{" ".join(parts)}"/>' if parts else ""), x - _TRACK * scale
 
 
-def brand(height="1em", p="bm", dot=False, pro="sup", color="#FFFFFF", cls="brand", label="A.Alturaifi Pro"):
+NAME = "TURA"                # the site's name, drawn by brand() and written in titles as "TURA Pro"
+
+
+def brand(height="1em", p="bm", dot=False, pro="sup", color="#FFFFFF", cls="brand", label="TURA Pro"):
     """The site's name as line art. pro: 'sup' (small, raised, blue to cyan), 'inline' (same size, blue) or None.
-    dot adds the leading 'A.'. height is any CSS length; the width follows."""
+    dot is kept for the callers that asked for the old leading 'A.' (the name is TURA now: nothing is added).
+    height is any CSS length; the width follows."""
     x = _SW / 2
     first = ""
-    if dot:
-        first, x = _word("A.", x)
-        x += _TRACK
-    main, x = _word("ALTURAIFI", x)
+    main, x = _word(NAME, x)
     tail = defs = ""
     if pro:
         x += 46 if pro == "sup" else 64
@@ -2725,4 +2726,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "19.3"
+BUILD = "19.4"

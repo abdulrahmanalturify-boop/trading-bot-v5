@@ -36,7 +36,7 @@ BROWSER = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/
            "Accept": "application/rss+xml, application/atom+xml, application/xml;q=0.9, text/xml;q=0.8, */*;q=0.5",
            "Accept-Language": "en-US,en;q=0.9", "Cache-Control": "no-cache"}
 # government sites ask automated readers to say who they are
-OFFICIAL = {**BROWSER, "User-Agent": "A.Alturaifi Pro news reader/1.0 (market headlines for a personal research site)"}
+OFFICIAL = {**BROWSER, "User-Agent": "TURA Pro news reader/1.0 (market headlines for a personal research site)"}
 
 
 def gnews(q):
@@ -556,4 +556,4 @@ def headlines(hours=48):
         return []
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "19.3"
+BUILD = "19.4"

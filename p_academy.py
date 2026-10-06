@@ -270,7 +270,7 @@ def dashboard():
 
 def _academy_hero():
     count = len(A.COURSES)
-    ui.html(f'<section class="ac-hero"><div class="ac-brand-lockup" dir="ltr">{T.brand(None, "acb", pro=None, color="#F2F5FF", label="Alturaifi")}<span>ACADEMY</span></div><div dir="auto">'
+    ui.html(f'<section class="ac-hero"><div class="ac-brand-lockup" dir="ltr">{T.brand(None, "acb", pro=None, color="#F2F5FF", label="TURA")}<span>ACADEMY</span></div><div dir="auto">'
             f'<h1>{L("Build knowledge.<br>Invest with understanding.", "ابنِ معرفتك.<br>واستثمر بفهم.")}</h1>'
             f'<p>{L("Your learning space for markets, investing and trading. Follow a path, explore a lesson and test the idea yourself.", "مساحتك لتعلّم الأسواق والاستثمار والتداول. اختر مسارك، افهم الفكرة، وجرّبها بنفسك.")}</p>'
             f'<div class="ac-meta"><span>{count} {L("courses", "دورة")}</span>'
@@ -421,6 +421,6 @@ def page_glossary():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "19.3"
+BUILD = "19.4"
 
 

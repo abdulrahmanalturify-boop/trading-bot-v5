@@ -10,7 +10,7 @@ import theme as T
 import ui
 from i18n import L, is_ar
 
-BUILD = "19.3"
+BUILD = "19.4"
 
 _LINE = "rgba(150,140,250,"
 CSS = f"""
@@ -855,7 +855,7 @@ def intro_html():
     end = (f'<section class="ixend rv"><span class="ixl">{L("Ready when you are", "جاهز متى ما كنت جاهز")}</span>'
            f'<div class="ixh">{L("Your next trade<br><em>starts on paper.</em>", "صفقتك الجاية<br><em>تبدأ افتراضية.</em>")}</div>'
            f'<p class="ixt">{L("Press Get started to open the markets, the hunter and your bots.", "اضغط ابدأ الآن عشان تفتح الأسواق والصياد وبوتاتك.")}</p></section>')
-    foot = (f'<div class="ixfoot"><span>© A.Alturaifi Pro</span><span>{L("Virtual money only · real prices · not investment advice", "فلوس افتراضية فقط · أسعار حقيقية · ليست نصيحة استثمارية")}</span></div>')
+    foot = (f'<div class="ixfoot"><span>© TURA Pro</span><span>{L("Virtual money only · real prices · not investment advice", "فلوس افتراضية فقط · أسعار حقيقية · ليست نصيحة استثمارية")}</span></div>')
     return (f'<div class="ixp{" ar" if ar else ""}" dir="{"rtl" if ar else "ltr"}">' + hero + state + grid + bots + hunt + mkts + numbers + how + learn
             + end + foot + "</div>")
 

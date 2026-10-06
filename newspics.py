@@ -23,7 +23,7 @@ from urllib.parse import quote, urljoin, urlparse
 import requests
 
 # commons asks every tool to say who it is
-UA_WIKI = {"User-Agent": "AAlturaifiPro/1.0 (https://abdulrahman.streamlit.app; market-news pictures)"}
+UA_WIKI = {"User-Agent": "TURAPro/1.0 (https://abdulrahman.streamlit.app; market-news pictures)"}
 BROWSER = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0 Safari/537.36",
            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", "Accept-Language": "en-US,en;q=0.9"}
 
@@ -319,4 +319,4 @@ def find_images(stories, budget=60, workers=8):
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "19.3"
+BUILD = "19.4"

@@ -23,7 +23,10 @@ import requests
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 FILE = os.path.join(HERE, "segments.json")
-UA = os.environ.get("SEC_USER_AGENT") or "A.Alturaifi Pro research research@abdulrahman.streamlit.app"
+# the SEC asks automated tools to say who they are; the earlier agent stays as a second try (it is known to be accepted)
+AGENTS = [a for a in (os.environ.get("SEC_USER_AGENT"), "TURA Pro research research@abdulrahman.streamlit.app",
+                      "A.Alturaifi Pro research research@abdulrahman.streamlit.app") if a]
+UA = AGENTS[0]
 VERSION = 6                                         # a change in how a filing is read: every company is read again
 FORMS = ("10-K", "20-F", "40-F")
 
@@ -63,7 +66,11 @@ def _get(url, timeout=40):
         if wait > 0:
             time.sleep(wait)
         _LAST[0] = time.time()
+    global UA
     r = _S.get(url, headers={"User-Agent": UA, "Accept-Encoding": "gzip, deflate"}, timeout=timeout)
+    if r.status_code == 403 and UA in AGENTS and AGENTS.index(UA) + 1 < len(AGENTS):
+        UA = AGENTS[AGENTS.index(UA) + 1]           # refused: the next declared agent, kept from then on
+        return _get(url, timeout)
     if r.status_code != 200:
         raise Missing(f"HTTP {r.status_code} {url}")
     return r
@@ -443,4 +450,4 @@ def get(sym):
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "19.3"
+BUILD = "19.4"

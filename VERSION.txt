@@ -1,2 +1,2 @@
-A.Alturaifi Pro - version 19.3 (The stock page's action cards on phones: the icon tile sits inside the card with room before the words; a tap no longer leaves a card lifted)
+TURA Pro - version 19.4 (The site's name is TURA now: the logo, the page title, the landing, the footer, the Academy and the AI helper)
 If you can see this file on GitHub, the new version was uploaded correctly.
