@@ -23,7 +23,7 @@ import requests
 HERE = os.path.dirname(os.path.abspath(__file__))
 FILE = os.path.join(HERE, "segments.json")
 UA = os.environ.get("SEC_USER_AGENT") or "A.Alturaifi Pro research research@abdulrahman.streamlit.app"
-VERSION = 5                                         # a change in how a filing is read: every company is read again
+VERSION = 6                                         # a change in how a filing is read: every company is read again
 FORMS = ("10-K", "20-F", "40-F")
 
 REVENUE = ("RevenueFromContractWithCustomerExcludingAssessedTax", "Revenues", "RevenueFromContractWithCustomerIncludingAssessedTax",
@@ -237,21 +237,28 @@ def breakdown(ctx, units, facts, debug=None):
         one = all(len(o) == 1 for o in mem.values())    # each line told once: the same as a plain split
         whole_ = abs(sum(sums.values()) / total - 1) <= 0.02
         ok = len(sums) >= 2 and (one or whole_)
+        drill = _drill(mem, groups.get((con, oax), {}), AXES.get(oax, ("", 0))[0], total) \
+            if AXES[axis][0] == "product" and oax in AXES and AXES[oax][0] != "product" else None
         if debug is not None:
             debug.append(f"{con} · {axis} x {oax} · {len(sums)} lines · sum {sum(sums.values()) / total:.3f} · "
-                         f"{'told once' if one else 'added up'}{' -> candidate' if ok else ''}")
+                         f"{'told once' if one else 'added up'}{' -> candidate' if ok else ''}"
+                         f"{' · inside each part: ' + str(len(drill)) + ' lines' if drill else ''}")
         if ok:
             cands.append((con, axis, "one" if one else "all", sums))
+        if drill and len(drill) >= 2:
+            cands.append((con, axis, "all", drill))
     best = {"biz": None, "geo": None}
     for con, axis, how, mem in cands:
         total, cur = total_of(con)
         items = sorted(mem.items(), key=lambda kv: -kv[1])
         if how == "all":                                # every line, added across the other split, is the whole: keep them all
             pick, cov, exact = items, sum(mem.values()) / total, True
+        elif how == "one":                              # a looser fit could take a total and its own parts together
+            pick, cov, exact = _fit(items[:14], total, (0.015,))
+            if not exact and con not in PARTIAL:
+                pick = []
         else:
             pick, cov, exact = _fit(items[:14], total)
-            if how == "one" and not exact:
-                pick = []
         if debug is not None:
             debug.append(f"{con} · {axis}{' (' + how + ')' if how else ''} · {len(mem)} lines · sum {sum(mem.values()) / total:.3f} of "
                          f"{total / 1e9:.1f}B · picked {len(pick)} exact={exact} cov={cov:.3f} · {[_qlocal(m)[:28] for m, _ in items[:8]]}")
@@ -269,14 +276,44 @@ def breakdown(ctx, units, facts, debug=None):
     return out or None
 
 
-def _fit(items, total):
+def _drill(mem, parts, kind, total):
+    """Product lines told inside each part of another split (Alphabet's Search, YouTube... inside Google Services; each drug's
+    sales in the US and abroad): {product: value} over the parts that make up the whole revenue, or None.
+    mem: {product: {part: value}}; parts: {part: value} from the other split itself."""
+    inside = {}
+    for prod, by in mem.items():
+        for part, v in by.items():
+            inside.setdefault(part, {})[prod] = v
+    usable = sorted(((o, v) for o, v in parts.items() if o in inside or kind == "segment"), key=lambda kv: -kv[1])[:14]
+    whole, _, exact = _fit(usable, total, (0.015,))
+    if not exact:
+        return None
+    out, opened = {}, False
+    for part, val in whole:
+        lines = sorted(inside.get(part, {}).items(), key=lambda kv: -kv[1])[:14]
+        if len(lines) >= 2:
+            sub, _, ok = _fit(lines, val, (0.015,))
+        else:
+            sub, ok = lines, bool(lines) and abs(lines[0][1] / val - 1) <= 0.015
+        if not ok:
+            if kind != "segment":                       # a region without its lines: the sum would be short
+                return None
+            sub = [(part, val)]                         # a segment told without lines (Google Cloud) stays one line
+        else:
+            opened = True
+        for prod, v in sub:
+            out[prod] = out.get(prod, 0.0) + v
+    return out if opened else None
+
+
+def _fit(items, total, tols=(0.015, 0.03)):
     """The finest set of lines that adds up to the total (within 1.5%, then 3%); else all of them with an 'Other' remainder
     when they cover at least 60% without passing it. ([(member, value)], coverage, exact) or ([], 0, False)."""
     vals = [v for _, v in items]
     n = len(items)
     if n < 2:
         return [], 0.0, False
-    for tol in (0.015, 0.03):
+    for tol in tols:
         for k in range(n, 1, -1):
             hit = None
             for idx in combinations(range(n), k):
