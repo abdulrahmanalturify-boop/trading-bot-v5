@@ -1,2 +1,2 @@
-TURA Pro - version 20.0 (The shareholders ring drawn like Webull's: a thin ring from the top with small gaps, institutions red, insiders olive, others indigo, 'Shareholders' in the middle)
+TURA Pro - version 20.1 (The shareholders ring shows again: its centre label shared a class name with the Sharia card and took its dark box; the card moved to the end of the About tab)
 If you can see this file on GitHub, the new version was uploaded correctly.

@@ -654,8 +654,8 @@ SH_CSS = """<style>
 .shbox .shdn svg { width:100%; height:100%; transform:rotate(-90deg); overflow:visible; }
 .shbox .shdn .seg { fill:none; stroke-width:17; animation:shin 1s cubic-bezier(.2,.8,.2,1) both; }
 @keyframes shin { from { stroke-dasharray:0 999; } }
-.shbox .shdn .shc { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }
-.shbox .shdn .shc span { color:#9D97A5; font-size:.82rem; font-weight:500; }
+.shbox .shdn .shcz { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }
+.shbox .shdn .shcz span { color:#9D97A5; font-size:.82rem; font-weight:500; }
 .shbox .shlg { flex:1; min-width:220px; display:flex; flex-direction:column; gap:4px; }
 .shbox .shrow { display:grid; grid-template-columns:12px minmax(0,1fr) auto; align-items:center; gap:10px; padding:9px 12px; border-radius:12px; }
 .shbox .shrow.top { background:rgba(255,255,255,.05); box-shadow:inset 0 0 0 1px rgba(255,255,255,.06); }
@@ -747,7 +747,7 @@ def holders_html(item):
                       "ياهو يحسب المؤسسات فوق 100% (الأسهم المُقرضة تنحسب مرتين)")) if over else ""
     return (f'<div class="shbox" data-nogq><div class="shhd"><b>{L("Shareholders", "هيكل المساهمين")}</b><span>{when}</span></div>'
             f'<div class="shbd"><div class="shdn"><svg viewBox="0 0 160 160">{"".join(arcs)}</svg>'
-            f'<div class="shc"><span>{L("Shareholders", "المساهمون")}</span></div></div>'
+            f'<div class="shcz"><span>{L("Shareholders", "المساهمون")}</span></div></div>'
             f'<div class="shlg">{"".join(rows)}</div></div><div class="shkt">{"".join(tiles)}</div>'
             f'<div class="shft">{T.esc(src)}{T.esc(extra)}{T.esc(note)}</div></div>')
 
@@ -803,7 +803,6 @@ def company_tab(sym):
     else:
         st.caption(L("No description available for this symbol.", "لا توجد نبذة متاحة لهذا الرمز."))
     ui.safe(revenue_section, sym)
-    ui.safe(holders_section, sym)
 
     ui.sec("category", "Classification", "التصنيف")
     th = X.themes_of(sym)
@@ -834,6 +833,7 @@ def company_tab(sym):
             ch = data.changes(peers)
             df = pd.DataFrame([{"Symbol": s, "Name": U.name_of(s), "Price": ch.get(s, (np.nan, np.nan))[0], "Chg %": ch.get(s, (np.nan, np.nan))[1]} for s in peers])
             ui.html(f'<div class="card">{ui.row_list(df, data.logos(peers))}</div>')
+    ui.safe(holders_section, sym)                   # who owns it: the last section of the tab
 
 
 def _max_pain(calls, puts):
@@ -1807,4 +1807,4 @@ def page_screener():
 # SCANNER
 # =====================================================================
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "20.0"
+BUILD = "20.1"
