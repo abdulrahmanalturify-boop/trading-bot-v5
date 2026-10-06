@@ -1,0 +1,51 @@
+# Revenue sources (product lines / segments / regions) for every company, read from its latest annual report at the SEC
+# (segments.py). Monthly, on a push of the reader, or by hand. Commits segments.json to "research" and moves "main" and
+# "redesign" to the same commit when they were at research's previous one (they always are in this repository's flow).
+name: revenue sources
+on:
+  push:
+    branches: [research]
+    paths: ["segments.py", "scripts/build_segments.py", ".github/workflows/segments.yml"]
+  schedule:
+    - cron: "17 6 3 * *"
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: segments
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: research
+          fetch-depth: 0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Read the annual reports
+        run: |
+          set -o pipefail
+          python scripts/build_segments.py 2>&1 | tee segments_log.txt
+      - name: Save
+        if: always()
+        run: |
+          git config user.name "research-lab"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          [ -f segments.json ] || exit 0
+          cp segments.json /tmp/segments.json
+          git fetch -q origin research main redesign
+          git checkout -q -B upd origin/research
+          old=$(git rev-parse HEAD)
+          cp /tmp/segments.json segments.json
+          git add segments.json
+          git commit -q -m "revenue sources from SEC annual reports [skip ci]" || exit 0
+          git push -q origin upd:research
+          for b in main redesign; do
+            if [ "$(git rev-parse origin/$b)" = "$old" ]; then git push -q origin upd:$b; else echo "$b is not at research's commit: left as it is"; fi
+          done
