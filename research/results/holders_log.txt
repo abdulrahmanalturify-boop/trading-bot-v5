@@ -1,0 +1,24 @@
+Crumb fetch rate-limited (HTTP 429), continuing without crumb
+570 symbols, 0 already known
+50/570 · 16s · {'ok': 50, 'none': 0, 'error': 0}
+100/570 · 33s · {'ok': 100, 'none': 0, 'error': 0}
+150/570 · 49s · {'ok': 150, 'none': 0, 'error': 0}
+200/570 · 65s · {'ok': 200, 'none': 0, 'error': 0}
+250/570 · 81s · {'ok': 250, 'none': 0, 'error': 0}
+300/570 · 97s · {'ok': 300, 'none': 0, 'error': 0}
+350/570 · 112s · {'ok': 349, 'none': 1, 'error': 0}
+400/570 · 128s · {'ok': 399, 'none': 1, 'error': 0}
+450/570 · 144s · {'ok': 449, 'none': 1, 'error': 0}
+500/570 · 160s · {'ok': 499, 'none': 1, 'error': 0}
+550/570 · 177s · {'ok': 549, 'none': 1, 'error': 0}
+570/570 · 183s · {'ok': 569, 'none': 1, 'error': 0}
+AAPL: inst 66.315 ins 1.648 instf 67.427 n 7681 rep 2026-06-30 6m {'buys': 7, 'sells': 13, 'net_pct': -0.1} hist 1 · 1M inst None · top: Blackrock Inc. 7.97%, Vanguard Capital Management LLC 6.57%, State Street Corporation 4.21%
+MSFT: inst 75.775 ins 0.09 instf 75.843 n 8102 rep 2026-06-30 6m {'buys': 16, 'sells': 9, 'net_pct': 4.2} hist 1 · 1M inst None · top: Blackrock Inc. 8.18%, Vanguard Capital Management LLC 6.53%, State Street Corporation 4.25%
+NVDA: inst 71.402 ins 4.007 instf 74.382 n 7669 rep 2026-06-30 6m {'buys': 17, 'sells': 9, 'net_pct': -0.4} hist 1 · 1M inst None · top: Blackrock Inc. 8.06%, Vanguard Capital Management LLC 6.39%, FMR, LLC 4.26%
+AMZN: inst 68.703 ins 8.866 instf 75.387 n 7870 rep 2026-06-30 6m {'buys': 58, 'sells': 67, 'net_pct': 0.1} hist 1 · 1M inst None · top: Blackrock Inc. 6.94%, Vanguard Capital Management LLC 5.89%, State Street Corporation 3.68%
+TSLA: inst 43.665 ins 17.819 instf 53.133 n 5307 rep 2026-06-30 6m {'buys': 8, 'sells': 8, 'net_pct': 76.0} hist 1 · 1M inst None · top: Blackrock Inc. 5.42%, Vanguard Capital Management LLC 4.66%, State Street Corporation 2.97%
+META: inst 78.995 ins 0.148 instf 79.112 n 6543 rep 2026-06-30 6m {'buys': 35, 'sells': 41, 'net_pct': 44.6} hist 1 · 1M inst None · top: Blackrock Inc. 7.86%, Vanguard Capital Management LLC 6.50%, FMR, LLC 4.35%
+CRWV: inst 76.863 ins 18.713 instf 94.557 n 1303 rep 2026-06-30 6m {'buys': 121, 'sells': 171, 'net_pct': -21.0} hist 1 · 1M inst None · top: Magnetar Financial LLC 11.35%, Nvidia Corp 10.29%, Blackrock Inc. 5.25%
+PLTR: inst 64.755 ins 3.454 instf 67.072 n 3612 rep 2026-06-30 6m {'buys': 14, 'sells': 19, 'net_pct': 0.3} hist 1 · 1M inst None · top: Blackrock Inc. 8.70%, Vanguard Capital Management LLC 6.70%, State Street Corporation 4.79%
+JPM: inst 75.64 ins 0.391 instf 75.937 n 6338 rep 2026-06-30 6m {'buys': 7, 'sells': 19, 'net_pct': -0.9} hist 1 · 1M inst None · top: Blackrock Inc. 7.76%, Vanguard Capital Management LLC 6.08%, State Street Corporation 4.71%
+KO: inst 68.202 ins 9.895 instf 75.692 n 4618 rep 2026-06-30 6m {'buys': 11, 'sells': 12, 'net_pct': -0.1} hist 1 · 1M inst None · top: Berkshire Hathaway, Inc 9.30%, Blackrock Inc. 7.50%, Vanguard Capital Management LLC 5.55%
