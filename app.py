@@ -10,7 +10,7 @@ import streamlit as st
 # ---------------------------------------------------------------- always run the newest code
 # Streamlit Cloud re-reads app.py after every GitHub upload but can keep the other modules (theme, data, ...) from the
 # previous version in memory. Every module carries BUILD; if one in memory is older, all of them are reloaded in order.
-BUILD = "19.0"
+BUILD = "19.1"
 _ORDER = ["terms", "lightmode", "i18n", "ai_assistant", "flags", "mcal", "universe", "sp500", "taxonomy", "ta", "academy", "insight", "heatmap", "newsiq", "newspics", "theme", "data",
           "caldata", "newsbot", "newsintel", "charts", "engine", "playbooks", "autotrader", "ui", "fairvalue", "sharia", "lab", "tdash", "mlbots", "brain", "paperbots", "smartbots", "portfolio", "pfinsight", "p_markets", "p_newsintel", "p_research", "p_insight",
           "p_academy", "p_paper", "p_portfolio", "p_calendar", "hunter", "p_scanner", "home"]
@@ -212,6 +212,11 @@ if ss.get("search_miss"):
 
 # arriving at the Academy from another page shows the course catalog (unless a course link was opened)
 _cur = getattr(pg, "url_path", "")
+# Overview opened from another page (the top bar, a link): straight to the home page with the market overview under it.
+# The landing stays the site's first screen (a visit that starts at the address) and what the logo brings back.
+if _cur in ("", "overview"):
+    if not ss.pop("_to_landing", False) and ss.get("_page") not in (None, "", "overview"):
+        ss["intro_done"] = True
 if ss.get("_page") != _cur:
     if _cur == "academy" and ss.get("_page") is not None and not st.query_params.get("course"):
         ss.pop("course", None)
@@ -314,6 +319,7 @@ except Exception:
 def _logo_home():
     """The logo was clicked: back to the landing (the home page's first screen)."""
     ss["intro_done"] = False
+    ss["_to_landing"] = True
     ss["goto"] = "overview"
 
 

@@ -1,2 +1,2 @@
-A.Alturaifi Pro - version 19.0 (paper portfolio: the owner's own portfolio opens directly on the owner's devices - once per device with the Paper Bots password, then nothing to type; visitors each keep their own)
+A.Alturaifi Pro - version 19.1 (Overview from any page opens the home page with the market overview under it; the landing stays the first screen of a visit and the logo)
 If you can see this file on GitHub, the new version was uploaded correctly.
