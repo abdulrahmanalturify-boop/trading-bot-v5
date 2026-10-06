@@ -709,14 +709,9 @@ def _sh_change(d, key, item):
         cls, arrow = ("up", "▲") if d > 0 else ("dn", "▼")
         return (f'<span class="{cls}"><bdi dir="ltr">{arrow} {abs(d):.2f}%</bdi></span> ' + L("in 1M", "خلال شهر"))
     six = item.get("ins6m") or {}
-    if key == "ins" and six.get("net_pct") is not None:
-        v = six["net_pct"]
-        if abs(v) < 0.005:
-            return L("No net insider buying or selling in 6M", "بدون صافي شراء أو بيع من المطّلعين خلال 6 أشهر")
-        cls = "up" if v > 0 else "dn"
-        what = L("net bought" if v > 0 else "net sold", "صافي شراء" if v > 0 else "صافي بيع")
-        return (f'<span class="{cls}">{what} <bdi dir="ltr">{abs(v):.2f}%</bdi></span> '
-                + L("of their shares in 6M", "من أسهمهم خلال 6 أشهر"))
+    if key == "ins" and (six.get("buys") or six.get("sells")):       # until a month of history: their trades of 6 months
+        b, s_ = six.get("buys") or 0, six.get("sells") or 0
+        return L(f"Insiders in 6M: {b} buys · {s_} sales", f"صفقات المطّلعين خلال 6 أشهر: شراء \u2066{b}\u2069 · بيع \u2066{s_}\u2069")
     return L("The monthly change shows after a month of tracking", "التغيّر الشهري يظهر بعد أول شهر من المتابعة")
 
 
@@ -1813,4 +1808,4 @@ def page_screener():
 # SCANNER
 # =====================================================================
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "19.8"
+BUILD = "19.9"

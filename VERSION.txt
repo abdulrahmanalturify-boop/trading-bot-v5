@@ -1,2 +1,2 @@
-TURA Pro - version 19.8 (Analyst ratings on Webull's scale: Yahoo's Buy and Strong Buy columns swapped into place, so AMZN reads Strong Buy 71% / Buy 25% / Hold 3% like Webull; 'Updated on' is the latest analyst action, not today)
+TURA Pro - version 19.9 (Shareholders on every company's About tab: institutions, insiders and others in a donut, the two shares with their change, and the 10 largest institutional holders; from Yahoo Finance, refreshed weekly)
 If you can see this file on GitHub, the new version was uploaded correctly.
