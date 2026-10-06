@@ -1,2 +1,2 @@
-TURA Pro - version 19.9 (Shareholders on every company's About tab: institutions, insiders and others in a donut, the two shares with their change, and the 10 largest institutional holders; from Yahoo Finance, refreshed weekly)
+TURA Pro - version 20.0 (The shareholders ring drawn like Webull's: a thin ring from the top with small gaps, institutions red, insiders olive, others indigo, 'Shareholders' in the middle)
 If you can see this file on GitHub, the new version was uploaded correctly.

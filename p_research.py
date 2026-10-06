@@ -652,11 +652,10 @@ SH_CSS = """<style>
 .shbox .shbd { display:flex; align-items:center; gap:26px; margin-top:12px; flex-wrap:wrap; }
 .shbox .shdn { position:relative; width:170px; height:170px; flex:none; }
 .shbox .shdn svg { width:100%; height:100%; transform:rotate(-90deg); overflow:visible; }
-.shbox .shdn .seg { fill:none; stroke-width:22; animation:shin 1s cubic-bezier(.2,.8,.2,1) both; }
+.shbox .shdn .seg { fill:none; stroke-width:17; animation:shin 1s cubic-bezier(.2,.8,.2,1) both; }
 @keyframes shin { from { stroke-dasharray:0 999; } }
 .shbox .shdn .shc { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }
-.shbox .shdn .shc b { color:#fff; font-size:1.05rem; font-weight:800; direction:ltr; unicode-bidi:isolate; }
-.shbox .shdn .shc span { color:#9D97A5; font-size:.72rem; margin-top:2px; }
+.shbox .shdn .shc span { color:#9D97A5; font-size:.82rem; font-weight:500; }
 .shbox .shlg { flex:1; min-width:220px; display:flex; flex-direction:column; gap:4px; }
 .shbox .shrow { display:grid; grid-template-columns:12px minmax(0,1fr) auto; align-items:center; gap:10px; padding:9px 12px; border-radius:12px; }
 .shbox .shrow.top { background:rgba(255,255,255,.05); box-shadow:inset 0 0 0 1px rgba(255,255,255,.06); }
@@ -688,7 +687,7 @@ SH_CSS = """<style>
 .shtop .r .ch.eq { color:#9D97A5; background:rgba(157,151,165,.12); }
 @media (max-width: 640px) { .shbox .shbd { justify-content:center; } .shbox .shlg { min-width:100%; } }
 </style>"""
-SH_COLORS = {"inst": "#A78BFA", "ins": "#F5B94A", "other": "#2DB6EB"}
+SH_COLORS = {"inst": "#E2505E", "ins": "#94AE48", "other": "#5B49D9"}      # Webull's ring: institutions red, insiders olive, others indigo
 SH_NAMES = {"inst": ("Institutions", "المؤسسات"), "ins": ("Insiders", "المطّلعون"), "other": ("Others", "أخرى")}
 SH_SUBS = {"inst": ("funds, banks, pension plans", "صناديق وبنوك وصناديق تقاعد"), "ins": ("executives, directors, 10% owners", "التنفيذيون وأعضاء المجلس وكبار الملاك"),
            "other": ("individual investors and the rest", "المستثمرون الأفراد والباقي")}
@@ -719,14 +718,14 @@ def holders_html(item):
     """Who owns the company: a donut of institutions / insiders / others, the two shares with their change, and where it
     comes from."""
     parts, over = HD.split(item)
-    r, circ = 58, 2 * 3.14159265 * 58
+    r, circ = 62, 2 * 3.14159265 * 62
     arcs, rows, off = [], [], 0.0
     top_key = max(parts, key=lambda kv: kv[1])[0]
     for k, v in parts:
         col = SH_COLORS[k]
         frac = v / 100
         if frac > 0:
-            gap = 1.2 if sum(1 for _, x in parts if x > 0) > 1 else 0
+            gap = 3.0 if sum(1 for _, x in parts if x > 0) > 1 else 0
             arcs.append(f'<circle class="seg" cx="80" cy="80" r="{r}" stroke="{col}" stroke-dasharray="{max(frac * circ - gap, 0.5):.2f} {circ:.2f}" '
                         f'stroke-dashoffset="{-off:.2f}"><title>{T.esc(L(*SH_NAMES[k]))} {v:.2f}%</title></circle>')
             off += frac * circ
@@ -736,7 +735,7 @@ def holders_html(item):
     rep = item.get("rep")
     when = (f'{L("Update time", "آخر تحديث")}: <bdi dir="ltr">{_mdy(rep)}</bdi>') if rep else ""
     tiles = []
-    for k, ic, bg, fg in (("inst", "account_balance", "rgba(167,139,250,.16)", "#A78BFA"), ("ins", "person", "rgba(245,185,74,.16)", "#F5B94A")):
+    for k, ic, bg, fg in (("inst", "apartment", "rgba(59,139,235,.18)", "#3B8BEB"), ("ins", "person", "rgba(245,158,66,.18)", "#F59E42")):
         if item.get(k) is None:
             continue
         tiles.append(f'<div class="shk"><div class="l"><i style="background:{bg};color:{fg}"><span class="ms">{ic}</span></i>{T.esc(L(*SH_NAMES[k]))}</div>'
@@ -747,8 +746,8 @@ def holders_html(item):
     note = (" · " + L("Yahoo counts institutions above 100% (shares lent out are counted twice)",
                       "ياهو يحسب المؤسسات فوق 100% (الأسهم المُقرضة تنحسب مرتين)")) if over else ""
     return (f'<div class="shbox" data-nogq><div class="shhd"><b>{L("Shareholders", "هيكل المساهمين")}</b><span>{when}</span></div>'
-            f'<div class="shbd"><div class="shdn"><svg viewBox="0 0 160 160"><circle cx="80" cy="80" r="{r}" fill="none" stroke="rgba(157,151,165,.12)" '
-            f'stroke-width="22"/>{"".join(arcs)}</svg><div class="shc"><b>{(item.get("inst") or 0):.0f}%</b><span>{L("institutions", "مؤسسات")}</span></div></div>'
+            f'<div class="shbd"><div class="shdn"><svg viewBox="0 0 160 160">{"".join(arcs)}</svg>'
+            f'<div class="shc"><span>{L("Shareholders", "المساهمون")}</span></div></div>'
             f'<div class="shlg">{"".join(rows)}</div></div><div class="shkt">{"".join(tiles)}</div>'
             f'<div class="shft">{T.esc(src)}{T.esc(extra)}{T.esc(note)}</div></div>')
 
@@ -1808,4 +1807,4 @@ def page_screener():
 # SCANNER
 # =====================================================================
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "19.9"
+BUILD = "20.0"
