@@ -37,13 +37,14 @@ jobs:
         run: |
           git config user.name "research-lab"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          [ -f segments.json ] || exit 0
-          cp segments.json /tmp/segments.json
+          cp segments_log.txt /tmp/segments_log.txt 2>/dev/null || true
+          [ -f segments.json ] && cp segments.json /tmp/segments.json
           git fetch -q origin research main redesign
           git checkout -q -B upd origin/research
           old=$(git rev-parse HEAD)
-          cp /tmp/segments.json segments.json
-          git add segments.json
+          mkdir -p research/results
+          [ -f /tmp/segments_log.txt ] && cp /tmp/segments_log.txt research/results/segments_log.txt && git add research/results/segments_log.txt
+          [ -f /tmp/segments.json ] && cp /tmp/segments.json segments.json && git add segments.json
           git commit -q -m "revenue sources from SEC annual reports [skip ci]" || exit 0
           git push -q origin upd:research
           for b in main redesign; do
