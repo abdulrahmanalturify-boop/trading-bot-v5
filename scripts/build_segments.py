@@ -88,6 +88,8 @@ def main():
         if not r.get("rows"):
             whys[r.get("why")] = whys.get(r.get("why"), 0) + 1
     print("without a breakdown:", whys)
+    for why in whys:
+        print(f"  {why}: {' '.join(sorted(k for k, r in items.items() if not r.get('rows') and r.get('why') == why))}")
 
 
 if __name__ == "__main__":

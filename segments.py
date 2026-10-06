@@ -23,7 +23,7 @@ import requests
 HERE = os.path.dirname(os.path.abspath(__file__))
 FILE = os.path.join(HERE, "segments.json")
 UA = os.environ.get("SEC_USER_AGENT") or "A.Alturaifi Pro research research@abdulrahman.streamlit.app"
-VERSION = 3                                         # a change in how a filing is read: every company is read again
+VERSION = 4                                         # a change in how a filing is read: every company is read again
 FORMS = ("10-K", "20-F", "40-F")
 
 REVENUE = ("RevenueFromContractWithCustomerExcludingAssessedTax", "Revenues", "RevenueFromContractWithCustomerIncludingAssessedTax",
@@ -34,6 +34,7 @@ AXES = {"ProductOrServiceAxis": ("product", 3), "ProductsAndServicesAxis": ("pro
         "StatementGeographicalAxis": ("region", 1), "GeographicalAreasAxis": ("region", 1)}
 SKIP = re.compile(r"Elimination|Intersegment|IntersegmentElimination|Corporate|Reconcil|Consolidat|Adjust|Hedg|Unallocated|"
                   r"OperatingSegmentsMember$|SegmentsMember$|^Segments?$", re.I)
+BEFORE = {"XOM": 34088}                           # ticker -> the CIK that filed its annual reports before a reorganization
 COUNTRY = {"US": "United States", "CN": "China", "TW": "Taiwan", "JP": "Japan", "GB": "United Kingdom", "DE": "Germany",
            "FR": "France", "CA": "Canada", "IN": "India", "KR": "South Korea", "NL": "Netherlands", "IE": "Ireland", "CH": "Switzerland",
            "MX": "Mexico", "BR": "Brazil", "SG": "Singapore", "HK": "Hong Kong", "AU": "Australia", "IL": "Israel"}
@@ -206,14 +207,35 @@ def breakdown(ctx, units, facts, debug=None):
     if not totals:
         return None
     biggest = max(totals.values(), key=lambda t: t[0])
-    groups = {}
+    groups, pairs = {}, {}
     for con, c, u, v in facts:
-        if not period(c) or len(ctx[c][2]) != 1:
+        if not period(c) or v <= 0:
             continue
-        (axis, member), = ctx[c][2].items()
-        if axis not in AXES or member == "typed" or v <= 0 or SKIP.search(_qlocal(member)):
+        # "the operating segments together" adds nothing to a fact's meaning (the newer segment notes tag every line with it)
+        dims = {a: m for a, m in ctx[c][2].items() if not (a == "ConsolidationItemsAxis" and _qlocal(m) == "OperatingSegmentsMember")}
+        if not dims or any(m == "typed" or SKIP.search(_qlocal(m)) for m in dims.values()):
             continue
-        groups.setdefault((con, axis), {})[member] = v
+        if len(dims) == 1:
+            (axis, member), = dims.items()
+            if axis in AXES:
+                groups.setdefault((con, axis), {})[member] = v
+        elif len(dims) == 2:                            # e.g. product lines told inside each business segment
+            for axis, member in dims.items():
+                if axis in AXES:
+                    other = next(m for a, m in dims.items() if a != axis)
+                    oax = next(a for a in dims if a != axis)
+                    pairs.setdefault((con, axis, oax), {}).setdefault(member, {})[other] = v
+    for (con, axis, oax), mem in pairs.items():
+        if (con, axis) in groups:
+            continue
+        total, _ = totals.get(con) or biggest
+        sums = {m: sum(o.values()) for m, o in mem.items()}
+        # only when every line, added across the other split, gives the whole revenue: nothing counted twice, nothing missing
+        if len(sums) >= 2 and abs(sum(sums.values()) / total - 1) <= 0.02:
+            groups[(con, axis)] = sums
+        if debug is not None:
+            debug.append(f"{con} · {axis} x {oax} · {len(sums)} lines · sum {sum(sums.values()) / total:.3f}"
+                         f"{' -> used' if groups.get((con, axis)) is sums else ''}")
     best = {"biz": None, "geo": None}
     for (con, axis), mem in groups.items():
         total, cur = totals.get(con) or biggest
@@ -221,7 +243,7 @@ def breakdown(ctx, units, facts, debug=None):
         pick, cov, exact = _fit(items, total)
         if debug is not None:
             debug.append(f"{con} · {axis} · {len(mem)} lines · sum {sum(mem.values()) / total:.3f} of {total / 1e9:.1f}B · "
-                         f"picked {len(pick)} exact={exact} cov={cov:.3f}")
+                         f"picked {len(pick)} exact={exact} cov={cov:.3f} · {[_qlocal(m)[:28] for m, _ in items[:8]]}")
         if not pick:
             continue
         kind, pri = AXES[axis]
@@ -266,6 +288,9 @@ def fetch(sym, ciks=None, prev=None):
         return {"why": "no SEC filer"}
     dbg = [] if os.environ.get("SEG_DEBUG") and sym.upper() in os.environ.get("SEG_DEBUG", "").split(",") else None
     la = latest_annual(cik, dbg is not None)
+    if not la and sym.upper() in BEFORE:               # a new holding company: the last annual report is under the old one
+        cik = BEFORE[sym.upper()]
+        la = latest_annual(cik, dbg is not None)
     if not la:
         return {"why": "no annual report", "cik": cik}
     form, acc, rep, fil = la
@@ -290,7 +315,13 @@ def fetch(sym, ciks=None, prev=None):
             pass
     if dbg is not None:
         print(f"  [{sym}] labels {len(labels)} · e.g. {[k for k in labels if 'Member' in k][:4]}")
-    name = lambda m: "Other" if m == "Other" else (labels.get(m.replace(":", "_")) or humanize(m))
+    def name(m):
+        if m == "Other":
+            return "Other"
+        lab_ = labels.get(m.replace(":", "_"))
+        if m.startswith("country:"):                    # the SEC's country list is in capitals: "UNITED STATES"
+            return COUNTRY.get(_qlocal(m)) or (lab_.title() if lab_ and lab_.isupper() else lab_) or humanize(m)
+        return lab_ or humanize(m)
     pack = lambda b: [(name(m), round(v, 2)) for m, v in b["rows"] if v / b["total"] >= 0.0005]
     main = bd.get("biz") or bd.get("geo")
     out = {"v": VERSION, "acc": acc, "cik": cik, "form": form, "end": main["end"], "start": main["start"], "filed": fil, "cur": main["cur"],
