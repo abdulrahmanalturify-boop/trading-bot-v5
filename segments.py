@@ -23,7 +23,7 @@ import requests
 HERE = os.path.dirname(os.path.abspath(__file__))
 FILE = os.path.join(HERE, "segments.json")
 UA = os.environ.get("SEC_USER_AGENT") or "A.Alturaifi Pro research research@abdulrahman.streamlit.app"
-VERSION = 2                                         # a change in how a filing is read: every company is read again
+VERSION = 3                                         # a change in how a filing is read: every company is read again
 FORMS = ("10-K", "20-F", "40-F")
 
 REVENUE = ("RevenueFromContractWithCustomerExcludingAssessedTax", "Revenues", "RevenueFromContractWithCustomerIncludingAssessedTax",
@@ -65,10 +65,16 @@ def cik_map():
     return {str(v["ticker"]).upper().replace(".", "-"): int(v["cik_str"]) for v in js.values()}
 
 
-def latest_annual(cik):
+def latest_annual(cik, debug=False):
     """(form, accession, report date, filing date) of the latest annual report, or None."""
     js = _get(f"https://data.sec.gov/submissions/CIK{cik:010d}.json").json()
     pages = [js.get("filings", {}).get("recent", {})]
+    if debug:
+        forms = {}
+        for f in pages[0].get("form", []):
+            forms[f] = forms.get(f, 0) + 1
+        print(f"  [CIK {cik}] {js.get('name')} · {len(pages[0].get('form', []))} recent filings · "
+              f"{sorted(forms.items(), key=lambda kv: -kv[1])[:12]} · more pages {[f.get('name') for f in js.get('filings', {}).get('files') or []][:3]}")
     for f in (js.get("filings", {}).get("files") or [])[:1]:   # a busy filer: its annual report may sit on the next page
         try:
             pages.append(_get(f"https://data.sec.gov/submissions/{f['name']}").json())
@@ -89,7 +95,8 @@ def filing_files(cik, acc):
     if not inst:
         inst = [n for n in names if n.endswith(".xml") and not re.search(r"_(cal|def|lab|pre)\.xml$|FilingSummary|MetaLinks", n, re.I)]
     lab = [n for n in names if re.search(r"[_-]lab\.xml$", n, re.I)]
-    return base, (inst[0] if inst else None), (lab[0] if lab else None)
+    xsd = [n for n in names if n.endswith(".xsd")]
+    return base, (inst[0] if inst else None), (lab[0] if lab else None), (xsd[0] if xsd else None)
 
 
 # ---------------------------------------------------------------- reading the XBRL
@@ -183,8 +190,9 @@ def _days(a, b):
         return 0
 
 
-def breakdown(ctx, units, facts):
-    """The best revenue breakdown in an annual report: {'end', 'start', 'cur', 'total', 'axis', 'kind', 'rows': [(member, value)]} or None."""
+def breakdown(ctx, units, facts, debug=None):
+    """The best revenue breakdowns in an annual report: {'biz': by product line or business segment, 'geo': by region}, each
+    {'end', 'start', 'cur', 'total', 'axis', 'kind', 'rows': [(member, value)], 'coverage', 'exact'} or None."""
     annual = [(c, ctx[c]) for _, c, _, _ in facts if c in ctx and 340 <= _days(ctx[c][0], ctx[c][1]) <= 380]
     if not annual:
         return None
@@ -197,6 +205,7 @@ def breakdown(ctx, units, facts):
             totals.setdefault(con, (v, units.get(u, "USD")))
     if not totals:
         return None
+    biggest = max(totals.values(), key=lambda t: t[0])
     groups = {}
     for con, c, u, v in facts:
         if not period(c) or len(ctx[c][2]) != 1:
@@ -205,20 +214,25 @@ def breakdown(ctx, units, facts):
         if axis not in AXES or member == "typed" or v <= 0 or SKIP.search(_qlocal(member)):
             continue
         groups.setdefault((con, axis), {})[member] = v
-    best = None
+    best = {"biz": None, "geo": None}
     for (con, axis), mem in groups.items():
-        total, cur = totals.get(con) or next(iter(totals.values()))
+        total, cur = totals.get(con) or biggest
         items = sorted(mem.items(), key=lambda kv: -kv[1])[:14]
         pick, cov, exact = _fit(items, total)
+        if debug is not None:
+            debug.append(f"{con} · {axis} · {len(mem)} lines · sum {sum(mem.values()) / total:.3f} of {total / 1e9:.1f}B · "
+                         f"picked {len(pick)} exact={exact} cov={cov:.3f}")
         if not pick:
             continue
         kind, pri = AXES[axis]
-        # three lines or more say more than two broad ones; then products over segments over regions; then an exact fit
+        side = "geo" if kind == "region" else "biz"
+        # three lines or more say more than two broad ones; then products over segments; then an exact fit
         score = (len(pick) >= 3, pri, exact, -abs(cov - 1), len(pick))
-        if best is None or score > best[0]:
-            best = (score, {"end": end, "start": start, "cur": cur, "total": total, "axis": axis, "kind": kind,
-                            "rows": [(m, v) for m, v in pick], "coverage": cov})
-    return best[1] if best else None
+        if best[side] is None or score > best[side][0]:
+            best[side] = (score, {"end": end, "start": start, "cur": cur, "total": total, "axis": axis, "kind": kind,
+                                  "rows": [(m, v) for m, v in pick], "coverage": cov, "exact": exact})
+    out = {k: v[1] for k, v in best.items() if v}
+    return out or None
 
 
 def _fit(items, total):
@@ -250,28 +264,42 @@ def fetch(sym, ciks=None, prev=None):
     cik = ciks.get(sym.upper())
     if not cik:
         return {"why": "no SEC filer"}
-    la = latest_annual(cik)
+    dbg = [] if os.environ.get("SEG_DEBUG") and sym.upper() in os.environ.get("SEG_DEBUG", "").split(",") else None
+    la = latest_annual(cik, dbg is not None)
     if not la:
         return {"why": "no annual report", "cik": cik}
     form, acc, rep, fil = la
     if prev and prev.get("acc") == acc and prev.get("v") == VERSION:
         return prev
-    base, inst, lab = filing_files(cik, acc)
+    base, inst, lab, xsd = filing_files(cik, acc)
     if not inst:
         return {"acc": acc, "why": "no XBRL data", "cik": cik}
     ctx, units, facts = parse_instance(_get(f"{base}/{inst}", timeout=90).content)
-    b = breakdown(ctx, units, facts)
-    if not b:
-        return {"acc": acc, "why": "no breakdown", "cik": cik}
+    bd = breakdown(ctx, units, facts, dbg)
+    if dbg is not None:
+        print(f"  [{sym}] instance {inst} · label file {lab} · xsd {xsd}")
+        for line in dbg:
+            print(f"  [{sym}]   {line}")
+    if not bd:
+        return {"v": VERSION, "acc": acc, "why": "no breakdown", "cik": cik}
     labels = parse_labels(_get(f"{base}/{lab}", timeout=60).content) if lab else {}
-    if os.environ.get("SEG_DEBUG") and sym.upper() in os.environ.get("SEG_DEBUG", "").split(","):
-        print(f"  [{sym}] instance {inst} · labels {lab} ({len(labels)}) · rows {[m for m, _ in b['rows']]}")
-        print(f"  [{sym}] label keys like: {[k for k in labels if 'Member' in k][:6]}")
-    rows = [(labels.get(m.replace(":", "_")) or humanize(m) if m != "Other" else "Other", round(v, 2)) for m, v in b["rows"]
-            if v / b["total"] >= 0.0005]
-    return {"v": VERSION, "acc": acc, "cik": cik, "form": form, "end": b["end"], "start": b["start"], "filed": fil, "cur": b["cur"],
-            "total": b["total"], "kind": b["kind"], "axis": b["axis"], "rows": rows,
-            "url": f"https://www.sec.gov/Archives/edgar/data/{cik}/{acc.replace('-', '')}/{acc}-index.htm"}
+    if xsd and not any(k.endswith("Member") and not k.startswith(("us-gaap_", "srt_", "dei_", "country_")) for k in labels):
+        try:                                       # newer filings keep their own labels inside the schema
+            labels.update(parse_labels(_get(f"{base}/{xsd}", timeout=60).content))
+        except Exception:
+            pass
+    if dbg is not None:
+        print(f"  [{sym}] labels {len(labels)} · e.g. {[k for k in labels if 'Member' in k][:4]}")
+    name = lambda m: "Other" if m == "Other" else (labels.get(m.replace(":", "_")) or humanize(m))
+    pack = lambda b: [(name(m), round(v, 2)) for m, v in b["rows"] if v / b["total"] >= 0.0005]
+    main = bd.get("biz") or bd.get("geo")
+    out = {"v": VERSION, "acc": acc, "cik": cik, "form": form, "end": main["end"], "start": main["start"], "filed": fil, "cur": main["cur"],
+           "total": main["total"], "kind": main["kind"], "axis": main["axis"], "rows": pack(main),
+           "url": f"https://www.sec.gov/Archives/edgar/data/{cik}/{acc.replace('-', '')}/{acc}-index.htm"}
+    if bd.get("biz") and bd.get("geo"):
+        g = bd["geo"]
+        out["alt"] = {"kind": g["kind"], "axis": g["axis"], "total": g["total"], "cur": g["cur"], "rows": pack(g)}
+    return out
 
 
 # ---------------------------------------------------------------- for the page

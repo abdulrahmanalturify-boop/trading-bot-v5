@@ -72,12 +72,15 @@ def main():
                 json.dump({"built": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), "items": items}, f, ensure_ascii=False,
                           separators=(",", ":"))
             print(f"{i}/{len(syms)} · {time.time() - t0:.0f}s · {stats}")
-    for s in ("AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "TSLA", "JPM", "TSM", "XOM", "LLY", "KO", "IONQ"):
+    for s in ("AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "TSLA", "JPM", "TSM", "XOM", "LLY", "KO", "IONQ", "AVGO", "V", "COST", "NFLX", "PLTR"):
         r = items.get(s) or {}
         if r.get("rows"):
             tot = r["total"]
             parts = ", ".join(f"{n} {v / tot * 100:.1f}%" for n, v in r["rows"])
             print(f"{s}: {r['form']} {r['end']} {r['kind']} {r['cur']} {tot / 1e9:.1f}B -> {parts}")
+            if r.get("alt"):
+                a = r["alt"]
+                print(f"    and {a['kind']}: " + ", ".join(f"{n} {v / a['total'] * 100:.1f}%" for n, v in a["rows"]))
         else:
             print(f"{s}: none ({r.get('why')})")
     whys = {}
