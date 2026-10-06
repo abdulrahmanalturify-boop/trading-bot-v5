@@ -10,7 +10,7 @@ import theme as T
 import ui
 from i18n import L, is_ar
 
-BUILD = "20.1"
+BUILD = "20.2"
 
 _LINE = "rgba(150,140,250,"
 CSS = f"""

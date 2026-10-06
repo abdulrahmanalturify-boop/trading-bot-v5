@@ -1,2 +1,2 @@
-TURA Pro - version 20.1 (The shareholders ring shows again: its centre label shared a class name with the Sharia card and took its dark box; the card moved to the end of the About tab)
+TURA Pro - version 20.2 (The shareholders ring: its 'Shareholders' label drawn inside the ring itself, nothing laid over it; the rings fade in instead of drawing their dashes, which Safari could leave unfinished)
 If you can see this file on GitHub, the new version was uploaded correctly.

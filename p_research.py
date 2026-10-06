@@ -542,7 +542,7 @@ REV_CSS = """<style>
 .revsrc .rvdn { position:relative; width:184px; height:184px; flex:none; }
 .revsrc .rvdn svg { width:100%; height:100%; transform:rotate(-90deg); overflow:visible; }
 .revsrc .rvdn .seg { fill:none; stroke-width:24; transition:stroke-width .2s, opacity .2s; animation:revin 1s cubic-bezier(.2,.8,.2,1) both; }
-@keyframes revin { from { stroke-dasharray:0 999; } }
+@keyframes revin { from { opacity:0; } }
 .revsrc .rvdn .rvc { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }
 .revsrc .rvdn .rvc b { color:#fff; font-size:1.02rem; font-weight:800; direction:ltr; unicode-bidi:isolate; }
 .revsrc .rvdn .rvc span { color:#9D97A5; font-size:.7rem; margin-top:2px; }
@@ -651,11 +651,9 @@ SH_CSS = """<style>
 .shbox .shhd span { color:#9D97A5; font-size:.8rem; }
 .shbox .shbd { display:flex; align-items:center; gap:26px; margin-top:12px; flex-wrap:wrap; }
 .shbox .shdn { position:relative; width:170px; height:170px; flex:none; }
-.shbox .shdn svg { width:100%; height:100%; transform:rotate(-90deg); overflow:visible; }
+.shbox .shdn svg { width:100%; height:100%; overflow:visible; display:block; background:none !important; border:0 !important; box-shadow:none !important; }
 .shbox .shdn .seg { fill:none; stroke-width:17; animation:shin 1s cubic-bezier(.2,.8,.2,1) both; }
-@keyframes shin { from { stroke-dasharray:0 999; } }
-.shbox .shdn .shcz { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }
-.shbox .shdn .shcz span { color:#9D97A5; font-size:.82rem; font-weight:500; }
+@keyframes shin { from { opacity:0; } }      /* a fade: Safari can leave an animated dash pattern at its start */
 .shbox .shlg { flex:1; min-width:220px; display:flex; flex-direction:column; gap:4px; }
 .shbox .shrow { display:grid; grid-template-columns:12px minmax(0,1fr) auto; align-items:center; gap:10px; padding:9px 12px; border-radius:12px; }
 .shbox .shrow.top { background:rgba(255,255,255,.05); box-shadow:inset 0 0 0 1px rgba(255,255,255,.06); }
@@ -746,8 +744,9 @@ def holders_html(item):
     note = (" · " + L("Yahoo counts institutions above 100% (shares lent out are counted twice)",
                       "ياهو يحسب المؤسسات فوق 100% (الأسهم المُقرضة تنحسب مرتين)")) if over else ""
     return (f'<div class="shbox" data-nogq><div class="shhd"><b>{L("Shareholders", "هيكل المساهمين")}</b><span>{when}</span></div>'
-            f'<div class="shbd"><div class="shdn"><svg viewBox="0 0 160 160">{"".join(arcs)}</svg>'
-            f'<div class="shcz"><span>{L("Shareholders", "المساهمون")}</span></div></div>'
+            f'<div class="shbd"><div class="shdn"><svg viewBox="0 0 160 160"><g transform="rotate(-90 80 80)">{"".join(arcs)}</g>'
+            f'<text x="80" y="80" text-anchor="middle" dominant-baseline="central" fill="#9D97A5" font-size="13" font-weight="500" '
+            f'font-family="inherit">{T.esc(L("Shareholders", "المساهمون"))}</text></svg></div>'
             f'<div class="shlg">{"".join(rows)}</div></div><div class="shkt">{"".join(tiles)}</div>'
             f'<div class="shft">{T.esc(src)}{T.esc(extra)}{T.esc(note)}</div></div>')
 
@@ -1807,4 +1806,4 @@ def page_screener():
 # SCANNER
 # =====================================================================
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "20.1"
+BUILD = "20.2"
