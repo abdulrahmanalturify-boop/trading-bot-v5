@@ -13,6 +13,7 @@ import charts
 import data
 import fairvalue as FV
 import engine
+import segments as SG
 import sharia
 import ta
 import taxonomy as X
@@ -530,6 +531,109 @@ def analysts_tab(sym, inf, price):
     S.insider_section(sym)
 
 
+REV_CSS = """<style>
+.revsrc { position:relative; overflow:hidden; border-radius:20px; border:1px solid rgba(157,151,165,.28); padding:18px 20px 14px; margin:2px 0 12px;
+  background:radial-gradient(120% 140% at 100% 0%, rgba(123,69,240,.22), transparent 60%), linear-gradient(160deg,#1A1534,#15102A 60%,#120D22); }
+.revsrc .rvhd { display:flex; align-items:baseline; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+.revsrc .rvhd b { color:#fff; font-size:1.25rem; font-weight:800; letter-spacing:-.01em; }
+.revsrc .rvhd span { color:#9D97A5; font-size:.8rem; }
+.revsrc .rvbd { display:flex; align-items:center; gap:26px; margin-top:12px; flex-wrap:wrap; }
+.revsrc .rvdn { position:relative; width:184px; height:184px; flex:none; }
+.revsrc .rvdn svg { width:100%; height:100%; transform:rotate(-90deg); overflow:visible; }
+.revsrc .rvdn .seg { fill:none; stroke-width:24; transition:stroke-width .2s, opacity .2s; animation:revin 1s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes revin { from { stroke-dasharray:0 999; } }
+.revsrc .rvdn .rvc { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }
+.revsrc .rvdn .rvc b { color:#fff; font-size:1.02rem; font-weight:800; direction:ltr; unicode-bidi:isolate; }
+.revsrc .rvdn .rvc span { color:#9D97A5; font-size:.7rem; margin-top:2px; }
+.revsrc .rvlg { flex:1; min-width:220px; display:flex; flex-direction:column; gap:9px; }
+.revsrc .rvrow { display:grid; grid-template-columns:14px minmax(0,1fr) auto; align-items:center; gap:10px; }
+.revsrc .rvrow .sw { width:14px; height:14px; display:block; }
+.revsrc .rvrow .n { color:#E7E3EB; font-size:.92rem; line-height:1.3; }
+.revsrc .rvrow .n small { display:block; color:#9D97A5; font-size:.74rem; }
+.revsrc .rvrow .p { color:#fff; font-weight:800; font-size:.98rem; direction:ltr; unicode-bidi:isolate; }
+.revsrc .rvrow .br { grid-column:2 / 4; height:4px; border-radius:4px; background:rgba(157,151,165,.14); overflow:hidden; margin-top:-4px; direction:ltr; }
+.revsrc .rvrow .br svg { display:block; width:100%; height:100%; }
+.revsrc .rvft { margin-top:12px; padding-top:10px; border-top:1px solid rgba(157,151,165,.18); color:#9D97A5; font-size:.74rem; }
+.revsrc .rvft a { color:#79B8F4; }
+@media (max-width: 640px) { .revsrc .rvbd { justify-content:center; } .revsrc .rvlg { min-width:100%; } }
+</style>"""
+REV_COLORS = ["#E9E4F5", "#A78BFA", "#2DB6EB", "#F5B94A", "#4ADE80", "#F472B6", "#FB923C", "#79B8F4", "#9D97A5"]
+REV_KIND = {"product": ("by product line", "حسب المنتجات"), "segment": ("by business segment", "حسب قطاعات الأعمال"),
+            "region": ("by region", "حسب المناطق")}
+MONTHS_EN = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+MONTHS_AR_ = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"]
+
+
+def revenue_html(seg):
+    """Where the revenue comes from: a donut and its lines (the company's own split, from its latest annual report)."""
+    rows = sorted(seg["rows"], key=lambda r: -r[1])
+    if len(rows) > 8:                                   # the long tail in one "Other" line
+        rows = rows[:7] + [("Other", sum(v for _, v in rows[7:]))]
+    tot = sum(v for _, v in rows) or 1.0
+    names = [n for n, _ in rows]
+    if is_ar():
+        names = data.translate(["Others" if n == "Other" else n for n in names], budget=6)
+    r, circ = 60, 2 * 3.14159265 * 60
+    arcs, legend, off = [], [], 0.0
+    cur = seg.get("cur") or "USD"
+    money = (lambda v: ("$" if cur == "USD" else "") + T.fmt_big(v) + ("" if cur == "USD" else f" {cur}"))
+    for i, ((n, v), name) in enumerate(zip(rows, names)):
+        col = REV_COLORS[i % len(REV_COLORS)]
+        frac = v / tot
+        gap = 1.2 if len(rows) > 1 else 0
+        arcs.append(f'<circle class="seg" cx="80" cy="80" r="{r}" stroke="{col}" stroke-dasharray="{max(frac * circ - gap, 0.5):.2f} {circ:.2f}" '
+                    f'stroke-dashoffset="{-off:.2f}"><title>{T.esc(name)} {frac * 100:.1f}%</title></circle>')
+        off += frac * circ
+        # the swatch and the bar are drawn like the ring itself, so the light look turns all three into the same colour
+        legend.append(f'<div class="rvrow"><svg class="sw" viewBox="0 0 14 14"><rect width="14" height="14" rx="4" fill="{col}"/></svg>'
+                      f'<div class="n">{T.esc(name)}<small><bdi dir="ltr">{money(v)}</bdi></small></div>'
+                      f'<div class="p">{frac * 100:.1f}%</div><div class="br"><svg viewBox="0 0 100 4" preserveAspectRatio="none">'
+                      f'<rect width="{frac * 100:.2f}" height="4" fill="{col}"/></svg></div></div>')
+    end = str(seg.get("end") or "")
+    try:
+        y, mo, _ = end.split("-")
+        when = f"{MONTHS_AR_[int(mo) - 1]} {y}" if is_ar() else f"{MONTHS_EN[int(mo) - 1]} {y}"
+        fy = f"FY{y}"
+    except ValueError:
+        when, fy = end, ""
+    kind = L(*REV_KIND.get(seg.get("kind"), REV_KIND["segment"]))
+    src = (f'{L("From the annual report", "من التقرير السنوي")} (<bdi dir="ltr">{T.esc(seg.get("form", "10-K"))}</bdi>) '
+           f'{L("for the year ending", "للسنة المنتهية في")} {T.esc(when)} · '
+           f'<a href="{T.esc(seg.get("url", "https://www.sec.gov"))}" target="_blank">SEC</a>')
+    return (f'<div class="revsrc"><div class="rvhd"><b>{L("Revenue sources", "مصادر الإيرادات")}</b><span>{kind}</span></div>'
+            f'<div class="rvbd"><div class="rvdn"><svg viewBox="0 0 160 160"><circle cx="80" cy="80" r="{r}" fill="none" stroke="rgba(157,151,165,.12)" '
+            f'stroke-width="24"/>{"".join(arcs)}</svg><div class="rvc"><b>{money(seg["total"])}</b><span>{L("revenue", "الإيرادات")} {fy}</span></div></div>'
+            f'<div class="rvlg">{"".join(legend)}</div></div><div class="rvft">{src}</div></div>')
+
+
+REV_SW_CSS = """<style>
+[class*="st-key-revsw"] { margin:0 0 -4px; }
+[class*="st-key-revsw"] [data-testid="stBaseButton-segmented_control"], [class*="st-key-revsw"] [data-testid="stBaseButton-segmented_controlActive"] {
+  min-height:30px !important; padding:2px 14px !important; border-radius:999px !important; }
+[class*="st-key-revsw"] [data-testid="stBaseButton-segmented_control"] { background:rgba(26,21,52,.7) !important; border-color:rgba(157,151,165,.28) !important; }
+[class*="st-key-revsw"] [data-testid="stBaseButton-segmented_control"] p { color:#CCC7D3 !important; font-size:.82rem !important; }
+[class*="st-key-revsw"] [data-testid="stBaseButton-segmented_controlActive"] { background:linear-gradient(95deg,#7B45F0,#2DB6EB) !important; border-color:transparent !important; }
+[class*="st-key-revsw"] [data-testid="stBaseButton-segmented_controlActive"] p { color:#fff !important; font-size:.82rem !important; font-weight:700 !important; }
+</style>"""
+
+
+def revenue_section(sym):
+    seg = SG.get(sym)
+    if not seg:
+        return
+    if seg.get("alt"):                                  # a business split and a regional one: the visitor picks
+        kinds = {"main": seg.get("kind"), "alt": seg["alt"].get("kind")}
+        ui.html(REV_SW_CSS)
+        with st.container(key="revsw"):
+            view = st.segmented_control(L("Split", "التقسيم"), ["main", "alt"], default="main", key=f"rev_view_{sym}",
+                                        label_visibility="collapsed",
+                                        format_func=lambda k: L("Regions", "المناطق") if kinds[k] == "region"
+                                        else L("Business lines", "خطوط الأعمال"))
+        if view == "alt":
+            seg = {**seg, **seg["alt"]}
+    ui.html(REV_CSS + revenue_html(seg))
+
+
 def company_tab(sym):
     p = data.profile(sym)
     ui.sec("apartment", "Company description", "نبذة عن الشركة")
@@ -547,6 +651,7 @@ def company_tab(sym):
             ui.html(f'<div class="card"><div class="desc">{T.esc(summary)}</div></div>')
     else:
         st.caption(L("No description available for this symbol.", "لا توجد نبذة متاحة لهذا الرمز."))
+    ui.safe(revenue_section, sym)
 
     ui.sec("category", "Classification", "التصنيف")
     th = X.themes_of(sym)
@@ -1541,4 +1646,4 @@ def page_screener():
 # SCANNER
 # =====================================================================
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "19.1"
+BUILD = "19.2"

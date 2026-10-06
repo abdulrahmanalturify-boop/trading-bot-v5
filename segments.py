@@ -13,6 +13,7 @@ import io
 import json
 import os
 import re
+import threading
 import time
 import xml.etree.ElementTree as ET
 from datetime import date
@@ -53,11 +54,15 @@ _S = requests.Session()
 _LAST = [0.0]
 
 
+_PACE = threading.Lock()
+
+
 def _get(url, timeout=40):
-    wait = 0.12 - (time.time() - _LAST[0])           # the SEC asks for at most 10 requests a second
-    if wait > 0:
-        time.sleep(wait)
-    _LAST[0] = time.time()
+    with _PACE:
+        wait = 0.12 - (time.time() - _LAST[0])       # the SEC asks for at most 10 requests a second
+        if wait > 0:
+            time.sleep(wait)
+        _LAST[0] = time.time()
     r = _S.get(url, headers={"User-Agent": UA, "Accept-Encoding": "gzip, deflate"}, timeout=timeout)
     if r.status_code != 200:
         raise Missing(f"HTTP {r.status_code} {url}")
@@ -402,31 +407,40 @@ def _file():
     return _FILE_CACHE["data"]
 
 
+_LIVE, _LOCK, _CIKS = {}, threading.Lock(), {"t": 0.0, "map": None}
+
+
+def _ciks():
+    if _CIKS["map"] is None or time.time() - _CIKS["t"] > 86400:
+        _CIKS["map"], _CIKS["t"] = cik_map(), time.time()
+    return _CIKS["map"]
+
+
+def _work(sym):
+    try:
+        r = fetch(sym, _ciks())
+    except Exception as e:                          # the SEC busy or unreachable: try again in an hour
+        r = {"why": f"error {type(e).__name__}", "retry": True}
+    _LIVE[sym] = (time.time(), r)
+
+
 def get(sym):
-    """The revenue breakdown of a company for the page, or None. From segments.json, else fetched live from the SEC (kept 7 days)."""
-    hit = _file().get(sym.upper())
+    """The revenue breakdown of a company for the page, or None. From segments.json; a company outside it is read from the SEC
+    in the background (the page never waits for it) and shows on the next refresh, kept for a week."""
+    sym = sym.upper()
+    hit = _file().get(sym)
     if hit is not None:
         return hit if hit.get("rows") else None
-    try:
-        r = _live(sym.upper())
-    except Exception:
-        return None
-    return r if r and r.get("rows") else None
+    with _LOCK:
+        got = _LIVE.get(sym)
+        stale = got is not None and got[0] and time.time() - got[0] > (3600 if got[1].get("retry") else 7 * 86400)
+        if got is None or stale:
+            _LIVE[sym] = (0.0, {})                  # being read
+            threading.Thread(target=_work, args=(sym,), daemon=True).start()
+            return None
+    r = got[1]
+    return r if r.get("rows") else None
 
-
-try:
-    import streamlit as st
-
-    @st.cache_data(ttl=7 * 86400, show_spinner=False)
-    def _live(sym):
-        return fetch(sym, _ciks())
-
-    @st.cache_data(ttl=86400, show_spinner=False)
-    def _ciks():
-        return cik_map()
-except Exception:                                   # the builder script runs without Streamlit
-    def _live(sym):
-        return fetch(sym)
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "19.1"
+BUILD = "19.2"

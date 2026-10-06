@@ -1,2 +1,2 @@
-A.Alturaifi Pro - version 19.1 (Overview from any page opens the home page with the market overview under it; the landing stays the first screen of a visit and the logo)
+A.Alturaifi Pro - version 19.2 (Revenue sources on every company's About tab: a donut of where the money comes from - product lines or segments, and regions - read from each company's latest SEC annual report, refreshed monthly)
 If you can see this file on GitHub, the new version was uploaded correctly.
