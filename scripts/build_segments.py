@@ -29,7 +29,23 @@ def main():
             prev = json.load(f).get("items", {})
     except (OSError, ValueError):
         prev = {}
-    ciks = SG.cik_map()
+    # the SEC asks automated tools to say who they are; try the declared agents in turn (SEC_USER_AGENT first, when set)
+    agents = [a for a in (os.environ.get("SEC_USER_AGENT"),
+                          "AAlturaifiPro research actions@github.com",
+                          "A.Alturaifi Pro research research@abdulrahman.streamlit.app",
+                          "Mozilla/5.0 (compatible; AAlturaifiPro/1.0; +https://abdulrahman.streamlit.app)",
+                          SG.UA) if a]
+    ciks = None
+    for a in agents:
+        SG.UA = a
+        try:
+            ciks = SG.cik_map()
+            print("SEC answered with the agent:", a)
+            break
+        except Exception as e:
+            print("SEC refused the agent:", a, "-", e)
+    if ciks is None:
+        raise SystemExit("the SEC refused every agent")
     syms = symbols()
     print(f"{len(syms)} symbols, {len(ciks)} SEC filers known, {len(prev)} already read")
     items = dict(prev)
