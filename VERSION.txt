@@ -1,2 +1,2 @@
-TURA Pro - version 19.5 (Search suggests about 110 more companies: the theme lists' names such as CoreWeave, Nebius, IonQ and Rocket Lab, and well-known names outside the S&P 500)
+TURA Pro - version 19.6 (The stock page's action cards: the icon tile sized on Streamlit's own icon wrapper, so it sits inside the card with room before the words on every screen)
 If you can see this file on GitHub, the new version was uploaded correctly.

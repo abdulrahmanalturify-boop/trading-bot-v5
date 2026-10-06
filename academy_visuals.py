@@ -164,4 +164,4 @@ def academy_wordmark(brand):
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "19.5"
+BUILD = "19.6"

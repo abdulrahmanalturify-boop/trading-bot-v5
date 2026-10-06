@@ -855,4 +855,4 @@ def client():
     return {"t": t, "p": p}
 
 
-BUILD = "19.5"
+BUILD = "19.6"

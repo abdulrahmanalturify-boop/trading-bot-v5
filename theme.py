@@ -305,11 +305,15 @@ button[data-testid="stBaseButton-tertiary"]:hover {{ color:#fff; }}
   background:linear-gradient(135deg, var(--bg1), rgba(16,12,28,.55) 72%) !important;
   box-shadow:inset 0 1px 0 rgba(255,255,255,.06), 0 6px 18px -10px rgba(0,0,0,.6) !important;
   transition:transform .2s ease, box-shadow .25s, border-color .25s, background .25s, color .25s !important; }}
-[class*="st-key-stkact_"] button > div {{ justify-content:flex-start !important; align-items:center !important; width:100%; gap:0 !important; }}
-[class*="st-key-stkact_"] button > div > span {{ gap:0 !important; text-align:start; }}
+[class*="st-key-stkact_"] button > div {{ justify-content:flex-start !important; align-items:center !important; width:100%; }}
+[class*="st-key-stkact_"] button > div > span {{ gap:12px !important; text-align:start; }}
 [class*="st-key-stkact_"] button p {{ font-size:.95rem !important; font-weight:600 !important; line-height:1.25 !important; }}
-[class*="st-key-stkact_"] button [data-testid="stIconMaterial"] {{ width:36px; height:36px; flex:none; border-radius:11px; display:inline-flex;
-  margin:0 !important; margin-inline-end:12px !important; box-sizing:border-box;
+/* Streamlit puts the icon inside a wrapper as small as the glyph: the wrapper itself takes the tile's size, or the tile spills
+   out of it onto the card's edge and under the words */
+[class*="st-key-stkact_"] button span:has(> [data-testid="stIconMaterial"]) {{ width:36px !important; height:36px !important; flex:none !important;
+  margin:0 !important; padding:0 !important; }}
+[class*="st-key-stkact_"] button [data-testid="stIconMaterial"] {{ width:36px !important; height:36px !important; flex:none; border-radius:11px;
+  display:inline-flex; margin:0 !important; box-sizing:border-box;
   align-items:center; justify-content:center; font-size:1.3rem !important; color:var(--acc) !important; background:var(--bg2);
   box-shadow:inset 0 0 0 1px var(--edge), 0 6px 14px -6px var(--glow); transition:transform .3s cubic-bezier(.3,1.6,.5,1); }}
 [class*="st-key-stkact_"] button::before {{ content:"arrow_forward"; font-family:'Material Symbols Rounded'; font-size:1.2rem; line-height:1;
@@ -2726,4 +2730,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "19.5"
+BUILD = "19.6"
