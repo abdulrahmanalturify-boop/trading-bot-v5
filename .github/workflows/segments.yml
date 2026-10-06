@@ -31,7 +31,7 @@ jobs:
       - name: Read the annual reports
         run: |
           set -o pipefail
-          SEG_DEBUG=XOM,LLY,GOOGL,META,NFLX,PLTR,JPM,V python scripts/build_segments.py 2>&1 | tee segments_log.txt
+          SEG_DEBUG=LLY,GOOGL,NFLX,ROST,NEE,PGR,SPG,ZS python scripts/build_segments.py 2>&1 | tee segments_log.txt
       - name: Save
         if: always()
         run: |

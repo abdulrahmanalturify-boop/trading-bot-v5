@@ -23,11 +23,15 @@ import requests
 HERE = os.path.dirname(os.path.abspath(__file__))
 FILE = os.path.join(HERE, "segments.json")
 UA = os.environ.get("SEC_USER_AGENT") or "A.Alturaifi Pro research research@abdulrahman.streamlit.app"
-VERSION = 4                                         # a change in how a filing is read: every company is read again
+VERSION = 5                                         # a change in how a filing is read: every company is read again
 FORMS = ("10-K", "20-F", "40-F")
 
 REVENUE = ("RevenueFromContractWithCustomerExcludingAssessedTax", "Revenues", "RevenueFromContractWithCustomerIncludingAssessedTax",
-           "SalesRevenueNet", "Revenue", "RevenueFromContractsWithCustomers", "RevenuesNetOfInterestExpense")
+           "SalesRevenueNet", "Revenue", "RevenueFromContractsWithCustomers", "RevenuesNetOfInterestExpense",
+           "RegulatedAndUnregulatedOperatingRevenue", "ElectricUtilityRevenue", "RealEstateRevenueNet", "HealthCareOrganizationRevenue",
+           "PremiumsEarnedNet", "OperatingLeaseLeaseIncome", "InterestAndDividendIncomeOperating")
+# a part of the revenue (an insurer's premiums, a landlord's rents): its lines are measured against the whole, the rest is "Other"
+PARTIAL = {"PremiumsEarnedNet", "OperatingLeaseLeaseIncome", "InterestAndDividendIncomeOperating"}
 # axis local name -> (kind, priority): a product split says most about the business, then segments, then regions
 AXES = {"ProductOrServiceAxis": ("product", 3), "ProductsAndServicesAxis": ("product", 3),
         "StatementBusinessSegmentsAxis": ("segment", 2), "SegmentsAxis": ("segment", 2),
@@ -204,9 +208,11 @@ def breakdown(ctx, units, facts, debug=None):
     for con, c, u, v in facts:
         if period(c) and not ctx[c][2] and v > 0:
             totals.setdefault(con, (v, units.get(u, "USD")))
-    if not totals:
+    whole = [t for k, t in totals.items() if k not in PARTIAL]
+    if not whole:
         return None
-    biggest = max(totals.values(), key=lambda t: t[0])
+    biggest = max(whole, key=lambda t: t[0])
+    total_of = lambda con: biggest if con in PARTIAL else (totals.get(con) or biggest)
     groups, pairs = {}, {}
     for con, c, u, v in facts:
         if not period(c) or v <= 0:
@@ -219,37 +225,43 @@ def breakdown(ctx, units, facts, debug=None):
             (axis, member), = dims.items()
             if axis in AXES:
                 groups.setdefault((con, axis), {})[member] = v
-        elif len(dims) == 2:                            # e.g. product lines told inside each business segment
+        elif len(dims) == 2:                            # e.g. each drug's sales in the US and abroad, or product lines inside segments
             for axis, member in dims.items():
                 if axis in AXES:
-                    other = next(m for a, m in dims.items() if a != axis)
                     oax = next(a for a in dims if a != axis)
-                    pairs.setdefault((con, axis, oax), {}).setdefault(member, {})[other] = v
+                    pairs.setdefault((con, axis, oax), {}).setdefault(member, {})[dims[oax]] = v
+    cands = [(con, axis, "", mem) for (con, axis), mem in groups.items()]
     for (con, axis, oax), mem in pairs.items():
-        if (con, axis) in groups:
-            continue
-        total, _ = totals.get(con) or biggest
+        total = total_of(con)[0]
         sums = {m: sum(o.values()) for m, o in mem.items()}
-        # only when every line, added across the other split, gives the whole revenue: nothing counted twice, nothing missing
-        if len(sums) >= 2 and abs(sum(sums.values()) / total - 1) <= 0.02:
-            groups[(con, axis)] = sums
+        one = all(len(o) == 1 for o in mem.values())    # each line told once: the same as a plain split
+        whole_ = abs(sum(sums.values()) / total - 1) <= 0.02
+        ok = len(sums) >= 2 and (one or whole_)
         if debug is not None:
-            debug.append(f"{con} · {axis} x {oax} · {len(sums)} lines · sum {sum(sums.values()) / total:.3f}"
-                         f"{' -> used' if groups.get((con, axis)) is sums else ''}")
+            debug.append(f"{con} · {axis} x {oax} · {len(sums)} lines · sum {sum(sums.values()) / total:.3f} · "
+                         f"{'told once' if one else 'added up'}{' -> candidate' if ok else ''}")
+        if ok:
+            cands.append((con, axis, "one" if one else "all", sums))
     best = {"biz": None, "geo": None}
-    for (con, axis), mem in groups.items():
-        total, cur = totals.get(con) or biggest
-        items = sorted(mem.items(), key=lambda kv: -kv[1])[:14]
-        pick, cov, exact = _fit(items, total)
+    for con, axis, how, mem in cands:
+        total, cur = total_of(con)
+        items = sorted(mem.items(), key=lambda kv: -kv[1])
+        if how == "all":                                # every line, added across the other split, is the whole: keep them all
+            pick, cov, exact = items, sum(mem.values()) / total, True
+        else:
+            pick, cov, exact = _fit(items[:14], total)
+            if how == "one" and not exact:
+                pick = []
         if debug is not None:
-            debug.append(f"{con} · {axis} · {len(mem)} lines · sum {sum(mem.values()) / total:.3f} of {total / 1e9:.1f}B · "
-                         f"picked {len(pick)} exact={exact} cov={cov:.3f} · {[_qlocal(m)[:28] for m, _ in items[:8]]}")
+            debug.append(f"{con} · {axis}{' (' + how + ')' if how else ''} · {len(mem)} lines · sum {sum(mem.values()) / total:.3f} of "
+                         f"{total / 1e9:.1f}B · picked {len(pick)} exact={exact} cov={cov:.3f} · {[_qlocal(m)[:28] for m, _ in items[:8]]}")
         if not pick:
             continue
         kind, pri = AXES[axis]
         side = "geo" if kind == "region" else "biz"
-        # three lines or more say more than two broad ones; then products over segments; then an exact fit
-        score = (len(pick) >= 3, pri, exact, -abs(cov - 1), len(pick))
+        # three lines or more say more than two broad ones; then the split that accounts for the whole revenue;
+        # then products over segments; then the finer one
+        score = (len(pick) >= 3, exact, -round(abs(cov - 1) * 200), pri, len(pick))
         if best[side] is None or score > best[side][0]:
             best[side] = (score, {"end": end, "start": start, "cur": cur, "total": total, "axis": axis, "kind": kind,
                                   "rows": [(m, v) for m, v in pick], "coverage": cov, "exact": exact})
@@ -323,13 +335,14 @@ def fetch(sym, ciks=None, prev=None):
             return COUNTRY.get(_qlocal(m)) or (lab_.title() if lab_ and lab_.isupper() else lab_) or humanize(m)
         return lab_ or humanize(m)
     pack = lambda b: [(name(m), round(v, 2)) for m, v in b["rows"] if v / b["total"] >= 0.0005]
-    main = bd.get("biz") or bd.get("geo")
+    main, alt = bd.get("biz"), bd.get("geo")
+    if not main or (alt and max(v for _, v in main["rows"]) / main["total"] >= 0.95):
+        main, alt = alt or main, (main if alt else None)   # one line near 100% says little: the regions first
     out = {"v": VERSION, "acc": acc, "cik": cik, "form": form, "end": main["end"], "start": main["start"], "filed": fil, "cur": main["cur"],
            "total": main["total"], "kind": main["kind"], "axis": main["axis"], "rows": pack(main),
            "url": f"https://www.sec.gov/Archives/edgar/data/{cik}/{acc.replace('-', '')}/{acc}-index.htm"}
-    if bd.get("biz") and bd.get("geo"):
-        g = bd["geo"]
-        out["alt"] = {"kind": g["kind"], "axis": g["axis"], "total": g["total"], "cur": g["cur"], "rows": pack(g)}
+    if alt:
+        out["alt"] = {"kind": alt["kind"], "axis": alt["axis"], "total": alt["total"], "cur": alt["cur"], "rows": pack(alt)}
     return out
 
 
