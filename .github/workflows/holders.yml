@@ -1,0 +1,52 @@
+# Who owns each company (institutions, insiders, the largest holders) from Yahoo Finance, with a weekly snapshot kept for a
+# year so the page can show the change over a month (holders.py). Weekly, on a push of the reader, or by hand. Commits
+# holders.json to "research" and moves "main" and "redesign" to the same commit when they were at research's previous one.
+name: shareholders
+on:
+  push:
+    branches: [research]
+    paths: ["holders.py", "scripts/build_holders.py", ".github/workflows/holders.yml"]
+  schedule:
+    - cron: "41 7 * * 1"
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: holders
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: research
+          fetch-depth: 0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Read the shareholders
+        run: |
+          set -o pipefail
+          python scripts/build_holders.py 2>&1 | tee holders_log.txt
+      - name: Save
+        if: always()
+        run: |
+          git config user.name "research-lab"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          cp holders_log.txt /tmp/holders_log.txt 2>/dev/null || true
+          [ -f holders.json ] && cp holders.json /tmp/holders.json
+          git fetch -q origin research main redesign
+          git checkout -q -B upd origin/research
+          old=$(git rev-parse HEAD)
+          mkdir -p research/results
+          [ -f /tmp/holders_log.txt ] && cp /tmp/holders_log.txt research/results/holders_log.txt && git add research/results/holders_log.txt
+          [ -f /tmp/holders.json ] && cp /tmp/holders.json holders.json && git add holders.json
+          git commit -q -m "shareholders from Yahoo Finance [skip ci]" || exit 0
+          git push -q origin upd:research
+          for b in main redesign; do
+            if [ "$(git rev-parse origin/$b)" = "$old" ]; then git push -q origin upd:$b; else echo "$b is not at research's commit: left as it is"; fi
+          done

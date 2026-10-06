@@ -13,6 +13,7 @@ import charts
 import data
 import fairvalue as FV
 import engine
+import holders as HD
 import segments as SG
 import sharia
 import ta
@@ -642,6 +643,154 @@ def revenue_section(sym):
     ui.html(REV_CSS + revenue_html(seg))
 
 
+SH_CSS = """<style>
+.shbox { position:relative; overflow:hidden; border-radius:20px; border:1px solid rgba(157,151,165,.28); padding:18px 20px 16px; margin:2px 0 12px;
+  background:radial-gradient(120% 140% at 0% 0%, rgba(45,182,235,.16), transparent 60%), linear-gradient(160deg,#1A1534,#15102A 60%,#120D22); }
+.shbox .shhd { display:flex; align-items:baseline; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+.shbox .shhd b { color:#fff; font-size:1.25rem; font-weight:800; letter-spacing:-.01em; }
+.shbox .shhd span { color:#9D97A5; font-size:.8rem; }
+.shbox .shbd { display:flex; align-items:center; gap:26px; margin-top:12px; flex-wrap:wrap; }
+.shbox .shdn { position:relative; width:170px; height:170px; flex:none; }
+.shbox .shdn svg { width:100%; height:100%; transform:rotate(-90deg); overflow:visible; }
+.shbox .shdn .seg { fill:none; stroke-width:22; animation:shin 1s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes shin { from { stroke-dasharray:0 999; } }
+.shbox .shdn .shc { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }
+.shbox .shdn .shc b { color:#fff; font-size:1.05rem; font-weight:800; direction:ltr; unicode-bidi:isolate; }
+.shbox .shdn .shc span { color:#9D97A5; font-size:.72rem; margin-top:2px; }
+.shbox .shlg { flex:1; min-width:220px; display:flex; flex-direction:column; gap:4px; }
+.shbox .shrow { display:grid; grid-template-columns:12px minmax(0,1fr) auto; align-items:center; gap:10px; padding:9px 12px; border-radius:12px; }
+.shbox .shrow.top { background:rgba(255,255,255,.05); box-shadow:inset 0 0 0 1px rgba(255,255,255,.06); }
+.shbox .shrow .sw { width:12px; height:12px; display:block; }
+.shbox .shrow .n { color:#E7E3EB; font-size:.95rem; }
+.shbox .shrow .n small { display:block; color:#9D97A5; font-size:.72rem; }
+.shbox .shrow .p { color:#fff; font-weight:800; font-size:1rem; direction:ltr; unicode-bidi:isolate; }
+.shbox .shkt { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin-top:14px; }
+.shbox .shk { border-radius:16px; padding:14px 14px 12px; background:rgba(255,255,255,.045); box-shadow:inset 0 0 0 1px rgba(255,255,255,.06); }
+.shbox .shk .l { display:flex; align-items:center; gap:10px; color:#E7E3EB; font-size:.95rem; }
+.shbox .shk .l i { width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-style:normal; }
+.shbox .shk .l .ms { font-size:1.15rem; }
+.shbox .shk .v { color:#fff; font-size:1.45rem; font-weight:800; margin-top:10px; direction:ltr; unicode-bidi:isolate; text-align:start; }
+.shbox .shk .c { color:#9D97A5; font-size:.8rem; margin-top:4px; line-height:1.35; }
+.shbox .shk .c .up { color:#4ADE80; font-weight:700; } .shbox .shk .c .dn { color:#F87171; font-weight:700; }
+.shbox .shft { margin-top:12px; padding-top:10px; border-top:1px solid rgba(157,151,165,.18); color:#9D97A5; font-size:.74rem; }
+.shtop { display:flex; flex-direction:column; gap:6px; }
+.shtop .r { display:grid; grid-template-columns:22px minmax(0,1fr) auto auto; align-items:center; gap:10px; padding:8px 10px; border-radius:12px;
+  background:rgba(255,255,255,.035); }
+.shtop .r .k { color:#9D97A5; font-size:.78rem; text-align:center; }
+.shtop .r .h { color:#E7E3EB; font-size:.88rem; min-width:0; }
+.shtop .r .h .nm { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.shtop .r .h small { display:block; color:#9D97A5; font-size:.72rem; }
+.shtop .r .h .bar { height:4px; border-radius:4px; background:rgba(157,151,165,.14); margin-top:5px; overflow:hidden; direction:ltr; }
+.shtop .r .h .bar svg { display:block; width:100%; height:100%; }
+.shtop .r .p { color:#fff; font-weight:800; font-size:.92rem; direction:ltr; unicode-bidi:isolate; }
+.shtop .r .ch { font-size:.74rem; font-weight:700; padding:2px 7px; border-radius:999px; direction:ltr; unicode-bidi:isolate; }
+.shtop .r .ch.up { color:#4ADE80; background:rgba(34,197,94,.12); } .shtop .r .ch.dn { color:#F87171; background:rgba(239,68,68,.12); }
+.shtop .r .ch.eq { color:#9D97A5; background:rgba(157,151,165,.12); }
+@media (max-width: 640px) { .shbox .shbd { justify-content:center; } .shbox .shlg { min-width:100%; } }
+</style>"""
+SH_COLORS = {"inst": "#A78BFA", "ins": "#F5B94A", "other": "#2DB6EB"}
+SH_NAMES = {"inst": ("Institutions", "المؤسسات"), "ins": ("Insiders", "المطّلعون"), "other": ("Others", "أخرى")}
+SH_SUBS = {"inst": ("funds, banks, pension plans", "صناديق وبنوك وصناديق تقاعد"), "ins": ("executives, directors, 10% owners", "التنفيذيون وأعضاء المجلس وكبار الملاك"),
+           "other": ("individual investors and the rest", "المستثمرون الأفراد والباقي")}
+
+
+def _mdy(d):
+    try:
+        return datetime.strptime(str(d)[:10], "%Y-%m-%d").strftime("%m/%d/%Y")
+    except ValueError:
+        return str(d or "")
+
+
+def _sh_change(d, key, item):
+    """The tile's line under the share: its change over a month, else (insiders) their net buying of 6 months."""
+    if d is not None:
+        if abs(d) < 0.005:
+            return L("No change in 1M", "بدون تغيير خلال شهر")
+        cls, arrow = ("up", "▲") if d > 0 else ("dn", "▼")
+        return (f'<span class="{cls}"><bdi dir="ltr">{arrow} {abs(d):.2f}%</bdi></span> ' + L("in 1M", "خلال شهر"))
+    six = item.get("ins6m") or {}
+    if key == "ins" and six.get("net_pct") is not None:
+        v = six["net_pct"]
+        if abs(v) < 0.005:
+            return L("No net insider buying or selling in 6M", "بدون صافي شراء أو بيع من المطّلعين خلال 6 أشهر")
+        cls = "up" if v > 0 else "dn"
+        what = L("net bought" if v > 0 else "net sold", "صافي شراء" if v > 0 else "صافي بيع")
+        return (f'<span class="{cls}">{what} <bdi dir="ltr">{abs(v):.2f}%</bdi></span> '
+                + L("of their shares in 6M", "من أسهمهم خلال 6 أشهر"))
+    return L("The monthly change shows after a month of tracking", "التغيّر الشهري يظهر بعد أول شهر من المتابعة")
+
+
+def holders_html(item):
+    """Who owns the company: a donut of institutions / insiders / others, the two shares with their change, and where it
+    comes from."""
+    parts, over = HD.split(item)
+    r, circ = 58, 2 * 3.14159265 * 58
+    arcs, rows, off = [], [], 0.0
+    top_key = max(parts, key=lambda kv: kv[1])[0]
+    for k, v in parts:
+        col = SH_COLORS[k]
+        frac = v / 100
+        if frac > 0:
+            gap = 1.2 if sum(1 for _, x in parts if x > 0) > 1 else 0
+            arcs.append(f'<circle class="seg" cx="80" cy="80" r="{r}" stroke="{col}" stroke-dasharray="{max(frac * circ - gap, 0.5):.2f} {circ:.2f}" '
+                        f'stroke-dashoffset="{-off:.2f}"><title>{T.esc(L(*SH_NAMES[k]))} {v:.2f}%</title></circle>')
+            off += frac * circ
+        shown = item.get("inst") if (k == "inst" and over) else v
+        rows.append(f'<div class="shrow{" top" if k == top_key else ""}"><svg class="sw" viewBox="0 0 12 12"><circle cx="6" cy="6" r="6" fill="{col}"/></svg>'
+                    f'<div class="n">{T.esc(L(*SH_NAMES[k]))}<small>{T.esc(L(*SH_SUBS[k]))}</small></div><div class="p">{shown:.2f}%</div></div>')
+    rep = item.get("rep")
+    when = (f'{L("Update time", "آخر تحديث")}: <bdi dir="ltr">{_mdy(rep)}</bdi>') if rep else ""
+    tiles = []
+    for k, ic, bg, fg in (("inst", "account_balance", "rgba(167,139,250,.16)", "#A78BFA"), ("ins", "person", "rgba(245,185,74,.16)", "#F5B94A")):
+        if item.get(k) is None:
+            continue
+        tiles.append(f'<div class="shk"><div class="l"><i style="background:{bg};color:{fg}"><span class="ms">{ic}</span></i>{T.esc(L(*SH_NAMES[k]))}</div>'
+                     f'<div class="v">{item[k]:.2f}%</div><div class="c">{_sh_change(HD.change(item, k), k, item)}</div></div>')
+    n = item.get("n")
+    src = L("From Yahoo Finance (institutions' 13F filings and insiders' filings)", "من ياهو فاينانس (إفصاحات المؤسسات 13F وإفصاحات المطّلعين)")
+    extra = (f' · {L(f"{n:,} institutions hold it", f"تملكه {n:,} مؤسسة")}' if n else "")
+    note = (" · " + L("Yahoo counts institutions above 100% (shares lent out are counted twice)",
+                      "ياهو يحسب المؤسسات فوق 100% (الأسهم المُقرضة تنحسب مرتين)")) if over else ""
+    return (f'<div class="shbox" data-nogq><div class="shhd"><b>{L("Shareholders", "هيكل المساهمين")}</b><span>{when}</span></div>'
+            f'<div class="shbd"><div class="shdn"><svg viewBox="0 0 160 160"><circle cx="80" cy="80" r="{r}" fill="none" stroke="rgba(157,151,165,.12)" '
+            f'stroke-width="22"/>{"".join(arcs)}</svg><div class="shc"><b>{(item.get("inst") or 0):.0f}%</b><span>{L("institutions", "مؤسسات")}</span></div></div>'
+            f'<div class="shlg">{"".join(rows)}</div></div><div class="shkt">{"".join(tiles)}</div>'
+            f'<div class="shft">{T.esc(src)}{T.esc(extra)}{T.esc(note)}</div></div>')
+
+
+def top_holders_html(rows):
+    """The largest institutional holders: share of the company, a bar, the change in their shares since their last report."""
+    if not rows:
+        return ""
+    big = max((r[1] or 0) for r in rows) or 1
+    out = []
+    for i, (name, pct, shares, value, chg, dt) in enumerate(rows, 1):
+        if chg is None:
+            ch = ""
+        elif abs(chg) < 0.005:
+            ch = f'<span class="ch eq">{L("no change", "بدون تغيير")}</span>'
+        else:
+            ch = f'<span class="ch {"up" if chg > 0 else "dn"}">{"▲" if chg > 0 else "▼"} {abs(chg):.2f}%</span>'
+        val = f'${T.fmt_big(value)}' if value else ""
+        al = ' style="text-align:right"' if is_ar() else ""      # the names are English: written left to right, kept on the right in Arabic
+        out.append(f'<div class="r"><div class="k">{i}</div><div class="h"><div class="nm" dir="ltr"{al}>{T.esc(name)}</div><small><bdi dir="ltr">{val}</bdi></small>'
+                   f'<div class="bar"><svg viewBox="0 0 100 4" preserveAspectRatio="none"><rect width="{(pct or 0) / big * 100:.1f}" height="4" fill="#A78BFA"/></svg></div></div>'
+                   f'<div class="p">{(pct or 0):.2f}%</div>{ch}</div>')
+    return f'<div class="shtop" data-nogq>{"".join(out)}</div>'
+
+
+def holders_section(sym):
+    item = HD.get(sym)
+    if not item:
+        return
+    ui.html(SH_CSS + holders_html(item))
+    if item.get("top"):
+        with st.expander(L("Largest institutional holders", "أكبر المؤسسات المالكة"), icon=":material/account_balance:"):
+            ui.html(SH_CSS + top_holders_html(item["top"]))
+            st.caption(L("The change is in each holder's shares since its previous quarterly report.",
+                         "التغيّر في أسهم كل جهة منذ إفصاحها الربعي السابق."))
+
+
 def company_tab(sym):
     p = data.profile(sym)
     ui.sec("apartment", "Company description", "نبذة عن الشركة")
@@ -660,6 +809,7 @@ def company_tab(sym):
     else:
         st.caption(L("No description available for this symbol.", "لا توجد نبذة متاحة لهذا الرمز."))
     ui.safe(revenue_section, sym)
+    ui.safe(holders_section, sym)
 
     ui.sec("category", "Classification", "التصنيف")
     th = X.themes_of(sym)
