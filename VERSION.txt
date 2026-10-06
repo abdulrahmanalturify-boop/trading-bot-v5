@@ -1,2 +1,2 @@
-TURA Pro - version 19.6 (The stock page's action cards: the icon tile sized on Streamlit's own icon wrapper, so it sits inside the card with room before the words on every screen)
+TURA Pro - version 19.7 (New action cards on the stock page: glass cards with a gradient icon tile, a line under each title, a flowing edge, lift, tilt and press on touch; following a stock pops the star; on phones three tiles side by side)
 If you can see this file on GitHub, the new version was uploaded correctly.

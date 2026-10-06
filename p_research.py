@@ -617,6 +617,14 @@ REV_SW_CSS = """<style>
 </style>"""
 
 
+def action_card(icon, title, sub, go, on=False):
+    """One of the stock page's action cards (its look is in theme.py, .sax): a gradient icon tile, the title and a line under it,
+    and a round button at the end (the arrow, or for the watchlist a plus / a tick that turns into a cross under the pointer)."""
+    go_html = (f'<span class="ms a">{go}</span><span class="ms h">close</span>' if on else f'<span class="ms a">{go}</span>')
+    return (f'<div class="sax{" on" if on else ""}" data-nogq><span class="sx-ic"><span class="ms">{icon}</span></span>'
+            f'<span class="sx-tx"><b>{T.esc(title)}</b><span>{T.esc(sub)}</span></span><span class="sx-go">{go_html}</span></div>')
+
+
 def revenue_section(sym):
     seg = SG.get(sym)
     if not seg:
@@ -828,14 +836,18 @@ def page_stock():
         st.error(L(f"No data found for {sym}. Use the search box at the top.", f"لا توجد بيانات للرمز {sym}. استخدم البحث في الأعلى."))
         return
     inf = data.info(sym)
-    h1, h2 = st.columns([4, 1])
+    h1, h2 = st.columns([3, 1.2])                  # room for the action cards' titles on one line
     with h1:
         price = quote_header(sym, daily, inf)
     with h2, st.container(key="stkact"):
-        # three action cards, each in its own colour: the watchlist star (a toggle), the hunter's analysis, the paper ticket
+        # three action cards, each in its own colour: the watchlist star (a toggle), the hunter's analysis, the paper ticket.
+        # The card is HTML; an invisible button over it takes the tap (its label still names it for screen readers)
         inwl = sym in ss.watchlist
         with st.container(key="stkact_wl_on" if inwl else "stkact_wl"):
-            if st.button(L("In watchlist", "في المتابعة") if inwl else L("Add to watchlist", "أضف للمتابعة"), icon=":material/star:", width="stretch",
+            ui.html(action_card("star", L("In watchlist", "في المتابعة") if inwl else L("Add to watchlist", "أضف للمتابعة"),
+                                L("Tap to remove it", "اضغط لإزالته") if inwl else L("Follow it in the sidebar", "تابعه من القائمة الجانبية"),
+                                "check" if inwl else "add", on=inwl))
+            if st.button(L("In watchlist", "في المتابعة") if inwl else L("Add to watchlist", "أضف للمتابعة"), width="stretch",
                          key="stk_wl", help=L("Tap to remove it from the watchlist", "اضغط لإزالته من المتابعة") if inwl else
                          L("Follow it in the sidebar watchlist", "تابعه في قائمة المتابعة الجانبية")):
                 if inwl:
@@ -843,13 +855,18 @@ def page_stock():
                 else:
                     ss.watchlist.append(sym)
                 st.rerun()
+        arrow = "arrow_back" if is_ar() else "arrow_forward"
         with st.container(key="stkact_hn"):
-            if st.button(L("Opportunity Hunter", "صائد الفرص"), icon=":material/radar:", width="stretch", key="stk_hn",
+            ui.html(action_card("radar", L("Opportunity Hunter", "صائد الفرص"),
+                                L("Score, entry, stop and target", "التقييم والدخول والوقف والهدف"), arrow))
+            if st.button(L("Opportunity Hunter", "صائد الفرص"), width="stretch", key="stk_hn",
                          help=L("Its full setup analysis: score, entry, stop and target", "تحليل الفرصة الكامل: التقييم والدخول والوقف والهدف")):
                 ss["hn_look"] = ss["hn_look_in"] = sym      # the Scanner opens this stock's full analysis
                 ui.goto("scanner")
         with st.container(key="stkact_pf"):
-            if st.button(L("Paper trade", "تداول افتراضي"), icon=":material/account_balance_wallet:", width="stretch", key="stk_pf",
+            ui.html(action_card("account_balance_wallet", L("Paper trade", "تداول افتراضي"),
+                                L("Buy or short it with virtual money", "اشترِه أو بعه على المكشوف بفلوس افتراضية"), arrow))
+            if st.button(L("Paper trade", "تداول افتراضي"), width="stretch", key="stk_pf",
                          help=L("Buy or sell it short with virtual money", "اشترِه أو بعه على المكشوف بفلوس افتراضية")):
                 ss["pf_sym"] = sym                          # the paper portfolio's ticket opens on this stock
                 ui.goto("pf_trade")
@@ -1646,4 +1663,4 @@ def page_screener():
 # SCANNER
 # =====================================================================
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "19.6"
+BUILD = "19.7"

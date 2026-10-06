@@ -296,51 +296,85 @@ button[data-testid="stBaseButton-secondary"], button[kind="secondary"], [data-te
 button[data-testid="stBaseButton-secondary"]:hover, button[kind="secondary"]:hover, .stDownloadButton > button:hover {{
   background: rgba(255,255,255,.05); border-color: rgba(255,255,255,.24); color:#fff; }}
 button[data-testid="stBaseButton-tertiary"]:hover {{ color:#fff; }}
-/* the stock page's actions: three cards, each in its own colour, with an icon tile, a light that sweeps across and an arrow
-   that slides in under the pointer; the watchlist card stays lit (filled star and a tick) while the stock is followed, and a
-   tap on it removes the stock */
+/* the stock page's actions: three cards in their own colours (watchlist, Opportunity Hunter, paper trade), drawn as HTML with
+   an invisible Streamlit button laid over each. A glass card with an edge whose light flows on hover, a gradient icon tile that
+   tilts, an arrow that slides, a press that sinks; following a stock pops the star with a ring and a burst. On a phone the three
+   sit side by side as tiles. */
 .st-key-stkact {{ gap:10px !important; }}
-[class*="st-key-stkact_"] button {{ position:relative; overflow:hidden; isolation:isolate; min-height:56px !important; border-radius:14px !important;
-  padding-block:0 !important; padding-inline:12px 44px !important; color:#E4E0EA !important; border:1px solid var(--edge) !important;
-  background:linear-gradient(135deg, var(--bg1), rgba(16,12,28,.55) 72%) !important;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.06), 0 6px 18px -10px rgba(0,0,0,.6) !important;
-  transition:transform .2s ease, box-shadow .25s, border-color .25s, background .25s, color .25s !important; }}
-[class*="st-key-stkact_"] button > div {{ justify-content:flex-start !important; align-items:center !important; width:100%; }}
-[class*="st-key-stkact_"] button > div > span {{ gap:12px !important; text-align:start; }}
-[class*="st-key-stkact_"] button p {{ font-size:.95rem !important; font-weight:600 !important; line-height:1.25 !important; }}
-/* Streamlit puts the icon inside a wrapper as small as the glyph: the wrapper itself takes the tile's size, or the tile spills
-   out of it onto the card's edge and under the words */
-[class*="st-key-stkact_"] button span:has(> [data-testid="stIconMaterial"]) {{ width:36px !important; height:36px !important; flex:none !important;
-  margin:0 !important; padding:0 !important; }}
-[class*="st-key-stkact_"] button [data-testid="stIconMaterial"] {{ width:36px !important; height:36px !important; flex:none; border-radius:11px;
-  display:inline-flex; margin:0 !important; box-sizing:border-box;
-  align-items:center; justify-content:center; font-size:1.3rem !important; color:var(--acc) !important; background:var(--bg2);
-  box-shadow:inset 0 0 0 1px var(--edge), 0 6px 14px -6px var(--glow); transition:transform .3s cubic-bezier(.3,1.6,.5,1); }}
-[class*="st-key-stkact_"] button::before {{ content:"arrow_forward"; font-family:'Material Symbols Rounded'; font-size:1.2rem; line-height:1;
-  position:absolute; inset-inline-end:14px; top:50%; color:var(--acc); opacity:0; transform:translate(-8px,-50%); transition:opacity .2s, transform .25s; }}
-[class*="st-key-stkact_"] button::after {{ content:""; position:absolute; top:0; bottom:0; left:-60%; width:40%; z-index:-1; pointer-events:none;
-  transform:skewX(-20deg); background:linear-gradient(100deg, transparent, rgba(255,255,255,.12), transparent); transition:left .75s ease; }}
+[class*="st-key-stkact_"] {{ position:relative; gap:0 !important; }}
+[class*="st-key-stkact_"] [data-testid="stElementContainer"] {{ position:static !important; margin:0 !important; }}
+[class*="st-key-stkact_"] .stButton {{ position:absolute !important; inset:0; z-index:4; margin:0 !important; }}
+[class*="st-key-stkact_"] .stButton > div, [class*="st-key-stkact_"] [data-testid="stTooltipHoverTarget"] {{ width:100% !important; height:100% !important; }}
+[class*="st-key-stkact_"] .stButton button {{ width:100% !important; height:100% !important; min-height:0 !important; padding:0 !important;
+  opacity:0; cursor:pointer; border-radius:16px !important; }}
+.st-key-stkact_wl, .st-key-stkact_wl_on {{ --acc:#F5B94A; --acc2:#F97316; --tint:rgba(245,185,74,.13); --edge:rgba(245,185,74,.36); --glow:rgba(245,185,74,.5); }}
+.st-key-stkact_hn {{ --acc:#2DB6EB; --acc2:#3B8BEB; --tint:rgba(45,182,235,.12); --edge:rgba(45,182,235,.36); --glow:rgba(45,182,235,.5); }}
+.st-key-stkact_pf {{ --acc:#A78BFA; --acc2:#7B45F0; --tint:rgba(167,139,250,.13); --edge:rgba(167,139,250,.38); --glow:rgba(123,69,240,.55); }}
+.sax {{ position:relative; overflow:hidden; isolation:isolate; display:flex; align-items:center; gap:12px; min-height:66px; padding:10px 12px;
+  border-radius:16px; border:1px solid transparent; color:#E9E5F0; box-sizing:border-box;
+  background:linear-gradient(135deg, var(--tint), transparent 72%) padding-box, linear-gradient(rgba(17,12,30,.86), rgba(17,12,30,.86)) padding-box,
+             linear-gradient(120deg, var(--edge), rgba(255,255,255,.07) 45%, var(--edge) 90%) border-box;
+  background-size:100% 100%, 100% 100%, 240% 240%; background-position:0 0, 0 0, 0% 50%;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06), 0 10px 24px -16px rgba(0,0,0,.75);
+  transition:transform .25s cubic-bezier(.2,.8,.2,1), box-shadow .3s, background-position .8s ease; }}
+.sax::before {{ content:""; position:absolute; inset:0; z-index:-1; border-radius:inherit; pointer-events:none; opacity:0;
+  background:radial-gradient(circle at 26% 50%, var(--glow), transparent 62%); transition:opacity .35s; }}
+.sax::after {{ content:""; position:absolute; top:0; bottom:0; left:-60%; width:40%; z-index:-1; pointer-events:none; transform:skewX(-20deg);
+  background:linear-gradient(100deg, transparent, rgba(255,255,255,.14), transparent); transition:left .85s ease; }}
+.sax .sx-ic {{ position:relative; flex:none; width:42px; height:42px; border-radius:13px; display:flex; align-items:center; justify-content:center;
+  background:linear-gradient(140deg, var(--acc), var(--acc2)); color:#fff;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.35), inset 0 -8px 14px -10px rgba(0,0,0,.35), 0 8px 18px -8px var(--glow);
+  transition:transform .4s cubic-bezier(.3,1.6,.5,1); }}
+.sax .sx-ic .ms {{ font-size:1.35rem; color:#fff; }}
+.sax .sx-tx {{ flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; text-align:start; }}
+.sax .sx-tx b {{ font-size:.95rem; font-weight:700; color:#F4F1F8; line-height:1.25; }}
+.sax .sx-tx span {{ font-size:.74rem; color:#A8A2B3; line-height:1.3; }}
+.sax .sx-go {{ position:relative; flex:none; width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+  color:var(--acc); background:var(--tint); box-shadow:inset 0 0 0 1px var(--edge); transition:transform .3s cubic-bezier(.3,1.6,.5,1), background .25s, color .25s; }}
+.sax .sx-go .ms {{ font-size:1.1rem; }}
+.sax .sx-go .h {{ display:none; }}
 @media (hover:hover) {{
-[class*="st-key-stkact_"] button:hover {{ transform:translateY(-2px); color:#fff !important; border-color:var(--acc) !important;
-  background:linear-gradient(135deg, var(--bg2), rgba(16,12,28,.5) 78%) !important;
-  box-shadow:0 16px 30px -14px var(--glow), inset 0 1px 0 rgba(255,255,255,.08) !important; }}
-[class*="st-key-stkact_"] button:hover::before {{ opacity:.95; transform:translate(0,-50%); }}
-[class*="st-key-stkact_"] button:hover::after {{ left:130%; }}
-[class*="st-key-stkact_"] button:hover [data-testid="stIconMaterial"] {{ transform:scale(1.12) rotate(-8deg); }}
+  [class*="st-key-stkact_"]:hover .sax {{ transform:translateY(-3px); background-position:0 0, 0 0, 100% 50%;
+    box-shadow:0 18px 34px -18px var(--glow), inset 0 1px 0 rgba(255,255,255,.09); }}
+  [class*="st-key-stkact_"]:hover .sax::before {{ opacity:.55; }}
+  [class*="st-key-stkact_"]:hover .sax::after {{ left:130%; }}
+  [class*="st-key-stkact_"]:hover .sx-ic {{ transform:rotate(-8deg) scale(1.08); }}
+  [class*="st-key-stkact_"]:hover .sx-go {{ transform:translateX(3px); background:var(--acc); color:#140F24; }}
+  [class*="st-key-stkact_"]:hover .sax.on .sx-go .a {{ display:none; }}
+  [class*="st-key-stkact_"]:hover .sax.on .sx-go .h {{ display:inline; }}
 }}
-[class*="st-key-stkact_"] button:active {{ transform:translateY(0) scale(.98); box-shadow:0 6px 14px -10px var(--glow), inset 0 2px 8px rgba(0,0,0,.3) !important; }}
-[class*="st-key-stkact_"] button:focus-visible {{ box-shadow:0 0 0 3px var(--glow) !important; }}
-.st-key-stkact_wl, .st-key-stkact_wl_on {{ --acc:#F5B94A; --bg1:rgba(245,185,74,.10); --bg2:rgba(245,185,74,.20); --edge:rgba(245,185,74,.30); --glow:rgba(245,185,74,.55); }}
-.st-key-stkact_hn {{ --acc:#2DB6EB; --bg1:rgba(45,182,235,.10); --bg2:rgba(45,182,235,.20); --edge:rgba(45,182,235,.30); --glow:rgba(45,182,235,.55); }}
-.st-key-stkact_pf {{ --acc:#A78BFA; --bg1:rgba(167,139,250,.11); --bg2:rgba(167,139,250,.22); --edge:rgba(167,139,250,.32); --glow:rgba(123,69,240,.6); }}
-.st-key-stkact_wl_on button {{ color:#FCE3A6 !important; border-color:rgba(245,185,74,.62) !important;
-  background:linear-gradient(135deg, rgba(245,185,74,.24), rgba(16,12,28,.5) 78%) !important;
-  box-shadow:0 0 0 1px rgba(245,185,74,.16), 0 12px 26px -14px rgba(245,185,74,.7) !important; }}
-.st-key-stkact_wl_on button [data-testid="stIconMaterial"] {{ font-variation-settings:'FILL' 1; animation:wlpop .55s ease; }}
-.st-key-stkact_wl_on button::before {{ content:"check_circle"; font-variation-settings:'FILL' 1; opacity:.9; transform:translate(0,-50%); }}
-@media (hover:hover) {{ .st-key-stkact_wl_on button:hover::before {{ content:"close"; font-variation-settings:'FILL' 0; }} }}
-@keyframes wlpop {{ 0% {{ transform:scale(.5) rotate(-30deg); }} 60% {{ transform:scale(1.25) rotate(8deg); }} 100% {{ transform:scale(1); }} }}
-@media (prefers-reduced-motion: reduce) {{ [class*="st-key-stkact_"] button, [class*="st-key-stkact_"] button * {{ transition:none !important; animation:none !important; }} }}
+[class*="st-key-stkact_"]:has(button:active) .sax {{ transform:scale(.965); transition-duration:.08s; }}
+[class*="st-key-stkact_"]:has(button:active) .sax::before {{ opacity:1; transition-duration:.05s; }}
+[class*="st-key-stkact_"]:has(button:focus-visible) .sax {{ box-shadow:0 0 0 3px var(--glow); }}
+.sax.on {{ background:linear-gradient(135deg, rgba(245,185,74,.30), rgba(245,185,74,.04) 78%) padding-box,
+             linear-gradient(rgba(17,12,30,.86), rgba(17,12,30,.86)) padding-box,
+             linear-gradient(120deg, #F5B94A, rgba(249,115,22,.55) 50%, #F5B94A 90%) border-box;
+  background-size:100% 100%, 100% 100%, 240% 240%; box-shadow:0 12px 28px -16px rgba(245,185,74,.7), inset 0 1px 0 rgba(255,255,255,.08); }}
+.sax.on .sx-tx b {{ color:#FCE3A6; }}
+.sax.on .sx-ic .ms {{ font-variation-settings:'FILL' 1; animation:saxpop .65s cubic-bezier(.3,1.6,.5,1); }}
+.sax.on .sx-ic::after {{ content:""; position:absolute; inset:-5px; border-radius:17px; border:2px solid #F5B94A; opacity:0; pointer-events:none;
+  animation:saxring .9s ease-out; }}
+.sax.on .sx-ic::before {{ content:""; position:absolute; left:50%; top:50%; width:6px; height:6px; margin:-3px 0 0 -3px; border-radius:50%;
+  pointer-events:none; opacity:0; animation:saxburst .8s ease-out; }}
+.sax.on .sx-go {{ background:var(--acc); color:#140F24; }}
+@keyframes saxpop {{ 0% {{ transform:scale(.4) rotate(-40deg); }} 60% {{ transform:scale(1.3) rotate(10deg); }} 100% {{ transform:scale(1); }} }}
+@keyframes saxring {{ 0% {{ opacity:.9; transform:scale(.8); }} 100% {{ opacity:0; transform:scale(1.5); }} }}
+@keyframes saxburst {{
+  0% {{ opacity:1; box-shadow:0 0 0 0 #F5B94A, 0 0 0 0 #F97316, 0 0 0 0 #FCD34D, 0 0 0 0 #F5B94A, 0 0 0 0 #F97316, 0 0 0 0 #FCD34D; }}
+  100% {{ opacity:0; box-shadow:0 -32px 0 -1px #F5B94A, 28px -16px 0 -1px #F97316, 28px 16px 0 -1px #FCD34D, 0 32px 0 -1px #F5B94A,
+    -28px 16px 0 -1px #F97316, -28px -16px 0 -1px #FCD34D; }} }}
+@media (max-width: 640px) {{
+  .st-key-stkact {{ flex-direction:row !important; flex-wrap:nowrap !important; gap:8px !important; }}
+  .st-key-stkact > div {{ flex:1 1 0 !important; min-width:0 !important; width:auto !important; }}
+  .sax {{ flex-direction:column; justify-content:flex-start; text-align:center; gap:9px; min-height:108px; padding:16px 6px 12px; }}
+  .sax .sx-tx {{ flex:none; text-align:center; }}
+  .sax .sx-tx b {{ font-size:.8rem; }}
+  .sax .sx-tx span {{ display:none; }}
+  .sax .sx-go {{ position:absolute; top:7px; inset-inline-end:7px; width:22px; height:22px; }}
+  .sax .sx-go .ms {{ font-size:.85rem; }}
+  .sax:not(.on) .sx-go {{ display:none; }}
+}}
+@media (prefers-reduced-motion: reduce) {{ .sax, .sax *, .sax::before, .sax::after {{ transition:none !important; animation:none !important; }} }}
 /* inputs: every box you type in or pick from is clearly a box, a darker well than the card around it with a visible edge,
    a blue edge under the pointer and the electric ring when focused. Streamlit's own boxes (text, number, text area, date,
    selectbox / multiselect groups of the newer versions) and the older base-web ones. */
@@ -1426,9 +1460,7 @@ RTL_CSS = f"""
 .stPlotlyChart *, .js-plotly-plot *, [data-testid="stPlotlyChart"] *, .hm, .hm * {{ direction: ltr !important; }}
 [data-testid="stMetricValue"] {{ text-align: right; }}
 [data-testid="stTabsScrollLeft"], [data-testid="stTabsScrollRight"] {{ display:none !important; }}   /* they read the scroll the left-to-right way: in Arabic the strip is swiped */
-[class*="st-key-stkact_"] button::before {{ content:"arrow_back"; transform:translate(8px,-50%); }}
-.st-key-stkact_wl_on button::before {{ content:"check_circle"; transform:translate(0,-50%); }}
-@media (hover:hover) {{ .st-key-stkact_wl_on button:hover::before {{ content:"close"; }} }}
+@media (hover:hover) {{ [class*="st-key-stkact_"]:hover .sx-go {{ transform:translateX(-3px); }} }}
 input, textarea {{ text-align: right; }}
 html, body, .stApp, .stMarkdown, button, input, textarea, select, label, [data-baseweb] {{ font-family: {FONT_AR}, {FONT_LATIN}, system-ui, sans-serif; }}
 .sec::after {{ background: linear-gradient(270deg, rgba(107,33,239,.45), rgba(7,122,199,.18) 30%, transparent); }}
@@ -2730,4 +2762,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "19.6"
+BUILD = "19.7"
