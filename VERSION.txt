@@ -1,2 +1,2 @@
-TURA Pro - version 19.4 (The site's name is TURA now: the logo, the page title, the landing, the footer, the Academy and the AI helper)
+TURA Pro - version 19.5 (Search suggests about 110 more companies: the theme lists' names such as CoreWeave, Nebius, IonQ and Rocket Lab, and well-known names outside the S&P 500)
 If you can see this file on GitHub, the new version was uploaded correctly.

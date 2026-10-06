@@ -10,7 +10,7 @@ import streamlit as st
 # ---------------------------------------------------------------- always run the newest code
 # Streamlit Cloud re-reads app.py after every GitHub upload but can keep the other modules (theme, data, ...) from the
 # previous version in memory. Every module carries BUILD; if one in memory is older, all of them are reloaded in order.
-BUILD = "19.4"
+BUILD = "19.5"
 _ORDER = ["terms", "lightmode", "i18n", "ai_assistant", "flags", "mcal", "universe", "sp500", "taxonomy", "ta", "academy_visuals", "academy", "insight", "heatmap", "newsiq", "newspics", "theme", "data",
           "caldata", "newsbot", "newsintel", "charts", "engine", "playbooks", "autotrader", "ui", "fairvalue", "segments", "sharia", "lab", "tdash", "mlbots", "brain", "paperbots", "smartbots", "portfolio", "pfinsight", "p_markets", "p_newsintel", "p_research", "p_insight",
           "p_academy", "p_paper", "p_portfolio", "p_calendar", "hunter", "p_scanner", "home"]
@@ -89,14 +89,34 @@ EXTRA_SEARCH = {"^GSPC": "S&P 500 Index", "^IXIC": "Nasdaq Composite", "^DJI": "
                 "GC=F": "Gold futures", "CL=F": "WTI crude oil futures", "ES=F": "S&P 500 futures", "NQ=F": "Nasdaq 100 futures"}
 
 
+# well-known US-listed names outside the S&P 500 and the site's lists, so typing them shows a suggestion
+POPULAR_SEARCH = {
+    "TTD": "The Trade Desk", "SE": "Sea Limited", "MELI": "MercadoLibre", "CPNG": "Coupang", "GRAB": "Grab Holdings", "JD": "JD.com",
+    "BIDU": "Baidu", "TOST": "Toast", "DKNG": "DraftKings", "CAVA": "CAVA Group", "DUOL": "Duolingo", "ONON": "On Holding",
+    "CELH": "Celsius Holdings", "ELF": "e.l.f. Beauty", "CROX": "Crocs", "CHWY": "Chewy", "W": "Wayfair", "SN": "SharkNinja",
+    "GME": "GameStop", "AMC": "AMC Entertainment", "ZM": "Zoom Communications", "DOCU": "DocuSign", "TWLO": "Twilio",
+    "ESTC": "Elastic", "GTLB": "GitLab", "IOT": "Samsara", "BILL": "BILL Holdings", "ALAB": "Astera Labs",
+    "CRDO": "Credo Technology", "NVTS": "Navitas Semiconductor", "TEM": "Tempus AI", "BBAI": "BigBear.ai",
+    "QUBT": "Quantum Computing Inc.", "SERV": "Serve Robotics", "RXRX": "Recursion Pharmaceuticals", "HIMS": "Hims & Hers Health",
+    "OSCR": "Oscar Health", "PLUG": "Plug Power", "TLN": "Talen Energy", "NNE": "NANO Nuclear Energy", "ACHR": "Archer Aviation",
+    "JOBY": "Joby Aviation", "LUNR": "Intuitive Machines", "APLD": "Applied Digital", "CORZ": "Core Scientific", "CIFR": "Cipher Mining",
+    "WULF": "TeraWulf", "HUT": "Hut 8", "GLXY": "Galaxy Digital", "CRCL": "Circle Internet Group", "CHYM": "Chime Financial",
+    "ETOR": "eToro Group", "BLSH": "Bullish", "FIG": "Figma", "KLAR": "Klarna Group", "OPEN": "Opendoor Technologies",
+}
+
+
 @st.cache_data(ttl=86400, show_spinner=False)
 def _search_options():
-    """'SYMBOL · Company' for the S&P 500, the site's universe, popular ETFs, indices and crypto (type-ahead list)."""
+    """'SYMBOL · Company' for the S&P 500, the site's universe and themes, well-known names outside them, popular ETFs, indices
+    and crypto (type-ahead list). Any other symbol can still be typed in full and confirmed."""
     from sp500 import SP500
+    from taxonomy import EXTRA
     names = {s: r[0] for s, r in SP500.items()}
     for s in U.STOCKS:
         names.setdefault(s, U.name_of(s))
-    for s, n in list(ETF_NAMES.items()) + list(EXTRA_SEARCH.items()):
+    for s, r in EXTRA.items():                      # the theme lists' companies (CoreWeave, Nebius, IonQ, Rocket Lab...)
+        names.setdefault(s, r[0])
+    for s, n in list(POPULAR_SEARCH.items()) + list(ETF_NAMES.items()) + list(EXTRA_SEARCH.items()):
         names.setdefault(s, n)
     big = {s: i for i, s in enumerate(sorted(U.STOCKS, key=lambda x: -U.STOCKS[x][3]))}
     order = sorted(names, key=lambda s: (s not in big, big.get(s, 0), s))
