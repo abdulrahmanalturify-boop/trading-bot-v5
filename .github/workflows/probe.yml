@@ -1,0 +1,32 @@
+# By hand: which Yahoo Finance calls answer from a GitHub server right now (scripts/probe_yahoo.py); the log is committed to
+# research/results/probe_log.txt.
+name: yahoo probe
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: research
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: python scripts/probe_yahoo.py 2>&1 | tee probe_log.txt
+      - if: always()
+        run: |
+          git config user.name "research-lab"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          cp probe_log.txt /tmp/probe_log.txt
+          git fetch -q origin research
+          git checkout -q -B upd origin/research
+          mkdir -p research/results && cp /tmp/probe_log.txt research/results/probe_log.txt
+          git add research/results/probe_log.txt
+          git commit -q -m "yahoo probe [skip ci]" || exit 0
+          git push -q origin upd:research
