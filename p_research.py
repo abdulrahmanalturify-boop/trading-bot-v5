@@ -325,6 +325,13 @@ def financials_tab(sym, inf, price=None):
     fc = str(inf.get("financialCurrency") or "USD")
     cur_ = (lambda v: f' <span class="muted" style="font-size:.7em">{fc}</span>' if fc.upper() != "USD" and isinstance(v, (int, float)) else "")
     bigf = lambda k: (T.fmt_big(inf.get(k)) + cur_(inf.get(k)), "neu")
+    saved = inf.get("_saved")
+    if saved:                                       # Yahoo refused this server: the copy GitHub saved, moved to today's price
+        day = _mdy(saved) if isinstance(saved, str) else ""
+        st.caption(L(f"Yahoo Finance isn't answering the site right now: these are the figures saved on {day}, with market cap and "
+                     "price ratios moved to today's price.",
+                     f"ياهو فاينانس ما يرد على الموقع الحين: هذي الأرقام المحفوظة بتاريخ {day}، والقيمة السوقية ومكررات السعر "
+                     "محسوبة على سعر اليوم."))
     ui.safe(FV.section, sym, price or inf.get("currentPrice") or inf.get("regularMarketPrice"), "fv_stock")
     groups = {
         ("Valuation", "التقييم", "price_check"): [

@@ -177,19 +177,32 @@ _DAY_ONLY = ("open", "dayHigh", "dayLow", "volume", "regularMarketOpen", "regula
              "bid", "ask", "bidSize", "askSize", "preMarketPrice", "postMarketPrice")
 
 
+TEXT_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "profiles.json")   # the same companies' texts
+
+
 def _info_file():
     try:
-        m = os.path.getmtime(INFO_FILE)
+        m = (os.path.getmtime(INFO_FILE), os.path.getmtime(TEXT_FILE) if os.path.exists(TEXT_FILE) else 0)
     except OSError:
         return {}
     if _INFO_FILE["mtime"] != m:
         try:
             with open(INFO_FILE, encoding="utf-8") as f:
-                _INFO_FILE["items"] = json.load(f).get("items", {})
-            _INFO_FILE["mtime"] = m
+                items = json.load(f).get("items", {})
+            if os.path.exists(TEXT_FILE):
+                with open(TEXT_FILE, encoding="utf-8") as f:
+                    for k, v in json.load(f).get("items", {}).items():
+                        if k in items:
+                            items[k] = {**v, **items[k]}
+            _INFO_FILE["items"], _INFO_FILE["mtime"] = items, m
         except (OSError, ValueError):
             return {}
     return _INFO_FILE["items"]
+
+
+def saved_info(symbol):
+    """The copy GitHub saved of a company's summary (with "_rec", Yahoo's analysts per rating), {} when there is none."""
+    return _info_file().get(symbol) or {}
 
 
 def moved_to_price(snap, price):

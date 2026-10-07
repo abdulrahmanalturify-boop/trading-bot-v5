@@ -1170,6 +1170,11 @@ def analyst_section(sym, price):
     if not counts:
         counts = _counts_from_ratings(rr)
         source = "firms" if counts else "none"
+    if not counts:                             # Yahoo refused this server: the count GitHub saved (twice a week)
+        rec = data.saved_info(sym).get("_rec")
+        if rec:
+            counts = _rating_counts(data._webull_scale(pd.DataFrame([{"period": "0m", **rec}])))
+            source = "summary" if counts else source
     if not n and counts:
         n = sum(counts.values())
     ui.sec("groups", "Analysts", "المحللون")

@@ -1,7 +1,7 @@
 """
 Builds infos.json: Yahoo Finance's summary of every company in the site's lists (market cap, ratios, margins, growth, balance
 sheet, analysts' targets, the description), read from GitHub's servers. The site uses it when Yahoo does not answer its own
-server (data.info); price-based figures are moved to the day's price there. Run on weekdays by .github/workflows/infos.yml.
+server (data.info); price-based figures are moved to the day's price there. Run twice a week by .github/workflows/infos.yml.
 """
 import json
 import os
@@ -11,7 +11,10 @@ from datetime import date, datetime, timezone
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
-FILE = os.path.join(ROOT, "infos.json")
+FILE = os.path.join(ROOT, "infos.json")               # the figures (rewritten twice a week)
+TEXT_FILE = os.path.join(ROOT, "profiles.json")       # the texts: the same bytes when nothing changed, so git keeps no new copy
+TEXT = ("longBusinessSummary", "companyOfficers", "website", "city", "state", "country", "longName", "shortName", "displayName",
+        "industry", "sector", "industryDisp", "sectorDisp", "industryKey", "sectorKey")
 DROP = {"executiveTeam", "corporateActions", "messageBoardId", "uuid", "gmtOffSetMilliseconds", "maxAge", "priceHint", "tradeable",
         "cryptoTradeable", "triggerable", "customPriceAlertConfidence", "esgPopulated", "hasPrePostMarketData", "sourceInterval",
         "exchangeDataDelayedBy", "quoteSourceName", "marketState", "language", "region", "typeDisp", "irWebsite", "fax", "phone",
@@ -42,23 +45,44 @@ def slim(info):
     return out
 
 
+def save(items):
+    nums = {s: {k: v for k, v in d.items() if k not in TEXT} for s, d in items.items()}
+    text = {s: {k: v for k, v in d.items() if k in TEXT} for s, d in items.items()}
+    with open(FILE, "w", encoding="utf-8") as f:
+        json.dump({"built": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), "items": nums}, f, ensure_ascii=False,
+                  separators=(",", ":"), sort_keys=True)
+    with open(TEXT_FILE, "w", encoding="utf-8") as f:
+        json.dump({"items": text}, f, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+
+
 def main():
     import yfinance as yf
-    try:
-        with open(FILE, encoding="utf-8") as f:
-            prev = json.load(f).get("items", {})
-    except (OSError, ValueError):
-        prev = {}
+    prev = {}
+    for path in (FILE, TEXT_FILE):
+        try:
+            with open(path, encoding="utf-8") as f:
+                for k, v in json.load(f).get("items", {}).items():
+                    prev.setdefault(k, {}).update(v)
+        except (OSError, ValueError):
+            pass
     syms = symbols()
     print(f"yfinance {yf.__version__} · {len(syms)} symbols, {len(prev)} already saved")
     items, stats, t0 = dict(prev), {"ok": 0, "kept": 0}, time.time()
     for i, s in enumerate(syms, 1):
         for attempt in range(3):
             try:
-                info = yf.Ticker(s).info or {}
+                t = yf.Ticker(s)
+                info = t.info or {}
                 if len(info) < 10:
                     raise ValueError(f"only {len(info)} fields")
-                items[s] = slim(info)
+                row = slim(info)
+                try:                                # the analysts per rating, as Yahoo names its columns (data._webull_scale reads it)
+                    rec = t.recommendations_summary
+                    r0 = rec[rec["period"].astype(str) == "0m"].iloc[0] if "period" in rec else rec.iloc[0]
+                    row["_rec"] = {k: int(r0.get(k) or 0) for k in ("strongBuy", "buy", "hold", "sell", "strongSell")}
+                except Exception:
+                    pass
+                items[s] = row
                 stats["ok"] += 1
                 break
             except Exception as e:                  # a refusal or a hiccup: wait and try again, else keep the last copy
@@ -69,15 +93,13 @@ def main():
                     time.sleep(4 * (attempt + 1))
         time.sleep(0.2)
         if i % 50 == 0 or i == len(syms):
-            with open(FILE, "w", encoding="utf-8") as f:
-                json.dump({"built": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), "items": items}, f, ensure_ascii=False,
-                          separators=(",", ":"), sort_keys=True)
+            save(items)
             print(f"{i}/{len(syms)} · {time.time() - t0:.0f}s · {stats}")
     for s in ("META", "NKE", "AAPL", "TSM"):
         r = items.get(s) or {}
         print(f"{s}: {len(r)} fields · price {r.get('currentPrice')} · cap {r.get('marketCap')} · PE {r.get('trailingPE')} · "
-              f"margin {r.get('profitMargins')} · {r.get('_asof')}")
-    print("file size", os.path.getsize(FILE) // 1024, "KB")
+              f"margin {r.get('profitMargins')} · rec {r.get('_rec')} · {r.get('_asof')}")
+    print("sizes", os.path.getsize(FILE) // 1024, "KB figures,", os.path.getsize(TEXT_FILE) // 1024, "KB texts")
 
 
 if __name__ == "__main__":
