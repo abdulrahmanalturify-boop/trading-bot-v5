@@ -1,0 +1,19 @@
+yfinance 1.7.0
+META info: ok 1.0s -> 182
+META info keys: ok 0.0s -> ['forwardPE', 'longBusinessSummary', 'marketCap', 'profitMargins', 'trailingPE']
+META fast_info: ok 1.0s -> {'market_cap': 1845438916037.7761, 'shares': 2547506225, 'last_price': 724.4099731445312, 'three_month_average_volume': 19224720}
+META income_stmt: ok 0.1s -> (46, 6)
+META major_holders: ok 0.2s -> (4, 1)
+META history: ok 0.1s -> 5
+NKE info: ok 0.3s -> 182
+NKE info keys: ok 0.0s -> ['forwardPE', 'longBusinessSummary', 'marketCap', 'profitMargins', 'trailingPE']
+NKE fast_info: ok 0.3s -> {'market_cap': 50344690754.96716, 'shares': 1485308829, 'last_price': 33.89509963989258, 'three_month_average_volume': 30512426}
+NKE income_stmt: ok 0.1s -> (37, 5)
+NKE major_holders: ok 0.1s -> (4, 1)
+NKE history: ok 0.1s -> 5
+AAPL info: ok 0.3s -> 183
+AAPL info keys: ok 0.0s -> ['forwardPE', 'longBusinessSummary', 'marketCap', 'profitMargins', 'trailingPE']
+AAPL fast_info: ok 0.3s -> {'market_cap': 4910212039151.611, 'shares': 14594180000, 'last_price': 336.45001220703125, 'three_month_average_volume': 45475027}
+AAPL income_stmt: ok 0.1s -> (33, 5)
+AAPL major_holders: ok 0.1s -> (4, 1)
+AAPL history: ok 0.1s -> 5
