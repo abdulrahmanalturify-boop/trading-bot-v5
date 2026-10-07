@@ -444,9 +444,11 @@ def page_econ_calendar():
                       + (f'<span class="now">{L("Today", "اليوم")}</span>' if d == today else "") + holiday_note(d)
                       + f'<span class="c">{len(day)}</span></div>{head}{econ_rows(day)}</div>')
     ui.html('<div class="evcal">' + "".join(blocks) + "</div>")
-    st.caption(L("★★★ = market-moving (inflation, jobs, the Fed, GDP, retail sales, ISM). Green actual = better than forecast for the economy, "
-                 "red = worse (for unemployment and jobless claims, lower is better). Source: Yahoo Finance economic calendar.",
-                 "★★★ = يحرك السوق (التضخم والوظائف والفيدرالي والناتج المحلي ومبيعات التجزئة وISM). الفعلي الأخضر = أفضل من المتوقع للاقتصاد، "
+    st.caption(L("★★★ = market-moving US releases (inflation, jobs, the Fed, GDP, retail sales, ISM). In the World view the euro area, Japan, "
+                 "the UK and China go up to ★★ and other countries are ★: their effect on US stocks is smaller. Green actual = better than "
+                 "forecast for the economy, red = worse (for unemployment and jobless claims, lower is better). Source: Yahoo Finance economic calendar.",
+                 "★★★ = بيانات أمريكية تحرك السوق (التضخم والوظائف والفيدرالي والناتج المحلي ومبيعات التجزئة وISM). في عرض العالم منطقة اليورو واليابان "
+                 "وبريطانيا والصين لين ★★ وباقي الدول ★، لأن أثرها على الأسهم الأمريكية أقل. الفعلي الأخضر = أفضل من المتوقع للاقتصاد، "
                  "والأحمر = أسوأ (في البطالة وطلبات إعانة البطالة الأقل أفضل). المصدر: التقويم الاقتصادي في ياهو فاينانس."))
     ui.foot()
 
@@ -663,4 +665,4 @@ def page_ipos():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "20.4"
+BUILD = "20.5"

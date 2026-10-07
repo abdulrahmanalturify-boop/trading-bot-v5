@@ -78,6 +78,41 @@ EVENTS = re.compile(
     r"\bopec\+? (?:agrees?|cuts?|raises?|decides?|boosts?)\b|\b(?:files?|filed) for (?:bankruptcy|chapter 11)\b|"
     r"\b(?:agrees? to (?:buy|acquire)|to acquire|in talks to (?:buy|acquire))\b|\bguidance (?:cut|raise)\b|\b(?:raises|cuts|lowers) (?:its )?(?:guidance|outlook|forecast)\b)",
     re.I)
+# whose economy a headline is about: the site follows US stocks, so the Fed and US data weigh in full, the big central banks
+# (ECB, Bank of Japan, Bank of England, China's) about half, and another country's rate decision or data (Poland, Kenya ...) little
+_US = re.compile(r"(\bfed\b|federal reserve|\bfomc\b|powell|\bamerican?\b|united states|wall street|white house|"
+                 r"washington|treasur(?:y|ies)|\bnyse\b|nasdaq|s&p 500|dow jones)", re.I)
+_US_CASE = re.compile(r"\bU\.?S\.?A?\b")      # "US" in capitals only: "us" is also a word
+_MAJOR = re.compile(r"(\becb\b|european central bank|euro ?zone|euro area|lagarde|bank of japan|\bboj\b|\bjapan(?:ese)?\b|\bueda\b|"
+                    r"bank of england|\bboe\b|britain|british|\bu\.?k\.?\b|people's bank of china|\bpboc\b|\bchina\b|chinese|beijing)", re.I)
+_MINOR = re.compile(r"(central bank of|national bank of|reserve bank of|\b(?:rbi|rba|rbnz|snb|riksbank|norges|banxico|copom|cbrt|nbp|cbk)\b|"
+                    r"\b(?:poland|polish|kenya\w*|turkey|turkish|t[uü]rkiye|brazil\w*|mexic\w+|india|indian|indonesia\w*|south africa\w*|"
+                    r"nigeria\w*|egypt\w*|russia\w*|ukrain\w*|hungar\w*|czech|romania\w*|serbia\w*|chile\w*|colombia\w*|peru\w*|"
+                    r"argentin\w*|philippin\w*|thai(?:land)?|malaysia\w*|vietnam\w*|pakistan\w*|sri lanka\w*|bangladesh\w*|ghana\w*|"
+                    r"uganda\w*|tanzania\w*|zambia\w*|ethiopia\w*|morocc\w+|tunisia\w*|israel\w*|saudi\w*|uae|emirat\w+|qatar\w*|"
+                    r"kuwait\w*|oman\w*|jordan\w*|korea\w*|taiwan\w*|new zealand\w*|australia\w*|canad\w+|norw\w+|swed\w+|denmark|"
+                    r"danish|switzerland|swiss|iceland\w*|kazakh\w*|georgia\w*|armenia\w*|azerbaijan\w*|uzbek\w*|mongolia\w*|"
+                    r"dominican|jamaica\w*|costa rica\w*|guatemala\w*|paraguay\w*|uruguay\w*|bolivia\w*|ecuador\w*|venezuela\w*)\b)", re.I)
+MACRO = {"fed", "inflation", "jobs", "economy", "bonds"}
+# the rate decisions and data releases among the market-moving events (a deal or a bankruptcy abroad keeps its weight)
+MACRO_EVENT = re.compile(
+    r"(\b(?:cuts?|hikes?|raises?|holds?|keeps?|leaves?|lowers?) (?:its |key |benchmark |policy )*(?:interest |lending |policy )?rates?\b|"
+    r"\brates? (?:unchanged|steady|decision)\b|"
+    r"\b(?:cpi|inflation|pce|payrolls|jobs report|gdp|unemployment|jobless claims)\b.{0,50}\b(?:rose|rises|fell|falls|jumped|jumps|cooled|"
+    r"cools|heated|hotter|cooler|beat|beats|missed|misses|came in|accelerat\w*|slow\w*|surged|slid|unexpectedly)\b)", re.I)
+
+
+def scope(title, summary=""):
+    """'us', 'major' (ECB, Japan, UK, China) or 'minor' (another country) for a headline's economy news; None: no country named."""
+    for text in (title, summary[:240]):
+        foreign = "major" if _MAJOR.search(text) else "minor" if _MINOR.search(text) else None
+        if _US_CASE.search(text) or (_US.search(text) and not foreign):
+            return "us"
+        if foreign:
+            return foreign
+    return None
+
+
 OPINION = re.compile(
     r"(\bshould you buy\b|\bis it time to buy\b|\bbetter buy\b|\bcould make you\b|\bmillionaire\b|\bstocks? to buy\b|\bbuy and hold\b|"
     r"\bno-brainer\b|\bbuy now\b|\bstock a buy\b|\bprediction\b|\bhere's why\b|\bwhat to know\b|\bi'd buy\b|\bi would buy\b|\btop \d+\b|\b\d+ (?:top |best |great )?"
@@ -135,18 +170,27 @@ def analyze(n, chg=None, now=None):
             hits.append((w, key, en, ar))
         elif summ and pat.search(summ):
             hits.append((w * 0.6, key, en, ar))
-    hits.sort(key=lambda h: -h[0])
+    def topic_of(hs):
+        hs = sorted(hs, key=lambda h: -h[0])
+        return hs, min(sum(w * (1.0, 0.5, 0.25)[i] for i, (w, *_) in enumerate(hs[:3])), 4.6)
+    macro_event = bool(MACRO_EVENT.search(title))
+    where = scope(title, summ) if (any(h[1] in MACRO for h in hits) or macro_event) else None
+    mult = {"major": 0.6, "minor": 0.2}.get(where, 1.0)
+    full_hits, full_topic = topic_of(hits)
+    full_event = 2.0 if (EVENTS.search(title) or macro_event) else 0.0
+    hits, topic = topic_of([(w * mult if key in MACRO else w, key, en, ar) for w, key, en, ar in hits])
+    event = full_event * ((0.5 if where == "major" else 0.0 if where == "minor" else 1.0) if macro_event else 1.0)
     reasons = []
-    topic = 0.0
-    for i, (w, key, en, ar) in enumerate(hits[:3]):
-        part = w * (1.0, 0.5, 0.25)[i]
-        topic += part
-    topic = min(topic, 4.6)
     if hits:
-        reasons.append((hits[0][2], hits[0][3], round(topic, 1)))
-    event = 2.0 if EVENTS.search(title) else 0.0
-    if event:
-        reasons.append(("Market-moving event", "حدث مؤثر في السوق", event))
+        reasons.append((full_hits[0][2], full_hits[0][3], round(full_topic, 1)))
+    if full_event:
+        reasons.append(("Market-moving event", "حدث مؤثر في السوق", full_event))
+    cut = round((full_topic + full_event) - (topic + event), 1)
+    if cut > 0:                                # another country's rates or data: little to do with US stocks
+        reasons.append(("Another major economy: a smaller effect on US stocks" if where == "major" else
+                        "Another country's economy: little effect on US stocks",
+                        "اقتصاد كبير غير أمريكي: أثره على الأسهم الأمريكية أقل" if where == "major" else
+                        "اقتصاد دولة ثانية: أثره على الأسهم الأمريكية ضعيف", -cut))
     opinion = -2.2 if OPINION.search(title) else 0.0
     if opinion:
         reasons.append(("Opinion / list article", "مقال رأي أو قائمة", opinion))
@@ -222,4 +266,4 @@ def rank(items):
     return sorted(items, key=lambda n: ((n.get("iq") or {}).get("raw", 0), n["time"] if pd.notna(n.get("time")) else zero), reverse=True)
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "20.4"
+BUILD = "20.5"

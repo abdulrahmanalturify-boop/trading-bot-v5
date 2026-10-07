@@ -266,9 +266,20 @@ MEDIUM = re.compile(r"(jobless|initial claims|continuing claims|durable goods|\b
 LOWER_IS_BETTER = re.compile(r"(unemployment|jobless|claims|\bclm\b|inventor|invt|deficit)", re.I)
 
 
-def importance(name):
+# the "World" view: the site follows US stocks, so ★★★ stays with US releases; the euro area, Japan, the UK and China (their central
+# banks and big releases move the dollar and US futures) top out at ★★, and any other country's events (Poland's or Kenya's rate
+# decision) are ★
+US_REGIONS = {"US", "USA", "UNITED STATES"}
+MAJOR_REGIONS = {"EU", "EZ", "EMU", "EA", "DE", "FR", "IT", "ES", "JP", "GB", "UK", "CN"}
+
+
+def importance(name, region="US"):
     n = str(name or "")
-    return 3 if HIGH.search(n) else 2 if MEDIUM.search(n) else 1
+    stars = 3 if HIGH.search(n) else 2 if MEDIUM.search(n) else 1
+    r = str(region or "US").upper()
+    if r in US_REGIONS:
+        return stars
+    return min(stars, 2) if r in MAJOR_REGIONS else 1
 
 
 def econ(start, end, region="US"):
@@ -291,7 +302,7 @@ def econ(start, end, region="US"):
                         "Region": df[reg].astype(str).str.upper() if reg else "US"})
     if region == "US":
         out = out[out["Region"].isin(["US", "USA", "UNITED STATES"])]
-    out["Stars"] = out["Event"].map(importance)
+    out["Stars"] = [importance(e, r) for e, r in zip(out["Event"], out["Region"])]
     out = out[out["Date"].notna()].drop_duplicates(["Event", "Time", "Region"])
     return out[(out["Date"] >= start) & (out["Date"] <= end)].sort_values("Time").reset_index(drop=True)
 
@@ -393,4 +404,4 @@ def dividends(start, end):
     return df.drop_duplicates(["Symbol", "ExDate"]).sort_values(["ExDate", "Symbol"]).reset_index(drop=True), src
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "20.4"
+BUILD = "20.5"

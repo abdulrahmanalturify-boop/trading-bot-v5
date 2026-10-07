@@ -318,7 +318,10 @@ def analyze(n, px=None, chg=None, spy_regime="mixed", now=None):
         s = float(np.clip(0.25 * np.sign(move), -1, 1))
     d = 1 if lab == "bull" else -1 if lab == "bear" else 0
     # materiality 0-10: the importance score, the kind of event, the coverage, the volume
-    mat = iq["score"] * 0.7 + EVENT_WEIGHT.get(ev, 0.5)
+    ew = EVENT_WEIGHT.get(ev, 0.5)
+    if ev == "macro":                                  # another country's rates or data: less for US stocks (newsiq.scope)
+        ew *= {"major": 0.6, "minor": 0.2}.get(newsiq.scope(title, summ), 1.0)
+    mat = iq["score"] * 0.7 + ew
     if len(n.get("also") or []) >= 2:
         mat += 0.8
     if fa and fa.get("rvol") and fa["rvol"] >= 2:
@@ -499,4 +502,4 @@ def word_sign(w):
     return 1 if _POS.fullmatch(w or "") else -1
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "20.4"
+BUILD = "20.5"
