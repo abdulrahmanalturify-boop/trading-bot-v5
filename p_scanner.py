@@ -1308,6 +1308,13 @@ def insider_section(sym):
     cat = catalysts(sym, H.BUILD)
     t = insider_table(cat.get("insiders"))
     ui.sec("badge", "Insider transactions", "تعاملات المطّلعين")
+    saved_on = None
+    if t.empty:                                # Yahoo refused this server: the copy GitHub saved (twice a week)
+        sv_df, saved_on = data.saved_insiders(sym)
+        t = insider_table(sv_df)
+        if not t.empty and saved_on:
+            st.caption(L(f"Yahoo Finance isn't answering the site right now: these are the transactions saved on {saved_on}.",
+                         f"ياهو فاينانس ما يرد على الموقع الحين: هذي التعاملات المحفوظة بتاريخ {saved_on}."))
     if t.empty:
         st.caption(L("Yahoo Finance has no insider transactions for this stock right now.",
                      "ياهو فاينانس ما عنده تعاملات مطّلعين لهذا السهم حالياً."))

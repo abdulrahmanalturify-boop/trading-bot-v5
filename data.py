@@ -205,6 +205,24 @@ def saved_info(symbol):
     return _info_file().get(symbol) or {}
 
 
+INS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "insiders.json")
+_INS_FILE = {"mtime": None, "data": {}}
+
+
+def saved_insiders(symbol):
+    """(DataFrame of the insider transactions GitHub saved for a company, its date) - the columns Yahoo's table has; (empty, None)."""
+    try:
+        m = os.path.getmtime(INS_FILE)
+        if _INS_FILE["mtime"] != m:
+            with open(INS_FILE, encoding="utf-8") as f:
+                _INS_FILE["data"], _INS_FILE["mtime"] = json.load(f), m
+    except (OSError, ValueError):
+        return pd.DataFrame(), None
+    d = _INS_FILE["data"]
+    rows = (d.get("items") or {}).get(symbol) or []
+    return pd.DataFrame(rows, columns=list(d.get("cols") or [])), d.get("asof")
+
+
 def moved_to_price(snap, price):
     """A saved summary with its price-based figures moved to today's price (market cap, P/E, P/S, P/B, PEG and the dividend
     yield with the price; the enterprise value by the change in market cap, and its ratios with it)."""

@@ -13,6 +13,8 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 FILE = os.path.join(ROOT, "infos.json")               # the figures (rewritten twice a week)
 TEXT_FILE = os.path.join(ROOT, "profiles.json")       # the texts: the same bytes when nothing changed, so git keeps no new copy
+INS_FILE = os.path.join(ROOT, "insiders.json")        # insider transactions of the last 6 months (at most 40 per company)
+INS_COLS = ("Start Date", "Insider", "Position", "Transaction", "Text", "Shares", "Value", "Ownership")
 TEXT = ("longBusinessSummary", "companyOfficers", "website", "city", "state", "country", "longName", "shortName", "displayName",
         "industry", "sector", "industryDisp", "sectorDisp", "industryKey", "sectorKey")
 DROP = {"executiveTeam", "corporateActions", "messageBoardId", "uuid", "gmtOffSetMilliseconds", "maxAge", "priceHint", "tradeable",
@@ -45,7 +47,31 @@ def slim(info):
     return out
 
 
-def save(items):
+def insider_rows(df):
+    """[[date, insider, position, transaction, text, shares, value, ownership]] of the last 6 months, newest first, at most 40."""
+    import pandas as pd
+    if not isinstance(df, pd.DataFrame) or df.empty or "Start Date" not in df:
+        return []
+    d = df.copy()
+    d["Start Date"] = pd.to_datetime(d["Start Date"], errors="coerce")
+    d = d[d["Start Date"] >= pd.Timestamp.now() - pd.Timedelta(days=186)].sort_values("Start Date", ascending=False).head(40)
+    out = []
+    for _, r in d.iterrows():
+        row = []
+        for c in INS_COLS:
+            v = r.get(c)
+            if c == "Start Date":
+                v = v.strftime("%Y-%m-%d") if not pd.isna(v) else None
+            elif c in ("Shares", "Value"):
+                v = None if v is None or pd.isna(v) else float(v)
+            else:
+                v = None if v is None or (not isinstance(v, str) and pd.isna(v)) else str(v)[:120]
+            row.append(v)
+        out.append(row)
+    return out
+
+
+def save(items, ins=None):
     nums = {s: {k: v for k, v in d.items() if k not in TEXT} for s, d in items.items()}
     text = {s: {k: v for k, v in d.items() if k in TEXT} for s, d in items.items()}
     with open(FILE, "w", encoding="utf-8") as f:
@@ -53,6 +79,10 @@ def save(items):
                   separators=(",", ":"), sort_keys=True)
     with open(TEXT_FILE, "w", encoding="utf-8") as f:
         json.dump({"items": text}, f, ensure_ascii=False, separators=(",", ":"), sort_keys=True)
+    if ins is not None:
+        with open(INS_FILE, "w", encoding="utf-8") as f:
+            json.dump({"asof": date.today().isoformat(), "cols": INS_COLS, "items": ins}, f, ensure_ascii=False, separators=(",", ":"),
+                      sort_keys=True)
 
 
 def main():
@@ -68,6 +98,11 @@ def main():
     syms = symbols()
     print(f"yfinance {yf.__version__} · {len(syms)} symbols, {len(prev)} already saved")
     items, stats, t0 = dict(prev), {"ok": 0, "kept": 0}, time.time()
+    try:
+        with open(INS_FILE, encoding="utf-8") as f:
+            ins = json.load(f).get("items", {})
+    except (OSError, ValueError):
+        ins = {}
     for i, s in enumerate(syms, 1):
         for attempt in range(3):
             try:
@@ -82,6 +117,10 @@ def main():
                     row["_rec"] = {k: int(r0.get(k) or 0) for k in ("strongBuy", "buy", "hold", "sell", "strongSell")}
                 except Exception:
                     pass
+                try:
+                    ins[s] = insider_rows(t.insider_transactions)
+                except Exception:
+                    pass
                 items[s] = row
                 stats["ok"] += 1
                 break
@@ -93,13 +132,15 @@ def main():
                     time.sleep(4 * (attempt + 1))
         time.sleep(0.2)
         if i % 50 == 0 or i == len(syms):
-            save(items)
+            save(items, ins)
             print(f"{i}/{len(syms)} · {time.time() - t0:.0f}s · {stats}")
     for s in ("META", "NKE", "AAPL", "TSM"):
         r = items.get(s) or {}
         print(f"{s}: {len(r)} fields · price {r.get('currentPrice')} · cap {r.get('marketCap')} · PE {r.get('trailingPE')} · "
               f"margin {r.get('profitMargins')} · rec {r.get('_rec')} · {r.get('_asof')}")
-    print("sizes", os.path.getsize(FILE) // 1024, "KB figures,", os.path.getsize(TEXT_FILE) // 1024, "KB texts")
+    print("sizes", os.path.getsize(FILE) // 1024, "KB figures,", os.path.getsize(TEXT_FILE) // 1024, "KB texts,",
+          os.path.getsize(INS_FILE) // 1024, "KB insiders")
+    print("insiders:", {k: len(ins.get(k) or []) for k in ("META", "NKE", "AAPL", "TSLA", "CRWV")})
 
 
 if __name__ == "__main__":

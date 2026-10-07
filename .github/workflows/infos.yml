@@ -40,6 +40,7 @@ jobs:
           cp infos_log.txt /tmp/infos_log.txt 2>/dev/null || true
           [ -f infos.json ] && cp infos.json /tmp/infos.json
           [ -f profiles.json ] && cp profiles.json /tmp/profiles.json
+          [ -f insiders.json ] && cp insiders.json /tmp/insiders.json
           git fetch -q origin research main redesign
           git checkout -q -B upd origin/research
           old=$(git rev-parse HEAD)
@@ -47,6 +48,7 @@ jobs:
           [ -f /tmp/infos_log.txt ] && cp /tmp/infos_log.txt research/results/infos_log.txt && git add research/results/infos_log.txt
           [ -f /tmp/infos.json ] && cp /tmp/infos.json infos.json && git add infos.json
           [ -f /tmp/profiles.json ] && cp /tmp/profiles.json profiles.json && git add profiles.json
+          [ -f /tmp/insiders.json ] && cp /tmp/insiders.json insiders.json && git add insiders.json
           git commit -q -m "company figures from Yahoo Finance [skip ci]" || exit 0
           git push -q origin upd:research
           for b in main redesign; do
