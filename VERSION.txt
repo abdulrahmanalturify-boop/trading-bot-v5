@@ -1,2 +1,2 @@
-TURA Pro - version 20.3 (Company figures never blank: when Yahoo refuses the site's server, the last copy that worked, else the copy GitHub saves twice a week for 570 companies, moved to today's price; the analysts' counts are saved too)
+TURA Pro - version 20.4 (Insider transactions never blank: when Yahoo refuses the site's server, the last 6 months saved by GitHub twice a week for 570 companies)
 If you can see this file on GitHub, the new version was uploaded correctly.
