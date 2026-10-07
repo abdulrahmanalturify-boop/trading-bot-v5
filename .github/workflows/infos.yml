@@ -1,0 +1,52 @@
+# Every company's Yahoo Finance summary (market cap, ratios, margins, growth, balance sheet, description), read from GitHub's
+# servers, for the site to use when Yahoo does not answer its own server (data.info). Weekdays after the close, on a push
+# of the builder, or by hand. Commits infos.json to "research" and moves "main" and "redesign" with it when they were there.
+name: company figures
+on:
+  push:
+    branches: [research]
+    paths: ["scripts/build_infos.py", ".github/workflows/infos.yml"]
+  schedule:
+    - cron: "23 22 * * 1-5"
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: infos
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: research
+          fetch-depth: 0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Read the company figures
+        run: |
+          set -o pipefail
+          python scripts/build_infos.py 2>&1 | tee infos_log.txt
+      - name: Save
+        if: always()
+        run: |
+          git config user.name "research-lab"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          cp infos_log.txt /tmp/infos_log.txt 2>/dev/null || true
+          [ -f infos.json ] && cp infos.json /tmp/infos.json
+          git fetch -q origin research main redesign
+          git checkout -q -B upd origin/research
+          old=$(git rev-parse HEAD)
+          mkdir -p research/results
+          [ -f /tmp/infos_log.txt ] && cp /tmp/infos_log.txt research/results/infos_log.txt && git add research/results/infos_log.txt
+          [ -f /tmp/infos.json ] && cp /tmp/infos.json infos.json && git add infos.json
+          git commit -q -m "company figures from Yahoo Finance [skip ci]" || exit 0
+          git push -q origin upd:research
+          for b in main redesign; do
+            if [ "$(git rev-parse origin/$b)" = "$old" ]; then git push -q origin upd:$b; else echo "$b is not at research's commit: left as it is"; fi
+          done

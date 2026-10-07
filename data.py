@@ -165,11 +165,80 @@ def _info(symbol):
     return i
 
 
-def info(symbol):
+# When Yahoo refuses this server (it limits the shared Streamlit server's calls to the company summary; from GitHub's servers it
+# answers), a company's figures come from the last copy that worked here, else from infos.json: the same summary read for every
+# company in the site's lists by GitHub (scripts/build_infos.py, weekdays), its price-based ratios moved with today's price.
+INFO_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "infos.json")
+_INFO_LAST, _INFO_FAIL, _INFO_FILE = {}, {}, {"mtime": None, "items": {}}
+_PRICE_X = ("marketCap", "trailingPE", "forwardPE", "priceToBook", "priceToSalesTrailing12Months", "pegRatio", "trailingPegRatio")
+_PRICE_DIV = ("dividendYield", "trailingAnnualDividendYield")
+_DAY_ONLY = ("open", "dayHigh", "dayLow", "volume", "regularMarketOpen", "regularMarketDayHigh", "regularMarketDayLow",
+             "regularMarketVolume", "previousClose", "regularMarketPreviousClose", "regularMarketChange", "regularMarketChangePercent",
+             "bid", "ask", "bidSize", "askSize", "preMarketPrice", "postMarketPrice")
+
+
+def _info_file():
     try:
-        return _info(symbol)
-    except Exception:
+        m = os.path.getmtime(INFO_FILE)
+    except OSError:
         return {}
+    if _INFO_FILE["mtime"] != m:
+        try:
+            with open(INFO_FILE, encoding="utf-8") as f:
+                _INFO_FILE["items"] = json.load(f).get("items", {})
+            _INFO_FILE["mtime"] = m
+        except (OSError, ValueError):
+            return {}
+    return _INFO_FILE["items"]
+
+
+def moved_to_price(snap, price):
+    """A saved summary with its price-based figures moved to today's price (market cap, P/E, P/S, P/B, PEG and the dividend
+    yield with the price; the enterprise value by the change in market cap, and its ratios with it)."""
+    i = {k: v for k, v in snap.items() if k not in _DAY_ONLY}
+    old = i.get("currentPrice") or i.get("regularMarketPrice")
+    if not (price and old and old > 0 and price > 0):
+        return i
+    r = price / old
+    for k in _PRICE_X:
+        if isinstance(i.get(k), (int, float)):
+            i[k] = i[k] * r
+    for k in _PRICE_DIV:
+        if isinstance(i.get(k), (int, float)):
+            i[k] = i[k] / r
+    ev, mc0 = i.get("enterpriseValue"), snap.get("marketCap")
+    if isinstance(ev, (int, float)) and isinstance(mc0, (int, float)) and isinstance(i.get("marketCap"), (int, float)) and ev:
+        ev2 = ev + (i["marketCap"] - mc0)
+        for k in ("enterpriseToRevenue", "enterpriseToEbitda"):
+            if isinstance(i.get(k), (int, float)):
+                i[k] = i[k] * ev2 / ev
+        i["enterpriseValue"] = ev2
+    i["currentPrice"] = i["regularMarketPrice"] = price
+    return i
+
+
+def info(symbol):
+    """Yahoo's summary of a company ({} when there is none at all). When Yahoo does not answer, the last copy that worked on
+    this server, else the saved one (marked "_saved": its date); after a refusal Yahoo is left alone for two minutes."""
+    if time.time() - _INFO_FAIL.get(symbol, 0) > 120:
+        try:
+            i = _info(symbol)
+            _INFO_LAST[symbol] = i
+            return i
+        except Exception:
+            _INFO_FAIL[symbol] = time.time()
+    if symbol in _INFO_LAST:
+        return _INFO_LAST[symbol]
+    snap = _info_file().get(symbol)
+    if not snap:
+        return {}
+    try:
+        price = (changes([symbol]).get(symbol) or (None,))[0]
+    except Exception:
+        price = None
+    i = moved_to_price(snap, price)
+    i["_saved"] = snap.get("_asof") or True
+    return i
 
 
 # ---------------------------------------------------------------- search & screeners
