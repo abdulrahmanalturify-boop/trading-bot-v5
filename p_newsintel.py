@@ -774,4 +774,4 @@ def page_news_intel():
     _detail(a, chg2, sec_chg, titles_ar)
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "20.2"
+BUILD = "20.3"

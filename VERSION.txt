@@ -1,2 +1,2 @@
-TURA Pro - version 20.2 (The shareholders ring: its 'Shareholders' label drawn inside the ring itself, nothing laid over it; the rings fade in instead of drawing their dashes, which Safari could leave unfinished)
+TURA Pro - version 20.3 (Company figures never blank: when Yahoo refuses the site's server, the last copy that worked, else the copy GitHub saves twice a week for 570 companies, moved to today's price; the analysts' counts are saved too)
 If you can see this file on GitHub, the new version was uploaded correctly.
