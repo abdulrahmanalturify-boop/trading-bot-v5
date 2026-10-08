@@ -1701,22 +1701,7 @@ FX_JS = """<script>
       var nv = d.querySelector('.st-key-topnav');
       if (nv && nv.dataset.ixmt) { nv.style.removeProperty('margin-top'); delete nv.dataset.ixmt; }
     }
-    // 5 seconds without a move on the first screen: the page glides to the first section by itself (once per landing)
-    var page = d.querySelector('.ixp'), hero = d.querySelector('.ix');
-    if (page && hero && !page.__auto) {
-      if (!page.__seen) page.__seen = Date.now();
-      if (hero.getBoundingClientRect().bottom < w.innerHeight * .8) page.__auto = 1;          // they scrolled themselves
-      else if (Date.now() - Math.max(idle, page.__seen) >= 5000) {
-        page.__auto = 1;
-        var nx = d.querySelector('.ixp .ixs');
-        if (nx) nx.scrollIntoView({behavior: 'smooth', block: 'start'});
-      }
-    }
   }, 180);
-  var idle = Date.now();
-  ['pointermove', 'pointerdown', 'wheel', 'keydown', 'touchstart'].forEach(function (ev) {
-    on(d, ev, function () { idle = Date.now(); }, {passive: true, capture: true});
-  });
 })();
 (function () {                                   // the landing's sculpture: a cut amethyst, drawn with WebGL
   var w = window.parent, d = w.document;
@@ -2762,4 +2747,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "20.5"
+BUILD = "20.6"

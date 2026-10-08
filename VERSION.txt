@@ -1,2 +1,2 @@
-TURA Pro - version 20.5 (Importance by country: another country's rate decision or data (Poland, Kenya ...) is low importance in the news and ★ in the World calendar; the euro area, Japan, the UK and China medium / ★★; the Fed and US data stay at the top)
+TURA Pro - version 20.6 (The landing no longer scrolls down by itself after 5 seconds: it stays until the visitor scrolls)
 If you can see this file on GitHub, the new version was uploaded correctly.
