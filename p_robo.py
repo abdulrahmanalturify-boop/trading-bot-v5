@@ -357,6 +357,30 @@ CSS = f"""<style>
 .rbsd.short {{ color:#FCA5A5; background:rgba(239,68,68,.14); border:1px solid rgba(248,113,113,.4); }}
 .rbwc {{ display:inline-block; border-radius:7px; padding:2px 7px; font-size:.68rem; font-weight:600; color:#DCD7E3; background:rgba(157,151,165,.13);
   border:1px solid rgba(157,151,165,.22); margin:0 4px 4px 0; }}
+.rbplan td {{ vertical-align:middle; }}
+.rbplan tr.nx td {{ opacity:.55; }}
+.rbplan .cco {{ display:flex; align-items:center; gap:4px; }}
+.rbplan .wy {{ white-space:normal; margin-top:5px; max-width:330px; }}
+.rbplan-c {{ display:none; }}
+@media (max-width: 640px) {{ .rbplan-t {{ display:none; }} .rbplan-c {{ display:flex; flex-direction:column; gap:8px; margin:0 0 10px; }} }}
+.rbpq {{ position:relative; overflow:hidden; background:{T.BOX_BG}; border:1px solid {_BD}; border-radius:14px; padding:10px 12px;
+  animation:rbup .4s cubic-bezier(.2,.8,.2,1) both; animation-delay:calc(var(--i) * 40ms); }}
+.rbpq::before {{ content:""; position:absolute; inset-inline-start:0; top:0; bottom:0; width:3px; background:#4ADE80; }}
+.rbpq.short::before {{ background:#F87171; }}
+.rbpq.nx {{ opacity:.6; }}
+.rbpq .top {{ display:flex; align-items:center; gap:6px; }}
+.rbpq .tk {{ font-weight:800; color:#fff; }}
+.rbpq .scr {{ margin-inline-start:auto; color:#fff; font-size:.95rem; }}
+.rbpq .nm {{ color:{_MU}; font-size:.74rem; margin:1px 0 6px; }}
+.rbpq .rr {{ display:flex; justify-content:space-between; gap:8px; color:#B9B3C4; font-size:.76rem; margin:2px 0; }}
+.rbpq .rr b {{ color:#F4F1F8; }} .rbpq .rr b.dn {{ color:{T.NEG_FG}; }}
+.rbpq .wy {{ margin-top:6px; }}
+.rbnx {{ display:inline-block; margin-inline-start:6px; border-radius:6px; padding:1px 6px; font-size:.64rem; font-weight:700; color:#FCD34D;
+  border:1px dashed rgba(245,185,74,.5); }}
+.rbds {{ display:inline-block; vertical-align:middle; width:46px; height:6px; border-radius:4px; background:rgba(157,151,165,.16); overflow:hidden; direction:ltr; }}
+.rbds i {{ display:block; height:100%; background:#F87171; }} .rbds i.short {{ background:#F97316; }}
+.rbrules {{ display:flex; gap:8px; align-items:flex-start; color:#B9B3C4; font-size:.76rem; line-height:1.55; margin:8px 0 12px; }}
+.rbrules .ms {{ color:#F9A8D4; font-size:1.05rem; }}
 .rbgrp2 {{ display:flex; align-items:center; gap:6px; font-size:.78rem; font-weight:700; margin:2px 0 7px; }}
 .rbgrp2 .ms {{ font-size:1rem; }} .rbgrp2.long {{ color:#86EFAC; }} .rbgrp2.short {{ color:#FCA5A5; }}
 .rbrad {{ display:grid; grid-template-columns:repeat(auto-fill,minmax(205px,1fr)); gap:10px; margin:0 0 12px; }}
@@ -534,13 +558,29 @@ def intro(has_store=True):
             f'<span class="rbchip">{T.icon("description")}{L("Your IPS to download", "بيان السياسة للتحميل")}</span>'
             f'<span class="rbchip bot">{T.icon("radar")}{L("Opportunity Bot at levels 9–10", "بوت الفرص في المستوى 9–10")}</span></div></div>{_art()}</div>'
             f'<div class="rbsteps">{steps_html}</div>')
-    c1, c2, c3 = st.columns([1, 1.3, 1])
-    with c2:
-        if st.button(L("Start the questionnaire", "ابدأ الاستبيان"), type="primary", width="stretch", key="rb_start", icon=_fwd()):
-            ss["rb_mode"] = "quiz"
-            ss["rb_step"] = 0
-            ss.setdefault("rb_ans", {})
-            st.rerun()
+    done = sum(1 for q in R.QIDS if (ss.get("rb_ans") or {}).get(q))
+    if done:                                   # a questionnaire left half way: carry on from where it stopped, or start again
+        c1, c2, c3, c4 = st.columns([.6, 1.2, 1, .6])
+        with c2:
+            if st.button(L(f"Continue · {done} of {len(R.QIDS)} answered", f"كمّل · جاوبت {done} من {len(R.QIDS)}"), type="primary",
+                         width="stretch", key="rb_resume", icon=_fwd()):
+                ss["rb_mode"] = "plan" if done == len(R.QIDS) and (ss.get("rb_ans") or {}).get("amount") else "quiz"
+                ss["rb_step"] = min(done, len(R.STEPS) - 1)
+                st.rerun()
+        with c3:
+            if st.button(L("Start again", "ابدأ من جديد"), width="stretch", key="rb_start", icon=":material/restart_alt:"):
+                ss["rb_ans"], ss["rb_step"], ss["rb_mode"] = {}, 0, "quiz"
+                for k in ("rb_amt", "rb_mon", "rb_lvl", "rb_years", "rb_goal"):
+                    ss.pop(k, None)
+                st.rerun()
+    else:
+        c1, c2, c3 = st.columns([1, 1.3, 1])
+        with c2:
+            if st.button(L("Start the questionnaire", "ابدأ الاستبيان"), type="primary", width="stretch", key="rb_start", icon=_fwd()):
+                ss["rb_mode"] = "quiz"
+                ss["rb_step"] = 0
+                ss.setdefault("rb_ans", {})
+                st.rerun()
     feats = [("balance", L("Rebalancing", "إعادة التوازن"), L("Back to target every quarter, and at once when a fund drifts out of its range.",
                                                                "يرجع للنسب المستهدفة كل ربع، وفوراً إذا خرج صندوق عن نطاقه.")),
              ("savings", L("Monthly deposits", "إيداع شهري"), L("Invested on the first trading day of each month, into what is under target first.",
@@ -1123,6 +1163,48 @@ def positions_html(rows):
     return '<div class="rbpcs">' + "".join(out) + "</div>"
 
 
+def plan_html(trades, summ, when=None):
+    """The bot's trading plan: the trades its next scan would open (entry, first stop, size, shares, money at risk)."""
+    chips = [f'<span class="rbchip bot">{T.icon("event_repeat")}{L("Next scan", "المسح الجاي")} <b>{_esc(when)}</b></span>' if when else
+             f'<span class="rbchip bot">{T.icon("rocket_launch")}{L("If you start now", "لو بدأت الحين")}</span>',
+             f'<span class="rbchip">{T.icon("north_east")}{L("Free long slots", "خانات شراء فاضية")} <b>{summ["free_long"]}/{summ["n_long"]}</b></span>']
+    if summ["n_short"]:
+        chips.append(f'<span class="rbchip">{T.icon("south_east")}{L("Free short slots", "خانات مكشوف فاضية")} <b>{summ["free_short"]}/{summ["n_short"]}</b></span>')
+    chips.append(f'<span class="rbchip">{T.icon("payments")}{L("Each position", "كل مركز")} <b>{_ltr(_m(summ["size"]))}</b></span>')
+    head = (f'<tr><th>{L("Company", "الشركة")}</th><th>{L("Trade", "الصفقة")}</th><th class="n">{L("Score", "التقييم")}</th>'
+            f'<th class="n">{L("Entry ≈", "الدخول ≈")}</th><th class="n">{L("First stop", "الوقف الأول")}</th><th>{L("Distance", "المسافة")}</th>'
+            f'<th class="n">{L("Size", "الحجم")}</th><th class="n">{L("Shares", "الأسهم")}</th><th class="n">{L("At risk", "المخاطرة")}</th></tr>')
+    body, cards = "", ""
+    for i, x in enumerate(trades):
+        nxt = f'<span class="rbnx">{L("next in line", "الاحتياط")}</span>' if x["next"] else ""
+        bar = min(100, x["dist"] / 25 * 100)
+        dist = _ltr(("-" if x["side"] == "long" else "+") + "%.1f%%" % x["dist"])
+        ds = f'<span class="rbds"><i class="{x["side"]}" style="width:{bar:.0f}%"></i></span>'
+        body += (f'<tr class="{"nx" if x["next"] else ""}"><td><div class="cco"><span class="tk" style="--c:{BOT_C}">{x["t"]}</span>'
+                 f'<span class="cl">{_esc(x["name"])}</span>{nxt}</div><div class="wy">{_why_chips(x["why"][:3])}</div></td>'
+                 f'<td>{_side(x["side"])}</td><td class="n"><b>{x["score"]:.0f}</b></td><td class="n">{_ltr(_m(x["entry"], 2))}</td>'
+                 f'<td class="n">{_ltr(_m(x["stop"], 2))}</td><td>{ds} {dist}</td>'
+                 f'<td class="n">{_ltr(_m(x["size"]))}</td><td class="n">{_ltr("%.2f" % x["units"])}</td>'
+                 f'<td class="n dn">{_ltr(_m(x["risk"]))} <span class="cl">{_ltr("%.1f%%" % x["risk_pct"])}</span></td></tr>')
+        cards += (f'<div class="rbpq {x["side"]}{" nx" if x["next"] else ""}" style="--i:{i}"><div class="top"><span class="tk">{x["t"]}</span>{_side(x["side"])}'
+                  f'{nxt}<b class="scr">{x["score"]:.0f}</b></div><div class="nm">{_esc(x["name"])}</div>'
+                  f'<div class="rr"><span>{L("Entry ≈", "الدخول ≈")} <b>{_ltr(_m(x["entry"], 2))}</b></span>'
+                  f'<span>{L("Stop", "الوقف")} <b>{_ltr(_m(x["stop"], 2))}</b> {dist}</span></div>'
+                  f'<div class="rr"><span>{L("Size", "الحجم")} <b>{_ltr(_m(x["size"]))}</b> · {_ltr("%.2f" % x["units"])} {L("sh.", "سهم")}</span>'
+                  f'<span>{L("At risk", "المخاطرة")} <b class="dn">{_ltr(_m(x["risk"]))}</b></span></div>'
+                  f'<div class="wy">{_why_chips(x["why"][:3])}</div></div>')
+    if not trades:
+        msg = (L("Every slot is taken: new trades come when a position closes.", "كل الخانات مشغولة: الصفقات الجديدة تجي لما يتسكّر مركز.")
+               if summ["free_long"] + summ["free_short"] == 0 else
+               L(f"No signal scores {RB.THRESHOLD} or more right now: the free slots wait in cash until one does.",
+                 f"ما فيه إشارة تقييمها {RB.THRESHOLD} أو أكثر الحين: الخانات الفاضية تنتظر كنقد لين تطلع وحدة."))
+        table = PP.empty("event_busy", L("Nothing to open at the next scan", "ما فيه شي ينفتح في المسح الجاي"), msg)
+    else:
+        table = f'<div class="rbtw rbplan-t"><table class="rbtbl rbplan">{head}{body}</table></div><div class="rbplan-c">{cards}</div>'
+    rules = (f'<div class="rbrules">{T.icon("rule")}<span>{L("Each trade: bought (or sold short) at the close of the scan day if its signal still holds · the stop moves with the best close, 3 ATR behind · a position not up 10% after 60 trading days leaves.", "كل صفقة: تنشرى (أو تنباع على المكشوف) مع إغلاق يوم المسح إذا ظلت إشارتها · الوقف يتحرك مع أفضل إغلاق على بعد 3 ATR · المركز اللي ما ربح 10% بعد 60 يوم تداول يطلع.")}</span></div>')
+    return f'<div class="rbchips" style="margin:0 0 8px">{"".join(chips)}</div>{table}{rules}'
+
+
 def trades_html(trades, limit=20):
     if not trades:
         return ""
@@ -1260,6 +1342,11 @@ def bot_tab(state, rep, feats):
          f'{L("won", "ربحت")} <b>{_p(s.get("win"), 0) if s.get("n") else "—"}</b>', None, None),
         ("event_repeat", L("Next scan", "المسح الجاي"), _date(next_scan()) if on else "—",
          f'{L("Long", "شراء")} <b>{n_l}</b> · {L("Short", "مكشوف")} <b>{len(pos) - n_l}</b>', None, None)], "c4"))
+    if on and feats:
+        ui.sec("checklist", "Trading plan for the next scan", "خطة التداول للمسح الجاي")
+        tp, summ = RB.trade_plan(feats, val, prof["level"], prof["sharia"], held=set(book.pos), cool=set(book.cool),
+                                 n_long_held=n_l, n_short_held=len(pos) - n_l)
+        ui.html(plan_html(tp, summ, _date(next_scan())))
     ui.sec("radar", "Open positions", "المراكز المفتوحة")
     ui.html(positions_html(pos))
     if on and feats:
@@ -1322,6 +1409,9 @@ def plan_page(state, row, rkey, err):
         line = bot_stats_line(bt.get("book")) if bt is not None and not bt.get("pending") else None
         ui.html(bot_card(prof, stats_line=line))
         if feats:
+            tp, summ = RB.trade_plan(feats, amount * RB.SAT.get(prof["level"], 0) / 100, prof["level"], prof["sharia"])
+            ui.html(f'<div class="rbsub">{T.icon("checklist")}{L("Its trading plan: the companies it would enter first", "خطته للتداول: الشركات اللي بيدخلها أول")}</div>'
+                    + plan_html(tp, summ))
             lg, sh = RB.radar(feats, prof["sharia"], n_long=10 if prof["sharia"] else 5, n_short=5)
             ui.html(f'<div class="rbsub">{T.icon("travel_explore")}{L("On its radar now", "على راداره الحين")}</div>' + radar_html(lg, sh))
         else:
@@ -1402,6 +1492,94 @@ def activate(state, row, rkey, err, ans, prof, amount, monthly):
     commit(state, row, rkey, err, flash)
 
 
+# ---------------------------------------------------------------- the questionnaire in progress, kept in the browser
+# Answers, the step, the plan screen and its settings are written into a cookie of this browser (a year), so closing the site
+# half way and coming back opens the questionnaire or the plan where it was left. Cleared once the plan is invested.
+DRAFT = "alt_rb"
+_DRAFT_KEYS = {"rb_step": "s", "rb_mode": "m", "rb_lvl": "l", "rb_years": "y", "rb_goal": "g", "rb_amt": "am", "rb_mon": "mo"}
+
+
+def _draft_cookie(value, age=31536000):
+    try:
+        import streamlit.components.v1 as components
+        components.html("<script>try{var w=window.parent,d=w.document;d.cookie='" + DRAFT + "=" + value + "; path=/; max-age=" + str(age) +
+                        "; SameSite=Lax'+(w.location.protocol==='https:'?'; Secure':'');}catch(e){}</script>", height=0)
+    except Exception:
+        pass
+
+
+def _draft_value():
+    import base64
+    import json
+    d = {"a": {k: v for k, v in (ss.get("rb_ans") or {}).items() if k in R.Q or k in ("amount", "monthly")}}
+    for k, short in _DRAFT_KEYS.items():
+        if ss.get(k) is not None:
+            d[short] = ss[k]
+    raw = json.dumps(d, separators=(",", ":"), sort_keys=True)
+    return base64.urlsafe_b64encode(raw.encode()).decode().rstrip("=")
+
+
+def _draft_keep():
+    """Writes the questionnaire in progress into the browser when it changed; removes it once the plan is invested."""
+    if ss.pop("rb_draft_kill", False):
+        _draft_cookie("", 0)
+        return
+    if ss.get("rb_mode") not in ("quiz", "plan") and not (ss.get("rb_ans") or {}):
+        return
+    v = _draft_value()
+    if ss.get("rb_draft_v") != v:
+        ss["rb_draft_v"] = v
+        _draft_cookie(v)
+
+
+def _draft_clear():
+    """The cookie goes on the next full run of the page (a run cut short by a rerun may never reach the browser)."""
+    ss["rb_draft_v"] = None
+    ss["rb_draft_kill"] = True
+
+
+def _draft_restore():
+    """Once per visit: the questionnaire this browser left half way (its cookie), back where it was."""
+    import base64
+    import json
+    if ss.get("rb_restored"):
+        return
+    ss["rb_restored"] = True
+    if ss.get("rb_ans"):
+        return
+    try:
+        raw = st.context.cookies.get(DRAFT)
+    except Exception:
+        raw = None
+    if not raw:
+        return
+    try:
+        d = json.loads(base64.urlsafe_b64decode(raw + "=" * (-len(raw) % 4)).decode())
+    except Exception:
+        return
+    ans = {k: v for k, v in (d.get("a") or {}).items() if (k in R.Q and R.opt(k, v)) or (k in ("amount", "monthly") and isinstance(v, int))}
+    if not ans:
+        return
+    ss["rb_ans"] = ans
+    step = d.get("s")
+    ss["rb_step"] = int(step) if isinstance(step, int) and 0 <= step < len(R.STEPS) else min(len(ans), len(R.STEPS) - 1)
+    mode = d.get("m")
+    ss["rb_mode"] = mode if mode in ("quiz", "plan") else None
+    if mode == "plan" and not all(ans.get(q) for q in R.QIDS):
+        ss["rb_mode"] = "quiz"
+    for k, short in (("rb_lvl", "l"), ("rb_years", "y")):
+        v = d.get(short)
+        if isinstance(v, int) and 1 <= v <= 40:
+            ss[k] = v
+    for k, short, lo, hi in (("rb_goal", "g", 0, 100_000_000), ("rb_amt", "am", 1000, 10_000_000), ("rb_mon", "mo", 0, 1_000_000)):
+        v = d.get(short)
+        if isinstance(v, int) and lo <= v <= hi:
+            ss[k] = v
+    ss["rb_draft_v"] = raw
+    if ss["rb_mode"]:
+        ss["rb_flash"] = L("Welcome back: carrying on where you left off", "أهلاً من جديد: كمّلنا من حيث وقفت")
+
+
 def commit(state, row, rkey, err, flash=None, fresh=False):
     """Keeps a change and reloads the page. fresh: a new robo portfolio (it replaces whatever the row held). If the saved one
     moved on meanwhile (another tab), nothing is overwritten; if the store can't be reached, this visit keeps its own copy."""
@@ -1417,6 +1595,9 @@ def commit(state, row, rkey, err, flash=None, fresh=False):
             st.error(L("Saving isn't available right now. Try again in a minute.", "الحفظ مو متاح الحين. جرّب بعد دقيقة."), icon=":material/cloud_off:")
             return
     ss["rb_mode"] = None
+    if ss.get("rb_ans"):                        # a plan was just invested: nothing is left in progress
+        ss["rb_ans"] = {}
+        _draft_clear()
     if flash:
         ss["rb_flash"] = flash
     st.rerun()
@@ -1645,6 +1826,7 @@ def manage(state, row, rkey, err):
                     return
             for k in ("rb_ans", "rb_step", "rb_mode", "rb_close_ok"):
                 ss.pop(k, None)
+            _draft_clear()
             ss["rb_flash"] = L("Robo portfolio closed", "تسكّرت المحفظة الآلية")
             st.rerun()
 
@@ -1762,6 +1944,7 @@ def page_robo():
     except PB.StoreError as e:            # the store can't be reached: this visit's own copy meanwhile (not saved)
         err = e
         state = ss.get("rb_practice")
+    _draft_restore()
     _flash()
     ss["rb_has"] = bool(state)
     mode = ss.get("rb_mode")
@@ -1773,8 +1956,9 @@ def page_robo():
         dashboard(state, row, rkey, err)
     else:
         intro()
+    _draft_keep()
     ui.foot()
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "20.9"
+BUILD = "21.0"

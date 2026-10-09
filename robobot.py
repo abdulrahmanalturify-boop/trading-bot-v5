@@ -229,6 +229,40 @@ def radar(feats, sharia=False, n_long=6, n_short=4):
     return longs[:n_long], shorts[:n_short]
 
 
+def trade_plan(feats, value, level, sharia=False, held=(), cool=(), n_long_held=0, n_short_held=0, extra=2):
+    """The trades the next weekly scan would open if the latest signals hold: for each free slot the best signal not held
+    and not cooling down, with its entry (the latest close), its first stop, its size (the slice / the slots), the shares
+    and the money at risk to the stop. Then `extra` runners-up per side, marked "next". -> (trades, summary)."""
+    n_l, n_s = slots(level, sharia)
+    total = n_l + n_s
+    size = value / total if total else 0.0
+    free = {"long": max(0, n_l - n_long_held), "short": max(0, n_s - n_short_held)}
+    out = []
+    for side in ("long", "short"):
+        if (side == "long" and n_l == 0) or (side == "short" and n_s == 0):
+            continue
+        cands = []
+        for t, f in feats.items():
+            if not len(f) or t in held or t in cool or (sharia and not UNIVERSE[t][2]):
+                continue
+            row = f.iloc[-1]
+            ok, sc = (row["ok_long"], row["long"]) if side == "long" else (row["ok_short"], row["short"])
+            atr = row["atr"]
+            if not bool(ok) or sc < THRESHOLD or atr != atr or atr <= 0:
+                continue
+            cands.append((float(sc), float(row["dv"]), t, row))
+        cands.sort(key=lambda x: (-x[0], -x[1]))
+        for i, (sc, _, t, row) in enumerate(cands[:free[side] + extra]):
+            entry, atr = float(row["c"]), float(row["atr"])
+            stop = entry - STOP_ATR * atr if side == "long" else entry + STOP_ATR * atr
+            units = size / entry if entry else 0.0
+            risk = units * abs(entry - stop)
+            out.append({"t": t, "name": UNIVERSE[t][0], "theme": UNIVERSE[t][1], "side": side, "score": sc, "entry": entry, "stop": stop,
+                        "dist": abs(entry - stop) / entry * 100, "trail": TRAIL_ATR * atr, "size": size, "units": units, "risk": risk,
+                        "risk_pct": risk / value * 100 if value else 0.0, "why": reasons(row, side), "next": i >= free[side]})
+    return out, {"size": size, "free_long": free["long"], "free_short": free["short"], "n_long": n_l, "n_short": n_s}
+
+
 # ---------------------------------------------------------------- the bot's book (inside the robo replay)
 class Book:
     """The bot's slice: cash and positions (units < 0 for a short), run day by day on the robo's trading days."""
@@ -412,4 +446,4 @@ def stats(book):
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "20.9"
+BUILD = "21.0"
