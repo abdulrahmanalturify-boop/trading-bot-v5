@@ -1,2 +1,2 @@
-TURA Pro - version 21.3 (the new logo: a pill and a T drawn as glowing glass tubes, sky blue to violet, with their shadow and the blue / violet / teal light behind them, at the top of every page and on the landing)
+TURA Pro - version 21.4 (Opportunity Bot: every score sits in a ring, green for a buy and red for a short, in the trading plan as on the radar, with one line saying what the score is)
 If you can see this file on GitHub, the new version was uploaded correctly.

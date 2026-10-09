@@ -380,7 +380,10 @@ CSS = f"""<style>
 .rbpq.nx {{ opacity:.6; }}
 .rbpq .top {{ display:flex; align-items:center; gap:6px; }}
 .rbpq .tk {{ font-weight:800; color:#fff; }}
-.rbpq .scr {{ margin-inline-start:auto; color:#fff; font-size:.95rem; }}
+.rbpq .scr {{ margin-inline-start:auto; width:40px; height:40px; flex:none; }} .rbpq .scr svg {{ width:40px; height:40px; display:block; }}
+.rbscr {{ display:inline-block; width:34px; height:34px; vertical-align:middle; }} .rbscr svg {{ width:34px; height:34px; display:block; }}
+.rbsck {{ display:flex; align-items:center; gap:10px; color:#B9B3C4; font-size:.74rem; line-height:1.5; margin:0 0 10px; }}
+.rbsck svg {{ width:30px; height:30px; flex:none; }} .rbsck b {{ color:#F4F1F8; }}
 .rbpq .nm {{ color:{_MU}; font-size:.74rem; margin:1px 0 6px; }}
 .rbpq .rr {{ display:flex; justify-content:space-between; gap:8px; color:#B9B3C4; font-size:.76rem; margin:2px 0; }}
 .rbpq .rr b {{ color:#F4F1F8; }} .rbpq .rr b.dn {{ color:{T.NEG_FG}; }}
@@ -1130,13 +1133,30 @@ def bot_card(prof, n_list=None, stats_line=None):
             f'<div class="rbchips">{"".join(chips)}</div>{sl}</div></div>')
 
 
-def radar_html(longs, shorts):
+def score_ring(score, side):
+    """A signal's score (0-100) in a ring that fills with it: green for a buy (long), red for a short."""
+    col = "#4ADE80" if side == "long" else "#F87171"
+    return (f'<svg viewBox="0 0 40 40" role="img" aria-label="{L("Score", "التقييم")} {score:.0f}/100">'
+            f'<circle cx="20" cy="20" r="16" fill="{col}" fill-opacity=".08" stroke="rgba(157,151,165,.18)" stroke-width="4"/>'
+            f'<circle cx="20" cy="20" r="16" fill="none" stroke="{col}" stroke-width="4" pathLength="100" '
+            f'stroke-dasharray="{max(0, min(100, score)):.0f} 100" transform="rotate(-90 20 20)" stroke-linecap="round"/>'
+            f'<text x="20" y="24.5" text-anchor="middle" font-size="12" font-weight="800" fill="#FFFFFF">{score:.0f}</text></svg>')
+
+
+def score_key():
+    """What the number in the ring is, in one line."""
+    return (f'<div class="rbsck" data-nogq>{score_ring(RB.THRESHOLD + 15, "long")}<span>'
+            + L(f"<b>Score</b> (0–100): how strong the signal is: a breakout above the 55-day high (or a breakdown below the low), "
+                f"3-month momentum, volume against its average and the trend. Green ring: buy · red: short · {RB.THRESHOLD} or more is a signal to enter.",
+                f"<b>التقييم</b> (من 100): قوة الإشارة: اختراق قمة 55 يوم (أو كسر قاعها) وزخم 3 أشهر والحجم مقارنة بمتوسطه والاتجاه. "
+                f"الدائرة الخضراء: شراء · الحمراء: بيع على المكشوف · {RB.THRESHOLD} أو أكثر تعني إشارة دخول.")
+            + "</span></div>")
+
+
+def radar_html(longs, shorts, key=True):
+    """key: the line that says what the score is (left out when the trading plan above already has it)."""
     def card(x, i):
-        sc = x["score"]
-        ring = (f'<svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="16" fill="none" stroke="rgba(157,151,165,.18)" stroke-width="4"/>'
-                f'<circle cx="20" cy="20" r="16" fill="none" stroke="{"#4ADE80" if x["side"] == "long" else "#F87171"}" stroke-width="4" '
-                f'pathLength="100" stroke-dasharray="{sc:.0f} 100" transform="rotate(-90 20 20)" stroke-linecap="round"/>'
-                f'<text x="20" y="24.5" text-anchor="middle" font-size="12" font-weight="800" fill="#FFFFFF">{sc:.0f}</text></svg>')
+        ring = score_ring(x["score"], x["side"])
         st_ = (f'<span class="sg on">{T.icon("bolt")}{L("Signal", "إشارة")}</span>' if x["signal"] else
                f'<span class="sg">{T.icon("visibility")}{L("Watching", "تحت المراقبة")}</span>')
         r63 = x.get("r63")
@@ -1146,7 +1166,7 @@ def radar_html(longs, shorts):
                 f'<div class="rpx">{_ltr(_m(x["c"], 2))}{mom}</div><div class="ch">{_why_chips(x["why"])}</div>{st_}</div>')
     if not longs and not shorts:
         return PP.empty("radar", L("No candidates right now", "ما فيه مرشحين الحين"), L("The prices of the list aren't available.", "أسعار القائمة مو متاحة."))
-    out = ""
+    out = score_key() if key else ""
     if longs:
         out += (f'<div class="rbgrp2 long">{T.icon("north_east")}{L("Breakouts: buy candidates", "اختراقات: مرشحة للشراء")}</div>'
                 '<div class="rbrad">' + "".join(card(x, i) for i, x in enumerate(longs)) + "</div>")
@@ -1194,12 +1214,12 @@ def plan_html(trades, summ, when=None, first=False):
         ds = f'<span class="rbds"><i class="{x["side"]}" style="width:{bar:.0f}%"></i></span>'
         body += (f'<tr class="{"nx" if x["next"] else ""}"><td><div class="cco"><span class="tk" style="--c:{BOT_C}">{x["t"]}</span>'
                  f'<span class="cl">{_esc(x["name"])}</span>{nxt}</div><div class="wy">{_why_chips(x["why"][:3])}</div></td>'
-                 f'<td>{_side(x["side"])}</td><td class="n"><b>{x["score"]:.0f}</b></td><td class="n">{_ltr(_m(x["entry"], 2))}</td>'
+                 f'<td>{_side(x["side"])}</td><td class="n"><span class="rbscr">{score_ring(x["score"], x["side"])}</span></td><td class="n">{_ltr(_m(x["entry"], 2))}</td>'
                  f'<td class="n">{_ltr(_m(x["stop"], 2))}</td><td>{ds} {dist}</td>'
                  f'<td class="n">{_ltr(_m(x["size"]))}</td><td class="n">{_ltr("%.2f" % x["units"])}</td>'
                  f'<td class="n dn">{_ltr(_m(x["risk"]))} <span class="cl">{_ltr("%.1f%%" % x["risk_pct"])}</span></td></tr>')
         cards += (f'<div class="rbpq {x["side"]}{" nx" if x["next"] else ""}" style="--i:{i}"><div class="top"><span class="tk">{x["t"]}</span>{_side(x["side"])}'
-                  f'{nxt}<b class="scr">{x["score"]:.0f}</b></div><div class="nm">{_esc(x["name"])}</div>'
+                  f'{nxt}<span class="scr">{score_ring(x["score"], x["side"])}</span></div><div class="nm">{_esc(x["name"])}</div>'
                   f'<div class="rr"><span>{L("Entry ≈", "الدخول ≈")} <b>{_ltr(_m(x["entry"], 2))}</b></span>'
                   f'<span>{L("Stop", "الوقف")} <b>{_ltr(_m(x["stop"], 2))}</b> {dist}</span></div>'
                   f'<div class="rr"><span>{L("Size", "الحجم")} <b>{_ltr(_m(x["size"]))}</b> · {_ltr("%.2f" % x["units"])} {L("sh.", "سهم")}</span>'
@@ -1214,7 +1234,8 @@ def plan_html(trades, summ, when=None, first=False):
     else:
         table = f'<div class="rbtw rbplan-t"><table class="rbtbl rbplan">{head}{body}</table></div><div class="rbplan-c">{cards}</div>'
     rules = (f'<div class="rbrules">{T.icon("rule")}<span>{L("Each trade: bought (or sold short) at the close of the scan day if its signal still holds · the stop moves with the best close, 3 ATR behind · a position not up 10% after 60 trading days leaves.", "كل صفقة: تنشرى (أو تنباع على المكشوف) مع إغلاق يوم المسح إذا ظلت إشارتها · الوقف يتحرك مع أفضل إغلاق على بعد 3 ATR · المركز اللي ما ربح 10% بعد 60 يوم تداول يطلع.")}</span></div>')
-    return f'<div class="rbchips" style="margin:0 0 8px">{"".join(chips)}</div>{table}{rules}'
+    key = score_key() if trades else ""
+    return f'<div class="rbchips" style="margin:0 0 8px">{"".join(chips)}</div>{key}{table}{rules}'
 
 
 def trades_html(trades, limit=20):
@@ -1379,7 +1400,7 @@ def bot_tab(state, rep, feats, bp=None):
         if on and feats:
             ui.sec("travel_explore", "On the radar now", "على الرادار الحين")
             lg, sh = RB.radar(feats, prof["sharia"], n_long=10 if prof["sharia"] else 5, n_short=5)
-            ui.html(radar_html(lg, sh))
+            ui.html(radar_html(lg, sh, key=not (bp and bp[0])))
         elif on:
             st.info(L("The bot's prices aren't available right now. Try again in a minute.", "أسعار البوت مو متاحة الحين. جرّب بعد دقيقة."),
                     icon=":material/cloud_off:")
@@ -1405,7 +1426,7 @@ def bot_tab(state, rep, feats, bp=None):
     if on and feats:
         ui.sec("travel_explore", "On the radar now", "على الرادار الحين")
         lg, sh = RB.radar(feats, prof["sharia"], n_long=10 if prof["sharia"] else 5, n_short=5)
-        ui.html(radar_html(lg, sh))
+        ui.html(radar_html(lg, sh, key=not (bp and bp[0])))
         st.caption(L(f"Scores from the latest prices. A signal of {RB.THRESHOLD} or more can be bought or sold short at the next weekly scan, when a slot is free.",
                      f"التقييم من آخر الأسعار. الإشارة {RB.THRESHOLD} أو أكثر ممكن تنشرى أو تنباع على المكشوف في المسح الأسبوعي الجاي إذا فيه خانة فاضية."))
     if book.curve and len(book.curve) > 1:
@@ -1466,7 +1487,7 @@ def plan_page(state, row, rkey, err):
             ui.html(f'<div class="rbsub">{T.icon("checklist")}{L("Its trading plan: the companies it would enter first", "خطته للتداول: الشركات اللي بيدخلها أول")}</div>'
                     + plan_html(tp, summ))
             lg, sh = RB.radar(feats, prof["sharia"], n_long=10 if prof["sharia"] else 5, n_short=5)
-            ui.html(f'<div class="rbsub">{T.icon("travel_explore")}{L("On its radar now", "على راداره الحين")}</div>' + radar_html(lg, sh))
+            ui.html(f'<div class="rbsub">{T.icon("travel_explore")}{L("On its radar now", "على راداره الحين")}</div>' + radar_html(lg, sh, key=not tp))
         else:
             st.info(L("The bot's prices aren't available right now, so its radar and its past are missing here. Try again in a minute.",
                       "أسعار البوت مو متاحة الحين، فراداره وتاريخه ناقصين هنا. جرّب بعد دقيقة."), icon=":material/cloud_off:")
@@ -2029,4 +2050,4 @@ def page_robo():
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "21.3"
+BUILD = "21.4"
