@@ -28,15 +28,16 @@ from sp500 import DOW30, SP500, gics_name
 ss = st.session_state
 
 
-# the Saudi market's overview: its index, the biggest companies, oil, gold and the riyal
+# the Saudi market's overview: its index, the biggest companies, oil, gold and the dollar (the riyal is pegged to the dollar at
+# 3.75, and Yahoo's daily USD/SAR candles jump around it: not shown)
 SA_TILES = {("Saudi market", "السوق السعودي"): {"^TASI.SR": ("TASI", "تاسي"), "^NOMUC.SR": ("Nomu (parallel market)", "نمو (السوق الموازية)")},
             ("Heavyweights", "الشركات القيادية"): {s: None for s in ("2222.SR", "1120.SR", "1211.SR", "1180.SR", "7010.SR", "2010.SR")},
             ("Commodities", "السلع"): {"BZ=F": ("Brent crude", "خام برنت"), "CL=F": ("WTI crude", "خام غرب تكساس"), "GC=F": ("Gold", "الذهب"),
                                        "NG=F": ("Natural gas", "الغاز الطبيعي")},
-            ("Currencies", "العملات"): {"SAR=X": ("USD / SAR", "دولار / ريال"), "DX-Y.NYB": ("US dollar index", "مؤشر الدولار"),
-                                        "EURUSD=X": ("EUR / USD", "يورو / دولار"), "BTC-USD": ("Bitcoin", "بيتكوين")}}
+            ("Currencies", "العملات"): {"DX-Y.NYB": ("US dollar index", "مؤشر الدولار"), "EURUSD=X": ("EUR / USD", "يورو / دولار"),
+                                        "GBPUSD=X": ("GBP / USD", "استرليني / دولار"), "BTC-USD": ("Bitcoin", "بيتكوين")}}
 SA_TAPE = ["^TASI.SR", "2222.SR", "1120.SR", "1180.SR", "1211.SR", "7010.SR", "2010.SR", "2082.SR", "1150.SR", "1010.SR", "4013.SR",
-           "BZ=F", "GC=F", "SAR=X"]
+           "BZ=F", "GC=F"]
 
 
 def _sa_name(sym):
@@ -175,6 +176,13 @@ def heatmap_frame(ukey, period, sizing):
 
 def _sa_sector(s_):
     return tasi.sector_ar(s_) if is_ar() else s_
+
+
+# short names for the points of the sector rotation chart
+SA_SEC_SHORT = {"Energy": ("Energy", "الطاقة"), "Materials": ("Materials", "المواد"), "Industrials": ("Industrials", "الصناعات"),
+                "Consumer Discretionary": ("Discretionary", "الكمالية"), "Consumer Staples": ("Staples", "الأساسية"),
+                "Health Care": ("Health", "الصحة"), "Financials": ("Financials", "المالي"), "Information Technology": ("Tech", "التقنية"),
+                "Communication Services": ("Telecom", "الاتصالات"), "Utilities": ("Utilities", "المرافق"), "Real Estate": ("Real estate", "العقار")}
 
 
 def _sa_industry(g):
@@ -361,7 +369,8 @@ def sector_section_sa():
         if tails:
             ui.chart(charts.sector_rrg(tails, {k: _sa_sector(k) for k in keys},
                                        L(f"Sector rotation vs {mkt_name} (weekly, last 5 weeks)", f"دوران القطاعات مقابل {mkt_name} (أسبوعي، آخر 5 أسابيع)"),
-                                       (L("Leading", "قيادي"), L("Weakening", "يضعف"), L("Lagging", "متأخر"), L("Improving", "يتحسن"))))
+                                       (L("Leading", "قيادي"), L("Weakening", "يضعف"), L("Lagging", "متأخر"), L("Improving", "يتحسن")),
+                                       tags={k: L(*SA_SEC_SHORT.get(k, (k, _sa_sector(k)))) for k in keys}))
             st.caption(L("Right = stronger than the market, top = gaining momentum. Sectors usually rotate clockwise: Improving → Leading → Weakening → Lagging.",
                          "اليمين = أقوى من السوق، والأعلى = زخم متزايد. القطاعات تدور عادة مع عقارب الساعة: يتحسن ← قيادي ← يضعف ← متأخر."))
 
@@ -430,14 +439,14 @@ def page_overview_sa():
     px = _tile_prices()
     ticker_tape(px)
     chips = ""
-    for s_ in ("^TASI.SR", "2222.SR", "1120.SR", "BZ=F", "GC=F", "SAR=X"):
+    for s_ in ("^TASI.SR", "2222.SR", "1120.SR", "BZ=F", "GC=F", "DX-Y.NYB"):
         p, _, c = _last(px, s_)
         if p is not None:
             chips += f'<span class="chip"><b>{T.esc(_sa_name(s_))}</b>{T.fmt_price(p)} {T.pill(c)}</span>'
     home.hero(chips)
     ui.header("monitoring", "Saudi Market Overview", "نظرة عامة على السوق السعودي",
-              "Live snapshot of the Saudi Exchange (Tadawul): TASI, the biggest companies, sectors, oil, gold and the riyal. Prices in SAR.",
-              "لمحة مباشرة عن السوق السعودية (تداول): مؤشر تاسي، وأكبر الشركات، والقطاعات، والنفط، والذهب، والريال. الأسعار بالريال.")
+              "Live snapshot of the Saudi Exchange (Tadawul): TASI, the biggest companies, sectors, oil, gold and the dollar. Prices in SAR.",
+              "لمحة مباشرة عن السوق السعودية (تداول): مؤشر تاسي، وأكبر الشركات، والقطاعات، والنفط، والذهب، والدولار. الأسعار بالريال.")
     icons = {"Saudi market": "show_chart", "Heavyweights": "domain", "Commodities": "oil_barrel", "Currencies": "currency_exchange"}
     for (gen, gar), syms in SA_TILES.items():
         ui.sec(icons.get(gen, "insights"), gen, gar)
@@ -1268,4 +1277,4 @@ def page_news():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "21.9"
+BUILD = "22.0"

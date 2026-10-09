@@ -247,7 +247,7 @@ def open_picker(symbols, key, label_en="Open a company", label_ar="افتح شر
     import tasi
 
     def name(s_):                                   # a Saudi code with its company's name (2222.SR · أرامكو السعودية)
-        return f"{s_} · {tasi.name_of(s_, L(False, True))}" if tasi.known(s_) else s_
+        return f"\u2066{s_}\u2069 · {tasi.name_of(s_, L(False, True))}" if tasi.known(s_) else s_
     pick = a.selectbox(L(label_en, label_ar), symbols, key=f"op_{key}", format_func=name)
     if b.button(L("Open", "افتح"), icon=":material/open_in_new:", key=f"opb_{key}", width="stretch"):
         open_stock(pick)
@@ -267,4 +267,4 @@ def multiselect_free(label, options, key, placeholder="", max_n=4):
         return st.multiselect(label, options, key=key, max_selections=max_n, placeholder=placeholder)
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "21.9"
+BUILD = "22.0"

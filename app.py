@@ -10,7 +10,7 @@ import streamlit as st
 # ---------------------------------------------------------------- always run the newest code
 # Streamlit Cloud re-reads app.py after every GitHub upload but can keep the other modules (theme, data, ...) from the
 # previous version in memory. Every module carries BUILD; if one in memory is older, all of them are reloaded in order.
-BUILD = "21.9"
+BUILD = "22.0"
 _ORDER = ["terms", "lightmode", "i18n", "ai_assistant", "flags", "mcal", "mcal_sa", "markets", "tasi", "universe", "sp500", "taxonomy", "ta", "academy_visuals", "academy", "insight", "heatmap", "newsiq", "newspics", "theme", "data",
           "caldata", "newsbot", "newsintel", "charts", "engine", "playbooks", "autotrader", "ui", "fairvalue", "segments", "holders", "sharia", "lab", "tdash", "mlbots", "brain", "paperbots", "smartbots", "portfolio", "robobot", "robo", "pfinsight", "p_markets", "p_newsintel", "p_research", "p_insight",
           "p_academy", "p_paper", "p_portfolio", "p_robo", "p_calendar", "hunter", "p_scanner", "home"]
@@ -136,7 +136,7 @@ POPULAR_SEARCH = {
 @st.cache_data(ttl=86400, show_spinner=False)
 def _search_options_sa(ar):
     """'2222.SR · أرامكو السعودية · Saudi Aramco' for every Saudi company, the biggest first."""
-    out = [f"{s} · {tasi.name_of(s, True)} · {tasi.name_of(s)}" if ar else f"{s} · {tasi.name_of(s)} · {tasi.name_of(s, True)}"
+    out = [f"\u2066{s}\u2069 · {tasi.name_of(s, True)} · {tasi.name_of(s)}" if ar else f"{s} · {tasi.name_of(s)} · {tasi.name_of(s, True)}"
            for s in sorted(tasi.SYMBOLS, key=lambda x: (-tasi.cap_b(x), x))]
     return ["^TASI.SR · " + ("مؤشر السوق الرئيسية تاسي" if ar else "TASI · Tadawul All Share Index")] + out
 
@@ -160,7 +160,7 @@ def _search_options():
 
 
 def _resolve(q):
-    q = (q or "").strip()
+    q = (q or "").replace("\u2066", "").replace("\u2069", "").strip()      # the isolates that keep 2222.SR left to right in Arabic
     if not q:
         return None
     if " · " in q:

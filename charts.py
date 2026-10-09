@@ -720,7 +720,7 @@ def eps_chart(eh, title="EPS: estimate vs actual"):
 # =====================================================================
 # Markets
 # =====================================================================
-def sector_rrg(tails, names, title="Sector rotation (vs S&P 500)", labels=("Leading", "Weakening", "Lagging", "Improving")):
+def sector_rrg(tails, names, title="Sector rotation (vs S&P 500)", labels=("Leading", "Weakening", "Lagging", "Improving"), tags=None):
     """Relative Rotation Graph. tails: {etf: DataFrame[ratio, mom]} (weekly points, last = now)."""
     fig = go.Figure()
     allx = np.concatenate([t["ratio"].values for t in tails.values()]) if tails else np.array([100])
@@ -740,10 +740,10 @@ def sector_rrg(tails, names, title="Sector rotation (vs S&P 500)", labels=("Lead
         fig.add_trace(go.Scatter(x=t["ratio"], y=t["mom"], mode="lines+markers", line=dict(color=rgba(col, 0.5), width=1.6),
                                  marker=dict(size=[3 + 4 * j / max(n - 1, 1) for j in range(n)], color=rgba(col, 0.6)),
                                  hoverinfo="skip", showlegend=False))
-        fig.add_trace(go.Scatter(x=[t["ratio"].iloc[-1]], y=[t["mom"].iloc[-1]], mode="markers+text", text=[f"<b>{etf}</b>"],
+        fig.add_trace(go.Scatter(x=[t["ratio"].iloc[-1]], y=[t["mom"].iloc[-1]], mode="markers+text", text=[f"<b>{(tags or {}).get(etf, etf)}</b>"],
                                  textposition="top center", textfont=dict(color=col, size=11), name=names.get(etf, etf),
                                  marker=dict(size=15, color=col, line=dict(color="#fff", width=1.5)),
-                                 hovertemplate=f"<b>{names.get(etf, etf)}</b> ({etf})<br>RS-Ratio %{{x:.2f}}<br>RS-Momentum %{{y:.2f}}<extra></extra>"))
+                                 hovertemplate=f"<b>{names.get(etf, etf)}</b>{'' if tags else f' ({etf})'}<br>RS-Ratio %{{x:.2f}}<br>RS-Momentum %{{y:.2f}}<extra></extra>"))
     fig.add_hline(y=100, line=dict(color="#3A3545", width=1))
     fig.add_vline(x=100, line=dict(color="#3A3545", width=1))
     style(fig, 470, title, legend=False)
@@ -1190,4 +1190,4 @@ def seasonal_path(avg, cur=None, title=None, names=("Average year", "This year")
     return fig
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "21.9"
+BUILD = "22.0"

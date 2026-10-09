@@ -1,2 +1,2 @@
-TURA Pro - version 21.9 (every bot trades the pre-market and the after-hours session: share orders decided at the close fill that evening after the close, stops and targets work before the open and after the close; old forward tests restart, kept)
+TURA Pro - version 22.0 (the Saudi market, phase 1: pick the US or the Saudi market on the landing or with the switch in the top line; Saudi overview, news, stock page, screener, scanner, paper bots and paper portfolio in riyals on the Tadawul calendar, kept apart from the US ones; US-only pages hidden in the Saudi menus)
 If you can see this file on GitHub, the new version was uploaded correctly.

@@ -113,7 +113,7 @@ def main():
                     pg.evaluate("() => document.querySelector('[class*=\"st-key-introgo_sa\"]').scrollIntoView({block: 'center'})")
                     time.sleep(2.5)
                     pg.screenshot(path=os.path.join(OUT, f"{lang}_landing_pick.jpg"), type="jpeg", quality=80)
-                    pg.evaluate("() => { const t = [...document.querySelectorAll('[class*=\"ixmk\"]')][0]; if (t) t.scrollIntoView({block: 'start'}); }")
+                    pg.evaluate("() => { const t = [...document.querySelectorAll('[class*=\"ixmk\"]')][0]; if (t) { t.scrollIntoView({block: 'center'}); window.scrollBy(0, -60); } }")
                     time.sleep(2.5)
                     pg.screenshot(path=os.path.join(OUT, f"{lang}_landing_two.jpg"), type="jpeg", quality=80)
                 except Exception as e:
