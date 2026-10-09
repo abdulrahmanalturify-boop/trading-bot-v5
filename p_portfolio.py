@@ -24,8 +24,10 @@ from plotly.subplots import make_subplots
 
 import charts as C
 import data
+import markets as MK
 import paperbots as PB
 import portfolio as PF
+import tasi
 import theme as T
 import ui
 from i18n import L, is_ar, sector_name
@@ -356,7 +358,9 @@ def _from_link():
         return None
     try:
         _, row = PF.load(key_of(v))
-        if row is None:                      # a code with only a Robo Advisor portfolio opens too
+        if row is None:                      # a code with only a Saudi portfolio or a Robo Advisor portfolio opens too
+            _, row = PF.load(PF.market_key(key_of(v), MK.SA))
+        if row is None:
             import robo
             _, row = robo.load(robo.key_for(key_of(v)))
     except PB.StoreError:
@@ -368,7 +372,7 @@ def _from_link():
 # The portfolio code (one per browser: that visitor's own paper portfolio and Robo Advisor) and the robo questionnaire in progress.
 # Streamlit Community Cloud drops the site's cookies before they reach the app (st.context.cookies is empty there), so they are
 # kept in the browser's localStorage (and a cookie) and read back by a small frame of the page (webstore/index.html).
-STORE = (COOKIE, "alt_rb")
+STORE = (COOKIE, "alt_rb", "tura_mk")                 # tura_mk: the market the visitor picked (us / sa), see app.py
 _STORE_VAL = re.compile(r"^[A-Za-z0-9_-]{1,4000}$")
 _WEBSTORE = []                                       # the frame, declared once per process
 
@@ -388,6 +392,9 @@ def browser():
     got = ss.get("pf_browser")
     if isinstance(got, dict):
         return got
+    if ss.get("_wb_drawn") is not None and ss.get("_wb_drawn") == ss.get("_run_n"):
+        return None                                  # the frame is already on this run's page (app.py asked first): its answer comes next
+    ss["_wb_drawn"] = ss.get("_run_n")
     try:
         if not _WEBSTORE:
             import os
@@ -492,16 +499,20 @@ def ctx():
     """The account of this page view (this visitor's own portfolio): its open orders checked against the real prices, then
     rebuilt day by day."""
     mode = "mine"
+    mk = MK.current()
+    PF.use(mk)                               # the account functions work in this market (session hours, calendar)
     code, key = ident()
+    key = PF.market_key(key, mk)             # the Saudi portfolio is its own account, next to the US one
     mkt = PF.Market()
     err, row = None, None
     try:
         state, row = PF.load(key)
     except PB.StoreError as e:               # the store can't be reached: this visit's own copy meanwhile (not saved)
         err = e
-        if not isinstance(ss.get("pf_practice"), dict):
-            ss["pf_practice"] = PF.new_state()
-        state = ss["pf_practice"]
+        pk = "pf_practice" + ("_sa" if mk == MK.SA else "")
+        if not isinstance(ss.get(pk), dict):
+            ss[pk] = PF.new_state(market=mk)
+        state = ss[pk]
     rev0 = state.get("rev")
     mark = lambda: (len(state["fills"]), tuple(o["status"] for o in state["orders"]))
     before = mark()
@@ -529,7 +540,7 @@ def commit(c, flash=None):
     """Keeps a change (this visitor's portfolio in Supabase; this visit's copy while the store is down) and reloads the page.
     If the portfolio changed meanwhile (another tab saved a fill first), nothing is overwritten: the page reloads with the new copy."""
     if c.err is not None:
-        ss["pf_practice"] = c.state
+        ss["pf_practice" + ("_sa" if c.state.get("market") == MK.SA else "")] = c.state
     else:
         try:
             PF.save(c.state, c.row, expect=c.rev, key=c.key)
@@ -551,6 +562,43 @@ def _flash():
 # =====================================================================
 # small pieces
 # =====================================================================
+def _sa():
+    """True on the Saudi market's portfolio (markets.py): its own account in riyals, cash only."""
+    return MK.current() == MK.SA
+
+
+def _cur():
+    """$ / SAR (Arabic: ر.س), for labels."""
+    return MK.cur_sign(MK.current())
+
+
+def _fm(spec=",.2f"):
+    """A table format for money: ${:,.2f} / SAR {:,.2f} (Arabic: {:,.2f} ر.س)."""
+    if _sa():
+        return "{:" + spec + "} ر.س" if is_ar() else "SAR {:" + spec + "}"
+    return "${:" + spec + "}"
+
+
+def _hm(expr):
+    """Money in a chart's hover text: $%{y:,.0f} / %{y:,.0f} SAR."""
+    if _sa():
+        return "%{" + expr + "} " + ("ر.س" if is_ar() else "SAR")
+    return "$%{" + expr + "}"
+
+
+def _tick():
+    """The money axis of a chart: a $ before the numbers, or SAR after them."""
+    return {"ticksuffix": " ر.س" if is_ar() else " SAR"} if _sa() else {"tickprefix": "$"}
+
+
+def bench_label():
+    return L("the Saudi market (KSA)", "السوق السعودي (KSA)") if _sa() else L("the S&P 500", "S&P 500")
+
+
+def bench_short():
+    return L("Saudi market", "السوق السعودي") if _sa() else "S&P 500"
+
+
 def _n(v, dec=2):
     return f"{v:,.{dec}f}"
 
@@ -559,6 +607,8 @@ def _m(v, dec=2, sign=False):
     if v is None or (isinstance(v, float) and not math.isfinite(v)):
         return "—"
     s = ("+" if v > 0 else "-" if v < 0 else "") if sign else ("-" if v < 0 else "")
+    if _sa():
+        return f"{s}{abs(v):,.{dec}f} ر.س" if is_ar() else f"{s}SAR {abs(v):,.{dec}f}"
     return f"{s}${abs(v):,.{dec}f}"
 
 
@@ -578,10 +628,10 @@ def _bdi(s):
 
 def _when(ts):
     try:
-        t = PF.parse(ts).astimezone(PF.ET)
+        t = PF.parse(ts).astimezone(PF._tz())
     except Exception:
         return str(ts)[:16]
-    return t.strftime("%m/%d %H:%M") + " ET"
+    return t.strftime("%m/%d %H:%M") + (L(" Riyadh", " الرياض") if _sa() else " ET")
 
 
 def _ago(ts):
@@ -639,7 +689,7 @@ def mode_badge(c):
 
 def day_label(v):
     """'Today' while today's session counts, else 'Last session' (a weekend, before the open)."""
-    today = PF.utcnow().astimezone(PF.ET).date().isoformat()
+    today = PF.utcnow().astimezone(PF._tz()).date().isoformat()
     return L("Today", "اليوم") if v.get("end_day") == today else L("Last session", "آخر جلسة")
 
 
@@ -652,17 +702,20 @@ def hero(c, title_en="Paper Portfolio", title_ar="المحفظة الافترا�
     lev = a["leverage"]
     chips = [f'<span class="chip">{T.icon("payments")}{L("Cash", "الكاش")} <b>{_m(a["cash"])}</b></span>',
              f'<span class="chip">{T.icon("bolt")}{L("Buying power", "القوة الشرائية")} <b>{_m(a["bp_long"], 0)}</b></span>',
-             f'<span class="chip">{T.icon("trending_up")}{L("Long", "شراء")} <b>{_m(a["lmv"], 0)}</b></span>',
-             f'<span class="chip">{T.icon("trending_down")}{L("Short", "مكشوف")} <b>{_m(a["smv"], 0)}</b></span>',
-             f'<span class="chip">{T.icon("speed")}{L("Leverage", "الرافعة")} <b>{lev:.2f}×</b></span>']
+             f'<span class="chip">{T.icon("trending_up")}{L("Invested", "مستثمر") if _sa() else L("Long", "شراء")} <b>{_m(a["lmv"], 0)}</b></span>']
+    if not _sa():                            # a Saudi account is cash only: no shorts, no leverage
+        chips += [f'<span class="chip">{T.icon("trending_down")}{L("Short", "مكشوف")} <b>{_m(a["smv"], 0)}</b></span>',
+                  f'<span class="chip">{T.icon("speed")}{L("Leverage", "الرافعة")} <b>{lev:.2f}×</b></span>']
     if a["margin_call"]:
         chips.append(f'<span class="chip warn">{T.icon("warning")}{L("Margin call", "نداء هامش")} <b>{_m(a["maint"] - a["equity"], 0)}</b></span>')
     curve = v["curve"]["equity"] if len(v["curve"]) else pd.Series([eq])
     rtl = " rtl" if is_ar() else ""
     return (f'<div class="pfhero{rtl}"><div class="grid"></div><div class="top"><div class="eb">{T.icon("account_balance_wallet")}'
-            f'{T.esc(L(title_en, title_ar))} · {L("Margin account", "حساب هامش")}</div>{mode_badge(c)}</div>'
+            f'{T.esc(L(title_en, title_ar))} · {L("Saudi market · cash account", "السوق السعودي · حساب نقدي") if _sa() else L("Margin account", "حساب هامش")}'
+            f'</div>{mode_badge(c)}</div>'
             f'<div class="mid"><div><div class="eql">{L("Total equity", "إجمالي قيمة الحساب")}</div>'
-            f'<div class="eq"><span dir="ltr">${whole}<small>.{cents}</small></span></div><div class="pls">'
+            f'<div class="eq"><span dir="ltr">{"" if _sa() else "$"}{whole}<small>.{cents}</small>'
+            f'{f"<small> {_cur()}</small>" if _sa() else ""}</span></div><div class="pls">'
             f'<span class="pl {_k(day)}">{arrow(day)} {_bdi(_m(day, 2, True))} {_bdi("(" + _p(v["day_pct"]) + ")")} <em>{day_label(v)}</em></span>'
             f'<span class="pl {_k(tot)}">{arrow(tot)} {_bdi(_m(tot, 2, True))} {_bdi("(" + _p(v["ret"]) + ")")} <em>{L("All time", "من البداية")}</em></span>'
             f'</div></div><div class="sp">{_spark(curve)}</div></div><div class="chips">{"".join(chips)}</div>'
@@ -702,10 +755,18 @@ def access_bar(c):
             return
         a, b = st.columns([1.6, 1], vertical_alignment="center")
         with a:
-            txt = L("Your own portfolio: it starts with $100,000 of virtual money, only you see it, and it is kept for you in this "
-                    "browser. To open it on another device, use your portfolio code (Account settings).",
-                    "محفظتك الخاصة: تبدأ بـ 100,000$ افتراضية، ما يشوفها غيرك، وتنحفظ لك في هالمتصفح. "
-                    "عشان تفتحها من جهاز ثاني استخدم رمز محفظتك (إعدادات الحساب).")
+            if _sa():
+                txt = L("Your own Saudi portfolio: it starts with SAR 100,000 of virtual money, apart from your US portfolio, only you see "
+                        "it, and it is kept for you in this browser (the same portfolio code opens both). Saudi companies, Sunday to "
+                        "Thursday, 10:00 to 15:00 Riyadh; cash only (no margin and no short selling).",
+                        "محفظتك السعودية الخاصة: تبدأ بـ 100,000 ريال افتراضية، منفصلة عن محفظتك الأمريكية، ما يشوفها غيرك، وتنحفظ لك في "
+                        "هالمتصفح (نفس رمز المحفظة يفتح الاثنتين). شركات سعودية، من الأحد للخميس، 10 الصبح إلى 3 العصر بتوقيت الرياض؛ "
+                        "نقدي فقط (بدون هامش ولا بيع على المكشوف).")
+            else:
+                txt = L("Your own portfolio: it starts with $100,000 of virtual money, only you see it, and it is kept for you in this "
+                        "browser. To open it on another device, use your portfolio code (Account settings).",
+                        "محفظتك الخاصة: تبدأ بـ 100,000$ افتراضية، ما يشوفها غيرك، وتنحفظ لك في هالمتصفح. "
+                        "عشان تفتحها من جهاز ثاني استخدم رمز محفظتك (إعدادات الحساب).")
             st.markdown(f'<div class="pfinfo">{T.icon("person")}<div>{T.esc(txt)}</div></div>', unsafe_allow_html=True)
         with b:
             if PF.owner_code():
@@ -749,6 +810,8 @@ def code_box(c, flash="pf_flash"):
         else:
             try:
                 _, row = PF.load(key_of(v))
+                if row is None:
+                    _, row = PF.load(PF.market_key(key_of(v), MK.SA))
                 if row is None:
                     import robo
                     _, row = robo.load(robo.key_for(key_of(v)))
@@ -889,7 +952,8 @@ def activity_html(c, n=8):
 # =====================================================================
 @st.cache_data(ttl=900, show_spinner=False)
 def _spy(start):
-    d = data.history("SPY", "5y")
+    """The market's benchmark (SPY / KSA) since start."""
+    d = data.history(MK.get()["bench"], "5y")
     if d is None or d.empty:
         return pd.Series(dtype=float)
     s = d["Close"].copy()
@@ -920,7 +984,7 @@ def equity_fig(view, rng="all"):
         b = b[b.index >= start] if len(b) else b
     fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.06, row_heights=[0.72, 0.28])
     tr = go.Scatter(x=eq.index, y=eq, name=L("Portfolio", "المحفظة"), line=dict(color=C.CYAN, width=2.6), fill="tozeroy",
-                    hovertemplate="%{x|%b %d, %Y}: $%{y:,.0f}<extra></extra>")
+                    hovertemplate="%{x|%b %d, %Y}: " + _hm("y:,.0f") + "<extra></extra>")
     try:
         tr.fillgradient = dict(type="vertical", colorscale=[[0, C.rgba(C.CYAN, 0.0)], [1, C.rgba(C.CYAN, 0.26)]])
     except (ValueError, AttributeError):
@@ -931,8 +995,8 @@ def equity_fig(view, rng="all"):
         bb = b.reindex(eq.index).ffill().bfill()
         base = float(eq.iloc[0]) - float(flows.iloc[0])
         same = bb / float(bb.iloc[0]) * base + (flows - float(flows.iloc[0]))
-        fig.add_trace(go.Scatter(x=same.index, y=same, name=L("Same money in the S&P 500", "نفس المبلغ في S&P 500"),
-                                 line=dict(color=C.GOLD, width=1.7, dash="dot"), hovertemplate="%{x|%b %d, %Y}: $%{y:,.0f}<extra></extra>"), 1, 1)
+        fig.add_trace(go.Scatter(x=same.index, y=same, name=L(f"Same money in {bench_label()}", f"نفس المبلغ في {bench_label()}"),
+                                 line=dict(color=C.GOLD, width=1.7, dash="dot"), hovertemplate="%{x|%b %d, %Y}: " + _hm("y:,.0f") + "<extra></extra>"), 1, 1)
     idx = (1 + PF.daily_returns(curve.loc[eq.index] if len(eq) else curve)).cumprod()
     dd = (idx / idx.cummax() - 1) * 100 if len(idx) else pd.Series(dtype=float)
     fig.add_trace(go.Scatter(x=dd.index, y=dd, name=L("Drawdown %", "الهبوط %"), fill="tozeroy", line=dict(color=C.DOWN, width=1),
@@ -940,9 +1004,9 @@ def equity_fig(view, rng="all"):
     ys = [float(x) for x in eq.values] + ([float(x) for x in same.values if x == x] if same is not None else [])
     lo, hi = (min(ys), max(ys)) if ys else (0, 1)
     pad = max((hi - lo) * 0.12, hi * 0.004, 1)
-    fig.update_yaxes(range=[lo - pad, hi + pad], tickprefix="$", row=1, col=1)
+    fig.update_yaxes(range=[lo - pad, hi + pad], row=1, col=1, **_tick())
     fig.update_yaxes(ticksuffix="%", row=2, col=1)
-    return C.style(fig, 430, L("Account value vs the S&P 500", "قيمة الحساب مقابل S&P 500"))
+    return C.style(fig, 430, L(f"Account value vs {bench_label()}", f"قيمة الحساب مقابل {bench_label()}"))
 
 
 def exposure_fig(c):
@@ -985,17 +1049,17 @@ def sector_fig(c):
     if not rows:
         return None
     names = sorted(rows, key=lambda s: -(rows[s][0] + rows[s][1]))[:10]
-    lab = [sector_name(s) if s else s for s in names]
+    lab = [(L(s, tasi.sector_ar(s)) if _sa() else sector_name(s)) if s else s for s in names]
     fig = go.Figure()
     fig.add_trace(go.Bar(y=lab, x=[rows[s][0] for s in names], name=L("Long", "شراء"), orientation="h",
-                         marker=dict(color=C.rgba(C.UP, 0.75), line=dict(color=C.UP, width=1)), hovertemplate="%{y}: $%{x:,.0f}<extra></extra>"))
+                         marker=dict(color=C.rgba(C.UP, 0.75), line=dict(color=C.UP, width=1)), hovertemplate="%{y}: " + _hm("x:,.0f") + "<extra></extra>"))
     fig.add_trace(go.Bar(y=lab, x=[-rows[s][1] for s in names], name=L("Short", "مكشوف"), orientation="h",
                          marker=dict(color=C.rgba(C.ORANGE, 0.75), line=dict(color=C.ORANGE, width=1)), customdata=[rows[s][1] for s in names],
-                         hovertemplate="%{y}: -$%{customdata:,.0f}<extra></extra>"))
-    C.style(fig, 300, L("Sectors: long vs short", "القطاعات: شراء مقابل مكشوف"))
+                         hovertemplate="%{y}: -" + _hm("customdata:,.0f") + "<extra></extra>"))
+    C.style(fig, 300, L("Sectors", "القطاعات") if _sa() else L("Sectors: long vs short", "القطاعات: شراء مقابل مكشوف"))
     fig.update_layout(barmode="relative", bargap=0.3)
     fig.add_vline(x=0, line=dict(color="#3A3545", width=1))
-    fig.update_xaxes(tickprefix="$")
+    fig.update_xaxes(**_tick())
     fig.update_yaxes(side="left", autorange="reversed")
     return C._bars(fig)
 
@@ -1035,7 +1099,7 @@ def page_dashboard():
     used = a["used"]
     used_col = T.POS_FG if used < 50 else T.GOLD if used < 80 else T.NEG_FG
     bret = st_.get("bench_ret")
-    vs = f'{L("S&P 500", "S&P 500")} <b>{_p(bret)}</b>' if bret is not None else L("since the first session", "من أول جلسة")
+    vs = f'{T.esc(bench_short())} <b>{_p(bret)}</b>' if bret is not None else L("since the first session", "من أول جلسة")
     n_l = sum(1 for p in v["positions"] if p["qty"] > 0)
     n_s = len(v["positions"]) - n_l
     n_open = sum(1 for o in c.state["orders"] if o["status"] == "open")
@@ -1044,11 +1108,15 @@ def page_dashboard():
         ("today", L("P&L · ", "الربح · ") + day_label(v), _m(v["day_pnl"], 2, True), f'<b>{_p(v["day_pct"])}</b>', _k(v["day_pnl"]), None),
         ("show_chart", L("Total return", "العائد الكلي"), _p(st_.get("twr", v["ret"])), vs, _k(st_.get("twr", v["ret"])), None),
         ("bolt", L("Buying power", "القوة الشرائية"), _m(a["bp_long"], 0),
-         f'{L("Short", "للمكشوف")} <b>{_m(a["bp_short"], 0)}</b> · {L("cash", "كاش")} <b>{_m(a["cash"], 0)}</b>', None, None),
-        ("shield", L("Margin used", "الهامش المستخدم"), _p(used, 1, False),
-         f'{L("Cushion", "الهامش الآمن")} <b>{_p(a["cushion"], 1, False)}</b>', None, (used, used_col)),
+         (f'{L("cash", "كاش")} <b>{_m(a["cash"], 0)}</b>' if _sa() else
+          f'{L("Short", "للمكشوف")} <b>{_m(a["bp_short"], 0)}</b> · {L("cash", "كاش")} <b>{_m(a["cash"], 0)}</b>'), None, None),
+        (("pie_chart", L("Invested", "المستثمر"), _p(a["lmv"] / a["equity"] * 100 if a["equity"] > 0 else 0.0, 1, False),
+          f'{L("Cash", "الكاش")} <b>{_m(a["cash"], 0)}</b>', None, None) if _sa() else
+         ("shield", L("Margin used", "الهامش المستخدم"), _p(used, 1, False),
+          f'{L("Cushion", "الهامش الآمن")} <b>{_p(a["cushion"], 1, False)}</b>', None, (used, used_col))),
         ("inventory_2", L("Positions", "المراكز"), f"{len(v['positions'])}",
-         f'{L("Long", "شراء")} <b>{n_l}</b> · {L("Short", "مكشوف")} <b>{n_s}</b> · {L("orders", "أوامر")} <b>{n_open}</b>', None, None),
+         (f'{L("orders", "أوامر")} <b>{n_open}</b>' if _sa() else
+          f'{L("Long", "شراء")} <b>{n_l}</b> · {L("Short", "مكشوف")} <b>{n_s}</b> · {L("orders", "أوامر")} <b>{n_open}</b>'), None, None),
     ]))
     ui.sec("health_and_safety", "Portfolio health", "صحة المحفظة")
     ui.html(health_html(health_of(c, st_), badges_of(c, st_)))
@@ -1307,7 +1375,7 @@ def quick_actions(c):
 def _done(o):
     lab, _, _ = _side(o["side"])
     if o["status"] == "filled":
-        return L(f"{lab} {o['filled_qty']:,} {o['sym']} at ${o['fill_px']:,.2f}", f"{lab} {o['filled_qty']:,} {o['sym']} بسعر {o['fill_px']:,.2f}$")
+        return L(f"{lab} {o['filled_qty']:,} {o['sym']} at {_m(o['fill_px'])}", f"{lab} {o['filled_qty']:,} {o['sym']} بسعر {_m(o['fill_px'])}")
     if o["status"] == "rejected":
         return L(f"Order rejected: {L(*NOTE.get(o.get('note'), ('', '')))}", f"الأمر مرفوض: {L(*NOTE.get(o.get('note'), ('', '')))}")
     return L(f"Order sent: {lab} {o['qty']:,} {o['sym']}", f"تم إرسال الأمر: {lab} {o['qty']:,} {o['sym']}")
@@ -1328,43 +1396,53 @@ def settings_box(c):
         if c.mode == "mine":
             code_box(c)
             st.divider()
-        a, b, d = st.columns(3)
-        lev = a.segmented_control(L("Leverage on longs", "الرافعة على الشراء"), [1.0, 2.0], default=float(s.get("leverage") or 1), key="pf_set_lev",
-                                  format_func=lambda x: L("1× (cash)", "1× (كاش)") if x == 1 else L("2× (Reg T margin)", "2× (هامش Reg T)"))
-        com = b.number_input(L("Commission per order ($)", "العمولة لكل أمر ($)"), 0.0, 50.0, float(s.get("commission") or 0), 0.5, key="pf_set_com")
+        if _sa():                                     # cash only: the commission and the slippage
+            b, d = st.columns(2)
+            st.caption(L("A Saudi account is a cash account: no margin and no short selling, like a regular Saudi brokerage account.",
+                         "الحساب السعودي حساب نقدي: بدون هامش ولا بيع على المكشوف، مثل حساب الوساطة العادي في السعودية."))
+        else:
+            a, b, d = st.columns(3)
+            lev = a.segmented_control(L("Leverage on longs", "الرافعة على الشراء"), [1.0, 2.0], default=float(s.get("leverage") or 1), key="pf_set_lev",
+                                      format_func=lambda x: L("1× (cash)", "1× (كاش)") if x == 1 else L("2× (Reg T margin)", "2× (هامش Reg T)"))
+        com = b.number_input(L(f"Commission per order ({_cur()})", f"العمولة لكل أمر ({_cur()})"), 0.0, 50.0, float(s.get("commission") or 0), 0.5,
+                             key="pf_set_com")
         slp = d.number_input(L("Slippage (bps)", "الانزلاق (نقطة أساس)"), 0.0, 100.0, float(s.get("slippage_bps") or 0), 1.0, key="pf_set_slp")
-        a2, b2, d2 = st.columns(3)
-        bor = a2.number_input(L("Borrow fee for shorts (% / year)", "رسوم اقتراض المكشوف (% سنوياً)"), 0.0, 100.0, float(s.get("borrow_rate") or 0), 0.1,
-                              key="pf_set_bor")
-        mar = b2.number_input(L("Margin interest (% / year)", "فائدة الهامش (% سنوياً)"), 0.0, 30.0, float(s.get("margin_rate") or 0), 0.25, key="pf_set_mar")
-        sho = d2.toggle(L("Allow short selling", "السماح بالبيع على المكشوف"), value=bool(s.get("allow_short", True)), key="pf_set_sho")
+        if not _sa():
+            a2, b2, d2 = st.columns(3)
+            bor = a2.number_input(L("Borrow fee for shorts (% / year)", "رسوم اقتراض المكشوف (% سنوياً)"), 0.0, 100.0, float(s.get("borrow_rate") or 0), 0.1,
+                                  key="pf_set_bor")
+            mar = b2.number_input(L("Margin interest (% / year)", "فائدة الهامش (% سنوياً)"), 0.0, 30.0, float(s.get("margin_rate") or 0), 0.25, key="pf_set_mar")
+            sho = d2.toggle(L("Allow short selling", "السماح بالبيع على المكشوف"), value=bool(s.get("allow_short", True)), key="pf_set_sho")
         if st.button(L("Save settings", "احفظ الإعدادات"), icon=":material/save:", key="pf_set_save"):
-            s.update({"leverage": float(lev or 1), "commission": float(com), "slippage_bps": float(slp), "borrow_rate": float(bor),
-                      "margin_rate": float(mar), "allow_short": bool(sho)})
+            s.update({"commission": float(com), "slippage_bps": float(slp)})
+            if _sa():
+                s.update(PF.SA_SETTINGS)
+            else:
+                s.update({"leverage": float(lev or 1), "borrow_rate": float(bor), "margin_rate": float(mar), "allow_short": bool(sho)})
             commit(c, L("Settings saved", "تم حفظ الإعدادات"))
         st.divider()
         f1, f2, f3 = st.columns([1.2, 1, 1], vertical_alignment="bottom")
-        amt = f1.number_input(L("Amount ($)", "المبلغ ($)"), 0.0, 10_000_000.0, 10000.0, 1000.0, key="pf_flow_amt")
+        amt = f1.number_input(L(f"Amount ({_cur()})", f"المبلغ ({_cur()})"), 0.0, 10_000_000.0, 10000.0, 1000.0, key="pf_flow_amt")
         try:
             if f2.button(L("Deposit", "إيداع"), icon=":material/add_card:", key="pf_dep", width="stretch"):
                 PF.flow(c.state, "deposit", amt)
-                commit(c, L(f"Deposited ${amt:,.0f}", f"تم إيداع {amt:,.0f}$"))
+                commit(c, L(f"Deposited {_m(amt, 0)}", f"تم إيداع {_m(amt, 0)}"))
             if f3.button(L("Withdraw", "سحب"), icon=":material/payments:", key="pf_wd", width="stretch"):
                 if amt > max(c.acct["excess"], 0):
                     st.error(L("You can only withdraw cash that isn't holding up your positions.", "تقدر تسحب بس الكاش اللي ما يغطي مراكزك."))
                 else:
                     PF.flow(c.state, "withdraw", amt)
-                    commit(c, L(f"Withdrew ${amt:,.0f}", f"تم سحب {amt:,.0f}$"))
+                    commit(c, L(f"Withdrew {_m(amt, 0)}", f"تم سحب {_m(amt, 0)}"))
         except PF.OrderError:
             st.error(L("Enter an amount above zero.", "اكتب مبلغ أكبر من صفر."))
         st.divider()
         r1, r2, r3 = st.columns([1.2, 1.2, 1], vertical_alignment="bottom")
-        start = r1.number_input(L("Start again with ($)", "ابدأ من جديد بـ ($)"), 1000.0, 100_000_000.0, float(c.state.get("start_cash") or 100000), 10000.0,
+        start = r1.number_input(L(f"Start again with ({_cur()})", f"ابدأ من جديد بـ ({_cur()})"), 1000.0, 100_000_000.0, float(c.state.get("start_cash") or 100000), 10000.0,
                                 key="pf_reset_cash")
         sure = r2.toggle(L("Yes, erase every order and trade", "أيوه، امسح كل الأوامر والصفقات"), key=f"pf_reset_ok_{c.state['created']}")
         if r3.button(L("Reset account", "إعادة ضبط الحساب"), icon=":material/restart_alt:", key="pf_reset", width="stretch", disabled=not sure):
             c.state.clear()
-            c.state.update(PF.new_state(start, settings=s))
+            c.state.update(PF.new_state(start, settings=s, market=MK.current()))
             commit(c, L("A fresh account is ready", "الحساب الجديد جاهز"))
 
 
@@ -1372,12 +1450,25 @@ def settings_box(c):
 # TRADE
 # =====================================================================
 POPULAR = ["AAPL", "NVDA", "MSFT", "TSLA", "AMZN", "META", "SPY", "QQQ"]
+POPULAR_SA = ["2222.SR", "1120.SR", "2010.SR", "7010.SR", "1180.SR", "2082.SR", "1211.SR", "4013.SR"]
+
+
+def _sym_in(v):
+    """What was typed in the symbol box: a 4-digit code is a Saudi company (2222 -> 2222.SR); in the Saudi market an Arabic or
+    English company name finds its code too."""
+    v = str(v or "").strip()
+    sym = PB.norm_symbol(v, MK.SA)
+    if _sa() and not sym.endswith(".SR") and v:
+        hit = tasi.search(v)
+        if hit:
+            return hit[0]
+    return sym.upper()
 
 
 def quote_card(sym, q, inf, held):
     price, prev = q
     chg = (price / prev - 1) * 100 if prev else 0.0
-    name = inf.get("shortName") or inf.get("longName") or sym
+    name = (L(tasi.name_of(sym), tasi.name_of(sym, True)) if tasi.known(sym) else "") or inf.get("shortName") or inf.get("longName") or sym
     lo, hi = inf.get("dayLow"), inf.get("dayHigh")
     lo52, hi52 = inf.get("fiftyTwoWeekLow"), inf.get("fiftyTwoWeekHigh")
 
@@ -1399,9 +1490,9 @@ def quote_card(sym, q, inf, held):
     if inf.get("beta") is not None:
         cell(L("Beta", "بيتا"), f'{float(inf["beta"]):.2f}')
     sp = inf.get("shortPercentOfFloat")
-    if sp:
+    if sp and not _sa():
         cell(L("Short % of float", "نسبة المكشوف من الأسهم المتاحة"), f"{float(sp) * 100:.1f}%")
-    if inf.get("shortRatio"):
+    if inf.get("shortRatio") and not _sa():
         cell(L("Days to cover", "أيام التغطية"), f'{float(inf["shortRatio"]):.1f}')
     if inf.get("dividendYield"):
         dy = float(inf["dividendYield"])
@@ -1435,7 +1526,7 @@ def trade_chart(sym, c, spec=None, span="6mo"):
     col = C.UP if up else C.DOWN
     fig = go.Figure()
     tr = go.Scatter(x=x, y=close, mode="lines", line=dict(color=col, width=2.2), fill="tozeroy", name=sym,
-                    hovertemplate="%{x|%b %d %H:%M}: $%{y:,.2f}<extra></extra>" if span == "1d" else "%{x|%b %d, %Y}: $%{y:,.2f}<extra></extra>")
+                    hovertemplate=("%{x|%b %d %H:%M}: " if span == "1d" else "%{x|%b %d, %Y}: ") + _hm("y:,.2f") + "<extra></extra>")
     try:
         tr.fillgradient = dict(type="vertical", colorscale=[[0, C.rgba(col, 0.0)], [1, C.rgba(col, 0.22)]])
     except (ValueError, AttributeError):
@@ -1457,18 +1548,20 @@ def trade_chart(sym, c, spec=None, span="6mo"):
                 lines.append((spec[k], lab, colr))
     for lvl, lab, colr in lines:
         fig.add_hline(y=lvl, line=dict(color=colr, width=1.4, dash="dash"),
-                      annotation=dict(text=f"{lab} ${lvl:,.2f}", font=dict(size=10, color=colr), bgcolor="rgba(14,9,24,.7)"),
+                      annotation=dict(text=f"{lab} {_m(lvl)}", font=dict(size=10, color=colr), bgcolor="rgba(14,9,24,.7)"),
                       annotation_position="top left")
     vals = list(close.values) + [l_[0] for l_ in lines]
     lo, hi = min(vals), max(vals)
     pad = (hi - lo) * 0.08 or hi * 0.02
     C.style(fig, 330, None, legend=False)
-    fig.update_yaxes(range=[lo - pad, hi + pad], tickprefix="$")
+    fig.update_yaxes(range=[lo - pad, hi + pad], **_tick())
     fig.update_layout(hovermode="x")
     return fig
 
 
 def _actions(held):
+    if _sa():                                 # cash only: buy, and sell what is held
+        return ["buy", "sell"] if held > 0 else ["buy"]
     if held > 0:
         return ["buy", "sell"]
     if held < 0:
@@ -1491,7 +1584,14 @@ def page_trade():
     ui.html(hero(c, "Trade", "التداول"))
     access_bar(c)
     held_map = {p["sym"]: p["qty"] for p in c.view["positions"]}
-    default = ss.get("pf_sym") or (c.view["positions"][0]["sym"] if c.view["positions"] else "AAPL")
+    sa = _sa()
+    if ss.get("pf_sym_mkt") != MK.current():  # the other market: its own symbol
+        for k in ("pf_sym", "pf_sym_in", "pf_sym_last"):
+            ss.pop(k, None)
+        ss["pf_sym_mkt"] = MK.current()
+    if ss.get("pf_sym") and MK.of_symbol(ss["pf_sym"]) != MK.current():
+        ss.pop("pf_sym", None)
+    default = ss.get("pf_sym") or (c.view["positions"][0]["sym"] if c.view["positions"] else ("2222.SR" if sa else "AAPL"))
     if "pf_sym_in" not in ss:
         ss["pf_sym_in"] = default
     if ss.get("pf_sym") and ss.get("pf_sym") != ss.get("pf_sym_last"):
@@ -1500,13 +1600,26 @@ def page_trade():
     left, right = st.columns([1.25, 1], gap="medium")
     with left:
         s1, s2 = st.columns([1, 2], vertical_alignment="bottom")
-        sym = (s1.text_input(L("Symbol", "الرمز"), key="pf_sym_in", placeholder="AAPL") or "").strip().upper()
-        picks = list(dict.fromkeys(list(held_map) + POPULAR))[:8]
+        sym = _sym_in(s1.text_input(L("Company code", "رمز الشركة") if sa else L("Symbol", "الرمز"), key="pf_sym_in",
+                                    placeholder="2222" if sa else "AAPL"))
+        picks = list(dict.fromkeys(list(held_map) + (POPULAR_SA if sa else POPULAR)))[:8]
         ui.valid("pf_pick", picks + [None])
-        s2.pills(L("Quick pick", "اختيار سريع"), picks, key="pf_pick", on_change=_pick)
+        s2.pills(L("Quick pick", "اختيار سريع"), picks, key="pf_pick", on_change=_pick,
+                 format_func=(lambda x: f"{x.split('.')[0]} {L(tasi.name_of(x), tasi.name_of(x, True))}".strip()) if sa else str)
+        if sym and MK.of_symbol(sym) != MK.current():     # each market's portfolio trades its own companies
+            ui.html(empty("swap_horiz", L("This company trades in the other market", "هالشركة تتداول في السوق الثاني"),
+                          L("The Saudi portfolio trades Saudi companies (codes like 2222). Switch to the US market at the top to trade US stocks.",
+                            "المحفظة السعودية تتداول الشركات السعودية (رموز مثل 2222). بدّل للسوق الأمريكي من فوق عشان تتداول الأسهم الأمريكية.")
+                          if sa else
+                          L("The US portfolio trades US stocks and ETFs. Switch to the Saudi market at the top to trade Saudi companies.",
+                            "المحفظة الأمريكية تتداول الأسهم والصناديق الأمريكية. بدّل للسوق السعودي من فوق عشان تتداول الشركات السعودية.")))
+            ui.foot()
+            return
         q = c.mkt.quotes([sym]).get(sym) if sym else None
         if not q:
             ui.html(empty("search_off", L("No price for this symbol", "ما فيه سعر لهالرمز"),
+                          L("Type a Saudi company's code or name, e.g. 2222 (Aramco) or 1120 (Al Rajhi).",
+                            "اكتب رمز الشركة السعودية أو اسمها، مثل 2222 (أرامكو) أو 1120 (الراجحي).") if sa else
                           L("Type a US stock or ETF ticker, e.g. AAPL, NVDA or SPY.", "اكتب رمز سهم أو صندوق أمريكي، مثل AAPL أو NVDA أو SPY.")))
             ui.foot()
             return
@@ -1542,10 +1655,10 @@ def ticket(c, sym, q, inf, held):
         bp_slot = st.empty()                    # buying power: drawn here once the size of the order is known
         spec = {"sym": sym, "side": side, "type": typ}
         if typ == "limit":
-            spec["limit"] = st.number_input(L("Limit price ($)", "السعر المحدد ($)"), 0.01, 1e6, round(price * (0.99 if side in ("buy", "cover") else 1.01), 2),
+            spec["limit"] = st.number_input(L(f"Limit price ({_cur()})", f"السعر المحدد ({_cur()})"), 0.01, 1e6, round(price * (0.99 if side in ("buy", "cover") else 1.01), 2),
                                             0.01, key=f"pf_lim_{sym}_{side}", format="%.2f")
         elif typ == "stop":
-            spec["stop"] = st.number_input(L("Stop price ($)", "سعر الوقف ($)"), 0.01, 1e6, round(price * (1.02 if side in ("buy", "cover") else 0.98), 2),
+            spec["stop"] = st.number_input(L(f"Stop price ({_cur()})", f"سعر الوقف ({_cur()})"), 0.01, 1e6, round(price * (1.02 if side in ("buy", "cover") else 0.98), 2),
                                            0.01, key=f"pf_stp_{sym}_{side}", format="%.2f")
         elif typ == "trail":
             spec["trail"] = st.number_input(L("Trail (%)", "المسافة (%)"), 0.5, 40.0, 5.0, 0.5, key=f"pf_trl_{side}")
@@ -1587,7 +1700,7 @@ def ticket(c, sym, q, inf, held):
                           on_click=lambda k=qk, v=max(mq, 1): ss.__setitem__(k, v),
                           help=L("The most shares your buying power covers at this price", "أكثر عدد أسهم تغطيه قوتك الشرائية بهالسعر"))
         elif mode == "dollars":
-            amt = st.number_input(L("Amount ($)", "المبلغ ($)"), 1.0, 1e9, 5000.0, 500.0, key=f"pf_amt_{side}")
+            amt = st.number_input(L(f"Amount ({_cur()})", f"المبلغ ({_cur()})"), 1.0, 1e9, 5000.0, 500.0, key=f"pf_amt_{side}")
             qty = int(amt // ref) if ref else 0
             st.caption(L(f"= {qty:,} shares", f"= {qty:,} سهم"))
         elif mode == "pct":
@@ -1606,8 +1719,8 @@ def ticket(c, sym, q, inf, held):
                                                key=f"pf_tif_{typ}", format_func=lambda k: L("Day", "اليوم") if k == "day" else L("Until cancelled", "حتى الإلغاء")) or "day"
         # the trade journal: why this trade (kept with the order, shown in the activity and the history)
         note = st.text_input(L("Note for your journal (optional)", "ملاحظة لسجلك (اختياري)"), key=f"pf_note_{ss.get('pf_note_n', 0)}", max_chars=120,
-                             placeholder=L("Why this trade? e.g. breakout above $200, earnings next week",
-                                           "ليش هالصفقة؟ مثلاً اختراق فوق 200$، والنتائج الأسبوع الجاي"))
+                             placeholder=L(f"Why this trade? e.g. breakout above {_m(200, 0)}, earnings next week",
+                                           f"ليش هالصفقة؟ مثلاً اختراق فوق {_m(200, 0)}، والنتائج الأسبوع الجاي"))
         if str(note or "").strip():
             spec["note"] = str(note).strip()
         pv, err = None, None
@@ -1746,8 +1859,8 @@ def _monthly(r):
 
 
 @st.cache_data(ttl=1800, show_spinner=False)
-def _rets(syms):
-    h = data.history_many(syms + ("SPY",), "1y")
+def _rets(syms, bench="SPY"):
+    h = data.history_many(syms + (bench,), "1y")
     out = {}
     for s, d in h.items():
         if d is not None and len(d) > 30:
@@ -1760,7 +1873,8 @@ def risk_now(c):
     pos = c.view["positions"]
     if not pos:
         return None
-    r = _rets(tuple(sorted(p["sym"] for p in pos)))
+    bx = MK.get()["bench"]                     # SPY / KSA
+    r = _rets(tuple(sorted(p["sym"] for p in pos)), bx)
     if r.empty:
         return None
     w = {p["sym"]: p["mv"] for p in pos if p["sym"] in r}
@@ -1768,9 +1882,9 @@ def risk_now(c):
         return None
     pnl = sum(r[s].fillna(0) * v for s, v in w.items())
     out = {"var": float(-np.percentile(pnl.dropna(), 5)) if len(pnl.dropna()) > 30 else None}
-    if "SPY" in r and r["SPY"].var() > 0:
+    if bx in r and r[bx].var() > 0:
         eq = max(c.acct["equity"], 1e-9)
-        out["beta"] = float(sum(v / eq * r[s].cov(r["SPY"]) / r["SPY"].var() for s, v in w.items()))
+        out["beta"] = float(sum(v / eq * r[s].cov(r[bx]) / r[bx].var() for s, v in w.items()))
     syms = [s for s in w]
     if len(syms) >= 2:
         out["corr"] = r[syms].corr()
@@ -1788,12 +1902,12 @@ def page_analytics():
     f = lambda x, fn: fn(x) if x is not None else "—"
     ui.sec("query_stats", "Return and risk", "العائد والمخاطرة")
     ui.html(kpis([
-        ("show_chart", L("Return (time-weighted)", "العائد (موزون بالوقت)"), f(s.get("twr"), _p), f'{L("S&P 500", "S&P 500")} <b>{f(s.get("bench_ret"), _p)}</b>', _k(s.get("twr")), None),
+        ("show_chart", L("Return (time-weighted)", "العائد (موزون بالوقت)"), f(s.get("twr"), _p), f'{T.esc(bench_short())} <b>{f(s.get("bench_ret"), _p)}</b>', _k(s.get("twr")), None),
         ("calendar_month", L("Yearly (CAGR)", "سنوياً (CAGR)"), f(s.get("cagr"), _p), L("shown after 6 months", "يظهر بعد 6 أشهر"), _k(s.get("cagr")), None),
         ("ssid_chart", L("Volatility (yearly)", "التذبذب (سنوي)"), f(s.get("vol"), lambda x: _p(x, 1, False)), L("how much it swings", "قد إيش يتذبذب"), None, None),
         ("star", L("Sharpe ratio", "نسبة شارب"), f(s.get("sharpe"), lambda x: f"{x:.2f}"), f'{L("Sortino", "سورتينو")} <b>{f(s.get("sortino"), lambda x: f"{x:.2f}")}</b>', None, None),
         ("trending_down", L("Max drawdown", "أكبر هبوط"), f(s.get("maxdd"), lambda x: _p(x, 1)), f'{L("now", "الحين")} <b>{f(s.get("dd_now"), lambda x: _p(x, 1))}</b>', "neg" if (s.get("maxdd") or 0) < 0 else None, None),
-        ("hub", L("Beta to the S&P 500", "بيتا مقابل S&P 500"), f(s.get("beta"), lambda x: f"{x:.2f}"), f'{L("alpha", "ألفا")} <b>{f(s.get("alpha"), lambda x: _p(x, 1))}</b> · {L("corr.", "ارتباط")} <b>{f(s.get("corr"), lambda x: f"{x:.2f}")}</b>', None, None),
+        ("hub", L(f"Beta to {bench_label()}", f"بيتا مقابل {bench_label()}"), f(s.get("beta"), lambda x: f"{x:.2f}"), f'{L("alpha", "ألفا")} <b>{f(s.get("alpha"), lambda x: _p(x, 1))}</b> · {L("corr.", "ارتباط")} <b>{f(s.get("corr"), lambda x: f"{x:.2f}")}</b>', None, None),
         ("calendar_view_day", L("Best / worst day", "أفضل / أسوأ يوم"), f'{f(s.get("best_day"), lambda x: _p(x, 1))} / {f(s.get("worst_day"), lambda x: _p(x, 1))}',
          f'{L("up days", "أيام صاعدة")} <b>{f(s.get("pos_days"), lambda x: _p(x, 0, False))}</b>', None, None),
         ("gpp_maybe", L("1-day VaR (95%)", "القيمة المعرضة للخطر ليوم (95%)"), f(s.get("var95"), lambda x: _p(x, 2, False)), L("a bad day, 1 in 20", "يوم سيء، مرة من 20"), None, None),
@@ -1806,7 +1920,7 @@ def page_analytics():
             series = {L("Portfolio", "المحفظة"): cum}
             if len(b.dropna()) > 2:
                 bb = b.reindex(r.index).ffill()
-                series[L("S&P 500", "S&P 500")] = (bb / float(b.reindex(v["curve"].index).ffill().iloc[0]) - 1) * 100
+                series[bench_short()] = (bb / float(b.reindex(v["curve"].index).ffill().iloc[0]) - 1) * 100
             ui.chart(C.lines(series, L("Cumulative return", "العائد التراكمي"), height=320, colors=[C.CYAN, C.GOLD]), key="pf_cum")
         with g2:
             idx = (1 + r).cumprod()
@@ -1857,7 +1971,7 @@ def page_analytics():
     ui.html(kpis([
         ("stacked_bar_chart", L("Gross exposure", "الانكشاف الإجمالي"), _p(a["gross"] / max(a["equity"], 1e-9) * 100, 0, False), f'{L("net", "الصافي")} <b>{_p(a["net"] / max(a["equity"], 1e-9) * 100, 0)}</b>', None, None),
         ("speed", L("Leverage", "الرافعة"), f'{a["leverage"]:.2f}×', f'{L("limit", "الحد")} <b>{1 / a["r_long"]:.0f}×</b> {L("on longs", "للشراء")}', None, None),
-        ("hub", L("Holdings beta", "بيتا المراكز"), f((rk or {}).get("beta"), lambda x: f"{x:.2f}"), L("1 = moves like the S&P 500", "1 = يتحرك مثل S&P 500"), None, None),
+        ("hub", L("Holdings beta", "بيتا المراكز"), f((rk or {}).get("beta"), lambda x: f"{x:.2f}"), L(f"1 = moves like {bench_label()}", f"1 = يتحرك مثل {bench_label()}"), None, None),
         ("gpp_maybe", L("1-day VaR (95%) now", "القيمة المعرضة للخطر ليوم الحين"), f((rk or {}).get("var"), lambda x: _m(-x, 0)), L("from the last year of these holdings", "من آخر سنة لهالمراكز"), "neg" if (rk or {}).get("var") else None, None),
         ("pie_chart", L("Largest position", "أكبر مركز"), _p(max((p["weight"] for p in v["positions"]), default=0), 1, False),
          f'{L("top 3", "أكبر 3")} <b>{_p(sum(sorted((p["weight"] for p in v["positions"]), reverse=True)[:3]), 1, False)}</b>', None, None),
@@ -1952,7 +2066,7 @@ def page_history():
             df = pd.DataFrame([{L("Time", "الوقت"): _when(f_["time"]), L("Symbol", "الرمز"): f_["sym"], L("Action", "الإجراء"): L(*SIDE[f_["side"]][:2]),
                                 L("Shares", "الأسهم"): int(f_["qty"]), L("Price", "السعر"): f_["px"], L("Value", "القيمة"): f_["qty"] * f_["px"],
                                 L("Fee", "العمولة"): f_.get("fee", 0.0), L("Order", "الأمر"): f'#{f_["order"]}'} for f_ in fills])
-            ui.table(df, sym=L("Symbol", "الرمز"), height=520, fmt={L("Price", "السعر"): "${:,.2f}", L("Value", "القيمة"): "${:,.0f}", L("Fee", "العمولة"): "${:,.2f}"})
+            ui.table(df, sym=L("Symbol", "الرمز"), height=520, fmt={L("Price", "السعر"): _fm(), L("Value", "القيمة"): _fm(",.0f"), L("Fee", "العمولة"): _fm()})
             st.download_button(L("Download CSV", "تحميل CSV"), df.to_csv(index=False).encode("utf-8-sig"), "paper_fills.csv", "text/csv",
                                icon=":material/download:", key="pf_dl_fills")
     with tabs[3]:
@@ -1966,8 +2080,8 @@ def page_history():
                                 L("Fees", "العمولات"): t["fees"], L("Borrow", "الاقتراض"): t["borrow"], L("Days", "الأيام"): t["days"]} for t in tr])
             ui.table(df, sym=L("Symbol", "الرمز"), height=520, signed={L("P&L", "الربح"), L("Return", "العائد")},
                      words={L("Side", "الاتجاه"): (L("Long", "شراء"), L("Short", "مكشوف"))},
-                     fmt={L("Entry", "الدخول"): "${:,.2f}", L("Exit", "الخروج"): "${:,.2f}", L("P&L", "الربح"): "${:+,.2f}", L("Return", "العائد"): "{:+.2f}%",
-                          L("Fees", "العمولات"): "${:,.2f}", L("Borrow", "الاقتراض"): "${:,.2f}", L("Days", "الأيام"): "{:.1f}"})
+                     fmt={L("Entry", "الدخول"): _fm(), L("Exit", "الخروج"): _fm(), L("P&L", "الربح"): _fm("+,.2f"), L("Return", "العائد"): "{:+.2f}%",
+                          L("Fees", "العمولات"): _fm(), L("Borrow", "الاقتراض"): _fm(), L("Days", "الأيام"): "{:.1f}"})
             st.download_button(L("Download CSV", "تحميل CSV"), df.to_csv(index=False).encode("utf-8-sig"), "paper_trades.csv", "text/csv",
                                icon=":material/download:", key="pf_dl_trades")
     with tabs[4]:
@@ -1979,7 +2093,7 @@ def page_history():
         led = led + [start]
         df = pd.DataFrame([{L("Date", "التاريخ"): str(x["time"])[:10], L("Entry", "البند"): kinds.get(x["kind"], L("Starting cash", "الكاش الأولي")),
                             L("Symbol", "الرمز"): x.get("sym") or "", L("Amount", "المبلغ"): x["amount"], L("Note", "ملاحظة"): x.get("note") or ""} for x in led])
-        ui.table(df, height=520, signed={L("Amount", "المبلغ")}, fmt={L("Amount", "المبلغ"): "${:+,.2f}"})
+        ui.table(df, height=520, signed={L("Amount", "المبلغ")}, fmt={L("Amount", "المبلغ"): _fm("+,.2f")})
     ui.foot()
 
 

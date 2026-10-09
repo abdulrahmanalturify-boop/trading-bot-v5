@@ -26,10 +26,12 @@ import data
 import engine
 import fairvalue as FV
 import hunter as H
+import markets as MK
 import mcal
 import paperbots as PB
 import playbooks as PBK
 import ta
+import tasi
 import taxonomy as X
 import theme as T
 import ui
@@ -321,6 +323,12 @@ RTL_CSS = """<style>
 def universes():
     """key -> (label, symbols). Sectors and industries narrow any of them (the hunt bar)."""
     from sp500 import SP500
+    if MK.is_sa():
+        return {"sa_all": (L(f"All Saudi companies ({len(tasi.SYMBOLS)})", f"كل الشركات السعودية ({len(tasi.SYMBOLS)})"), list(tasi.SYMBOLS)),
+                "sa_top": (L("The 50 biggest", "أكبر 50 شركة"), tasi.top(50)),
+                "sa_noreit": (L("Without the REITs", "بدون الصناديق العقارية"), [s for s in tasi.SYMBOLS if tasi.group_of(s) != "reits"]),
+                "wl": (L("My watchlist", "قائمة المتابعة"), [s for s in ss.get("watchlist_sa", []) if MK.of_symbol(s) == MK.SA]),
+                "custom": (L("My own codes", "رموز أكتبها"), None)}
     u = {"top": (L(f"Top {len(U.US_UNIVERSE)} US stocks", f"أكبر {len(U.US_UNIVERSE)} سهم أمريكي"), list(U.US_UNIVERSE)),
          "sp500": (L("S&P 500 (all, slower)", "إس آند بي 500 (كامل، أبطأ)"), sorted(set(SP500) | set(U.STOCKS)))}
     for tk, (en, ar_, _, _) in X.THEMES.items():
@@ -331,11 +339,15 @@ def universes():
 
 
 def sector_of(s):
+    if tasi.known(s):
+        return tasi.sector_of(s)
     return PB.sector_of(s) or (U.sector_of(s) if U.known(s) else "")
 
 
 def industry_of(s):
     from sp500 import SP500
+    if tasi.known(s):
+        return tasi.industry_of(s)
     if s in SP500 and SP500[s][2]:
         return SP500[s][2]
     return U.industry_of(s) if U.known(s) else ""
@@ -343,16 +355,27 @@ def industry_of(s):
 
 def industry_label(ind):
     from sp500 import GICS_AR
+    if MK.is_sa():
+        return tasi.industry_ar(ind) if is_ar() else ind
     return gics_name(ind) if ind in GICS_AR else industry_name(ind)
+
+
+def sector_label(sec):
+    if MK.is_sa():
+        return tasi.sector_ar(sec) if is_ar() else sec
+    return sector_name(sec)
 
 
 def _base(unis):
     k = ss.get("hn_uni", "top")
     if k not in unis:
-        k = "top"
+        k = ss["hn_uni"] = list(unis)[0]
     if unis[k][1] is None:
         raw = str(ss.get("hn_custom") or "").replace("،", ",").replace(" ", ",")
-        return k, list(dict.fromkeys(s.strip().upper() for s in raw.split(",") if s.strip()))[:200]
+        out = [s.strip().upper() for s in raw.split(",") if s.strip()]
+        if MK.is_sa():                                   # a Tadawul code alone: 2222 -> 2222.SR
+            out = [f"{s}.SR" if s.isdigit() and len(s) == 4 else s for s in out]
+        return k, list(dict.fromkeys(out))[:200]
     return k, list(unis[k][1])
 
 
@@ -369,24 +392,30 @@ def _narrow(base):
     return tuple(pool), secs, inds
 
 
-def _names_sectors(symbols):
+def _names_sectors(symbols, ar=False):
     from sp500 import SP500
     names, secs = {}, {}
     for s in symbols:
-        names[s] = U.STOCKS[s][0] if s in U.STOCKS else (SP500[s][0] if s in SP500 else U.name_of(s))
+        if tasi.known(s):
+            names[s] = tasi.name_of(s, ar)
+        else:
+            names[s] = U.STOCKS[s][0] if s in U.STOCKS else (SP500[s][0] if s in SP500 else U.name_of(s))
         secs[s] = sector_of(s)
     return names, secs
 
 
 def _today_ny():
-    return datetime.now(ZoneInfo("America/New_York")).date()
+    """Today in the market's own time zone (New York, or Riyadh on a Saudi page)."""
+    return MK.today()
 
 
 def _session_live():
-    now = datetime.now(ZoneInfo("America/New_York"))
-    kind, _ = mcal.day_status(now.date())
-    close = 780 if kind == "early" else 960
-    return now.weekday() < 5 and kind != "closed" and 570 <= now.hour * 60 + now.minute < close
+    return MK.session_live()
+
+
+def _bench(period, market="us"):
+    """The market to measure against: SPY, or for the Saudi market the MSCI Saudi Arabia fund (KSA; Yahoo keeps no TASI history)."""
+    return data.history(MK.get(market)["bench"], period)
 
 
 def _earnings_map(today):
@@ -398,18 +427,20 @@ def _earnings_map(today):
 
 
 @st.cache_data(ttl=900, show_spinner=False, max_entries=16)
-def run_hunt(key, symbols, nonce=0, build=None):
-    """Download the prices of the universe (two years of daily candles) and hunt. Cached 15 minutes per universe."""
+def run_hunt(key, symbols, nonce=0, build=None, market="us", ar=False):
+    """Download the prices of the universe (two years of daily candles) and hunt. Cached 15 minutes per universe.
+    market 'sa': measured against the Saudi market (KSA), no VIX and no earnings calendar, a 10M SAR a day liquidity bar."""
+    sa = market == MK.SA
     px = PB.load_prices(list(symbols), "2y")
-    spy = data.history("SPY", "2y")
-    vix = data.history("^VIX", "6mo")
-    today = _today_ny()
-    earn = _earnings_map(today)
-    names, secs = _names_sectors(symbols)
-    res, det = H.hunt(px, spy if not spy.empty else None, earn, today, names, secs)
+    spy = _bench("2y", market)
+    vix = None if sa else data.history("^VIX", "6mo")
+    today = MK.today(market)
+    earn = {} if sa else _earnings_map(today)
+    names, secs = _names_sectors(symbols, ar)
+    res, det = H.hunt(px, spy if not spy.empty else None, earn, today, names, secs, thin=10e6 if sa else 20e6)
     last = max((pd.Timestamp(df.index[-1]) for df in px.values() if df is not None and len(df)), default=None)
     return {"res": res, "det": det, "reg": H.regime(res, spy, vix), "sec": H.sectors(res), "n": len(res), "asked": len(symbols),
-            "time": datetime.now(ZoneInfo("America/New_York")).strftime("%H:%M"), "last": last, "earn": len(earn) > 0}
+            "time": MK.now(market).strftime("%H:%M"), "last": last, "earn": len(earn) > 0}
 
 
 # ---------------------------------------------------------------- small pieces
@@ -476,7 +507,18 @@ def _pct(a, b):
 
 
 def _money_px(x):
+    if MK.is_sa():
+        return MK.money(x, dec=2) if abs(x) >= 1 else f"{T.fmt_price(x)} {MK.cur_sign()}"
     return "$" + T.fmt_price(x)
+
+
+def _px(v):
+    """A price in the page's currency ($12.34 / SAR 12.34)."""
+    return MK.money(v, dec=2)
+
+
+def _px0(v):
+    return MK.money(v, dec=0)
 
 
 def flags_of(r):
@@ -556,6 +598,10 @@ def _refresh():
 
 def _look():
     sym = str(ss.get("hn_look_in") or "").strip().upper()
+    if sym.isdigit() and len(sym) == 4:              # a Tadawul code: 2222 -> 2222.SR
+        sym += ".SR"
+    elif sym and not sym.isascii():                   # an Arabic company name
+        sym = (tasi.search(sym) or [sym])[0]
     ss["hn_look"] = sym or None
     if sym:
         ss["hn_sel"] = sym
@@ -566,16 +612,17 @@ def hunt_bar(unis, secs, inds, n):
         c = st.columns([1.9, 1.5, 1.9, 1, 0.8], vertical_alignment="bottom")
         c[0].selectbox(L("What to scan", "وش أفحص"), list(unis), key="hn_uni", format_func=lambda k: unis[k][0])
         c[1].selectbox(L("Sector", "القطاع"), ["all"] + secs, key="hn_sec",
-                       format_func=lambda s: L("All sectors", "كل القطاعات") if s == "all" else sector_name(s))
+                       format_func=lambda s: L("All sectors", "كل القطاعات") if s == "all" else sector_label(s))
         c[2].selectbox(L("Industry", "الصناعة"), ["all"] + inds, key="hn_ind",
                        format_func=lambda s: L("All industries", "كل الصناعات") if s == "all" else industry_label(s))
         c[3].button(L("Hunt", "ابدأ الصيد"), icon=":material/radar:", key="hn_go", on_click=_go, width="stretch")
         c[4].button(L("Refresh", "تحديث"), icon=":material/refresh:", key="hn_refresh", on_click=_refresh,
                     help=L("Fresh prices now", "أسعار جديدة الحين"), width="stretch")
         if ss.get("hn_uni") == "custom":
-            st.text_input(L("Symbols (comma separated)", "الرموز (مفصولة بفاصلة)"), key="hn_custom", placeholder="AAPL, MSFT, NVDA, 2222.SR")
+            st.text_input(L("Symbols (comma separated)", "الرموز (مفصولة بفاصلة)"), key="hn_custom",
+                          placeholder="2222, 1120, 2010, 7010" if MK.is_sa() else "AAPL, MSFT, NVDA, 2222.SR")
         a, b, cap = st.columns([1.9, 1, 4.2], vertical_alignment="bottom")
-        a.text_input(L("Analyze one symbol", "حلّل سهم واحد"), key="hn_look_in", placeholder="NVDA", on_change=_look)
+        a.text_input(L("Analyze one symbol", "حلّل سهم واحد"), key="hn_look_in", placeholder="2222" if MK.is_sa() else "NVDA", on_change=_look)
         b.button(L("Analyze", "حلّل"), icon=":material/manage_search:", key="hn_look_go", on_click=_look, width="stretch")
         note = L(f"{n:,} stocks in this hunt.", f"{n:,} سهم في هذا الصيد.")
         if ss.get("hn_uni") == "sp500" and n > 250:
@@ -609,13 +656,13 @@ def mood_html(reg):
     tiles = [
         f'<div class="tl mood {mood}"><div class="l">{T.icon("explore")}{L("Market mood", "مزاج السوق")}</div>'
         f'<div class="v"><span class="dot" style="background:{head[2]}"></span>{T.esc(L(head[0], head[1]))}</div><div class="s">{T.esc(L(*tip))}</div></div>',
-        f'<div class="tl"><div class="l">{T.icon("show_chart")}S&amp;P 500</div><div class="v" style="color:{tr[2]}">{T.esc(L(tr[0], tr[1]))}</div>'
+        f'<div class="tl"><div class="l">{T.icon("show_chart")}{T.esc(L("Saudi market (KSA)", "السوق السعودي (KSA)") if MK.is_sa() else "S&P 500")}</div><div class="v" style="color:{tr[2]}">{T.esc(L(tr[0], tr[1]))}</div>'
         f'<div class="s">{L("vs 50-day", "مقابل 50 يوم")} {reg.get("spy_vs50", 0):+.1f}% · {L("200-day", "200 يوم")} {reg.get("spy_vs200", 0):+.1f}%</div></div>',
         f'<div class="tl"><div class="l">{T.icon("stacked_bar_chart")}{L("Above 50-day", "فوق متوسط 50")}</div>'
         f'<div class="v">{p50:.0f}%</div>{meter(p50, col(p50))}<div class="s">{L("of the scanned stocks", "من الأسهم المفحوصة")}</div></div>',
         f'<div class="tl"><div class="l">{T.icon("landscape")}{L("Above 200-day", "فوق متوسط 200")}</div>'
         f'<div class="v">{p200:.0f}%</div>{meter(p200, col(p200))}<div class="s">{L("the long-term trend", "الاتجاه طويل المدى")}</div></div>',
-        f'<div class="tl"><div class="l">{T.icon("speed")}{L("Highs / lows · VIX", "قمم / قيعان · VIX")}</div>'
+        f'<div class="tl"><div class="l">{T.icon("speed")}{L("Highs / lows", "قمم / قيعان") if MK.is_sa() else L("Highs / lows · VIX", "قمم / قيعان · VIX")}</div>'
         f'<div class="v"><span style="color:#4ADE80">{reg.get("highs", 0)}</span> / <span style="color:#F87171">{reg.get("lows", 0)}</span></div>'
         f'<div class="s">{L("new 52-week highs / lows", "قمم / قيعان سنوية جديدة")}{f" · VIX {vix:.1f} ({vix_s})" if np.isfinite(vix) else ""}</div></div>']
     if not np.isfinite(p50):
@@ -624,9 +671,19 @@ def mood_html(reg):
 
 
 # ---------------------------------------------------------------- filters
+HN_SA = {"hn_uni": "sa_all", "hn_minpx": 5.0, "hn_minvol": 5.0, "hn_custom": "2222, 1120, 2010, 7010, 1211"}
+HN_US = {"hn_uni": "top", "hn_minpx": 5.0, "hn_minvol": 20.0, "hn_custom": "AAPL, MSFT, NVDA, AMD, TSLA, META"}
+
+
 def _init():
-    for k, v in {"hn_uni": "top", "hn_sec": "all", "hn_ind": "all", "hn_acct": 100_000, "hn_risk": 1.0, "hn_grade": "B", "hn_fresh": False,
-                 "hn_noearn": False, "hn_minpx": 5.0, "hn_minvol": 20.0, "hn_custom": "AAPL, MSFT, NVDA, AMD, TSLA, META"}.items():
+    mk = MK.current()
+    if ss.get("_hn_mkt") not in (None, mk):          # the market changed: the hunt bar starts from that market's choices
+        for k, v in (HN_SA if mk == MK.SA else HN_US).items():
+            ss[k] = v
+        ss["hn_sec"], ss["hn_ind"], ss["hn_look"], ss["hn_sel"] = "all", "all", None, None
+    ss["_hn_mkt"] = mk
+    for k, v in {**(HN_SA if mk == MK.SA else HN_US), "hn_sec": "all", "hn_ind": "all", "hn_acct": 100_000, "hn_risk": 1.0, "hn_grade": "B",
+                 "hn_fresh": False, "hn_noearn": False}.items():
         ss.setdefault(k, v)
 
 
@@ -644,9 +701,10 @@ def filters(res):
         c[0].segmented_control(L("Grade at least", "الدرجة على الأقل"), list(MIN_GRADE), key="hn_grade",
                                format_func=lambda g: L("All", "الكل") if g == "all" else g)
         c[1].toggle(L("New today", "الجديدة اليوم"), key="hn_fresh")
-        c[2].toggle(L("No earnings ≤ 5 days", "بدون أرباح ≤ 5 أيام"), key="hn_noearn")
-        c[3].number_input(L("Price from ($)", "السعر من ($)"), 0.0, 10000.0, step=1.0, key="hn_minpx")
-        c[4].number_input(L("Traded/day from ($M)", "التداول اليومي من (مليون $)"), 0.0, 10000.0, step=5.0, key="hn_minvol")
+        c[2].toggle(L("No earnings ≤ 5 days", "بدون أرباح ≤ 5 أيام"), key="hn_noearn", disabled=MK.is_sa())
+        cs = MK.cur_sign()
+        c[3].number_input(L(f"Price from ({cs})", f"السعر من ({cs})"), 0.0, 10000.0, step=1.0, key="hn_minpx")
+        c[4].number_input(L(f"Traded/day from ({cs}M)", f"التداول اليومي من (مليون {cs})"), 0.0, 10000.0, step=5.0, key="hn_minvol")
 
 
 def apply(res):
@@ -728,7 +786,7 @@ def _key(sym):
 @st.cache_data(ttl=1800, show_spinner=False, max_entries=48)
 def _history5(sym, build=None):
     df = data.history(sym, "5y")
-    spy = data.history("SPY", "5y")
+    spy = _bench("5y", MK.of_symbol(sym))
     d = H._clean(df)
     if d is None:
         return None, None
@@ -771,7 +829,7 @@ def tech_checks(r, det, d, spy=None):
     rs3 = ""
     if spy is not None and d is not None and len(spy) > 64 and len(d) > 64:
         x = (d["Close"].iloc[-1] / d["Close"].iloc[-64] - 1) - (spy["Close"].iloc[-1] / spy["Close"].iloc[-64] - 1)
-        rs3 = f" · vs S&P 500 (3M) {x * 100:+.1f}%"
+        rs3 = f" · vs {'KSA' if tasi.known(r['Symbol']) else 'S&P 500'} (3M) {x * 100:+.1f}%"
     add(rs >= 70, f"Relative strength: RS {rs} (stronger than {rs}% of the list)", f"القوة النسبية: RS {rs} (أقوى من {rs}% من القائمة)", rs3.strip(" ·"))
     ud = det.get("ud", 1.0)
     obv = ""
@@ -783,7 +841,7 @@ def tech_checks(r, det, d, spy=None):
     add(pd.notna(rv) and rv >= 1.5, "Volume confirmation today (≥ 1.5× average)", "تأكيد بالحجم اليوم (≥ 1.5 ضعف المتوسط)",
         f"{rv:.1f}×" if pd.notna(rv) else "n/a")
     dh = float(r["From high %"])
-    add(dh >= -5, "Within 5% of the 52-week high", "ضمن 5% من القمة السنوية", f"{dh:+.1f}% · ${det.get('hi52', np.nan):,.2f}")
+    add(dh >= -5, "Within 5% of the 52-week high", "ضمن 5% من القمة السنوية", f"{dh:+.1f}% · {_px(det.get('hi52', np.nan))}")
     bw = det.get("bw_pct", np.nan)
     add(np.isfinite(bw) and bw <= 0.2, "Volatility squeeze (coiling)", "انضغاط التذبذب (تجميع قبل حركة)",
         L("bands narrow", "النطاق ضيق") if np.isfinite(bw) and bw <= 0.2 else L("normal", "طبيعي"))
@@ -805,12 +863,14 @@ def _checklist2(items):
 def lookup(sym, build=None):
     """One symbol on its own (the 'Analyze one symbol' box, or a stock the scan didn't include): (row dict, detail) or (None, None)."""
     df = data.history(sym, "2y")
-    spy = data.history("SPY", "2y")
+    mk = MK.of_symbol(sym)
+    spy = _bench("2y", mk)
     if df is None or df.empty:
         return None, None
-    today = _today_ny()
-    names, secs = _names_sectors([sym])
-    res, det = H.hunt({sym: df}, spy if not spy.empty else None, _earnings_map(today), today, names, secs)
+    today = MK.today(mk)
+    names, secs = _names_sectors([sym], is_ar())
+    res, det = H.hunt({sym: df}, spy if not spy.empty else None, {} if mk == MK.SA else _earnings_map(today), today, names, secs,
+                      thin=10e6 if mk == MK.SA else 20e6)
     if res.empty:
         return None, None
     return res.iloc[0].to_dict(), det.get(sym, {})
@@ -860,16 +920,16 @@ def plan_section(r, det, d):
         entry, stop, tgt = float(r["Entry"]), float(r["Stop"]), float(r["Target"])
         watch = r["Status"] == "watch"
         max_bars = H.SETUPS[k][5] or (PBK.defaults(H.PLAYBOOK_OF[k])["max_bars"] if k in H.PLAYBOOK_OF else None)
-        trig = (L(f"Buy only after a daily close above ${entry:,.2f}; the order goes in at the next open.",
-                  f"اشترِ بس بعد إغلاق يومي فوق ${entry:,.2f}، والأمر يتنفذ عند الافتتاح التالي.") if watch else
-                L(f"Buy at the next open near ${entry:,.2f}. Skip it if it opens under ${stop:,.2f} (the stop) or over ${tgt:,.2f} (the target).",
-                  f"اشترِ عند الافتتاح القادم قرب ${entry:,.2f}. وتجاهلها إذا افتتح تحت ${stop:,.2f} (الوقف) أو فوق ${tgt:,.2f} (الهدف)."))
-        exits = [L(f"Stop loss: out if the price trades at ${stop:,.2f} or lower ({_pct(entry, stop):+.1f}%).",
-                   f"وقف الخسارة: اخرج إذا وصل السعر ${stop:,.2f} أو أقل ({_pct(entry, stop):+.1f}%)."),
-                 L(f"Target: ${tgt:,.2f} ({_pct(entry, tgt):+.1f}%). Nearest resistance: ${res_:,.2f}.",
-                   f"الهدف: ${tgt:,.2f} ({_pct(entry, tgt):+.1f}%). أقرب مقاومة: ${res_:,.2f}."),
-                 L(f"After +1R (${entry + (entry - stop):,.2f}) move the stop to the entry price.",
-                   f"بعد ربح 1R (${entry + (entry - stop):,.2f}) ارفع الوقف لسعر الدخول.")]
+        trig = (L(f"Buy only after a daily close above {_px(entry)}; the order goes in at the next open.",
+                  f"اشترِ بس بعد إغلاق يومي فوق {_px(entry)}، والأمر يتنفذ عند الافتتاح التالي.") if watch else
+                L(f"Buy at the next open near {_px(entry)}. Skip it if it opens under {_px(stop)} (the stop) or over {_px(tgt)} (the target).",
+                  f"اشترِ عند الافتتاح القادم قرب {_px(entry)}. وتجاهلها إذا افتتح تحت {_px(stop)} (الوقف) أو فوق {_px(tgt)} (الهدف)."))
+        exits = [L(f"Stop loss: out if the price trades at {_px(stop)} or lower ({_pct(entry, stop):+.1f}%).",
+                   f"وقف الخسارة: اخرج إذا وصل السعر {_px(stop)} أو أقل ({_pct(entry, stop):+.1f}%)."),
+                 L(f"Target: {_px(tgt)} ({_pct(entry, tgt):+.1f}%). Nearest resistance: {_px(res_)}.",
+                   f"الهدف: {_px(tgt)} ({_pct(entry, tgt):+.1f}%). أقرب مقاومة: {_px(res_)}."),
+                 L(f"After +1R ({_px(entry + (entry - stop))}) move the stop to the entry price.",
+                   f"بعد ربح 1R ({_px(entry + (entry - stop))}) ارفع الوقف لسعر الدخول.")]
         if max_bars:
             exits.append(L(f"Time limit: out after {max_bars} sessions if the target isn't reached.",
                            f"مدة قصوى: اخرج بعد {max_bars} جلسة إذا ما وصل الهدف."))
@@ -878,7 +938,7 @@ def plan_section(r, det, d):
                   L("on a close above it", "بإغلاق فوقه") if watch else L("next open, near this price", "الافتتاح القادم، قرب هذا السعر")),
                  ("sl", L("Stop loss", "وقف الخسارة"), _money_px(stop), f"{_pct(entry, stop):+.1f}% · {abs(entry - stop) / max(atr, 1e-9):.1f} ATR"),
                  ("tp", L("Target", "الهدف"), _money_px(tgt), f"{_pct(entry, tgt):+.1f}%"),
-                 ("", "R:R", f"{r['R:R']:.1f} : 1" if np.isfinite(r["R:R"]) else "—", L("reward for each $1 of risk", "العائد لكل 1$ مخاطرة")),
+                 ("", "R:R", f"{r['R:R']:.1f} : 1" if np.isfinite(r["R:R"]) else "—", L("reward for each 1 of risk", "العائد لكل 1 مخاطرة")),
                  ("", L("Position size", "حجم الصفقة"), f"{n:,} {L('sh', 'سهم')}", f"{_money_px(n * entry)} · {n * entry / acct * 100:.0f}% {L('of the account', 'من المحفظة')}"),
                  ("", L("Max loss", "أقصى خسارة"), T.money(n * abs(entry - stop)), f"{risk:g}% {L('of', 'من')} {T.money(acct)}")]
         if max_bars:
@@ -996,15 +1056,15 @@ def target_card(price, tg):
         svg.append(f'<line x1="{xx:.1f}" y1="{y0 - 7}" x2="{xx:.1f}" y2="{ty + 6}" stroke="{col}" stroke-opacity=".45" stroke-width="1"/>'
                    f'<circle cx="{xx:.1f}" cy="{y0}" r="8" fill="{col}" stroke="#0E0918" stroke-width="2.5" filter="url(#hntgl)"/>'
                    f'<text x="{xx:.1f}" y="{ty - 8}" text-anchor="{anchor}" font-size="11" fill="#A09AAB" font-family="{T.FONT}">{T.esc(L(en, ar_))}</text>'
-                   f'<text x="{xx:.1f}" y="{ty + 4}" text-anchor="{anchor}" font-size="13" font-weight="800" fill="#fff" font-family="{T.FONT}">${v:,.0f}</text>')
+                   f'<text x="{xx:.1f}" y="{ty + 4}" text-anchor="{anchor}" font-size="13" font-weight="800" fill="#fff" font-family="{T.FONT}">{_px0(v)}</text>')
     xp = x(price)
     anchor = "start" if xp < 60 else ("end" if xp > W - 60 else "middle")
     svg.append(f'<path d="M{xp:.1f} {y0 - 10} L{xp + 10:.1f} {y0} L{xp:.1f} {y0 + 10} L{xp - 10:.1f} {y0} Z" fill="#fff" stroke="#0E0918" stroke-width="2"/>'
                f'<text x="{xp:.1f}" y="{y0 + 30}" text-anchor="{anchor}" font-size="11" fill="#A09AAB" font-family="{T.FONT}">{L("Now", "الحالي")}</text>'
-               f'<text x="{xp:.1f}" y="{y0 + 45}" text-anchor="{anchor}" font-size="13" font-weight="800" fill="#fff" font-family="{T.FONT}">${price:,.2f}</text>')
+               f'<text x="{xp:.1f}" y="{y0 + 45}" text-anchor="{anchor}" font-size="13" font-weight="800" fill="#fff" font-family="{T.FONT}">{_px(price)}</text>')
     top = min((y0 - 18 - r_ * 30 - 22 for _, r_ in placed), default=0)
     svg[0] = svg[0].replace('viewBox="0 0 {} 150"'.format(W), f'viewBox="0 {min(0, top - 4):.0f} {W} {150 - min(0, top - 4):.0f}"')
-    chips = "".join(f'<span class="c"><i style="background:{names[k][2]}"></i>{T.esc(L(*names[k][:2]))} <b>${v:,.2f}</b>'
+    chips = "".join(f'<span class="c"><i style="background:{names[k][2]}"></i>{T.esc(L(*names[k][:2]))} <b>{_px(v)}</b>'
                     f'<em class="{"up" if v >= price else "dn"}">{_pct(price, v):+.1f}%</em></span>' for k, v in pts)
     return (f'<div class="hntgt"><div class="hnbt">{T.icon("flag")}<span>{L("12-month price targets", "السعر المستهدف خلال 12 شهر")}</span></div>'
             f'<div class="sv">{"".join(svg)}</svg></div><div class="cs">{chips}</div></div>')
@@ -1239,7 +1299,7 @@ def analyst_section(sym, price):
         up = (mean_t / price - 1) * 100
         tiles.append(tile("flag", L("Mean price target", "متوسط السعر المستهدف"), _money_px(mean_t), L(f"{up:+.1f}% from now", f"\u2066{up:+.1f}%\u2069 من السعر الحالي"), up >= 0))
     if lo_t and hi_t:
-        rng = (f"${lo_t:,.0f} – ${hi_t:,.0f}" if min(lo_t, hi_t) >= 100 else f"{_money_px(lo_t)} – {_money_px(hi_t)}")   # fits a phone
+        rng = (f"{_px0(lo_t)} – {_px0(hi_t)}" if min(lo_t, hi_t) >= 100 else f"{_money_px(lo_t)} – {_money_px(hi_t)}")   # fits a phone
         tiles.append(tile("straighten", L("Target range", "مدى الأهداف"), rng,
                           L(f"low {_pct(price, lo_t):+.0f}% · high {_pct(price, hi_t):+.0f}%",
                             f"الأدنى \u2066{_pct(price, lo_t):+.0f}%\u2069 · الأعلى \u2066{_pct(price, hi_t):+.0f}%\u2069")))
@@ -1262,7 +1322,7 @@ def analyst_section(sym, price):
         out[L("Price target", "السعر المستهدف")] = pd.to_numeric(t["currentPriceTarget"], errors="coerce").replace(0, np.nan).values
     if "priorPriceTarget" in t:
         out[L("Prior target", "الهدف السابق")] = pd.to_numeric(t["priorPriceTarget"], errors="coerce").replace(0, np.nan).values
-    fmt = {c: "${:,.2f}" for c in out.columns if c in (L("Price target", "السعر المستهدف"), L("Prior target", "الهدف السابق"))}
+    fmt = {c: _px for c in out.columns if c in (L("Price target", "السعر المستهدف"), L("Prior target", "الهدف السابق"))}
     ui.table(out, fmt=fmt, words={L("Action", "الإجراء"): (L("Upgrade", "ترقية"), L("Downgrade", "تخفيض"))}, height=460)
 
 
@@ -1408,8 +1468,9 @@ def detail(r, det, got):
 
     with st.container(key=f"hnsec_an_{_key(sym)}"):
         ui.safe(analyst_section, sym, float(r["Price"]))
-    with st.container(key=f"hnsec_ins_{_key(sym)}"):
-        ui.safe(insider_section, sym)
+    if not tasi.known(sym):                         # insider filings (Form 4) exist for US companies
+        with st.container(key=f"hnsec_ins_{_key(sym)}"):
+            ui.safe(insider_section, sym)
 
     with st.container(key=f"hnsec_plan_{_key(sym)}"):
         ui.safe(plan_section, r, det, d)
@@ -1516,10 +1577,10 @@ def page_scanner():
     if symbols:
         with st.spinner(L(f"Hunting in {len(symbols)} stocks...", f"جاري الصيد في {len(symbols)} سهم...")):
             try:
-                got = run_hunt(key, symbols, ss.get("hn_nonce", 0), H.BUILD)
+                got = run_hunt(key, symbols, ss.get("hn_nonce", 0), H.BUILD, MK.current(), is_ar())
             except Exception:
                 got = None
-    label = unis[key][0] + (f" · {sector_name(ss['hn_sec'])}" if ss.get("hn_sec", "all") != "all" else "")
+    label = unis[key][0] + (f" · {sector_label(ss['hn_sec'])}" if ss.get("hn_sec", "all") != "all" else "")
     ui.html(hero_html(got, label))
     hunt_bar(unis, secs, inds, len(symbols))
     look = ss.get("hn_look")
@@ -1538,8 +1599,8 @@ def page_scanner():
         with st.container(key="hnsec_mood"):
             ui.safe(lambda: ui.html(mood_html(got["reg"])))
             if got["n"] < 30:
-                st.caption(L("A short list: the breadth numbers and the RS rating mean more with a bigger universe (RS is measured against SPY here).",
-                             "قائمة قصيرة: أرقام الاتساع وتقييم RS أدق مع نطاق أكبر (RS هنا مقاس مقابل SPY)."))
+                st.caption(L(f"A short list: the breadth numbers and the RS rating mean more with a bigger universe (RS is measured against {MK.get()['bench']} here).",
+                             f"قائمة قصيرة: أرقام الاتساع وتقييم RS أدق مع نطاق أكبر (RS هنا مقاس مقابل {MK.get()['bench']})."))
         with st.container(key="hnsec_filters"):
             ui.safe(filters, res)
         view = apply(res)

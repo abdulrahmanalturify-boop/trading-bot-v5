@@ -319,13 +319,14 @@ CSS = f"""<style>
 
 
 def _m(v, dec=2):
-    return "—" if v is None else f"${v:,.{dec}f}"
+    """A price in the page's market currency ($ / SAR)."""
+    import markets as MK
+    return "—" if v is None else MK.money(v, dec=dec)
 
 
 def _big(v):
-    if v is None:
-        return "—"
-    return ("-" if v < 0 else "") + "$" + T.fmt_big(abs(v))
+    import markets as MK
+    return "—" if v is None else MK.big(v)
 
 
 def verdict(up):

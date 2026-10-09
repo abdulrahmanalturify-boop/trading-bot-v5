@@ -1,5 +1,5 @@
 """
-app.py - TURA Pro · US Markets platform (entry point).
+app.py - TURA Pro · US and Saudi markets platform (entry point).
 Run locally:  streamlit run app.py
 """
 import importlib
@@ -11,7 +11,7 @@ import streamlit as st
 # Streamlit Cloud re-reads app.py after every GitHub upload but can keep the other modules (theme, data, ...) from the
 # previous version in memory. Every module carries BUILD; if one in memory is older, all of them are reloaded in order.
 BUILD = "21.9"
-_ORDER = ["terms", "lightmode", "i18n", "ai_assistant", "flags", "mcal", "universe", "sp500", "taxonomy", "ta", "academy_visuals", "academy", "insight", "heatmap", "newsiq", "newspics", "theme", "data",
+_ORDER = ["terms", "lightmode", "i18n", "ai_assistant", "flags", "mcal", "mcal_sa", "markets", "tasi", "universe", "sp500", "taxonomy", "ta", "academy_visuals", "academy", "insight", "heatmap", "newsiq", "newspics", "theme", "data",
           "caldata", "newsbot", "newsintel", "charts", "engine", "playbooks", "autotrader", "ui", "fairvalue", "segments", "holders", "sharia", "lab", "tdash", "mlbots", "brain", "paperbots", "smartbots", "portfolio", "robobot", "robo", "pfinsight", "p_markets", "p_newsintel", "p_research", "p_insight",
           "p_academy", "p_paper", "p_portfolio", "p_robo", "p_calendar", "hunter", "p_scanner", "home"]
 if any(m in sys.modules and getattr(sys.modules[m], "BUILD", None) != BUILD for m in _ORDER):
@@ -45,13 +45,15 @@ import p_portfolio
 import p_robo
 import p_research
 import p_scanner
+import markets as MK
+import tasi
 import theme as T
 import ui
 import universe as U
 from i18n import L
 
 SITE_NAME = "TURA Pro"
-st.set_page_config(page_title=f"{SITE_NAME} · US Markets", page_icon=":material/candlestick_chart:", layout="wide",
+st.set_page_config(page_title=f"{SITE_NAME} · Markets", page_icon=":material/candlestick_chart:", layout="wide",
                    menu_items={"About": f"**{SITE_NAME}** · version {BUILD}"})      # the ⋮ menu → About: which version is running
 
 ss = st.session_state
@@ -67,13 +69,38 @@ except Exception:
     pass
 ss.setdefault("symbol", "AAPL")
 ss.setdefault("watchlist", ["SPY", "QQQ", "AAPL", "NVDA", "MSFT", "TSLA", "AMZN", "META", "GOOGL", "AMD"])
+ss.setdefault("watchlist_sa", ["2222.SR", "1120.SR", "1180.SR", "2010.SR", "7010.SR", "1211.SR", "2082.SR", "4013.SR"])
 ss.setdefault("acct", {"size": 10000, "risk": 1.0})
+ss["_run_n"] = ss.get("_run_n", 0) + 1         # this run (the browser-storage frame is drawn once per run)
+
+# market: the US market or the Saudi market (Tadawul). Remembered in the session; a new visit starts from ?m= (kept in the address
+# bar like ?lang=), else from what this browser keeps (the visitor's last choice), else the landing asks.
+if ss.get("market") not in MK.CODES:
+    _qm = st.query_params.get("m")
+    if _qm in MK.CODES:
+        ss.market = _qm
+    else:
+        try:
+            _got = p_portfolio.browser()             # None until the browser answers (the first moment of a visit)
+        except Exception:
+            _got = {}
+        if _got is not None and _got.get("tura_mk") in MK.CODES:
+            ss.market = _got["tura_mk"]
+try:
+    if ss.get("market") in MK.CODES and st.query_params.get("m") != ss.market:
+        st.query_params["m"] = ss.market
+except Exception:
+    pass
+if ss.get("_mk_keep") in MK.CODES:               # a choice made on the last run: kept in the browser for the next visit
+    p_portfolio.keep({"tura_mk": ss.pop("_mk_keep")})
 
 # links like  stock?symbol=NVDA  (heatmap tiles, company chips, tables) open that company
 _qs = st.query_params.get("symbol")
 if _qs:
     ss.symbol = str(_qs).strip().upper()[:15] or ss.symbol
     del st.query_params["symbol"]
+    if MK.of_symbol(ss.symbol) == MK.SA and ss.get("market") != MK.SA:
+        ss.market = MK.SA
 
 try:
     newsbot.bot(wait=False)          # the news bot starts collecting in the background
@@ -107,6 +134,14 @@ POPULAR_SEARCH = {
 
 
 @st.cache_data(ttl=86400, show_spinner=False)
+def _search_options_sa(ar):
+    """'2222.SR · أرامكو السعودية · Saudi Aramco' for every Saudi company, the biggest first."""
+    out = [f"{s} · {tasi.name_of(s, True)} · {tasi.name_of(s)}" if ar else f"{s} · {tasi.name_of(s)} · {tasi.name_of(s, True)}"
+           for s in sorted(tasi.SYMBOLS, key=lambda x: (-tasi.cap_b(x), x))]
+    return ["^TASI.SR · " + ("مؤشر السوق الرئيسية تاسي" if ar else "TASI · Tadawul All Share Index")] + out
+
+
+@st.cache_data(ttl=86400, show_spinner=False)
 def _search_options():
     """'SYMBOL · Company' for the S&P 500, the site's universe and themes, well-known names outside them, popular ETFs, indices
     and crypto (type-ahead list). Any other symbol can still be typed in full and confirmed."""
@@ -130,6 +165,11 @@ def _resolve(q):
         return None
     if " · " in q:
         return q.split(" · ", 1)[0].strip().upper()
+    if q.isdigit() and len(q) == 4:                 # a Tadawul code: 2222 -> 2222.SR
+        return f"{q}.SR"
+    hit = tasi.search(q)
+    if hit and (MK.choice() == MK.SA or not q.isascii()):
+        return hit[0]
     res = data.search(q)
     if res:
         return res[0]["symbol"].upper()
@@ -161,9 +201,12 @@ def _global_search():
 
 def search_box():
     """Wide type-ahead search: suggestions while typing, any symbol or company name accepted."""
-    ph = L("Search a symbol or company…  e.g. NVDA, Apple, Bitcoin", "ابحث عن سهم أو شركة…  مثال: NVDA، أبل، بيتكوين")
+    sa = MK.choice() == MK.SA
+    ph = (L("Search a company or code…  e.g. 2222, Aramco, Al Rajhi", "ابحث عن شركة أو رمز…  مثال: 2222، أرامكو، الراجحي") if sa else
+          L("Search a symbol or company…  e.g. NVDA, Apple, Bitcoin", "ابحث عن سهم أو شركة…  مثال: NVDA، أبل، بيتكوين"))
+    opts = (_search_options_sa(ss.lang == "ar") + _search_options()) if sa else (_search_options() + _search_options_sa(ss.lang == "ar"))
     try:
-        st.selectbox("search", _search_options(), index=None, key="gq_sel", on_change=_pick_search, placeholder=ph,
+        st.selectbox("search", opts, index=None, key="gq_sel", on_change=_pick_search, placeholder=ph,
                      accept_new_options=True, label_visibility="collapsed")
     except TypeError:   # older Streamlit without accept_new_options
         st.text_input("search", key="gq", on_change=_global_search, label_visibility="collapsed", placeholder=ph)
@@ -220,6 +263,20 @@ SECTIONS = [
 # the built-in menu is hidden; the bar below opens its menus on hover and navigates without reloading the site
 pg = st.navigation({label: [P[k] for k in keys] for label, _, keys in SECTIONS}, position="hidden")
 
+
+def menu_sections():
+    """The bar's menus: the Saudi market leaves out the pages that only exist for the US market (futures, options, the economy)."""
+    if MK.choice() != MK.SA:
+        return SECTIONS
+    return [(lab, ic, [k for k in keys if k not in MK.US_ONLY]) for lab, ic, keys in SECTIONS if any(k not in MK.US_ONLY for k in keys)]
+
+
+# the market this page shows: the visitor's choice on a page that has a Saudi version, else the US market (see markets.py)
+_KEY_OF = {getattr(pg_, "url_path", None): k for k, pg_ in P.items()}
+_PAGE_KEY = _KEY_OF.get(getattr(pg, "url_path", ""), "overview" if getattr(pg, "url_path", "") == "" else None)
+ss["mkt_page"] = MK.SA if MK.choice() == MK.SA and _PAGE_KEY in MK.SA_PAGES else MK.US
+p_portfolio.PF.use(ss["mkt_page"])     # the paper portfolio's session hours and calendar on this run (the Robo Advisor: US)
+
 try:                                   # the saved paper bots are replayed in the background, so the Paper Bots page opens at once
     p_paper.PB.warm()
 except Exception:
@@ -275,11 +332,31 @@ def _set_lang(code):
     ss.lang = code
 
 
+def _set_market(code):
+    """The market switch: the site turns to that market (kept in this browser for the next visit)."""
+    if code not in MK.CODES or code == ss.get("market"):
+        return
+    MK.pick(code)
+    if code == MK.SA and _PAGE_KEY in MK.US_ONLY:       # a page the Saudi market doesn't have: its overview
+        ss["goto"] = "overview"
+
+
+def market_switch():
+    """Two flags in the top line: the US market / the Saudi market (Tadawul)."""
+    cur = MK.choice() or MK.US
+    with st.container(key="mktsw", horizontal=True, vertical_alignment="center", gap="small", width="content"):
+        for code in MK.CODES:
+            sp = MK.SPEC[code]
+            on = code == cur
+            with st.container(key=f"mkt_{code}{'_on' if on else ''}", width="content"):
+                st.button(L("US", "أمريكي") if code == MK.US else L("Saudi", "سعودي"), key=f"mktb_{code}",
+                          on_click=_set_market, args=(code,), help=L(*sp["name"]) + " · " + L(*sp["venue"]))
+
+
 def lang_menu():
     cur = ss.lang
-    flag = "us" if cur == "en" else "sa"
     with st.container(key="langsec", width="content"):
-        st.markdown(f'<div class="langbtn" tabindex="0" title="Language · اللغة"><span class="flag {flag}"></span>'
+        st.markdown(f'<div class="langbtn" tabindex="0" title="Language · اللغة"><span class="ms lic">translate</span><b class="lcode">{"ع" if cur == "ar" else "EN"}</b>'
                     f'<span class="ms chev">expand_more</span></div>', unsafe_allow_html=True)
         with st.container(key="langdd"):
             st.markdown(f'<div class="navhd">{L("Language", "اللغة")} · {L("اللغة", "Language")}</div>', unsafe_allow_html=True)
@@ -287,7 +364,7 @@ def lang_menu():
                 on = code == cur
                 sub = f"<small>{other}</small>" if code != cur else ""        # the name in the other language, e.g. العربية · Arabic
                 with st.container(key=f"langopt_{code}"):
-                    st.markdown(f'<div class="lopt{" on" if on else ""}"><span class="flag {fl}"></span><span class="nm"><b>{native}</b>{sub}</span>'
+                    st.markdown(f'<div class="lopt{" on" if on else ""}"><span class="lcode">{"ع" if code == "ar" else "EN"}</span><span class="nm"><b>{native}</b>{sub}</span>'
                                 + ('<span class="ms ck">check_circle</span>' if on else "") + "</div>", unsafe_allow_html=True)
                     st.button(native, key=f"langb_{code}", on_click=_set_lang, args=(code,), width="stretch")
 
@@ -296,7 +373,7 @@ def nav_bar():
     cur = getattr(pg, "url_path", "")
     with st.container(key="topnav", horizontal=True, vertical_alignment="center", gap="small"):
         with st.container(key="navleft", horizontal=True, vertical_alignment="center", gap="small", width="content"):
-            for i, (label, ic, keys) in enumerate(SECTIONS):
+            for i, (label, ic, keys) in enumerate(menu_sections()):
                 active = any(getattr(P[k], "url_path", None) == cur for k in keys)
                 with st.container(key=f"navsec_{i}", width="content"):
                     st.markdown(f'<div class="navbtn{" on" if active else ""}" tabindex="0" title="{T.esc(label)}">{T.icon(ic)}'
@@ -313,13 +390,14 @@ def nav_bar():
         with st.container(key="navsearch"):
             search_box()
         with st.container(key="navright", horizontal=True, vertical_alignment="center", gap="small", width="content"):
-            st.markdown(T.market_status(ss.lang == "ar"), unsafe_allow_html=True)
+            st.markdown(T.market_status(ss.lang == "ar", MK.choice() or MK.US), unsafe_allow_html=True)
+            market_switch()
             lang_menu()
 
 
 def nav_fallback():
     """Plain menu if this Streamlit version lacks the layout features used above."""
-    for label, _, keys in SECTIONS:
+    for label, _, keys in menu_sections():
         cols = st.columns(len(keys) + 1)
         cols[0].markdown(f"**{label}**")
         for col, k in zip(cols[1:], keys):
@@ -330,6 +408,9 @@ def nav_fallback():
                  placeholder=L("Search a symbol or company…", "ابحث عن سهم أو شركة…"))
     b.button("English", key="fb_en", on_click=_set_lang, args=("en",), width="stretch")
     c.button("العربية", key="fb_ar", on_click=_set_lang, args=("ar",), width="stretch")
+    d, e = st.columns(2)
+    d.button(L("US market", "السوق الأمريكي"), key="fb_us", on_click=_set_market, args=(MK.US,), width="stretch")
+    e.button(L("Saudi market", "السوق السعودي"), key="fb_sa", on_click=_set_market, args=(MK.SA,), width="stretch")
 
 
 try:
@@ -350,10 +431,13 @@ with st.container(key="logohome"):          # hidden; theme.FX_JS presses it whe
 
 # ---------------------------------------------------------------- sidebar: market pulse + watchlist
 PULSE = {"^GSPC": "S&P 500", "^IXIC": "Nasdaq", "^DJI": "Dow Jones", "^VIX": "VIX"}
+PULSE_SA = {"^TASI.SR": ("TASI", "تاسي"), "2222.SR": ("Saudi Aramco", "أرامكو"), "1120.SR": ("Al Rajhi", "الراجحي"), "BZ=F": ("Brent crude", "خام برنت")}
 
 
 def _name(sym):
     from sp500 import SP500
+    if tasi.known(sym):
+        return tasi.name_of(sym, ss.lang == "ar")
     if sym in ETF_NAMES:
         return ETF_NAMES[sym]
     if U.known(sym):
@@ -361,15 +445,28 @@ def _name(sym):
     return SP500[sym][0] if sym in SP500 else ""
 
 
+def _wl_key():
+    """The session key of the chosen market's watchlist."""
+    return "watchlist_sa" if MK.choice() == MK.SA else "watchlist"
+
+
 def _wl_add():
     v = (ss.get("wl_add") or "").strip().upper()
-    if v and v not in ss.watchlist:
-        ss.watchlist.append(v)
+    if v.isdigit() and len(v) == 4:
+        v += ".SR"
+    wl = ss[_wl_key()]
+    if v and v not in wl:
+        wl.append(v)
     ss.wl_add = ""
 
 
 def sidebar():
-    px = data.history_many(tuple(list(PULSE) + list(ss.watchlist)), "1mo")
+    sa = MK.choice() == MK.SA
+    pulse = {k: v[1 if ss.lang == "ar" else 0] for k, v in PULSE_SA.items()} if sa else PULSE
+    wl = ss[_wl_key()]
+    px = data.history_many(tuple(list(pulse) + list(wl)), "1mo")
+    if sa:
+        px = data.with_quotes(px, ["^TASI.SR"])
 
     def last(sym):
         df = px.get(sym)
@@ -378,7 +475,7 @@ def sidebar():
         c = df["Close"].dropna()
         return float(c.iloc[-1]), float((c.iloc[-1] / c.iloc[-2] - 1) * 100), c.tail(22).values
     rows = []
-    for sym, name in PULSE.items():
+    for sym, name in pulse.items():
         p, pct, sp = last(sym)
         if p is None:
             continue
@@ -386,18 +483,18 @@ def sidebar():
         rows.append(f'<div class="pr"><div><div class="n">{name}</div><div class="v">{T.fmt_price(p)}</div></div>'
                     f'{T.sparkline(sp, T.UP if col == T.POS_FG else T.DOWN, 58, 22)}{T.pill(pct, invert=sym == "^VIX")}</div>')
     if rows:
-        status = T.market_status(ss.lang == "ar").replace('class="status"', 'class="status mini"')
+        status = T.market_status(ss.lang == "ar", MK.choice() or MK.US).replace('class="status"', 'class="status mini"')
         st.markdown(f'<div class="pulse"><div class="ph">{T.icon("monitor_heart")}<span>{L("Market pulse", "نبض السوق")}</span>'
                     f'{status}</div>{"".join(rows)}</div>', unsafe_allow_html=True)
-    moves = [last(s_)[1] for s_ in ss.watchlist]
+    moves = [last(s_)[1] for s_ in wl]
     up = sum(1 for m in moves if m is not None and m > 0)
     dn = sum(1 for m in moves if m is not None and m < 0)
-    st.markdown(f'<div class="wlh"><span class="t">{T.icon("star")}{L("Watchlist", "قائمة المتابعة")} · {len(ss.watchlist)}</span>'
+    st.markdown(f'<div class="wlh"><span class="t">{T.icon("star")}{L("Watchlist", "قائمة المتابعة")} · {len(wl)}</span>'
                 f'<span><span class="pill pos" style="min-width:0;padding:1px 7px">▲ {up}</span> '
                 f'<span class="pill neg" style="min-width:0;padding:1px 7px">▼ {dn}</span></span></div>'
-                + (T.ad_bar(up, dn, max(0, len(ss.watchlist) - up - dn)) if ss.watchlist else ""), unsafe_allow_html=True)
-    lg = data.logos(ss.watchlist)
-    for s_ in ss.watchlist:
+                + (T.ad_bar(up, dn, max(0, len(wl) - up - dn)) if wl else ""), unsafe_allow_html=True)
+    lg = data.logos(wl)
+    for s_ in wl:
         p, pct, sp = last(s_)
         with st.container(key=f"wlr_{s_}"):
             right = (f'<div class="r"><div class="p">{T.fmt_price(p)}</div>{T.pill(pct)}</div>' if p is not None
@@ -408,11 +505,11 @@ def sidebar():
             if st.button(s_, key=f"wl_{s_}", width="stretch"):
                 ui.open_stock(s_)
     st.text_input("add", key="wl_add", on_change=_wl_add, label_visibility="collapsed",
-                  placeholder=L("+ Add a symbol (e.g. PLTR)", "+ أضف رمزاً (مثال: PLTR)"))
+                  placeholder=L("+ Add a code (e.g. 2222)", "+ أضف رمزاً (مثال: 2222)") if sa else L("+ Add a symbol (e.g. PLTR)", "+ أضف رمزاً (مثال: PLTR)"))
     with st.expander(L("Edit watchlist", "تعديل القائمة"), icon=":material/edit:"):
-        txt = st.text_area(L("Symbols (comma separated)", "الرموز (مفصولة بفاصلة)"), ", ".join(ss.watchlist))
+        txt = st.text_area(L("Symbols (comma separated)", "الرموز (مفصولة بفاصلة)"), ", ".join(wl))
         if st.button(L("Save", "حفظ")):
-            ss.watchlist = [x.strip().upper() for x in txt.split(",") if x.strip()]
+            ss[_wl_key()] = [(x.strip().upper() + (".SR" if x.strip().isdigit() and len(x.strip()) == 4 else "")) for x in txt.split(",") if x.strip()]
             st.rerun()
 
 
@@ -420,6 +517,11 @@ with st.sidebar:
     ui.safe(sidebar)
 
 # ---------------------------------------------------------------- page (one error never takes the whole site down)
+if MK.choice() == MK.SA and _PAGE_KEY not in MK.SA_PAGES and not (_PAGE_KEY == "overview"):
+    st.info(L("This page shows the US market for now; its Saudi version is on the way. The Saudi market's pages: Overview, News, "
+              "Stock, Screener, Scanner, Paper Bots and Portfolio.",
+              "هالصفحة تعرض السوق الأمريكي حالياً، ونسختها السعودية جاية. صفحات السوق السعودي: النظرة العامة، والأخبار، والسهم، "
+              "والفلتر، وصائد الفرص، والبوتات الافتراضية، والمحفظة."), icon=":material/flag:")
 try:
     pg.run()
 except Exception as e:  # Streamlit's own rerun / page-switch signals are not Exceptions, so they pass through

@@ -1,0 +1,42 @@
+# By hand (or a push of scripts/site_check.py on "research"): the site run on a GitHub server and its pages opened in a headless
+# browser (scripts/site_check.py), in English and Arabic, in the US and the Saudi market. The screenshots and the report go to
+# the branch "site-check" (replaced on every run; nothing is added to the other branches).
+name: site check
+on:
+  push:
+    branches: [research]
+    paths: ["scripts/site_check.py", ".github/workflows/sitecheck.yml"]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: site-check
+  cancel-in-progress: true
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: research
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt playwright pyflakes
+      - run: python -m playwright install --with-deps chromium
+      - run: sudo apt-get install -y -q fonts-noto-core > /dev/null || true
+      - run: mkdir -p /tmp/sc && (python -m pyflakes *.py scripts/*.py > /tmp/sc/pyflakes.txt 2>&1 || true)
+      - run: python scripts/site_check.py 2>&1 | tee /tmp/sc/run_log.txt
+        env:
+          OUT: /tmp/sc
+      - if: always()
+        run: |
+          cd /tmp/sc
+          git init -q -b site-check
+          git config user.name "site-check"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "site check $(date -u +%Y-%m-%dT%H:%MZ) [skip ci]"
+          git push -q -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" site-check:site-check

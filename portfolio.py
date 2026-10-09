@@ -16,6 +16,11 @@ days), so a stop that was hit at 11:05 fills at 11:05's price even if nobody loo
 positions, dividends, splits, fees, the equity curve) is rebuilt day by day from the fills and the real closing prices.
 Prices are Yahoo's raw prices (not adjusted), the ones the trades really happened at.
 
+Two markets (markets.py): the US account above, and a Saudi one ('market': 'sa' in the account, its own row: key + ":sa"):
+Saudi companies in riyals, on the Tadawul calendar (10:00-15:00 Riyadh, Sunday to Thursday), cash only (no margin, no short
+selling, as for a regular Saudi brokerage account). The account functions work in one market at a time (use(); the ones
+that take an account set it from the account).
+
 Storage: rows of the paper bots' table, so nothing new has to be set up in Supabase. Every visitor has a portfolio of their
 own, the row "__portfolio__:<their code>", where the code is a random key kept in their browser (see p_portfolio). The row
 "__portfolio__" is the site owner's own portfolio: it opens on the owner's devices (owner_code), never for visitors.
@@ -34,6 +39,7 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
+import markets as MK
 import mcal
 
 ET = ZoneInfo("America/New_York")
@@ -68,6 +74,42 @@ class Empty(Exception):
     pass
 
 
+# ---------------------------------------------------------------- the market the account trades in
+SA_SETTINGS = {"leverage": 1.0, "allow_short": False, "borrow_rate": 0.0, "margin_rate": 0.0}   # a Saudi account: cash only
+_CTX = threading.local()
+
+
+def use(code):
+    """The market the account functions work in (us / sa) on this thread: the portfolio page sets its market, and every function
+    that takes an account sets it from the account itself."""
+    _CTX.m = MK.norm(code)
+
+
+def market():
+    return getattr(_CTX, "m", MK.US)
+
+
+def _use_state(state):
+    use((state or {}).get("market"))
+
+
+def _tz():
+    return MK.tz(market())
+
+
+def _cal():
+    return MK.cal(market())
+
+
+def market_key(key, code):
+    """The stored row of a market's portfolio: the US one keeps its key (as before), the Saudi one adds ':sa'."""
+    return f"{key}:sa" if code == MK.SA else key
+
+
+def market_of_key(key):
+    return MK.SA if str(key).endswith(":sa") else MK.US
+
+
 # ---------------------------------------------------------------- time
 def utcnow():
     return datetime.now(UTC)
@@ -84,51 +126,57 @@ def parse(s):
 
 
 def et_date(dt):
-    return parse(dt).astimezone(ET).date()
+    """The market's local date of a time (New York / Riyadh)."""
+    return parse(dt).astimezone(_tz()).date()
 
 
 def session(d):
-    """(open, close) of a trading day as aware ET datetimes, None when the market is closed that day."""
-    if not mcal.is_trading_day(d):
+    """(open, close) of a trading day as aware local datetimes (New York 9:30-16:00, 13:00 on early-close days / Riyadh
+    10:00-15:00), None when the market is closed that day."""
+    cal, tz = _cal(), _tz()
+    if not cal.is_trading_day(d):
         return None
-    kind, _ = mcal.day_status(d)
+    if market() == MK.SA:
+        return datetime.combine(d, dtime(10, 0), tz), datetime.combine(d, dtime(15, 0), tz)
+    kind, _ = cal.day_status(d)
     close = dtime(13, 0) if kind == "early" else dtime(16, 0)
-    return datetime.combine(d, dtime(9, 30), ET), datetime.combine(d, close, ET)
+    return datetime.combine(d, dtime(9, 30), tz), datetime.combine(d, close, tz)
 
 
 def is_open(now=None):
-    now = (now or utcnow()).astimezone(ET)
+    now = (now or utcnow()).astimezone(_tz())
     s = session(now.date())
     return bool(s) and s[0] <= now < s[1]
 
 
 def order_session(placed):
     """The trading day an order placed at this time belongs to (the current session, else the next one)."""
-    t = parse(placed).astimezone(ET)
+    t = parse(placed).astimezone(_tz())
     d = t.date()
     s = session(d)
     if s and t < s[1]:
         return d
-    return mcal.next_trading_day(d)
+    return _cal().next_trading_day(d)
 
 
 def last_session_day(now=None):
     """The last trading day whose session has started (today during or after the session, else the one before)."""
-    t = (now or utcnow()).astimezone(ET)
+    t = (now or utcnow()).astimezone(_tz())
     s = session(t.date())
     if s and t >= s[0]:
         return t.date()
-    return mcal.prev_trading_day(t.date())
+    return _cal().prev_trading_day(t.date())
 
 
 # ---------------------------------------------------------------- prices (raw, from Yahoo)
-def _tidy_daily(df):
+def _tidy_daily(df, tz=ET):
+    """tz: the symbol's market (its daily candles are dated in its own time zone)."""
     if df is None or df.empty:
         return pd.DataFrame()
     df = df.copy()
     idx = pd.to_datetime(df.index)
     if getattr(idx, "tz", None) is not None:
-        idx = idx.tz_convert(ET).tz_localize(None)
+        idx = idx.tz_convert(tz).tz_localize(None)
     df.index = idx.normalize()
     for c in ("Dividends", "Stock Splits"):
         if c not in df:
@@ -140,7 +188,7 @@ def _tidy_daily(df):
 @st.cache_data(ttl=600, show_spinner=False)
 def _daily(sym, start):
     import yfinance as yf
-    df = _tidy_daily(yf.Ticker(sym).history(start=start, auto_adjust=False, actions=True))
+    df = _tidy_daily(yf.Ticker(sym).history(start=start, auto_adjust=False, actions=True), MK.tz(MK.of_symbol(sym)))
     if df.empty:
         raise Empty(sym)
     return df
@@ -153,7 +201,8 @@ def _intraday(sym):
     if df is None or df.empty:
         raise Empty(sym)
     idx = pd.to_datetime(df.index)
-    df.index = idx.tz_convert(ET) if getattr(idx, "tz", None) is not None else idx.tz_localize(ET)
+    tz = MK.tz(MK.of_symbol(sym))
+    df.index = idx.tz_convert(tz) if getattr(idx, "tz", None) is not None else idx.tz_localize(tz)
     return df[["Open", "High", "Low", "Close"]].astype(float).dropna()
 
 
@@ -200,13 +249,17 @@ class Market:
 
 
 # ---------------------------------------------------------------- the account
-def new_state(start_cash=None, settings=None, name="Paper Portfolio", now=None):
+def new_state(start_cash=None, settings=None, name="Paper Portfolio", now=None, market=None):
+    """A new account. market: us / sa (default: the market in use); a Saudi one is cash only (SA_SETTINGS)."""
+    market = MK.norm(market or globals()["market"]())
     st_ = dict(DEFAULTS)
     st_.update({k: v for k, v in (settings or {}).items() if k in DEFAULTS})
     if start_cash:
         st_["start_cash"] = float(start_cash)
+    if market == MK.SA:
+        st_.update(SA_SETTINGS)
     return {"v": 1, "name": name, "created": iso(now or utcnow()), "start_cash": float(st_["start_cash"]), "settings": st_,
-            "orders": [], "fills": [], "flows": [], "seq": 1}
+            "orders": [], "fills": [], "flows": [], "seq": 1, **({"market": MK.SA} if market == MK.SA else {})}
 
 
 def clean(state):
@@ -218,6 +271,10 @@ def clean(state):
     s.setdefault("name", "Paper Portfolio")
     s.setdefault("created", iso(utcnow()))
     s["settings"] = {**DEFAULTS, **(s.get("settings") or {})}
+    if s.get("market") == MK.SA:
+        s["settings"].update(SA_SETTINGS)
+    elif "market" in s:
+        s.pop("market")
     s.setdefault("start_cash", float(s["settings"]["start_cash"]))
     for k in ("orders", "fills", "flows"):
         s[k] = list(s.get(k) or [])
@@ -270,6 +327,7 @@ def _split_events(mkt, syms, start):
 
 def positions_now(state, mkt, until=None):
     """{sym: qty} from the fills (+ the splits since), the quick version used to check orders."""
+    _use_state(state)
     until = until or utcnow()
     fills = sorted(state["fills"], key=lambda f: (f["time"], f["id"]))
     if not fills:
@@ -310,7 +368,7 @@ def _bars(mkt, sym, since, now):
             covered.add(t0.date())
             if t0 >= since and t1 <= now:
                 out.append((t0, t1, float(r["Open"]), float(r["High"]), float(r["Low"]), float(r["Close"])))
-    d0 = since.astimezone(ET).date()
+    d0 = since.astimezone(_tz()).date()
     daily = mkt.daily(sym, (d0 - timedelta(days=7)).isoformat())
     if not daily.empty:
         for ix, r in daily.iterrows():
@@ -432,6 +490,7 @@ def process(state, mkt, now=None):
     """Fills, expires and cancels the open orders against the real bars since they were placed, in time order across all
     orders. True when anything changed."""
     import heapq
+    _use_state(state)
     now = now or utcnow()
     live = [o for o in state["orders"] if o["status"] == "open"]
     if not live:
@@ -501,6 +560,7 @@ def _f(x, default=0.0):
 
 def rebuild(state, mkt, now=None):
     """Replays the account: cash, positions, dividends, splits, fees, borrow fees, margin interest and the daily equity."""
+    _use_state(state)
     now = now or utcnow()
     s = state["settings"]
     start_day = et_date(state["created"])
@@ -520,10 +580,11 @@ def rebuild(state, mkt, now=None):
     month_cost = {}
     last_px = {}
     days = []
-    d = start_day if mcal.is_trading_day(start_day) else mcal.next_trading_day(start_day)
+    cal = _cal()
+    d = start_day if cal.is_trading_day(start_day) else cal.next_trading_day(start_day)
     while d <= end_day:
         days.append(d)
-        d = mcal.next_trading_day(d)
+        d = cal.next_trading_day(d)
     if not days:
         days = [end_day]
 
@@ -736,6 +797,7 @@ class OrderError(Exception):
 def preview(state, view, mkt, spec, now=None):
     """What an order would do before it is sent: reference price, value, fees, margin it needs, buying power left, the
     loss at its stop and the reward at its target. Raises OrderError when it would be refused."""
+    _use_state(state)
     now = now or utcnow()
     s = state["settings"]
     sym = str(spec.get("sym") or "").strip().upper()
@@ -833,6 +895,7 @@ def reserved(state, acct):
 
 def place(state, view, mkt, spec, now=None):
     """Checks and adds an order; a market order fills at once while the market is open. Returns the order."""
+    _use_state(state)
     now = now or utcnow()
     pv = preview(state, view, mkt, spec, now)
     o = {"id": _next_id(state), "sym": pv["sym"], "side": pv["side"], "qty": pv["qty"], "type": pv["type"],
@@ -1001,7 +1064,11 @@ def load(key=KEY):
     there is none yet (nothing is written until the first order or setting). Raises paperbots.StoreError."""
     raw = _load_raw(_pb().backend(), _REV["n"], key)
     st_ = clean(raw["state"]) if raw else None
-    return (st_ or new_state()), (raw or {}).get("id")
+    m = market_of_key(key)                   # a Saudi portfolio's row ends with ':sa' (market_key)
+    st_ = st_ or new_state(market=m)
+    if m == MK.SA and st_.get("market") != MK.SA:
+        st_ = clean({**st_, "market": MK.SA})
+    return st_, (raw or {}).get("id")
 
 
 class Conflict(Exception):

@@ -14,9 +14,11 @@ import data
 import fairvalue as FV
 import engine
 import holders as HD
+import markets as MK
 import segments as SG
 import sharia
 import ta
+import tasi
 import taxonomy as X
 import theme as T
 import ui
@@ -41,17 +43,23 @@ CHART_TYPES = {"Candles": "شموع", "Heikin Ashi": "هايكن آشي", "OHLC"
 def quote_header(sym, daily, inf):
     last, prev = daily["Close"].iloc[-1], daily["Close"].iloc[-2]
     chg, pct = last - prev, (last / prev - 1) * 100
-    name = inf.get("longName") or inf.get("shortName") or U.name_of(sym)
-    exch = inf.get("fullExchangeName") or inf.get("exchange") or ""
-    sec = inf.get("sector") or (U.sector_of(sym) if U.known(sym) else "")
-    ind = inf.get("industry") or (U.industry_of(sym) if U.known(sym) else "")
-    badges = (T.badge(sector_name(sec), "acc", "category") if sec else "") + (T.badge(industry_name(ind), "vio", "factory") if ind else "")
+    if tasi.known(sym):                            # a Saudi company: its trading name and the exchange's sector and industry group
+        name = tasi.name_of(sym, is_ar()) + ("" if is_ar() else f" · {tasi.name_of(sym, True)}")
+        exch = L("Tadawul", "تداول")
+        badges = (T.badge(tasi.sector_ar(tasi.sector_of(sym)) if is_ar() else tasi.sector_of(sym), "acc", "category")
+                  + T.badge(tasi.industry_ar(tasi.industry_of(sym)) if is_ar() else tasi.industry_of(sym), "vio", "factory"))
+    else:
+        name = inf.get("longName") or inf.get("shortName") or U.name_of(sym)
+        exch = inf.get("fullExchangeName") or inf.get("exchange") or ""
+        sec = inf.get("sector") or (U.sector_of(sym) if U.known(sym) else "")
+        ind = inf.get("industry") or (U.industry_of(sym) if U.known(sym) else "")
+        badges = (T.badge(sector_name(sec), "acc", "category") if sec else "") + (T.badge(industry_name(ind), "vio", "factory") if ind else "")
     for tk, sk in X.themes_of(sym)[:2]:
         badges += T.badge(theme_name(tk, sk), "gold", X.THEMES[tk][2])
     uri = data.logos([sym]).get(sym)
     ui.html(f'<div style="display:flex;gap:14px;align-items:center">{T.logo_circle(sym, uri, 58)}<div>'
             f'<div class="q-name"><b style="color:#fff;font-size:1.15rem">{T.esc(name)}</b> · {sym} · {T.esc(exch)}</div><div>{badges}</div></div></div>'
-            f'<div style="margin-top:6px"><span class="q-price">{T.fmt_price(last)}</span> <span class="muted">{inf.get("currency", "USD")}</span></div>'
+            f'<div style="margin-top:6px"><span class="q-price">{T.fmt_price(last)}</span> <span class="muted">{inf.get("currency") or ("SAR" if MK.is_sa() else "USD")}</span></div>'
             f'<div><span class="q-chg {T.cls(chg)}">{chg:+,.2f} ({pct:+.2f}%)</span> '
             f'<span class="muted" style="font-size:.85rem">· {daily.index[-1]:%Y-%m-%d} · </span>{T.market_status(is_ar())}</div>')
     return last
@@ -75,6 +83,8 @@ def key_stats(daily, inf):
         (L("Short % float", "البيع على المكشوف"), f"{inf['shortPercentOfFloat'] * 100:.1f}%" if inf.get("shortPercentOfFloat") else "—"),
         (L("Shares out", "الأسهم القائمة"), T.fmt_big(inf.get("sharesOutstanding"))),
     ]
+    if MK.is_sa():                                  # no short selling data on Tadawul
+        stats = [x for x in stats if x[0] != L("Short % float", "البيع على المكشوف")]
     pos = (last - lo52) / (hi52 - lo52) * 100 if hi52 > lo52 else 50
     ui.html('<div class="stats">' + "".join(f'<div class="stat"><div class="l">{l}</div><div class="v">{v}</div></div>'
                                             for l, v in stats) + "</div>"
@@ -280,11 +290,11 @@ def _fmt_metric(v, kind):
     if v is None or pd.isna(v):
         return "—"
     if kind == "money":
-        return ("-" if v < 0 else "") + "$" + T.fmt_big(abs(v))
+        return MK.big(v)
     if kind == "pct":
         return f"{v:.1f}%"
     if kind == "eps":
-        return f"${v:.2f}"
+        return MK.money(v, dec=2)
     return f"{v:.2f}"
 
 
@@ -300,6 +310,12 @@ def _peers(sym, n=12):
     """Companies in the same sub-industry (S&P 500) or industry (top 175), biggest first."""
     from sp500 import SP500
     out = []
+    if tasi.known(sym):                            # a Saudi company: its industry group, then its sector
+        g = tasi.group_of(sym)
+        out = [x for x in tasi.SYMBOLS if tasi.group_of(x) == g and x != sym]
+        if len(out) < 4:
+            out += [x for x in tasi.SYMBOLS if tasi.sector_of(x) == tasi.sector_of(sym) and x != sym and x not in out]
+        return sorted(out, key=lambda x: -tasi.cap_b(x))[:n]
     if sym in SP500:
         sub, sec_ = SP500[sym][2], SP500[sym][1]
         out = [x for x, v in SP500.items() if v[2] == sub and x != sym]
@@ -506,7 +522,10 @@ def financials_tab(sym, inf, price=None):
                 show.index = [str(i) for i in show.index]
                 show.index.name = L("Line item", "البند")
                 ui.table(show, index=True, height=520, fmt={c: "{:,.2f}" for c in show.columns})
-                st.caption(L("Values in billions of USD (EPS and rates as reported).", "القيم بالمليار دولار (ربحية السهم والنسب كما هي)."))
+                if MK.is_sa():
+                    st.caption(L("Values in billions of riyals (EPS and rates as reported).", "القيم بالمليار ريال (ربحية السهم والنسب كما هي)."))
+                else:
+                    st.caption(L("Values in billions of USD (EPS and rates as reported).", "القيم بالمليار دولار (ربحية السهم والنسب كما هي)."))
 
 
 def _optc():
@@ -536,7 +555,8 @@ def analysts_tab(sym, inf, price):
             c2.markdown(T.kpi("event_upcoming", L("Next earnings", "إعلان الأرباح القادم"), f"{nd:%Y-%m-%d}",
                               L(f"in {days} days", f"بعد {days} يوم") if days >= 0 else L("date not confirmed yet", "الموعد لم يتأكد بعد"), "acc"),
                         unsafe_allow_html=True)
-    S.insider_section(sym)
+    if not MK.is_sa():                              # insider filings (Form 4) exist for US companies
+        S.insider_section(sym)
 
 
 REV_CSS = """<style>
@@ -808,13 +828,21 @@ def company_tab(sym):
             ui.html(f'<div class="card"><div class="desc">{T.esc(summary)}</div></div>')
     else:
         st.caption(L("No description available for this symbol.", "لا توجد نبذة متاحة لهذا الرمز."))
-    ui.safe(revenue_section, sym)
+    sa = tasi.known(sym)
+    if not sa:
+        ui.safe(revenue_section, sym)
 
     ui.sec("category", "Classification", "التصنيف")
     th = X.themes_of(sym)
     sub = X.SUBIND.get(sym)
-    items = [("category", L("Sector", "القطاع"), sector_name(p["sector"]) if p["sector"] else "—"),
-             ("factory", L("Industry", "الصناعة"), industry_name(p["industry"]) if p["industry"] else "—"),
+    if sa:
+        sec_txt = tasi.sector_ar(tasi.sector_of(sym)) if is_ar() else tasi.sector_of(sym)
+        ind_txt = tasi.industry_ar(tasi.industry_of(sym)) if is_ar() else tasi.industry_of(sym)
+    else:
+        sec_txt = sector_name(p["sector"]) if p["sector"] else "—"
+        ind_txt = industry_name(p["industry"]) if p["industry"] else "—"
+    items = [("category", L("Sector", "القطاع"), sec_txt),
+             ("factory", L("Industry", "الصناعة"), ind_txt),
              ("account_tree", L("Sub-industry", "الصناعة الفرعية"), L(sub[0], sub[1]) if sub else "—"),
              ("lightbulb", L("Themes", "الثيمات الاستثمارية"), " · ".join(dict.fromkeys(theme_name(t) for t, _ in th)) or "—"),
              ("label", L("Sub-themes", "الثيمات الفرعية"), " · ".join(theme_name(t, s_) for t, s_ in th) or "—"),
@@ -832,6 +860,15 @@ def company_tab(sym):
         off = pd.DataFrame([{L("Name", "الاسم"): o.get("name"), L("Title", "المنصب"): o.get("title"),
                              L("Age", "العمر"): o.get("age")} for o in p["officers"]])
         ui.table(off, fmt={L("Age", "العمر"): "{:,.0f}"}, wrap={L("Title", "المنصب")})
+    if sa:
+        peers = _peers(sym, 8)
+        if peers:
+            ui.sec("hub", "Peers in the same industry", "شركات منافسة في نفس الصناعة")
+            ch = data.changes(peers)
+            df = pd.DataFrame([{"Symbol": s, "Name": tasi.name_of(s, is_ar()), "Price": ch.get(s, (np.nan, np.nan))[0], "Chg %": ch.get(s, (np.nan, np.nan))[1]}
+                               for s in peers])
+            ui.html(f'<div class="card">{ui.row_list(df, data.logos(peers))}</div>')
+        return
     if p["industry"]:
         peers = [s for s, v in U.STOCKS.items() if v[2] == p["industry"] and s != sym][:8]
         if peers:
@@ -980,6 +1017,7 @@ def _options_tab(sym, price):
 
 def page_stock():
     sym = ss.symbol
+    ss["mkt_page"] = MK.of_symbol(sym)              # the company's own market (prices in riyals for a Saudi one)
     with st.spinner(L(f"Loading {sym}...", f"جاري تحميل {sym}...")):
         daily = data.history(sym, "2y")
     if daily.empty or len(daily) < 3:
@@ -992,7 +1030,8 @@ def page_stock():
     with h2, st.container(key="stkact"):
         # three action cards, each in its own colour: the watchlist star (a toggle), the hunter's analysis, the paper ticket.
         # The card is HTML; an invisible button over it takes the tap (its label still names it for screen readers)
-        inwl = sym in ss.watchlist
+        wl = ss.setdefault("watchlist_sa", []) if MK.is_sa() else ss.watchlist
+        inwl = sym in wl
         with st.container(key="stkact_wl_on" if inwl else "stkact_wl"):
             ui.html(action_card("star", L("In watchlist", "في المتابعة") if inwl else L("Add to watchlist", "أضف للمتابعة"),
                                 L("Tap to remove it", "اضغط لإزالته") if inwl else L("Follow it in the sidebar", "تابعه من القائمة الجانبية"),
@@ -1001,9 +1040,9 @@ def page_stock():
                          key="stk_wl", help=L("Tap to remove it from the watchlist", "اضغط لإزالته من المتابعة") if inwl else
                          L("Follow it in the sidebar watchlist", "تابعه في قائمة المتابعة الجانبية")):
                 if inwl:
-                    ss.watchlist.remove(sym)
+                    wl.remove(sym)
                 else:
-                    ss.watchlist.append(sym)
+                    wl.append(sym)
                 st.rerun()
         arrow = "arrow_back" if is_ar() else "arrow_forward"
         with st.container(key="stkact_hn"):
@@ -1015,19 +1054,23 @@ def page_stock():
                 ui.goto("scanner")
         with st.container(key="stkact_pf"):
             ui.html(action_card("account_balance_wallet", L("Paper trade", "تداول افتراضي"),
+                                L("Buy it with virtual riyals", "اشترِه بريالات افتراضية") if MK.is_sa() else
                                 L("Buy or short it with virtual money", "اشترِه أو بعه على المكشوف بفلوس افتراضية"), arrow))
             if st.button(L("Paper trade", "تداول افتراضي"), width="stretch", key="stk_pf",
                          help=L("Buy or sell it short with virtual money", "اشترِه أو بعه على المكشوف بفلوس افتراضية")):
                 ss["pf_sym"] = sym                          # the paper portfolio's ticket opens on this stock
                 ui.goto("pf_trade")
     key_stats(daily, inf)
-    tabs = st.tabs([L(":material/candlestick_chart: Chart", ":material/candlestick_chart: الرسم البياني"),
-                    L(":material/apartment: Company", ":material/apartment: عن الشركة"),
-                    L(":material/speed: Technicals", ":material/speed: التحليل الفني"),
-                    L(":material/request_quote: Financials", ":material/request_quote: المالية"),
-                    L(":material/groups: Analysts", ":material/groups: المحللون"),
-                    L(":material/tune: Options", ":material/tune: الخيارات"),
-                    L(":material/newspaper: News", ":material/newspaper: الأخبار")])
+    sa = MK.is_sa()
+    labels = [L(":material/candlestick_chart: Chart", ":material/candlestick_chart: الرسم البياني"),
+              L(":material/apartment: Company", ":material/apartment: عن الشركة"),
+              L(":material/speed: Technicals", ":material/speed: التحليل الفني"),
+              L(":material/request_quote: Financials", ":material/request_quote: المالية"),
+              L(":material/groups: Analysts", ":material/groups: المحللون")]
+    if not sa:                                      # no listed options on Tadawul
+        labels.append(L(":material/tune: Options", ":material/tune: الخيارات"))
+    labels.append(L(":material/newspaper: News", ":material/newspaper: الأخبار"))
+    tabs = st.tabs(labels)
     with tabs[0]:
         ui.safe(chart_tab, sym, daily)
     with tabs[1]:
@@ -1038,9 +1081,10 @@ def page_stock():
         ui.safe(financials_tab, sym, inf, float(price))
     with tabs[4]:
         ui.safe(analysts_tab, sym, inf, price)
-    with tabs[5]:
-        options_tab(sym, float(price))
-    with tabs[6]:
+    if not sa:
+        with tabs[5]:
+            options_tab(sym, float(price))
+    with tabs[-1]:
         ui.safe(ui.news_list, data.symbol_news(sym, 20), 20)
     ui.foot()
 
@@ -1541,7 +1585,153 @@ def _share_view(df, total, group_name):
                  "الحصة السوقية = إيرادات الشركة (آخر 12 شهر) ÷ مجموع إيرادات الشركات في هذه القائمة."))
 
 
+# ---------------------------------------------------------------- the Saudi market's screener (its ~250 companies, filtered here)
+SA_F = {
+    "cap": (("Market cap", "القيمة السوقية"), [("Any", "الكل", None), ("Mega (over 100B)", "عملاقة (أكثر من 100 مليار)", ("Mkt Cap", 100e9, None)),
+                                             ("Large (10–100B)", "كبيرة (10–100 مليار)", ("Mkt Cap", 10e9, 100e9)),
+                                             ("Mid (2–10B)", "متوسطة (2–10 مليار)", ("Mkt Cap", 2e9, 10e9)), ("Small (under 2B)", "صغيرة (أقل من 2 مليار)", ("Mkt Cap", None, 2e9))]),
+    "pe": (("P/E", "مكرر الربحية"), [("Any", "الكل", None), ("Profitable", "رابحة", ("P/E", 0, None)), ("Under 15", "أقل من 15", ("P/E", 0, 15)),
+                                     ("15–25", "15–25", ("P/E", 15, 25)), ("Over 25", "أكثر من 25", ("P/E", 25, None))]),
+    "div": (("Dividend yield", "عائد التوزيعات"), [("Any", "الكل", None), ("Over 2%", "أكثر من 2%", ("Div %", 2, None)), ("Over 4%", "أكثر من 4%", ("Div %", 4, None)),
+                                                    ("Over 6%", "أكثر من 6%", ("Div %", 6, None))]),
+    "day": (("Today", "اليوم"), [("Any", "الكل", None), ("Up", "مرتفعة", ("Chg %", 0.0001, None)), ("Down", "منخفضة", ("Chg %", None, -0.0001)),
+                                 ("Up over 2%", "مرتفعة أكثر من 2%", ("Chg %", 2, None)), ("Down over 2%", "منخفضة أكثر من 2%", ("Chg %", None, -2))]),
+    "trend": (("Trend", "الاتجاه"), [("Any", "الكل", None), ("Above its 50-day average", "فوق متوسط 50 يوم", ("vs50 %", 0, None)),
+                                     ("Above its 200-day average", "فوق متوسط 200 يوم", ("vs200 %", 0, None)),
+                                     ("Below its 200-day average", "تحت متوسط 200 يوم", ("vs200 %", None, 0))]),
+    "hi": (("52-week range", "المدى السنوي"), [("Any", "الكل", None), ("Within 5% of its high", "قرب القمة السنوية (5%)", ("Hi52 %", -5, None)),
+                                              ("Within 10% of its low", "قرب القاع السنوي (10%)", ("Lo52 %", None, 10))]),
+    "p3m": (("3-month performance", "أداء 3 أشهر"), [("Any", "الكل", None), ("Up over 10%", "صاعد أكثر من 10%", ("Perf 3M", 10, None)),
+                                                    ("Down over 10%", "نازل أكثر من 10%", ("Perf 3M", None, -10))]),
+    "rsi": (("RSI (14)", "مؤشر القوة النسبية"), [("Any", "الكل", None), ("Oversold (under 30)", "تشبع بيع (أقل من 30)", ("RSI", None, 30)),
+                                                ("30–70", "30–70", ("RSI", 30, 70)), ("Overbought (over 70)", "تشبع شراء (أكثر من 70)", ("RSI", 70, None))]),
+    "liq": (("Liquidity", "السيولة"), [("Any", "الكل", None), ("Over 1M shares a day", "أكثر من مليون سهم يومياً", ("Avg Vol", 1e6, None)),
+                                       ("Over 5M shares a day", "أكثر من 5 ملايين سهم يومياً", ("Avg Vol", 5e6, None))]),
+}
+SA_SORT = {"cap": ("Market cap", "القيمة السوقية", "Mkt Cap", False), "chg": ("Today's change", "تغير اليوم", "Chg %", False),
+           "div": ("Dividend yield", "عائد التوزيعات", "Div %", False), "pe": ("Lowest P/E", "أقل مكرر", "P/E", True),
+           "p3m": ("3-month performance", "أداء 3 أشهر", "Perf 3M", False), "rsi": ("RSI", "مؤشر القوة النسبية", "RSI", False)}
+
+
+def _sa_reset():
+    for k in list(ss.keys()):
+        if str(k).startswith("saf_"):
+            del ss[k]
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def _sa_screen_frame(ar):
+    snap = data.sa_snapshot()
+    if snap.empty:
+        return snap
+    tech = _technicals(tuple(tasi.SYMBOLS))
+    df = snap.merge(tech.drop(columns=["_spark"], errors="ignore"), on="Symbol", how="left") if not tech.empty else snap
+    df["Name"] = df["Symbol"].map(lambda s_: tasi.name_of(s_, ar))
+    df["Sector"] = df["Symbol"].map(tasi.sector_of)
+    df["Industry"] = df["Symbol"].map(tasi.industry_of)
+    return df
+
+
+def page_screener_sa():
+    ui.header("filter_alt", "Saudi Stock Screener", "فلتر الأسهم السعودية",
+              "Filter the Saudi main market by sector, industry group, size, valuation, dividends, trend and momentum. Prices and values in SAR.",
+              "فلترة السوق السعودية الرئيسية حسب القطاع والمجموعة الصناعية والحجم والتقييم والتوزيعات والاتجاه والزخم. الأسعار والقيم بالريال.")
+    top = st.columns([1.2, 1.25, 1.3, 0.75], vertical_alignment="bottom")
+    sec = top[0].selectbox(L("Sector", "القطاع"), ["Any"] + tasi.SECTORS, key="saf_sector",
+                           format_func=lambda x: L("Any", "الكل") if x == "Any" else (tasi.sector_ar(x) if is_ar() else x))
+    inds = ["Any"] + tasi.industries(None if sec == "Any" else sec)
+    if ss.get("saf_ind") not in inds:
+        ss["saf_ind"] = "Any"
+    ind = top[1].selectbox(L("Industry group", "المجموعة الصناعية"), inds, key="saf_ind",
+                           format_func=lambda x: L("Any", "الكل") if x == "Any" else (tasi.industry_ar(x) if is_ar() else x))
+    sort = top[2].selectbox(L("Order by", "ترتيب حسب"), list(SA_SORT), key="saf_sort", format_func=lambda k: L(*SA_SORT[k][:2]))
+    top[3].button(L("Reset", "إعادة ضبط"), icon=":material/restart_alt:", width="stretch", key="saf_reset", on_click=_sa_reset)
+    cols = st.columns(5)
+    pick = {}
+    for i, (k, ((en, ar_), opts)) in enumerate(SA_F.items()):
+        pick[k] = cols[i % 5].selectbox(L(en, ar_), list(range(len(opts))), key=f"saf_{k}", format_func=lambda j, opts=opts: L(opts[j][0], opts[j][1]))
+    with st.spinner(L("Reading the Saudi market...", "نقرأ السوق السعودي...")):
+        df = _sa_screen_frame(is_ar())
+    if df.empty:
+        st.warning(L("Saudi market data is unavailable right now. Try again in a minute.", "بيانات السوق السعودي غير متاحة الحين. جرّب بعد دقيقة."),
+                   icon=":material/cloud_off:")
+        ui.foot()
+        return
+    if sec != "Any":
+        df = df[df["Sector"] == sec]
+    if ind != "Any":
+        df = df[df["Industry"] == ind]
+    for k, j in pick.items():
+        rule = SA_F[k][1][j][2]
+        if rule and rule[0] in df:
+            col, lo, hi = rule
+            v = pd.to_numeric(df[col], errors="coerce")
+            ok = v.notna()
+            if lo is not None:
+                ok &= v >= lo
+            if hi is not None:
+                ok &= v <= hi
+            df = df[ok]
+    en_, ar_, col, asc = SA_SORT[sort]
+    if col in df:
+        df = df.sort_values(col, ascending=asc, na_position="last")
+    adv = int((df["Chg %"] > 0).sum()) if "Chg %" in df else 0
+    kp = [T.kpi("filter_alt", L("Matches", "النتائج"), f"{len(df)}", L(f"of {len(tasi.SYMBOLS)} companies", f"من {len(tasi.SYMBOLS)} شركة")),
+          T.kpi("trending_up", L("Advancing", "صاعدة"), f"{adv}/{len(df)}", L("up today", "مرتفعة اليوم"), "pos" if adv >= len(df) / 2 else "neg"),
+          T.kpi("price_check", L("Median P/E", "وسيط مكرر الربحية"), f"{df['P/E'].median():.1f}" if df["P/E"].notna().any() else "—"),
+          T.kpi("account_balance", L("Total market cap", "إجمالي القيمة السوقية"), MK.big(df["Mkt Cap"].sum()) if df["Mkt Cap"].notna().any() else "—")]
+    for c_, k in zip(st.columns(len(kp)), kp):
+        c_.markdown(k, unsafe_allow_html=True)
+    if df.empty:
+        st.info(L("No company passes these filters. Loosen one of them.", "ما فيه شركة تطابق هالفلاتر. خفّف واحد منها."), icon=":material/filter_alt_off:")
+        ui.foot()
+        return
+    N = {"Symbol": L("Code", "الرمز"), "Name": L("Company", "الشركة"), "Sector": L("Sector", "القطاع"), "Industry": L("Industry group", "المجموعة"),
+         "Mkt Cap": L("Market cap (SAR)", "القيمة السوقية (ريال)"), "Price": L("Price", "السعر"), "Chg %": L("Change", "التغير"),
+         "Volume": L("Volume", "الحجم"), "P/E": "P/E", "Fwd P/E": "Fwd P/E", "P/B": "P/B", "EPS": "EPS", "Div %": L("Dividend", "التوزيعات"),
+         "52W %": L("52W perf", "أداء سنوي"), "Perf W": L("Week", "أسبوع"), "Perf M": L("Month", "شهر"), "Perf 3M": L("3 months", "3 أشهر"),
+         "Perf YTD": L("YTD", "منذ بداية العام"), "RSI": "RSI", "Volatility": L("Volatility", "التذبذب")}
+    show_sec = (lambda x: tasi.sector_ar(x)) if is_ar() else (lambda x: x)
+    show_ind = (lambda x: tasi.industry_ar(x)) if is_ar() else (lambda x: x)
+    views = {L("Overview", "نظرة عامة"): ["Symbol", "Name", "Sector", "Industry", "Mkt Cap", "P/E", "Price", "Chg %", "Volume"],
+             L("Valuation", "التقييم"): ["Symbol", "Name", "Mkt Cap", "P/E", "Fwd P/E", "P/B", "EPS", "Div %"],
+             L("Performance", "الأداء"): ["Symbol", "Name", "Price", "Chg %", "Perf W", "Perf M", "Perf 3M", "Perf YTD", "52W %", "RSI", "Volatility"]}
+    for tab, (vname, cols_) in zip(st.tabs(list(views)), views.items()):
+        with tab:
+            cols_ = [c_ for c_ in cols_ if c_ in df.columns]
+            show = df[cols_].copy()
+            if "Sector" in show:
+                show["Sector"] = show["Sector"].map(show_sec)
+            if "Industry" in show:
+                show["Industry"] = show["Industry"].map(show_ind)
+            for c_ in ("Mkt Cap", "Volume"):
+                if c_ in show:
+                    show[c_] = show[c_].map(T.fmt_big)
+            pct_cols = [c_ for c_ in ("Chg %", "Perf W", "Perf M", "Perf 3M", "Perf YTD", "52W %") if c_ in show]
+            show = show.rename(columns=N)
+            fmt = {**{N[c_]: "{:+.2f}%" for c_ in pct_cols}, **{N[c_]: "{:,.2f}" for c_ in ("Price", "P/E", "Fwd P/E", "P/B", "EPS") if c_ in cols_}}
+            if "Div %" in cols_:
+                fmt[N["Div %"]] = "{:.2f}%"
+            if "RSI" in cols_:
+                fmt["RSI"] = "{:.0f}"
+            if "Volatility" in cols_:
+                fmt[N["Volatility"]] = "{:.1f}%"
+            ui.table(show, sym=N["Symbol"], pills={N[c_] for c_ in pct_cols[:1]}, signed={N[c_] for c_ in pct_cols[1:]}, fmt=fmt, height=600,
+                     wrap={N["Name"]})
+    a, c_ = st.columns([3, 1], vertical_alignment="bottom")
+    with a:
+        ui.open_picker(df["Symbol"].tolist(), "saf", "Selected company", "الشركة المختارة")
+    c_.download_button(L("Export CSV", "تصدير CSV"), df.to_csv(index=False).encode(), "saudi_screener.csv", "text/csv",
+                       icon=":material/download:", width="stretch")
+    st.caption(L("Quotes from Yahoo Finance (may be delayed). Dividend yield and P/E as Yahoo reports them.",
+                 "الأسعار من Yahoo Finance (قد تكون متأخرة). عائد التوزيعات والمكرر كما يعرضها ياهو."))
+    ui.foot()
+
+
 def page_screener():
+    if MK.is_sa():
+        page_screener_sa()
+        return
     ui.header("filter_alt", "Stock Screener", "فلتر الأسهم",
               "Filter the entire US market by sector, industry, investment theme, valuation, growth, dividends, short interest and technicals.",
               "فلترة السوق الأمريكي كامل حسب القطاع والصناعة والثيم الاستثماري والتقييم والنمو والتوزيعات والبيع على المكشوف والتحليل الفني.")

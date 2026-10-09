@@ -2,6 +2,8 @@
 home.py - The opening of the home page: the logo in a night sky, three glass cards (Paper Bots · Opportunity Hunter ·
 Markets & Research) and under them two wide ones (the two most important headlines · the Academy). Each card opens its page.
 """
+import re
+
 import streamlit as st
 
 import data
@@ -271,7 +273,28 @@ def cards():
            "نظرة على السوق والعقود الآجلة والخيارات والاقتصاد، مع أبحاث الأسهم والفلاتر."),
          L("Earnings, economic, dividend and IPO calendars, plus courses in the Academy.",
            "تقاويم الأرباح والاقتصاد والتوزيعات والاكتتابات، ودورات الأكاديمية.")),
+    ] if not _sa() else [
+        ("bots", "paper", ILL_BOTS, L("Paper", "البوتات"), L("Bots", "الافتراضية"), True,
+         L("Build trading bots for the Saudi market and run them on virtual riyals, with no real funds at risk.",
+           "ابنِ بوتات تداول للسوق السعودي وشغّلها بريالات افتراضية، بدون أي مخاطرة بأموال حقيقية."),
+         L("Forward tests save every signal and trade session by session, on Tadawul's own days and hours.",
+           "الاختبار الأمامي يحفظ كل إشارة وصفقة جلسة بجلسة، على أيام وساعات تداول.")),
+        ("hunt", "scanner", ILL_HUNT, L("Opportunity", "صائد"), L("Hunter", "الفرص"), True,
+         L("Scores every Saudi company on trend, strength against TASI, accumulation, setup and reward-to-risk.",
+           "يقيّم كل شركة سعودية حسب الاتجاه والقوة مقابل تاسي والتجميع ونمط الدخول ونسبة العائد إلى المخاطرة."),
+         L("A full trade plan in riyals for every pick: entry, stop and target.",
+           "خطة تداول كاملة بالريال لكل فرصة: الدخول والوقف والهدف.")),
+        ("research", "stock", ILL_RESEARCH, L("Markets &amp;", "الأسواق"), L("Research", "والأبحاث"), True,
+         L("The Saudi market's heat map, sectors and breadth, a page for every company and a screener.",
+           "الخريطة الحرارية للسوق السعودي وقطاعاته واتساعه، وصفحة لكل شركة، وفلتر للأسهم."),
+         L("Saudi news in Arabic and English, gathered from the market's main outlets.",
+           "أخبار السوق السعودي بالعربي والإنجليزي، من أهم المصادر.")),
     ]
+
+
+def _sa():
+    import markets as MK
+    return MK.is_sa()
 
 
 def top_html(chips_html=""):
@@ -296,10 +319,19 @@ def card_html(ill, t1, t2, two_lines, p1, p2):
 
 # ---------------------------------------------------------------- the two wide cards
 @st.cache_data(ttl=180, show_spinner=False)
-def _top_news(ar):
+def _top_news(ar, market="us"):
     """The two most important headlines of the last 24 hours (the News page's default order), titles in Arabic when asked.
-    Raises while the news bot has nothing yet, so an empty answer is never kept."""
+    Raises while the news bot has nothing yet, so an empty answer is never kept. market 'sa': the Saudi market's news (the newest,
+    in the visitor's language when there are some)."""
     items = []
+    if market == "sa":
+        import newsbot
+        items = newsbot.sa_bot(wait=False).items(24)
+        if not items:
+            raise LookupError("no headlines yet")
+        mine = [n for n in items if bool(re.search("[؀-ۿ]", n["title"])) == bool(ar)] or items
+        return [{"title": n["title"], "link": n.get("link", ""), "source": n.get("source", ""), "time": n.get("time"), "img": n.get("img"),
+                 "tickers": list(n.get("tickers") or []), "iq": {"score": 5, "keywords": [], "why": []}} for n in mine[:2]]
     try:
         import newsbot
         items = newsbot.bot(wait=False).items(24)
@@ -326,7 +358,10 @@ def _top_news(ar):
 
 
 def top_news():
+    import markets as MK
     try:
+        if MK.is_sa():
+            return [dict(n) for n in _top_news(is_ar(), "sa")]
         items = [dict(n) for n in _top_news(False)]
     except Exception:
         return []
@@ -701,6 +736,26 @@ html.ix-js.ix-past .st-key-introgo { opacity: 1; translate: -50% 0; pointer-even
 .st-key-introgo button:hover { transform: translateY(-2px); background: #EDEBFF !important; box-shadow: 0 22px 60px -12px rgba(132,125,255,.7), 0 0 0 8px rgba(255,255,255,.1) !important; }
 .st-key-introgo button:hover p::after { transform: translateX(4px); }
 .st-key-introgo button:active { transform: translateY(0) scale(.98); }
+/* the market buttons: a flag before the name; the market not picked last time is outlined */
+.st-key-introgo { flex-wrap: nowrap !important; gap: 12px !important; }
+[class*="st-key-introgo_"] { width: auto !important; }
+.st-key-introgo button p::before { content: ""; display: inline-block; width: 22px; height: 16px; border-radius: 3px; margin-inline-end: 10px;
+  vertical-align: -2px; background-size: cover; background-position: center; box-shadow: 0 0 0 1px rgba(0,0,0,.18); }
+[class*="st-key-introgo_"][class*="_alt"] button { background: rgba(255,255,255,.06) !important; border-color: rgba(255,255,255,.55) !important;
+  box-shadow: 0 18px 50px -12px rgba(11,8,24,.75) !important; backdrop-filter: blur(10px); }
+[class*="st-key-introgo_"][class*="_alt"] button p { color: #fff !important; }
+[class*="st-key-introgo_"][class*="_alt"] button:hover { background: rgba(255,255,255,.14) !important; }
+@media (max-width: 520px) { .st-key-introgo button { padding: 0 16px !important; } .st-key-introgo button p { font-size: 14px !important; }
+  .st-key-introgo button p::after { display: none; } }
+.ixmk { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin-top: 34px; }
+.ixmk .m { border: 1px solid rgba(255,255,255,.14); border-radius: 18px; padding: 22px 24px; background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.015)); }
+.ixmk .h { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+.ixmk .h .flag { width: 40px; height: 29px; border-radius: 6px; }
+.ixmk .h b { display: block; font-size: 1.25rem; color: #fff; font-weight: 600; }
+.ixmk .h small { color: rgba(255,255,255,.6); font-size: .86rem; }
+.ixmk p { display: flex; gap: 10px; align-items: flex-start; margin: 8px 0 0; color: rgba(255,255,255,.78); font-size: .95rem; line-height: 1.6; }
+.ixmk p .ms { color: #4ADE80; font-size: 1.1rem; margin-top: 3px; }
+@media (max-width: 760px) { .ixmk { grid-template-columns: 1fr; } }
 /* "Get started" pressed: the landing fades out at once while the main page loads (the page's script adds the class) */
 html.ix-leaving .ixp, html.ix-leaving .st-key-introgo, html.ix-leaving .ix-scroll { opacity: 0 !important; pointer-events: none !important;
   transition: opacity .16s ease !important; }
@@ -716,6 +771,12 @@ html.ix-leaving .ixp, html.ix-leaving .st-key-introgo, html.ix-leaving .ix-scrol
 
 def _start():
     st.session_state["intro_done"] = True
+
+
+def _start_market(code):
+    """A market button on the landing: the site opens on that market (and the browser keeps the choice)."""
+    import markets as MK
+    MK.pick(code)
 
 
 def _mock_bot():
@@ -793,6 +854,20 @@ def intro_html():
             f'<div class="ix-scroll" role="button" tabindex="0"><i></i>{L("Scroll down", "انزل لتحت")}</div></section>')
     state = (f'<section class="ixs ix-state rv"><span class="ixl">{L("What it is", "وش هو")}</span>'
              f'<div class="ixh">{L("One place to learn the market, test your ideas and let them trade. <span>With virtual money, on real prices.</span>", "مكان واحد تتعلّم فيه السوق، وتجرّب أفكارك، وتخليها تتداول لحالها. <span>بفلوس افتراضية، على أسعار حقيقية.</span>")}</div></section>')
+    import tasi
+    mk = [("us", L("US market", "السوق الأمريكي"), L("NYSE · Nasdaq", "بورصة نيويورك · ناسداك"),
+           [L(f"The S&P 500 and {f['stocks']} companies with their own page", f"إس آند بي 500 و{f['stocks']} شركة لكل وحدة صفحتها"),
+            L("Monday to Friday, 9:30 am to 4 pm New York, with pre-market and after-hours", "من الإثنين للجمعة، 9:30 صباحاً لين 4 العصر بتوقيت نيويورك، مع ما قبل الافتتاح وما بعد الإغلاق"),
+            L("Options, futures and the US economy", "الخيارات والعقود الآجلة والاقتصاد الأمريكي")]),
+          ("sa", L("Saudi market", "السوق السعودي"), L("Tadawul · TASI", "تداول · تاسي"),
+           [L(f"{len(tasi.SA)} main-market companies in 22 industry groups", f"{len(tasi.SA)} شركة في السوق الرئيسية ضمن 22 قطاعاً"),
+            L("Sunday to Thursday, 10 am to 3 pm Riyadh", "من الأحد للخميس، 10 الصبح لين 3 العصر بتوقيت الرياض"),
+            L("Prices in riyals, Saudi news, bots and a portfolio of its own", "الأسعار بالريال، وأخبار السوق السعودي، وبوتات ومحفظة خاصة فيه")])]
+    two = (f'<section class="ixs"><div class="rv"><span class="ixl">{L("Two markets", "سوقين")}</span>'
+           f'<div class="ixh">{L("The US market and the Saudi market, <em>each on its own.</em>", "السوق الأمريكي والسوق السعودي، <em>كل واحد لحاله.</em>")}</div></div>'
+           '<div class="ixmk">' + "".join(f'<div class="m rv"><div class="h"><span class="flag {c}"></span><div><b>{t}</b><small>{v}</small></div></div>'
+                                          + "".join(f'<p><span class="ms">check_circle</span>{x}</p>' for x in pts) + "</div>" for c, t, v, pts in mk)
+           + f'</div><p class="ixt" style="margin-top:18px">{L("Pick one below; the switch in the top line changes it any time.", "اختر واحد تحت، وتقدر تغيّره أي وقت من زر السوق في الشريط العلوي.")}</p></section>')
     parts = [
         ("k1", "robot_2", L("Paper Bots", "البوتات الافتراضية"), L(f"Up to {f['bots']} bots trade on their own, each with a forward test recorded session by session.", f"لين {f['bots']} بوتات تتداول لحالها، ولكل واحد اختبار أمامي مسجّل جلسة بجلسة.")),
         ("k2", "radar", L("Opportunity Hunter", "صائد الفرص"), L("Every stock scored from 0 to 100 on trend, strength and setup, with a full trade plan.", "كل سهم يتقيّم من 0 لين 100 على الاتجاه والقوة ونمط الدخول، مع خطة تداول كاملة.")),
@@ -833,7 +908,7 @@ def intro_html():
                     L("A screener and technical signals for every stock.", "فلتر للأسهم وإشارات فنية لكل سهم."),
                     L("A Sharia check on every company page.", "فحص شرعي في صفحة كل شركة.")],
                    _mock_heat())
-    nums = [(f"{f['stocks']}", L("S&P 500", "إس آند بي 500"), L("companies covered, each with its own page", "شركة، ولكل وحدة صفحة خاصة")),
+    nums = [(f"{f['stocks'] + len(tasi.SA)}", L("US & Saudi", "أمريكي وسعودي"), L("companies covered, each with its own page", "شركة، ولكل وحدة صفحة خاصة")),
             (f"{f['single'] + f['combined']}", L("Strategies", "استراتيجيات"), L("to build your bots with, alone or combined", "تبني فيها بوتاتك، لحالها أو مركّبة")),
             (f"{f['bots']}", L("Bots", "بوتات"), L("trading at the same time, on virtual money", "تتداول في نفس الوقت، بفلوس افتراضية")),
             (f"{f['courses']}", L("Courses", "دورات"), L("from beginner to advanced, in both languages", "من المبتدئ للمتقدم، باللغتين"))]
@@ -854,9 +929,9 @@ def intro_html():
                     _mock_courses(f), rev=True)
     end = (f'<section class="ixend rv"><span class="ixl">{L("Ready when you are", "جاهز متى ما كنت جاهز")}</span>'
            f'<div class="ixh">{L("Your next trade<br><em>starts on paper.</em>", "صفقتك الجاية<br><em>تبدأ افتراضية.</em>")}</div>'
-           f'<p class="ixt">{L("Press Get started to open the markets, the hunter and your bots.", "اضغط ابدأ الآن عشان تفتح الأسواق والصياد وبوتاتك.")}</p></section>')
+           f'<p class="ixt">{L("Pick a market below to open the markets, the hunter and your bots.", "اختر سوق تحت عشان تفتح الأسواق والصياد وبوتاتك.")}</p></section>')
     foot = (f'<div class="ixfoot"><span>© TURA Pro</span><span>{L("Virtual money only · real prices · not investment advice", "فلوس افتراضية فقط · أسعار حقيقية · ليست نصيحة استثمارية")}</span></div>')
-    return (f'<div class="ixp{" ar" if ar else ""}" dir="{"rtl" if ar else "ltr"}">' + hero + state + grid + bots + hunt + mkts + numbers + how + learn
+    return (f'<div class="ixp{" ar" if ar else ""}" dir="{"rtl" if ar else "ltr"}">' + hero + state + two + grid + bots + hunt + mkts + numbers + how + learn
             + end + foot + "</div>")
 
 
@@ -868,6 +943,15 @@ def intro():
            '.st-key-introgo button:hover p::after { transform: translateX(-4px) !important; }</style>') if is_ar() else ""
     ui.html('<span class="css-anchor"></span>\n' + INTRO_CSS + T.landing_bg_css() + rtl)   # the style on its own line (else Markdown eats it)
     ui.html(intro_html())
-    with st.container(key="introgo"):
-        st.button(L("Get started", "ابدأ الآن"), key="intro_go", on_click=_start)
+    import markets as MK
+    picked = MK.choice()
+    ui.html('<span class="css-anchor"></span>\n<style>'
+            f'.st-key-introgo_us button p::before, .st-key-introgo_us_alt button p::before {{ background-image:url("{T.FLAG_US}"); }}'
+            f'.st-key-introgo_sa button p::before, .st-key-introgo_sa_alt button p::before {{ background-image:url("{T.FLAG_SA}"); }}</style>')
+    with st.container(key="introgo", horizontal=True, gap="small"):
+        for code in MK.CODES:
+            alt = picked is not None and code != picked            # the market picked last time is the white one
+            with st.container(key=f"introgo_{code}{'_alt' if alt else ''}", width="content"):
+                st.button(L("US market", "السوق الأمريكي") if code == MK.US else L("Saudi market", "السوق السعودي"), key=f"intro_go_{code}",
+                          on_click=_start_market, args=(code,))
     return True

@@ -1,11 +1,17 @@
-# Records every Paper Bot's closed sessions right after the US close (30 minutes after 4 pm New York time, in summer and
-# winter), so the forward tests never wait for someone to open the site. Needs the repository secrets SUPABASE_URL and
-# SUPABASE_KEY (Settings > Secrets and variables > Actions); without them it does nothing.
+# Records every Paper Bot's closed sessions, so the forward tests never wait for someone to open the site:
+#   * US bots: 40 minutes after 4 pm New York time (summer and winter), and again after the after-hours session ends (8 pm New
+#     York: the bots that trade it wait for it, paperbots.EXT_SETTLE), on the evening of each US trading day (UTC: the next day);
+#   * Saudi bots: 15:45 Riyadh (UTC+3 all year), Sunday to Thursday, once the closing auction and trade at last are over.
+# A run records whatever has closed; anything not final yet waits for the next run. Needs the repository secrets SUPABASE_URL
+# and SUPABASE_KEY (Settings > Secrets and variables > Actions); without them it does nothing.
 name: record sessions
 on:
   schedule:
     - cron: "40 20 * * 1-5"
     - cron: "40 21 * * 1-5"
+    - cron: "45 0 * * 2-6"
+    - cron: "45 1 * * 2-6"
+    - cron: "45 12 * * 0-4"
   workflow_dispatch:
 concurrency:
   group: record-sessions

@@ -25,6 +25,10 @@ Every bot has two phases:
     the settings starts a new forward test; the old record is kept ('fwd_prev').
 No server has to stay on all day: the sessions that closed since the last visit are recorded on the next page view.
 
+Two markets (markets.py): a bot trades the US market (the default) or the Saudi market ('market': 'sa' in its params): Saudi
+companies (tasi.py) in riyals, on the Tadawul calendar (mcal_sa.py), compared with the Saudi market (KSA); shares only, the
+regular session only (no options, no extended hours, no Opening Range Breakout). Each market has its own MAX_BOTS.
+
 Storage (Streamlit > Settings > Secrets):
     SUPABASE_URL = "https://xxxx.supabase.co"
     SUPABASE_KEY = "sb_secret_..."     # the SECRET key (Supabase > Settings > API Keys); it never leaves the server
@@ -52,10 +56,12 @@ from math import exp
 import brain as BR
 import data
 import engine
+import markets as MK
 import mcal
 import mlbots as MLB
 import playbooks as PB
 import ta
+import tasi
 import universe as U
 from autotrader import bs_call, strike_for
 
@@ -185,17 +191,41 @@ def _sp500():
     return SP500
 
 
-def sector_members():
-    """sector -> symbols (S&P 500 + the site's largest companies), sectors in alphabetical order.
-    Each stock sits in one sector: the site's own (Yahoo) sector when it has one, otherwise the S&P 500 list's."""
+def market_of(bot):
+    """The market a bot trades (us / sa)."""
+    return MK.norm((bot or {}).get("market"))
+
+
+def norm_symbol(value, market=MK.US):
+    """A company the visitor typed: upper case; in the Saudi market a bare code (2222) becomes its Yahoo symbol (2222.SR)."""
+    v = str(value or "").strip().upper()
+    if market == MK.SA and v.isdigit() and len(v) == 4:
+        v += ".SR"
+    return v
+
+
+def sector_members(market=MK.US):
+    """sector -> symbols, sectors in alphabetical order. US: the S&P 500 + the site's largest companies, each in one sector
+    (the site's own (Yahoo) sector when it has one, otherwise the S&P 500 list's). Saudi: the Tadawul companies by sector."""
+    if market == MK.SA:
+        out = tasi.by_sector()
+        return {k: sorted(out[k]) for k in sorted(out) if k}
     out = {}
     for s in all_members():
         out.setdefault(sector_of(s), []).append(s)
     return {k: sorted(out[k]) for k in sorted(out) if k}
 
 
-def industry_members(sector=None):
-    """GICS sub-industry -> S&P 500 symbols (optionally only the industries of one sector)."""
+def industry_members(sector=None, market=MK.US):
+    """Industry -> symbols (optionally only the industries of one sector). US: GICS sub-industries of the S&P 500; Saudi: the
+    exchange's industry groups."""
+    if market == MK.SA:
+        out = {}
+        for s in tasi.SYMBOLS:
+            ind = tasi.industry_of(s)
+            if ind and (sector is None or tasi.sector_of(s) == sector):
+                out.setdefault(ind, []).append(s)
+        return {k: sorted(out[k]) for k in sorted(out)}
     out = {}
     for s, (_, sec, sub) in _sp500().items():
         if sub and (sector is None or sec == sector):
@@ -203,31 +233,46 @@ def industry_members(sector=None):
     return {k: sorted(out[k]) for k in sorted(out)}
 
 
-def industry_sector(industry):
+def industry_sector(industry, market=MK.US):
+    if market == MK.SA:
+        for sec, en, _ in tasi.GROUPS.values():
+            if en == industry:
+                return sec
+        return None
     for _, sec, sub in _sp500().values():
         if sub == industry:
             return sec
     return None
 
 
-def all_members():
+def all_members(market=MK.US):
+    if market == MK.SA:
+        return list(tasi.SYMBOLS)
     return sorted(set(_sp500()) | set(U.STOCKS))
 
 
-def members(kind, value):
+def members(kind, value, market=MK.US):
     if kind == "company":
-        v = str(value or "").strip().upper()
+        v = norm_symbol(value, market)
         return [v] if v else []
     if kind == "sector":
-        return sector_members().get(value, [])
+        return sector_members(market).get(value, [])
     if kind == "industry":
-        return industry_members().get(value, [])
+        return industry_members(None, market).get(value, [])
     if kind == "all":
-        return all_members()
+        return all_members(market)
     return []
 
 
+def _members(kind, value, market=MK.US):
+    """members() as the bots call it: a US bot with the two arguments it always had (so anything that stands in for members()
+    keeps working), a Saudi bot with its market."""
+    return members(kind, value) if market == MK.US else members(kind, value, market)
+
+
 def sector_of(sym):
+    if MK.of_symbol(sym) == MK.SA:
+        return tasi.sector_of(sym)
     if sym in U.STOCKS:
         return U.STOCKS[sym][1]
     sp = _sp500()
@@ -290,11 +335,14 @@ def spec_of(name):
     return engine.STRATEGIES.get(name) or PB.PLAYBOOKS[name]
 
 
-def tidy(strategies, instrument, kind):
+def tidy(strategies, instrument, kind, market=MK.US):
     """The rules every bot follows: a bot runs either Strategy Lab strategies or combined strategies (playbooks), the
     combined strategies trade shares (each one plans its own stop, target and time stop for them), and the Opening Range
     Breakout runs alone and not on all companies (5-minute prices for 500+ stocks are too much to download).
+    A Saudi bot trades shares only and never the Opening Range Breakout (no options there; its 5-minute run is the US session's).
     Returns (strategies, instrument, ok)."""
+    if market == MK.SA:
+        strategies, instrument = {k: v for k, v in strategies.items() if k != PB.ORB}, "stock"
     if PB.ORB in strategies:
         return {PB.ORB: strategies[PB.ORB]}, "stock", kind != "all"
     books = {k: v for k, v in strategies.items() if is_playbook(k)}
@@ -332,6 +380,7 @@ def _norm(r):
         params = r.get("params") or {}
         if isinstance(params, str):
             params = json.loads(params)
+        market = MK.norm(params.get("market")) if isinstance(params, dict) else MK.US
         if isinstance(params, dict) and params.get("v") == 2:
             uni = params.get("universe") or {}
             kind, value = str(uni.get("kind") or "company"), str(uni.get("value") or "")
@@ -345,11 +394,11 @@ def _norm(r):
         if kind not in KINDS:
             kind, value = "company", str(r.get("symbol") or "")
         if kind == "company":
-            value, max_pos = value.strip().upper(), 1
+            value, max_pos = norm_symbol(value, market), 1
         if kind == "all":
             value = "all"
         strategies = {s: clean_params(s, raw[s]) for s in ALL_STRATEGIES if s in raw}
-        strategies, instrument, allowed = tidy(strategies, instrument, kind)
+        strategies, instrument, allowed = tidy(strategies, instrument, kind, market)
         combo = comb.get("mode") == "combo" and len(strategies) > 1
         combine = {"mode": "combo" if combo else "any",
                    "min": min(max(int(_num(comb.get("min"), len(strategies))), 1), max(len(strategies), 1)) if combo else 1}
@@ -363,14 +412,16 @@ def _norm(r):
                 "stop_pct": max(_num(r.get("stop_pct")), 0.0), "atr_mult": max(_num(r.get("atr_mult")), 0.0),
                 "tp_pct": max(_num(r.get("tp_pct")), 0.0), "trail_pct": max(_num(r.get("trail_pct")), 0.0),
                 "start_date": str(r.get("start_date"))[:10], "created_at": str(r.get("created_at") or "")[:19],
-                "valid": bool(strategies) and allowed and bool(members(kind, value)),
+                "valid": bool(strategies) and allowed and bool(_members(kind, value, market)),
+                **({"market": MK.SA} if market == MK.SA else {}),          # a US bot keeps the keys it always had
                 "risk_pct": min(max(_num(params.get("risk_pct")) if isinstance(params, dict) else 0.0, 0.0), 10.0),
                 "regime": int(min(max(_num(params.get("regime")) if isinstance(params, dict) else 0, 0), 2)),
                 "trend_filter": int(bool(_num(params.get("trend_filter")))) if isinstance(params, dict) else 0,
                 "ml": str(params["ml"])[:40] if isinstance(params, dict) and params.get("ml") else None,
                 # extended hours: on unless saved off; never for the Opening Range Breakout or a bot of options only (they trade
                 # the regular session)
-                "ext": 0 if PB.ORB in strategies or instrument == "options" else int(bool(_num(params.get("ext"), 1))) if isinstance(params, dict) else 1,
+                "ext": 0 if PB.ORB in strategies or instrument == "options" or market == MK.SA
+                else int(bool(_num(params.get("ext"), 1))) if isinstance(params, dict) else 1,
                 "fwd": params.get("fwd") if isinstance(params, dict) and isinstance(params.get("fwd"), dict) else None,
                 "fwd_prev": list(params.get("fwd_prev") or []) if isinstance(params, dict) else [],
                 **({"brain": BR.clean(params.get("brain"))} if isinstance(params, dict) and BR.clean(params.get("brain")) else {})}
@@ -379,14 +430,16 @@ def _norm(r):
 
 
 def make_record(name, kind, value, strategies, max_pos, capital, fee, stop_pct, atr_mult, tp_pct, trail_pct, start_date, combine=None,
-                instrument="stock", options=None, risk_pct=0.0, regime=0, trend_filter=0, ml=None, brain=None, ext=1):
+                instrument="stock", options=None, risk_pct=0.0, regime=0, trend_filter=0, ml=None, brain=None, ext=1, market=MK.US):
     """Settings from the form -> a row for the table (FIELDS).
+    market: us / sa (markets.py); a Saudi bot keeps 'market': 'sa' in its params (a US one keeps nothing, as before).
     ext: 1 = the bot also trades in the pre-market and the after-hours session (see simulate); always 0 for the Opening Range
     Breakout, which trades its own 5-minute candles, and for options only (options trade the regular session).
     combine: None / {'mode': 'any'} = any strategy opens its own trades; {'mode': 'combo', 'min': n} = buy only when at least
     n of the strategies agree (see simulate)."""
+    market = MK.norm(market)
     strategies = {s: clean_params(s, p) for s, p in strategies.items() if s in ALL_STRATEGIES}
-    strategies, instrument, _ = tidy(strategies, instrument, kind)
+    strategies, instrument, _ = tidy(strategies, instrument, kind, market)
     combine = combine or {}
     if combine.get("mode") == "combo" and len(strategies) > 1:
         books = all(map(is_playbook, strategies))
@@ -395,7 +448,8 @@ def make_record(name, kind, value, strategies, max_pos, capital, fee, stop_pct, 
     else:
         combine = {"mode": "any"}
     if kind == "company":
-        value, max_pos, sym = str(value).strip().upper(), 1, str(value).strip().upper()
+        value = sym = norm_symbol(value, market)
+        max_pos = 1
     else:
         sym = "ALL" if kind == "all" else f"{kind.upper()}:{value}"
         value = "all" if kind == "all" else value
@@ -409,22 +463,25 @@ def make_record(name, kind, value, strategies, max_pos, capital, fee, stop_pct, 
                       **({"trend_filter": 1} if trend_filter else {}),
                       **({"ml": str(ml)[:40]} if ml else {}),
                       **({"brain": BR.clean(brain)} if BR.clean(brain) else {}),
-                      "ext": 0 if PB.ORB in strategies or instrument == "options" else int(bool(ext))},
+                      **({"market": MK.SA} if market == MK.SA else {}),
+                      "ext": 0 if PB.ORB in strategies or instrument == "options" or market == MK.SA else int(bool(ext))},
            "capital": float(capital), "fee": float(fee), "stop_pct": float(stop_pct), "atr_mult": float(atr_mult),
            "tp_pct": float(tp_pct), "trail_pct": float(trail_pct), "start_date": str(start_date)[:10]}
     rec["params"]["fwd"] = new_record(_settings_of_record(rec))
     return rec
 
 
-def list_bots():
-    """Saved bots, oldest first. Raises StoreError when Supabase is set up but can't be used."""
-    return [b for b in (_norm(r) for r in _list_raw(backend()) if not str(r.get("strategy") or "").startswith("__portfolio__")) if b]   # not a paper portfolio
+def list_bots(market=None):
+    """Saved bots, oldest first (market: only that market's; None: all). Raises StoreError when Supabase is set up but can't be
+    used."""
+    bots = [b for b in (_norm(r) for r in _list_raw(backend()) if not str(r.get("strategy") or "").startswith("__portfolio__")) if b]   # not a paper portfolio
+    return bots if market is None else [b for b in bots if market_of(b) == market]
 
 
 def create_bot(rec):
-    """Save a new bot (a row from make_record). Raises StoreError('full') at MAX_BOTS."""
+    """Save a new bot (a row from make_record). Raises StoreError('full') at MAX_BOTS (each market has its own)."""
     _list_raw.clear()
-    if len(list_bots()) >= MAX_BOTS:
+    if len(list_bots(MK.norm((rec.get("params") or {}).get("market")))) >= MAX_BOTS:
         raise StoreError("full")
     rec = json.loads(json.dumps({k: rec[k] for k in FIELDS}, default=float))
     if backend() == "supabase":
@@ -480,42 +537,61 @@ def delete_bot(bot_id):
 
 
 # ---------------------------------------------------------------- the forward-test record
-def ny_now():
-    return pd.Timestamp.now(tz="America/New_York").tz_localize(None)
+def ny_now(market=MK.US):
+    """The market's local time (New York / Riyadh), without a time zone."""
+    return pd.Timestamp.now(tz=MK.get(market)["tz"]).tz_localize(None)
+
+
+def _now(market=MK.US):
+    """ny_now() for a market (the US one called as it always was)."""
+    return ny_now() if market == MK.US else ny_now(market)
 
 
 def _now_iso():
     return pd.Timestamp.now(tz="UTC").strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-def _close_min(day):
+def _close_min(day, market=MK.US):
+    if market == MK.SA:
+        return MK.get(MK.SA)["close"]
     return 13 * 60 if mcal.day_status(pd.Timestamp(day).date())[0] == "early" else 16 * 60
 
 
-def forward_start(now=None):
-    """The first session of a forward test that starts now: today while today's session hasn't closed, else the next one."""
-    now = pd.Timestamp(now) if now is not None else ny_now()
+def forward_start(now=None, market=MK.US):
+    """The first session of a forward test that starts now: today while today's session hasn't closed, else the next one.
+    now: the market's local time (default: now)."""
+    cal = MK.cal(market)
+    now = pd.Timestamp(now) if now is not None else _now(market)
     d = now.normalize()
-    if mcal.is_trading_day(d.date()) and now < d + pd.Timedelta(minutes=_close_min(d)):
+    if cal.is_trading_day(d.date()) and now < d + pd.Timedelta(minutes=_close_min(d, market)):
         return f"{d:%Y-%m-%d}"
     d += pd.Timedelta(days=1)
-    while not mcal.is_trading_day(d.date()):
+    while not cal.is_trading_day(d.date()):
         d += pd.Timedelta(days=1)
     return f"{d:%Y-%m-%d}"
 
 
 EXT_SETTLE = 270                  # minutes after the close: the after-hours session (4 hours) is over and its prices are in
+SA_SETTLE = 40                    # Saudi market: the closing auction (to 15:10) and trade at last (to 15:20) are over
 
 
-def last_closed_session(now=None, settle=30):
+def settle_of(bot):
+    """Minutes after the close before a session of this bot is final."""
+    if market_of(bot) == MK.SA:
+        return SA_SETTLE
+    return EXT_SETTLE if bot.get("ext") else 30
+
+
+def last_closed_session(now=None, settle=30, market=MK.US):
     """The latest session whose closing prices are final (`settle` minutes after the close; a bot that trades in the
-    after-hours session waits for its end: EXT_SETTLE)."""
-    now = pd.Timestamp(now) if now is not None else ny_now()
+    after-hours session waits for its end: EXT_SETTLE). now: the market's local time (default: now)."""
+    cal = MK.cal(market)
+    now = pd.Timestamp(now) if now is not None else _now(market)
     d = now.normalize()
-    if mcal.is_trading_day(d.date()) and now >= d + pd.Timedelta(minutes=_close_min(d) + settle):
+    if cal.is_trading_day(d.date()) and now >= d + pd.Timedelta(minutes=_close_min(d, market) + settle):
         return f"{d:%Y-%m-%d}"
     d -= pd.Timedelta(days=1)
-    while not mcal.is_trading_day(d.date()):
+    while not cal.is_trading_day(d.date()):
         d -= pd.Timedelta(days=1)
     return f"{d:%Y-%m-%d}"
 
@@ -525,7 +601,7 @@ def _settings_of_record(rec):
     return {"kind": p["universe"]["kind"], "value": p["universe"]["value"], "strategies": p["strategies"], "combine": p["combine"],
             "max_pos": p["max_pos"], "instrument": p["instrument"], "options": p["options"], "risk_pct": p.get("risk_pct", 0.0),
             "regime": p.get("regime", 0), "trend_filter": p.get("trend_filter", 0), "ml": p.get("ml"), "brain": p.get("brain"),
-            "ext": p.get("ext", 0),
+            "ext": p.get("ext", 0), "market": MK.norm(p.get("market")),
             **{k: rec[k] for k in ("capital", "fee", "stop_pct", "atr_mult", "tp_pct", "trail_pct")}}
 
 
@@ -544,7 +620,8 @@ def settings_of(bot):
          **({"trend_filter": 1} if bot.get("trend_filter") else {}),
          **({"ml": str(bot["ml"])} if bot.get("ml") else {}),
          **({"brain": bot["brain"]} if bot.get("brain") else {}),
-         **({"ext": 1} if bot.get("ext") else {})}, default=float))
+         **({"ext": 1} if bot.get("ext") else {}),
+         **({"market": MK.SA} if market_of(bot) == MK.SA else {})}, default=float))
 
 
 def settings_hash(bot):
@@ -555,7 +632,7 @@ def settings_hash(bot):
 def new_record(bot, now=None):
     """An empty forward-test record for these settings, starting with the first session after `now`. It keeps a copy of the
     settings ('cfg') and their hash, so it always says which version of the strategy it recorded."""
-    return {"since": forward_start(now), "until": None, "hash": settings_hash(bot), "cfg": settings_of(bot), "made": _now_iso(),
+    return {"since": forward_start(now, market_of(bot)), "until": None, "hash": settings_hash(bot), "cfg": settings_of(bot), "made": _now_iso(),
             "v": BUILD, "ev": [], "sig": [], "eq": {}, "log": []}
 
 
@@ -565,7 +642,7 @@ def record_update(bot, sim, now=None):
     rec = bot.get("fwd")
     if not rec or not sim.get("ok") or sim.get("waiting"):
         return None
-    last = last_closed_session(now, EXT_SETTLE if bot.get("ext") else 30)
+    last = last_closed_session(now, settle_of(bot), market_of(bot))
     rows, until = sim.get("eq_rows") or {}, rec.get("until")
     new = sorted(d for d in rows if rec["since"] <= d <= last and (until is None or d > until))
     if not new:
@@ -587,6 +664,7 @@ def params_of(bot):
             **({"trend_filter": 1} if bot.get("trend_filter") else {}),
             **({"ml": str(bot["ml"])} if bot.get("ml") else {}),
             **({"brain": bot["brain"]} if bot.get("brain") else {}),
+            **({"market": MK.SA} if market_of(bot) == MK.SA else {}),
             "ext": int(bool(bot.get("ext"))), "fwd_prev": bot.get("fwd_prev") or []}
 
 
@@ -612,13 +690,13 @@ def save_record(bot, record):
 PERIODS = ["2y", "5y", "10y", "max"]
 
 
-def today_ny():
-    """Today's date on Wall Street (a bot created today starts with today's session)."""
-    return pd.Timestamp.now(tz="America/New_York").date()
+def today_ny(market=MK.US):
+    """Today's date in the market (Wall Street / Riyadh): a bot created today starts with today's session."""
+    return pd.Timestamp.now(tz=MK.get(market)["tz"]).date()
 
 
-def period_for(start):
-    days = (pd.Timestamp(today_ny()) - pd.Timestamp(start)).days + 450      # + ~300 sessions so SMA 200 etc. are ready
+def period_for(start, market=MK.US):
+    days = (pd.Timestamp(today_ny() if market == MK.US else today_ny(market)) - pd.Timestamp(start)).days + 450      # + ~300 sessions so SMA 200 etc. are ready
     for p, d in (("2y", 730), ("5y", 1826), ("10y", 3652)):
         if days <= d:
             return p
@@ -705,7 +783,9 @@ def simulate(bot, px, spy=None, record=None, ext=None, now=None):
     ext: {symbol: data.ext_summary} for a bot with extended hours on (bot['ext']): its stops and targets also work in the
     pre-market and the after-hours session, and the share orders decided at a close are filled in that evening's after-hours
     session (the close of its first hour, EXT_SLIP worse) instead of at the next open. Options and the days without these
-    prices (Yahoo keeps 730 days) trade in the regular session. now: New York time (default: now), for today's after-hours.
+    prices (Yahoo keeps 730 days) trade in the regular session. now: the market's time (default: now), for today's after-hours.
+    spy: the market's benchmark (SPY / KSA for a Saudi bot): the strategies that compare a stock with the market, the market
+    filter (regime) and the comparison line use it.
     Returns a dict; 'ok' is False with 'why' = strategy | data when it can't run; 'waiting' is True when no session has
     closed since the start date yet.
     record: a forward-test record (see new_record). Its sessions since..until are REPLAYED from the recorded fills and closing
@@ -721,7 +801,7 @@ def simulate(bot, px, spy=None, record=None, ext=None, now=None):
         out["why"] = "strategy"
         return out
     frames = {}
-    for s in dict.fromkeys(members(bot["kind"], bot["value"])):
+    for s in dict.fromkeys(_members(bot["kind"], bot["value"], market_of(bot))):
         df = px.get(s)
         if df is not None and not df.empty:
             df = _prep(df)
@@ -954,7 +1034,7 @@ def simulate(bot, px, spy=None, record=None, ext=None, now=None):
                 XP[c][:, j] = xs[c].to_numpy(float) * f
         if not np.isfinite(XP["AHf"]).any() and not np.isfinite(XP["PMl"]).any():
             XP = None
-    now_ = pd.Timestamp(now) if now is not None else ny_now()
+    now_ = pd.Timestamp(now) if now is not None else _now(market_of(bot))
     today_s = f"{now_:%Y-%m-%d}"
 
     def ah_done(t):
@@ -1501,7 +1581,7 @@ def simulate_orb(bot, px5, pxd, spy=None, now=None, record=None):
     prm = bot["strategies"][PB.ORB]
     now = pd.Timestamp(now) if now is not None else pd.Timestamp.now(tz=PB.NY).tz_localize(None)
     bars, sig = {}, {}
-    for s in dict.fromkeys(members(bot["kind"], bot["value"])):
+    for s in dict.fromkeys(_members(bot["kind"], bot["value"], market_of(bot))):
         b = PB.ny_bars(px5.get(s))
         if b.index.normalize().nunique() >= PB.BASE_MIN + 1:
             bars[s] = b
@@ -1670,7 +1750,7 @@ def _run_cached(bot_json, build=None):
     fwd_bot = {**bot, "start_date": max(since, bot["start_date"])} if since else bot
     hist_bot = {**bot, "fwd": None} if since and bot["start_date"] < since else None
     if PB.ORB in bot.get("strategies", {}):          # 5-minute candles (Yahoo keeps 60 days) + daily ones for the ATR
-        syms = members(bot["kind"], bot["value"]) if bot.get("valid") else []
+        syms = _members(bot["kind"], bot["value"], market_of(bot)) if bot.get("valid") else []
         px5 = load_prices(syms, "60d", "5m")
         pxd = load_prices(list(syms) + ["SPY"], "1y")
         fwd = simulate_orb(fwd_bot, px5, pxd, pxd.get("SPY"), record=rec)
@@ -1682,15 +1762,17 @@ def _run_cached(bot_json, build=None):
             if not hist["ok"] and hist["why"] == "data":
                 hist["why"] = "gone5"                # Yahoo's 60 days of 5-minute prices no longer reach before the forward test
     else:
-        period = period_for(bot["start_date"])
-        px = load_prices(members(bot["kind"], bot["value"]), period)
-        spy = px.get("SPY")
+        period = period_for(bot["start_date"], market_of(bot))
+        bench = MK.get(market_of(bot))["bench"]          # SPY / KSA: the market the bot is compared with
+        px = load_prices(_members(bot["kind"], bot["value"], market_of(bot)), period)
+        spy = px.get(bench)
         if spy is None or len(spy) < 2:
-            spy = data.history("SPY", period)
+            spy = data.history(bench, period)
         # pre-market and after-hours prices for a bot that trades them (the stocks it watches, Yahoo's last 730 days)
-        xd = data.extended_hours([s for s in members(bot["kind"], bot["value"]) if s in px]) if bot.get("ext") and bot.get("valid") else None
+        xd = data.extended_hours([s for s in _members(bot["kind"], bot["value"], market_of(bot)) if s in px]) if bot.get("ext") and bot.get("valid") else None
         fwd = simulate(fwd_bot, px, spy, record=rec, ext=xd)
-        hist = simulate(hist_bot, {s: _before(d, pd.Timestamp(since)) for s, d in px.items()}, spy, ext=xd) if hist_bot else None
+        tz_ = MK.get(market_of(bot))["tz"]
+        hist = simulate(hist_bot, {s: _before(d, pd.Timestamp(since), tz_) for s, d in px.items()}, spy, ext=xd) if hist_bot else None
     fwd["phase"] = "live"
     if hist is not None:
         hist["phase"] = "sim"
@@ -1698,18 +1780,19 @@ def _run_cached(bot_json, build=None):
     return fwd
 
 
-def _before(df, cut):
-    """The candles of the sessions before `cut` (daily or 5-minute, naive or New York time)."""
+def _before(df, cut, tz="America/New_York"):
+    """The candles of the sessions before `cut` (daily or 5-minute, naive or in the market's time zone `tz`)."""
     if df is None or not len(df):
         return df
     ix = pd.DatetimeIndex(df.index)
     if ix.tz is not None:
-        ix = ix.tz_convert("America/New_York").tz_localize(None)
+        ix = ix.tz_convert(tz).tz_localize(None)
     return df[np.asarray(ix.normalize() < cut)]
 
 
-def run_all(bots):
-    """Every bot replayed (each result cached for 10 minutes, like the prices) + SPY for the comparison chart."""
+def run_all(bots, market=None):
+    """Every bot replayed (each result cached for 10 minutes, like the prices) + the market's benchmark for the comparison chart
+    (SPY / KSA: `market`, else the first bot's market)."""
     sims = []
     for b in bots:
         if not b.get("fwd") and b.get("id") is not None:         # a bot saved before forward tests were recorded: start now
@@ -1742,8 +1825,9 @@ def run_all(bots):
             except Exception:
                 pass
         sims.append(sim)
-    period = max((period_for(b["start_date"]) for b in bots), key=PERIODS.index) if bots else "2y"
-    return sims, data.history("SPY", period)
+    market = MK.norm(market or (market_of(bots[0]) if bots else MK.US))
+    period = max((period_for(b["start_date"], market) for b in bots), key=PERIODS.index) if bots else "2y"
+    return sims, data.history(MK.get(market)["bench"], period)
 
 
 # ---------------------------------------------------------------- warm start: the Paper Bots page opens at once
@@ -1766,7 +1850,7 @@ def remember(bots, sims, spy):
     """Keep this replay as the last one of these bots (copies, so no page can change it)."""
     try:
         _LAST[_bots_key(bots)] = (time.time(), copy.deepcopy(sims), copy.deepcopy(spy))
-        while len(_LAST) > 4:
+        while len(_LAST) > 6:
             _LAST.pop(min(_LAST, key=lambda k: _LAST[k][0]), None)
     except Exception:
         pass
@@ -1782,10 +1866,12 @@ def _replay_later(bots=None, delay=0):
         try:
             if delay:
                 time.sleep(delay)                 # the page that is opening gets the network first
-            bs = snapshot if snapshot is not None else list_bots()
-            if bs:
-                sims, spy = run_all(bs)
-                remember(bs, sims, spy)
+            # the saved bots: each market's list on its own (the page asks for the last replay of one market's bots)
+            groups = [snapshot] if snapshot is not None else [list_bots(m) for m in MK.CODES]
+            for bs in groups:
+                if bs:
+                    sims, spy = run_all(bs)
+                    remember(bs, sims, spy)
         except Exception:
             pass
         finally:

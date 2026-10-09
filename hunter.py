@@ -353,12 +353,13 @@ def spy_strength(spy):
     return sum(w * x for w, x in vals) / sum(w for w, _ in vals) if vals else np.nan
 
 
-def hunt(data_by_symbol, market=None, earnings=None, today=None, names=None, sectors=None):
-    """Every stock analysed and scored. earnings: {symbol: date} of upcoming reports; today: a date.
+def hunt(data_by_symbol, market=None, earnings=None, today=None, names=None, sectors=None, thin=20e6):
+    """Every stock analysed and scored. earnings: {symbol: date} of upcoming reports; today: a date. thin: the traded value a
+    day under which a stock is flagged thin (in its own currency).
     Returns a DataFrame (one row per stock, best first) and a dict of the per-stock details (setups, sparkline)."""
     rows, detail = [], {}
     for sym, df in data_by_symbol.items():
-        if sym in ("SPY", "^VIX"):
+        if sym in ("SPY", "^VIX", "KSA", "^TASI.SR"):
             continue
         try:
             r = analyze(df, market)
@@ -384,7 +385,7 @@ def hunt(data_by_symbol, market=None, earnings=None, today=None, names=None, sec
             edays = int(np.busday_count(pd.Timestamp(today).date(), pd.Timestamp(ed).date()))
             if 0 <= edays <= 5:
                 flags.append("earnings")
-        if r["dollar"] < 20e6:
+        if r["dollar"] < thin:
             flags.append("thin")
         if r["ext"] > 3:
             flags.append("extended")

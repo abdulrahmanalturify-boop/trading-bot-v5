@@ -244,7 +244,11 @@ def open_picker(symbols, key, label_en="Open a company", label_ar="افتح شر
         return
     valid(f"op_{key}", symbols)
     a, b = st.columns([3, 1], vertical_alignment="bottom")
-    pick = a.selectbox(L(label_en, label_ar), symbols, key=f"op_{key}")
+    import tasi
+
+    def name(s_):                                   # a Saudi code with its company's name (2222.SR · أرامكو السعودية)
+        return f"{s_} · {tasi.name_of(s_, L(False, True))}" if tasi.known(s_) else s_
+    pick = a.selectbox(L(label_en, label_ar), symbols, key=f"op_{key}", format_func=name)
     if b.button(L("Open", "افتح"), icon=":material/open_in_new:", key=f"opb_{key}", width="stretch"):
         open_stock(pick)
 

@@ -1,0 +1,161 @@
+"""
+scripts/site_check.py - Opens the site's pages in a headless browser, the way a visitor would, on a GitHub server (run by
+.github/workflows/sitecheck.yml): the site runs locally (`streamlit run app.py`, no secrets: the trial store), a few paper bots
+are added first, then every page of the list is opened in English and Arabic, in the US and the Saudi market. It saves a
+screenshot of each page and a report of what went wrong (a page that raised an error, a section that couldn't load) to
+OUT (default site_check/).
+"""
+import json
+import os
+import subprocess
+import sys
+import time
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, ROOT)
+OUT = os.environ.get("OUT") or os.path.join(ROOT, "site_check")
+PORT = 8599
+URL = f"http://localhost:{PORT}"
+os.makedirs(OUT, exist_ok=True)
+
+# (name, path, market) - each page opened fresh with ?m=<market>&lang=<lang>
+PAGES = [("overview", "overview", "sa"), ("news", "news", "sa"), ("stock", "stock?symbol=2222.SR", "sa"),
+         ("screener", "screener", "sa"), ("scanner", "scanner", "sa"), ("paper", "paper-bots", "sa"),
+         ("pf_trade", "portfolio-trade", "sa"), ("pf_dash", "portfolio", "sa"), ("glossary", "glossary", "sa"),
+         ("us_overview", "overview", "us"), ("us_paper", "paper-bots", "us"), ("us_stock", "stock?symbol=AAPL", "us"),
+         ("futures_sa", "futures", "sa")]
+
+
+def log(*a):
+    print(*a, flush=True)
+
+
+def seed_bots():
+    """A few Saudi bots and one US bot in the trial store (the same temp file the site reads)."""
+    import paperbots as PB
+    import playbooks as PBK
+    import markets as MK
+    if PB.backend() != "local":
+        return
+    rows = [PB.make_record("أرامكو المتقاطع", "company", "2222", {"SMA Crossover": {"fast": 20, "slow": 50}}, 1, 100000, 0.155, 0, 3.0, 0, 0,
+                           "2025-01-05", market=MK.SA),
+            PB.make_record("البنوك", "industry", "Banks", {"RSI Mean Reversion": {}, "MACD Crossover": {}}, 4, 500000, 0.155, 0, 3.0, 0, 0,
+                           "2025-03-02", market=MK.SA, regime=1),
+            PB.make_record("السوق كامل", "all", "all", {k: {} for k in PBK.DAILY}, 8, 1000000, 0.155, 0, 0, 0, 0, "2025-06-01",
+                           {"mode": "any"}, market=MK.SA),
+            PB.make_record("Apple trend", "company", "AAPL", {"SMA Crossover": {}}, 1, 100000, 0.05, 0, 3.0, 0, 0, "2025-01-06")]
+    for r in rows:
+        try:
+            PB.create_bot(r)
+        except Exception as e:
+            log("seed", r["name"], e)
+    log("seeded", len(PB.list_bots()), "bots")
+
+
+def settle(pg, limit=150):
+    """Wait until the page has finished running (no 'Running...' status, no spinner) for 3 seconds in a row."""
+    t0, calm = time.time(), 0
+    while time.time() - t0 < limit:
+        busy = pg.evaluate("""() => !!(document.querySelector('[data-testid="stStatusWidget"]') ||
+                                        document.querySelector('[data-testid="stSpinner"]') ||
+                                        !document.querySelector('[data-testid="stAppViewContainer"]'))""")
+        calm = 0 if busy else calm + 1
+        if calm >= 3:
+            return time.time() - t0
+        time.sleep(1)
+    return None
+
+
+def problems(pg):
+    return pg.evaluate("""() => {
+        const out = [];
+        document.querySelectorAll('[data-testid="stException"]').forEach(e => out.push('EXCEPTION: ' + e.innerText.slice(0, 1500)));
+        document.querySelectorAll('[data-testid="stAlert"]').forEach(e => {
+            const t = e.innerText;
+            if (/couldn't load|تعذر تحميل|Traceback|Error/.test(t)) out.push('ALERT: ' + t.slice(0, 600));
+        });
+        return out; }""")
+
+
+def shoot(pg, name):
+    h = pg.evaluate("() => Math.max(document.body.scrollHeight, (document.querySelector('[data-testid=\"stMain\"]')||document.body).scrollHeight)")
+    pg.set_viewport_size({"width": 1440, "height": min(max(int(h), 900), 9000)})
+    time.sleep(1.5)
+    pg.screenshot(path=os.path.join(OUT, f"{name}.jpg"), type="jpeg", quality=72, full_page=True)
+
+
+def main():
+    seed_bots()
+    env = dict(os.environ, PYTHONUNBUFFERED="1")
+    srv = subprocess.Popen([sys.executable, "-m", "streamlit", "run", "app.py", "--server.headless", "true", "--server.port", str(PORT),
+                            "--browser.gatherUsageStats", "false"], cwd=ROOT, env=env, stdout=open(os.path.join(OUT, "server.log"), "w"),
+                           stderr=subprocess.STDOUT)
+    report = {"pages": {}, "started": time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime())}
+    try:
+        import requests
+        for _ in range(60):
+            try:
+                if requests.get(URL + "/_stcore/health", timeout=2).ok:
+                    break
+            except Exception:
+                pass
+            time.sleep(1)
+        from playwright.sync_api import sync_playwright
+        with sync_playwright() as p:
+            b = p.chromium.launch()
+            for lang in ("ar", "en"):
+                ctx = b.new_context(viewport={"width": 1440, "height": 900}, locale="ar-SA" if lang == "ar" else "en-US")
+                pg = ctx.new_page()
+                # the landing: a new visitor picks a market
+                pg.goto(f"{URL}/?lang={lang}", wait_until="domcontentloaded")
+                took = settle(pg)
+                shoot(pg, f"{lang}_landing")
+                report["pages"][f"{lang}_landing"] = {"seconds": took, "problems": problems(pg)}
+                try:
+                    pg.locator('[class*="st-key-introgo_sa"] button').first.click(timeout=15000)
+                    took = settle(pg)
+                    shoot(pg, f"{lang}_after_pick_sa")
+                    report["pages"][f"{lang}_after_pick_sa"] = {"seconds": took, "problems": problems(pg), "url": pg.url}
+                except Exception as e:
+                    report["pages"][f"{lang}_after_pick_sa"] = {"error": str(e)[:400]}
+                for name, path, mk in PAGES:
+                    sep = "&" if "?" in path else "?"
+                    t0 = time.time()
+                    try:
+                        pg.goto(f"{URL}/{path}{sep}m={mk}&lang={lang}", wait_until="domcontentloaded", timeout=60000)
+                        took = settle(pg, 180)
+                        if name == "pf_trade":
+                            try:                     # an order from the ticket (the market may be closed: it then waits)
+                                pg.locator('[class*="st-key-pf_send"] button').first.click(timeout=10000)
+                                settle(pg)
+                            except Exception as e:
+                                report.setdefault("notes", []).append(f"{lang} send: {e}"[:300])
+                        shoot(pg, f"{lang}_{name}")
+                        report["pages"][f"{lang}_{name}"] = {"seconds": took, "problems": problems(pg)}
+                    except Exception as e:
+                        report["pages"][f"{lang}_{name}"] = {"error": str(e)[:400], "seconds": time.time() - t0}
+                    log(lang, name, json.dumps(report["pages"].get(f"{lang}_{name}"), ensure_ascii=False)[:300])
+                # the top line close up (the market switch and the language menu)
+                try:
+                    pg.goto(f"{URL}/news?m=sa&lang={lang}", wait_until="domcontentloaded")
+                    settle(pg)
+                    pg.set_viewport_size({"width": 1440, "height": 900})
+                    pg.screenshot(path=os.path.join(OUT, f"{lang}_topbar.jpg"), type="jpeg", quality=80, clip={"x": 0, "y": 0, "width": 1440, "height": 220})
+                except Exception as e:
+                    report.setdefault("notes", []).append(f"topbar {lang}: {e}"[:300])
+                ctx.close()
+            b.close()
+    finally:
+        srv.terminate()
+        try:
+            srv.wait(10)
+        except Exception:
+            srv.kill()
+    json.dump(report, open(os.path.join(OUT, "report.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+    bad = {k: v for k, v in report["pages"].items() if v.get("error") or v.get("problems")}
+    log("pages with problems:", json.dumps(bad, ensure_ascii=False, indent=1)[:6000])
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

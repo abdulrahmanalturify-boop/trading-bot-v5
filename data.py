@@ -628,8 +628,16 @@ def _sort_news(items):
     return out
 
 
-def market_news(hours=48):
-    """Market headlines: the news bot (~35 feeds, refreshed every 3 minutes) + Yahoo Finance. Newest first, duplicates removed."""
+def market_news(hours=48, market=None):
+    """Market headlines: the news bot (~35 feeds, refreshed every 3 minutes) + Yahoo Finance. Newest first, duplicates removed.
+    market: 'sa' = the Saudi market's bot (Arabic and English feeds on Saudi stocks); default: the page's market."""
+    import markets as MK
+    if (market or MK.current()) == MK.SA:
+        try:
+            import newsbot
+            return _sort_news(newsbot.sa_headlines(hours))
+        except Exception:
+            return []
     items = []
     try:
         import newsbot
@@ -645,8 +653,46 @@ def market_news(hours=48):
     return _sort_news(items + extra)
 
 
+@st.cache_data(ttl=900, show_spinner=False)
+def _sa_company_news(symbol):
+    """Google News on a Saudi company (its Arabic and English names), the last month."""
+    import newsbot
+    import tasi
+    out = []
+    ar, en = tasi.name_of(symbol, True), tasi.name_of(symbol)
+    code = symbol.split(".")[0]
+    for fid, url in (("sa_co_ar", newsbot.gnews_ar(f'"{ar}" OR "{code}" when:30d')), ("sa_co_en", newsbot.gnews(f'"{en}" Saudi when:30d'))):
+        if not ar and fid == "sa_co_ar":
+            continue
+        try:
+            r = requests.get(url, headers=newsbot.BROWSER, timeout=9)
+            if r.status_code == 200:
+                feed = (fid, "Saudi market", "companies", url)
+                out += [newsbot.build(x, feed) for x in newsbot.parse_feed(r.content)]
+        except Exception:
+            continue
+    for n in out:
+        n.pop("_text", None)
+        n["tickers"] = list(dict.fromkeys([symbol] + list(n.get("tickers") or [])))[:6]
+    return out
+
+
 def symbol_news(symbol, count=40, hours=96):
-    """News about one company: Yahoo Finance + every bot headline that names it."""
+    """News about one company: Yahoo Finance + every bot headline that names it (a Saudi company: the Saudi bot and Google News on
+    its names)."""
+    import markets as MK
+    if MK.of_symbol(symbol) == MK.SA:
+        items = news(symbol, count)
+        try:
+            items += [dict(n) for n in _sa_company_news(symbol)]
+        except Exception:
+            pass
+        try:
+            import newsbot
+            items += [n for n in newsbot.sa_bot(wait=False).items(hours) if symbol in (n.get("tickers") or [])]
+        except Exception:
+            pass
+        return _sort_news(items)
     items = news(symbol, count)
     try:
         import newsbot
@@ -1366,6 +1412,58 @@ def market_quotes(symbols):
     df = pd.DataFrame([{"Symbol": s, "Price": p, "Chg %": c} for s, (p, c) in ch.items()])
     df["Mkt Cap"] = df["Symbol"].map(lambda s: U.STOCKS[s][3] * 1e9 if s in U.STOCKS else np.nan)
     return df, "history"
+
+
+def with_quotes(px, symbols):
+    """px ({symbol: daily OHLC}) with the symbols Yahoo keeps no history for (the TASI index) filled from live quotes: two rows,
+    the previous close and the last price, so tiles show the level and the day's change."""
+    miss = [s_ for s_ in symbols if s_ not in px or px[s_] is None or len(px[s_].dropna(subset=["Close"])) < 2]
+    if not miss:
+        return px
+    q = quotes_df(miss)
+    out = dict(px)
+    for _, r in (q.iterrows() if not q.empty else []):
+        p, c = r.get("Price"), r.get("Chg %")
+        if pd.notna(p) and pd.notna(c):
+            prev = float(p) / (1 + float(c) / 100)
+            day = pd.Timestamp.now().normalize()
+            out[r["Symbol"]] = pd.DataFrame({"Open": [prev, prev], "High": [prev, float(p)], "Low": [prev, float(p)], "Close": [prev, float(p)],
+                                          "Volume": [0.0, 0.0]}, index=[day - pd.Timedelta(days=1), day])
+    return out
+
+
+def sa_snapshot():
+    """The Saudi main market right now, one row per company: price, change, market cap (SAR), volume, P/E, P/B, EPS, dividend
+    yield, 52-week and moving-average positions (batch quotes)."""
+    import tasi
+    try:
+        raw = _quotes(tuple(tasi.SYMBOLS))
+    except Exception:
+        return pd.DataFrame()
+    rows = []
+    for q in raw:
+        s_ = q.get("symbol")
+        if not s_:
+            continue
+        p = q.get("regularMarketPrice")
+        dy = q.get("dividendYield")
+        if dy is None and q.get("trailingAnnualDividendYield") is not None:
+            dy = q["trailingAnnualDividendYield"] * 100
+        rows.append({"Symbol": s_, "Price": p, "Chg %": q.get("regularMarketChangePercent"), "Mkt Cap": q.get("marketCap"),
+                     "Volume": q.get("regularMarketVolume"), "Avg Vol": q.get("averageDailyVolume3Month"), "P/E": q.get("trailingPE"),
+                     "Fwd P/E": q.get("forwardPE"), "P/B": q.get("priceToBook"), "EPS": q.get("epsTrailingTwelveMonths"), "Div %": dy,
+                     "52W %": q.get("fiftyTwoWeekChangePercent"), "vs50 %": _ratio(p, q.get("fiftyDayAverage")),
+                     "vs200 %": _ratio(p, q.get("twoHundredDayAverage")), "Hi52 %": _ratio(p, q.get("fiftyTwoWeekHigh")),
+                     "Lo52 %": _ratio(p, q.get("fiftyTwoWeekLow"))})
+    df = pd.DataFrame(rows)
+    if df.empty:
+        return df
+    for c in df.columns:
+        if c != "Symbol":
+            df[c] = pd.to_numeric(df[c], errors="coerce")
+    if df["52W %"].notna().sum() > 5 and df["52W %"].abs().median() < 1.5:
+        df["52W %"] = df["52W %"] * 100
+    return df
 
 
 ytd_change = ta.ytd_change        # year-to-date % change from the last close of the previous year

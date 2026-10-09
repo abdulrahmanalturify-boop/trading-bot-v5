@@ -13,9 +13,11 @@ import charts
 import data
 import heatmap as HM
 import home
+import markets as MK
 import newsbot
 import newsiq
 import ta
+import tasi
 import taxonomy as X
 import theme as T
 import ui
@@ -26,7 +28,32 @@ from sp500 import DOW30, SP500, gics_name
 ss = st.session_state
 
 
+# the Saudi market's overview: its index, the biggest companies, oil, gold and the riyal
+SA_TILES = {("Saudi market", "السوق السعودي"): {"^TASI.SR": ("TASI", "تاسي"), "^NOMUC.SR": ("Nomu (parallel market)", "نمو (السوق الموازية)")},
+            ("Heavyweights", "الشركات القيادية"): {s: None for s in ("2222.SR", "1120.SR", "1211.SR", "1180.SR", "7010.SR", "2010.SR")},
+            ("Commodities", "السلع"): {"BZ=F": ("Brent crude", "خام برنت"), "CL=F": ("WTI crude", "خام غرب تكساس"), "GC=F": ("Gold", "الذهب"),
+                                       "NG=F": ("Natural gas", "الغاز الطبيعي")},
+            ("Currencies", "العملات"): {"SAR=X": ("USD / SAR", "دولار / ريال"), "DX-Y.NYB": ("US dollar index", "مؤشر الدولار"),
+                                        "EURUSD=X": ("EUR / USD", "يورو / دولار"), "BTC-USD": ("Bitcoin", "بيتكوين")}}
+SA_TAPE = ["^TASI.SR", "2222.SR", "1120.SR", "1180.SR", "1211.SR", "7010.SR", "2010.SR", "2082.SR", "1150.SR", "1010.SR", "4013.SR",
+           "BZ=F", "GC=F", "SAR=X"]
+
+
+def _sa_name(sym):
+    """A tile / tape name in the visitor's language."""
+    for g in SA_TILES.values():
+        if g.get(sym):
+            return L(*g[sym])
+    if tasi.known(sym):
+        return tasi.name_of(sym, is_ar())
+    return {"BZ=F": L("Brent", "برنت"), "GC=F": L("Gold", "الذهب"), "SAR=X": L("USD/SAR", "دولار/ريال")}.get(sym, sym)
+
+
 def _tile_prices():
+    if MK.is_sa():
+        syms = [s for g in SA_TILES.values() for s in g]
+        px = data.history_many(tuple(syms + SA_TAPE), "1mo")
+        return data.with_quotes(px, ["^TASI.SR", "^NOMUC.SR"])      # the indices: Yahoo keeps only their live quote
     syms = [s for g in U.MARKET_TILES.values() for s in g]
     return data.history_many(tuple(syms + list(U.TAPE)), "1mo")
 
@@ -50,6 +77,11 @@ def _chg(df, n):
 
 
 def ticker_tape(px):
+    if MK.is_sa():
+        items = [(_sa_name(s), *_last(px, s)[::2]) for s in SA_TAPE if _last(px, s)[0] is not None]
+        if items:
+            ui.html(T.tape(items))
+        return
     items = [(U.TAPE_NAMES.get(s, s), *_last(px, s)[::2]) for s in U.TAPE if _last(px, s)[0] is not None]
     if items:
         ui.html(T.tape(items))
@@ -76,6 +108,10 @@ HM_SIZES = {"cap": ("Market cap", "القيمة السوقية"), "dvol": ("Doll
 
 
 def hm_universes():
+    if MK.is_sa():
+        return {"sa_all": (L("All Saudi companies (main market)", "كل الشركات السعودية (السوق الرئيسية)"), list(tasi.SYMBOLS)),
+                "sa_top": (L("The 50 biggest companies", "أكبر 50 شركة"), tasi.top(50)),
+                "sa_noreit": (L("Without the REITs", "بدون الصناديق العقارية"), [s for s in tasi.SYMBOLS if tasi.group_of(s) != "reits"])}
     u = {"sp500": (L("S&P 500 Index", "مؤشر إس آند بي 500"), list(SP500)),
          "dow": (L("Dow Jones 30", "داو جونز 30"), DOW30),
          "top": (L("Top 175 US stocks", "أكبر 175 سهم أمريكي"), list(U.US_UNIVERSE))}
@@ -86,6 +122,8 @@ def hm_universes():
 
 def _meta(sym):
     """(name, sector, industry, industry naming) from the static lists."""
+    if tasi.known(sym):
+        return tasi.name_of(sym, is_ar()), tasi.sector_of(sym), tasi.industry_of(sym), "tadawul"
     if sym in SP500:
         n, sec, sub = SP500[sym]
         return n, sec, sub, "gics"
@@ -106,7 +144,7 @@ def heatmap_frame(ukey, period, sizing):
             continue
         r = q.loc[s]
         name, sec, ind, kind = _meta(s)
-        rows.append({"Symbol": s, "Name": r.get("Name") if isinstance(r.get("Name"), str) and r.get("Name") != s else name,
+        rows.append({"Symbol": s, "Name": name if kind == "tadawul" else r.get("Name") if isinstance(r.get("Name"), str) and r.get("Name") != s else name,
                      "Sector": sec, "Industry": ind, "Kind": kind, "Price": r.get("Price"), "1D": r.get("Chg %"),
                      "1Y": r.get("52W %"), "PRE": r.get("PRE"), "POST": r.get("POST"), "Cap": r.get("Mkt Cap"),
                      "Volume": r.get("Volume")})
@@ -122,7 +160,7 @@ def heatmap_frame(ukey, period, sizing):
                 df["1Y"] = df["1Y"].fillna(df["1Y_h"])
     df["Val"] = pd.to_numeric(df.get(period), errors="coerce") if period in df else np.nan
     cap = pd.to_numeric(df["Cap"], errors="coerce")
-    static = df["Symbol"].map(lambda s: U.STOCKS[s][3] * 1e9 if s in U.STOCKS else np.nan)
+    static = df["Symbol"].map(lambda s: U.STOCKS[s][3] * 1e9 if s in U.STOCKS else tasi.cap_b(s) * 1e9 if tasi.known(s) else np.nan)
     cap = cap.fillna(static).fillna(cap.median() if cap.notna().any() else 2e10).fillna(2e10)
     if sizing == "cap":
         df["Size"] = cap
@@ -135,13 +173,25 @@ def heatmap_frame(ukey, period, sizing):
     return df, source
 
 
+def _sa_sector(s_):
+    return tasi.sector_ar(s_) if is_ar() else s_
+
+
+def _sa_industry(g):
+    return tasi.industry_ar(g) if is_ar() else g
+
+
 def heatmap_section():
+    sa = MK.is_sa()
     ui.sec("grid_view", "Stock heatmap", "خريطة الأسهم الحرارية")
     unis = hm_universes()
     c = st.columns([1.35, 1, 1.05, 1.25])
-    ukey = c[0].selectbox(L("Index", "المؤشر"), list(unis), key="hm_uni", format_func=lambda k: unis[k][0])
-    sizing = c[1].selectbox(L("Size", "الحجم"), list(HM_SIZES), key="hm_size", format_func=lambda k: L(*HM_SIZES[k]))
-    period = c[2].selectbox(L("Color", "اللون"), list(HM_PERIODS), key="hm_per", format_func=lambda k: L(*HM_PERIODS[k]))
+    sfx = "_sa" if sa else ""                              # the Saudi market keeps its own choices
+    ukey = c[0].selectbox(L("Index", "المؤشر"), list(unis), key="hm_uni" + sfx, format_func=lambda k: unis[k][0])
+    sizes = {k: v for k, v in HM_SIZES.items()} if not sa else {"cap": HM_SIZES["cap"], "dvol": ("Traded value", "قيمة التداول"), "equal": HM_SIZES["equal"]}
+    sizing = c[1].selectbox(L("Size", "الحجم"), list(sizes), key="hm_size" + sfx, format_func=lambda k: L(*sizes[k]))
+    pers = [k for k in HM_PERIODS if not (sa and k in ("PRE", "POST"))]       # Tadawul has no pre-market / after-hours trading
+    period = c[2].selectbox(L("Color", "اللون"), pers, key="hm_per" + sfx, format_func=lambda k: L(*HM_PERIODS[k]))
     theme_uni = ukey.startswith("t:")
     with st.spinner(L("Building the heatmap...", "جاري بناء الخريطة...")):
         df, source = heatmap_frame(ukey, period, sizing)
@@ -150,10 +200,11 @@ def heatmap_section():
         st.warning(L("Market data is temporarily unavailable.", "بيانات السوق غير متاحة مؤقتاً."))
         return None
     sectors = ["all"] + sorted(df["Sector"].unique(), key=lambda s: -df.loc[df["Sector"] == s, "Cap"].sum())
-    if ss.get("hm_sec") not in sectors:
-        ss["hm_sec"] = "all"
-    sec = c[3].selectbox(L("Sector", "القطاع"), sectors, key="hm_sec",
-                         format_func=lambda s: L("All sectors", "كل القطاعات") if s == "all" else sector_name(s))
+    if ss.get("hm_sec" + sfx) not in sectors:
+        ss["hm_sec" + sfx] = "all"
+    sec_label = _sa_sector if sa else sector_name
+    sec = c[3].selectbox(L("Sector", "القطاع"), sectors, key="hm_sec" + sfx,
+                         format_func=lambda s: L("All sectors", "كل القطاعات") if s == "all" else sec_label(s))
     view = df if sec == "all" else df[df["Sector"] == sec]
     if theme_uni and sec == "all":                         # themes are grouped by sub-theme
         tk = ukey[2:]
@@ -165,11 +216,11 @@ def heatmap_section():
         label = lambda g: theme_name(tk, g)
     elif sec == "all":
         view = view.assign(Group=view["Sector"])
-        label = sector_name
+        label = sec_label
     else:
         view = view.assign(Group=view["Industry"])
         kind_of = view.groupby("Industry")["Kind"].first().to_dict()
-        label = lambda g: gics_name(g) if kind_of.get(g) == "gics" else industry_name(g)
+        label = (lambda g: _sa_industry(g)) if sa else (lambda g: gics_name(g) if kind_of.get(g) == "gics" else industry_name(g))
     if view["Val"].isna().all():
         st.info(L("This measure isn't available right now (for example pre-market data outside trading hours). Showing today's change.",
                   "هذا المقياس غير متاح حالياً (مثل بيانات ما قبل الافتتاح خارج أوقات التداول). نعرض تغير اليوم."), icon=":material/info:")
@@ -185,6 +236,8 @@ def heatmap_section():
         v = t.get("Val")
         chg = f"{v:+.2f}%" if v is not None and np.isfinite(v) else "—"
         return f'{t["Symbol"]} · {t.get("Name", "")}\n{T.fmt_price(t.get("Price"))} · {chg} · {L("Mkt cap", "القيمة")} {T.fmt_big(t.get("Cap"))}'
+    if sa:                                                 # Saudi tiles show the company's name (the code is a number)
+        tiles = [dict(t, Label=tasi.name_of(t["Symbol"], is_ar()) or t["Symbol"]) for t in tiles]
     ui.html(HM.render(tiles, groups, lg, rng, lang(), label, tip, rtl=is_ar()))
     ui.html(HM.legend(rng))
     up, dn = int((view["Val"] > 0).sum()), int((view["Val"] < 0).sum())
@@ -194,7 +247,7 @@ def heatmap_section():
                  f"{len(view)} شركة · {up} صاعدة · {dn} نازلة · التغير المرجّح {w:+.2f}% · الحجم = {L(*HM_SIZES[sizing])} · "
                  "اضغط على أي شركة لفتح صفحتها" + ("" if source == "live" else " · بيانات متأخرة")))
     ui.open_picker(view.sort_values("Size", ascending=False)["Symbol"].tolist(), "hm", "Open a company from the map", "افتح شركة من الخريطة")
-    return df if ukey == "sp500" else None
+    return df if ukey in ("sp500", "sa_all") else None
 
 
 # =====================================================================
@@ -203,18 +256,18 @@ def heatmap_section():
 SEC_PERIODS = {"1D": 1, "1W": 5, "1M": 21, "3M": 63, "YTD": "ytd"}
 
 
-def _rrg(hist, window=12, tail=5):
+def _rrg(hist, window=12, tail=5, bench="SPY", keys=None, week="W-FRI"):
     """JdK-style Relative Rotation Graph points (weekly, smoothed): RS-Ratio (trend of relative strength) and RS-Momentum."""
-    spy = hist.get("SPY")
+    spy = hist.get(bench)
     if spy is None or len(spy) < 120:
         return {}
-    sw = spy["Close"].resample("W-FRI").last()
+    sw = spy["Close"].resample(week).last()
     out = {}
-    for etf in U.SECTOR_ETFS:
+    for etf in (keys if keys is not None else U.SECTOR_ETFS):
         df = hist.get(etf)
         if df is None or len(df) < 120:
             continue
-        rs = ((df["Close"].resample("W-FRI").last() / sw).dropna() * 100).ewm(span=4).mean()
+        rs = ((df["Close"].resample(week).last() / sw).dropna() * 100).ewm(span=4).mean()
         ratio = 100 + (rs - rs.rolling(window).mean()) / rs.rolling(window).std()
         ratio = ratio.ewm(span=3).mean()
         roc = ratio.diff()
@@ -261,17 +314,74 @@ def sector_section():
                          "اليمين = أقوى من السوق، والأعلى = زخم متزايد. القطاعات تدور عادة مع عقارب الساعة: يتحسن ← قيادي ← يضعف ← متأخر."))
 
 
+@st.cache_data(ttl=1800, show_spinner=False)
+def _sa_sector_frames(ar):
+    """{sector: DataFrame(Close)} equal-weighted indices of the Saudi sectors (2 years), plus "MKT": the whole market the same way
+    (the TASI index itself when Yahoo has its history)."""
+    hist = data.history_many(tuple(tasi.SYMBOLS) + ("^TASI.SR",), "2y")
+    closes = pd.DataFrame({s_: df["Close"] for s_, df in hist.items() if tasi.known(s_) and len(df) > 60}).sort_index()
+    if closes.empty:
+        return {}
+    rets = closes.pct_change(fill_method=None).clip(-0.4, 0.4)
+
+    def ix(cols):
+        r = rets[cols].mean(axis=1, skipna=True).fillna(0.0)
+        return pd.DataFrame({"Close": (1 + r).cumprod() * 100})
+    out = {sec: ix([c for c in closes if tasi.sector_of(c) == sec]) for sec in tasi.SECTORS if any(tasi.sector_of(c) == sec for c in closes)}
+    tx = hist.get("^TASI.SR")
+    out["MKT"] = tx[["Close"]] if tx is not None and len(tx) >= 200 else ix(list(closes))
+    out["_tasi"] = tx is not None and len(tx) >= 200
+    return out
+
+
+def sector_section_sa():
+    ui.sec("donut_small", "Sector performance", "أداء القطاعات")
+    per = st.segmented_control(L("Period", "الفترة"), list(SEC_PERIODS), default="1D", key="ov_per_sa", label_visibility="collapsed") or "1D"
+    fr = _sa_sector_frames(is_ar())
+    rows = [(sec, "", _chg(df, SEC_PERIODS[per]), _chg(df, 5), _chg(df, 21), df["Close"].tail(22).values)
+            for sec, df in fr.items() if sec not in ("MKT", "_tasi")]
+    if not rows:
+        st.info(L("Sector data unavailable right now.", "بيانات القطاعات غير متاحة حالياً."))
+        return
+    rows.sort(key=lambda r: -(r[2] if pd.notna(r[2]) else -1e9))
+    left, right = st.columns([1, 1.15])
+    mkt_name = L("TASI", "تاسي") if fr.get("_tasi") else L("Market", "السوق")
+    with left:
+        mk = _chg(fr["MKT"], SEC_PERIODS[per])
+        best, worst = rows[0], rows[-1]
+        ui.html(f'<div class="card" style="padding:12px 14px"><div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">'
+                f'{T.badge(L("Leader", "الأقوى") + ": " + _sa_sector(best[0]), "up", "north_east")}'
+                f'{T.badge(L("Laggard", "الأضعف") + ": " + _sa_sector(worst[0]), "down", "south_east")}'
+                f'<span class="muted" style="font-size:.8rem">{T.esc(mkt_name)} {per}</span>{T.pill(mk)}</div></div>')
+        ui.html('<div class="secgrid">' + "".join(T.sector_card(_sa_sector(n), "", v, w, m, sp) for n, e, v, w, m, sp in rows) + "</div>")
+        st.caption(L("Each sector is the average move of its companies (equal weights).", "كل قطاع = متوسط حركة شركاته (بأوزان متساوية)."))
+    with right:
+        keys = [r[0] for r in rows]
+        tails = _rrg(fr, bench="MKT", keys=keys, week="W-THU")
+        if tails:
+            ui.chart(charts.sector_rrg(tails, {k: _sa_sector(k) for k in keys},
+                                       L(f"Sector rotation vs {mkt_name} (weekly, last 5 weeks)", f"دوران القطاعات مقابل {mkt_name} (أسبوعي، آخر 5 أسابيع)"),
+                                       (L("Leading", "قيادي"), L("Weakening", "يضعف"), L("Lagging", "متأخر"), L("Improving", "يتحسن"))))
+            st.caption(L("Right = stronger than the market, top = gaining momentum. Sectors usually rotate clockwise: Improving → Leading → Weakening → Lagging.",
+                         "اليمين = أقوى من السوق، والأعلى = زخم متزايد. القطاعات تدور عادة مع عقارب الساعة: يتحسن ← قيادي ← يضعف ← متأخر."))
+
+
 def breadth_section(sp=None):
-    ui.sec("monitor_heart", "Market breadth · S&P 500", "اتساع السوق · إس آند بي 500")
+    sa = MK.is_sa()
+    uni = list(tasi.SYMBOLS) if sa else list(SP500)
+    if sa:
+        ui.sec("monitor_heart", "Market breadth · Saudi main market", "اتساع السوق · السوق السعودية الرئيسية")
+    else:
+        ui.sec("monitor_heart", "Market breadth · S&P 500", "اتساع السوق · إس آند بي 500")
     if sp is None:
-        q, _ = data.market_quotes(list(SP500))
+        q, _ = data.market_quotes(uni)
         sp = q.rename(columns={"Chg %": "1D"}) if not q.empty else q
         if not sp.empty:
-            sp["Sector"] = sp["Symbol"].map(lambda s: SP500.get(s, ("", "Other", ""))[1])
+            sp["Sector"] = sp["Symbol"].map(tasi.sector_of if sa else (lambda s: SP500.get(s, ("", "Other", ""))[1]))
     if sp is None or sp.empty:
         st.info(L("Breadth data unavailable right now.", "بيانات اتساع السوق غير متاحة حالياً."))
         return
-    q = data.quotes_df(list(SP500)) if "vs50 %" not in sp else sp
+    q = data.quotes_df(uni) if "vs50 %" not in sp else sp
     chg = pd.to_numeric(sp["1D"], errors="coerce").dropna()
     adv, dec = int((chg > 0).sum()), int((chg < 0).sum())
     unch = len(chg) - adv - dec
@@ -305,16 +415,54 @@ def breadth_section(sp=None):
             g = sp.assign(up=pd.to_numeric(sp["1D"], errors="coerce") > 0).groupby("Sector")["up"].mean().sort_values(ascending=False) * 100
             ui.html(f'<div class="card"><div class="muted" style="font-size:.75rem;font-weight:600;letter-spacing:.08em">'
                     f'{L("ADVANCING BY SECTOR", "الصاعدة حسب القطاع")}</div>' +
-                    T.progress_bars([(sector_name(s_), f"{v:.0f}%", v, T.UP if v >= 50 else T.DOWN) for s_, v in g.items()]) + "</div>")
-    ui.chart(charts.change_distribution(chg, L("Distribution of today's moves (S&P 500)", "توزيع حركة الأسهم اليوم (إس آند بي 500)"),
+                    T.progress_bars([((_sa_sector if sa else sector_name)(s_), f"{v:.0f}%", v, T.UP if v >= 50 else T.DOWN) for s_, v in g.items()]) + "</div>")
+    ui.chart(charts.change_distribution(chg, L("Distribution of today's moves (Saudi main market)", "توزيع حركة الأسهم اليوم (السوق السعودية)") if sa else
+                                        L("Distribution of today's moves (S&P 500)", "توزيع حركة الأسهم اليوم (إس آند بي 500)"),
                                         L("Change %", "التغير %"), L("Stocks", "عدد الأسهم")))
 
 
 # =====================================================================
 # OVERVIEW
 # =====================================================================
+def page_overview_sa():
+    """The Saudi market's overview: TASI, the biggest companies, oil, gold and the riyal; the heat map, the sectors and breadth
+    of the main market."""
+    px = _tile_prices()
+    ticker_tape(px)
+    chips = ""
+    for s_ in ("^TASI.SR", "2222.SR", "1120.SR", "BZ=F", "GC=F", "SAR=X"):
+        p, _, c = _last(px, s_)
+        if p is not None:
+            chips += f'<span class="chip"><b>{T.esc(_sa_name(s_))}</b>{T.fmt_price(p)} {T.pill(c)}</span>'
+    home.hero(chips)
+    ui.header("monitoring", "Saudi Market Overview", "نظرة عامة على السوق السعودي",
+              "Live snapshot of the Saudi Exchange (Tadawul): TASI, the biggest companies, sectors, oil, gold and the riyal. Prices in SAR.",
+              "لمحة مباشرة عن السوق السعودية (تداول): مؤشر تاسي، وأكبر الشركات، والقطاعات، والنفط، والذهب، والريال. الأسعار بالريال.")
+    icons = {"Saudi market": "show_chart", "Heavyweights": "domain", "Commodities": "oil_barrel", "Currencies": "currency_exchange"}
+    for (gen, gar), syms in SA_TILES.items():
+        ui.sec(icons.get(gen, "insights"), gen, gar)
+        items = []
+        for sym in syms:
+            p, chg, pct = _last(px, sym)
+            name = _sa_name(sym)
+            if p is None:
+                items.append(T.tile(name, "—"))
+                continue
+            items.append(T.tile(name, T.fmt_price(p), chg, pct, px[sym]["Close"].tail(22).values))
+        ui.html(T.tiles(items))
+    sp = ui.safe(heatmap_section)
+    ui.safe(sector_section_sa)
+    ui.safe(breadth_section, sp)
+    st.caption(L("Prices from Yahoo Finance (may be delayed). The Saudi market trades Sunday to Thursday, 10 am to 3 pm Riyadh time.",
+                 "الأسعار من Yahoo Finance (قد تكون متأخرة). السوق السعودي يتداول من الأحد للخميس، من 10 الصبح لين 3 العصر بتوقيت الرياض."))
+    ui.foot()
+
+
 def page_overview():
     if home.intro():                 # the interactive landing comes first (once per visit), then the home page
+        return
+    if MK.is_sa():
+        page_overview_sa()
         return
     px = _tile_prices()
     ticker_tape(px)
@@ -982,9 +1130,14 @@ def _ago(ts):
     return L(f"{int(m)} min ago", f"قبل {int(m)} دقيقة") if m < 60 else L(f"{int(m // 60)} h ago", f"قبل {int(m // 60)} ساعة")
 
 
+def _news_bot(wait=False):
+    """The news bot of the page's market (the Saudi market has its own)."""
+    return newsbot.sa_bot(wait=wait) if MK.is_sa() else newsbot.bot(wait=wait)
+
+
 def _refresh_bot():
     try:
-        newsbot.bot(wait=False).collect(force=True)
+        _news_bot().collect(force=True)
     except Exception:
         pass
 
@@ -992,7 +1145,7 @@ def _refresh_bot():
 def bot_panel(items_24h):
     """Live strip: how many headlines the bot has, from how many outlets, when it last updated; plus the status of every source."""
     try:
-        b = newsbot.bot(wait=False)
+        b = _news_bot()
         health, updated = b.health(), b.updated
     except Exception:
         health, updated = [], None
@@ -1002,7 +1155,7 @@ def bot_panel(items_24h):
     c1.markdown(f'<div class="botbar"><span class="live"><i></i>{L("News bot · live", "بوت الأخبار · مباشر")}</span>'
                 f'<span><b>{len(items_24h):,}</b> {L("headlines in the last 24 hours", "خبراً خلال آخر 24 ساعة")}</span>'
                 f'<span><b>{outlets}</b> {L("outlets", "مصدراً")}</span>'
-                f'<span>{L("sources working", "مصادر تعمل")}: <b>{live}/{len(health) or len(newsbot.OUTLETS)}</b></span>'
+                f'<span>{L("sources working", "مصادر تعمل")}: <b>{live}/{len(health) or len(newsbot.SA_OUTLETS if MK.is_sa() else newsbot.OUTLETS)}</b></span>'
                 f'<span>{L("updated", "آخر تحديث")} {_ago(updated)} · {L("every 3 minutes", "كل 3 دقائق")}</span></div>', unsafe_allow_html=True)
     c2.button(L("Refresh", "تحديث"), icon=":material/refresh:", key="nw_refresh", on_click=_refresh_bot, width="stretch")
     if health:
@@ -1021,14 +1174,26 @@ def bot_panel(items_24h):
 
 
 def page_news():
-    ui.header("newspaper", "Market News", "أخبار السوق",
-              "Live headlines collected by the news bot from Reuters, Bloomberg, WSJ, FT, CNBC, Benzinga and 20+ other sources, with keywords, "
-              "an importance score from 1 to 10 and the companies affected by each story.",
-              "أخبار مباشرة يجمعها بوت الأخبار من رويترز وبلومبرغ ووول ستريت جورنال وفايننشال تايمز وCNBC وبنزينغا وأكثر من 20 مصدراً آخر، "
-              "مع الكلمات المفتاحية ودرجة أهمية من 1 إلى 10 والشركات المتأثرة بكل خبر.")
+    sa = MK.is_sa()
+    if sa:
+        ui.header("newspaper", "Saudi Market News", "أخبار السوق السعودي",
+                  "Live headlines on Saudi stocks collected by the news bot from Argaam, Al Eqtisadiah, Maaal, Asharq Bloomberg, CNBC Arabia, "
+                  "Reuters, Arab News and more, in Arabic and English, with the companies each story names.",
+                  "أخبار مباشرة عن الأسهم السعودية يجمعها بوت الأخبار من أرقام والاقتصادية ومال والشرق بلومبرغ وCNBC عربية ورويترز وعرب نيوز وغيرها، "
+                  "بالعربي والإنجليزي، مع الشركات اللي يذكرها كل خبر.")
+    else:
+        ui.header("newspaper", "Market News", "أخبار السوق",
+                  "Live headlines collected by the news bot from Reuters, Bloomberg, WSJ, FT, CNBC, Benzinga and 20+ other sources, with keywords, "
+                  "an importance score from 1 to 10 and the companies affected by each story.",
+                  "أخبار مباشرة يجمعها بوت الأخبار من رويترز وبلومبرغ ووول ستريت جورنال وفايننشال تايمز وCNBC وبنزينغا وأكثر من 20 مصدراً آخر، "
+                  "مع الكلمات المفتاحية ودرجة أهمية من 1 إلى 10 والشركات المتأثرة بكل خبر.")
     c1, c2, c3, c4, c5 = st.columns([1.5, 1.25, 1.45, 0.7, 0.9], vertical_alignment="bottom")
-    sym = c1.text_input(L("Symbol (leave empty for market news)", "رمز سهم (اتركه فارغاً لأخبار السوق)"), "").strip().upper()
-    sort = c2.segmented_control(L("Sort by", "الترتيب"), ["imp", "new"], default="imp", key="nw_sort",
+    sym = c1.text_input(L("Company code (empty = market news)", "رمز الشركة (فارغ = أخبار السوق)") if sa else
+                        L("Symbol (leave empty for market news)", "رمز سهم (اتركه فارغاً لأخبار السوق)"), "", key="nw_sym_sa" if sa else None,
+                        placeholder="2222" if sa else None).strip().upper()
+    if sa and sym:
+        sym = f"{sym}.SR" if sym.isdigit() and len(sym) == 4 else (tasi.search(sym) or [sym])[0]
+    sort = c2.segmented_control(L("Sort by", "الترتيب"), ["imp", "new"], default="new" if sa else "imp", key="nw_sort_sa" if sa else "nw_sort",
                                 format_func=lambda k: L("Most important", "الأهم أولاً") if k == "imp" else L("Latest", "الأحدث")) or "imp"
     lvl = c3.segmented_control(L("Importance", "الأهمية"), [1, 5, 7, 9], default=1, key="nw_min",
                                format_func=lambda v: L("All", "الكل") if v == 1 else f"{v}+") or 1

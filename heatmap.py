@@ -117,9 +117,10 @@ def render(tiles, groups, logos=None, rng=3.0, lang="en", label=str, tip=None, r
         if w < 1 or h < 1:
             continue
         sym, v = t["Symbol"], t.get("Val")
+        text = t.get("Label") or sym                   # a Saudi tile shows the company's name (its code is a number)
         fill = color(v, rng)
         m = min(w, h)
-        n = max(len(sym), 3)
+        n = max(len(text), 3)
         fs = min(m * 0.19, w / (0.68 * n), 34)
         fs = fs if fs >= 7.5 else 0
         pfs = fs * 0.8
@@ -143,7 +144,7 @@ def render(tiles, groups, logos=None, rng=3.0, lang="en", label=str, tip=None, r
                          f'clip-path="url(#{uid}{i})" preserveAspectRatio="xMidYMid meet"/>')
             top += 2 * r + 6
         if fs:
-            parts.append(f'<text x="{cx:.1f}" y="{top + fs * 0.8:.1f}" font-size="{fs:.1f}" class="tk">{_e(sym)}</text>')
+            parts.append(f'<text x="{cx:.1f}" y="{top + fs * 0.8:.1f}" font-size="{fs:.1f}" class="tk">{_e(text)}</text>')
             if show_pct:
                 parts.append(f'<text x="{cx:.1f}" y="{top + fs + 3 + pfs * 0.8:.1f}" font-size="{pfs:.1f}" class="pc">{pct}</text>')
         title = tip(t) if tip else f"{sym} {pct}"

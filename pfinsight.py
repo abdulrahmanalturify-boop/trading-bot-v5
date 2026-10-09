@@ -7,6 +7,8 @@ Every text comes in English and Arabic: (en, ar) pairs the page picks from.
 """
 import math
 
+import markets as MK
+
 import numpy as np
 import pandas as pd
 
@@ -98,8 +100,12 @@ def health(view, acct, stats, orders, sector_of, sec_name=None):
     if acct.get("margin_call"):
         risk = min(risk, 10)
     risk = _clamp(risk)
-    d = (f"Leverage {lev:.2f}× · margin used {used:.0f}%" + (f" · swings {vol:.0f}%/yr" if vol is not None else ""),
-         f"الرافعة {lev:.2f}× · الهامش المستخدم {used:.0f}%" + (f" · التذبذب {vol:.0f}% سنوياً" if vol is not None else ""))
+    if MK.current() == MK.SA:                # a cash account: how much is invested
+        d = (f"Invested {used:.0f}%" + (f" · swings {vol:.0f}%/yr" if vol is not None else ""),
+             f"المستثمر {used:.0f}%" + (f" · التذبذب {vol:.0f}% سنوياً" if vol is not None else ""))
+    else:
+        d = (f"Leverage {lev:.2f}× · margin used {used:.0f}%" + (f" · swings {vol:.0f}%/yr" if vol is not None else ""),
+             f"الرافعة {lev:.2f}× · الهامش المستخدم {used:.0f}%" + (f" · التذبذب {vol:.0f}% سنوياً" if vol is not None else ""))
     factors.append({"key": "risk", "icon": "speed", "name": ("Risk", "المخاطرة"), "score": risk if (n or view.get("trades")) else None, "detail": d})
 
     # 5 performance against the market (needs a week of sessions)
@@ -107,8 +113,9 @@ def health(view, acct, stats, orders, sector_of, sec_name=None):
     if twr is not None and days >= 5:
         ex = twr - (bret if bret is not None else 0.0)
         perf = _clamp(50 + ex * 4)
-        d = ((f"{twr:+.1f}% vs S&P 500 {bret:+.1f}%" if bret is not None else f"{twr:+.1f}% so far"),
-             (f"{twr:+.1f}% مقابل S&P 500 {bret:+.1f}%" if bret is not None else f"{twr:+.1f}% للحين"))
+        bn = ("the Saudi market", "السوق السعودي") if MK.current() == MK.SA else ("S&P 500", "S&P 500")
+        d = ((f"{twr:+.1f}% vs {bn[0]} {bret:+.1f}%" if bret is not None else f"{twr:+.1f}% so far"),
+             (f"{twr:+.1f}% مقابل {bn[1]} {bret:+.1f}%" if bret is not None else f"{twr:+.1f}% للحين"))
     else:
         perf, d = None, ("After a week of sessions", "بعد أسبوع من الجلسات")
     factors.append({"key": "perf", "icon": "trending_up", "name": ("Against the market", "مقابل السوق"), "score": perf, "detail": d})
@@ -229,7 +236,8 @@ def badges(view, stats, state, sector_of):
     else:
         have, txt = 0.9, (f"behind by {bret - ret:.1f}%", f"متأخر {bret - ret:.1f}%")
     add("beat", "military_tech", ("Beat the market", "تفوقت على السوق"),
-        ("Ahead of the S&P 500 after 20 sessions or more.", "متقدم على S&P 500 بعد 20 جلسة أو أكثر."), have, 1, txt)
+        (("Ahead of the Saudi market after 20 sessions or more.", "متقدم على السوق السعودي بعد 20 جلسة أو أكثر.") if MK.current() == MK.SA
+         else ("Ahead of the S&P 500 after 20 sessions or more.", "متقدم على S&P 500 بعد 20 جلسة أو أكثر.")), have, 1, txt)
     mb = _month_best(view.get("curve"))
     add("green", "calendar_month", ("Green month", "شهر أخضر"), ("A calendar month up 3% or more.", "شهر كامل صاعد 3% أو أكثر."),
         max(mb or 0, 0), 3, (f"{max(mb or 0, 0):.1f}% / 3%", f"{max(mb or 0, 0):.1f}% / 3%"))
@@ -255,7 +263,7 @@ def badges(view, stats, state, sector_of):
         have, 1, (f"{min(days, 60)} / 60{dtxt}", f"{min(days, 60)} / 60{dtxt}"))
     divs = float((view.get("totals") or {}).get("divs") or 0)
     add("divs", "payments", ("Dividend collector", "جامع التوزيعات"), ("Received a dividend.", "استلمت توزيعات أرباح."),
-        1 if divs > 0 else 0, 1, (f"${divs:,.2f}", f"{divs:,.2f}$"))
+        1 if divs > 0 else 0, 1, (MK.money(divs, dec=2, ar=False), MK.money(divs, dec=2, ar=True)))
     return out
 
 
@@ -286,6 +294,8 @@ def short_money(v):
         t = f"{a / 1e3:.1f}k"
     else:
         t = f"{a:.0f}"
+    if MK.current() == MK.SA:
+        return f"{s}{t}"                      # riyals: the cells are small, the page says the currency
     return f"{s}${t}"
 
 

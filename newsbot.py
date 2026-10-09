@@ -44,6 +44,11 @@ def gnews(q):
     return f"https://news.google.com/rss/search?q={quote_plus(q)}&hl=en-US&gl=US&ceid=US:en"
 
 
+def gnews_ar(q):
+    """Google News search feed in Arabic, Saudi edition."""
+    return f"https://news.google.com/rss/search?q={quote_plus(q)}&hl=ar&gl=SA&ceid=SA:ar"
+
+
 # (id, outlet, category, url)
 FEEDS = [
     ("reuters", "Reuters", "markets", gnews("site:reuters.com (stocks OR markets OR economy OR earnings OR Fed) when:2d")),
@@ -88,6 +93,28 @@ FEEDS = [
 ]
 FEED = {f[0]: f for f in FEEDS}
 OUTLETS = list(dict.fromkeys(f[1] for f in FEEDS))
+
+# the Saudi market's feeds (Arabic and English), read by a bot of their own (sa_bot)
+SA_FEEDS = [
+    ("sa_market", "Saudi market", "markets", gnews_ar("(السوق السعودية OR الأسهم السعودية OR تاسي) when:2d")),
+    ("sa_tadawul", "Saudi market", "markets", gnews_ar("(تداول السعودية OR مؤشر السوق الرئيسية) when:2d")),
+    ("sa_argaam", "أرقام", "markets", gnews_ar("site:argaam.com when:2d")),
+    ("sa_aleqt", "الاقتصادية", "markets", gnews_ar("site:aleqt.com (أسهم OR السوق OR أرباح OR شركة) when:2d")),
+    ("sa_maaal", "مال", "markets", gnews_ar("site:maaal.com when:2d")),
+    ("sa_asharq", "الشرق بلومبرغ", "markets", gnews_ar("site:asharqbusiness.com السعودية when:2d")),
+    ("sa_cnbcar", "CNBC عربية", "markets", gnews_ar("site:cnbcarabia.com السعودية when:2d")),
+    ("sa_alarabiya", "العربية Business", "markets", gnews_ar("site:alarabiya.net (أسهم OR السوق السعودية OR أرامكو) when:2d")),
+    ("sa_results", "Saudi market", "earnings", gnews_ar("(نتائج OR أرباح OR توزيعات) (شركة OR بنك) السعودية when:3d")),
+    ("sa_economy", "Saudi market", "economy", gnews_ar("(الاقتصاد السعودي OR البنك المركزي السعودي OR التضخم في السعودية) when:3d")),
+    ("sa_oil", "Saudi market", "economy", gnews_ar("(أسعار النفط OR أوبك) when:2d")),
+    ("sa_en_market", "Saudi market", "markets", gnews("(Saudi stocks OR Tadawul OR TASI OR \"Saudi Exchange\") when:3d")),
+    ("sa_en_argaam", "Argaam", "markets", gnews("site:argaam.com when:3d")),
+    ("sa_en_arabnews", "Arab News", "markets", gnews("site:arabnews.com (business OR economy) Saudi when:3d")),
+    ("sa_en_reuters", "Reuters", "markets", gnews("site:reuters.com Saudi (stocks OR economy OR Aramco OR banks) when:3d")),
+    ("sa_en_bloomberg", "Bloomberg", "markets", gnews("site:bloomberg.com Saudi when:3d")),
+    ("sa_en_aramco", "Saudi market", "companies", gnews("(Aramco OR SABIC OR \"Al Rajhi\" OR Maaden OR ACWA) when:3d")),
+]
+SA_OUTLETS = list(dict.fromkeys(f[1] for f in SA_FEEDS))
 CATS = {"markets": ("Markets", "الأسواق", "show_chart"), "economy": ("Economy", "الاقتصاد", "public"),
         "companies": ("Companies", "الشركات", "domain"), "earnings": ("Earnings", "الأرباح", "request_quote"),
         "official": ("Official", "جهات رسمية", "account_balance"), "press": ("Press releases", "بيانات الشركات", "campaign"),
@@ -248,17 +275,19 @@ def build(raw, feed, now=None):
 
 
 def key_of(title):
-    return " ".join(re.findall(r"[a-z0-9]+", (title or "").lower()))[:180]
+    return " ".join(re.findall(r"[^\W_]+", (title or "").lower()))[:180]      # letters and digits of any script (Arabic too)
 
 
 def tokens(title):
-    return frozenset(w for w in re.findall(r"[a-z0-9$%]+", (title or "").lower()) if len(w) > 2 and w not in STOP)
+    return frozenset(w for w in re.findall(r"(?:[^\W_]|[$%])+", (title or "").lower()) if len(w) > 2 and w not in STOP)
 
 
 # ---------------------------------------------------------------- the bot
 class NewsBot:
-    def __init__(self, feeds=FEEDS):
+    def __init__(self, feeds=FEEDS, finder=None):
+        """finder(text, tickers) -> the companies a headline is about (default: the US market's tickers_in)."""
         self.feeds = list(feeds)
+        self.finder = finder or tickers_in
         self.lock = threading.RLock()
         self.running = threading.Lock()
         self.first = threading.Event()
@@ -324,7 +353,7 @@ class NewsBot:
         hit = k if k in self.store else self._similar(it)
         text = it.pop("_text", it["title"])
         if hit is None:
-            it["tickers"] = tickers_in(text, it["tickers"])
+            it["tickers"] = self.finder(text, it["tickers"])
             it["_tk"] = tokens(it["title"])
             it["_key"] = k
             self.store[k] = it
@@ -457,6 +486,8 @@ class NewsBot:
     def _warm(self):
         """While visitors use the site in Arabic: the headlines of the last day are translated here, in the background, a few at a
         time, so the Arabic pages show them at once (each headline is translated once; data.translate keeps the answers)."""
+        if self.feeds and self.feeds[0][0].startswith("sa_"):
+            return                                     # the Saudi bot's headlines are mostly Arabic already
         try:
             import data
             if not data.arabic_in_use():
@@ -552,6 +583,43 @@ def bot(wait=True, timeout=14):
 def headlines(hours=48):
     try:
         return bot().items(hours)
+    except Exception:
+        return []
+
+
+# ---------------------------------------------------------------- the Saudi market's news bot
+def sa_tickers_in(text, extra=()):
+    import tasi
+    found = [t for t in extra if t and str(t).endswith(".SR")] + tasi.tickers_in(text or "")
+    return list(dict.fromkeys(found))[:6]
+
+
+@st.cache_resource(show_spinner=False)
+def _shared_sa_bot():
+    b = NewsBot(SA_FEEDS, finder=sa_tickers_in)
+    b.start()
+    return b
+
+
+def sa_bot(wait=True, timeout=14):
+    """The Saudi market's shared bot (Arabic and English feeds on Saudi stocks), started on the first Saudi page."""
+    b = _shared_sa_bot()
+    if getattr(b, "build", None) != BUILD:
+        try:
+            b.stopped = True
+            _shared_sa_bot.clear()
+        except Exception:
+            pass
+        b = _shared_sa_bot()
+    b.start()
+    if wait and not b.first.is_set():
+        b.first.wait(timeout)
+    return b
+
+
+def sa_headlines(hours=48):
+    try:
+        return sa_bot().items(hours)
     except Exception:
         return []
 

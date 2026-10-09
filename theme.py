@@ -1068,6 +1068,29 @@ html[data-menu-closed] [class*="st-key-navdd_"], html[data-menu-closed] .st-key-
   box-shadow: 0 0 0 1px rgba(255,255,255,.22), 0 2px 6px rgba(0,0,0,.35); }}
 .flag.us {{ background-image:url("{FLAG_US}"); }}
 .flag.sa {{ background-image:url("{FLAG_SA}"); }}
+/* language button: EN / ع (the flags belong to the market switch) */
+.langbtn .lic {{ font-size:1.05rem; color:#A39CB4; }}
+.langbtn .lcode, .lopt .lcode {{ font-weight:800; font-size:.86rem; color:#fff; min-width:18px; text-align:center; letter-spacing:.02em; }}
+.lopt .lcode {{ display:inline-flex; align-items:center; justify-content:center; width:30px; height:22px; border-radius:6px; background:rgba(255,255,255,.08);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.14); font-size:.8rem; }}
+/* market switch: two flags in one pill (the chosen market lit) */
+.st-key-mktsw {{ flex-wrap:nowrap !important; gap:2px !important; height:38px; box-sizing:border-box; padding:3px !important; border-radius:11px;
+  border:1px solid #3E3A46; background: rgba(34,29,47,.9); }}
+.st-key-mktsw [data-testid="stElementContainer"], .st-key-mktsw .stElementContainer {{ width:auto !important; margin:0 !important; }}
+[class*="st-key-mkt_"] {{ gap:0 !important; }}
+[class*="st-key-mkt_"] button {{ min-height:30px !important; height:30px; padding:0 10px 0 8px !important; border-radius:8px !important; border:1px solid transparent !important;
+  background:transparent !important; box-shadow:none !important; gap:7px; transition: background .15s, border-color .15s; }}
+[class*="st-key-mkt_"] button::before {{ content:""; width:21px; height:15px; border-radius:3px; flex:none; background-size:cover; background-position:center;
+  box-shadow: 0 0 0 1px rgba(255,255,255,.22); filter: saturate(.55) brightness(.8); transition: filter .15s; }}
+.st-key-mkt_us button::before, .st-key-mkt_us_on button::before {{ background-image:url("{FLAG_US}"); }}
+.st-key-mkt_sa button::before, .st-key-mkt_sa_on button::before {{ background-image:url("{FLAG_SA}"); }}
+[class*="st-key-mkt_"] button p {{ font-size:.8rem !important; font-weight:600 !important; color:#A39CB4 !important; white-space:nowrap; }}
+[class*="st-key-mkt_"] button:hover {{ background: rgba(59,139,235,.14) !important; }}
+[class*="st-key-mkt_"] button:hover::before {{ filter:none; }}
+[class*="st-key-mkt_"][class*="_on"] button {{ background: linear-gradient(135deg, rgba(59,139,235,.32), rgba(123,69,240,.26)) !important;
+  border-color: rgba(90,160,240,.5) !important; }}
+[class*="st-key-mkt_"][class*="_on"] button::before {{ filter:none; }}
+[class*="st-key-mkt_"][class*="_on"] button p {{ color:#fff !important; }}
 .st-key-langsec {{ position: relative; gap: 0 !important; }}
 .langbtn {{ display:flex; align-items:center; gap:7px; height:38px; box-sizing:border-box; padding:0 8px 0 10px; border-radius:11px; border:1px solid #3E3A46;
   background: rgba(34,29,47,.9); color:#E7E3EB; cursor:pointer; white-space:nowrap; user-select:none; outline:none; line-height:1;
@@ -1098,6 +1121,7 @@ html[data-menu-closed] [class*="st-key-navdd_"], html[data-menu-closed] .st-key-
   .st-key-navright .status b {{ display:none; }} .st-key-navright .status {{ padding: 0 12px; }} }}
 @container topnav (max-width: 1030px) {{ .navbtn > span:not(.ms) {{ display:none; }} .navbtn {{ padding:0 10px; }} .navbtn .ms {{ font-size:1.18rem; }} }}
 @container topnav (max-width: 760px) {{ .st-key-navright .status {{ display:none; }} .langbtn .chev {{ display:none; }} }}
+@container topnav (max-width: 1250px) {{ [class*="st-key-mkt_"] button p {{ display:none; }} [class*="st-key-mkt_"] button {{ padding:0 7px !important; }} }}
 @container topnav (max-width: 600px) {{ .navbtn {{ padding:0 8px; }} }}      /* eight menus (Portfolio added) keep to one row on phones */
 @container topnav (max-width: 440px) {{ .navbtn {{ padding:0 6px; }} .langbtn {{ padding:0 6px; }} }}
 @container topnav (max-width: 350px) {{ .navbtn {{ padding:0 4px; }} .navbtn .ms {{ font-size:1.05rem; }} .langbtn {{ padding:0 4px; }} }}
@@ -2581,24 +2605,12 @@ def news_card(n, title, summary, chips="", aff_label="", ar=False, tag=None, iq=
             + (f'<div class="sum">{short}</div>' if short else "") + aff + "</div></div></div>")
 
 
-def market_status(ar=False):
-    now = datetime.now(ZoneInfo("America/New_York"))
-    t = now.hour * 60 + now.minute
-    kind, _ = mcal.day_status(now.date())
-    close = 780 if kind == "early" else 960          # 1:00 pm on early-close days
-    if now.weekday() >= 5:
-        state, dot = ("السوق مغلق (عطلة)" if ar else "Closed · Weekend"), "closed"
-    elif kind == "closed":
-        state, dot = ("السوق مغلق (إجازة رسمية)" if ar else "Closed · Holiday"), "closed"
-    elif 570 <= t < close:
-        state, dot = ("السوق مفتوح" if ar else "Market Open"), "live"
-    elif 240 <= t < 570:
-        state, dot = ("ما قبل الافتتاح" if ar else "Pre-Market"), "pre"
-    elif close <= t < 1200:
-        state, dot = ("ما بعد الإغلاق" if ar else "After-Hours"), "pre"
-    else:
-        state, dot = ("السوق مغلق" if ar else "Market Closed"), "closed"
-    return f'<span class="status" title="{state} · {now:%H:%M} ET"><span class="dot {dot}"></span><b>{state}</b><span class="muted">· {now:%H:%M} ET</span></span>'
+def market_status(ar=False, market=None):
+    """The market's state right now (open, pre-market, closed...) with its local time. market: us / sa (default: the market of
+    the page being drawn, markets.current())."""
+    import markets as MK
+    state, dot, when = MK.status(market or MK.current(), ar)
+    return f'<span class="status" title="{state} · {when}"><span class="dot {dot}"></span><b>{state}</b><span class="muted">· {when}</span></span>'
 
 
 # ---------------------------------------------------------------- modern widgets
@@ -2778,9 +2790,12 @@ def svg_data_uri(svg):
 
 # ---------------------------------------------------------------- trading-dashboard widgets
 def money(v, dec=0, short=False):
-    """$1,234 / -$1,234 / $1.2K (sign before the dollar)."""
+    """$1,234 / -$1,234 / $1.2K (sign before the dollar). On a Saudi market page: riyals (SAR 1,234 / 1,234 ر.س)."""
     if v is None or pd.isna(v):
         return "—"
+    import markets as MK
+    if MK.get()["cur"] != "USD":
+        return MK.money(v, dec=dec, short=short)
     sign = "-" if v < 0 else ""
     a = abs(float(v))
     if short and a >= 1000:
