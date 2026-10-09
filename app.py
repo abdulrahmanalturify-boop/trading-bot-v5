@@ -10,7 +10,7 @@ import streamlit as st
 # ---------------------------------------------------------------- always run the newest code
 # Streamlit Cloud re-reads app.py after every GitHub upload but can keep the other modules (theme, data, ...) from the
 # previous version in memory. Every module carries BUILD; if one in memory is older, all of them are reloaded in order.
-BUILD = "21.5"
+BUILD = "21.6"
 _ORDER = ["terms", "lightmode", "i18n", "ai_assistant", "flags", "mcal", "universe", "sp500", "taxonomy", "ta", "academy_visuals", "academy", "insight", "heatmap", "newsiq", "newspics", "theme", "data",
           "caldata", "newsbot", "newsintel", "charts", "engine", "playbooks", "autotrader", "ui", "fairvalue", "segments", "holders", "sharia", "lab", "tdash", "mlbots", "brain", "paperbots", "smartbots", "portfolio", "robobot", "robo", "pfinsight", "p_markets", "p_newsintel", "p_research", "p_insight",
           "p_academy", "p_paper", "p_portfolio", "p_robo", "p_calendar", "hunter", "p_scanner", "home"]
@@ -255,7 +255,7 @@ except Exception:
     _static = False
 _bg = LM.background_css(f"app/static/{LM.BG_FILE}" if _static else LM.BG_CDN) if _light else T.background_css(_static)
 st.markdown(f'<span class="css-anchor" data-th="{ss.get(LM.THEME_KEY, "dark")}"></span>' + T.CSS + _bg + (T.RTL_CSS if ss.lang == "ar" else "")
-            + LM.landing_css(), unsafe_allow_html=True)
+            + LM.landing_css() + T.LOGO_GLOW_CSS, unsafe_allow_html=True)
 st.logo(T.logo_wordmark(_light), icon_image=T.LOGO_ICON_LIGHT if _light else T.LOGO_ICON, size="large")
 try:                                   # interactive cards: the light follows the pointer (a script run once per browser tab)
     import streamlit.components.v1 as _components

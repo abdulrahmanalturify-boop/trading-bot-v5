@@ -45,7 +45,7 @@ GLOW = "inset 0 0 0 1px rgba(255,255,255,.08), inset 0 -26px 36px -30px rgba(123
 
 # ---------------------------------------------------------------- logo
 # The owner's mark: a small pill and a T drawn as glass tubes (bright rims round a deep colour), sky blue at the top right
-# turning violet at the foot, with a soft shadow under the tubes and the blue / violet / teal light behind them.
+# turning violet at the foot, glowing like neon, with a soft shadow under the tubes and the blue / violet / teal light behind them.
 # Everything is in the pixels of the owner's picture of the logo: the shapes and colours were measured from it.
 LOGO_BOX = "1082 546 518 482"                 # the tubes themselves (the shadow and the light spill out of it)
 LOGO_GLOW_BOX = (1000, 447, 680, 680)         # the mark with the light around it, a square
@@ -66,6 +66,13 @@ _LIGHT = ((1375, 829, 201, 227, .38, "#9608BF"),      # violet round the foot
           (1593, 539, 191, 147, .95, "#20453A"),      # teal past the end of the bar
           (1598, 799, 106, 102, .09, "#C4B9FF"),
           (1387, 590, 248, 157, .88, "#001965"))      # deep blue behind the top of the T
+# the coloured halo round the whole mark (on the dark look over that light, and on the light look on its own)
+_AURA = ((1340, 787, 205, 195, .55, "#6D4BFF"),       # violet-blue round the whole mark
+         (1530, 610, 115, 85, .45, "#22B8F5"),        # sky by the end of the bar
+         (1348, 975, 105, 95, .45, "#B026FF"))        # magenta under the foot
+# the neon the tubes give off: purer, brighter versions of their colours, blurred round them (foot -> bar; left -> right)
+_T_GLOW = ("#B04CFF", "#A050FF", "#8A5CFF", "#6A70FF", "#4C8CFF", "#2EA8FF", "#22BDF5", "#38D2F7")
+_P_GLOW = ("#3D5CFF", "#4464FF", "#4C72FF", "#5590FF")
 _GAUSS = tuple((i / 8, math.exp(-0.5 * (3 * i / 8) ** 2)) for i in range(9))
 
 
@@ -76,20 +83,36 @@ def _lin(id_, line, stops):
             + "".join(f'<stop offset="{i / n:.3f}" stop-color="{c}"/>' for i, c in enumerate(stops)) + "</linearGradient>")
 
 
-def logo_parts(p="lg", light=True, shadow=.62):
-    """The mark's drawing (ids prefixed with p). light: the coloured light behind it, fading out inside LOGO_GLOW_BOX
-    (for dark surfaces); shadow: how dark the shadow under the tubes is (0: none)."""
+def _blobs(p, layers, k0, scale=1.0):
+    defs, els = [], []
+    for k, (cx, cy, sx, sy, a, col) in enumerate(layers, k0):
+        defs.append(f'<radialGradient id="{p}g{k}">' + "".join(
+            f'<stop offset="{o:.3f}" stop-color="{col}" stop-opacity="{min(1.0, a * scale) * g if o < 1 else 0:.4f}"/>' for o, g in _GAUSS)
+            + "</radialGradient>")
+        els.append(f'<ellipse cx="{cx}" cy="{cy}" rx="{3 * sx}" ry="{3 * sy}" fill="url(#{p}g{k})"/>')
+    return defs, els
+
+
+def logo_parts(p="lg", light=True, shadow=.45, glow=1.0, aura=.85):
+    """The mark's drawing (ids prefixed with p). light: the deep light of the owner's picture behind it (for dark surfaces);
+    aura: how strong the coloured halo round the mark is; glow: how strong the neon round the tubes is; shadow: how dark the
+    shadow under the tubes is (0: none). The light and the halo fade out inside LOGO_GLOW_BOX."""
     defs = [_lin(p + "a", _T_LINE, _T_IN), _lin(p + "b", _T_LINE, _T_RIM), _lin(p + "c", _P_LINE, _P_IN), _lin(p + "d", _P_LINE, _P_RIM)]
     out = []
-    if light:
+    if light or aura:
         x0, y0, w, h = LOGO_GLOW_BOX
         glows = []
-        for k, (cx, cy, sx, sy, a, col) in enumerate(_LIGHT):
-            defs.append(f'<radialGradient id="{p}g{k}">' + "".join(
-                f'<stop offset="{o:.3f}" stop-color="{col}" stop-opacity="{a * g if o < 1 else 0:.4f}"/>' for o, g in _GAUSS) + "</radialGradient>")
-            glows.append(f'<ellipse cx="{cx}" cy="{cy}" rx="{3 * sx}" ry="{3 * sy}" fill="url(#{p}g{k})"/>')
+        if light:
+            d_, e_ = _blobs(p, _LIGHT, 0)
+            defs += d_
+            glows += e_
+        if aura:
+            d_, e_ = _blobs(p, _AURA, 10, aura)
+            defs += d_
+            glows += e_
         defs.append(f'<radialGradient id="{p}f" gradientUnits="userSpaceOnUse" cx="{x0 + w / 2:g}" cy="{y0 + h / 2:g}" r="{w / 2:g}">'
-                    f'<stop offset=".55" stop-color="#fff"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>'
+                    f'<stop offset=".3" stop-color="#fff"/><stop offset=".7" stop-color="#fff" stop-opacity=".45"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>'
+                    f'</radialGradient>'
                     f'<mask id="{p}m"><rect x="{x0}" y="{y0}" width="{w}" height="{h}" fill="url(#{p}f)"/></mask>')
         out.append(f'<g mask="url(#{p}m)">{"".join(glows)}</g>')
     tube = lambda d, stroke, width: f'<path d="{d}" fill="none" stroke="{stroke}" stroke-width="{width:g}" stroke-linejoin="round"/>'
@@ -97,6 +120,13 @@ def logo_parts(p="lg", light=True, shadow=.62):
         defs.append(f'<filter id="{p}s" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="10.5"/></filter>')
         out.append(f'<g filter="url(#{p}s)" opacity="{shadow:g}" transform="translate(0 14)">'
                    + "".join(tube(d, "#000", _LW + 1) for d in (_PILL, _TEE, _SHOULDER)) + "</g>")
+    if glow:                                   # the neon: a wide soft bloom, then a tight bright one, under the tubes
+        defs += [_lin(p + "e", _T_LINE, _T_GLOW), _lin(p + "h", _P_LINE, _P_GLOW),
+                 f'<filter id="{p}w" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="24"/></filter>',
+                 f'<filter id="{p}n" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="7"/></filter>']
+        neon = lambda width: tube(_PILL, f"url(#{p}h)", width) + tube(_TEE, f"url(#{p}e)", width) + tube(_SHOULDER, f"url(#{p}e)", width)
+        out.append(f'<g filter="url(#{p}w)" opacity="{min(1.0, .9 * glow):g}">{neon(_LW + 18)}</g>'
+                   f'<g filter="url(#{p}n)" opacity="{min(1.0, .95 * glow):g}">{neon(_LW + 5)}</g>')
     # the rims first, then every tube's inside over them, so where the tubes meet they join into one
     out.append(tube(_PILL, f"url(#{p}d)", _LW) + tube(_TEE, f"url(#{p}b)", _LW) + tube(_SHOULDER, f"url(#{p}b)", _LW))
     inner = _LW - 2 * _RIM
@@ -104,11 +134,23 @@ def logo_parts(p="lg", light=True, shadow=.62):
     return f'<defs>{"".join(defs)}</defs>{"".join(out)}'
 
 
+# the light look: no deep light behind it (it would read as a dark smudge on a pale page), the coloured halo and the neon
+# stronger, the shadow faint
+LIGHT_LOOK = dict(light=False, shadow=.12, glow=1.25, aura=.75)
+
+
 def logo_mark(p="lg", cls="", light=True):
-    """The mark as inline SVG sized by its tubes; the shadow and the light spill out around it (give each copy on a page its
-    own p)."""
+    """The mark as inline SVG sized by its tubes; the shadow, the neon and the light spill out around it (give each copy on a
+    page its own p)."""
     c = f' class="{cls}"' if cls else ""
-    return f'<svg{c} viewBox="{LOGO_BOX}" overflow="visible" style="overflow:visible" aria-hidden="true">{logo_parts(p, light)}</svg>'
+    parts = logo_parts(p) if light else logo_parts(p, **LIGHT_LOOK)
+    return f'<svg{c} viewBox="{LOGO_BOX}" overflow="visible" style="overflow:visible" aria-hidden="true">{parts}</svg>'
+
+
+# the logo at the top of the page also glows past the edges of its picture (kept as it is in the light look)
+LOGO_GLOW_CSS = ('<style data-lm="keep">img[data-testid="stLogo"], img.stLogo, [data-testid="stSidebarHeader"] img, [data-testid="stHeaderLogo"] img '
+                 '{ filter:drop-shadow(0 0 2px rgba(56,189,248,.5)) drop-shadow(0 0 8px rgba(124,92,255,.45)) drop-shadow(0 0 16px rgba(176,76,255,.2)); }'
+                 '</style>')
 
 
 # ---------------------------------------------------------------- the name, drawn in thin geometric lines (Fenomeno style)
@@ -207,19 +249,20 @@ def brand_box(p="bw"):
 
 
 _GB = " ".join(str(v) for v in LOGO_GLOW_BOX)
-_MARK = f'<svg x="0" y="0" width="64" height="64" viewBox="{_GB}">{logo_parts("mk")}</svg>'
+# small at the top of the page: the neon and the coloured halo, without the deep light (at that size it reads as a dark patch)
+_MARK = f'<svg x="0" y="0" width="64" height="64" viewBox="{_GB}">{logo_parts("mk", light=False, aura=.7)}</svg>'
 LOGO_ICON = f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">{_MARK}</svg>'
 LOGO_ICON_LIGHT = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">'
-                   f'<svg x="0" y="0" width="64" height="64" viewBox="{_GB}">{logo_parts("il", False, .22)}</svg></svg>')
+                   f'<svg x="0" y="0" width="64" height="64" viewBox="{_GB}">{logo_parts("il", **LIGHT_LOOK)}</svg></svg>')
 _bw, _bh, _bs = brand_box("lw")
 _BH = 26                                     # height of the name inside the 64-high logo
 _BX = 66                                     # where the name starts (the tubes end at about 56)
 
 
 def logo_wordmark(light_look=False):
-    """The mark with its light and the name, for the top of the page. The light look: the mark without the coloured light
-    behind it and with a fainter shadow, and the name in dark ink."""
-    mark = (f'<svg x="0" y="0" width="64" height="64" viewBox="{_GB}">{logo_parts("ml", False, .22)}</svg>' if light_look else _MARK)
+    """The mark with its light and the name, for the top of the page. The light look: the mark with its neon and halo but without
+    the deep light behind it, a fainter shadow, and the name in dark ink."""
+    mark = (f'<svg x="0" y="0" width="64" height="64" viewBox="{_GB}">{logo_parts("ml", **LIGHT_LOOK)}</svg>' if light_look else _MARK)
     name = LM.convert(_bs) if light_look else _bs
     w = _BX + _bw * _BH / _bh + 6
     return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w:.0f} 64" width="{w:.0f}" height="64">{mark}'
@@ -2809,4 +2852,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "21.5"
+BUILD = "21.6"
