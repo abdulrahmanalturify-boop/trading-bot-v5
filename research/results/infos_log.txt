@@ -1,20 +1,27 @@
 HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"No fundamentals data found for symbol: FOX"}}}
-yfinance 1.7.0 · 570 symbols, 570 already saved
-50/570 · 36s · {'ok': 50, 'kept': 0}
-100/570 · 73s · {'ok': 100, 'kept': 0}
-150/570 · 108s · {'ok': 150, 'kept': 0}
-200/570 · 143s · {'ok': 200, 'kept': 0}
-250/570 · 177s · {'ok': 250, 'kept': 0}
-300/570 · 214s · {'ok': 300, 'kept': 0}
-350/570 · 251s · {'ok': 350, 'kept': 0}
-400/570 · 288s · {'ok': 400, 'kept': 0}
-450/570 · 324s · {'ok': 450, 'kept': 0}
-500/570 · 360s · {'ok': 500, 'kept': 0}
-550/570 · 396s · {'ok': 550, 'kept': 0}
-570/570 · 410s · {'ok': 570, 'kept': 0}
-META: 158 fields · price 724.755 · cap 1846317809664 · PE 27.42168 · margin 0.29834998 · rec {'strongBuy': 8, 'buy': 47, 'hold': 7, 'sell': 1, 'strongSell': 0} · 2026-10-07
-NKE: 159 fields · price 34.115 · cap 50671312896 · PE 16.24524 · margin 0.0674 · rec {'strongBuy': 1, 'buy': 9, 'hold': 25, 'sell': 4, 'strongSell': 3} · 2026-10-07
-AAPL: 159 fields · price 335.77 · cap 4900287676416 · PE 38.50573 · margin 0.27618998 · rec {'strongBuy': 6, 'buy': 19, 'hold': 13, 'sell': 3, 'strongSell': 3} · 2026-10-07
-TSM: 153 fields · price 473.705 · cap 2456858656768 · PE 34.426235 · margin 0.49923 · rec {'strongBuy': 6, 'buy': 14, 'hold': 1, 'sell': 0, 'strongSell': 0} · 2026-10-07
-sizes 2152 KB figures, 1298 KB texts, 1190 KB insiders
-insiders: {'META': 40, 'NKE': 36, 'AAPL': 27, 'TSLA': 9, 'CRWV': 40}
+yfinance 1.7.0 · 841 symbols, 570 already saved
+50/841 · 39s · {'ok': 50, 'kept': 0}
+100/841 · 76s · {'ok': 100, 'kept': 0}
+150/841 · 115s · {'ok': 150, 'kept': 0}
+200/841 · 154s · {'ok': 200, 'kept': 0}
+250/841 · 192s · {'ok': 250, 'kept': 0}
+300/841 · 229s · {'ok': 300, 'kept': 0}
+350/841 · 278s · {'ok': 350, 'kept': 0}
+400/841 · 316s · {'ok': 400, 'kept': 0}
+450/841 · 354s · {'ok': 450, 'kept': 0}
+500/841 · 395s · {'ok': 500, 'kept': 0}
+550/841 · 432s · {'ok': 550, 'kept': 0}
+600/841 · 470s · {'ok': 600, 'kept': 0}
+650/841 · 510s · {'ok': 650, 'kept': 0}
+700/841 · 547s · {'ok': 700, 'kept': 0}
+750/841 · 585s · {'ok': 750, 'kept': 0}
+800/841 · 623s · {'ok': 800, 'kept': 0}
+841/841 · 655s · {'ok': 841, 'kept': 0}
+META: 158 fields · price 723.69 · cap 1843604750336 · PE 27.267897 · margin 0.29834998 · rec {'strongBuy': 8, 'buy': 47, 'hold': 7, 'sell': 1, 'strongSell': 0} · 2026-10-09
+NKE: 159 fields · price 34.9 · cap 51837280256 · PE 16.778847 · margin 0.0674 · rec {'strongBuy': 1, 'buy': 9, 'hold': 25, 'sell': 4, 'strongSell': 3} · 2026-10-09
+AAPL: 159 fields · price 334.035 · cap 4874967187456 · PE 38.306767 · margin 0.27618998 · rec {'strongBuy': 6, 'buy': 19, 'hold': 13, 'sell': 3, 'strongSell': 3} · 2026-10-09
+TSM: 153 fields · price 451.91 · cap 2343819542528 · PE 32.842297 · margin 0.49923 · rec {'strongBuy': 6, 'buy': 14, 'hold': 1, 'sell': 0, 'strongSell': 0} · 2026-10-09
+2222.SR: 141 fields · price 25.74 · cap 6226696470528 · PE 15.230768 · margin 0.22395 · rec {'strongBuy': 4, 'buy': 6, 'hold': 8, 'sell': 0, 'strongSell': 0} · 2026-10-09
+1120.SR: 136 fields · price 62.3 · cap 373800009728 · PE 14.975962 · margin 0.67950994 · rec {'strongBuy': 3, 'buy': 5, 'hold': 8, 'sell': 0, 'strongSell': 0} · 2026-10-09
+sizes 2966 KB figures, 1753 KB texts, 1214 KB insiders
+insiders: {'META': 40, 'NKE': 36, 'AAPL': 29, 'TSLA': 9, 'CRWV': 40}
