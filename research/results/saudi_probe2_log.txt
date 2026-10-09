@@ -1,0 +1,127 @@
+yfinance 1.7.0
+ok    | Calendars() | 0.0s | <yfinance.calendars.Calendars object at 0x7f038b56a690>
+ok    | earnings calendar region sa | 0.5s |      Symbol  ... Surprise(%)
+0   2222.SR  ...         NaN
+1   1120.SR  ...         NaN
+2   1211.SR  ...         NaN
+3   7010.SR  ...         NaN
+4   2082.SR  ...         NaN
+5   5110.SR  ...         NaN
+6   2020.SR  ...         NaN
+7   7020.SR  ...         NaN
+8   1050.SR  ...         NaN
+9   7203.SR  ...         NaN
+10  2280.SR  ...        1.66
+11  4300.SR  ...         NaN
+12  8010.SR  ...         NaN
+13  4190.SR  ...         NaN
+14  1111.SR  ...         NaN
+15  4164.SR  ...         NaN
+16  4004.SR  ...         NaN
+17  7030.SR  ...         NaN
+18  2350.SR  ...         NaN
+19  4321.SR  ...         NaN
+20  2270.SR  ...         NaN
+21  3040.SR  ...         NaN
+
+[22 rows x 9 columns]
+columns ['Symbol', 'Company', 'Marketcap', 'Event Name', 'Event Start Date', 'Timing', 'EPS Estimate', 'Reported EPS', 'Surprise(%)']
+     Symbol                                         Company     Marketcap                     Event Name          Event Start Date Timing  EPS Estimate  Reported EPS  Surprise(%)
+0   2222.SR                       Saudi Arabian Oil Company  6.226696e+12  Q3 2026 Earnings Announcement 2026-11-03 12:00:00+00:00    TNS          0.39           NaN          NaN
+1   1120.SR     Al Rajhi Banking and Investment Corporation  3.738000e+11  Q3 2026 Earnings Announcement 2026-10-19 12:00:00+00:00    TNS          1.09           NaN          NaN
+2   1211.SR           Saudi Arabian Mining Company (Maaden)  2.422244e+11  Q3 2026 Earnings Announcement 2026-11-05 12:00:00+00:00    TNS          0.42           NaN          NaN
+3   7010.SR                           Saudi Telecom Company  2.127028e+11  Q3 2026 Earnings Announcement 2026-10-28 12:00:00+00:00    TNS          0.72           NaN          NaN
+4   2082.SR                              ACWA Power Company  1.263299e+11  Q3 2026 Earnings Announcement 2026-11-03 12:00:00+00:00    TNS          0.89           NaN          NaN
+5   5110.SR                            Saudi Energy Company  6.362389e+10  Q3 2026 Earnings Announcement 2026-11-04 12:00:00+00:00    TNS          0.88           NaN          NaN
+6   2020.SR                    SABIC Agri-Nutrients Company  5.555333e+10  Q3 2026 Earnings Announcement 2026-10-22 12:00:00+00:00    TNS          0.93           NaN          NaN
+7   7020.SR                         Etihad Etisalat Company  4.896650e+10  Q3 2026 Earnings Announcement 2026-10-18 12:00:00+00:00    TNS          1.17           NaN          NaN
+8   1050.SR                             Banque Saudi Fransi  4.878816e+10  Q3 2026 Earnings Announcement 2026-10-19 12:00:00+00:00    TNS          0.54           NaN          NaN
+9   7203.SR                                     Elm Company  4.422476e+10  Q3 2026 Earnings Announcement 2026-11-01 12:00:00+00:00    TNS          8.17           NaN          NaN
+10  2280.SR                                 Almarai Company  4.417297e+10                            NaN 2026-10-05 20:00:00+00:00    TAS          0.61          0.62         1.66
+11  4300.SR    Dar Al Arkan Real Estate Development Company  2.016360e+10  Q3 2026 Earnings Announcement 2026-11-10 12:00:00+00:00    TNS          0.20           NaN          NaN
+12  8010.SR           The Company for Cooperative Insurance  1.954892e+10  Q3 2026 Earnings Announcement 2026-10-29 12:00:00+00:00    TNS           NaN           NaN          NaN
+13  4190.SR                         Jarir Marketing Company  1.920000e+10  Q3 2026 Earnings Announcement 2026-11-05 12:00:00+00:00    TNS          0.28           NaN          NaN
+14  1111.SR             Saudi Tadawul Group Holding Company  1.426800e+10  Q3 2026 Earnings Announcement 2026-10-26 12:00:00+00:00    TNS          0.85           NaN          NaN
+15  4164.SR                           Nahdi Medical Company  1.181700e+10  Q3 2026 Earnings Announcement 2026-10-28 12:00:00+00:00    TNS           NaN           NaN          NaN
+16  4004.SR                       Dallah Healthcare Company  9.397697e+09  Q3 2026 Earnings Announcement 2026-11-03 12:00:00+00:00    TNS          1.86           NaN          NaN
+17  7030.SR  Mobile Telecommunications Company Saudi Arabia  8.735648e+09  Q3 2026 Earnings Announcement 2026-10-26 12:00:00+00:00    TNS          0.23           NaN          NaN
+18  2350.SR               Saudi Kayan Petrochemical Company  7.230000e+09  Q3 2026 Earnings Announcement 2026-10-20 12:00:00+00:00    TNS         -0.34           NaN          NaN
+19  4321.SR                         Arabian Centres Company  7.162743e+09  Q3 2026 Earnings Announcement 2026-11-03 12:00:00+00:00    TNS          0.25           NaN          NaN
+20  2270.SR                Saudia Dairy & Foodstuff Company  5.803868e+09  Q3 2026 Earnings Announcement 2026-10-26 12:00:00+00:00    TNS           NaN           NaN          NaN
+21  3040.SR                           Qassim Cement Company  4
+ok    | economic events (all regions) | 1.6s |                            Event Region  ...      Last   Revised
+0       Benchmark Interest Rate*     ZM  ...       NaN       NaN
+1     Nationwide house price yy*     GB  ...      0.80       NaN
+2     Nationwide house price mm*     GB  ...     -0.20       NaN
+3                        CPI YY*     UG  ...      4.60       NaN
+4     Nationwide house price yy*     GB  ...      0.80       NaN
+...                          ...    ...  ...       ...       ...
+1490      Construction Work Done     AU  ...      3.40      4.30
+1491            Current Account*     MX  ... -15878.00 -18231.00
+1492        Current Account/GDP*     MX  ...     -3.14     -3.61
+1493        GDP Detailed YY NSA*     DE  ...      0.90       NaN
+1494         GDP Detailed QQ SA*     DE  ...      0.20       NaN
+
+[1495 rows x 8 columns]
+econ columns ['Event', 'Region', 'Event Time', 'For', 'Actual', 'Expected', 'Last', 'Revised']
+econ regions {'US': 197, 'GB': 59, 'IN': 51, 'JP': 51, 'SG': 47, 'BR': 46, 'CN': 46, 'TH': 40, 'KW': 39, 'AU': 38, 'CA': 36, 'EU': 36, 'DE': 34, 'IE': 33, 'NZ': 32, 'ZA': 29, 'IT': 27, 'LT': 27, 'EG': 26, 'KR': 25, 'SK': 25, 'BH': 24, 'MX': 24, 'SA': 23, 'TR': 20, 'SE': 20, 'ID': 20, 'AE': 19, 'RU': 18, 'IL': 18, 'OM': 18, 'QA': 18, 'CZ': 17, 'PH': 16, 'CH': 15, 'FR': 15, 'HU': 15, 'NO': 15, 'ES': 13, 'FI': 13, 'PL': 13, 'NL': 12, 'TW': 12, 'AT': 12, 'DK': 12, 'LV': 11, 'GR': 10, 'PT': 10, 'GH': 10, 'MY': 9, 'AR': 9, 'CO': 9, 'UG': 8, 'MW': 8, 'EE': 8, 'CL': 7, 'HK': 7, 'BE': 6, 'PE': 5, 'RO': 5}
+econ SA rows 23
+                           Event Region                Event Time  For  Actual  Expected   Last  Revised
+511                      CPI MM*     SA 2026-10-21 00:00:00+00:00  Sep     NaN       NaN   0.10      NaN
+512                      CPI YY*     SA 2026-10-21 00:00:00+00:00  Sep     NaN       NaN   1.80      NaN
+560                      CPI MM*     SA 2026-10-20 00:00:00+00:00  Sep     NaN       NaN   0.10      NaN
+561                      CPI YY*     SA 2026-10-20 00:00:00+00:00  Sep     NaN       NaN   1.80      NaN
+594                      CPI MM*     SA 2026-10-19 00:00:00+00:00  Sep     NaN       NaN   0.10      NaN
+595                      CPI YY*     SA 2026-10-19 00:00:00+00:00  Sep     NaN       NaN   1.80      NaN
+617                      CPI YY*     SA 2026-10-18 00:00:00+00:00  Sep     NaN       NaN   1.80      NaN
+618                      CPI MM*     SA 2026-10-18 00:00:00+00:00  Sep     NaN       NaN   0.10      NaN
+634                      CPI MM*     SA 2026-10-17 00:00:00+00:00  Sep     NaN       NaN   0.10      NaN
+635                      CPI YY*     SA 2026-10-17 00:00:00+00:00  Sep     NaN       NaN   1.80      NaN
+692                      CPI MM*     SA 2026-10-16 00:00:00+00:00  Sep     NaN       NaN   0.10      NaN
+693                      CPI YY*     SA 2026-10-16 00:00:00+00:00  Sep     NaN       NaN   1.80      NaN
+745              LSEG IPSOS PCSI     SA 2026-10-15 10:00:00+00:00  Oct     NaN       NaN  73.88      NaN
+788                      CPI MM*     SA 2026-10-15 00:00:00+00:00  Sep     NaN       NaN   0.10      NaN
+789                      CPI YY*     SA 2026-10-15 00:00:00+00:00  Sep     NaN       NaN   1.80      NaN
+844                      CPI MM*     SA 2026-10-14 00:00:00+00:00  Sep     NaN       NaN   0.10      NaN
+845                      CPI YY*     SA 2026-10-14 00:00:00+00:00  Sep     NaN       NaN   1.80      NaN
+1064  Overall Comprehensive Risk     SA 2026-10-08 09:00:00+00:00   Q4    4.51       NaN   4.52     4.51
+1315         M3 Money Supply YY*     SA 2026-09-30 18:00:00+00:00  Aug    5.60       NaN   8.20      NaN
+1316        Pvt Sector Loans YY*     SA 2026-09-30 18:00:00+00:00  Aug    6.00       NaN   5.60      NaN
+1388          Reverse Repo Rate*     SA 2026-09-16 18:00:00+00:00  N/A    4.00       NaN   3.75      NaN
+1389                  Repo Rate*     SA 2026-09-16 18:00:00+00:00  N/A    4.50       NaN   4.25      NaN
+1401          Real GDP YY Final*     SA 2026-09-08 18:00:00+00:00   Q2   -4.70       NaN  -4.80      NaN
+ok    | ipo calendar | 0.1s |                                                   Company  ...    Action
+Symbol                                                     ...          
+MSGR                                    MSG Rangers Corp.  ...  Expected
+AIOK                           AI OKTO CORP. Common Stock  ...  Expected
+RTSN         Retension Pharmaceuticals, Inc. Common Stock  ...  Expected
+TRXB                          TRex Bio, Inc. Common stock  ...  Expected
+VGTX                                       Tidal Trust II  ...  Expected
+...                                                   ...  ...       ...
+NWCL                          newcleo plc Ordinary Shares  ...  Expected
+NWCLW                                newcleo plc Warrants  ...  Expected
+QQQB    VistaShares Shield Nasdaq 100 Enhanced Protect...  ...  Expected
+VOOB    VistaShares Shield S&P 500 Enhanced Protection...  ...  Expected
+ETRA              Electra Therapeutics, Inc. Common stock  ...  Expected
+
+[100 rows x 11 columns]
+CRASH Traceback (most recent call last):
+  File "/home/runner/work/trading-bot-v5/trading-bot-v5/scripts/saudi_probe2.py", line 49, in main
+    _main()
+  File "/home/runner/work/trading-bot-v5/trading-bot-v5/scripts/saudi_probe2.py", line 114, in _main
+    txt = d.astype(str).apply(" ".join, axis=1)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/pandas/core/frame.py", line 12437, in apply
+    return op.apply().__finalize__(self, method="apply")
+           ^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/pandas/core/apply.py", line 1015, in apply
+    return self.apply_standard()
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/pandas/core/apply.py", line 1167, in apply_standard
+    results, res_index = self.apply_series_generator()
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/pandas/core/apply.py", line 1183, in apply_series_generator
+    results[i] = self.func(v, *self.args, **self.kwargs)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: sequence item 3: expected str instance, float found
+
