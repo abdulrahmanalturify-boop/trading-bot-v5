@@ -10,6 +10,7 @@ import base64
 import hashlib
 import html
 import json
+import math
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
@@ -43,25 +44,71 @@ ELECTRIC = "linear-gradient(141deg,#077AC7,#6B21EF)"             # n8n's "electr
 GLOW = "inset 0 0 0 1px rgba(255,255,255,.08), inset 0 -26px 36px -30px rgba(123,69,240,.55)"   # "backlit hardware"
 
 # ---------------------------------------------------------------- logo
-LOGO_BOX = "100 50 865 590"          # the mark's own drawing area (wider than tall)
+# The owner's mark: a small pill and a T drawn as glass tubes (bright rims round a deep colour), sky blue at the top right
+# turning violet at the foot, with a soft shadow under the tubes and the blue / violet / teal light behind them.
+# Everything is in the pixels of the owner's picture of the logo: the shapes and colours were measured from it.
+LOGO_BOX = "1082 546 518 482"                 # the tubes themselves (the shadow and the light spill out of it)
+LOGO_GLOW_BOX = (1000, 447, 680, 680)         # the mark with the light around it, a square
+_LW, _RIM = 24.5, 3.0                         # tube width; the bright rim on each side of it
+_PILL = "M1154 563.5H1199.6A54.9 54.9 0 0 1 1199.6 673.3H1154A54.9 54.9 0 0 1 1154 563.5Z"
+_TEE = ("M1294.3 668.1A104.6 104.6 0 0 1 1399 563.5H1526.7A55.3 55.3 0 0 1 1526.7 674H1401.7V956.3"
+        "A53.7 53.7 0 0 1 1294.3 956.3Z")
+_SHOULDER = "M1401.7 674C1330.6 674 1294.3 723.1 1294.3 766.4"
+# the T's colours run from its foot (bottom left) to its bar (top right); the pill's from left to right
+_T_LINE = (1229, 921, 1549, 565)
+_T_IN = ("#421066", "#4D1677", "#512694", "#393CA8", "#2955B6", "#1D62B5", "#0D6AB4", "#0874BF")
+_T_RIM = ("#73319A", "#7D3AA7", "#7F51C2", "#5A5FC9", "#4E7AD1", "#428BCF", "#4199D2", "#48A9DF")
+_P_LINE = (1099, 624, 1254, 624)
+_P_IN = ("#071B65", "#0B1C6C", "#0F2176", "#0E3591")
+_P_RIM = ("#2A3BA1", "#313DA8", "#344AAF", "#3659BD")
+# the light behind the mark, layer over layer: (centre x, centre y, spread x, spread y, strength, colour)
+_LIGHT = ((1375, 829, 201, 227, .38, "#9608BF"),      # violet round the foot
+          (1593, 539, 191, 147, .95, "#20453A"),      # teal past the end of the bar
+          (1598, 799, 106, 102, .09, "#C4B9FF"),
+          (1387, 590, 248, 157, .88, "#001965"))      # deep blue behind the top of the T
+_GAUSS = tuple((i / 8, math.exp(-0.5 * (3 * i / 8) ** 2)) for i in range(9))
 
 
-def logo_parts(p="lg"):
-    """The mark: a rising zigzag, an arrow shooting up and the leg of an A, in blue to cyan (ids prefixed with p)."""
-    return (f'<defs><linearGradient id="{p}z" gradientUnits="userSpaceOnUse" x1="100" y1="0" x2="700" y2="0">'
-            f'<stop offset="0" stop-color="#3D68C6"/><stop offset="1" stop-color="#4AA2E2"/></linearGradient>'
-            f'<clipPath id="{p}c"><rect x="0" y="0" width="1100" height="635"/></clipPath></defs>'
-            f'<g clip-path="url(#{p}c)">'
-            f'<polyline points="125,690 310,362 457,597 660,252" fill="none" stroke="url(#{p}z)" stroke-width="80" stroke-linejoin="round" stroke-linecap="round"/>'
-            f'<line x1="558" y1="690" x2="862" y2="197" stroke="#2DB6EB" stroke-width="86"/>'
-            f'<polygon points="765,180 940,55 960,215" fill="#2DB6EB"/>'
-            f'<polygon points="775,537 823,452 940,635 836,635" fill="#56C5EE"/></g>')
+def _lin(id_, line, stops):
+    x1, y1, x2, y2 = line
+    n = len(stops) - 1
+    return (f'<linearGradient id="{id_}" gradientUnits="userSpaceOnUse" x1="{x1}" y1="{y1}" x2="{x2}" y2="{y2}">'
+            + "".join(f'<stop offset="{i / n:.3f}" stop-color="{c}"/>' for i, c in enumerate(stops)) + "</linearGradient>")
 
 
-def logo_mark(p="lg", cls=""):
-    """The mark as inline SVG (give each copy on a page its own p)."""
+def logo_parts(p="lg", light=True, shadow=.62):
+    """The mark's drawing (ids prefixed with p). light: the coloured light behind it, fading out inside LOGO_GLOW_BOX
+    (for dark surfaces); shadow: how dark the shadow under the tubes is (0: none)."""
+    defs = [_lin(p + "a", _T_LINE, _T_IN), _lin(p + "b", _T_LINE, _T_RIM), _lin(p + "c", _P_LINE, _P_IN), _lin(p + "d", _P_LINE, _P_RIM)]
+    out = []
+    if light:
+        x0, y0, w, h = LOGO_GLOW_BOX
+        glows = []
+        for k, (cx, cy, sx, sy, a, col) in enumerate(_LIGHT):
+            defs.append(f'<radialGradient id="{p}g{k}">' + "".join(
+                f'<stop offset="{o:.3f}" stop-color="{col}" stop-opacity="{a * g if o < 1 else 0:.4f}"/>' for o, g in _GAUSS) + "</radialGradient>")
+            glows.append(f'<ellipse cx="{cx}" cy="{cy}" rx="{3 * sx}" ry="{3 * sy}" fill="url(#{p}g{k})"/>')
+        defs.append(f'<radialGradient id="{p}f" gradientUnits="userSpaceOnUse" cx="{x0 + w / 2:g}" cy="{y0 + h / 2:g}" r="{w / 2:g}">'
+                    f'<stop offset=".55" stop-color="#fff"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>'
+                    f'<mask id="{p}m"><rect x="{x0}" y="{y0}" width="{w}" height="{h}" fill="url(#{p}f)"/></mask>')
+        out.append(f'<g mask="url(#{p}m)">{"".join(glows)}</g>')
+    tube = lambda d, stroke, width: f'<path d="{d}" fill="none" stroke="{stroke}" stroke-width="{width:g}" stroke-linejoin="round"/>'
+    if shadow:
+        defs.append(f'<filter id="{p}s" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="10.5"/></filter>')
+        out.append(f'<g filter="url(#{p}s)" opacity="{shadow:g}" transform="translate(0 14)">'
+                   + "".join(tube(d, "#000", _LW + 1) for d in (_PILL, _TEE, _SHOULDER)) + "</g>")
+    # the rims first, then every tube's inside over them, so where the tubes meet they join into one
+    out.append(tube(_PILL, f"url(#{p}d)", _LW) + tube(_TEE, f"url(#{p}b)", _LW) + tube(_SHOULDER, f"url(#{p}b)", _LW))
+    inner = _LW - 2 * _RIM
+    out.append(tube(_PILL, f"url(#{p}c)", inner) + tube(_TEE, f"url(#{p}a)", inner) + tube(_SHOULDER, f"url(#{p}a)", inner))
+    return f'<defs>{"".join(defs)}</defs>{"".join(out)}'
+
+
+def logo_mark(p="lg", cls="", light=True):
+    """The mark as inline SVG sized by its tubes; the shadow and the light spill out around it (give each copy on a page its
+    own p)."""
     c = f' class="{cls}"' if cls else ""
-    return f'<svg{c} viewBox="{LOGO_BOX}" aria-hidden="true">{logo_parts(p)}</svg>'
+    return f'<svg{c} viewBox="{LOGO_BOX}" overflow="visible" style="overflow:visible" aria-hidden="true">{logo_parts(p, light)}</svg>'
 
 
 # ---------------------------------------------------------------- the name, drawn in thin geometric lines (Fenomeno style)
@@ -159,13 +206,28 @@ def brand_box(p="bw"):
     return float(vb[2]), float(vb[3]), s
 
 
-_MARK = f'<svg x="2" y="10" width="60" height="44" viewBox="{LOGO_BOX}">{logo_parts("mk")}</svg>'
+_GB = " ".join(str(v) for v in LOGO_GLOW_BOX)
+_MARK = f'<svg x="0" y="0" width="64" height="64" viewBox="{_GB}">{logo_parts("mk")}</svg>'
 LOGO_ICON = f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">{_MARK}</svg>'
+LOGO_ICON_LIGHT = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">'
+                   f'<svg x="0" y="0" width="64" height="64" viewBox="{_GB}">{logo_parts("il", False, .22)}</svg></svg>')
 _bw, _bh, _bs = brand_box("lw")
 _BH = 26                                     # height of the name inside the 64-high logo
-LOGO_WORDMARK = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {80 + _bw * _BH / _bh + 6:.0f} 64" width="{80 + _bw * _BH / _bh + 6:.0f}" height="64">{_MARK}'
-                 + _bs.replace('<svg class="brand"', f'<svg x="78" y="{32 - _BH / 2 + 1:.0f}" width="{_bw * _BH / _bh:.0f}" height="{_BH}"', 1)
-                 + "</svg>")
+_BX = 66                                     # where the name starts (the tubes end at about 56)
+
+
+def logo_wordmark(light_look=False):
+    """The mark with its light and the name, for the top of the page. The light look: the mark without the coloured light
+    behind it and with a fainter shadow, and the name in dark ink."""
+    mark = (f'<svg x="0" y="0" width="64" height="64" viewBox="{_GB}">{logo_parts("ml", False, .22)}</svg>' if light_look else _MARK)
+    name = LM.convert(_bs) if light_look else _bs
+    w = _BX + _bw * _BH / _bh + 6
+    return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w:.0f} 64" width="{w:.0f}" height="64">{mark}'
+            + name.replace('<svg class="brand"', f'<svg x="{_BX}" y="{32 - _BH / 2 + 1:.0f}" width="{_bw * _BH / _bh:.0f}" height="{_BH}"', 1)
+            + "</svg>")
+
+
+LOGO_WORDMARK = logo_wordmark()
 
 FONT_LATIN, FONT_AR = "'DM Sans'", "'Readex Pro'"
 FLAG_US, FLAG_SA = flags.US, flags.SA
@@ -2747,4 +2809,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "21.2"
+BUILD = "21.3"

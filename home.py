@@ -10,7 +10,7 @@ import theme as T
 import ui
 from i18n import L, is_ar
 
-BUILD = "21.2"
+BUILD = "21.3"
 
 _LINE = "rgba(150,140,250,"
 CSS = f"""
@@ -41,7 +41,7 @@ CSS = f"""
 .cztop .czghost .brand {{ height:clamp(58px,10.5vw,168px); width:auto; max-width:96%; }}
 .cztop .czlogo {{ position:relative; display:flex; justify-content:center; align-items:center; gap:clamp(14px,1.8vw,28px); direction:ltr;
   margin-top:clamp(18px,3.4vw,58px); }}
-.cztop .czlogo svg.czmark {{ flex:none; width:clamp(72px,7.6vw,122px); height:auto; filter:drop-shadow(0 0 22px rgba(45,182,235,.55)); }}
+.cztop .czlogo svg.czmark {{ flex:none; width:clamp(62px,6.4vw,104px); height:auto; overflow:visible; }}   /* the mark brings its own light and shadow */
 .cztop .czlogo .brand {{ height:clamp(30px,4.4vw,64px); width:auto; max-width:66vw; filter:drop-shadow(0 0 16px rgba(91,140,255,.35)); }}
 .cztop .cztag {{ position:relative; margin-top:18px; font-size:.8rem; font-weight:600; letter-spacing:.26em; text-transform:uppercase; color:#A69ED0; }}
 .cztop.ar .cztag {{ letter-spacing:0; font-size:.95rem; }}
