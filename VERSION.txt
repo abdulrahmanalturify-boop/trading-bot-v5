@@ -1,2 +1,2 @@
-TURA Pro - version 21.0 (Robo Advisor: the questionnaire and the plan are kept in the browser and come back where they were left; the Opportunity Bot's trading plan: the companies its next scan would enter, with entry, stop, size and risk)
+TURA Pro - version 21.1 (Robo Advisor: before the first close the dashboard now shows its tabs, and the Opportunity Bot tab lists the companies of its first trades with entry, stop, size and risk; a summary of those first trades is on the overview)
 If you can see this file on GitHub, the new version was uploaded correctly.

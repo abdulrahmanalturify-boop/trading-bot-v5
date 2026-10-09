@@ -4,7 +4,7 @@ it, and its management on autopilot (robo.py does the work).
 
 Four screens: the introduction; the questionnaire (one question at a time, tiles to tap, a live risk meter); the plan (the
 risk profile, the allocation, what to expect, a projection, the last five years, the IPS, the level can be moved by hand);
-and, once invested, the dashboard (value against the money put in and the benchmark, target against current weights, the
+and, once invested, the dashboard (value against the money invested and the benchmark, target against current weights, the
 holdings, everything the robo did, the IPS, and the controls: monthly deposit, add or withdraw, risk level, questionnaire,
 close). Virtual money, like the paper portfolio, kept under the same visitor code.
 """
@@ -357,6 +357,16 @@ CSS = f"""<style>
 .rbsd.short {{ color:#FCA5A5; background:rgba(239,68,68,.14); border:1px solid rgba(248,113,113,.4); }}
 .rbwc {{ display:inline-block; border-radius:7px; padding:2px 7px; font-size:.68rem; font-weight:600; color:#DCD7E3; background:rgba(157,151,165,.13);
   border:1px solid rgba(157,151,165,.22); margin:0 4px 4px 0; }}
+.rbnote2 {{ display:flex; gap:12px; align-items:flex-start; border-radius:16px; padding:12px 15px; margin:0 0 12px;
+  border:1px solid rgba(236,72,153,.4); background:linear-gradient(135deg,rgba(236,72,153,.13),transparent 70%), {T.BOX_BG}; }}
+.rbnote2 > .ms {{ font-size:1.5rem; color:#F9A8D4; margin-top:2px; }}
+.rbnote2 b {{ color:#fff; font-size:.9rem; }} .rbnote2 span {{ color:#B9B3C4; font-size:.76rem; }}
+.rbnote2 .tks {{ display:flex; flex-wrap:wrap; gap:6px; margin:7px 0 6px; }}
+.rbtk {{ display:inline-flex; align-items:center; gap:3px; border-radius:8px; padding:3px 9px 3px 7px; font-size:.8rem; font-weight:800; }}
+.rbtk .ms {{ font-size:.9rem; }}
+.rbtk.long {{ color:#86EFAC; background:rgba(34,197,94,.13); border:1px solid rgba(74,222,128,.4); }}
+.rbtk.short {{ color:#FCA5A5; background:rgba(239,68,68,.13); border:1px solid rgba(248,113,113,.4); }}
+.rbtk.none {{ color:#B9B3C4; font-weight:600; border:1px dashed rgba(157,151,165,.4); }}
 .rbplan td {{ vertical-align:middle; }}
 .rbplan tr.nx td {{ opacity:.55; }}
 .rbplan .cco {{ display:flex; align-items:center; gap:4px; }}
@@ -587,7 +597,7 @@ def intro(has_store=True):
                                                                  "يُستثمر أول يوم تداول من كل شهر، في الأقل من نسبته أولاً.")),
              ("currency_exchange", L("Dividends reinvested", "إعادة استثمار التوزيعات"), L("Every dividend goes back into the portfolio.",
                                                                                          "كل توزيع يرجع يُستثمر في المحفظة.")),
-             ("monitoring", L("Clear tracking", "متابعة واضحة"), L("Value against the money put in and a fair benchmark, and everything the robo did.",
+             ("monitoring", L("Clear tracking", "متابعة واضحة"), L("Value against the money invested and a fair benchmark, and everything the robo did.",
                                                                    "القيمة مقابل المبلغ المستثمر ومؤشر مرجعي عادل، وكل اللي سواه المستشار.")),
              ("radar", L("Opportunity Bot", "بوت الفرص"), L("At levels 9 and 10 it hunts emerging companies and explosive moves, long and short.",
                                                             "في المستوى 9 و10 يصطاد الشركات الناشئة والانفجارات السعرية، شراء وبيع على المكشوف.")),
@@ -700,7 +710,7 @@ def funding(ans, step):
     prof = R.profile(ans)
     years = prof["years"]
     proj = R.project(prof["mu"], prof["vol"], amount, monthly, years, n=600)
-    ui.html(f'<div class="rbfund"><div><div class="l">{T.icon("savings")}{L("You put in", "اللي بتحطه")}</div><div class="v">{_m(proj["invested"].iloc[-1])}</div>'
+    ui.html(f'<div class="rbfund"><div><div class="l">{T.icon("savings")}{L("You invest", "اللي بتحطه")}</div><div class="v">{_m(proj["invested"].iloc[-1])}</div>'
             f'<div class="s">{L(f"over {years} years", f"خلال {years} سنة")}</div></div>'
             f'<div><div class="l">{T.icon("insights")}{L("A middle outcome", "نتيجة متوسطة")}</div><div class="v">{_m(proj["p50"].iloc[-1])}</div>'
             f'<div class="s">{L("half the paths end above it", "نص الاحتمالات تنتهي فوقها")}</div></div>'
@@ -895,8 +905,8 @@ def projection_fig(proj, years, goal=None):
                              hovertemplate=L("Middle: ", "متوسطة: ") + hov))
     fig.add_trace(go.Scatter(x=x, y=proj["p10"], name=L("Weak case", "حالة ضعيفة"), line=dict(color=C.rgba(T.VIOLET, 0.8), width=1.2, dash="dot"),
                              hovertemplate=L("Weak: ", "ضعيفة: ") + hov, showlegend=False))
-    fig.add_trace(go.Scatter(x=x, y=proj["invested"], name=L("Put in", "المستثمر"), line=dict(color=T.GOLD, width=1.8, dash="dash"),
-                             hovertemplate=L("Put in: ", "المستثمر: ") + hov))
+    fig.add_trace(go.Scatter(x=x, y=proj["invested"], name=L("Invested", "المستثمر"), line=dict(color=T.GOLD, width=1.8, dash="dash"),
+                             hovertemplate=L("Invested: ", "المستثمر: ") + hov))
     if goal:
         fig.add_hline(y=goal, line=dict(color=T.GOLD, width=1.4, dash="dot"), annotation_text=L("Goal", "الهدف"),
                       annotation_font=dict(color=T.GOLD, size=11), annotation_position="top left")
@@ -929,7 +939,7 @@ def lines_fig(rep, bm, title, rng="all", height=380):
     if b is not None and len(b):
         fig.add_trace(go.Scatter(x=b.index, y=b, name=L("Benchmark", "المؤشر المرجعي"), line=dict(color=T.VIOLET, width=1.8, dash="dot"),
                                  hovertemplate="%{x|%b %d, %Y}: $%{y:,.0f}<extra></extra>"))
-    fig.add_trace(go.Scatter(x=cur.index, y=cur["invested"], name=L("Put in", "المستثمر"), line=dict(color=T.GOLD, width=1.6, dash="dash", shape="hv"),
+    fig.add_trace(go.Scatter(x=cur.index, y=cur["invested"], name=L("Invested", "المستثمر"), line=dict(color=T.GOLD, width=1.6, dash="dash", shape="hv"),
                              hovertemplate="%{x|%b %d, %Y}: $%{y:,.0f}<extra></extra>"))
     ys = [float(v) for v in cur["value"]] + [float(v) for v in cur["invested"]] + ([float(v) for v in b] if b is not None else [])
     lo, hi = (min(ys), max(ys)) if ys else (0, 1)
@@ -1163,9 +1173,10 @@ def positions_html(rows):
     return '<div class="rbpcs">' + "".join(out) + "</div>"
 
 
-def plan_html(trades, summ, when=None):
+def plan_html(trades, summ, when=None, first=False):
     """The bot's trading plan: the trades its next scan would open (entry, first stop, size, shares, money at risk)."""
-    chips = [f'<span class="rbchip bot">{T.icon("event_repeat")}{L("Next scan", "المسح الجاي")} <b>{_esc(when)}</b></span>' if when else
+    lab = L("First trades at the close of", "أول صفقاته مع إغلاق") if first else L("Next scan", "المسح الجاي")
+    chips = [f'<span class="rbchip bot">{T.icon("rocket_launch" if first else "event_repeat")}{lab} <b>{_esc(when)}</b></span>' if when else
              f'<span class="rbchip bot">{T.icon("rocket_launch")}{L("If you start now", "لو بدأت الحين")}</span>',
              f'<span class="rbchip">{T.icon("north_east")}{L("Free long slots", "خانات شراء فاضية")} <b>{summ["free_long"]}/{summ["n_long"]}</b></span>']
     if summ["n_short"]:
@@ -1316,7 +1327,40 @@ def next_scan(now=None):
     return nxt
 
 
-def bot_tab(state, rep, feats):
+def bot_plan(state, rep, feats):
+    """(trades, summary, when, first) of the bot's next trades for the dashboard, or None (no bot at this level, no prices).
+    Before the first close: the first trades of the money going in; after: the next weekly scan with what is free."""
+    plan = state["plans"][-1]
+    w = plan["targets"].get(R.BOT, 0)
+    if not w or not feats:
+        return None
+    lv = plan.get("level") if plan.get("level") in RB.SAT else 10
+    sh = plan.get("sharia", False)
+    book = rep.get("book")
+    if rep.get("pending") or book is None:
+        tp, summ = RB.trade_plan(feats, float(state["amount"]) * w / 100, lv, sh)
+        return tp, summ, _date(rep["start"]), True
+    pos = book.positions(rep["vday"])
+    n_l = sum(1 for p in pos if p["side"] == "long")
+    tp, summ = RB.trade_plan(feats, book.value(rep["vday"]), lv, sh, held=set(book.pos), cool=set(book.cool), n_long_held=n_l,
+                             n_short_held=len(pos) - n_l)
+    return tp, summ, _date(next_scan()), False
+
+
+def bot_notice_html(bp):
+    """A slim card on the overview: the companies the bot opens next, the full plan in its own tab."""
+    tp, summ, when, first = bp
+    now = [x for x in tp if not x["next"]]
+    lab = L("first trades at the close of", "أول صفقاته مع إغلاق") if first else L("next scan", "المسح الجاي")
+    if now:
+        ticks = "".join(f'<span class="rbtk {x["side"]}">{T.icon("north_east" if x["side"] == "long" else "south_east")}{x["t"]}</span>' for x in now)
+    else:
+        ticks = f'<span class="rbtk none">{L("no new trade", "ما فيه صفقة جديدة")}</span>'
+    return (f'<div class="rbnote2">{T.icon("radar")}<div><b>{L("Opportunity Bot", "بوت الفرص")} · {lab} {_esc(when)}</b>'
+            f'<div class="tks">{ticks}</div><span>{L("Its full trading plan (entry, stop, size, risk) is in the Opportunity Bot tab.", "خطته الكاملة للتداول (الدخول والوقف والحجم والمخاطرة) في تبويب «بوت الفرص».")}</span></div></div>')
+
+
+def bot_tab(state, rep, feats, bp=None):
     book = rep.get("book")
     plan = state["plans"][-1]
     on = plan["targets"].get(R.BOT, 0) > 0
@@ -1327,7 +1371,17 @@ def bot_tab(state, rep, feats):
                   "البوت متوقف في مستوى المخاطرة الحالي (يشتغل في المستوى 9 و10). صفقاته السابقة باقية تحت."), icon=":material/power_off:")
     else:
         ui.html(bot_card(prof, stats_line=None))
-    if book is None:
+    if book is None:                           # before the first close: its first trades, its radar
+        if bp:
+            ui.sec("checklist", "Trading plan: the companies it enters first", "خطة التداول: الشركات اللي بيدخلها أول")
+            ui.html(plan_html(*bp))
+        if on and feats:
+            ui.sec("travel_explore", "On the radar now", "على الرادار الحين")
+            lg, sh = RB.radar(feats, prof["sharia"], n_long=10 if prof["sharia"] else 5, n_short=5)
+            ui.html(radar_html(lg, sh))
+        elif on:
+            st.info(L("The bot's prices aren't available right now. Try again in a minute.", "أسعار البوت مو متاحة الحين. جرّب بعد دقيقة."),
+                    icon=":material/cloud_off:")
         return
     d = rep["vday"]
     val, cost = book.value(d), book.cost
@@ -1342,11 +1396,9 @@ def bot_tab(state, rep, feats):
          f'{L("won", "ربحت")} <b>{_p(s.get("win"), 0) if s.get("n") else "—"}</b>', None, None),
         ("event_repeat", L("Next scan", "المسح الجاي"), _date(next_scan()) if on else "—",
          f'{L("Long", "شراء")} <b>{n_l}</b> · {L("Short", "مكشوف")} <b>{len(pos) - n_l}</b>', None, None)], "c4"))
-    if on and feats:
+    if bp:
         ui.sec("checklist", "Trading plan for the next scan", "خطة التداول للمسح الجاي")
-        tp, summ = RB.trade_plan(feats, val, prof["level"], prof["sharia"], held=set(book.pos), cool=set(book.cool),
-                                 n_long_held=n_l, n_short_held=len(pos) - n_l)
-        ui.html(plan_html(tp, summ, _date(next_scan())))
+        ui.html(plan_html(*bp))
     ui.sec("radar", "Open positions", "المراكز المفتوحة")
     ui.html(positions_html(pos))
     if on and feats:
@@ -1438,7 +1490,7 @@ def plan_page(state, row, rkey, err):
     proj = R.project(prof["mu"], prof["vol"], amount, monthly, years, goal=goal or None)
     ui.chart(projection_fig(proj, years, goal or None), key="rb_proj")
     beat = proj.attrs["beat"]
-    chips = [f'<span class="rbchip">{T.icon("percent")}{L(f"{beat:.0f}% of the paths end above the money put in", f"{beat:.0f}% من الاحتمالات تنتهي فوق المبلغ المستثمر")}</span>',
+    chips = [f'<span class="rbchip">{T.icon("percent")}{L(f"{beat:.0f}% of the paths end above the money invested", f"{beat:.0f}% من الاحتمالات تنتهي فوق المبلغ المستثمر")}</span>',
              f'<span class="rbchip">{T.icon("insights")}{L("A middle outcome", "نتيجة متوسطة")} {_ltr(_m(proj["p50"].iloc[-1]))}</span>']
     if goal:
         gp = proj.attrs.get("goal_p", 0)
@@ -1704,13 +1756,13 @@ def dash_hero(state, rep, err):
         elif len(cur) >= 2:
             day = float(cur["value"].iloc[-1]) - float(cur["value"].iloc[-2]) - float(cur["flow"].iloc[-1])
     arrow = lambda x: "▲" if x > 0 else "▼" if x < 0 else "•"
-    pls = f'<span class="pl {PP._k(gain)}">{arrow(gain)} {PP._bdi(_m(gain, 2, True))} <em>{L("vs money put in", "مقابل المبلغ المستثمر")}</em></span>'
+    pls = f'<span class="pl {PP._k(gain)}">{arrow(gain)} {PP._bdi(_m(gain, 2, True))} <em>{L("vs money invested", "مقابل المبلغ المستثمر")}</em></span>'
     if ret is not None:
         pls += f'<span class="pl {PP._k(ret)}">{arrow(ret)} {PP._bdi(_p(ret, 2, True))} <em>{L("time-weighted", "موزون زمنياً")}</em></span>'
     if day is not None:
         pls += f'<span class="pl {PP._k(day)}">{arrow(day)} {PP._bdi(_m(day, 2, True))} <em>{L("Today", "اليوم") if rep.get("live") else L("Last session", "آخر جلسة")}</em></span>'
     mon = state["monthly"][-1]["amount"] if state.get("monthly") else 0
-    chips = [f'<span class="chip">{T.icon("savings")}{L("Put in", "المستثمر")} <b>{_m(inv)}</b></span>',
+    chips = [f'<span class="chip">{T.icon("savings")}{L("Invested", "المستثمر")} <b>{_m(inv)}</b></span>',
              f'<span class="chip">{T.icon("event_repeat")}{L("Monthly", "شهرياً")} <b>{_m(mon)}</b></span>',
              f'<span class="chip">{T.icon("speed")}{L("Level", "المستوى")} <b>{lv}/10 · {_esc(_prof_name(lv))}</b></span>']
     if plan.get("sharia"):
@@ -1847,29 +1899,48 @@ def dashboard(state, row, rkey, err):
     if has_bot and not feats:
         st.info(L("The Opportunity Bot's prices aren't available right now: its slice shows as cash until they load. Try again in a minute.",
                   "أسعار بوت الفرص مو متاحة الحين: حصته تظهر كنقد لين تتحمّل. جرّب بعد دقيقة."), icon=":material/cloud_off:")
-    if rep["pending"]:
-        if not rep.get("missing"):
-            first, amt = _date(rep["start"]), _m(state["amount"])
-            ui.html(f'<div class="rbpend">{T.icon("hourglass_top")}<div><b>{L("Your first investment is on its way", "أول استثمار في الطريق")}</b>'
-                    f'<span>{L(f"{amt} goes in at the close of {first}, split across your funds by their targets. Then the robo takes it from there.", f"{amt} تدخل مع إغلاق {first}، موزعة على صناديقك حسب نسبها. وبعدها المستشار الآلي يكمل الباقي.")}</span></div></div>')
-        ui.html(next_html(state, rep))
-        plan_tab(state, row, rkey, err)
-        return
+    bp = bot_plan(state, rep, feats) if has_bot else None
     names = [L(":material/space_dashboard: Overview", ":material/space_dashboard: نظرة عامة"),
              L(":material/donut_large: Allocation", ":material/donut_large: التوزيع")]
     if has_bot:
         names.append(L(":material/radar: Opportunity Bot", ":material/radar: بوت الفرص"))
     names += [L(":material/history: Activity", ":material/history: النشاط"), L(":material/tune: Plan & settings", ":material/tune: الخطة والإعدادات")]
+    if rep["pending"]:                         # before the first close: the same tabs, with what there is so far
+        tabs = st.tabs(names)
+        with tabs[0]:
+            if not rep.get("missing"):
+                first, amt = _date(rep["start"]), _m(state["amount"])
+                ui.html(f'<div class="rbpend">{T.icon("hourglass_top")}<div><b>{L("Your first investment is on its way", "أول استثمار في الطريق")}</b>'
+                        f'<span>{L(f"{amt} goes in at the close of {first}, spread across your funds by their targets. Then the robo takes it from there.", f"{amt} تدخل مع إغلاق {first}، موزعة على صناديقك حسب نسبها. وبعدها المستشار الآلي يكمل الباقي.")}</span></div></div>')
+            ui.html(next_html(state, rep))
+            if bp:
+                ui.html(bot_notice_html(bp))
+        with tabs[1]:
+            plan = state["plans"][-1]
+            ui.html(allocation_html({"targets": plan["targets"], "stocks": plan.get("stocks", 0)}))
+        k = 2
+        if has_bot:
+            with tabs[k]:
+                bot_tab(state, rep, feats, bp)
+            k += 1
+        with tabs[k]:
+            ui.html(PP.empty("history", L("Nothing yet", "ما فيه شي للحين"),
+                             L("Everything the robo does shows here from the first close.", "كل اللي يسويه المستشار الآلي يظهر هنا من أول إغلاق.")))
+        with tabs[k + 1]:
+            plan_tab(state, row, rkey, err)
+        return
     tabs = st.tabs(names)
     cur = rep["curve"]
     with tabs[0]:
         ui.html(next_html(state, rep))
+        if bp:
+            ui.html(bot_notice_html(bp))
         m = R.metrics(cur)
         val = rep["live"]["value"] if rep.get("live") else float(cur["value"].iloc[-1])
         bval = None if bm.get("pending") else (bm["live"]["value"] if bm.get("live") else float(bm["curve"]["value"].iloc[-1]))
         vs = val - bval if bval else None
         ui.html(PP.kpis([
-            ("account_balance", L("Value", "القيمة"), _m(val, 2), f'{L("Put in", "المستثمر")} <b>{_m(cur["invested"].iloc[-1])}</b>', None, None),
+            ("account_balance", L("Value", "القيمة"), _m(val, 2), f'{L("Invested", "المستثمر")} <b>{_m(cur["invested"].iloc[-1])}</b>', None, None),
             ("show_chart", L("Return", "العائد"), _p(m.get("ret"), 2, True), L("time-weighted, since the start", "موزون زمنياً، من البداية"), PP._k(m.get("ret")), None),
             ("compare_arrows", L("vs benchmark", "مقابل المؤشر"), "—" if vs is None else _m(vs, 0, True),
              L("same money in VT/BND", "نفس المبالغ في VT/BND"), PP._k(vs), None),
@@ -1880,7 +1951,7 @@ def dashboard(state, row, rkey, err):
             rng = st.segmented_control(L("Range", "المدة"), ["1m", "3m", "ytd", "1y", "all"], default="all", key="rb_rng", label_visibility="collapsed",
                                        format_func=lambda k: {"1m": L("1M", "شهر"), "3m": L("3M", "3 أشهر"), "ytd": L("YTD", "من بداية السنة"),
                                                               "1y": L("1Y", "سنة"), "all": L("All", "الكل")}[k]) or "all"
-            ui.chart(lines_fig(rep, bm, L("Value, money put in and the benchmark", "القيمة والمبلغ المستثمر والمؤشر المرجعي"), rng), key="rb_perf")
+            ui.chart(lines_fig(rep, bm, L("Value, money invested and the benchmark", "القيمة والمبلغ المستثمر والمؤشر المرجعي"), rng), key="rb_perf")
             heat = heat_html(R.monthly_returns(cur))
             if heat:
                 ui.sec("calendar_month", "Month by month", "شهر بشهر")
@@ -1903,7 +1974,7 @@ def dashboard(state, row, rkey, err):
     k = 2
     if has_bot:
         with tabs[k]:
-            bot_tab(state, rep, feats)
+            bot_tab(state, rep, feats, bp)
         k += 1
     with tabs[k]:
         ev = rep["events"]
@@ -1961,4 +2032,4 @@ def page_robo():
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "21.0"
+BUILD = "21.1"
