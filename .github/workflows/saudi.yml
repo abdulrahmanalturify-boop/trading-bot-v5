@@ -1,0 +1,38 @@
+# By hand (or a push of scripts/saudi_list.py on "research"): the Saudi market's company list read from Yahoo Finance, and a
+# check of the Yahoo calls the Saudi pages use. Commits research/results/saudi_list.json and saudi_probe.txt to "research".
+name: saudi list
+on:
+  push:
+    branches: [research]
+    paths: ["scripts/saudi_list.py"]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: saudi-list
+  cancel-in-progress: true
+jobs:
+  list:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: research
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: python scripts/saudi_list.py 2>&1 | tee saudi_log.txt
+      - if: always()
+        run: |
+          git config user.name "research-lab"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          mkdir -p /tmp/sa && cp saudi_log.txt /tmp/sa/ && cp research/results/saudi_*.* /tmp/sa/ 2>/dev/null || true
+          git fetch -q origin research
+          git checkout -q -B upd origin/research
+          mkdir -p research/results && cp /tmp/sa/* research/results/ 2>/dev/null || true
+          git add research/results/saudi_* || true
+          git commit -q -m "saudi list [skip ci]" || exit 0
+          git push -q origin upd:research
