@@ -1,2 +1,2 @@
-TURA Pro - version 21.4 (Opportunity Bot: every score sits in a ring, green for a buy and red for a short, in the trading plan as on the radar, with one line saying what the score is)
+TURA Pro - version 21.5 (News Intelligence Engine redesigned: a command centre with the mood of the news on a dial, the window's numbers and the mood through time; a breaking strip; the companies in the news as cards that filter the page; search; the flow of the news as clickable bubbles; the sectors' mood; a feed of story cards with the top story large (or a table); every story opens in a window with its four numbers in rings, the setup's parts as bars and the price around the story)
 If you can see this file on GitHub, the new version was uploaded correctly.
