@@ -591,6 +591,7 @@ a.pblink .ms {{ font-size:1rem; }}
 # Arabic: no letter-spacing (it breaks the joined letters) and the accent bars move to the right edge
 PAGE_RTL_CSS = """<style>
 .pbhero .eb, .pbc .it, .pbmh, .pbt th, .pbfb .eb, .pbfs, .pbmode .ct, .pbrl .gt { letter-spacing:0; }
+.st-key-pb_symbol input, .st-key-pb_cmp_sym input, .st-key-pb_qt_sym input { direction:ltr; }     /* 2222.SR, not SR.2222 */
 .pbp::before, .pbid::before { left:auto; right:0; }
 .pbp { padding:14px 19px 8px 16px; }
 [class*="st-key-pbq_row"] button { padding:3px 10px 3px 14px !important; }
@@ -768,6 +769,13 @@ def mkt_word():
 def cur():
     """The currency sign for labels: $ / SAR (Arabic: ر.س)."""
     return MK.cur_sign(MK.current())
+
+
+def card_money(v):
+    """A balance on a narrow card: $106,498 / 106,498 SAR with the currency small."""
+    if not _sa():
+        return T.money(v)
+    return f'{v:,.0f}<small style="font-size:.66em;opacity:.75;margin-inline-start:4px">{T.esc(cur())}</small>'
 
 
 def sector_label(v, market=None):
@@ -1119,7 +1127,8 @@ def bot_card(rank, sim, logo, selected=False):
     if sim["ok"] and not sim["waiting"]:
         ret, m = sim["ret"], sim["metrics"]
         bret = iso(f'{sim["bench_ret"]:+.2f}%') if sim["bench_ret"] is not None else ""
-        spx = "" if sim["bench_ret"] is None else f'<div class="muted" style="font-size:.7rem;margin-top:4px">{T.esc(bench_label(True))} {bret}</div>'
+        bxs = "KSA" if _sa() else "S&amp;P 500"                     # short: the card is narrow
+        spx = "" if sim["bench_ret"] is None else f'<div class="muted" style="font-size:.7rem;margin-top:4px;white-space:nowrap">{bxs} {bret}</div>'
         win = iso(f"{m['Win Rate %']:.0f}%")
         trades = L(f'{m["Trades"]} trades', f'{m["Trades"]} صفقة') + (f' · {L("win", "نجاح")} {win}' if m["Trades"] else "")
         watch = "" if b["kind"] == "company" else " · " + L(f'{sim["n_symbols"]} stocks', f'{sim["n_symbols"]} سهم')
@@ -1127,7 +1136,7 @@ def bot_card(rank, sim, logo, selected=False):
                 else f'{L("since", "منذ")} <span class="nw">{iso(since_of(sim))}</span>')
         body = (f'<div class="spk">{_spark_area(sim["equity"], b["capital"], b["id"])}</div>'
                 f'<div class="row"><div><div class="muted" style="font-size:.72rem">{L("Balance", "الرصيد")}</div>'
-                f'<div style="font-weight:600;font-size:1.1rem;direction:ltr">{T.money(sim["final"])}</div></div>'
+                f'<div style="font-weight:600;font-size:1.1rem;direction:ltr;white-space:nowrap">{card_money(sim["final"])}</div></div>'
                 f'<div class="r">{T.pbox(f"{ret:+.2f}%", ret)}{spx}</div></div>'
                 f'<div class="pbft">{trades}{watch} · {when}</div>')
     elif sim["ok"]:
@@ -1902,6 +1911,8 @@ def _order_txt(item):
 def lab_check(b):
     """The lab's view of a saved bot: (a badge when it runs on the lab's pick, a note when the pick did clearly better)."""
     names = list(b.get("strategies") or {})
+    if PB.market_of(b) == MK.SA:                    # the lab's tests ran on US stocks
+        return "", None
     if len(names) != 1 or is_orb(b) or instrument(b) == "options" or b.get("ml") or b.get("brain"):
         return "", None
     d = lab.data()

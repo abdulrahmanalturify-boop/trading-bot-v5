@@ -19,11 +19,10 @@ URL = f"http://localhost:{PORT}"
 os.makedirs(OUT, exist_ok=True)
 
 # (name, path, market) - each page opened fresh with ?m=<market>&lang=<lang>
-PAGES = [("overview", "overview", "sa"), ("news", "news", "sa"), ("stock", "stock?symbol=2222.SR", "sa"),
-         ("screener", "screener", "sa"), ("scanner", "scanner", "sa"), ("paper", "paper-bots", "sa"),
-         ("pf_trade", "portfolio-trade", "sa"), ("pf_dash", "portfolio", "sa"), ("glossary", "glossary", "sa"),
-         ("us_overview", "overview", "us"), ("us_paper", "paper-bots", "us"), ("us_stock", "stock?symbol=AAPL", "us"),
-         ("futures_sa", "futures", "sa")]
+PAGES = [("news", "news", "sa"), ("stock", "stock?symbol=2222.SR", "sa"), ("screener", "screener", "sa"), ("scanner", "scanner", "sa"),
+         ("paper", "paper-bots", "sa"), ("pf_trade", "portfolio-trade", "sa"), ("pf_dash", "portfolio", "sa"),
+         ("pf_analytics", "portfolio-analytics", "sa"), ("pf_history", "portfolio-history", "sa"), ("futures_sa", "futures", "sa"),
+         ("brief_sa", "brief", "sa"), ("us_paper", "paper-bots", "us"), ("us_stock", "stock?symbol=AAPL", "us"), ("us_pf_dash", "portfolio", "us")]
 
 
 def log(*a):
@@ -78,8 +77,8 @@ def problems(pg):
 
 
 def shoot(pg, name):
-    h = pg.evaluate("() => Math.max(document.body.scrollHeight, (document.querySelector('[data-testid=\"stMain\"]')||document.body).scrollHeight)")
-    pg.set_viewport_size({"width": 1440, "height": min(max(int(h), 900), 9000)})
+    h = pg.evaluate("() => { const m = document.querySelector('[data-testid=\"stMainBlockContainer\"]'); return m ? m.scrollHeight + 160 : 900; }")
+    pg.set_viewport_size({"width": 1440, "height": min(max(int(h), 900), 8000)})
     time.sleep(1.5)
     pg.screenshot(path=os.path.join(OUT, f"{name}.jpg"), type="jpeg", quality=72, full_page=True)
 
@@ -104,27 +103,46 @@ def main():
         with sync_playwright() as p:
             b = p.chromium.launch()
             for lang in ("ar", "en"):
-                ctx = b.new_context(viewport={"width": 1440, "height": 900}, locale="ar-SA" if lang == "ar" else "en-US")
+                ctx = b.new_context(viewport={"width": 1440, "height": 900}, locale="ar-SA" if lang == "ar" else "en-US", color_scheme="dark")
                 pg = ctx.new_page()
-                # the landing: a new visitor picks a market
+                # the landing: a new visitor picks a market (the two buttons at the end of the landing)
                 pg.goto(f"{URL}/?lang={lang}", wait_until="domcontentloaded")
                 took = settle(pg)
-                shoot(pg, f"{lang}_landing")
                 report["pages"][f"{lang}_landing"] = {"seconds": took, "problems": problems(pg)}
                 try:
-                    pg.locator('[class*="st-key-introgo_sa"] button').first.click(timeout=15000)
-                    took = settle(pg)
-                    shoot(pg, f"{lang}_after_pick_sa")
-                    report["pages"][f"{lang}_after_pick_sa"] = {"seconds": took, "problems": problems(pg), "url": pg.url}
+                    pg.evaluate("() => document.querySelector('[class*=\"st-key-introgo_sa\"]').scrollIntoView({block: 'center'})")
+                    time.sleep(2.5)
+                    pg.screenshot(path=os.path.join(OUT, f"{lang}_landing_pick.jpg"), type="jpeg", quality=80)
+                    pg.evaluate("() => { const t = [...document.querySelectorAll('[class*=\"ixmk\"]')][0]; if (t) t.scrollIntoView({block: 'start'}); }")
+                    time.sleep(2.5)
+                    pg.screenshot(path=os.path.join(OUT, f"{lang}_landing_two.jpg"), type="jpeg", quality=80)
                 except Exception as e:
-                    report["pages"][f"{lang}_after_pick_sa"] = {"error": str(e)[:400]}
+                    report.setdefault("notes", []).append(f"landing {lang}: {e}"[:300])
+                try:
+                    pg.evaluate("() => document.querySelector('[class*=\"st-key-introgo_sa\"] button').click()")
+                    time.sleep(2)
+                    took = settle(pg, 180)
+                    pg.evaluate("() => window.scrollTo(0, 0)")
+                    shoot(pg, f"{lang}_overview")
+                    report["pages"][f"{lang}_overview"] = {"seconds": took, "problems": problems(pg), "url": pg.url}
+                except Exception as e:
+                    report["pages"][f"{lang}_overview"] = {"error": str(e)[:400]}
+                # the switch in the top line: back to the US market
+                try:
+                    pg.evaluate("() => document.querySelector('.st-key-mktb_us button').click()")
+                    time.sleep(2)
+                    took = settle(pg, 180)
+                    shoot(pg, f"{lang}_us_overview")
+                    report["pages"][f"{lang}_us_overview"] = {"seconds": took, "problems": problems(pg), "url": pg.url}
+                except Exception as e:
+                    report["pages"][f"{lang}_us_overview"] = {"error": str(e)[:400]}
                 for name, path, mk in PAGES:
                     sep = "&" if "?" in path else "?"
                     t0 = time.time()
                     try:
                         pg.goto(f"{URL}/{path}{sep}m={mk}&lang={lang}", wait_until="domcontentloaded", timeout=60000)
                         took = settle(pg, 180)
-                        if name == "pf_trade":
+                        if name == "pf_trade" and lang == "ar":
                             try:                     # an order from the ticket (the market may be closed: it then waits)
                                 pg.locator('[class*="st-key-pf_send"] button').first.click(timeout=10000)
                                 settle(pg)

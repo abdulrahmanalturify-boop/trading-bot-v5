@@ -517,7 +517,10 @@ with st.sidebar:
     ui.safe(sidebar)
 
 # ---------------------------------------------------------------- page (one error never takes the whole site down)
-if MK.choice() == MK.SA and _PAGE_KEY not in MK.SA_PAGES and not (_PAGE_KEY == "overview"):
+if MK.choice() == MK.SA and _PAGE_KEY in MK.US_ONLY:
+    st.info(L("This page is for the US market only: the Saudi market has nothing like it, so it isn't in the Saudi menus.",
+              "هالصفحة للسوق الأمريكي فقط: ما لها مقابل في السوق السعودي، عشان كذا ما تطلع في قوائم السوق السعودي."), icon=":material/flag:")
+elif MK.choice() == MK.SA and _PAGE_KEY not in MK.SA_PAGES and not (_PAGE_KEY == "overview"):
     st.info(L("This page shows the US market for now; its Saudi version is on the way. The Saudi market's pages: Overview, News, "
               "Stock, Screener, Scanner, Paper Bots and Portfolio.",
               "هالصفحة تعرض السوق الأمريكي حالياً، ونسختها السعودية جاية. صفحات السوق السعودي: النظرة العامة، والأخبار، والسهم، "

@@ -2410,7 +2410,7 @@ def logo_obj(sym, size=40):
 
 def company(sym, name="", uri=None, size=32, sub=None, href=None):
     sub_html = f'<div class="sub">{esc(sub if sub is not None else name)}</div>' if (sub or name) else ""
-    inner = f'<div class="co">{logo_circle(sym, uri, size)}<div class="nm"><div class="tk">{esc(sym)}</div>{sub_html}</div></div>'
+    inner = f'<div class="co">{logo_circle(sym, uri, size)}<div class="nm"><div class="tk"><bdi>{esc(sym)}</bdi></div>{sub_html}</div></div>'
     return f'<a class="lnk" href="{href}" target="_self">{inner}</a>' if href else inner
 
 

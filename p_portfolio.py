@@ -873,7 +873,7 @@ def positions_html(c):
         if sd == "short" and p.get("borrow"):
             extra = f'<span class="sub">{L("Borrow fees", "رسوم الاقتراض")} <span class="n">{_m(-p["borrow"])}</span></span>'
         rows.append(
-            f'<tr><td><a class="as" href="{T.esc(ui.href(p["sym"]))}" target="_self">{T.logo_circle(p["sym"], lg.get(p["sym"]), 24)}<b>{T.esc(p["sym"])}</b></a></td>'
+            f'<tr><td><a class="as" href="{T.esc(ui.href(p["sym"]))}" target="_self">{T.logo_circle(p["sym"], lg.get(p["sym"]), 24)}<b><bdi>{T.esc(p["sym"])}</bdi></b></a></td>'
             f'<td>{side_b}</td><td class="r"><span class="n">{abs(p["qty"]):,.0f}</span></td><td class="r"><span class="n">{_m(p["avg"])}</span></td>'
             f'<td class="r"><span class="n">{_m(p["last"])}</span><span class="sub n {cls_d}">{_p(p["day_pct"])}</span></td>'
             f'<td class="r"><span class="n">{_m(p["mv"], 0)}</span></td>'
@@ -909,7 +909,7 @@ def order_card(o):
     memo = f'<div class="memo">{T.icon("edit_note")}{T.esc(o["note_user"])}</div>' if o.get("note_user") else ""
     qn = _bdi(f"{int(o['qty']):,}")
     return (f'<div class="pfo"><div class="ic {k}">{T.icon(ic)}</div><div class="tx"><div class="t1">{T.esc(lab)} {qn} '
-            f'<b>{T.esc(o["sym"])}</b> {T.badge(L(st_en, st_ar), st_k)}</div>'
+            f'<b><bdi>{T.esc(o["sym"])}</bdi></b> {T.badge(L(st_en, st_ar), st_k)}</div>'
             f'<div class="t2">{_otext(o)}{extra}{fill}{note} · {T.esc(when)}</div>{memo}</div></div>')
 
 
@@ -941,7 +941,7 @@ def activity_html(c, n=8):
         qn = _bdi(f"{int(f['qty']):,}")
         m_ = memo.get(f.get("order"))
         mh = f'<div class="memo">{T.icon("edit_note")}{T.esc(m_)}</div>' if m_ else ""
-        out.append(f'<div class="it {cls}"><div class="a">{T.esc(lab)} {qn} <b>{T.esc(f["sym"])}</b> '
+        out.append(f'<div class="it {cls}"><div class="a">{T.esc(lab)} {qn} <b><bdi>{T.esc(f["sym"])}</bdi></b> '
                    f'{L("at", "بسعر")} {_bdi(_m(f["px"]))} · {_bdi(_m(f["qty"] * f["px"], 0))}</div>'
                    f'<div class="w">{T.esc(_when(f["time"]))} · {T.esc(_ago(f["time"]))}</div>{mh}</div>')
     return f'<div class="pfact">{"".join(out)}</div>'
@@ -1104,7 +1104,7 @@ def page_dashboard():
     n_s = len(v["positions"]) - n_l
     n_open = sum(1 for o in c.state["orders"] if o["status"] == "open")
     ui.html(kpis([
-        ("account_balance", L("Equity", "قيمة الحساب"), _m(a["equity"]), f'{L("Started with", "بدأ بـ")} <b>{_m(v["invested"], 0)}</b>', None, None),
+        ("account_balance", L("Equity", "قيمة الحساب"), _m(a["equity"], 0 if _sa() else 2), f'{L("Started with", "بدأ بـ")} <b>{_m(v["invested"], 0)}</b>', None, None),
         ("today", L("P&L · ", "الربح · ") + day_label(v), _m(v["day_pnl"], 2, True), f'<b>{_p(v["day_pct"])}</b>', _k(v["day_pnl"]), None),
         ("show_chart", L("Total return", "العائد الكلي"), _p(st_.get("twr", v["ret"])), vs, _k(st_.get("twr", v["ret"])), None),
         ("bolt", L("Buying power", "القوة الشرائية"), _m(a["bp_long"], 0),
@@ -1504,7 +1504,7 @@ def quote_card(sym, q, inf, held):
         logo = T.logo_circle(sym, data.logos([sym]).get(sym), 44)
     except Exception:
         logo = T.logo_circle(sym, None, 44)
-    return (f'<div class="pfq"><div class="row1">{logo}<div class="nm">{T.esc(sym)}<small>{T.esc(name)}</small></div>'
+    return (f'<div class="pfq"><div class="row1">{logo}<div class="nm"><bdi>{T.esc(sym)}</bdi><small>{T.esc(name)}</small></div>'
             f'<div class="px"><b>{_m(price)}</b>{T.pill(chg)}</div></div>{rng(lo, hi, L("Day range", "مدى اليوم"))}'
             f'{rng(lo52, hi52, L("52-week range", "مدى 52 أسبوع"))}<div class="grid">{"".join(cells)}</div>{hold}</div>')
 
@@ -1600,6 +1600,7 @@ def page_trade():
     left, right = st.columns([1.25, 1], gap="medium")
     with left:
         s1, s2 = st.columns([1, 2], vertical_alignment="bottom")
+        ui.html('<style>.st-key-pf_sym_in input { direction:ltr; }</style>')
         sym = _sym_in(s1.text_input(L("Company code", "رمز الشركة") if sa else L("Symbol", "الرمز"), key="pf_sym_in",
                                     placeholder="2222" if sa else "AAPL"))
         picks = list(dict.fromkeys(list(held_map) + (POPULAR_SA if sa else POPULAR)))[:8]
@@ -1634,7 +1635,7 @@ def page_trade():
         fig = trade_chart(sym, c, spec, span)
         if fig is not None:
             ui.chart(fig, key="pf_tchart")
-        ui.sec("pending_actions", f"Working orders · {sym}", f"الأوامر قيد التنفيذ · {sym}")
+        ui.sec("pending_actions", f"Working orders · {sym}", f"الأوامر قيد التنفيذ · \u2066{sym}\u2069")
         open_orders(c, sym, key="pft")
     ui.foot()
 
@@ -1680,7 +1681,7 @@ def ticket(c, sym, q, inf, held):
         modes = ["shares", "dollars", "pct"] + (["risk"] if entry and spec.get("sl") else [])
         ui.valid(f"pf_mode_{side}", modes + [None])
         mode = st.segmented_control(L("Size by", "الكمية حسب"), modes, default="shares", key=f"pf_mode_{side}",
-                                    format_func=lambda k: {"shares": L("Shares", "أسهم"), "dollars": L("Dollars", "دولار"),
+                                    format_func=lambda k: {"shares": L("Shares", "أسهم"), "dollars": L("Riyals", "ريال") if _sa() else L("Dollars", "دولار"),
                                                            "pct": L("% of equity", "% من الحساب"), "risk": L("Risk %", "مخاطرة %")}[k]) or "shares"
         eq = max(c.acct["equity"], 0)
         if side in ("sell", "cover"):
@@ -1737,7 +1738,7 @@ def ticket(c, sym, q, inf, held):
         lab = L(*SIDE[side][:2])
         if c.can_trade:
             with st.container(key="pf_submit_short" if side == "short" else "pf_submit"):
-                go_ = st.button(f"{lab} {spec['qty']:,} {sym}", key="pf_send", icon=":material/send:", width="stretch", disabled=pv is None)
+                go_ = st.button(f"{lab} {spec['qty']:,} \u2066{sym}\u2069", key="pf_send", icon=":material/send:", width="stretch", disabled=pv is None)
             if go_ and pv is not None:
                 try:
                     o = PF.place(c.state, c.view, c.mkt, spec)
@@ -1774,10 +1775,10 @@ def bp_html(c, side, sym, ref, qty, held):
             f'<div class="s">{" · ".join(sub)}</div>')
     if side in ("sell", "cover"):
         free = (a["r_long"] if side == "sell" else PF.SHORT_INIT) * qty * ref
-        body = (f'<div class="mx">{T.icon("inventory_2")}{T.esc(L("You hold", "عندك"))} <b>{abs(int(held)):,}</b> {T.esc(sym)} · '
+        body = (f'<div class="mx">{T.icon("inventory_2")}{T.esc(L("You hold", "عندك"))} <b>{abs(int(held)):,}</b> <bdi>{T.esc(sym)}</bdi> · '
                 f'{T.esc(L("this order frees about", "هالأمر يحرر تقريباً"))} <b>{_m(free / (a["r_long"] or 1), 0)}</b></div>')
         return f'<div class="pfbp">{head}{body}</div>'
-    body = (f'<div class="mx">{T.icon("calculate")}{T.esc(L("Max now", "الحد الأعلى الحين"))} <b>{maxq:,}</b> {T.esc(sym)} '
+    body = (f'<div class="mx">{T.icon("calculate")}{T.esc(L("Max now", "الحد الأعلى الحين"))} <b>{maxq:,}</b> <bdi>{T.esc(sym)}</bdi> '
             f'{T.esc(L("at", "بسعر"))} <b>{_m(ref)}</b></div>')
     need = r * qty * ref + fee if qty else 0.0
     if qty:
@@ -1795,7 +1796,7 @@ def preview_html(pv, c):
     rows = [(L("Estimated price", "السعر التقريبي"), _m(pv["ref"]), ""), (L("Shares", "الأسهم"), f"{pv['qty']:,}", ""),
             (L("Order value", "قيمة الأمر"), _m(pv["value"]), ""), (L("Commission", "العمولة"), _m(pv["fee"]), "")]
     if pv["side"] in PF.ENTRY:
-        rows.append((L("Margin it uses", "الهامش اللي يستخدمه"), _m(pv["need"]), ""))
+        rows.append((L("Cash it uses", "الكاش اللي يستخدمه") if _sa() else L("Margin it uses", "الهامش اللي يستخدمه"), _m(pv["need"]), ""))
         rows.append((L("Buying power left", "القوة الشرائية المتبقية") if pv["side"] == "buy" else L("Short buying power left", "القوة الشرائية للمكشوف المتبقية"),
                      _m(pv["bp_after"], 0), ""))
         if pv.get("weight_after") is not None:

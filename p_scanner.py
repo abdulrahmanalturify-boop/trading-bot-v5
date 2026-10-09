@@ -574,7 +574,8 @@ def hero_html(got, label):
         chips.append(f'<span class="chip">{T.icon("target")}{L("Opportunities", "فرص")} <b>{len(opp)}</b></span>')
         chips.append(f'<span class="chip">{T.icon("workspace_premium")}{L("Grade A or better", "درجة A فأعلى")} <b>{int((res["Score"] >= 75).sum())}</b></span>')
         chips.append(f'<span class="chip">{T.icon("bolt")}{L("New today", "جديدة اليوم")} <b>{int((res["Status"] == "fresh").sum())}</b></span>')
-        chips.append(f'<span class="chip">{T.icon("schedule")}{L("Updated", "آخر تحديث")} <b>{got["time"]} ET</b></span>')
+        tl = L("Riyadh", "الرياض") if MK.is_sa() else "ET"
+        chips.append(f'<span class="chip">{T.icon("schedule")}{L("Updated", "آخر تحديث")} <b>{got["time"]} {tl}</b></span>')
     tag = L("Every stock checked against exact setups, scored from 0 to 100 on trend, relative strength, accumulation and "
             "reward-to-risk, with a full trade plan and how the same setup did on the same stock before.",
             "كل سهم يُفحص على فرص بشروط دقيقة، ويأخذ تقييم من 100 على الاتجاه والقوة النسبية والتجميع والعائد مقابل المخاطرة، "
@@ -962,10 +963,14 @@ def plan_section(r, det, d):
     x, y = st.columns(2, gap="medium")
     with x:
         items = [("flag", f"<b>{L('Trigger', 'شرط الدخول')}:</b> {T.esc(trig)}"),
-                 ("timer", L("<b>Best time:</b> skip the first 30 minutes after the 9:30 ET open (4:30 pm Riyadh); confirm on the daily close "
-                             "or after 10:00 ET with above-average volume.",
-                             "<b>أفضل وقت:</b> تجنّب أول 30 دقيقة بعد افتتاح 9:30 بتوقيت نيويورك (4:30 عصراً بتوقيت الرياض)، وأكّد على الإغلاق "
-                             "اليومي أو بعد 10:00 مع حجم أعلى من المتوسط."))]
+                 ("timer", L("<b>Best time:</b> skip the first 30 minutes after the 10:00 open (Riyadh); confirm on the daily close "
+                             "or after 10:30 with above-average volume.",
+                             "<b>أفضل وقت:</b> تجنّب أول 30 دقيقة بعد افتتاح الساعة 10 بتوقيت الرياض، وأكّد على الإغلاق اليومي أو بعد "
+                             "10:30 مع حجم أعلى من المتوسط.") if MK.is_sa() else
+                  L("<b>Best time:</b> skip the first 30 minutes after the 9:30 ET open (4:30 pm Riyadh); confirm on the daily close "
+                    "or after 10:00 ET with above-average volume.",
+                    "<b>أفضل وقت:</b> تجنّب أول 30 دقيقة بعد افتتاح 9:30 بتوقيت نيويورك (4:30 عصراً بتوقيت الرياض)، وأكّد على الإغلاق "
+                    "اليومي أو بعد 10:00 مع حجم أعلى من المتوسط."))]
         if pd.notna(r.get("Earnings")) and 0 <= r["Earnings"] <= 10:
             items.append(("warning", L(f"<b>Earnings in {int(r['Earnings'])} trading days:</b> half size, or wait until after the report.",
                                        f"<b>أرباح بعد {int(r['Earnings'])} أيام تداول:</b> نص الحجم، أو انتظر بعد الإعلان.")))

@@ -58,7 +58,8 @@ def quote_header(sym, daily, inf):
         badges += T.badge(theme_name(tk, sk), "gold", X.THEMES[tk][2])
     uri = data.logos([sym]).get(sym)
     ui.html(f'<div style="display:flex;gap:14px;align-items:center">{T.logo_circle(sym, uri, 58)}<div>'
-            f'<div class="q-name"><b style="color:#fff;font-size:1.15rem">{T.esc(name)}</b> · {sym} · {T.esc(exch)}</div><div>{badges}</div></div></div>'
+            f'<div class="q-name"><b style="color:#fff;font-size:1.15rem">{T.esc(name)}</b> · <bdi dir="ltr">{T.esc(sym)}</bdi> · {T.esc(exch)}</div>'
+            f'<div>{badges}</div></div></div>'
             f'<div style="margin-top:6px"><span class="q-price">{T.fmt_price(last)}</span> <span class="muted">{inf.get("currency") or ("SAR" if MK.is_sa() else "USD")}</span></div>'
             f'<div><span class="q-chg {T.cls(chg)}">{chg:+,.2f} ({pct:+.2f}%)</span> '
             f'<span class="muted" style="font-size:.85rem">· {daily.index[-1]:%Y-%m-%d} · </span>{T.market_status(is_ar())}</div>')
