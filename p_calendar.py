@@ -775,10 +775,10 @@ def page_dividends_sa():
             f'<span class="v">{usd(r.Cap)}</span><span class="v">{dshort(ex_[r.Symbol]) if isinstance(ex_.get(r.Symbol), type(today)) else "—"}</span></div>'
             for r in top.rename(columns={"Mkt Cap": "Cap", "Div %": "Div"})[["Symbol", "Price", "Cap", "Div"]].itertuples())
         ui.html(f'<div class="evcal"><div class="evday">{head2}{rows}</div></div>')
-    st.caption(L(f"Dividend = the latest dividend per share the company declared; yield = the yearly dividend ÷ the price. Companies worth "
-                 f"SAR 1B or more in the yields list. Source: Yahoo Finance company summaries" + (f", read {asof}." if asof else "."),
-                 f"التوزيع = آخر توزيع للسهم أعلنته الشركة، والعائد = التوزيع السنوي ÷ السعر. قائمة العوائد للشركات اللي قيمتها مليار ريال أو "
-                 f"أكثر. المصدر: ملخصات الشركات في ياهو فاينانس" + (f"، قُرئت {asof}." if asof else ".")))
+    st.caption(L("Dividend = the latest dividend per share the company declared; yield = the yearly dividend ÷ the price. Companies worth "
+                 "SAR 1B or more in the yields list. Source: Yahoo Finance company summaries" + (f", read {asof}." if asof else "."),
+                 "التوزيع = آخر توزيع للسهم أعلنته الشركة، والعائد = التوزيع السنوي ÷ السعر. قائمة العوائد للشركات اللي قيمتها مليار ريال أو "
+                 "أكثر. المصدر: ملخصات الشركات في ياهو فاينانس" + (f"، قُرئت {asof}." if asof else ".")))
     ui.foot()
 
 
@@ -879,7 +879,7 @@ def page_splits():
         link = (_sa_link(r.Symbol, 36) if sa else f'<a class="lnk" href="{ui.href(r.Symbol)}" target="_self">{T.logo_obj(r.Symbol, 36)}'
                 f'<span class="nm"><b>{T.esc(r.Symbol)}</b><small>{T.esc(str(r.Company)[:44])}</small></span></a>')
         out.append(f'<div class="sprow {r.Kind}">{link}'
-                   f'<span class="ratio">{T.esc(r.Ratio)}</span><span class="k">{T.icon("call_split" if r.Kind == "forward" else "merge")}'
+                   f'<span class="ratio">{T.esc(f"{r.New:g} مقابل {r.Old:g}" if sa and is_ar() else r.Ratio)}</span><span class="k">{T.icon("call_split" if r.Kind == "forward" else "merge")}'
                    f'{L("Forward", "عادي") if r.Kind == "forward" else L("Reverse", "عكسي")}</span><span class="ex">{T.esc(each)}</span>'
                    f'<span class="dt">{dshort(r.Date)}</span></div>')
     ui.html('<div class="splist">' + "".join(out) + "</div>")

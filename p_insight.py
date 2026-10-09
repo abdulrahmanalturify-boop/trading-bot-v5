@@ -2,7 +2,6 @@
 p_insight.py - Insight: Daily Brief · Articles (with live charts) · Fear & Greed index · Seasonality
 """
 from datetime import datetime, timedelta
-from zoneinfo import ZoneInfo
 
 import numpy as np
 import pandas as pd
@@ -446,7 +445,13 @@ def _events_sa():
         ev = pd.DataFrame()
     if not ev.empty:
         now = pd.Timestamp.now(tz=mcal_sa.TZ)
-        ev = ev[(ev["Time"] >= now - pd.Timedelta(hours=2)) & ((ev["Region"] == "SA") | (ev["Stars"] >= 3))].head(10)
+        ev = ev[(ev["Time"] >= now - pd.Timedelta(hours=2)) & ((ev["Region"] == "SA") | (ev["Stars"] >= 3))]
+        # the US side: the headline releases only (Yahoo lists each CPI four ways: MM / YY, with and without seasonal adjustment,
+        # and its index), at most four of them
+        us = ev["Region"] != "SA"
+        alt = ev["Event"].str.contains(r"\bNSA\b|Index|Cleveland|Ex Food|Final|Prelim", case=False, regex=True)
+        ev = ev[~(us & alt)]
+        ev = ev[~us | (ev.groupby(us).cumcount() < 4)].head(10)
         for r in ev.itertuples():
             t = r.Time
             day = (f"{DAYS_AR[t.weekday()]} {t.day}" if is_ar() else t.strftime("%a %b %d").replace(" 0", " "))
