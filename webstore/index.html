@@ -1,0 +1,48 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>webstore</title></head>
+<body style="margin:0">
+<script>
+// What TURA keeps in this browser (the visitor's portfolio code, the robo questionnaire in progress), read once and sent back to
+// the page. Streamlit Community Cloud drops the site's cookies before they reach the app, so the page can't read them itself.
+// The values live in localStorage; a cookie written by an older version of the site is read when localStorage has nothing.
+(function () {
+  var sent = false;
+  function post(type, data) {
+    var m = { isStreamlitMessage: true, type: type };
+    for (var k in data || {}) { m[k] = data[k]; }
+    window.parent.postMessage(m, "*");
+  }
+  function cookie(name) {
+    try {
+      var parts = document.cookie ? document.cookie.split("; ") : [];
+      for (var i = 0; i < parts.length; i++) {
+        var j = parts[i].indexOf("=");
+        if (j > 0 && parts[i].slice(0, j) === name) { return decodeURIComponent(parts[i].slice(j + 1)); }
+      }
+    } catch (e) {}
+    return null;
+  }
+  function read(name) {
+    var v = null;
+    try { v = window.localStorage.getItem(name); } catch (e) {}
+    if (!v) { v = cookie(name); }
+    return v || null;
+  }
+  window.addEventListener("message", function (ev) {
+    var d = ev.data || {};
+    if (d.type !== "streamlit:render" || sent) { return; }
+    var keys = (d.args && d.args.keys) || [], out = {};
+    for (var i = 0; i < keys.length; i++) {
+      var v = read(String(keys[i]));
+      if (v && /^[A-Za-z0-9_-]{1,4000}$/.test(v)) { out[keys[i]] = v; }
+    }
+    sent = true;
+    post("streamlit:setComponentValue", { value: out, dataType: "json" });
+  });
+  post("streamlit:componentReady", { apiVersion: 1 });
+  post("streamlit:setFrameHeight", { height: 0 });
+})();
+</script>
+</body>
+</html>

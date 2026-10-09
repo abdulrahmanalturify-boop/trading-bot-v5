@@ -564,6 +564,7 @@ def intro(has_store=True):
             f'<p>{L("Answer a short questionnaire in the shape of an Investment Policy Statement (IPS). The robo builds a diversified portfolio of ETFs that fits you, then runs it on autopilot.", "جاوب على استبيان قصير مبني على بيان سياسة الاستثمار (IPS). المستشار الآلي يبني لك محفظة متنوعة من صناديق المؤشرات تناسبك، وبعدها يديرها تلقائياً.")}</p>'
             f'<div class="rbchips"><span class="rbchip">{T.icon("timer")}{L("About 2 minutes", "تقريباً دقيقتين")}</span>'
             f'<span class="rbchip">{T.icon("payments")}{L("Virtual money", "فلوس افتراضية")}</span>'
+            f'<span class="rbchip">{T.icon("lock")}{L("Yours only, kept in this browser", "خاصة فيك ومحفوظة بمتصفحك")}</span>'
             f'<span class="rbchip gold">{T.icon("mosque")}{L("Sharia-compliant option", "خيار متوافق مع الشريعة")}</span>'
             f'<span class="rbchip">{T.icon("description")}{L("Your IPS to download", "بيان السياسة للتحميل")}</span>'
             f'<span class="rbchip bot">{T.icon("radar")}{L("Opportunity Bot at levels 9–10", "بوت الفرص في المستوى 9–10")}</span></div></div>{_art()}</div>'
@@ -1545,19 +1546,15 @@ def activate(state, row, rkey, err, ans, prof, amount, monthly):
 
 
 # ---------------------------------------------------------------- the questionnaire in progress, kept in the browser
-# Answers, the step, the plan screen and its settings are written into a cookie of this browser (a year), so closing the site
-# half way and coming back opens the questionnaire or the plan where it was left. Cleared once the plan is invested.
+# Answers, the step, the plan screen and its settings are written into this browser (a year, with the visitor's portfolio code:
+# p_portfolio.keep), so closing the site half way and coming back opens the questionnaire or the plan where it was left.
+# Cleared once the plan is invested.
 DRAFT = "alt_rb"
 _DRAFT_KEYS = {"rb_step": "s", "rb_mode": "m", "rb_lvl": "l", "rb_years": "y", "rb_goal": "g", "rb_amt": "am", "rb_mon": "mo"}
 
 
-def _draft_cookie(value, age=31536000):
-    try:
-        import streamlit.components.v1 as components
-        components.html("<script>try{var w=window.parent,d=w.document;d.cookie='" + DRAFT + "=" + value + "; path=/; max-age=" + str(age) +
-                        "; SameSite=Lax'+(w.location.protocol==='https:'?'; Secure':'');}catch(e){}</script>", height=0)
-    except Exception:
-        pass
+def _draft_cookie(value):
+    PP.keep({DRAFT: value or None})
 
 
 def _draft_value():
@@ -1574,7 +1571,7 @@ def _draft_value():
 def _draft_keep():
     """Writes the questionnaire in progress into the browser when it changed; removes it once the plan is invested."""
     if ss.pop("rb_draft_kill", False):
-        _draft_cookie("", 0)
+        _draft_cookie(None)
         return
     if ss.get("rb_mode") not in ("quiz", "plan") and not (ss.get("rb_ans") or {}):
         return
@@ -1599,10 +1596,7 @@ def _draft_restore():
     ss["rb_restored"] = True
     if ss.get("rb_ans"):
         return
-    try:
-        raw = st.context.cookies.get(DRAFT)
-    except Exception:
-        raw = None
+    raw = PP.stored(DRAFT)
     if not raw:
         return
     try:
@@ -1998,6 +1992,9 @@ def plan_tab(state, row, rkey, err):
             st.download_button(L("Download the IPS", "حمّل بيان السياسة"), ips_file(prof, ans, state["amount"], mon, plan["at"]).encode("utf-8"),
                                file_name="TURA-IPS.html", mime="text/html", icon=":material/download:", key="rb_ips_dl2")
     manage(state, row, rkey, err)
+    from types import SimpleNamespace
+    ui.sec("devices", "Yours only, on any device", "خاصة فيك، من أي جهاز")
+    PP.code_box(SimpleNamespace(mode="mine", code=ss.get("pf_vid")), flash="rb_flash")
     ui.html(note())
 
 
@@ -2032,4 +2029,4 @@ def page_robo():
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "21.1"
+BUILD = "21.2"

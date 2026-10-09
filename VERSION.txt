@@ -1,2 +1,2 @@
-TURA Pro - version 21.1 (Robo Advisor: before the first close the dashboard now shows its tabs, and the Opportunity Bot tab lists the companies of its first trades with entry, stop, size and risk; a summary of those first trades is on the overview)
+TURA Pro - version 21.2 (every visitor keeps their own portfolio and Robo Advisor: the visitor's code and the questionnaire in progress are kept in the browser's localStorage and read back by a small frame, since Streamlit Community Cloud doesn't pass cookies to the app; closing the site and coming back opens the same robo portfolio or the questionnaire where it was left; the robo's settings show the code to open it on another device)
 If you can see this file on GitHub, the new version was uploaded correctly.

@@ -4,7 +4,8 @@ p_portfolio.py - Paper Portfolio (top bar): Dashboard, Trade, Analytics, Orders 
 A margin account traded by hand with virtual money on real prices (portfolio.py does the bookkeeping): buy, sell, SELL
 SHORT and cover, with market / limit / stop / trailing-stop orders and a stop loss + take profit attached to new positions.
 Everyone has a portfolio of their own, with no password: new on the first visit and kept for them. A random code is written
-into their browser (a cookie for a year) and their account is saved under it, so the next visit opens the same portfolio; the
+into their browser (localStorage and a cookie, for a year; read back by a small frame, webstore/index.html, as Streamlit
+Community Cloud doesn't pass cookies to the app) and their account is saved under it, so the next visit opens the same portfolio; the
 code is also shown to them (Account settings), to open the portfolio on another device. Nobody sees anyone else's portfolio.
 The site owner's own portfolio opens on the owner's devices: a device becomes one once (the Paper Bots password, here or on the
 Paper Bots page), then opens it directly every time, with nothing to type.
@@ -363,9 +364,98 @@ def _from_link():
     return v if row is not None else None
 
 
+# ---------------------------------------------------------------- what the site keeps in a visitor's browser
+# The portfolio code (one per browser: that visitor's own paper portfolio and Robo Advisor) and the robo questionnaire in progress.
+# Streamlit Community Cloud drops the site's cookies before they reach the app (st.context.cookies is empty there), so they are
+# kept in the browser's localStorage (and a cookie) and read back by a small frame of the page (webstore/index.html).
+STORE = (COOKIE, "alt_rb")
+_STORE_VAL = re.compile(r"^[A-Za-z0-9_-]{1,4000}$")
+_WEBSTORE = []                                       # the frame, declared once per process
+
+
+def _cookie(name):
+    """A cookie the browser sent with the page: there when the site runs on its own server, never on Streamlit Community Cloud."""
+    try:
+        v = st.context.cookies.get(name)
+    except Exception:
+        return None
+    return v if isinstance(v, str) and _STORE_VAL.match(v) else None
+
+
+def browser():
+    """{name: value} this browser keeps for the site, read once per visit by the frame. None while the browser hasn't answered (the
+    first moment of a visit)."""
+    got = ss.get("pf_browser")
+    if isinstance(got, dict):
+        return got
+    try:
+        if not _WEBSTORE:
+            import os
+            import streamlit.components.v1 as components
+            _WEBSTORE.append(components.declare_component("webstore", path=os.path.join(os.path.dirname(os.path.abspath(__file__)), "webstore")))
+        v = _WEBSTORE[0](keys=list(STORE), height=0, key="pf_webstore", default=None)
+    except Exception:                                # no frame here (an offline run): a browser that keeps nothing we can read
+        ss["pf_browser"], ss["pf_browser_ok"] = {}, False
+        return ss["pf_browser"]
+    if not isinstance(v, dict):
+        return None
+    ss["pf_browser"] = {k: v[k] for k in STORE if isinstance(v.get(k), str) and _STORE_VAL.match(v[k])}
+    ss["pf_browser_ok"] = True
+    return ss["pf_browser"]
+
+
+def stored(name):
+    """What this browser keeps under a name (its cookie, else what the frame read), or None."""
+    return _cookie(name) or (ss.get("pf_browser") or {}).get(name)
+
+
+def keep(values, soft=False):
+    """Writes {name: value} into this browser for a year (localStorage and a cookie, renewed at every visit); None removes it.
+    soft: only where the browser keeps nothing under that name yet (a code made up while the browser didn't answer must never
+    replace the one it keeps)."""
+    vals = {k: v for k, v in values.items() if v is None or (isinstance(v, str) and _STORE_VAL.match(v))}
+    if not vals:
+        return
+    import json
+    js = ("<script>try{var w=window.parent,d=w.document,s=null,v=" + json.dumps(vals) + ",soft=" + ("true" if soft else "false") + ";"
+          "try{s=w.localStorage}catch(e){}"
+          "var has=function(k){var o=null;try{o=s&&s.getItem(k)}catch(e){}return !!o||('; '+d.cookie).indexOf('; '+k+'=')>=0};"
+          "for(var k in v){if(soft&&has(k))continue;"
+          "if(v[k]===null){try{s&&s.removeItem(k)}catch(e){}d.cookie=k+'=; path=/; max-age=0'}"
+          "else{try{s&&s.setItem(k,v[k])}catch(e){}d.cookie=k+'='+v[k]+'; path=/; max-age=31536000; SameSite=Lax'+(w.location.protocol==='https:'?'; Secure':'')}}"
+          "}catch(e){}</script>")
+    try:
+        import streamlit.components.v1 as components
+        components.html(js, height=0)
+    except Exception:
+        pass
+
+
+def _wait():
+    """The first moment of a visit, while the browser says which portfolio it keeps (well under a second): a small card, then the
+    page. A browser that doesn't answer within a few seconds gets a new portfolio for this visit (the code it keeps is left alone)."""
+    st.markdown('<style>@keyframes pfspin{to{transform:rotate(360deg)}}</style><div style="display:flex;align-items:center;gap:12px;'
+                'padding:22px 4px;opacity:.85"><span style="width:18px;height:18px;border-radius:50%;border:2.5px solid rgba(123,69,240,.3);'
+                'border-top-color:#7B45F0;animation:pfspin .8s linear infinite;flex:none"></span>'
+                + T.esc(L("Opening your portfolio…", "نفتح محفظتك…")) + "</div>", unsafe_allow_html=True)
+    try:
+        @st.fragment(run_every=2)
+        def _tick():
+            n = ss.get("pf_wait", 0) + 1
+            ss["pf_wait"] = n
+            if n > 3:                                # ~6 seconds without an answer
+                ss["pf_browser"], ss["pf_browser_ok"] = {}, False
+                st.rerun()
+        _tick()
+    except Exception:
+        ss["pf_browser"], ss["pf_browser_ok"] = {}, False
+        return {}
+    st.stop()
+
+
 def _vid():
-    """This visitor's portfolio code: from a ?pf= link, else the one already open, else the one their browser sent (cookie),
-    else a new random one (a new portfolio)."""
+    """This visitor's portfolio code: from a ?pf= link, else the one already open, else the one their browser keeps, else a new
+    random one (a new portfolio)."""
     v = _from_link()
     if v:
         ss["pf_vid"] = v
@@ -374,24 +464,18 @@ def _vid():
     v = ss.get("pf_vid")
     if isinstance(v, str) and _CODE.match(v):
         return v
-    try:
-        v = st.context.cookies.get(COOKIE)
-    except Exception:
-        v = None
+    v = _cookie(COOKIE)
+    if not (isinstance(v, str) and _CODE.match(v)):
+        got = browser()
+        if got is None:
+            got = _wait()
+        v = got.get(COOKIE)
     if not (isinstance(v, str) and _CODE.match(v)):
         v = secrets.token_urlsafe(18)
+        if not ss.get("pf_browser_ok", True):
+            ss["pf_soft"] = v                        # made up without the browser's answer: written only where it keeps none
     ss["pf_vid"] = v
     return v
-
-
-def _remember(code):
-    """Writes the code into this browser for a year (renewed at every visit), so the next visit opens the same portfolio."""
-    try:
-        import streamlit.components.v1 as components
-        components.html("<script>try{var w=window.parent,d=w.document;d.cookie='" + COOKIE + "=" + code + "; path=/; max-age=31536000; "
-                        "SameSite=Lax'+(w.location.protocol==='https:'?'; Secure':'');}catch(e){}</script>", height=0)
-    except Exception:
-        pass
 
 
 def ident():
@@ -400,7 +484,7 @@ def ident():
     if ss.get("pb_admin") and PF.owner_code() and not is_owner(ss.get("pf_vid")):
         ss["pf_vid"] = PF.owner_code()       # the owner unlocked the Paper Bots on this device: it opens the owner's portfolio from now on
     code = _vid()
-    _remember(code)
+    keep({COOKIE: code}, soft=ss.get("pf_soft") == code)
     return code, key_of(code)
 
 
@@ -640,8 +724,9 @@ def access_bar(c):
                         st.error(L("Wrong password.", "كلمة المرور غلط."))
 
 
-def code_box(c):
-    """A visitor's portfolio code: copy it to open the same portfolio on another device, or paste one here."""
+def code_box(c, flash="pf_flash"):
+    """A visitor's portfolio code: copy it to open the same portfolio on another device, or paste one here (a code with only a
+    Robo Advisor portfolio opens too). flash: the session key of the page's message line."""
     if c.mode != "mine" or not c.code:
         return
     if is_owner(c.code):                    # the owner's devices: nothing to copy (another device: "Site owner?" once)
@@ -664,13 +749,16 @@ def code_box(c):
         else:
             try:
                 _, row = PF.load(key_of(v))
+                if row is None:
+                    import robo
+                    _, row = robo.load(robo.key_for(key_of(v)))
             except PB.StoreError:
                 row = "?"
             if row is None:
                 st.error(L("No portfolio has this code yet.", "ما فيه محفظة بهالرمز."))
             else:
                 ss["pf_vid"] = v
-                ss["pf_flash"] = L("Your portfolio is open on this device", "انفتحت محفظتك على هالجهاز")
+                ss[flash] = L("Your portfolio is open on this device", "انفتحت محفظتك على هالجهاز")
                 st.rerun()
 
 
@@ -1896,4 +1984,4 @@ def page_history():
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "21.1"
+BUILD = "21.2"
