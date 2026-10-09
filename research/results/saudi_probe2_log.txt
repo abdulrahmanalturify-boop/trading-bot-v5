@@ -1,96 +1,6 @@
 yfinance 1.7.0
-ok    | Calendars() | 0.0s | <yfinance.calendars.Calendars object at 0x7f038b56a690>
-ok    | earnings calendar region sa | 0.5s |      Symbol  ... Surprise(%)
-0   2222.SR  ...         NaN
-1   1120.SR  ...         NaN
-2   1211.SR  ...         NaN
-3   7010.SR  ...         NaN
-4   2082.SR  ...         NaN
-5   5110.SR  ...         NaN
-6   2020.SR  ...         NaN
-7   7020.SR  ...         NaN
-8   1050.SR  ...         NaN
-9   7203.SR  ...         NaN
-10  2280.SR  ...        1.66
-11  4300.SR  ...         NaN
-12  8010.SR  ...         NaN
-13  4190.SR  ...         NaN
-14  1111.SR  ...         NaN
-15  4164.SR  ...         NaN
-16  4004.SR  ...         NaN
-17  7030.SR  ...         NaN
-18  2350.SR  ...         NaN
-19  4321.SR  ...         NaN
-20  2270.SR  ...         NaN
-21  3040.SR  ...         NaN
-
-[22 rows x 9 columns]
-columns ['Symbol', 'Company', 'Marketcap', 'Event Name', 'Event Start Date', 'Timing', 'EPS Estimate', 'Reported EPS', 'Surprise(%)']
-     Symbol                                         Company     Marketcap                     Event Name          Event Start Date Timing  EPS Estimate  Reported EPS  Surprise(%)
-0   2222.SR                       Saudi Arabian Oil Company  6.226696e+12  Q3 2026 Earnings Announcement 2026-11-03 12:00:00+00:00    TNS          0.39           NaN          NaN
-1   1120.SR     Al Rajhi Banking and Investment Corporation  3.738000e+11  Q3 2026 Earnings Announcement 2026-10-19 12:00:00+00:00    TNS          1.09           NaN          NaN
-2   1211.SR           Saudi Arabian Mining Company (Maaden)  2.422244e+11  Q3 2026 Earnings Announcement 2026-11-05 12:00:00+00:00    TNS          0.42           NaN          NaN
-3   7010.SR                           Saudi Telecom Company  2.127028e+11  Q3 2026 Earnings Announcement 2026-10-28 12:00:00+00:00    TNS          0.72           NaN          NaN
-4   2082.SR                              ACWA Power Company  1.263299e+11  Q3 2026 Earnings Announcement 2026-11-03 12:00:00+00:00    TNS          0.89           NaN          NaN
-5   5110.SR                            Saudi Energy Company  6.362389e+10  Q3 2026 Earnings Announcement 2026-11-04 12:00:00+00:00    TNS          0.88           NaN          NaN
-6   2020.SR                    SABIC Agri-Nutrients Company  5.555333e+10  Q3 2026 Earnings Announcement 2026-10-22 12:00:00+00:00    TNS          0.93           NaN          NaN
-7   7020.SR                         Etihad Etisalat Company  4.896650e+10  Q3 2026 Earnings Announcement 2026-10-18 12:00:00+00:00    TNS          1.17           NaN          NaN
-8   1050.SR                             Banque Saudi Fransi  4.878816e+10  Q3 2026 Earnings Announcement 2026-10-19 12:00:00+00:00    TNS          0.54           NaN          NaN
-9   7203.SR                                     Elm Company  4.422476e+10  Q3 2026 Earnings Announcement 2026-11-01 12:00:00+00:00    TNS          8.17           NaN          NaN
-10  2280.SR                                 Almarai Company  4.417297e+10                            NaN 2026-10-05 20:00:00+00:00    TAS          0.61          0.62         1.66
-11  4300.SR    Dar Al Arkan Real Estate Development Company  2.016360e+10  Q3 2026 Earnings Announcement 2026-11-10 12:00:00+00:00    TNS          0.20           NaN          NaN
-12  8010.SR           The Company for Cooperative Insurance  1.954892e+10  Q3 2026 Earnings Announcement 2026-10-29 12:00:00+00:00    TNS           NaN           NaN          NaN
-13  4190.SR                         Jarir Marketing Company  1.920000e+10  Q3 2026 Earnings Announcement 2026-11-05 12:00:00+00:00    TNS          0.28           NaN          NaN
-14  1111.SR             Saudi Tadawul Group Holding Company  1.426800e+10  Q3 2026 Earnings Announcement 2026-10-26 12:00:00+00:00    TNS          0.85           NaN          NaN
-15  4164.SR                           Nahdi Medical Company  1.181700e+10  Q3 2026 Earnings Announcement 2026-10-28 12:00:00+00:00    TNS           NaN           NaN          NaN
-16  4004.SR                       Dallah Healthcare Company  9.397697e+09  Q3 2026 Earnings Announcement 2026-11-03 12:00:00+00:00    TNS          1.86           NaN          NaN
-17  7030.SR  Mobile Telecommunications Company Saudi Arabia  8.735648e+09  Q3 2026 Earnings Announcement 2026-10-26 12:00:00+00:00    TNS          0.23           NaN          NaN
-18  2350.SR               Saudi Kayan Petrochemical Company  7.230000e+09  Q3 2026 Earnings Announcement 2026-10-20 12:00:00+00:00    TNS         -0.34           NaN          NaN
-19  4321.SR                         Arabian Centres Company  7.162743e+09  Q3 2026 Earnings Announcement 2026-11-03 12:00:00+00:00    TNS          0.25           NaN          NaN
-20  2270.SR                Saudia Dairy & Foodstuff Company  5.803868e+09  Q3 2026 Earnings Announcement 2026-10-26 12:00:00+00:00    TNS           NaN           NaN          NaN
-21  3040.SR                           Qassim Cement Company  4
-ok    | economic events (all regions) | 1.6s |                            Event Region  ...      Last   Revised
-0       Benchmark Interest Rate*     ZM  ...       NaN       NaN
-1     Nationwide house price yy*     GB  ...      0.80       NaN
-2     Nationwide house price mm*     GB  ...     -0.20       NaN
-3                        CPI YY*     UG  ...      4.60       NaN
-4     Nationwide house price yy*     GB  ...      0.80       NaN
-...                          ...    ...  ...       ...       ...
-1490      Construction Work Done     AU  ...      3.40      4.30
-1491            Current Account*     MX  ... -15878.00 -18231.00
-1492        Current Account/GDP*     MX  ...     -3.14     -3.61
-1493        GDP Detailed YY NSA*     DE  ...      0.90       NaN
-1494         GDP Detailed QQ SA*     DE  ...      0.20       NaN
-
-[1495 rows x 8 columns]
-econ columns ['Event', 'Region', 'Event Time', 'For', 'Actual', 'Expected', 'Last', 'Revised']
-econ regions {'US': 197, 'GB': 59, 'IN': 51, 'JP': 51, 'SG': 47, 'BR': 46, 'CN': 46, 'TH': 40, 'KW': 39, 'AU': 38, 'CA': 36, 'EU': 36, 'DE': 34, 'IE': 33, 'NZ': 32, 'ZA': 29, 'IT': 27, 'LT': 27, 'EG': 26, 'KR': 25, 'SK': 25, 'BH': 24, 'MX': 24, 'SA': 23, 'TR': 20, 'SE': 20, 'ID': 20, 'AE': 19, 'RU': 18, 'IL': 18, 'OM': 18, 'QA': 18, 'CZ': 17, 'PH': 16, 'CH': 15, 'FR': 15, 'HU': 15, 'NO': 15, 'ES': 13, 'FI': 13, 'PL': 13, 'NL': 12, 'TW': 12, 'AT': 12, 'DK': 12, 'LV': 11, 'GR': 10, 'PT': 10, 'GH': 10, 'MY': 9, 'AR': 9, 'CO': 9, 'UG': 8, 'MW': 8, 'EE': 8, 'CL': 7, 'HK': 7, 'BE': 6, 'PE': 5, 'RO': 5}
-econ SA rows 23
-                           Event Region                Event Time  For  Actual  Expected   Last  Revised
-511                      CPI MM*     SA 2026-10-21 00:00:00+00:00  Sep     NaN       NaN   0.10      NaN
-512                      CPI YY*     SA 2026-10-21 00:00:00+00:00  Sep     NaN       NaN   1.80      NaN
-560                      CPI MM*     SA 2026-10-20 00:00:00+00:00  Sep     NaN       NaN   0.10      NaN
-561                      CPI YY*     SA 2026-10-20 00:00:00+00:00  Sep     NaN       NaN   1.80      NaN
-594                      CPI MM*     SA 2026-10-19 00:00:00+00:00  Sep     NaN       NaN   0.10      NaN
-595                      CPI YY*     SA 2026-10-19 00:00:00+00:00  Sep     NaN       NaN   1.80      NaN
-617                      CPI YY*     SA 2026-10-18 00:00:00+00:00  Sep     NaN       NaN   1.80      NaN
-618                      CPI MM*     SA 2026-10-18 00:00:00+00:00  Sep     NaN       NaN   0.10      NaN
-634                      CPI MM*     SA 2026-10-17 00:00:00+00:00  Sep     NaN       NaN   0.10      NaN
-635                      CPI YY*     SA 2026-10-17 00:00:00+00:00  Sep     NaN       NaN   1.80      NaN
-692                      CPI MM*     SA 2026-10-16 00:00:00+00:00  Sep     NaN       NaN   0.10      NaN
-693                      CPI YY*     SA 2026-10-16 00:00:00+00:00  Sep     NaN       NaN   1.80      NaN
-745              LSEG IPSOS PCSI     SA 2026-10-15 10:00:00+00:00  Oct     NaN       NaN  73.88      NaN
-788                      CPI MM*     SA 2026-10-15 00:00:00+00:00  Sep     NaN       NaN   0.10      NaN
-789                      CPI YY*     SA 2026-10-15 00:00:00+00:00  Sep     NaN       NaN   1.80      NaN
-844                      CPI MM*     SA 2026-10-14 00:00:00+00:00  Sep     NaN       NaN   0.10      NaN
-845                      CPI YY*     SA 2026-10-14 00:00:00+00:00  Sep     NaN       NaN   1.80      NaN
-1064  Overall Comprehensive Risk     SA 2026-10-08 09:00:00+00:00   Q4    4.51       NaN   4.52     4.51
-1315         M3 Money Supply YY*     SA 2026-09-30 18:00:00+00:00  Aug    5.60       NaN   8.20      NaN
-1316        Pvt Sector Loans YY*     SA 2026-09-30 18:00:00+00:00  Aug    6.00       NaN   5.60      NaN
-1388          Reverse Repo Rate*     SA 2026-09-16 18:00:00+00:00  N/A    4.00       NaN   3.75      NaN
-1389                  Repo Rate*     SA 2026-09-16 18:00:00+00:00  N/A    4.50       NaN   4.25      NaN
-1401          Real GDP YY Final*     SA 2026-09-08 18:00:00+00:00   Q2   -4.70       NaN  -4.80      NaN
-ok    | ipo calendar | 0.1s |                                                   Company  ...    Action
+ok    | Calendars() | 0.0s | <yfinance.calendars.Calendars object at 0x7f38da1f6990>
+ok    | ipo calendar | 0.4s |                                                   Company  ...    Action
 Symbol                                                     ...          
 MSGR                                    MSG Rangers Corp.  ...  Expected
 AIOK                           AI OKTO CORP. Common Stock  ...  Expected
@@ -105,23 +15,319 @@ VOOB    VistaShares Shield S&P 500 Enhanced Protection...  ...  Expected
 ETRA              Electra Therapeutics, Inc. Common stock  ...  Expected
 
 [100 rows x 11 columns]
-CRASH Traceback (most recent call last):
-  File "/home/runner/work/trading-bot-v5/trading-bot-v5/scripts/saudi_probe2.py", line 49, in main
-    _main()
-  File "/home/runner/work/trading-bot-v5/trading-bot-v5/scripts/saudi_probe2.py", line 114, in _main
-    txt = d.astype(str).apply(" ".join, axis=1)
-          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/pandas/core/frame.py", line 12437, in apply
-    return op.apply().__finalize__(self, method="apply")
-           ^^^^^^^^^^
-  File "/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/pandas/core/apply.py", line 1015, in apply
-    return self.apply_standard()
-           ^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/pandas/core/apply.py", line 1167, in apply_standard
-    results, res_index = self.apply_series_generator()
-                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/pandas/core/apply.py", line 1183, in apply_series_generator
-    results[i] = self.func(v, *self.args, **self.kwargs)
-                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-TypeError: sequence item 3: expected str instance, float found
+ipo calendar: 100 rows, Saudi rows 0
+Empty DataFrame
+Columns: [Symbol, Company, Exchange, Filing Date, Date, Amended Date, Price From, Price To, Price, Currency, Shares, Action]
+Index: []
+ok    | splits calendar | 0.1s |                                                 Company  ... Share Worth
+Symbol                                                   ...            
+006490.KS                                         FREET  ...           0
+065570.KQ                            Samyung ENC Co Ltd  ...           0
+217480.KS                     SD Biotechnologies Co Ltd  ...           1
+0646.HK     China Environmental Technology Holdings Ltd  ...           1
+8455.HK                        Lai Group Holding Co Ltd  ...           1
+...                                                 ...  ...         ...
+AXG                                Solowin Holdings Ltd  ...           1
+SHENTRA.BO                          Midaas Fashions Ltd  ...           2
+Y5F.DU                             Solowin Holdings Ltd  ...           1
+2360.SR                   Saudi Vitrified Clay Pipes Co  ...           0
+011810.KS                                      STX Corp  ...           0
 
+[100 rows x 5 columns]
+splits calendar: 100 rows, Saudi rows 3
+     Symbol                        Company                Payable On  Optionable  Old Share Worth  Share Worth
+70  2382.SR                Ades Holding Co 2026-10-29 04:00:00+00:00       False                1            2
+93  4270.SR  Saudi Printing & Packaging Co 2026-10-27 04:00:00+00:00       False                1            0
+98  2360.SR  Saudi Vitrified Clay Pipes Co 2026-10-25 04:00:00+00:00       False                1            0
+ok    | 2222.SR calendar | 0.1s | {'Ex-Dividend Date': datetime.date(2026, 8, 20), 'Earnings Date': [datetime.date(2026, 11, 3)], 'Earnings High': 0.434, 'Earnings Low': 0.35, 'Earnings Average': 0.392, 'Revenue High': 514929228000, 'Revenue Low': 378252000000, 'Revenue Average': 423637240430}
+ok    | 2222.SR earnings_dates | 0.7s |                            EPS Estimate  Reported EPS  Surprise(%)
+Earnings Date                                                     
+2026-11-03 07:00:00-05:00          0.39           NaN          NaN
+2026-08-04 01:00:00-04:00          0.48          0.51         5.73
+2026-05-10 01:00:00-04:00          0.48          0.52         7.32
+2026-03-10 03:00:00-04:00          0.39          0.40         4.72
+2025-11-04 00:00:00-05:00          0.40          0.42         2.77
+2025-08-05 01:00:00-04:00          0.37          0.38         1.58
+2025-05-11 01:00:00-04:00          0.38          0.40         4.51
+2025-03-04 01:00:00-05:00          0.37          0.36        -1.45
+ok    | 2222.SR dividends | 0.4s | (26, {Timestamp('2025-05-22 10:00:00+0300', tz='Asia/Riyadh'): 0.3312, Timestamp('2025-08-20 10:00:00+0300', tz='Asia/Riyadh'): 0.3312, Timestamp('2025-11-18 10:00:00+0300', tz='Asia/Riyadh'): 0.3312, Timestamp('2026-03-24 10:00:00+0300', tz='Asia/Riyadh'): 0.3393, Timestamp('2026-06-02 10:00:00+0300', tz='Asia/Riyadh'): 0.3393, Timestamp('2026-08-20 10:00:00+0300', tz='Asia/Riyadh'): 0.3393})
+ok    | 2222.SR splits | 0.0s | (2, {Timestamp('2022-05-15 10:00:00+0300', tz='Asia/Riyadh'): 1.1, Timestamp('2023-05-09 10:00:00+0300', tz='Asia/Riyadh'): 1.1})
+ok    | 2222.SR info dividend keys | 0.3s | {'exDividendDate': 1787184000, 'dividendDate': None, 'dividendRate': 1.36, 'dividendYield': 5.27, 'lastDividendValue': 0.3393, 'lastDividendDate': 1787184000, 'earningsTimestamp': 1793707200, 'earningsTimestampStart': 1793707200, 'earningsTimestampEnd': 1793707200, 'currency': 'SAR'}
+ok    | 1120.SR calendar | 0.2s | {'Ex-Dividend Date': datetime.date(2026, 9, 22), 'Earnings Date': [datetime.date(2026, 10, 19)], 'Earnings High': 1.12, 'Earnings Low': 1.065, 'Earnings Average': 1.08797, 'Revenue High': 10871607770, 'Revenue Low': 10608011000, 'Revenue Average': 10748935820}
+ok    | 1120.SR earnings_dates | 0.7s |                            EPS Estimate  Reported EPS  Surprise(%)
+Earnings Date                                                     
+2026-10-19 08:00:00-04:00          1.09           NaN          NaN
+2026-07-20 20:00:00-04:00          1.11          1.11         0.33
+2026-04-29 02:00:00-04:00          1.05          1.59        51.61
+2026-01-28 02:00:00-05:00          0.99          1.01         1.92
+2025-10-19 20:00:00-04:00          0.93          0.99         6.00
+2025-07-20 20:00:00-04:00          0.93          0.97         4.12
+2025-04-21 20:00:00-04:00          0.92          0.94         2.61
+2025-01-28 19:00:00-05:00          0.83          0.86         3.37
+ok    | 1120.SR dividends | 0.4s | (30, {Timestamp('2024-03-25 10:00:00+0300', tz='Asia/Riyadh'): 0.766667, Timestamp('2024-08-13 10:00:00+0300', tz='Asia/Riyadh'): 0.833333, Timestamp('2025-04-14 10:00:00+0300', tz='Asia/Riyadh'): 0.973333, Timestamp('2025-09-24 10:00:00+0300', tz='Asia/Riyadh'): 0.5, Timestamp('2026-04-21 10:00:00+0300', tz='Asia/Riyadh'): 1.16666, Timestamp('2026-09-22 10:00:00+0300', tz='Asia/Riyadh'): 1.26})
+ok    | 1120.SR splits | 0.0s | (4, {Timestamp('2014-04-15 10:00:00+0300', tz='Asia/Riyadh'): 1.0833, Timestamp('2019-04-04 10:00:00+0300', tz='Asia/Riyadh'): 1.5384615384615385, Timestamp('2022-05-09 10:00:00+0300', tz='Asia/Riyadh'): 1.6, Timestamp('2026-04-21 10:00:00+0300', tz='Asia/Riyadh'): 1.5})
+ok    | 1120.SR info dividend keys | 0.3s | {'exDividendDate': 1790035200, 'dividendDate': None, 'dividendRate': 2.52, 'dividendYield': 4.04, 'lastDividendValue': 1.26, 'lastDividendDate': 1790035200, 'earningsTimestamp': 1784635200, 'earningsTimestampStart': 1792411200, 'earningsTimestampEnd': 1792411200, 'currency': 'SAR'}
+ok    | 2010.SR calendar | 0.1s | {'Ex-Dividend Date': datetime.date(2026, 8, 12), 'Earnings Date': [], 'Earnings High': -0.16527, 'Earnings Low': -0.16527, 'Earnings Average': -0.16527, 'Revenue High': 27287282000, 'Revenue Low': 24000267600, 'Revenue Average': 26168218480}
+ERROR | 2010.SR earnings_dates | 0.6s | ValueError: Cannot infer dst time from 2020-11-01 01:00:00, try using the 'ambiguous' argument
+ok    | 2010.SR dividends | 0.3s | (32, {Timestamp('2024-02-13 10:00:00+0300', tz='Asia/Riyadh'): 1.6, Timestamp('2024-09-04 10:00:00+0300', tz='Asia/Riyadh'): 1.7, Timestamp('2025-02-12 10:00:00+0300', tz='Asia/Riyadh'): 1.7, Timestamp('2025-08-20 10:00:00+0300', tz='Asia/Riyadh'): 1.5, Timestamp('2026-03-09 10:00:00+0300', tz='Asia/Riyadh'): 1.5, Timestamp('2026-08-12 10:00:00+0300', tz='Asia/Riyadh'): 1.1})
+ok    | 2010.SR splits | 0.0s | (0, {})
+ok    | 2010.SR info dividend keys | 0.3s | {'exDividendDate': 1786492800, 'dividendDate': None, 'dividendRate': 2.2, 'dividendYield': 4.8, 'lastDividendValue': 1.1, 'lastDividendDate': 1786492800, 'earningsTimestamp': None, 'earningsTimestampStart': 1753873140, 'earningsTimestampEnd': 1754308800, 'currency': 'SAR'}
+ok    | 7010.SR calendar | 0.1s | {'Ex-Dividend Date': datetime.date(2026, 8, 4), 'Earnings Date': [datetime.date(2026, 10, 28)], 'Earnings High': 0.75498, 'Earnings Low': 0.68, 'Earnings Average': 0.71749, 'Revenue High': 20868231740, 'Revenue Low': 19861766000, 'Revenue Average': 20271203450}
+ok    | 7010.SR earnings_dates | 0.6s |                            EPS Estimate  Reported EPS  Surprise(%)
+Earnings Date                                                     
+2026-10-28 08:00:00-04:00          0.72           NaN          NaN
+2026-08-05 08:00:00-04:00          0.68          0.72         5.63
+2026-04-28 08:00:00-04:00          0.67          0.74        10.99
+2026-02-17 07:00:00-05:00          0.67          0.67        -0.65
+2025-11-06 16:00:00-05:00          0.65          0.82        25.21
+2025-08-04 17:00:00-04:00          0.66          0.76        15.78
+2025-04-26 20:00:00-04:00          0.69          0.73         6.13
+2025-02-26 00:00:00-05:00          0.59          0.05       -91.46
+ok    | 7010.SR dividends | 0.3s | (67, {Timestamp('2025-05-14 10:00:00+0300', tz='Asia/Riyadh'): 2.0, Timestamp('2025-07-31 10:00:00+0300', tz='Asia/Riyadh'): 0.55, Timestamp('2025-11-09 10:00:00+0300', tz='Asia/Riyadh'): 0.55, Timestamp('2026-02-24 10:00:00+0300', tz='Asia/Riyadh'): 0.55, Timestamp('2026-05-03 10:00:00+0300', tz='Asia/Riyadh'): 0.55, Timestamp('2026-08-04 10:00:00+0300', tz='Asia/Riyadh'): 0.55})
+ok    | 7010.SR splits | 0.0s | (1, {Timestamp('2022-08-31 10:00:00+0300', tz='Asia/Riyadh'): 2.5})
+ok    | 7010.SR info dividend keys | 0.4s | {'exDividendDate': 1785801600, 'dividendDate': None, 'dividendRate': 2.2, 'dividendYield': 5.16, 'lastDividendValue': 0.55, 'lastDividendDate': 1785801600, 'earningsTimestamp': 1785326400, 'earningsTimestampStart': 1793188800, 'earningsTimestampEnd': 1793188800, 'currency': 'SAR'}
+ok    | 1180.SR calendar | 0.1s | {'Ex-Dividend Date': datetime.date(2026, 7, 29), 'Earnings Date': [], 'Earnings High': 1.02, 'Earnings Low': 0.98127, 'Earnings Average': 1.00372, 'Revenue High': 10423793410, 'Revenue Low': 10000000000, 'Revenue Average': 10231705480}
+ok    | 1180.SR earnings_dates | 0.8s |                            EPS Estimate  Reported EPS  Surprise(%)
+Earnings Date                                                     
+2026-07-20 20:00:00-04:00          0.98          1.07         8.97
+2026-04-20 20:00:00-04:00          1.01          1.04         2.75
+2026-01-26 19:00:00-05:00          0.98          1.05         7.42
+2025-10-19 20:00:00-04:00          0.92          1.04        13.27
+2025-07-20 20:00:00-04:00          0.93          0.99         5.98
+2025-04-21 20:00:00-04:00          0.90          0.96         7.15
+2025-02-05 19:00:00-05:00          0.83          0.90         8.43
+2024-10-21 20:00:00-04:00          0.82          0.87         5.72
+ok    | 1180.SR dividends | 0.3s | (23, {Timestamp('2024-05-02 10:00:00+0300', tz='Asia/Riyadh'): 0.9, Timestamp('2024-08-12 10:00:00+0300', tz='Asia/Riyadh'): 0.9, Timestamp('2025-02-10 10:00:00+0300', tz='Asia/Riyadh'): 1.0, Timestamp('2025-08-04 10:00:00+0300', tz='Asia/Riyadh'): 1.0, Timestamp('2026-04-16 10:00:00+0300', tz='Asia/Riyadh'): 1.15, Timestamp('2026-07-29 10:00:00+0300', tz='Asia/Riyadh'): 1.15})
+ok    | 1180.SR splits | 0.0s | (2, {Timestamp('2018-05-16 10:00:00+0300', tz='Asia/Riyadh'): 1.5, Timestamp('2023-05-08 10:00:00+0300', tz='Asia/Riyadh'): 1.3333333333333333})
+ok    | 1180.SR info dividend keys | 0.2s | {'exDividendDate': 1785283200, 'dividendDate': None, 'dividendRate': 2.3, 'dividendYield': 6.08, 'lastDividendValue': 1.15, 'lastDividendDate': 1785283200, 'earningsTimestamp': None, 'earningsTimestampStart': 1754305140, 'earningsTimestampEnd': 1754654400, 'currency': 'SAR'}
+ok    | 4013.SR calendar | 0.1s | {'Ex-Dividend Date': datetime.date(2026, 8, 2), 'Earnings Date': [], 'Earnings High': 1.95296, 'Earnings Low': 1.87502, 'Earnings Average': 1.90599, 'Revenue High': 4103902790, 'Revenue Low': 4046208890, 'Revenue Average': 4075055840}
+ok    | 4013.SR earnings_dates | 0.5s |                            EPS Estimate  Reported EPS  Surprise(%)
+Earnings Date                                                     
+2026-07-25 16:00:00-04:00          1.73          1.89         9.20
+2026-05-03 16:00:00-04:00          1.75          1.44       -17.67
+2026-02-15 15:00:00-05:00          1.78          1.86         4.40
+2025-10-26 02:00:00-04:00          1.74          1.72        -1.41
+2025-07-26 16:00:00-04:00          1.62          1.69         4.59
+2025-05-04 00:00:00-04:00          1.68          1.59        -5.28
+2025-02-16 00:00:00-05:00          1.79          1.76        -1.50
+2024-11-03 19:00:00-05:00          1.65          1.70         3.03
+ok    | 4013.SR dividends | 0.6s | (26, {Timestamp('2025-05-11 10:00:00+0300', tz='Asia/Riyadh'): 1.12, Timestamp('2025-08-03 10:00:00+0300', tz='Asia/Riyadh'): 1.19, Timestamp('2025-11-02 10:00:00+0300', tz='Asia/Riyadh'): 1.21, Timestamp('2026-02-23 10:00:00+0300', tz='Asia/Riyadh'): 1.31, Timestamp('2026-05-10 10:00:00+0300', tz='Asia/Riyadh'): 1.01, Timestamp('2026-08-02 10:00:00+0300', tz='Asia/Riyadh'): 1.33})
+ok    | 4013.SR splits | 0.0s | (0, {})
+ok    | 4013.SR info dividend keys | 0.3s | {'exDividendDate': 1785628800, 'dividendDate': None, 'dividendRate': 5.32, 'dividendYield': 2.33, 'lastDividendValue': 1.33, 'lastDividendDate': 1785628800, 'earningsTimestamp': None, 'earningsTimestampStart': 1754305140, 'earningsTimestampEnd': 1754654400, 'currency': 'SAR'}
+info sweep 0 1010.SR {'sym': '1010.SR', 'exDividendDate': 1785283200, 'dividendDate': None, 'dividendRate': 1.05, 'lastDividendValue': 0.64, 'lastDividendDate': 1785283200, 'earningsTimestamp': None, 'earningsTimestampStart': 1754305140, 'earningsTimestampEnd': 1754654400, 'isEarningsDateEstimate': False, 'marketCap': 77675716608}
+info sweep 40 2020.SR {'sym': '2020.SR', 'exDividendDate': 1785628800, 'dividendDate': None, 'dividendRate': 7.0, 'lastDividendValue': 3.5, 'lastDividendDate': 1785628800, 'earningsTimestamp': None, 'earningsTimestampStart': 1792670400, 'earningsTimestampEnd': 1792670400, 'isEarningsDateEstimate': True, 'marketCap': 55553327104}
+info sweep 80 2300.SR {'sym': '2300.SR', 'exDividendDate': 1779235200, 'dividendDate': None, 'dividendRate': 0.5, 'lastDividendValue': 0.5, 'lastDividendDate': 1779235200, 'earningsTimestamp': None, 'earningsTimestampStart': 1618916340, 'earningsTimestampEnd': 1618916340, 'isEarningsDateEstimate': None, 'marketCap': 2128562560}
+info sweep 120 4015.SR {'sym': '4015.SR', 'exDividendDate': 1785628800, 'dividendDate': None, 'dividendRate': 4.2, 'lastDividendValue': 2.2, 'lastDividendDate': 1785628800, 'earningsTimestamp': None, 'earningsTimestampStart': None, 'earningsTimestampEnd': None, 'isEarningsDateEstimate': None, 'marketCap': 8960000000}
+info sweep 160 4165.SR {'sym': '4165.SR', 'exDividendDate': 1778544000, 'dividendDate': None, 'dividendRate': 4.0, 'lastDividendValue': 4.0, 'lastDividendDate': 1778544000, 'earningsTimestamp': None, 'earningsTimestampStart': None, 'earningsTimestampEnd': None, 'isEarningsDateEstimate': None, 'marketCap': 2927500032}
+info sweep 200 4334.SR {'sym': '4334.SR', 'exDividendDate': 1786924800, 'dividendDate': None, 'dividendRate': 0.68, 'lastDividendValue': 0.34, 'lastDividendDate': 1786924800, 'earningsTimestamp': None, 'earningsTimestampStart': 1743073140, 'earningsTimestampEnd': 1743073140, 'isEarningsDateEstimate': False, 'marketCap': 481754496}
+info sweep 240 7201.SR {'sym': '7201.SR', 'exDividendDate': None, 'dividendDate': None, 'dividendRate': None, 'lastDividendValue': None, 'lastDividendDate': None, 'earningsTimestamp': None, 'earningsTimestampStart': 1604833140, 'earningsTimestampEnd': 1604833140, 'isEarningsDateEstimate': None, 'marketCap': 404000000}
+sweep exDividendDate: 226 set, in [-45d, +60d]: 32, range 2011-06-08 00:00:00 .. 2027-01-03 00:00:00
+sweep dividendDate: 0 set, in [-45d, +60d]: 0, range NaT .. NaT
+sweep lastDividendDate: 226 set, in [-45d, +60d]: 32, range 2011-06-08 00:00:00 .. 2027-01-03 00:00:00
+sweep earningsTimestamp: 13 set, in [-45d, +60d]: 3, range 2026-07-20 12:00:00 .. 2026-11-03 12:00:00
+sweep earningsTimestampStart: 183 set, in [-45d, +60d]: 22, range 2020-10-18 10:59:00 .. 2026-11-10 12:00:00
+sweep earningsTimestampEnd: 183 set, in [-45d, +60d]: 22, range 2020-10-18 10:59:00 .. 2026-11-10 12:00:00
+ok    | ETF screen region sa | 0.1s | {'start': 0, 'count': 14, 'total': 14, 'quotes': [{'language': 'en-US', 'region': 'US', 'quoteType': 'ETF', 'typeDisp': 'ETF', 'quoteSourceName': 'Delayed Quote', 'triggerable': False, 'customPriceAlertConfidence': 'LOW', 'exchange': 'SAU', 'fiftyTwoWeekHigh': 11.0, 'fiftyTwoWeekLow': 9.7, 'shortName': 'Al Rajhi MSCI Saudi Equity ETF', 'fulldayPrice': 9.71, 'fulldayChange': -0.119999886, 'fulldayChangePercent': -1.2207516, 'ask': 9.71, 'bid': 9.7, 'longName': 'Al Rajhi MSCI Saudi Equity Index Fund', 'regularMarketOpen': 9.89, 'averageDailyVolume3Month': 57553, 'averageDailyVolume10Day': 23887, 'corporateActions': [], 'fiftyTwoWeekLowChange': 0.010000229, 'fiftyTwoWeekLowChangePercent': 0.0010309515, 'fiftyTwoWeekRange': '9.7 - 11.0', 'fiftyTwoWeekHighChange': -1.29, 'fiftyTwoWeekHighChangePercent': -0.11727273, 'fiftyTwoWeekChangePercent': -3.2868505, 'trailingAnnualDividendRate': 0.0, 'trailingAnnualDividendYield': 0.0, 'marketState': 'CLOSED', 'fiftyDayAverage': 10.072791, 'fiftyDayAverageChange': -0.36279106, 'fiftyDayAverageChangePercent': -0.036016934, 'twoHundredDayAverage': 10.072791, 'twoHundredDayAverageChange': -0.36279106, 'twoHundredDayAverageChangePercent': -0.036016934, 'sourceInterval': 15, 'exchangeDataDelayedBy': 15, 'exchangeTimezoneName': 'Asia/Riyadh', 'exchangeTimezoneShortName': 'AST', 'gmtOffSetMilliseconds': 10800000, 'esgPopulated': False, 'tradeable': False, 'cryptoTradeable': False, 'hasPrePostMarketData': False, 'firstTradeDateMilliseconds': 178634
+ETFs 14 [{'symbol': '9413.SR', 'shortName': 'Al Rajhi MSCI Saudi Equity ETF', 'longName': 'Al Rajhi MSCI Saudi Equity Index Fund', 'regularMarketPrice': 9.71, 'averageDailyVolume3Month': 57553, 'netAssets': None}, {'symbol': '9412.SR', 'shortName': 'Albilad MSCI Saudi Equity ETF', 'longName': 'Albilad Capital - Msci US Equity ETF', 'regularMarketPrice': 9.06, 'averageDailyVolume3Month': 8212, 'netAssets': None}, {'symbol': '9411.SR', 'shortName': 'SAB Invest Hang Seng Hong Kong ', 'longName': 'Sab Invest Hang Seng Homg Etf', 'regularMarketPrice': 12.13, 'averageDailyVolume3Month': 2112, 'netAssets': None}, {'symbol': '9410.SR', 'shortName': 'Albilad CSOP MSCI Hong Kong Chi', 'longName': 'Albilad CSOP MSCI Hong Kong China -  Class  Sarency Series', 'regularMarketPrice': 11.34, 'averageDailyVolume3Month': 11578, 'netAssets': None}, {'symbol': '9409.SR', 'shortName': 'YAQEEN S&P ESG MENA ETF Fund', 'longName': 'Yaqeen S and P ESG Mena ETF Fund - Mena ETF Fund', 'regularMarketPrice': 10.0, 'averageDailyVolume3Month': 1007, 'netAssets': None}, {'symbol': '9408.SR', 'shortName': 'Albilad MSCI Saudi Growth ETF', 'longName': 'Albilad Saudi Sovereign Sukuk Etf - MSCI Growth ETF SAR Fund', 'regularMarketPrice': 7.52, 'averageDailyVolume3Month': 5921, 'netAssets': None}, {'symbol': '9407.SR', 'shortName': 'Albilad MSCI US Tech. ETF', 'longName': 'Albilad Capital - MSCI US Tech ETF', 'regularMarketPrice': 27.84, 'averageDailyVolume3Month': 11781, 'netAssets': None}, {'symbol': '9406.SR', 'shortName': 'Albilad MSCI US Equity ETF', 'longName': 'Albilad Capital - Msci US Equity ETF', 'regularMarketPrice': 18.07, 'averageDailyVolume3Month': 8151, 'netAssets': None}, {'symbol': '9405.SR', 'shortName': 'Albilad Gold ETF', 'longName': 'Albilad Gold ETF', 'regularMarketPrice': 21.71, 'averageDailyVolume3Month': 51080, 'netAssets': None}, {'symbol': '9404.SR', 'shortName': 'Alinma Saudi Government Sukuk E', 'longName': 'Alinma Saudi Government Sukuk Etf Fund - Short Maturity - Alinma Sukuk Fund', 'regularMarketPrice': 10.25, 'averageDailyVolume3Month': 3073, 'netAssets': None}, {'symbol': '9403.SR', 'shortName': 'Albilad Saudi Sovereign Sukuk E', 'longName': 'Albilad Saudi Sovereign Sukuk Etf', 'regularMarketPrice': 8.24, 'averageDailyVolume3Month': 38584, 'netAssets': None}, {'symbol': '9402.SR', 'shortName': 'SAB Invest Saudi Quant ETF', 'longName': 'HSBC Amanah Saudi 20 ETF', 'regularMarketPrice': 43.46, 'averageDailyVolume3Month': 731, 'netAssets': None}, {'symbol': '9401.SR', 'shortName': 'YAQEEN PETROCHEMICAL ETF', 'longName': 'FALCOM Petrochemical ETF', 'regularMarketPrice': 22.57, 'averageDailyVolume3Month': 645, 'netAssets': None}, {'symbol': '9400.SR', 'shortName': 'YAQEEN Saudi Equity ETF', 'longName': 'FALCOM Saudi Equity ETF', 'regularMarketPrice': 48.44, 'averageDailyVolume3Month': 1366, 'netAssets': None}]
+ok    | history max 9400.SR | 0.2s | (2834, '2012-10-24', '2026-10-08', 48.31999969482422, 1436.1166666666666)
+ok    | history max 9401.SR | 0.2s | (2304, '2012-10-24', '2026-10-08', 22.520000457763672, 651.9166666666666)
+ok    | history max 9402.SR | 0.2s | (2073, '2016-06-14', '2026-10-08', 43.27000045776367, 753.9333333333333)
+ok    | history max 9403.SR | 0.2s | (1140, '2022-02-08', '2026-10-08', 8.239999771118164, 29653.85)
+ok    | history max 9404.SR | 0.2s | (1640, '2020-03-04', '2026-10-08', 10.239999771118164, 2951.8)
+ok    | history max 9405.SR | 0.3s | (1011, '2022-08-23', '2026-10-08', 21.709999084472656, 50046.6)
+ok    | history max 9406.SR | 0.2s | (1011, '2022-08-23', '2026-10-08', 18.059999465942383, 8605.6)
+ok    | history max 9407.SR | 0.2s | (905, '2023-01-23', '2026-10-08', 27.84000015258789, 12136.05)
+ok    | history max 9408.SR | 0.2s | (664, '2024-01-31', '2026-10-08', 7.519999980926514, 6035.866666666667)
+ok    | history max 9409.SR | 0.2s | (405, '2025-02-19', '2026-10-08', 10.0, 1066.15)
+ok    | history max 9410.SR | 0.1s | (483, '2024-10-30', '2026-10-08', 11.329999923706055, 11774.766666666666)
+ok    | history max 9411.SR | 0.2s | (483, '2024-10-31', '2026-10-08', 12.149999618530273, 2048.0666666666666)
+ok    | history max 9412.SR | 0.2s | (240, '2025-10-21', '2026-10-08', 9.0600004196167, 8596.65)
+ok    | history max 9413.SR | 0.2s | (42, '2026-08-11', '2026-10-08', 9.710000038146973, 55052.23809523809)
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9414.SR"}}}
+$9414.SR: possibly delisted; no timezone found
+ok    | history max 9414.SR | 0.8s | (0, None, None, None, None)
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9415.SR"}}}
+$9415.SR: possibly delisted; no timezone found
+ok    | history max 9415.SR | 0.8s | (0, None, None, None, None)
+$9416.SR: possibly delisted; no timezone found
+ok    | history max 9416.SR | 0.3s | (0, None, None, None, None)
+$9417.SR: possibly delisted; no timezone found
+ok    | history max 9417.SR | 0.2s | (0, None, None, None, None)
+$9418.SR: possibly delisted; no timezone found
+ok    | history max 9418.SR | 0.3s | (0, None, None, None, None)
+$9419.SR: possibly delisted; no timezone found
+ok    | history max 9419.SR | 0.2s | (0, None, None, None, None)
+$9420.SR: possibly delisted; no timezone found
+ok    | history max 9420.SR | 0.3s | (0, None, None, None, None)
+$9421.SR: possibly delisted; no timezone found
+ok    | history max 9421.SR | 0.2s | (0, None, None, None, None)
+$9422.SR: possibly delisted; no timezone found
+ok    | history max 9422.SR | 0.3s | (0, None, None, None, None)
+$9423.SR: possibly delisted; no timezone found
+ok    | history max 9423.SR | 0.3s | (0, None, None, None, None)
+$9424.SR: possibly delisted; no timezone found
+ok    | history max 9424.SR | 0.2s | (0, None, None, None, None)
+$9425.SR: possibly delisted; no timezone found
+ok    | history max 9425.SR | 0.4s | (0, None, None, None, None)
+$9426.SR: possibly delisted; no timezone found
+ok    | history max 9426.SR | 0.3s | (0, None, None, None, None)
+$9427.SR: possibly delisted; no timezone found
+ok    | history max 9427.SR | 0.3s | (0, None, None, None, None)
+$9428.SR: possibly delisted; no timezone found
+ok    | history max 9428.SR | 0.3s | (0, None, None, None, None)
+$9429.SR: possibly delisted; no timezone found
+ok    | history max 9429.SR | 0.4s | (0, None, None, None, None)
+$9430.SR: possibly delisted; no timezone found
+ok    | history max 9430.SR | 0.3s | (0, None, None, None, None)
+ok    | name 9400.SR | 0.5s | {'shortName': 'YAQEEN Saudi Equity ETF', 'longName': 'FALCOM Saudi Equity ETF', 'quoteType': 'ETF', 'category': None, 'fundFamily': None}
+ok    | name 9401.SR | 0.6s | {'shortName': 'YAQEEN PETROCHEMICAL ETF', 'longName': 'FALCOM Petrochemical ETF', 'quoteType': 'ETF', 'category': None, 'fundFamily': None}
+ok    | name 9402.SR | 0.4s | {'shortName': 'SAB Invest Saudi Quant ETF', 'longName': 'HSBC Amanah Saudi 20 ETF', 'quoteType': 'ETF', 'category': None, 'fundFamily': None}
+ok    | name 9403.SR | 0.6s | {'shortName': 'Albilad Saudi Sovereign Sukuk E', 'longName': 'Albilad Saudi Sovereign Sukuk Etf', 'quoteType': 'ETF', 'category': None, 'fundFamily': None}
+ok    | name 9404.SR | 0.5s | {'shortName': 'Alinma Saudi Government Sukuk E', 'longName': 'Alinma Saudi Government Sukuk Etf Fund - Short Maturity - Alinma Sukuk Fund', 'quoteType': 'ETF', 'category': None, 'fundFamily': None}
+ok    | name 9405.SR | 0.6s | {'shortName': 'Albilad Gold ETF', 'longName': 'Albilad Gold ETF', 'quoteType': 'ETF', 'category': None, 'fundFamily': None}
+ok    | name 9406.SR | 0.5s | {'shortName': 'Albilad MSCI US Equity ETF', 'longName': 'Albilad Capital - Msci US Equity ETF', 'quoteType': 'ETF', 'category': None, 'fundFamily': None}
+ok    | name 9407.SR | 0.5s | {'shortName': 'Albilad MSCI US Tech. ETF', 'longName': 'Albilad Capital - MSCI US Tech ETF', 'quoteType': 'ETF', 'category': None, 'fundFamily': None}
+ok    | name 9408.SR | 0.5s | {'shortName': 'Albilad MSCI Saudi Growth ETF', 'longName': 'Albilad Saudi Sovereign Sukuk Etf - MSCI Growth ETF SAR Fund', 'quoteType': 'ETF', 'category': None, 'fundFamily': None}
+ok    | name 9409.SR | 0.5s | {'shortName': 'YAQEEN S&P ESG MENA ETF Fund', 'longName': 'Yaqeen S and P ESG Mena ETF Fund - Mena ETF Fund', 'quoteType': 'ETF', 'category': None, 'fundFamily': None}
+ok    | name 9410.SR | 0.5s | {'shortName': 'Albilad CSOP MSCI Hong Kong Chi', 'longName': 'Albilad CSOP MSCI Hong Kong China -  Class  Sarency Series', 'quoteType': 'ETF', 'category': None, 'fundFamily': None}
+ok    | name 9411.SR | 0.7s | {'shortName': 'SAB Invest Hang Seng Hong Kong ', 'longName': 'Sab Invest Hang Seng Homg Etf', 'quoteType': 'ETF', 'category': None, 'fundFamily': None}
+ok    | name 9412.SR | 0.4s | {'shortName': 'Albilad MSCI Saudi Equity ETF', 'longName': 'Albilad Capital - Msci US Equity ETF', 'quoteType': 'ETF', 'category': None, 'fundFamily': None}
+ok    | name 9413.SR | 0.5s | {'shortName': 'Al Rajhi MSCI Saudi Equity ETF', 'longName': 'Al Rajhi MSCI Saudi Equity Index Fund', 'quoteType': 'ETF', 'category': None, 'fundFamily': None}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9414.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9414.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9414.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9414.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9414.SR"}}}
+ok    | name 9414.SR | 1.5s | {'shortName': None, 'longName': None, 'quoteType': None, 'category': None, 'fundFamily': None}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9415.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9415.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9415.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9415.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9415.SR"}}}
+ok    | name 9415.SR | 1.5s | {'shortName': None, 'longName': None, 'quoteType': None, 'category': None, 'fundFamily': None}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9416.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9416.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9416.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9416.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9416.SR"}}}
+ok    | name 9416.SR | 2.1s | {'shortName': None, 'longName': None, 'quoteType': None, 'category': None, 'fundFamily': None}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9417.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9417.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9417.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9417.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9417.SR"}}}
+ok    | name 9417.SR | 2.0s | {'shortName': None, 'longName': None, 'quoteType': None, 'category': None, 'fundFamily': None}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9418.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9418.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9418.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9418.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9418.SR"}}}
+ok    | name 9418.SR | 2.0s | {'shortName': None, 'longName': None, 'quoteType': None, 'category': None, 'fundFamily': None}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9419.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9419.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9419.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9419.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9419.SR"}}}
+ok    | name 9419.SR | 1.5s | {'shortName': None, 'longName': None, 'quoteType': None, 'category': None, 'fundFamily': None}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9420.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9420.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9420.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9420.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9420.SR"}}}
+ok    | name 9420.SR | 2.1s | {'shortName': None, 'longName': None, 'quoteType': None, 'category': None, 'fundFamily': None}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9421.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9421.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9421.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9421.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9421.SR"}}}
+ok    | name 9421.SR | 1.9s | {'shortName': None, 'longName': None, 'quoteType': None, 'category': None, 'fundFamily': None}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9422.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9422.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9422.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9422.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9422.SR"}}}
+ok    | name 9422.SR | 2.1s | {'shortName': None, 'longName': None, 'quoteType': None, 'category': None, 'fundFamily': None}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9423.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9423.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9423.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9423.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9423.SR"}}}
+ok    | name 9423.SR | 2.9s | {'shortName': None, 'longName': None, 'quoteType': None, 'category': None, 'fundFamily': None}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9424.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9424.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9424.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9424.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9424.SR"}}}
+ok    | name 9424.SR | 1.7s | {'shortName': None, 'longName': None, 'quoteType': None, 'category': None, 'fundFamily': None}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9425.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9425.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9425.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9425.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9425.SR"}}}
+ok    | name 9425.SR | 2.0s | {'shortName': None, 'longName': None, 'quoteType': None, 'category': None, 'fundFamily': None}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9426.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9426.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9426.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9426.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9426.SR"}}}
+ok    | name 9426.SR | 2.3s | {'shortName': None, 'longName': None, 'quoteType': None, 'category': None, 'fundFamily': None}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9427.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9427.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9427.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9427.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9427.SR"}}}
+ok    | name 9427.SR | 2.1s | {'shortName': None, 'longName': None, 'quoteType': None, 'category': None, 'fundFamily': None}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9428.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9428.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9428.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9428.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9428.SR"}}}
+ok    | name 9428.SR | 2.2s | {'shortName': None, 'longName': None, 'quoteType': None, 'category': None, 'fundFamily': None}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9429.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9429.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9429.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9429.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9429.SR"}}}
+ok    | name 9429.SR | 1.8s | {'shortName': None, 'longName': None, 'quoteType': None, 'category': None, 'fundFamily': None}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9430.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9430.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9430.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9430.SR"}}}
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: 9430.SR"}}}
+ok    | name 9430.SR | 2.0s | {'shortName': None, 'longName': None, 'quoteType': None, 'category': None, 'fundFamily': None}
+ok    | history max ^TASI.SR | 0.2s | (1, '2026-10-08')
+$^TASI: possibly delisted; no timezone found
+ok    | history max ^TASI | 0.2s | (0, None)
+$TASI.SR: possibly delisted; no timezone found
+ok    | history max TASI.SR | 0.3s | (0, None)
+$^TASISR: possibly delisted; no timezone found
+ok    | history max ^TASISR | 0.4s | (0, None)
+ok    | history max KSA | 0.3s | (2782, '2015-09-17')
+ok    | history max FLSA | 0.3s | (2009, '2018-10-11')
+^NOMUC.SR: Period 'max' is invalid, must be one of: 1d, 5d
+ok    | history max ^NOMUC.SR | 0.2s | (0, None)
+ok    | history max 2222.SR | 0.2s | (1703, '2019-12-11')
+ok    | history max 1120.SR | 0.2s | (4115, '2010-03-03')
+ok    | history max 1211.SR | 0.2s | (4081, '2010-03-03')
+ok    | history max 1180.SR | 0.2s | (3002, '2014-11-12')
+ok    | history max 7010.SR | 0.2s | (4084, '2010-03-04')
+ok    | history max 2010.SR | 0.2s | (4086, '2010-03-03')
+ok    | history max 2082.SR | 0.3s | (1197, '2021-12-19')
+ok    | history max 4013.SR | 0.1s | (1633, '2020-03-17')
+ok    | history max 1010.SR | 0.3s | (3612, '2012-04-01')
+ok    | history max 1150.SR | 0.4s | (4115, '2010-03-03')
+ok    | history max 1060.SR | 0.4s | (4077, '2010-03-04')
+ok    | history max 5110.SR | 0.2s | (4078, '2010-03-03')
+ok    | history max 2020.SR | 0.3s | (4080, '2010-03-04')
+ok    | history max 4280.SR | 0.3s | (4078, '2010-03-04')
+ok    | history max 7020.SR | 0.3s | (4079, '2010-03-03')
+ok    | history max 1050.SR | 0.4s | (4083, '2010-03-03')
+ok    | history max 2280.SR | 0.4s | (4077, '2010-03-04')
+ok    | history max 7203.SR | 0.4s | (1153, '2022-02-16')
+ok    | history max 1080.SR | 0.5s | (4080, '2010-03-03')
+ok    | history max 2380.SR | 0.2s | (4079, '2010-03-03')
+ok    | history max 1140.SR | 0.4s | (4080, '2010-03-04')
+ok    | history max 4030.SR | 0.4s | (4079, '2010-03-04')
+ok    | history max 7202.SR | 0.3s | (1242, '2021-10-17')
+ok    | history max 4325.SR | 0.2s | (383, '2025-03-24')
+ok    | history max 2223.SR | 0.2s | (940, '2022-12-28')
