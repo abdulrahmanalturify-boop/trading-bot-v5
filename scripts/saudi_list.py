@@ -39,74 +39,67 @@ def probe():
             checks.append((name, "ERROR", f"{type(e).__name__}: {e}"[:600]))
         log(checks[-1][0], checks[-1][1], checks[-1][2][:300])
 
-    for idx in ("^TASI.SR", "^TASI", "TASI.SR", "^NOMUC.SR"):
-        t(f"index history {idx}", lambda idx=idx: (lambda h: (len(h), str(h.index[-1]) if len(h) else None, float(h["Close"].iloc[-1]) if len(h) else None))(yf.Ticker(idx).history(period="1mo")))
-    t("2222.SR daily (tz, last rows)", lambda: (lambda h: (len(h), str(h.index.tz), h.tail(3)[["Open", "Close"]].round(2).to_dict()))(yf.Ticker("2222.SR").history(period="1mo")))
-    def dl():
-        df = yf.download(["2222.SR", "1120.SR", "2010.SR"], period="2y", progress=False, group_by="ticker")
-        return {k: int(df[k]["Close"].notna().sum()) for k in ("2222.SR", "1120.SR", "2010.SR")}, str(df.index[-1])
-    t("download 2222/1120/2010 2y", dl)
-    t("2222.SR info keys", lambda: {k: yf.Ticker("2222.SR").info.get(k) for k in ("longName", "shortName", "sector", "industry", "marketCap", "currency", "exchange",
-                                                                                   "trailingPE", "dividendYield", "fullExchangeName", "quoteType")})
-    t("2222.SR fast_info", lambda: dict(yf.Ticker("2222.SR").fast_info))
-    t("2222.SR news", lambda: [(n.get("content", n).get("title"), n.get("content", n).get("pubDate")) for n in (yf.Ticker("2222.SR").news or [])[:5]])
-    t("search Al Rajhi", lambda: [(q.get("symbol"), q.get("shortname"), q.get("exchange")) for q in yf.Search("Al Rajhi Bank", max_results=8).quotes])
-    t("search الراجحي", lambda: [(q.get("symbol"), q.get("shortname"), q.get("exchange")) for q in yf.Search("الراجحي", max_results=8).quotes])
-    t("search 2222", lambda: [(q.get("symbol"), q.get("shortname"), q.get("exchange")) for q in yf.Search("2222", max_results=8).quotes])
+    def hist(sym, **kw):
+        h = yf.Ticker(sym).history(**kw)
+        return (len(h), str(h.index[0]) if len(h) else None, str(h.index[-1]) if len(h) else None)
+    for idx in ("^TASI.SR", "^NOMUC.SR", "^MT30.SR", "KSA", "FLSA"):
+        t(f"history {idx} 2y", lambda idx=idx: hist(idx, period="2y"))
+    t("history ^TASI.SR max", lambda: hist("^TASI.SR", period="max"))
+    t("history ^TASI.SR start 2024", lambda: hist("^TASI.SR", start="2024-01-01"))
+    t("download ^TASI.SR 2y", lambda: (lambda d: (len(d), str(d.index[0]) if len(d) else None))(yf.download("^TASI.SR", period="2y", progress=False)))
+    t("download ^TASI.SR 1wk", lambda: (lambda d: (len(d), str(d.index[0]) if len(d) else None))(yf.download("^TASI.SR", period="5y", interval="1wk", progress=False)))
+    t("^TASI.SR info", lambda: {k: yf.Ticker("^TASI.SR").info.get(k) for k in ("shortName", "regularMarketPrice", "regularMarketChangePercent", "fiftyDayAverage")})
 
-    def screen():
-        from yfinance import EquityQuery
-        q = EquityQuery("and", [EquityQuery("eq", ["region", "sa"]), EquityQuery("gt", ["intradaymarketcap", 1e9])])
-        r = yf.screen(q, size=100, sortField="intradaymarketcap", sortAsc=False)
-        qs = r.get("quotes", [])
-        return {"total": r.get("total"), "n": len(qs), "first": [(x.get("symbol"), x.get("shortName"), x.get("marketCap"), x.get("trailingPE")) for x in qs[:6]],
-                "fields": sorted(qs[0].keys())[:80] if qs else []}
-    t("screener region sa", screen)
+    def chart(sym, rng):
+        from yfinance.data import YfData
+        js = YfData().get_raw_json(f"https://query2.finance.yahoo.com/v8/finance/chart/{sym}", params={"range": rng, "interval": "1d"})
+        r = js["chart"]["result"][0]
+        return len(r.get("timestamp") or []), r.get("meta", {}).get("dataGranularity"), r.get("meta", {}).get("validRanges")
+    t("chart api ^TASI.SR 2y", lambda: chart("^TASI.SR", "2y"))
+    t("chart api ^TASI.SR 1y", lambda: chart("^TASI.SR", "1y"))
 
-    def rss(q, hl="ar", gl="SA"):
-        url = f"https://news.google.com/rss/search?q={requests.utils.quote(q)}&hl={hl}&gl={gl}&ceid={gl}:{hl}"
-        r = requests.get(url, timeout=20, headers={"User-Agent": "Mozilla/5.0"})
-        import re
-        titles = re.findall(r"<title>(.*?)</title>", r.text)[1:6]
-        return (r.status_code, len(re.findall(r"<item>", r.text)), titles)
-    t("google news ar السوق السعودية", lambda: rss("السوق السعودية أسهم"))
-    t("google news en Saudi stocks", lambda: rss("Saudi stocks Tadawul", "en", "SA"))
-    t("argaam rss", lambda: (lambda r: (r.status_code, r.headers.get("content-type"), r.text[:300]))(requests.get("https://www.argaam.com/ar/rss/ho-main-news?sectionid=1524", timeout=20, headers={"User-Agent": "Mozilla/5.0"})))
-    t("hourly prepost 2222", lambda: len(yf.download("2222.SR", period="5d", interval="1h", progress=False)))
+    def quotes():
+        from yfinance.data import YfData
+        js = YfData().get_raw_json("https://query1.finance.yahoo.com/v7/finance/quote?",
+                                   params={"symbols": "2222.SR,1120.SR,^TASI.SR,4264.SR", "formatted": "false", "lang": "en-US", "region": "US"})
+        return [(q.get("symbol"), q.get("shortName"), q.get("regularMarketPrice"), q.get("regularMarketChangePercent"), q.get("marketCap"),
+                 q.get("fiftyDayAverage"), q.get("trailingPE"), q.get("averageDailyVolume3Month")) for q in js["quoteResponse"]["result"]]
+    t("v7 quotes .SR", quotes)
     return checks
 
 
 def discover():
-    """Every main-market code Yahoo has daily prices for (the last 10 days)."""
-    cands = [f"{c}.SR" for a, b in RANGES for c in range(a, b + 1)]
-    found = {}
-    for i in range(0, len(cands), 80):
-        chunk = cands[i:i + 80]
+    """Every Saudi equity Yahoo's screener knows (region sa), with its names and market cap."""
+    from yfinance import EquityQuery
+    found, offset = {}, 0
+    q = EquityQuery("eq", ["region", "sa"])
+    while True:
+        r = None
         for attempt in range(3):
             try:
-                df = yf.download(chunk, period="10d", progress=False, group_by="ticker", threads=True)
+                r = yf.screen(q, size=250, offset=offset, sortField="intradaymarketcap", sortAsc=False)
                 break
             except Exception as e:
-                log("retry", i, e)
+                log("screen retry", offset, e)
                 time.sleep(5)
-        else:
-            continue
-        for s in chunk:
-            try:
-                sub = df[s] if s in df.columns.get_level_values(0) else None
-            except Exception:
-                sub = None
-            if sub is not None and sub["Close"].notna().sum() >= 1:
-                found[s] = {"last": float(sub["Close"].dropna().iloc[-1]), "days": int(sub["Close"].notna().sum()),
-                            "vol": float(sub["Volume"].fillna(0).mean())}
-        log(f"{i + len(chunk)}/{len(cands)} checked, {len(found)} found")
+        qs = (r or {}).get("quotes") or []
+        for x in qs:
+            s = x.get("symbol")
+            if s:
+                found[s] = {"short": x.get("shortName"), "long": x.get("longName"), "cap": x.get("marketCap"), "exchange": x.get("exchange"),
+                            "type": x.get("quoteType"), "price": x.get("regularMarketPrice"), "vol": x.get("averageDailyVolume3Month")}
+        log(f"screen offset {offset}: {len(qs)} (total {(r or {}).get('total')})")
+        offset += len(qs)
+        if not qs or offset >= ((r or {}).get("total") or 0):
+            break
         time.sleep(1)
     return found
 
 
 def details(found):
+    """Sector and industry for the main-market codes (4 digits, not 9xxx: Nomu)."""
     out = {}
-    for n, s in enumerate(sorted(found)):
+    for n, s in enumerate(sorted(x for x in found if x.endswith(".SR") and x[:4].isdigit() and not x.startswith("9"))):
         info = {}
         for attempt in range(3):
             try:
@@ -115,9 +108,8 @@ def details(found):
             except Exception as e:
                 log("info retry", s, e)
                 time.sleep(4 * (attempt + 1))
-        out[s] = {"long": info.get("longName"), "short": info.get("shortName"), "sector": info.get("sector"), "industry": info.get("industry"),
-                  "cap": info.get("marketCap"), "currency": info.get("currency"), "type": info.get("quoteType"), "exchange": info.get("exchange"),
-                  **found[s]}
+        out[s] = {**found[s], "sector": info.get("sector"), "industry": info.get("industry"), "long": info.get("longName") or found[s].get("long"),
+                  "currency": info.get("currency")}
         if n % 25 == 0:
             log(f"details {n}/{len(found)} {s} {out[s]['short']} {out[s]['sector']}")
         time.sleep(0.4)
