@@ -1,7 +1,7 @@
 """
 p_insight.py - Insight: Daily Brief · Articles (with live charts) · Fear & Greed index · Seasonality
 """
-from datetime import datetime
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 import numpy as np
@@ -11,6 +11,7 @@ import streamlit as st
 import charts
 import data
 import insight as I
+import markets as MK
 import newsiq
 import p_markets as M
 import theme as T
@@ -29,7 +30,7 @@ def _months():
 
 
 def _today_line():
-    now = datetime.now(ZoneInfo("America/New_York"))
+    now = datetime.now(MK.tz())                 # the page's market: New York, or Riyadh on a Saudi page
     if is_ar():
         return f"{DAYS_AR[now.weekday()]} {now.day} {MONTHS_AR[now.month - 1]} {now.year}"
     return now.strftime("%A, %B %d, %Y").replace(" 0", " ")
@@ -106,6 +107,89 @@ def fear_greed():
     return idx, parts, c.get("^GSPC", pd.Series(dtype=float))
 
 
+# the Saudi market's own Fear & Greed: Yahoo has no VIX, no bond funds and no TASI history for it, so it reads the market itself
+# (all the main-market companies, as one equal-weighted index) and gold and oil
+FG_PARTS_SA = {
+    "momentum": ("Market momentum", "زخم السوق", "trending_up",
+                 ("The Saudi market versus its 125-day average. Far above = greed.", "السوق السعودي مقارنة بمتوسطه لـ 125 يوماً. كلما ابتعد للأعلى = طمع.")),
+    "strength": ("Price strength", "قوة السعر", "fitness_center",
+                 ("Where the Saudi market sits between its 52-week low and high.", "موقع السوق السعودي بين أدنى وأعلى مستوى له خلال 52 أسبوعاً.")),
+    "breadth": ("Market breadth", "اتساع السوق", "groups",
+                ("The share of companies above their own 50-day average: are most stocks joining in?",
+                 "نسبة الشركات اللي فوق متوسطها لـ 50 يوماً: هل تشارك أغلب الأسهم في الحركة؟")),
+    "highs": ("New highs vs new lows", "القمم مقابل القيعان", "swap_vert",
+              ("Companies near their 52-week high minus those near their 52-week low.", "الشركات القريبة من قمتها السنوية ناقص القريبة من قاعها السنوي.")),
+    "volatility": ("Volatility", "التذبذب", "speed",
+                   ("How much the market swung over the last 20 days against the past year. Calm = greed, sharp swings = fear.",
+                    "قد إيش تذبذب السوق آخر 20 يوماً مقارنة بالسنة الماضية. الهدوء = طمع، والتقلب الحاد = خوف.")),
+    "haven": ("Safe-haven demand", "الطلب على الملاذ الآمن", "shield",
+              ("The Saudi market versus gold over 20 days. Gold winning = fear.", "السوق السعودي مقارنة بالذهب خلال 20 يوماً. تفوّق الذهب = خوف.")),
+    "oil": ("Oil", "النفط", "oil_barrel",
+            ("Brent crude over 20 days against the past year: a rising oil price lifts the Saudi market's mood.",
+             "خام برنت خلال 20 يوماً مقارنة بالسنة الماضية: ارتفاع النفط يرفع مزاج السوق السعودي.")),
+}
+
+
+@st.cache_data(ttl=1800, show_spinner=False)
+def fear_greed_sa():
+    """The Saudi market's Fear & Greed -> (index series 0-100, {part: {"score": series, "raw": latest}}, the market as one index)."""
+    cl = data.sa_closes("2y")
+    if cl.empty:
+        return pd.Series(dtype=float), {}, pd.Series(dtype=float)
+    g = data.sa_index(cl)
+    parts = {}
+    m = g / g.rolling(125).mean() - 1
+    parts["momentum"] = {"score": _pct_rank(m), "raw": float(m.dropna().iloc[-1] * 100) if m.notna().any() else np.nan}
+    lo, hi = g.rolling(252, min_periods=60).min(), g.rolling(252, min_periods=60).max()
+    pos = ((g - lo) / (hi - lo)).clip(0, 1) * 100
+    parts["strength"] = {"score": pos, "raw": float(pos.dropna().iloc[-1]) if pos.notna().any() else np.nan}
+    n_ok = cl.notna().sum(axis=1).replace(0, np.nan)
+    above = (cl > cl.rolling(50, min_periods=40).mean()).where(cl.notna()).sum(axis=1) / n_ok * 100
+    above = above.where(cl.rolling(50, min_periods=40).mean().notna().sum(axis=1) > 50)
+    parts["breadth"] = {"score": _pct_rank(above), "raw": float(above.dropna().iloc[-1]) if above.notna().any() else np.nan}
+    hi_ = (cl >= cl.rolling(252, min_periods=120).max() * 0.97).sum(axis=1)
+    lo_ = (cl <= cl.rolling(252, min_periods=120).min() * 1.03).sum(axis=1)
+    net = ((hi_ - lo_) / n_ok * 100).where(cl.rolling(252, min_periods=120).max().notna().sum(axis=1) > 50)
+    parts["highs"] = {"score": _pct_rank(net), "raw": float(net.dropna().iloc[-1]) if net.notna().any() else np.nan}
+    vol = g.pct_change().rolling(20).std() * np.sqrt(252) * 100
+    parts["volatility"] = {"score": _pct_rank(vol, invert=True), "raw": float(vol.dropna().iloc[-1]) if vol.notna().any() else np.nan}
+    px = data.history_many(("GC=F", "BZ=F"), "2y")
+    to_days = lambda sr: sr.reindex(g.index, method="ffill") if sr is not None and len(sr) else None
+    gold = to_days(px.get("GC=F", pd.DataFrame()).get("Close")) if px.get("GC=F") is not None else None
+    if gold is not None and gold.notna().sum() > 80:
+        h = (g.pct_change(20) - gold.pct_change(20)) * 100
+        parts["haven"] = {"score": _pct_rank(h), "raw": float(h.dropna().iloc[-1]) if h.notna().any() else np.nan}
+    oil = to_days(px.get("BZ=F", pd.DataFrame()).get("Close")) if px.get("BZ=F") is not None else None
+    if oil is not None and oil.notna().sum() > 80:
+        o = oil.pct_change(20) * 100
+        parts["oil"] = {"score": _pct_rank(o), "raw": float(o.dropna().iloc[-1]) if o.notna().any() else np.nan}
+    parts = {k: p for k, p in parts.items() if p["score"].notna().sum() > 20}
+    if not parts:
+        return pd.Series(dtype=float), {}, g
+    frame = pd.concat({k: p["score"] for k, p in parts.items()}, axis=1).sort_index()
+    idx = frame.mean(axis=1, skipna=True).dropna()
+    idx = idx[idx.index >= idx.index[-1] - pd.Timedelta(days=370)]
+    return idx, parts, g
+
+
+def _fg_raw_text_sa(k, v):
+    if v is None or pd.isna(v):
+        return "—"
+    if k == "momentum":
+        return L(f"The market is {v:+.1f}% vs its 125-day average", f"السوق عند {v:+.1f}% مقارنة بمتوسط 125 يوماً")
+    if k == "strength":
+        return L(f"{v:.0f}% of the way from its 52-week low to its high", f"عند {v:.0f}% من المسافة بين أدنى وأعلى مستوى في 52 أسبوعاً")
+    if k == "breadth":
+        return L(f"{v:.0f}% of the companies are above their 50-day average", f"{v:.0f}% من الشركات فوق متوسطها لـ 50 يوماً")
+    if k == "highs":
+        return L(f"Near highs minus near lows: {v:+.0f}% of the companies", f"القريبة من القمة ناقص القريبة من القاع: {v:+.0f}% من الشركات")
+    if k == "volatility":
+        return L(f"20-day volatility {v:.1f}% a year", f"تذبذب 20 يوماً {v:.1f}% سنوياً")
+    if k == "haven":
+        return L(f"Stocks vs gold: {v:+.2f} pts over 20 days", f"الأسهم مقابل الذهب: {v:+.2f} نقطة خلال 20 يوماً")
+    return L(f"Brent {v:+.1f}% over 20 days", f"برنت {v:+.1f}% خلال 20 يوماً")
+
+
 def _fg_raw_text(k, v):
     if v is None or pd.isna(v):
         return "—"
@@ -130,21 +214,29 @@ def _fg_box(v):
     return bg, fg, L(en, ar)
 
 
-def fg_now():
-    """Latest index value (or None) for other pages."""
+def fg_now(market=None):
+    """Latest index value (or None) for other pages (the page's market by default)."""
     try:
-        idx, _, _ = fear_greed()
+        idx, _, _ = fear_greed_sa() if (market or MK.current()) == MK.SA else fear_greed()
         return float(idx.iloc[-1]) if len(idx) else None
     except Exception:
         return None
 
 
 def page_sentiment():
-    ui.header("speed", "Fear & Greed Index", "مؤشر الخوف والطمع",
-              "Is the market driven by fear or by greed right now? Seven market signals combined into one score from 0 to 100.",
-              "هل يقود السوق الآن الخوف أم الطمع؟ سبع إشارات من السوق مجمّعة في درجة واحدة من 0 إلى 100.")
+    sa = MK.is_sa()
+    if sa:
+        ui.header("speed", "Fear & Greed Index · Saudi Market", "مؤشر الخوف والطمع · السوق السعودي",
+                  "Is the Saudi market driven by fear or by greed right now? Seven signals from the market itself, gold and oil, combined into "
+                  "one score from 0 to 100.",
+                  "هل يقود السوق السعودي الآن الخوف أم الطمع؟ سبع إشارات من السوق نفسه والذهب والنفط، مجمّعة في درجة واحدة من 0 إلى 100.")
+    else:
+        ui.header("speed", "Fear & Greed Index", "مؤشر الخوف والطمع",
+                  "Is the market driven by fear or by greed right now? Seven market signals combined into one score from 0 to 100.",
+                  "هل يقود السوق الآن الخوف أم الطمع؟ سبع إشارات من السوق مجمّعة في درجة واحدة من 0 إلى 100.")
+    parts_def, raw_txt = (FG_PARTS_SA, _fg_raw_text_sa) if sa else (FG_PARTS, _fg_raw_text)
     with st.spinner(L("Reading the market's mood...", "جاري قراءة مزاج السوق...")):
-        idx, parts, spx = fear_greed()
+        idx, parts, spx = fear_greed_sa() if sa else fear_greed()
     if idx.empty:
         st.warning(L("Market data for the index is not available right now. Please try again in a minute.",
                      "بيانات المؤشر غير متاحة حالياً. حاول مرة أخرى بعد دقيقة."), icon=":material/cloud_off:")
@@ -175,21 +267,37 @@ def page_sentiment():
         ui.html(f'<div class="card"><div class="muted" style="font-size:.75rem;font-weight:600;letter-spacing:.08em">{L("HOW THE MOOD CHANGED", "كيف تغيّر المزاج")}</div>'
                 f'<div class="fgcmp">{cells}</div><div style="margin-top:12px;line-height:1.8">{T.icon("psychology", T.CYAN)} {T.esc(read)}</div></div>')
     ui.chart(charts.fg_history(idx, L("Fear & Greed over the past year", "الخوف والطمع خلال السنة الماضية"),
-                               spx.reindex(idx.index).ffill() if len(spx) else None, (L("Fear & Greed", "الخوف والطمع"), "S&P 500")), key="fg_hist")
-    ui.sec("tune", "What's driving it: the 7 signals", "ما الذي يحركه: الإشارات السبع")
-    keys = [k for k in FG_PARTS if k in parts]
+                               spx.reindex(idx.index).ffill() if len(spx) else None,
+                               (L("Fear & Greed", "الخوف والطمع"), L("Saudi market (equal weight)", "السوق السعودي (أوزان متساوية)") if sa else "S&P 500")),
+             key="fg_hist")
+    ui.sec("tune", f"What's driving it: the {len(parts)} signals", f"ما الذي يحركه: الإشارات ({len(parts)})")
+    keys = [k for k in parts_def if k in parts]
     for i in range(0, len(keys), 4):
         cols = st.columns(4)
         for col, k in zip(cols, keys[i:i + 4]):
-            en, ar, ic, (xen, xar) = FG_PARTS[k]
+            en, ar, ic, (xen, xar) = parts_def[k]
             sc = parts[k]["score"].dropna()
             val = float(sc.iloc[-1]) if len(sc) else 50.0
             bg, fg, zl = _fg_box(val)
             col.markdown(f'<div class="fgc"><div class="h"><b>{T.icon(ic, "#79B8F4")} {T.esc(L(en, ar))}</b>'
                          f'<span class="pbox" style="background:{bg};color:{fg}">{val:.0f} · {T.esc(zl)}</span></div>'
-                         f'<div class="fgbar"><i style="left:{val:.1f}%"></i></div><div class="r">{T.esc(_fg_raw_text(k, parts[k]["raw"]))}</div>'
+                         f'<div class="fgbar"><i style="left:{val:.1f}%"></i></div><div class="r">{T.esc(raw_txt(k, parts[k]["raw"]))}</div>'
                          f'<div class="x">{T.esc(L(xen, xar))}</div></div>', unsafe_allow_html=True)
     with st.expander(L("How this index is calculated", "كيف يُحسب هذا المؤشر"), icon=":material/info:"):
+        if sa:
+            st.markdown(L("Each signal is compared with its own history over the past year and turned into a score from 0 (the most fearful reading "
+                          "of the year) to 100 (the greediest); the index is their average. The Saudi market here is all the main-market "
+                          "companies as one equal-weighted index (Yahoo keeps no history for TASI), and there is no volatility index or bond "
+                          "fund for it, so the signals come from the market itself (momentum, strength, breadth, new highs and lows, its own "
+                          "volatility), from gold (the safe haven) and from Brent crude. It is TURA's own reading, not an official index. "
+                          "Zones: 0–24 extreme fear · 25–44 fear · 45–55 neutral · 56–75 greed · 76–100 extreme greed.",
+                          "تُقارن كل إشارة بتاريخها خلال السنة الماضية وتتحول إلى درجة من 0 (أكثر قراءة خوفاً في السنة) إلى 100 (أكثرها طمعاً)، "
+                          "والمؤشر متوسطها. السوق السعودي هنا هو كل شركات السوق الرئيسية كمؤشر واحد بأوزان متساوية (ياهو ما يحتفظ بتاريخ تاسي)، "
+                          "وما فيه مؤشر تذبذب ولا صناديق سندات له، فالإشارات من السوق نفسه (الزخم، والقوة، والاتساع، والقمم والقيعان الجديدة، "
+                          "وتذبذبه)، ومن الذهب (الملاذ الآمن)، ومن خام برنت. هو قراءة TURA الخاصة وليس مؤشراً رسمياً. "
+                          "المناطق: 0–24 خوف شديد · 25–44 خوف · 45–55 محايد · 56–75 طمع · 76–100 طمع شديد."))
+            ui.foot()
+            return
         st.markdown(L("Each signal is compared with its own history over the past year and turned into a score from 0 (the most fearful reading of the "
                       "year) to 100 (the greediest). The index is the average of the available signals. It is inspired by the well-known CNN Fear & "
                       "Greed Index but calculated independently from free market data, so the numbers will not match it exactly. "
@@ -289,7 +397,173 @@ def _events():
     return out
 
 
+# ---------------------------------------------------------------- the Saudi market's brief
+BRIEF_TILES_SA = [("^TASI.SR", "TASI", "تاسي"), ("^NOMUC.SR", "Nomu", "نمو"), ("2222.SR", "Aramco", "أرامكو"), ("1120.SR", "Al Rajhi", "الراجحي"),
+                  ("1180.SR", "SNB", "الأهلي"), ("BZ=F", "Brent crude", "خام برنت"), ("CL=F", "WTI crude", "خام غرب تكساس"), ("GC=F", "Gold", "الذهب"),
+                  ("DX-Y.NYB", "US dollar index", "مؤشر الدولار"), ("BTC-USD", "Bitcoin", "بيتكوين")]
+
+
+def _headline_sa(tx, perf, oil):
+    if tx is None:
+        return "The Saudi market at a glance", "لمحة سريعة عن السوق السعودي"
+    if abs(tx) < 0.15:
+        en, ar = "Saudi stocks hold near the flat line", "الأسهم السعودية تتحرك قرب مستوى الإغلاق السابق"
+    elif tx >= 1.5:
+        en, ar = "Saudi stocks rally strongly", "الأسهم السعودية ترتفع بقوة"
+    elif tx >= 0.5:
+        en, ar = "Saudi stocks move higher", "الأسهم السعودية ترتفع"
+    elif tx > 0:
+        en, ar = "Saudi stocks edge higher", "الأسهم السعودية ترتفع بشكل طفيف"
+    elif tx <= -1.5:
+        en, ar = "Saudi stocks sell off sharply", "موجة بيع قوية في الأسهم السعودية"
+    elif tx <= -0.5:
+        en, ar = "Saudi stocks slip", "الأسهم السعودية تتراجع"
+    else:
+        en, ar = "Saudi stocks edge lower", "الأسهم السعودية تتراجع بشكل طفيف"
+    if perf:
+        best, worst = max(perf, key=perf.get), min(perf, key=perf.get)
+        if tx >= 0:
+            en += f" as {best} leads"
+            ar += f" بقيادة قطاع {M._sa_sector(best) if is_ar() else best}"
+        else:
+            en += f" as {worst} lags"
+            ar += f" مع ضعف قطاع {M._sa_sector(worst) if is_ar() else worst}"
+    if oil is not None and abs(oil) >= 1.5:
+        en += "; oil " + ("jumps" if oil > 0 else "slides")
+        ar += "، والنفط " + ("يقفز" if oil > 0 else "يتراجع")
+    return en, ar
+
+
+def _events_sa():
+    """The coming Saudi releases and SAMA's rates, and the big US ones, plus the Saudi companies reporting in the next days."""
+    import caldata as C
+    import mcal_sa
+    today = mcal_sa.today()
+    out = []
+    try:
+        ev = C.econ(today, today + timedelta(days=8), {"SA", "US"}, tz=mcal_sa.TZ)
+    except Exception:
+        ev = pd.DataFrame()
+    if not ev.empty:
+        now = pd.Timestamp.now(tz=mcal_sa.TZ)
+        ev = ev[(ev["Time"] >= now - pd.Timedelta(hours=2)) & ((ev["Region"] == "SA") | (ev["Stars"] >= 3))].head(10)
+        for r in ev.itertuples():
+            t = r.Time
+            day = (f"{DAYS_AR[t.weekday()]} {t.day}" if is_ar() else t.strftime("%a %b %d").replace(" 0", " "))
+            x = " · ".join(p for p in (f"{L('Exp.', 'متوقع')} {r.Expected}" if pd.notna(r.Expected) else "",
+                                       f"{L('Prior', 'سابق')} {r.Last}" if pd.notna(r.Last) else "") if p)
+            key = r.Stars >= 3
+            tm = "" if not (t.hour or t.minute) else f"<br>{t:%H:%M}"
+            out.append(f'<div class="evt{" key" if key else ""}"><div class="d">{day}{tm}</div><div class="n">'
+                       + (T.icon("local_fire_department", "#F5B94A") + " " if key else "") + f'{T.esc(r.Region)} · {T.esc(r.Event)}</div>'
+                       f'<div class="x">{T.esc(x)}</div></div>')
+    try:
+        er = C.earnings_sa(today, today + timedelta(days=8))
+    except Exception:
+        er = pd.DataFrame()
+    import tasi
+    for r in er.head(8).itertuples():
+        day = (f"{DAYS_AR[r.Date.weekday()]} {r.Date.day}" if is_ar() else r.Date.strftime("%a %b %d").replace(" 0", " "))
+        out.append(f'<div class="evt"><div class="d">{day}</div><div class="n">{T.icon("request_quote", "#79B8F4")} '
+                   f'{T.esc(tasi.name_of(r.Symbol, is_ar()) or r.Company)} · {L("earnings", "النتائج")}</div>'
+                   f'<div class="x">{T.esc(L("EPS est.", "الربحية المتوقعة") + " " + format(r.Est, ".2f")) if pd.notna(r.Est) else ""}</div></div>')
+    return out
+
+
+def page_brief_sa():
+    ui.header("summarize", "Daily Market Brief · Saudi Market", "الموجز اليومي · السوق السعودي",
+              "Everything that matters for the Saudi market today in one minute: the numbers, the stories that moved it and what to watch next.",
+              "كل ما يهمك عن السوق السعودي اليوم في دقيقة: الأرقام، والأخبار اللي حركته، وما تتابعه لاحقاً.")
+    px = M._tile_prices()
+    last = lambda s_: M._last(px, s_)
+    tx, nm_ = last("^TASI.SR")[2], last("^NOMUC.SR")[2]
+    mv = data.sa_moves()
+    perf = {}
+    if not mv.empty:
+        perf = {k: float(v) for k, v in mv.groupby("Sector")["Chg %"].mean().dropna().items() if k}
+    oil = last("BZ=F")[2]
+    fg = fg_now()
+    en, ar = _headline_sa(tx, perf, oil)
+    bullets = []
+    idx_parts = [(a_, b_, v_) for a_, b_, v_ in (("TASI", "تاسي", tx), ("Nomu", "نمو", nm_)) if v_ is not None]
+    if idx_parts:
+        bullets.append((" · ".join(f"{a_} {v_:+.2f}%" for a_, _, v_ in idx_parts) + ".", " · ".join(f"{b_} {v_:+.2f}%" for _, b_, v_ in idx_parts) + "."))
+    if not mv.empty:
+        adv = (mv["Chg %"] > 0).mean() * 100
+        val = float(mv["Value"].sum())
+        bullets.append((f"Breadth: {adv:.0f}% of the {len(mv)} main-market companies are up · traded value SAR {T.fmt_big(val)}.",
+                        f"اتساع السوق: {adv:.0f}% من {len(mv)} شركة في السوق الرئيسية صاعدة · قيمة التداول {T.fmt_big(val)} ريال."))
+    if perf:
+        b_, w_ = max(perf, key=perf.get), min(perf, key=perf.get)
+        bullets.append((f"Best sector: {b_} ({perf[b_]:+.2f}%). Weakest: {w_} ({perf[w_]:+.2f}%).",
+                        f"أفضل قطاع: {M._sa_sector(b_)} ({perf[b_]:+.2f}%)، والأضعف: {M._sa_sector(w_)} ({perf[w_]:+.2f}%)."))
+    gold, usd_ = last("GC=F"), last("DX-Y.NYB")
+    if oil is not None:
+        bullets.append((f"Brent {oil:+.2f}% · Gold {(gold[2] or 0):+.2f}% · US dollar index {(usd_[2] or 0):+.2f}%.",
+                        f"برنت {oil:+.2f}% · الذهب {(gold[2] or 0):+.2f}% · مؤشر الدولار {(usd_[2] or 0):+.2f}%."))
+    liq = mv[mv["Value"] >= M.SA_LIQUID] if not mv.empty else mv
+    if not liq.empty:
+        g_, l_ = liq.sort_values("Chg %").iloc[-1], liq.sort_values("Chg %").iloc[0]
+        bullets.append((f"Biggest gainer: {g_['Name']} ({g_['Chg %']:+.1f}%). Biggest loser: {l_['Name']} ({l_['Chg %']:+.1f}%).",
+                        f"الأكثر ارتفاعاً: {g_['NameAr']} ({g_['Chg %']:+.1f}%)، والأكثر انخفاضاً: {l_['NameAr']} ({l_['Chg %']:+.1f}%)."))
+    mood = ""
+    if fg is not None:
+        bg, fgc, zl = _fg_box(fg)
+        mood = f'<span class="mood" style="background:{bg};color:{fgc}">{T.icon("speed")} {L("Fear & Greed", "الخوف والطمع")} {fg:.0f} · {T.esc(zl)}</span>'
+    ui.html(f'<div class="brief{" rtl" if is_ar() else ""}"><div class="eyebrow">{T.icon("event")} {T.esc(_today_line())} {T.market_status(is_ar())} {mood}</div>'
+            f'<div class="hl">{T.esc(L(en, ar))}</div><ul>' + "".join(f"<li>{T.esc(L(a, b))}</li>" for a, b in bullets) + "</ul></div>")
+    items = []
+    for sym, nen, nar in BRIEF_TILES_SA:
+        p, chg, pct = last(sym)
+        if p is None:
+            continue
+        items.append(T.tile(L(nen, nar), T.fmt_price(p), chg, pct, px[sym]["Close"].tail(22).values))
+    ui.html(T.tiles(items))
+    c1, c2 = st.columns([1.35, 1])
+    with c1:
+        ui.sec("bolt", "What moved the market", "ما الذي حرّك السوق")
+        stories = ui.safe(M.top_stories, 6) or []
+        if stories:
+            ui.html(f'<div class="card" style="padding:6px 14px">{_story_rows(stories, None)}</div>')
+            st.page_link(ui.PAGES["news"], label=L("All Saudi news with importance scores", "كل أخبار السوق السعودي مع درجات الأهمية"),
+                         icon=":material/arrow_forward:")
+        else:
+            st.caption(L("No headlines available right now.", "لا توجد أخبار متاحة حالياً."))
+    with c2:
+        ui.sec("donut_small", "Sector scoreboard", "لوحة القطاعات")
+        if perf:
+            names = sorted(perf, key=perf.get, reverse=True)
+            ui.chart(charts.hbar([M._sa_sector(s_) for s_ in names], [perf[s_] for s_ in names],
+                                 L("Sectors today (average move of their companies)", "القطاعات اليوم (متوسط حركة شركاتها)"), height=420), key="br_sec_sa")
+    if not liq.empty:
+        ui.sec("leaderboard", "Biggest movers", "الأكثر حركة")
+        srt = liq.sort_values("Chg %").assign(Name=lambda d_: d_["NameAr"] if is_ar() else d_["Name"])
+        lg = data.logos(list(srt["Symbol"].head(5)) + list(srt["Symbol"].tail(5)))
+        a, b = st.columns(2)
+        a.markdown(f'<div class="mcard"><div class="hd">{T.icon("trending_up")}<span>{L("Top gainers", "الأكثر ارتفاعاً")}</span></div>'
+                   f'{ui.row_list(srt.tail(5).iloc[::-1], lg)}</div>', unsafe_allow_html=True)
+        b.markdown(f'<div class="mcard"><div class="hd">{T.icon("trending_down")}<span>{L("Top losers", "الأكثر انخفاضاً")}</span></div>'
+                   f'{ui.row_list(srt.head(5), lg)}</div>', unsafe_allow_html=True)
+    ui.sec("event_upcoming", "What to watch next", "ماذا تتابع لاحقاً")
+    ev = ui.safe(_events_sa) or []
+    if ev:
+        ui.html("".join(ev))
+        st.caption(L("Saudi releases and SAMA's rates, the big US releases (the riyal is pegged to the dollar) and the Saudi companies expected "
+                     "to report. Times are Riyadh time.",
+                     "البيانات السعودية وأسعار فائدة ساما، والبيانات الأمريكية الكبيرة (الريال مربوط بالدولار)، والشركات السعودية المتوقع تعلن "
+                     "نتائجها. الأوقات بتوقيت الرياض."))
+    else:
+        st.caption(L("The calendar is not available right now.", "التقويم غير متاح حالياً."))
+    a, b, c = st.columns(3)
+    a.page_link(ui.PAGES["sentiment"], label=L("Fear & Greed index", "مؤشر الخوف والطمع"), icon=":material/speed:", width="stretch")
+    b.page_link(ui.PAGES["econcal"], label=L("Economic calendar", "التقويم الاقتصادي"), icon=":material/event_note:", width="stretch")
+    c.page_link(ui.PAGES["earnings"], label=L("Earnings calendar", "مواعيد الأرباح"), icon=":material/event_upcoming:", width="stretch")
+    ui.foot()
+
+
 def page_brief():
+    if MK.is_sa():
+        return page_brief_sa()
     ui.header("summarize", "Daily Market Brief", "الموجز اليومي للسوق",
               "Everything that matters today in one minute: the numbers, the stories that moved the market and what to watch next.",
               "كل ما يهمك اليوم في دقيقة: الأرقام، والأخبار التي حركت السوق، وما يجب متابعته لاحقاً.")
@@ -593,6 +867,13 @@ def page_articles():
 SEAS = {"^GSPC": ("S&P 500", "إس آند بي 500"), "^IXIC": ("Nasdaq Composite", "ناسداك المركب"), "^DJI": ("Dow Jones", "داو جونز"),
         "^RUT": ("Russell 2000", "راسل 2000"), "GC=F": ("Gold", "الذهب"), "CL=F": ("WTI crude oil", "نفط غرب تكساس"), "BTC-USD": ("Bitcoin", "بيتكوين"),
         "other": ("Another symbol…", "رمز آخر…")}
+# the Saudi market: Yahoo keeps no history for TASI, so the market is the funds that hold it (KSA since 2015, Falcom's Saudi
+# equity ETF on Tadawul since 2012), then the biggest companies and what moves the Saudi economy
+SEAS_SA = {"KSA": ("Saudi market (MSCI Saudi Arabia, KSA)", "السوق السعودي (MSCI السعودية، KSA)"),
+           "9400.SR": ("Saudi equity ETF (9400, since 2012)", "صندوق الأسهم السعودية المتداول (9400، منذ 2012)"),
+           "2222.SR": ("Saudi Aramco", "أرامكو السعودية"), "1120.SR": ("Al Rajhi Bank", "مصرف الراجحي"), "2010.SR": ("SABIC", "سابك"),
+           "7010.SR": ("STC", "اس تي سي"), "1180.SR": ("Saudi National Bank", "البنك الأهلي السعودي"),
+           "BZ=F": ("Brent crude", "خام برنت"), "GC=F": ("Gold", "الذهب"), "other": ("Another Saudi company…", "شركة سعودية أخرى…")}
 
 
 def seasonality(close, years):
@@ -626,15 +907,31 @@ def seasonality(close, years):
 
 
 def page_seasonality():
-    ui.header("calendar_month", "Seasonality", "الموسمية",
-              "How markets have behaved in each month of the year: average returns, how often each month was positive, and the typical path of a year.",
-              "كيف تصرفت الأسواق في كل شهر من السنة: متوسط العائد، وكم مرة كان الشهر إيجابياً، والمسار المعتاد للسنة.")
+    sa = MK.is_sa()
+    seas = SEAS_SA if sa else SEAS
+    if sa:
+        ui.header("calendar_month", "Seasonality · Saudi Market", "الموسمية · السوق السعودي",
+                  "How the Saudi market, its biggest companies, oil and gold have behaved in each month of the year: average returns, how often "
+                  "each month was positive, and the typical path of a year.",
+                  "كيف تصرف السوق السعودي وأكبر شركاته والنفط والذهب في كل شهر من السنة: متوسط العائد، وكم مرة كان الشهر إيجابياً، والمسار المعتاد للسنة.")
+    else:
+        ui.header("calendar_month", "Seasonality", "الموسمية",
+                  "How markets have behaved in each month of the year: average returns, how often each month was positive, and the typical path of a year.",
+                  "كيف تصرفت الأسواق في كل شهر من السنة: متوسط العائد، وكم مرة كان الشهر إيجابياً، والمسار المعتاد للسنة.")
     c1, c2, c3 = st.columns([1.3, 1, 1.3], vertical_alignment="bottom")
-    pick = c1.selectbox(L("Market", "السوق"), list(SEAS), key="se_sym", format_func=lambda k: L(*SEAS[k]))
+    pick = c1.selectbox(L("Market", "السوق"), list(seas), key="se_sym_sa" if sa else "se_sym", format_func=lambda k: L(*seas[k]))
     sym = pick
-    if pick == "other":
+    if pick == "other" and sa:
+        import tasi
+        raw = (c2.text_input(L("Company code or name", "رمز الشركة أو اسمها"), "2222", key="se_other_sa") or "2222").strip().upper()
+        sym = f"{raw}.SR" if raw.isdigit() and len(raw) == 4 else (tasi.search(raw) or [raw if raw.endswith(".SR") else "2222.SR"])[0]
+    elif pick == "other":
         sym = (c2.text_input(L("Symbol", "الرمز"), "AAPL", key="se_other") or "AAPL").strip().upper()
-    years = c3.segmented_control(L("History", "المدة"), [10, 20, 30], default=20, key="se_yrs", format_func=lambda y: L(f"{y} years", f"{y} سنة")) or 20
+    if sa:      # the Saudi histories are shorter: KSA from 2015, the biggest companies from 2010 (Aramco from its listing in Dec 2019)
+        years = c3.segmented_control(L("History", "المدة"), [5, 10, 15], default=10, key="se_yrs_sa",
+                                     format_func=lambda y: L(f"{y} years", f"{y} سنوات" if y <= 10 else f"{y} سنة")) or 10
+    else:
+        years = c3.segmented_control(L("History", "المدة"), [10, 20, 30], default=20, key="se_yrs", format_func=lambda y: L(f"{y} years", f"{y} سنة")) or 20
     with st.spinner(L("Crunching the history...", "جاري تحليل التاريخ...")):
         df = data.history(sym, "max")
     if df.empty or len(df) < 300:
@@ -666,7 +963,17 @@ def page_seasonality():
     if mtd is not None:
         k[3].markdown(T.kpi("today", L(f"{mon[now_m - 1]} so far", f"{mon[now_m - 1]} حتى الآن"), f"{mtd:+.2f}%",
                             L("this month to date", "منذ بداية الشهر"), T.cls(mtd)), unsafe_allow_html=True)
-    name = L(*SEAS[pick]) if pick != "other" else sym
+    if pick != "other":
+        name = L(*seas[pick])
+    elif sa:
+        import tasi
+        name = tasi.name_of(sym, is_ar()) or sym
+    else:
+        name = sym
+    span = (df.index[-1] - df.index[0]).days / 365.25
+    if span < years - 0.5:
+        st.caption(L(f"Only {span:.0f} years of history are available for {name}: the averages cover those years.",
+                     f"المتاح من التاريخ لـ {name} هو {span:.0f} سنوات فقط، والمتوسطات محسوبة عليها."))
     ui.chart(charts.season_bars(mon, [float(x) for x in st_["avg"]], [float(x) for x in st_["win"]], now_m - 1,
                                 L(f"{name}: average return by month (last {years} years)", f"{name}: متوسط العائد لكل شهر (آخر {years} سنة)"),
                                 (L("Average return", "متوسط العائد"), L("Positive years", "السنوات الإيجابية"))), key="se_bars")
@@ -680,7 +987,12 @@ def page_seasonality():
     with b:
         ui.chart(charts.monthly_heatmap(recent, L("Monthly returns, recent years", "العوائد الشهرية في السنوات الأخيرة"), months=mon), key="se_heat")
     ui.html(f'<div class="anote">{T.icon("lightbulb")}<span>{T.esc(L("Seasonality shows tendencies, not guarantees: a month that was positive 70% of the time was still negative in 3 years out of 10. Use it as context next to trend, valuation and news, never as a trading signal on its own.", "الموسمية تُظهر ميولاً وليست ضمانات: الشهر الذي كان إيجابياً 70% من الوقت كان سلبياً في 3 سنوات من كل 10. استخدمها كسياق بجانب الاتجاه والتقييم والأخبار، وليس كإشارة تداول وحدها."))}</span></div>')
+    if sa:
+        st.caption(L("KSA is the iShares MSCI Saudi Arabia ETF, priced in dollars; the riyal is pegged to the dollar, so its moves are the Saudi "
+                     "market's. Months follow the Gregorian calendar, so Ramadan and the Eid holidays fall in a different month each year.",
+                     "KSA هو صندوق iShares MSCI السعودية المتداول، مسعّر بالدولار، والريال مربوط بالدولار فحركته هي حركة السوق السعودي. الأشهر "
+                     "ميلادية، لذلك رمضان والأعياد تقع في شهر مختلف كل سنة."))
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.0"
+BUILD = "22.1"

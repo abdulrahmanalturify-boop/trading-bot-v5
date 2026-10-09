@@ -19,10 +19,15 @@ URL = f"http://localhost:{PORT}"
 os.makedirs(OUT, exist_ok=True)
 
 # (name, path, market) - each page opened fresh with ?m=<market>&lang=<lang>
-PAGES = [("news", "news", "sa"), ("stock", "stock?symbol=2222.SR", "sa"), ("screener", "screener", "sa"), ("scanner", "scanner", "sa"),
-         ("paper", "paper-bots", "sa"), ("pf_trade", "portfolio-trade", "sa"), ("pf_dash", "portfolio", "sa"),
-         ("pf_analytics", "portfolio-analytics", "sa"), ("pf_history", "portfolio-history", "sa"), ("futures_sa", "futures", "sa"),
-         ("brief_sa", "brief", "sa"), ("us_paper", "paper-bots", "us"), ("us_stock", "stock?symbol=AAPL", "us"), ("us_pf_dash", "portfolio", "us")]
+PAGES = [("news", "news", "sa"), ("stock", "stock?symbol=2222.SR", "sa"), ("paper", "paper-bots", "sa"), ("pf_dash", "portfolio", "sa"),
+         # 22.1: the Discover, Insight and Calendar pages and the Robo Advisor in the Saudi market
+         ("trending", "trending", "sa"), ("newsintel", "news-intelligence", "sa"), ("brief", "brief", "sa"), ("sentiment", "sentiment", "sa"),
+         ("seasonality", "seasonality", "sa"), ("articles", "articles", "sa"), ("earnings", "earnings-calendar", "sa"),
+         ("results", "earnings-results", "sa"), ("econcal", "economic-calendar", "sa"), ("holidays", "market-holidays", "sa"),
+         ("dividends", "dividend-calendar", "sa"), ("splits", "stock-splits", "sa"), ("robo", "robo-advisor", "sa"), ("ipos_sa", "ipo-calendar", "sa"),
+         # the US versions of the pages that changed
+         ("us_newsintel", "news-intelligence", "us"), ("us_brief", "brief", "us"), ("us_seasonality", "seasonality", "us"),
+         ("us_splits", "stock-splits", "us"), ("us_robo", "robo-advisor", "us")]
 
 
 def log(*a):

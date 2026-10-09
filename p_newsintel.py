@@ -16,8 +16,10 @@ import streamlit as st
 
 import data
 import lightmode as LM
+import markets as MK
 import newsintel as NI
 import newsiq
+import tasi
 import theme as T
 import ui
 import universe as U
@@ -443,15 +445,44 @@ def _sent_txt(lab):
     return f"{arrow} {L(en, ar)}"
 
 
+# ---------------------------------------------------------------- the page's market (the Saudi market reads its own news on KSA)
+def _bench():
+    return "KSA" if MK.is_sa() else "SPY"
+
+
+def _tk(sym):
+    """How a company shows in a chip: its ticker (a Saudi company: its short name, as Saudi readers know it)."""
+    if str(sym).endswith(".SR"):
+        nm = tasi.name_of(sym, is_ar()) or sym
+        return nm if len(nm) <= 22 else nm[:21] + "…"
+    return sym
+
+
+def _secn(sec):
+    return L(sec, SECTOR_AR.get(sec) or tasi.sector_ar(sec))
+
+
+def _subn(sym, sub):
+    """A company's industry in the page's language (the Saudi industry groups have Arabic names)."""
+    return tasi.industry_ar(sub) if sub and is_ar() and str(sym).endswith(".SR") else (sub or "")
+
+
+def _money(x):
+    return MK.money(x, dec=2)
+
+
 def _stock_txt(a):
-    return ", ".join(a["direct"][:3]) if a["direct"] else L("Market (SPY)", "السوق (SPY)")
+    if a["direct"]:
+        return ", ".join(_tk(s_) for s_ in a["direct"][:3])
+    return L("Saudi market (KSA)", "السوق السعودي (KSA)") if a.get("sa") else L("Market (SPY)", "السوق (SPY)")
 
 
 def _ny_time(ts):
+    """The time in the page's market (New York, or Riyadh on the Saudi page)."""
     try:
         t = pd.Timestamp(ts)
         t = t.tz_localize("UTC") if t.tzinfo is None else t
-        return t.tz_convert("America/New_York").strftime("%m/%d %H:%M")
+        return t.tz_convert(MK.tz()).strftime("%m/%d %H:%M")
     except Exception:
         return ""
 
@@ -519,7 +550,8 @@ def _engine_summary(a):
 
 # ---------------------------------------------------------------- page
 def _pipeline(n_items, n_co, n_macro, n_setups):
-    steps = [("rss_feed", ("Sources", "المصادر"), ("35 feeds + Yahoo Finance", "35 مصدر + ياهو فاينانس")),
+    src = (("Saudi feeds, Arabic and English", "مصادر سعودية بالعربي والإنجليزي") if MK.is_sa() else ("35 feeds + Yahoo Finance", "35 مصدر + ياهو فاينانس"))
+    steps = [("rss_feed", ("Sources", "المصادر"), src),
              ("filter_alt", ("Filter", "الفلترة"), ("duplicates merged, opinion pieces marked", "دمج المكرر وتمييز مقالات الرأي")),
              ("psychology", ("Understand", "الفهم"), (f"{n_items} stories: event, sentiment, materiality", f"{n_items} خبر: الحدث والاتجاه والأهمية")),
              ("hub", ("Link companies", "ربط الشركات"), (f"{n_co} with companies, direct and indirect", f"{n_co} مع شركات، مباشرة وغير مباشرة")),
@@ -635,7 +667,7 @@ def _detail(a, chg, sec_chg, titles_ar, dfm=None):
     title = (titles_ar.get(n["title"]) if ar and titles_ar else None) or n["title"]
     en_ev, ar_ev, ic, hz = NI.EVENT.get(a["event"], NI.EVENT["other"])
     sen, sar, scol = NI.SENT[a["lab"]]
-    who = a["direct"][0] if a["direct"] else "SPY"
+    who = _tk(a["direct"][0]) if a["direct"] else _bench()
     imp_word = {"bull": ("Positive Impact", "أثر إيجابي"), "bear": ("Negative Impact", "أثر سلبي"), "neutral": ("Neutral Impact", "أثر محايد")}[a["lab"]]
     tags = (f'<span class="nie-tag" style="color:{scol};border-color:{scol}55;background:{scol}14">{T.esc(who)} — {T.esc(L(*imp_word))}</span>'
             f'<span class="nie-tag" style="color:#C4B5FD;border-color:#C4B5FD44;background:#7C3AED14">{T.icon(ic)}{T.esc(L(en_ev, ar_ev))}</span>')
@@ -645,16 +677,17 @@ def _detail(a, chg, sec_chg, titles_ar, dfm=None):
             f'{T.time_ago(n["time"], ar) if pd.notna(n.get("time")) else ""}</div><div class="hd">{tags}</div></div></div>')
     ui.html(_verdict(a))
     # the facts, as in a research note
-    secs = " / ".join(dict.fromkeys(x for sec, sub in a["sectors"] for x in (L(sec, SECTOR_AR.get(sec, sec)), sub) if x))
+    main_ = a["direct"][0] if a["direct"] else ""
+    secs = " / ".join(dict.fromkeys(x for sec, sub in a["sectors"] for x in (_secn(sec), _subn(main_, sub)) if x))
     if not secs and a["macro"]:                    # macro news: the sectors it usually helps and hurts most
         eff = a["macro"][3]
-        nm = lambda sec: L(sec, SECTOR_AR.get(sec, sec))
+        nm = _secn
         up = [nm(k) for k, e in sorted(eff.items(), key=lambda x: -x[1]) if e >= 1][:3]
         dn = [nm(k) for k, e in sorted(eff.items(), key=lambda x: x[1]) if e <= -1][:2]
         secs = " · ".join(([L("Helped: ", "يستفيد: ") + "، ".join(up) if is_ar() else "Helped: " + ", ".join(up)] if up else [])
                           + ([L("Hurt: ", "يتضرر: ") + "، ".join(dn) if is_ar() else "Hurt: " + ", ".join(dn)] if dn else []))
     secs = secs or L("The whole market", "السوق كله")
-    rel = ", ".join(a["indirect"][:5]) or "—"
+    rel = ", ".join(_tk(s_) for s_ in a["indirect"][:5]) or "—"
     fa = a["facts"] or {}
     if a["moved_before"] is None:
         mb = L("Not known (no prices before it)", "غير معروف (ما فيه أسعار قبله)")
@@ -760,13 +793,13 @@ def _tab_stocks(a, chg):
     rows = []
     for kind, cls, syms in ((L("Direct", "مباشر"), "dir", a["direct"]), (L("Indirect", "غير مباشر"), "ind", a["indirect"])):
         for sym in syms:
-            name, sec, sub = NI.company(sym)
+            name, sec, sub = NI.company(sym, is_ar())
             c = chg.get(sym)
-            secn = L(sec, SECTOR_AR.get(sec, sec)) if sec else ""
+            secn = _secn(sec) if sec else ""
             rows.append(f'<a class="nx-row" href="stock?symbol={T.esc(sym)}" target="_self">{T.logo_obj(sym, 36)}'
-                        f'<div style="min-width:0"><div class="tk">{T.esc(sym)}</div><div class="nm" dir="auto">{T.esc(name)}</div></div>'
+                        f'<div style="min-width:0"><div class="tk"><bdi>{T.esc(sym)}</bdi></div><div class="nm" dir="auto">{T.esc(name)}</div></div>'
                         f'<span class="nx-badge {cls}">{T.esc(kind)}</span>'
-                        f'<div class="sc">{T.esc(secn)}<span>{T.esc(sub or "")}</span></div>{T.pill(c[1] if c else None)}</a>')
+                        f'<div class="sc">{T.esc(secn)}<span>{T.esc(_subn(sym, sub))}</span></div>{T.pill(c[1] if c else None)}</a>')
     if rows:
         ui.html(f'<div class="nx-list">{"".join(rows)}</div>')
         ui.html(_note(L("Direct: named in the story. Indirect: suppliers, customers and closest rivals the site knows, then the largest "
@@ -790,11 +823,11 @@ def _tab_impact(a, sec_chg):
     if a["macro"]:
         key_, en_m, ar_m, eff = a["macro"]
         ui.html(f'<div class="nx-h">{T.icon("public")}{T.esc(L(f"{en_m}: how each sector usually takes it, and how it moved today", f"{ar_m}: كيف يتأثر كل قطاع عادةً، وكيف تحرك اليوم"))}</div>')
-        etf_of = {v: k for k, v in U.SECTOR_ETFS.items()}
+        etf_of = {} if a.get("sa") else {v: k for k, v in U.SECTOR_ETFS.items()}
         rows = []
         for sec, e in sorted(eff.items(), key=lambda x: -x[1]):
             etf = etf_of.get(sec)
-            c = sec_chg.get(etf) if etf else None
+            c = sec_chg.get(sec) if a.get("sa") else sec_chg.get(etf) if etf else None
             w = abs(e) / 2 * 50
             bar = (f'<i style="left:50%;width:{w:.0f}%;background:linear-gradient(90deg,#22C55E88,#4ADE80)"></i>' if e > 0 else
                    f'<i style="left:{50 - w:.0f}%;width:{w:.0f}%;background:linear-gradient(90deg,#F87171,#EF444488)"></i>' if e < 0 else "")
@@ -804,11 +837,16 @@ def _tab_impact(a, sec_chg):
                 ok_ = f'<span class="nx-ok y">✓ {T.esc(L("as usual", "مثل العادة"))}</span>'
             else:
                 ok_ = f'<span class="nx-ok n">✗ {T.esc(L("not today", "مو اليوم"))}</span>'
-            rows.append(f'<div class="nx-sec"><span class="n">{T.esc(L(sec, SECTOR_AR.get(sec, sec)))}</span><div class="nx-div">{bar}</div>'
+            rows.append(f'<div class="nx-sec"><span class="n">{T.esc(_secn(sec))}</span><div class="nx-div">{bar}</div>'
                         f'<span class="e">{T.esc(etf or "")}</span>{T.pill(c[1] if c else None)}{ok_}</div>')
         ui.html(f'<div class="nx-list">{"".join(rows)}</div>')
-        ui.html(_note(L("The bar is a rule of thumb of how the sector usually reacts (left hurt, right helped); the change is its sector fund today.",
-                        "الشريط قاعدة عامة لتفاعل القطاع عادةً (يسار يتضرر، يمين يستفيد)، والنسبة حركة صندوق القطاع اليوم."), "info"))
+        if a.get("sa"):
+            ui.html(_note(L("The bar is a rule of thumb of how the Saudi sector usually reacts (left hurt, right helped); the change is the "
+                            "average move of its companies today.",
+                            "الشريط قاعدة عامة لتفاعل القطاع السعودي عادةً (يسار يتضرر، يمين يستفيد)، والنسبة متوسط حركة شركاته اليوم."), "info"))
+        else:
+            ui.html(_note(L("The bar is a rule of thumb of how the sector usually reacts (left hurt, right helped); the change is its sector fund today.",
+                            "الشريط قاعدة عامة لتفاعل القطاع عادةً (يسار يتضرر، يمين يستفيد)، والنسبة حركة صندوق القطاع اليوم."), "info"))
     elif a["direct"]:
         ui.html(_note(L("The story's weight on the stock is its impact score; the related companies usually move less, in the same direction.",
                         "وزن الخبر على السهم هو درجة الأثر، والشركات المرتبطة غالباً تتحرك أقل وبنفس الاتجاه."), "info"))
@@ -822,18 +860,19 @@ def _price_fig(df, when, sym, d):
         return None
     try:
         t = pd.Timestamp(when)
-        t = (t.tz_localize("UTC") if t.tzinfo is None else t).tz_convert("America/New_York").tz_localize(None).normalize()
+        t = (t.tz_localize("UTC") if t.tzinfo is None else t).tz_convert(MK.tz()).tz_localize(None).normalize()
     except Exception:
         t = c.index[-1]
     idx = c.index.tz_localize(None) if getattr(c.index, "tz", None) is not None else c.index
     pos = min(int(idx.searchsorted(t)), len(c) - 1)
     col = "#4ADE80" if d > 0 else "#F87171" if d < 0 else "#A78BFA"
     fill = "rgba(74,222,128,.10)" if d > 0 else "rgba(248,113,113,.10)" if d < 0 else "rgba(167,139,250,.10)"
+    cur = "" if str(sym).endswith(".SR") else "$"            # a Saudi price is in riyals (the axis says nothing, the page does)
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=idx, y=c.values, mode="lines", line=dict(color=col, width=2.2), fill="tozeroy", fillcolor=fill,
-                             hovertemplate="%{x|%b %d}<br>$%{y:,.2f}<extra></extra>", name=sym))
+                             hovertemplate="%{x|%b %d}<br>" + cur + "%{y:,.2f}<extra></extra>", name=sym))
     fig.add_trace(go.Scatter(x=[idx[pos]], y=[c.values[pos]], mode="markers", marker=dict(size=12, color="#FFFFFF", line=dict(color=col, width=3)),
-                             hovertemplate=L("The news", "الخبر") + "<br>%{x|%b %d}: $%{y:,.2f}<extra></extra>", showlegend=False))
+                             hovertemplate=L("The news", "الخبر") + "<br>%{x|%b %d}: " + cur + "%{y:,.2f}<extra></extra>", showlegend=False))
     fig.add_vline(x=idx[pos], line=dict(color="rgba(253,230,138,.7)", width=1.5, dash="dot"))
     fig.add_annotation(x=idx[pos], y=1, yref="paper", text=L("the news", "الخبر"), showarrow=False, yanchor="bottom",
                        font=dict(color="#FDE68A", size=11), bgcolor="rgba(14,9,24,.7)")
@@ -842,7 +881,7 @@ def _price_fig(df, when, sym, d):
     fig.update_layout(height=230, margin=dict(l=8, r=8, t=26, b=8), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
                       showlegend=False, hovermode="x unified", font=dict(color="#CFC8DA", size=11),
                       xaxis=dict(showgrid=False, tickformat="%b %d", color="#8F899B"),
-                      yaxis=dict(range=[lo - pad, hi + pad], gridcolor="rgba(157,151,165,.12)", tickprefix="$", color="#8F899B", side="right"))
+                      yaxis=dict(range=[lo - pad, hi + pad], gridcolor="rgba(157,151,165,.12)", tickprefix=cur, color="#8F899B", side="right"))
     return fig
 
 
@@ -852,7 +891,8 @@ def _tab_tech(a, dfm=None):
         fig = _price_fig(dfm, a["n"].get("time"), a["main"], a["dir"])
         if fig is not None:
             main = a["main"]
-            ui.html(f'<div class="nx-h">{T.icon("show_chart")}{T.esc(L(f"{main}: the price around the story", f"{main}: السعر حول الخبر"))}</div>')
+            mn = _tk(main)
+            ui.html(f'<div class="nx-h">{T.icon("show_chart")}{T.esc(L(f"{mn}: the price around the story", f"{mn}: السعر حول الخبر"))}</div>')
             ui.chart(fig, key="nie_px_" + _sid(a))
     if not fa:
         ui.html(_note(L("No prices for this stock right now.", "ما فيه أسعار لهالسهم الحين."), "hourglass_empty"))
@@ -889,7 +929,7 @@ def _price_map(p):
     up = p["dir"] > 0
     span = p["target"] - p["stop"]
     pos = lambda x: max(2.0, min(98.0, (x - p["stop"]) / span * 100)) if span else 50.0
-    fmt = lambda x: f"${x:,.2f}"
+    fmt = _money
     iso = lambda x: f"\u2066{x}\u2069"                     # a number in a note keeps its sign on the right side in Arabic
     stop_, tgt_, trg_, now_ = fmt(p["stop"]), fmt(p["target"]), fmt(p["trigger"]), fmt(p["price"])
     s_, t_, g_ = iso(stop_), iso(tgt_), iso(trg_)
@@ -922,20 +962,32 @@ def _price_map(p):
            f'<i class="cn"></i><span class="lb">{L("Now", "الحين")} <b>{now_}</b></span></div></div>')
     head = (f'<div class="hd"><div class="t">{T.icon("route")}{L("Trade map", "خريطة الصفقة")}</div>'
             f'<span class="rr">{L("Reward : risk", "العائد : المخاطرة")} <b><bdi dir="ltr">{rr:.1f} : 1</bdi></b></span></div>')
-    foot = (f'<div class="ft"><span>{L("With $1,000:", "بـ 1,000 دولار:")} <b class="lo"><bdi dir="ltr">-${lose:,.0f}</bdi></b> {L("at the invalidation", "عند الإلغاء")} · '
-            f'<b class="hi"><bdi dir="ltr">+${win:,.0f}</bdi></b> {L("at the target", "عند الهدف")}</span>'
+    sa_ = MK.is_sa()
+    with_ = L("With SAR 1,000:", "بـ 1,000 ريال:") if sa_ else L("With $1,000:", "بـ 1,000 دولار:")
+    lo_ = f"-{lose:,.0f}" if sa_ else f"-${lose:,.0f}"
+    hi_ = f"+{win:,.0f}" if sa_ else f"+${win:,.0f}"
+    foot = (f'<div class="ft"><span>{with_} <b class="lo"><bdi dir="ltr">{lo_}</bdi></b> {L("at the invalidation", "عند الإلغاء")} · '
+            f'<b class="hi"><bdi dir="ltr">{hi_}</bdi></b> {L("at the target", "عند الهدف")}</span>'
             f'<span>{L("The price now is", "السعر الحين بعيد")} <b class="bl"><bdi dir="ltr">{gap:.1f}%</bdi></b> {L("from the entry", "عن الدخول")}</span></div>')
     return f'<div class="nx-pm{" rtl" if is_ar() else ""}">{head}{caps}{entry}{track}{now}{foot}</div>'
 
 
 def _tab_plan(a):
     p = NI.plan(a)
+    if p and a.get("sa") and p["dir"] < 0:          # the Saudi market has no short selling for individuals: a bearish story is a reason to stay out
+        ui.html(_note(L("A bearish setup, but the Saudi market has no short selling for individual investors: for a holder it is a reason to "
+                        f"reduce or protect the position (the idea is wrong above {_money(p['stop'])}); for others, a reason to wait.",
+                        "فرصة هابطة، لكن السوق السعودي ما فيه بيع على المكشوف للأفراد: لمن يملك السهم سبب لتخفيف المركز أو حمايته "
+                        f"(الفكرة تسقط فوق {_money(p['stop'])})، ولغيره سبب للانتظار."), "block"))
+        p = None
+        ui.html(_note(L("Education, not a recommendation.", "للتعليم، مو توصية."), "school"))
+        return
     if not p:
         ui.html(_note(L("No trading scenario: the news and the price do not line up enough (the setup is under 40/100).",
                         "ما فيه سيناريو تداول: الخبر والسعر ما يتفقون كفاية (الفرصة أقل من 40/100)."), "block"))
     else:
         up = p["dir"] > 0
-        fmt = lambda x: f"${x:,.2f}"
+        fmt = _money
         cards = [("go", L("Trigger", "إشارة الدخول"), fmt(p["trigger"]),
                   L("a close above today's high, with volume above its average" if up else "a close below today's low, with volume above its average",
                     "إغلاق فوق أعلى سعر اليوم بحجم فوق متوسطه" if up else "إغلاق تحت أدنى سعر اليوم بحجم فوق متوسطه")),
@@ -1050,10 +1102,11 @@ def _hero(res, hrs, now, n_src):
             h = max(6.0, min(abs(v), 100) / 100 * 50)
             bars.append(f'<span><i class="{"u" if v > 0 else "d"}" style="height:{h:.0f}%"></i></span>')
     upd = _ny_time(now)
+    tz_en, tz_ar = MK.get()["tz_label"]
     flow = (f'<div class="nie-hc" data-nogq><div class="h">{T.icon("timeline")}{T.esc(L("Mood through time", "المزاج مع الوقت"))}'
             f'<span class="nie-live"><i></i>{T.esc(L("LIVE", "مباشر"))}</span></div>'
             f'<div class="nie-tl">{"".join(bars)}</div><div class="nie-tll"><span>-{hrs}h</span><span>{T.esc(L("now", "الحين"))}</span></div>'
-            f'<div class="nie-upd">{T.esc(L(f"Updated {upd} New York time. Green above the line: bullish news led that hour; red below: bearish.", f"آخر تحديث {upd} بتوقيت نيويورك. الأخضر فوق الخط: الأخبار الصاعدة غلبت بهالوقت، والأحمر تحته: الهابطة."))}</div></div>')
+            f'<div class="nie-upd">{T.esc(L(f"Updated {upd} {tz_en} time. Green above the line: bullish news led that hour; red below: bearish.", f"آخر تحديث {upd} بتوقيت {tz_ar}. الأخضر فوق الخط: الأخبار الصاعدة غلبت بهالوقت، والأحمر تحته: الهابطة."))}</div></div>')
     return f'<div class="nie-hero">{dial}{nums}{flow}</div>'
 
 
@@ -1070,7 +1123,7 @@ def _breaking(res, titles_ar):
     for a in hot:
         n = a["n"]
         title = (titles_ar.get(n["title"]) if ar and titles_ar else None) or n["title"]
-        who = a["direct"][0] if a["direct"] else L(*NI.EVENT[a["event"]][:2])
+        who = _tk(a["direct"][0]) if a["direct"] else L(*NI.EVENT[a["event"]][:2])
         arrow = {"bull": "▲", "bear": "▼", "neutral": "●"}[a["lab"]]
         items.append(f'<span class="it {a["lab"]}"><span class="ar">{arrow}</span><b>{T.esc(who)}</b><span dir="auto">{T.esc(title)}</span>'
                      f'<span class="im">{a["impact"]:.0f}</span><small>{T.time_ago(n["time"], ar) if pd.notna(n.get("time")) else ""}</small></span>')
@@ -1096,11 +1149,11 @@ def _flow_fig(rows, titles_ar):
         pts = [a for a in rows if a["lab"] == lab and pd.notna(a["n"].get("time"))]
         if not pts:
             continue
-        xs = [pd.Timestamp(a["n"]["time"]).tz_convert("America/New_York").tz_localize(None) for a in pts]
+        xs = [pd.Timestamp(a["n"]["time"]).tz_convert(MK.tz()).tz_localize(None) for a in pts]
         tips = []
         for a in pts:
             t = (titles_ar.get(a["n"]["title"]) if ar and titles_ar else None) or a["n"]["title"]
-            who = ", ".join(a["direct"][:3]) or L("Market", "السوق")
+            who = ", ".join(_tk(s_) for s_ in a["direct"][:3]) or L("Market", "السوق")
             tips.append("<b>" + _h.escape(who) + "</b> · " + _h.escape(L(*NI.EVENT[a["event"]][:2])) + "<br>"
                         + "<br>".join(_h.escape(x) for x in textwrap.wrap(t, 58)[:3])
                         + "<br>" + L("Impact", "الأثر") + f" <b>{a['impact']:.0f}</b> · " + L("Setup", "الفرصة") + f" <b>{a['setup']['total']}</b>")
@@ -1137,7 +1190,7 @@ def _sectors(res):
     rows = []
     for i, (sec, (n, num, den)) in enumerate(top):
         net = 100 * num / den if den else 0
-        name = L("Whole market", "السوق كله") if sec == "__market" else L(sec, SECTOR_AR.get(sec, sec))
+        name = L("Whole market", "السوق كله") if sec == "__market" else _secn(sec)
         w = min(abs(net), 100) / 100 * 50
         bar = (f'<i style="left:50%;width:{w:.1f}%;background:linear-gradient(90deg,#22C55E88,#4ADE80);animation-delay:{i * 60}ms"></i>' if net >= 1 else
                f'<i style="left:{50 - w:.1f}%;width:{w:.1f}%;background:linear-gradient(90deg,#F87171,#EF444488);animation-delay:{i * 60}ms"></i>' if net <= -1 else "")
@@ -1167,7 +1220,7 @@ def _tk_card(sym, n, net, c, on):
            f'<i style="left:{50 - w:.1f}%;width:{w:.1f}%;background:#F87171"></i>' if net <= -1 else "")
     stories = L(f"{n} stories" if n != 1 else "1 story", f"{n} خبر" if n != 1 else "خبر واحد")
     chk = f'<span class="ok">{T.icon("filter_alt")}</span>' if on else ""
-    return (f'<div class="nie-tkc{" on" if on else ""}" data-nogq><div class="t">{T.logo_obj(sym, 28)}<b>{T.esc(sym)}</b>{chk}</div>'
+    return (f'<div class="nie-tkc{" on" if on else ""}" data-nogq><div class="t">{T.logo_obj(sym, 28)}<b dir="auto">{T.esc(_tk(sym))}</b>{chk}</div>'
             f'<div class="n"><span>{T.esc(stories)}</span>{T.pill(c)}</div><div class="sb">{bar}</div></div>')
 
 
@@ -1198,7 +1251,7 @@ def _card_html(a, title, chg, big=False):
     for sym in a["direct"][:3]:
         cc = (chg.get(sym) or (None, None))[1]
         mv = "" if cc is None or pd.isna(cc) else f' <span class="{"u" if cc >= 0 else "d"}"><bdi dir="ltr">{cc:+.1f}%</bdi></span>'
-        tks.append(f'<span class="tkr">{T.esc(sym)}{mv}</span>')
+        tks.append(f'<span class="tkr" dir="auto">{T.esc(_tk(sym))}{mv}</span>')
     new = f'<span class="nw">{T.esc(L("NEW", "جديد"))}</span>' if a["new"] else ""
     when = T.time_ago(n["time"], ar) if pd.notna(n.get("time")) else ""
     imp = a["impact"]
@@ -1236,7 +1289,7 @@ def _table(rows, titles_ar):
                         "event": L(*NI.EVENT[a["event"]][:2]), "impact": int(round(a["impact"])),
                         "sent": _sent_txt(a["lab"]), "score": a["setup"]["total"]} for a in rows])
     cfg = {"pic": st.column_config.ImageColumn("", width="small"),
-           "time": st.column_config.TextColumn(L("Time (NY)", "الوقت (نيويورك)"), width="small"),
+           "time": st.column_config.TextColumn(L(f"Time ({MK.get()['tz_label'][0]})", f"الوقت ({MK.get()['tz_label'][1]})"), width="small"),
            "stock": st.column_config.TextColumn(L("Stock", "السهم"), width="small"),
            "news": st.column_config.TextColumn(L("News", "الخبر"), width="large"),
            "event": st.column_config.TextColumn(L("Event", "الحدث")),
@@ -1285,7 +1338,11 @@ def _show_story(a, chg, px, titles_ar):
         except Exception:
             pass
     try:
-        sec_chg = data.quick_changes(list(U.SECTOR_ETFS)) if a["macro"] else {}
+        if a["macro"] and a.get("sa"):            # the Saudi sectors: the average move of their companies today
+            mv = data.sa_moves()
+            sec_chg = {k: (None, float(v)) for k, v in mv.groupby("Sector")["Chg %"].mean().dropna().items()} if not mv.empty else {}
+        else:
+            sec_chg = data.quick_changes(list(U.SECTOR_ETFS)) if a["macro"] else {}
     except Exception:
         sec_chg = {}
     st.dialog(L("Story analysis", "تحليل الخبر"), width="large")(_story_window)(a, chg2, sec_chg, titles_ar, px.get(a["main"]))
@@ -1293,12 +1350,22 @@ def _show_story(a, chg, px, titles_ar):
 
 def page_news_intel():
     ui.html(CSS + CSS2)
-    ui.header("neurology", "News Intelligence Engine", "محرك ذكاء الأخبار",
-              "Every headline read like an analyst would: the kind of event, bullish or bearish, how material it is, its impact from 0 to 100, "
-              "how long it may last, the companies it hits directly and indirectly, and whether the price confirms it — then a setup score "
-              "out of 100 with its parts.",
-              "كل خبر ينقرأ مثل ما يقرأه المحلل: نوع الحدث، صاعد أو هابط، أهميته، أثره من 0 إلى 100، كم يدوم، الشركات اللي يأثر عليها "
-              "مباشرة وغير مباشرة، وهل السعر يؤكده، وبعدين درجة الفرصة من 100 مع أجزائها.")
+    sa = MK.is_sa()
+    bench = _bench()
+    if sa:
+        ui.header("neurology", "News Intelligence Engine · Saudi Market", "محرك ذكاء الأخبار · السوق السعودي",
+                  "Every Saudi headline (Arabic and English) read like an analyst would: the kind of event, bullish or bearish, how material it "
+                  "is, its impact from 0 to 100, the companies it hits directly and through their industry, and whether the price confirms "
+                  "it — then a setup score out of 100 with its parts.",
+                  "كل خبر عن السوق السعودي (عربي وإنجليزي) ينقرأ مثل ما يقرأه المحلل: نوع الحدث، صاعد أو هابط، أهميته، أثره من 0 إلى 100، "
+                  "الشركات اللي يأثر عليها مباشرة وعن طريق قطاعها، وهل السعر يؤكده، وبعدين درجة الفرصة من 100 مع أجزائها.")
+    else:
+        ui.header("neurology", "News Intelligence Engine", "محرك ذكاء الأخبار",
+                  "Every headline read like an analyst would: the kind of event, bullish or bearish, how material it is, its impact from 0 to 100, "
+                  "how long it may last, the companies it hits directly and indirectly, and whether the price confirms it — then a setup score "
+                  "out of 100 with its parts.",
+                  "كل خبر ينقرأ مثل ما يقرأه المحلل: نوع الحدث، صاعد أو هابط، أهميته، أثره من 0 إلى 100، كم يدوم، الشركات اللي يأثر عليها "
+                  "مباشرة وغير مباشرة، وهل السعر يؤكده، وبعدين درجة الفرصة من 100 مع أجزائها.")
     hrs = ss.get("nie_hrs") or 24
     with st.spinner(L("Reading the news and the prices...", "يقرأ الأخبار والأسعار...")):
         items = data.market_news(96)
@@ -1309,9 +1376,9 @@ def page_news_intel():
         newsiq.enrich(items, chg)
         items = [n for n in items if not any(k[0] == "opinion" for k in n["iq"].get("keywords", []))]      # opinion pieces out
         mains = [((n.get("tickers") or [None])[0]) for n in items]
-        syms = ("SPY",) + tuple(sorted({s_ for s_ in mains if s_ and s_ != "SPY"}))[:79]
+        syms = (bench,) + tuple(sorted({s_ for s_ in mains if s_ and s_ != bench}))[:79]
         px = data.history_many(syms, "1y") if syms else {}
-        res = NI.analyze_all(items, px, chg, px.get("SPY"), now)
+        res = NI.analyze_all(items, px, chg, px.get(bench), now, bench)
     seen = set()                                        # one card per story (a story's id is its link): never two widgets with one key
     res = [a for a in res if not (_sid(a) in seen or seen.add(_sid(a)))]
     tr = ss.get(f"nie_tr_{'ar' if is_ar() else 'en'}", is_ar())
@@ -1448,4 +1515,4 @@ def page_news_intel():
             _show_story(a, chg, px, titles_ar)
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.0"
+BUILD = "22.1"

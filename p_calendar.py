@@ -10,7 +10,10 @@ import streamlit as st
 
 import caldata as C
 import data
+import markets as MK
 import mcal
+import mcal_sa
+import tasi
 import theme as T
 import ui
 from i18n import L, is_ar
@@ -50,10 +53,21 @@ def week_label(mon):
     return f"{e1} {mon.day} – {e2 + ' ' if fri.month != mon.month else ''}{fri.day}, {fri.year}"
 
 
+def _sa():
+    return MK.is_sa()
+
+
+def _cal():
+    """The page's market calendar (New York / Tadawul)."""
+    return mcal_sa if MK.is_sa() else mcal
+
+
 def usd(x):
-    """$3.6T · $210B · $4.25B · $65.0M"""
+    """$3.6T · $210B · $4.25B · $65.0M (on a Saudi page: riyals, SAR 6.2T / 6.2T ر.س)"""
     if x is None or pd.isna(x):
         return "—"
+    if MK.is_sa():
+        return MK.big(x, MK.SA)
     a, sign = abs(float(x)), "-" if x < 0 else ""
     for unit, div in (("T", 1e12), ("B", 1e9), ("M", 1e6), ("K", 1e3)):
         if a >= div:
@@ -90,7 +104,11 @@ def _reset(key):
 
 def week_nav(key, max_back=8, max_fwd=8):
     """‹ previous · this week · next › - returns the Monday of the chosen week."""
-    base = C.week_of(mcal.today_et())
+    if MK.is_sa():                                 # the Saudi week: Sunday to Thursday (Friday and Saturday show the coming one)
+        t_ = mcal_sa.today()
+        base = t_ + timedelta(days=(6 - t_.weekday()) % 7) if t_.weekday() in (4, 5) else t_ - timedelta(days=(t_.weekday() + 1) % 7)
+    else:
+        base = C.week_of(mcal.today_et())
     off = max(-max_back, min(max_fwd, int(ss.get(key, 0))))
     ss[key] = off
     prev_i, next_i = (":material/chevron_right:", ":material/chevron_left:") if is_ar() else (":material/chevron_left:", ":material/chevron_right:")
@@ -108,6 +126,12 @@ def week_nav(key, max_back=8, max_fwd=8):
 
 
 def holiday_note(d):
+    if MK.is_sa():
+        kind, key = mcal_sa.day_status(d)
+        if kind == "closed":
+            en, ar = mcal_sa.NAMES[key]
+            return f'<div class="hnote closed">{T.icon("beach_access")}{T.esc(L(f"Market closed · {en}", f"السوق مغلق · {ar}"))}</div>'
+        return ""
     kind, key = mcal.day_status(d)
     if kind in ("closed", "early"):
         en, ar = mcal.NAMES[key]
@@ -139,11 +163,11 @@ def etile(r):
     if pd.notna(r.EPS):
         tip += f" · {L('Reported', 'المُعلن')} {r.EPS:.2f} ({spct(r.Surprise)})"
     return (f'<a class="et" href="{ui.href(r.Symbol)}" target="_self" title="{T.esc(tip)}">{T.logo_obj(r.Symbol, 40)}'
-            f'<span class="tk">{T.esc(r.Symbol)}</span>{res}</a>')
+            f'<span class="tk"><bdi>{T.esc(r.Symbol)}</bdi></span>{res}</a>')
 
 
 def hub_grid(df, ipo, mon, lim=12):
-    today = mcal.today_et()
+    today = _cal().today_et()
     cols = []
     for i in range(5):
         d = mon + timedelta(days=i)
@@ -196,7 +220,7 @@ def day_table(day):
         if pd.notna(r.Surprise):
             sur = f'<span class="pill {"pos" if r.Surprise >= 0 else "neg"}">{spct(r.Surprise)}</span>'
         rows.append(f'<div class="erow"><a class="lnk" href="{ui.href(r.Symbol)}" target="_self">{T.logo_obj(r.Symbol, 34)}'
-                    f'<span class="nm"><b>{T.esc(r.Symbol)}</b><small>{T.esc(r.Company)}</small></span></a>'
+                    f'<span class="nm"><b><bdi>{T.esc(r.Symbol)}</bdi></b><small>{T.esc(r.Company)}</small></span></a>'
                     f'<span class="when {r.When}">{T.icon(ic)}{L(en, ar)}</span>'
                     f'<span class="q">{T.esc(r.Quarter) if isinstance(r.Quarter, str) else "—"}</span>'
                     f'<span class="v">{num(r.Est)}</span><span class="v">{num(r.EPS)}</span><span class="v">{sur or "—"}</span>'
@@ -207,7 +231,65 @@ def day_table(day):
     return f'<div class="etab">{head}{"".join(rows)}</div>'
 
 
+def page_earnings_hub_sa():
+    ui.header("event_upcoming", "Earnings Calendar · Saudi Market", "مواعيد إعلانات الأرباح · السوق السعودي",
+              "Which Saudi companies are expected to report this week (Sunday to Thursday). Click a logo to open the company.",
+              "الشركات السعودية المتوقع إعلان نتائجها هذا الأسبوع (من الأحد إلى الخميس). اضغط على الشعار لفتح صفحة الشركة.")
+    sun = week_nav("eh_wk_sa")
+    f1, f2 = st.columns([1.6, 3], vertical_alignment="bottom")
+    q = f1.text_input(L("Find a company", "ابحث عن شركة"), key="eh_q_sa", placeholder=L("e.g. 2222 or Aramco", "مثال: 2222 أو أرامكو")).strip()
+    with st.spinner(L("Loading this week's earnings calendar...", "جاري تحميل مواعيد الأرباح لهذا الأسبوع...")):
+        df = C.earnings_sa(sun, sun + timedelta(days=4))
+    if not df.empty:
+        df = df.assign(Company=[tasi.name_of(s_, is_ar()) or c_ for s_, c_ in zip(df["Symbol"], df["Company"])])
+    if df.empty:
+        empty_box("event_busy", "No Saudi earnings dates found for this week (or the calendar is not reachable right now). Try another week: most "
+                  "Saudi companies report within a month after each quarter ends.",
+                  "لا توجد مواعيد أرباح سعودية لهذا الأسبوع (أو التقويم غير متاح الآن). جرّب أسبوعاً آخر: أغلب الشركات السعودية تعلن خلال شهر "
+                  "من نهاية كل ربع.")
+        ui.foot()
+        return
+    if q:
+        qq = q.upper()
+        hit = df[df["Symbol"].str.startswith(qq) | df["Company"].fillna("").astype(str).str.upper().str.contains(qq, regex=False)]
+        if hit.empty:
+            st.info(L(f"“{q}” is not expected to report this week.", f"«{q}» ما هي متوقعة تعلن نتائجها هذا الأسبوع."), icon=":material/search_off:")
+        else:
+            ui.html('<div class="ehit">' + "".join(
+                f'<a class="lnk chip" href="{ui.href(r.Symbol)}" target="_self">{T.logo_obj(r.Symbol, 26)}<b><bdi>{T.esc(r.Symbol)}</bdi></b>'
+                f'<span>{dshort(r.Date)} · {T.esc(str(r.Company)[:24])}</span></a>' for r in hit.head(8).itertuples()) + "</div>")
+    rep_ = df[df["EPS"].notna()]
+    beat = int((rep_["Surprise"] > 0).sum()) if not rep_.empty else 0
+    big = [str(c)[:16] for c in df.head(3)["Company"]]
+    kpis([("event_available", L("Reports this week", "إعلانات هذا الأسبوع"), f"{len(df)}", L("Saudi main market", "السوق الرئيسية"), None),
+          ("star", L("Biggest names", "أكبر الشركات"), T.esc(" · ".join(big)) or "—", L("by market value", "حسب القيمة السوقية"), "acc"),
+          ("fact_check", L("Already reported", "أعلنت نتائجها"), f"{len(rep_)}",
+           (L(f"{beat} beat estimates", f"{beat} تجاوزت التوقعات") if len(rep_) else L("results appear here as they come", "تظهر النتائج هنا فور صدورها")),
+           "pos" if len(rep_) and beat >= len(rep_) / 2 else None)])
+    ui.html(hub_grid(df, None, sun))
+    ui.html(f'<div class="elegend"><span>{T.icon("schedule")}{L("Most Saudi companies publish their results on Tadawul outside trading hours; Yahoo rarely gives the hour.", "أغلب الشركات السعودية تنشر نتائجها في تداول خارج ساعات التداول، وياهو نادراً يعطي الساعة.")}</span>'
+            f'<span><i class="rs b"></i>{L("beat", "تجاوزت التوقعات")}</span><span><i class="rs m"></i>{L("missed", "أقل من التوقعات")}</span></div>')
+    ui.sec("view_list", "Day details", "تفاصيل اليوم")
+    days = [sun + timedelta(days=i) for i in range(5)]
+    today = mcal_sa.today()
+    default = today if today in days else days[0]
+    ui.valid("eh_day_sa", days)
+    pick = st.segmented_control(L("Day", "اليوم"), days, default=default, key="eh_day_sa",
+                                format_func=lambda d: f"{dshort(d)} · {int((df['Date'] == d).sum())}") or default
+    day = df[df["Date"] == pick]
+    if day.empty:
+        empty_box("event_busy", "No reports on this day.", "لا توجد إعلانات في هذا اليوم.")
+    else:
+        ui.html(day_table(day.sort_values("Cap", ascending=False).head(80)))
+    st.caption(L("Source: Yahoo Finance earnings calendar (Saudi companies). Dates are estimates until the company announces them on Tadawul. "
+                 "Market values and estimates are in riyals.",
+                 "المصدر: تقويم أرباح ياهو فاينانس (الشركات السعودية). المواعيد تقديرية لين تعلنها الشركة في تداول. القيم السوقية والتقديرات بالريال."))
+    ui.foot()
+
+
 def page_earnings_hub():
+    if MK.is_sa():
+        return page_earnings_hub_sa()
     ui.header("event_upcoming", "Earnings Calendar", "مواعيد إعلانات الأرباح",
               "Which companies report this week, and when: before the market opens or after it closes. Click a logo to open the company.",
               "الشركات التي تعلن نتائجها هذا الأسبوع وموعد كل إعلان: قبل افتتاح السوق أو بعد إغلاقه. اضغط على الشعار لفتح صفحة الشركة.")
@@ -278,7 +360,7 @@ def result_card(r, px, rev, react):
     kind = "neu" if pd.isna(sur) or abs(sur) < 0.5 else ("beat" if sur > 0 else "miss")
     ic, en, ar = WHEN[r.When]
     q = r.Quarter if isinstance(r.Quarter, str) and r.Quarter else ""
-    title = f"{r.Symbol} {q} {L('Earnings', 'نتائج')}".replace("  ", " ")
+    title = f"\u2066{r.Symbol}\u2069 {q} {L('Earnings', 'نتائج')}".replace("  ", " ")
     p, chg = px.get(r.Symbol, (None, None))
     price = (f'<div class="p">{T.fmt_price(p)}</div>{T.pill(chg)}' if p is not None else "")
     rx = react.get(r.Symbol)
@@ -305,24 +387,46 @@ def result_card(r, px, rev, react):
 
 
 def page_earnings_results():
-    ui.header("request_quote", "Earnings Results", "نتائج الأرباح",
-              "Latest quarterly results: earnings per share and revenue against analysts' estimates, and how the stock reacted.",
-              "أحدث النتائج الفصلية: ربحية السهم والإيرادات مقارنة بتوقعات المحللين، وكيف تفاعل السهم.")
-    today = mcal.today_et()
+    sa = MK.is_sa()
+    if sa:
+        ui.header("request_quote", "Earnings Results · Saudi Market", "نتائج الأرباح · السوق السعودي",
+                  "The Saudi companies' latest quarterly results: earnings per share against analysts' estimates, and how the stock reacted.",
+                  "أحدث النتائج الفصلية للشركات السعودية: ربحية السهم مقارنة بتوقعات المحللين، وكيف تفاعل السهم.")
+    else:
+        ui.header("request_quote", "Earnings Results", "نتائج الأرباح",
+                  "Latest quarterly results: earnings per share and revenue against analysts' estimates, and how the stock reacted.",
+                  "أحدث النتائج الفصلية: ربحية السهم والإيرادات مقارنة بتوقعات المحللين، وكيف تفاعل السهم.")
+    cal = _cal()
+    today = cal.today_et()
     c1, c2, c3, c4 = st.columns([1.9, 1.2, 1.35, 0.9], vertical_alignment="bottom")
-    per = c1.segmented_control(L("Reported", "تاريخ الإعلان"), ["today", "yday", "week", "last"], default="week", key="er_per",
-                               format_func=lambda k: {"today": L("Today", "اليوم"), "yday": L("Previous day", "اليوم السابق"),
-                                                      "week": L("This week", "هذا الأسبوع"), "last": L("Last week", "الأسبوع الماضي")}[k]) or "week"
-    ui.valid("er_cap", CAPS)
-    cap = c2.selectbox(L("Company size", "حجم الشركة"), CAPS, index=3, key="er_cap", format_func=cap_label)
+    if not sa:
+        per = c1.segmented_control(L("Reported", "تاريخ الإعلان"), ["today", "yday", "week", "last"], default="week", key="er_per",
+                                   format_func=lambda k: {"today": L("Today", "اليوم"), "yday": L("Previous day", "اليوم السابق"),
+                                                          "week": L("This week", "هذا الأسبوع"), "last": L("Last week", "الأسبوع الماضي")}[k]) or "week"
+    if sa:
+        cap = 0
+        per_sa = {"today": L("Today", "اليوم"), "yday": L("Previous day", "اليوم السابق"), "week": L("This week", "هذا الأسبوع"),
+                  "last": L("Last week", "الأسبوع الماضي"), "month": L("Last 30 days", "آخر 30 يوم")}
+        per = c1.segmented_control(L("Reported", "تاريخ الإعلان"), list(per_sa), default="month", key="er_per_sa",
+                                   format_func=lambda k: per_sa[k]) or "month"
+    else:
+        ui.valid("er_cap", CAPS)
+        cap = c2.selectbox(L("Company size", "حجم الشركة"), CAPS, index=3, key="er_cap", format_func=cap_label)
     res = c3.segmented_control(L("Result", "النتيجة"), ["all", "beat", "miss"], default="all", key="er_res",
                                format_func=lambda k: {"all": L("All", "الكل"), "beat": L("Beats", "تجاوزت"), "miss": L("Misses", "أقل")}[k]) or "all"
     n = c4.selectbox(L("Show", "العدد"), [12, 24, 48], index=1, key="er_n")
-    mon = C.week_of(today) if today.weekday() < 5 else C.week_of(today) - timedelta(days=7)
-    start, end = {"today": (today, today), "yday": (mcal.prev_trading_day(today),) * 2, "week": (mon, min(today, mon + timedelta(days=4))),
-                  "last": (mon - timedelta(days=7), mon - timedelta(days=3))}[per]
+    if sa:
+        sun = today - timedelta(days=(today.weekday() + 1) % 7)            # this Saudi week's Sunday (Fri/Sat: the week that just ended)
+        start, end = {"today": (today, today), "yday": (cal.prev_trading_day(today),) * 2, "week": (sun, min(today, sun + timedelta(days=4))),
+                      "last": (sun - timedelta(days=7), sun - timedelta(days=3)), "month": (today - timedelta(days=30), today)}[per]
+    else:
+        mon = C.week_of(today) if today.weekday() < 5 else C.week_of(today) - timedelta(days=7)
+        start, end = {"today": (today, today), "yday": (mcal.prev_trading_day(today),) * 2, "week": (mon, min(today, mon + timedelta(days=4))),
+                      "last": (mon - timedelta(days=7), mon - timedelta(days=3))}[per]
     with st.spinner(L("Loading results...", "جاري تحميل النتائج...")):
-        df = C.earnings(start, end, cap)
+        df = C.earnings_sa(start, end) if sa else C.earnings(start, end, cap)
+        if sa and not df.empty:
+            df = df.assign(Company=[tasi.name_of(s_, is_ar()) or c_ for s_, c_ in zip(df["Symbol"], df["Company"])])
     rep = df[df["EPS"].notna()].copy() if not df.empty else df
     if rep.empty:
         waiting = df[df["EPS"].isna()] if not df.empty else df
@@ -389,32 +493,52 @@ def econ_rows(day):
             a_cls = "pos" if better else "neg"
         t = r.Time.strftime("%H:%M") if pd.notna(r.Time) and (r.Time.hour or r.Time.minute) else L("All day", "طوال اليوم")
         per = f"<small>{T.esc(r.Period)}</small>" if isinstance(r.Period, str) and r.Period not in ("", "nan", "None") else ""
-        reg = f'<span class="rg">{T.esc(r.Region)}</span>' if r.Region not in ("US", "USA") else ""
+        reg = f'<span class="rg">{T.esc(r.Region)}</span>' if r.Region not in ("US", "USA") or MK.is_sa() else ""
+        if getattr(r, "Tentative", False):
+            per += f'<small class="tbc">· {L("date not confirmed", "الموعد غير مؤكد")}</small>'
         act = f'<span class="pill {a_cls}">{_fmt_val(r.Actual)}</span>' if a_cls else _fmt_val(r.Actual)
         out.append(f'<div class="evr s{r.Stars}"><span class="tm">{t}</span>{_stars(r.Stars)}<span class="nm">{reg}{T.esc(r.Event)} {per}</span>'
                    f'<span class="v a">{act}</span><span class="v">{_fmt_val(r.Expected)}</span><span class="v">{_fmt_val(r.Last)}</span></div>')
     return "".join(out)
 
 
+SA_REGIONS = {"SA": ({"SA"}, "Saudi Arabia", "السعودية"), "SAUS": ({"SA", "US"}, "Saudi + US", "السعودية + أمريكا"),
+              "GULF": ({"SA"} | C.GULF, "Saudi + Gulf", "السعودية + الخليج")}
+
+
 def page_econ_calendar():
-    ui.header("event_note", "Economic Calendar", "التقويم الاقتصادي",
-              "Data releases and central-bank events that move markets: time (New York), importance, actual vs. forecast vs. previous.",
-              "البيانات الاقتصادية وأحداث البنوك المركزية التي تحرك الأسواق: الوقت (نيويورك) والأهمية والفعلي مقابل المتوقع والسابق.")
-    mon = week_nav("ec_wk", 6, 6)
-    c1, c2, c3 = st.columns([1.5, 1.2, 2.2], vertical_alignment="bottom")
+    sa = MK.is_sa()
+    if sa:
+        ui.header("event_note", "Economic Calendar · Saudi Market", "التقويم الاقتصادي · السوق السعودي",
+                  "Saudi Arabia's data releases and SAMA's rates, with the US releases and the Fed (the riyal is pegged to the dollar): time "
+                  "(Riyadh), importance, actual vs. forecast vs. previous.",
+                  "البيانات الاقتصادية السعودية وأسعار فائدة ساما، ومعها البيانات الأمريكية والفيدرالي (الريال مربوط بالدولار): الوقت (الرياض) "
+                  "والأهمية والفعلي مقابل المتوقع والسابق.")
+    else:
+        ui.header("event_note", "Economic Calendar", "التقويم الاقتصادي",
+                  "Data releases and central-bank events that move markets: time (New York), importance, actual vs. forecast vs. previous.",
+                  "البيانات الاقتصادية وأحداث البنوك المركزية التي تحرك الأسواق: الوقت (نيويورك) والأهمية والفعلي مقابل المتوقع والسابق.")
+    mon = week_nav("ec_wk_sa" if sa else "ec_wk", 6, 6)
+    c1, c2, c3 = st.columns([1.5, 1.6 if sa else 1.2, 2.2], vertical_alignment="bottom")
     imp = c1.segmented_control(L("Importance", "الأهمية"), [1, 2, 3], default=1, key="ec_imp",
                                format_func=lambda v: {1: L("All", "الكل"), 2: "★★+", 3: "★★★"}[v]) or 1
-    reg = c2.segmented_control(L("Region", "المنطقة"), ["US", "ALL"], default="US", key="ec_reg",
-                               format_func=lambda v: L("United States", "أمريكا") if v == "US" else L("World", "العالم")) or "US"
+    if sa:
+        rk = c2.segmented_control(L("Region", "المنطقة"), list(SA_REGIONS), default="SAUS", key="ec_reg_sa",
+                                  format_func=lambda v: L(*SA_REGIONS[v][1:])) or "SAUS"
+        reg = SA_REGIONS[rk][0]
+    else:
+        reg = c2.segmented_control(L("Region", "المنطقة"), ["US", "ALL"], default="US", key="ec_reg",
+                                   format_func=lambda v: L("United States", "أمريكا") if v == "US" else L("World", "العالم")) or "US"
     q = c3.text_input(L("Search an event", "ابحث عن حدث"), key="ec_q", placeholder=L("e.g. CPI, payrolls, Fed", "مثال: CPI، الوظائف، الفيدرالي")).strip()
     with st.spinner(L("Loading the economic calendar...", "جاري تحميل التقويم الاقتصادي...")):
-        df = C.econ(mon, mon + timedelta(days=6), reg)
+        df = C.econ(mon, mon + timedelta(days=6), reg, tz=mcal_sa.TZ if sa else None)
     if df.empty:
         empty_box("event_busy", "The economic calendar is not reachable right now. Please try again in a few minutes.",
                   "التقويم الاقتصادي غير متاح حالياً. حاول مرة أخرى بعد دقائق.")
         ui.foot()
         return
-    now = pd.Timestamp.now(tz=mcal.ET)
+    now = pd.Timestamp.now(tz=mcal_sa.TZ if sa else mcal.ET)
+    tzl = L(" Riyadh", " الرياض") if sa else " ET"
     nxt = df[(df["Time"] >= now) & (df["Stars"] >= 3)].head(1)
     released = df[df["Actual"].notna()]
     k = [("event", L("Events this week", "أحداث هذا الأسبوع"), f"{len(df)}", L(f"{int((df['Stars'] >= 3).sum())} high importance",
@@ -425,7 +549,8 @@ def page_econ_calendar():
         mins = (r["Time"] - now).total_seconds() / 60
         left = (f"{int(mins // 1440)}{L('d', 'ي')} {int(mins % 1440 // 60)}{L('h', 'س')}" if mins >= 1440 else
                 f"{int(mins // 60)}{L('h', 'س')} {int(mins % 60)}{L('m', 'د')}")
-        k.append(("alarm", L("Next key event", "الحدث المهم القادم"), T.esc(str(r["Event"])[:28]), f"{dshort(r['Date'])} {r['Time']:%H:%M} ET · {left}", "acc"))
+        k.append(("alarm", L("Next key event", "الحدث المهم القادم"), T.esc((f"{r['Region']} · " if sa else "") + str(r["Event"])[:28]),
+                  f"{dshort(r['Date'])} {r['Time']:%H:%M}{tzl} · {left}", "acc"))
     kpis(k)
     if imp > 1:
         df = df[df["Stars"] >= imp]
@@ -435,15 +560,26 @@ def page_econ_calendar():
         empty_box("filter_alt_off", "No events match these filters.", "لا توجد أحداث تطابق هذه الفلاتر.")
         ui.foot()
         return
-    head = (f'<div class="evr eh"><span class="tm">{L("Time ET", "الوقت")}</span><span>{L("Impact", "الأهمية")}</span><span class="nm">{L("Event", "الحدث")}</span>'
+    head = (f'<div class="evr eh"><span class="tm">{L("Riyadh", "الرياض") if sa else L("Time ET", "الوقت")}</span><span>{L("Impact", "الأهمية")}</span><span class="nm">{L("Event", "الحدث")}</span>'
             f'<span class="v">{L("Actual", "الفعلي")}</span><span class="v">{L("Forecast", "المتوقع")}</span><span class="v">{L("Previous", "السابق")}</span></div>')
-    today = mcal.today_et()
+    today = _cal().today_et()
     blocks = []
     for d, day in df.groupby("Date", sort=True):
         blocks.append(f'<div class="evday{" today" if d == today else ""}"><div class="dh">{T.icon("calendar_today")}{dshort(d)}'
                       + (f'<span class="now">{L("Today", "اليوم")}</span>' if d == today else "") + holiday_note(d)
                       + f'<span class="c">{len(day)}</span></div>{head}{econ_rows(day)}</div>')
     ui.html('<div class="evcal">' + "".join(blocks) + "</div>")
+    if sa:
+        st.caption(L("★★★ = Saudi inflation, GDP and SAMA's repo rates, and the US releases that move markets (the Fed, inflation, jobs): SAMA "
+                     "follows the Fed because the riyal is pegged to the dollar. The other Gulf states go up to ★★. A release marked "
+                     "“date not confirmed” has no set day yet in Yahoo's calendar; it is shown on the first possible day. Green actual = better "
+                     "than forecast for the economy, red = worse. Times are Riyadh time. Source: Yahoo Finance economic calendar.",
+                     "★★★ = التضخم والناتج المحلي السعوديين وأسعار الريبو من ساما، والبيانات الأمريكية اللي تحرك الأسواق (الفيدرالي والتضخم "
+                     "والوظائف): ساما تتبع الفيدرالي لأن الريال مربوط بالدولار. باقي دول الخليج لين ★★. البيان المكتوب جنبه «الموعد غير مؤكد» "
+                     "ما له يوم محدد للحين في تقويم ياهو، ويظهر في أول يوم ممكن. الفعلي الأخضر = أفضل من المتوقع للاقتصاد، والأحمر = أسوأ. "
+                     "الأوقات بتوقيت الرياض. المصدر: التقويم الاقتصادي في ياهو فاينانس."))
+        ui.foot()
+        return
     st.caption(L("★★★ = market-moving US releases (inflation, jobs, the Fed, GDP, retail sales, ISM). In the World view the euro area, Japan, "
                  "the UK and China go up to ★★ and other countries are ★: their effect on US stocks is smaller. Green actual = better than "
                  "forecast for the economy, red = worse (for unemployment and jobless claims, lower is better). Source: Yahoo Finance economic calendar.",
@@ -454,7 +590,60 @@ def page_econ_calendar():
 
 
 # ================================================================ 4) MARKET HOLIDAYS
+def page_holidays_sa():
+    """The Saudi Exchange's holidays: Founding Day, the two Eids (each as one span) and National Day, with the session hours."""
+    ui.header("beach_access", "Saudi Market Holidays", "عطلات السوق السعودي",
+              "When the Saudi Exchange (Tadawul) is closed: Founding Day, the two Eids and National Day, and the hours of a trading day.",
+              "الأيام اللي تكون فيها السوق السعودية (تداول) مغلقة: يوم التأسيس والعيدين واليوم الوطني، وأوقات يوم التداول.")
+    today = mcal_sa.today()
+    years = [today.year, today.year + 1]
+    spans = [x for y in years for x in mcal_sa.spans(y)]
+    nxt = next((x for x in spans if x[1] >= today), None)
+    state, dot, when = MK.status(MK.SA, is_ar())
+    kind = {"live": "pos", "pre": "acc"}.get(dot, "neg")
+    left = mcal_sa.trading_days(today + timedelta(days=1), today.replace(month=12, day=31))
+    items = [("storefront" if dot == "live" else "schedule" if dot == "pre" else "bedtime", L("Saudi market", "السوق السعودي"), T.esc(state),
+              T.esc(when), kind)]
+    if nxt:
+        a, b, k, n = nxt
+        en, ar = mcal_sa.NAMES[k]
+        items.append(("event_busy", L("Next market holiday", "العطلة القادمة"), T.esc(L(en, ar)),
+                      (L("now", "الحين") if a <= today else f"{dshort(a)} · {L(f'in {(a - today).days} days', f'بعد {(a - today).days} يوم')}"), "acc"))
+    items.append(("date_range", L("Trading days left this year", "أيام التداول المتبقية هذا العام"), f"{left}", str(today.year), None))
+    nd = mcal_sa.next_trading_day(today)
+    items.append(("event_available", L("Next trading day", "يوم التداول القادم"), dshort(nd), L("10:00 am – 3:00 pm Riyadh", "10 الصبح – 3 العصر بتوقيت الرياض"), None))
+    kpis(items)
+    tabs = st.tabs([str(y) for y in years])
+    for tab, y in zip(tabs, years):
+        rows = []
+        for a, b, k, n in mcal_sa.spans(y):
+            en, ar = mcal_sa.NAMES[k]
+            past, cur = b < today, a <= today <= b
+            cls = " past" if past else (" next" if nxt and a == nxt[0] else "")
+            when_ = (L("Now", "الحين") if cur else L("Passed", "مضى") if past else L(f"in {(a - today).days} days", f"بعد {(a - today).days} يوم"))
+            rng = dlong(a) if a == b else f"{dshort(a)} – {dshort(b)}"
+            days_ = L(f"{n} trading day" + ("s" if n != 1 else "") + " closed", f"{n} أيام تداول مغلقة" if n > 2 else ("يوما تداول مغلقان" if n == 2 else "يوم تداول مغلق"))
+            est = "approx" in k
+            rows.append(f'<div class="hrow closed{cls}"><div class="dt"><b>{a.day}</b><span>{L(MON[a.month - 1][0], MON[a.month - 1][1])}</span></div>'
+                        f'<div class="nm"><b>{T.esc(L(en, ar))}</b><small>{T.esc(rng)}</small></div>'
+                        f'<span class="st">{T.icon("event_upcoming" if est else "block")}{T.esc(days_)}</span><span class="wh">{when_}</span></div>')
+        with tab:
+            ui.html('<div class="hlist">' + "".join(rows) + "</div>")
+    ui.html(f'<div class="card calnote">{T.icon("info")}<div>' + L(
+        "A trading day runs Sunday to Thursday (Riyadh time): opening auction 9:30–10:00 am, continuous trading 10:00 am – 3:00 pm, closing "
+        "auction 3:00–3:10 pm, then trade at the closing price until 3:20 pm. The Eid holidays follow the Hijri calendar, so their dates "
+        "come from the exchange's announcements; the ones marked expected are estimates until the exchange announces them. Founding Day "
+        "(22 February) and National Day (23 September) move to the nearest trading day when they fall on a weekend.",
+        "يوم التداول من الأحد إلى الخميس (بتوقيت الرياض): مزاد الافتتاح 9:30–10:00 صباحاً، والتداول المستمر 10 الصبح – 3 العصر، ومزاد "
+        "الإغلاق 3:00–3:10، وبعده التداول على سعر الإغلاق لين 3:20. إجازات العيدين تتبع التقويم الهجري، فمواعيدها من إعلانات السوق، "
+        "واللي مكتوب جنبها (متوقعة) تقديرية لين تعلنها تداول. يوم التأسيس (22 فبراير) واليوم الوطني (23 سبتمبر) ينتقلان لأقرب يوم تداول "
+        "إذا جاءا في عطلة نهاية الأسبوع.") + "</div></div>")
+    ui.foot()
+
+
 def page_holidays():
+    if MK.is_sa():
+        return page_holidays_sa()
     ui.header("beach_access", "Market Holidays", "عطلات السوق",
               "When the US stock market is closed or closes early (NYSE and Nasdaq), and the days only the bond market closes.",
               "الأيام التي يُغلق فيها سوق الأسهم الأمريكي أو يُغلق مبكراً (بورصة نيويورك وناسداك)، والأيام التي يُغلق فيها سوق السندات فقط.")
@@ -511,7 +700,91 @@ def page_holidays():
 
 
 # ================================================================ 5) DIVIDENDS
+def _sar(v, dec=2):
+    if v is None or pd.isna(v):
+        return "—"
+    return f"{v:,.{dec}f} ر.س" if is_ar() else f"SAR {v:,.{dec}f}"
+
+
+def _sa_name(sym):
+    return tasi.name_of(sym, is_ar()) or sym
+
+
+def _sa_link(sym, size=32, sub=None):
+    """A Saudi company's logo, code (kept left-to-right) and name, opening its page."""
+    return (f'<a class="lnk" href="{ui.href(sym)}" target="_self">{T.logo_obj(sym, size)}<span class="nm"><b><bdi>{T.esc(sym)}</bdi></b>'
+            f'<small>{T.esc((sub or _sa_name(sym))[:40])}</small></span></a>')
+
+
+def page_dividends_sa():
+    ui.header("payments", "Dividend Calendar · Saudi Market", "تقويم التوزيعات · السوق السعودي",
+              "The Saudi main market's coming and recent ex-dividend dates. To receive a dividend you must own the stock before its "
+              "ex-dividend date (the first day it trades without the dividend).",
+              "مواعيد استحقاق التوزيعات القادمة والأخيرة في السوق الرئيسية السعودية. لتحصل على التوزيع يجب أن تملك السهم قبل تاريخ "
+              "الاستحقاق (أول يوم يتداول فيه السهم بدون التوزيع).")
+    today = mcal_sa.today()
+    c1, c2 = st.columns([1.5, 2], vertical_alignment="bottom")
+    view = c1.segmented_control(L("Show", "عرض"), ["up", "recent"], default="up", key="dv_view_sa",
+                                format_func=lambda k: L("Coming", "القادمة") if k == "up" else L("Last 45 days", "آخر 45 يوماً")) or "up"
+    q = c2.text_input(L("Find a company", "ابحث عن شركة"), key="dv_q_sa", placeholder=L("e.g. 2222 or Aramco", "مثال: 2222 أو أرامكو")).strip()
+    df, asof = C.dividends_sa()
+    snap = data.sa_snapshot()
+    if not snap.empty:
+        df = df.merge(snap[["Symbol", "Price", "Div %", "Mkt Cap"]], on="Symbol", how="left")
+    else:
+        df["Price"], df["Div %"], df["Mkt Cap"] = np.nan, np.nan, np.nan
+    df["Yield"] = np.where((df["Price"] > 0) & (df["Annual"] > 0), df["Annual"] / df["Price"] * 100, df["Div %"])
+    if q:
+        hits = set(tasi.search(q)) | {s_ for s_ in df["Symbol"] if q in s_}
+        df = df[df["Symbol"].isin(hits)]
+    up = df[df["ExDate"] >= today].sort_values(["ExDate", "Mkt Cap"], ascending=[True, False])
+    rec = df[(df["ExDate"] < today) & (df["ExDate"] >= today - timedelta(days=45))].sort_values(["ExDate", "Mkt Cap"], ascending=[False, False])
+    best = up.sort_values("Yield", ascending=False).iloc[0] if up["Yield"].notna().any() else None
+    kpis([("event_upcoming", L("Coming ex-dividend dates", "توزيعات قادمة"), f"{len(up)}", L("companies", "شركة"), "acc"),
+          ("history", L("In the last 45 days", "خلال آخر 45 يوماً"), f"{len(rec)}", L("companies", "شركة"), None),
+          ("percent", L("Highest yield coming", "أعلى عائد قادم"), (f"{best['Yield']:.1f}%" if best is not None else "—"),
+           T.esc(_sa_name(best["Symbol"])) if best is not None else "", "pos"),
+          ("info", L("Rule", "القاعدة"), L("Buy before ex-date", "اشترِ قبل تاريخ الاستحقاق"), L("the trading day before at the latest",
+                                                                                          "في يوم التداول السابق كحد أقصى"), "acc")])
+    rows_ = up if view == "up" else rec
+    if rows_.empty:
+        empty_box("event_busy", "No ex-dividend dates to show here (the dates come from the companies' summaries, read twice a week).",
+                  "لا توجد مواعيد توزيعات لعرضها هنا (المواعيد من ملخصات الشركات، وتُقرأ مرتين في الأسبوع).")
+    else:
+        head = (f'<div class="drow th"><span>{L("Company", "الشركة")}</span><span class="v">{L("Dividend", "التوزيع")}</span>'
+                f'<span class="v">{L("Yearly", "سنوياً")}</span><span class="v">{L("Yield", "العائد")}</span><span class="v">{L("Pay date", "تاريخ الدفع")}</span></div>')
+        blocks = []
+        for d, day in rows_.groupby("ExDate", sort=False):
+            rows = "".join(
+                f'<div class="drow">{_sa_link(r.Symbol)}<span class="v">{_sar(r.Amount)}</span><span class="v">{_sar(r.Annual)}</span>'
+                f'<span class="v y">{f"{r.Yield:.2f}%" if pd.notna(r.Yield) else "—"}</span>'
+                f'<span class="v">{dshort(r.PayDate) if isinstance(r.PayDate, type(today)) and r.PayDate >= d else "—"}</span></div>'
+                for r in day.head(60).itertuples())
+            blocks.append(f'<div class="evday{" today" if d == today else ""}"><div class="dh">{T.icon("event")}{L("Ex-dividend", "الاستحقاق")} · {dshort(d)}'
+                          + (f'<span class="now">{L("Today", "اليوم")}</span>' if d == today else "") + f'<span class="c">{len(day)}</span></div>{head}{rows}</div>')
+        ui.html('<div class="evcal">' + "".join(blocks) + "</div>")
+    if not snap.empty:
+        ui.sec("percent", "The highest dividend yields", "أعلى عوائد التوزيعات")
+        top = snap[(snap["Div %"] > 0) & (snap["Mkt Cap"] >= 1e9)].sort_values("Div %", ascending=False).head(15)
+        ex_ = dict(zip(df["Symbol"], df["ExDate"]))
+        head2 = (f'<div class="drow th"><span>{L("Company", "الشركة")}</span><span class="v">{L("Price", "السعر")}</span>'
+                 f'<span class="v">{L("Yield", "العائد")}</span><span class="v">{L("Market cap", "القيمة السوقية")}</span>'
+                 f'<span class="v">{L("Last ex-date", "آخر استحقاق")}</span></div>')
+        rows = "".join(
+            f'<div class="drow">{_sa_link(r.Symbol)}<span class="v">{num(r.Price)}</span><span class="v y">{r.Div:.2f}%</span>'
+            f'<span class="v">{usd(r.Cap)}</span><span class="v">{dshort(ex_[r.Symbol]) if isinstance(ex_.get(r.Symbol), type(today)) else "—"}</span></div>'
+            for r in top.rename(columns={"Mkt Cap": "Cap", "Div %": "Div"})[["Symbol", "Price", "Cap", "Div"]].itertuples())
+        ui.html(f'<div class="evcal"><div class="evday">{head2}{rows}</div></div>')
+    st.caption(L(f"Dividend = the latest dividend per share the company declared; yield = the yearly dividend ÷ the price. Companies worth "
+                 f"SAR 1B or more in the yields list. Source: Yahoo Finance company summaries" + (f", read {asof}." if asof else "."),
+                 f"التوزيع = آخر توزيع للسهم أعلنته الشركة، والعائد = التوزيع السنوي ÷ السعر. قائمة العوائد للشركات اللي قيمتها مليار ريال أو "
+                 f"أكثر. المصدر: ملخصات الشركات في ياهو فاينانس" + (f"، قُرئت {asof}." if asof else ".")))
+    ui.foot()
+
+
 def page_dividends():
+    if _sa():
+        return page_dividends_sa()
     ui.header("payments", "Dividend Calendar", "تقويم التوزيعات",
               "Upcoming ex-dividend dates. To receive a dividend you must own the stock before its ex-dividend date.",
               "مواعيد استحقاق التوزيعات القادمة. لتحصل على التوزيع يجب أن تملك السهم قبل تاريخ الاستحقاق.")
@@ -568,14 +841,24 @@ def page_dividends():
 
 # ================================================================ 6) STOCK SPLITS
 def page_splits():
-    ui.header("call_split", "Stock Splits", "تقسيم الأسهم",
-              "Upcoming and recent stock splits. A 10-for-1 split turns every share into 10 cheaper shares; a reverse split merges shares.",
-              "عمليات تقسيم الأسهم القادمة والأخيرة. التقسيم 10 مقابل 1 يحوّل كل سهم إلى 10 أسهم بسعر أقل، والتقسيم العكسي يدمج الأسهم.")
-    today = mcal.today_et()
-    view = st.segmented_control(L("Show", "عرض"), ["up", "recent"], default="up", key="sp_view",
-                                format_func=lambda k: L("Upcoming", "القادمة") if k == "up" else L("Last 60 days", "آخر 60 يوماً")) or "up"
+    sa = _sa()
+    if sa:
+        ui.header("call_split", "Bonus Shares & Splits · Saudi Market", "أسهم المنحة والتقسيم · السوق السعودي",
+                  "Saudi companies giving bonus shares or splitting their shares: each shareholder gets more shares, and the price is cut in "
+                  "the same proportion.",
+                  "الشركات السعودية اللي توزع أسهم منحة أو تقسّم أسهمها: كل مساهم يحصل على أسهم أكثر، والسعر ينخفض بنفس النسبة.")
+    else:
+        ui.header("call_split", "Stock Splits", "تقسيم الأسهم",
+                  "Upcoming and recent stock splits. A 10-for-1 split turns every share into 10 cheaper shares; a reverse split merges shares.",
+                  "عمليات تقسيم الأسهم القادمة والأخيرة. التقسيم 10 مقابل 1 يحوّل كل سهم إلى 10 أسهم بسعر أقل، والتقسيم العكسي يدمج الأسهم.")
+    today = _cal().today_et()
+    back = 180 if sa else 60
+    view = st.segmented_control(L("Show", "عرض"), ["up", "recent"], default="up", key="sp_view_sa" if sa else "sp_view",
+                                format_func=lambda k: L("Upcoming", "القادمة") if k == "up" else
+                                L(f"Last {back // 30} months", f"آخر {back // 30} أشهر") if sa else L("Last 60 days", "آخر 60 يوماً")) or "up"
     with st.spinner(L("Loading stock splits...", "جاري تحميل عمليات التقسيم...")):
-        df = C.splits(today - timedelta(days=60), today + timedelta(days=120))
+        df = (C.splits_sa(today - timedelta(days=back), today + timedelta(days=120)) if sa else
+              C.splits(today - timedelta(days=60), today + timedelta(days=120)))
     if df.empty:
         empty_box("event_busy", "No stock splits found (or the calendar is not reachable right now).", "لا توجد عمليات تقسيم (أو التقويم غير متاح الآن).")
         ui.foot()
@@ -593,12 +876,22 @@ def page_splits():
     for r in rows.head(120).itertuples():
         each = (L(f"each share becomes {r.New / r.Old:g}", f"كل سهم يصبح {r.New / r.Old:g}") if r.Kind == "forward"
                 else L(f"every {r.Old / r.New:g} shares become 1", f"كل {r.Old / r.New:g} أسهم تصبح سهماً واحداً"))
-        out.append(f'<div class="sprow {r.Kind}"><a class="lnk" href="{ui.href(r.Symbol)}" target="_self">{T.logo_obj(r.Symbol, 36)}'
-                   f'<span class="nm"><b>{T.esc(r.Symbol)}</b><small>{T.esc(str(r.Company)[:44])}</small></span></a>'
+        link = (_sa_link(r.Symbol, 36) if sa else f'<a class="lnk" href="{ui.href(r.Symbol)}" target="_self">{T.logo_obj(r.Symbol, 36)}'
+                f'<span class="nm"><b>{T.esc(r.Symbol)}</b><small>{T.esc(str(r.Company)[:44])}</small></span></a>')
+        out.append(f'<div class="sprow {r.Kind}">{link}'
                    f'<span class="ratio">{T.esc(r.Ratio)}</span><span class="k">{T.icon("call_split" if r.Kind == "forward" else "merge")}'
                    f'{L("Forward", "عادي") if r.Kind == "forward" else L("Reverse", "عكسي")}</span><span class="ex">{T.esc(each)}</span>'
                    f'<span class="dt">{dshort(r.Date)}</span></div>')
     ui.html('<div class="splist">' + "".join(out) + "</div>")
+    if sa:
+        st.caption(L("In the Saudi market most of these are bonus shares: the company turns part of its reserves or retained earnings into "
+                     "new shares given free to its shareholders (2-for-1 = one bonus share for every share held). Like a split, it does not "
+                     "change what your investment is worth. Source: Yahoo Finance splits calendar.",
+                     "في السوق السعودي أغلب هذي العمليات أسهم منحة: الشركة تحوّل جزءاً من احتياطياتها أو أرباحها المبقاة إلى أسهم جديدة "
+                     "توزعها مجاناً على المساهمين (2 مقابل 1 = سهم منحة لكل سهم مملوك). ومثل التقسيم، ما تغيّر قيمة استثمارك. المصدر: تقويم "
+                     "التقسيمات في ياهو فاينانس."))
+        ui.foot()
+        return
     st.caption(L("A split does not change what your investment is worth: you own more (or fewer) shares at a proportionally lower (or higher) price. "
                  "Source: Yahoo Finance splits calendar.",
                  "التقسيم لا يغيّر قيمة استثمارك: تملك أسهماً أكثر (أو أقل) بسعر أقل (أو أعلى) بنفس النسبة. المصدر: تقويم التقسيمات في ياهو فاينانس."))
@@ -665,4 +958,4 @@ def page_ipos():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.0"
+BUILD = "22.1"

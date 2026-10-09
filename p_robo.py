@@ -17,7 +17,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 import charts as C
-import mcal
+import markets as MK
 import p_portfolio as PP
 import paperbots as PB
 import portfolio as PF
@@ -465,6 +465,29 @@ def _m(v, dec=0, sign=False):
     return PP._m(v, dec, sign)
 
 
+def _sa():
+    """The Saudi market's robo (its own account, in riyals, in the funds listed on Tadawul)."""
+    return MK.is_sa()
+
+
+def _cur():
+    """($) / (SAR) / (ر.س) for the amount fields."""
+    return PP._cur()
+
+
+def _tp():
+    """The money prefix of the charts' axes and tooltips."""
+    return "SAR " if _sa() else "$"
+
+
+def _bench_txt(short=False):
+    """The benchmark in words: global stocks (VT) and US bonds (BND) / Saudi stocks (9400) and Saudi sukuk (9403)."""
+    if _sa():
+        return L("9400/9403", "9400/9403") if short else L("Saudi stocks (9400) and Saudi government sukuk (9403)",
+                                                           "أسهم سعودية (9400) وصكوك حكومية سعودية (9403)")
+    return "VT/BND" if short else L("global stocks (VT) and US bonds (BND)", "أسهم عالمية (VT) وسندات أمريكية (BND)")
+
+
 def _p(v, dec=1, sign=False):
     return PP._p(v, dec, sign)
 
@@ -552,14 +575,26 @@ def _art():
             f'<div class="core">{T.icon("smart_toy")}</div></div>')
 
 
+def _intro_p():
+    if _sa():
+        return L("Answer a short questionnaire in the shape of an Investment Policy Statement (IPS). The robo builds a diversified portfolio "
+                 "of the funds listed on Tadawul (Saudi stocks, US stocks, Saudi government sukuk, gold), in riyals, then runs it on autopilot.",
+                 "جاوب على استبيان قصير مبني على بيان سياسة الاستثمار (IPS). المستشار الآلي يبني لك محفظة متنوعة من الصناديق المتداولة في "
+                 "تداول (أسهم سعودية وأسهم أمريكية وصكوك حكومية سعودية وذهب) بالريال، وبعدها يديرها تلقائياً.")
+    return L("Answer a short questionnaire in the shape of an Investment Policy Statement (IPS). The robo builds a diversified portfolio of ETFs that fits you, then runs it on autopilot.",
+             "جاوب على استبيان قصير مبني على بيان سياسة الاستثمار (IPS). المستشار الآلي يبني لك محفظة متنوعة من صناديق المؤشرات تناسبك، وبعدها يديرها تلقائياً.")
+
+
 def intro(has_store=True):
     nq = len(R.QIDS)
     steps = [("quiz", L(f"Answer {nq} questions", f"جاوب على {nq} سؤال"),
               L("Your goals, time horizon, and the risk you are able and willing to take: the heart of an IPS.",
                 "أهدافك ومدة استثمارك والمخاطرة اللي تقدر عليها وتتقبلها: هذا قلب بيان سياسة الاستثمار.")),
              ("donut_large", L("Get your plan", "استلم خطتك"),
-              L("A risk level from 1 to 10, a mix of low-cost ETFs, what to expect, and your IPS to download.",
-                "مستوى مخاطرة من 1 إلى 10، ومزيج من صناديق المؤشرات منخفضة التكلفة، والمتوقع، وبيان السياسة للتحميل.")),
+              (L("A risk level from 1 to 10, a mix of the ETFs listed on Tadawul, what to expect, and your IPS to download.",
+                 "مستوى مخاطرة من 1 إلى 10، ومزيج من الصناديق المتداولة في تداول، والمتوقع، وبيان السياسة للتحميل.") if _sa() else
+               L("A risk level from 1 to 10, a mix of low-cost ETFs, what to expect, and your IPS to download.",
+                 "مستوى مخاطرة من 1 إلى 10، ومزيج من صناديق المؤشرات منخفضة التكلفة، والمتوقع، وبيان السياسة للتحميل."))),
              ("autorenew", L("Let it run", "خلها تشتغل"),
               L("Monthly deposits, rebalancing and reinvested dividends, all done for you every day.",
                 "إيداعات شهرية وإعادة توازن وإعادة استثمار التوزيعات، كلها تنعمل عنك كل يوم."))]
@@ -567,13 +602,14 @@ def intro(has_store=True):
                          for i, (ic, t, s) in enumerate(steps))
     ui.html(f'<div class="rbhero"><div><div class="eb">{T.icon("smart_toy")}{L("TURA Robo Advisor", "المستشار الآلي من TURA")}</div>'
             f'<h1>{L("Your portfolio, <em>built from your goals</em> and managed for you", "محفظتك <em>مبنية على أهدافك</em> وتُدار عنك")}</h1>'
-            f'<p>{L("Answer a short questionnaire in the shape of an Investment Policy Statement (IPS). The robo builds a diversified portfolio of ETFs that fits you, then runs it on autopilot.", "جاوب على استبيان قصير مبني على بيان سياسة الاستثمار (IPS). المستشار الآلي يبني لك محفظة متنوعة من صناديق المؤشرات تناسبك، وبعدها يديرها تلقائياً.")}</p>'
+            f'<p>{_intro_p()}</p>'
             f'<div class="rbchips"><span class="rbchip">{T.icon("timer")}{L("About 2 minutes", "تقريباً دقيقتين")}</span>'
             f'<span class="rbchip">{T.icon("payments")}{L("Virtual money", "فلوس افتراضية")}</span>'
             f'<span class="rbchip">{T.icon("lock")}{L("Yours only, kept in this browser", "خاصة فيك ومحفوظة بمتصفحك")}</span>'
-            f'<span class="rbchip gold">{T.icon("mosque")}{L("Sharia-compliant option", "خيار متوافق مع الشريعة")}</span>'
-            f'<span class="rbchip">{T.icon("description")}{L("Your IPS to download", "بيان السياسة للتحميل")}</span>'
-            f'<span class="rbchip bot">{T.icon("radar")}{L("Opportunity Bot at levels 9–10", "بوت الفرص في المستوى 9–10")}</span></div></div>{_art()}</div>'
+            + ("" if _sa() else f'<span class="rbchip gold">{T.icon("mosque")}{L("Sharia-compliant option", "خيار متوافق مع الشريعة")}</span>')
+            + f'<span class="rbchip">{T.icon("description")}{L("Your IPS to download", "بيان السياسة للتحميل")}</span>'
+            + ("" if _sa() else f'<span class="rbchip bot">{T.icon("radar")}{L("Opportunity Bot at levels 9–10", "بوت الفرص في المستوى 9–10")}</span>')
+            + f'</div></div>{_art()}</div>'
             f'<div class="rbsteps">{steps_html}</div>')
     done = sum(1 for q in R.QIDS if (ss.get("rb_ans") or {}).get(q))
     if done:                                   # a questionnaire left half way: carry on from where it stopped, or start again
@@ -614,6 +650,12 @@ def intro(has_store=True):
                                                        "حط مبلغ تستهدفه وشوف احتمال توصله في الوقت.")),
              ("mosque", L("Sharia-compliant option", "خيار متوافق مع الشريعة"), L("Islamic funds and sukuk; the bot buys only, from a screened list.",
                                                                                 "صناديق إسلامية وصكوك، والبوت يشتري فقط من قائمة مفلترة."))]
+    if _sa():                                  # the Saudi robo: no Opportunity Bot, the oil crash among its storms, its funds Islamic
+        feats = [f for f in feats if f[0] not in ("radar", "thunderstorm", "mosque")]
+        feats.insert(4, ("thunderstorm", L("Stress tests", "اختبارات الضغط"), L("How the plan would have held up in 2008, the 2014–16 oil crash, 2020 and 2022.",
+                                                                               "كيف بتصمد الخطة في 2008 وانهيار النفط 2014–2016 و2020 و2022.")))
+        feats.append(("account_balance", L("Listed on Tadawul", "متداولة في تداول"), L("Every fund trades on the Saudi exchange, Sunday to Thursday, in riyals.",
+                                                                                     "كل الصناديق متداولة في السوق السعودي، من الأحد للخميس، بالريال.")))
     ui.html('<div class="rbfeat">' + "".join(f'<div>{T.icon(ic)}<b>{_esc(t)}</b><span>{_esc(s)}</span></div>' for ic, t, s in feats) + "</div>" + note())
 
 
@@ -709,11 +751,11 @@ def funding(ans, step):
     has = bool(ss.get("rb_has"))
     c1, c2 = st.columns(2)
     with c1:
-        amount = st.number_input(L("Starting amount ($)", "المبلغ المبدئي ($)"), min_value=1000, max_value=10_000_000, step=1000, key="rb_amt",
+        amount = st.number_input(L(f"Starting amount ({_cur()})", f"المبلغ المبدئي ({_cur()})"), min_value=1000, max_value=10_000_000, step=1000, key="rb_amt",
                                  disabled=has, help=L("Already invested: add or withdraw money from Manage on the dashboard.",
                                                       "مستثمر من قبل: تقدر تودع أو تسحب من الإدارة في لوحة المحفظة.") if has else None)
     with c2:
-        monthly = st.number_input(L("Monthly deposit ($)", "الإيداع الشهري ($)"), min_value=0, max_value=1_000_000, step=50, key="rb_mon")
+        monthly = st.number_input(L(f"Monthly deposit ({_cur()})", f"الإيداع الشهري ({_cur()})"), min_value=0, max_value=1_000_000, step=50, key="rb_mon")
     prof = R.profile(ans)
     years = prof["years"]
     proj = R.project(prof["mu"], prof["vol"], amount, monthly, years, n=600)
@@ -902,7 +944,7 @@ def expect_kpis(prof):
 def projection_fig(proj, years, goal=None):
     x = proj.index / 12
     fig = go.Figure()
-    hov = "%{y:$,.0f}<extra></extra>"
+    hov = _tp() + "%{y:,.0f}<extra></extra>"
     fig.add_trace(go.Scatter(x=x, y=proj["p90"], line=dict(width=0), showlegend=False, hoverinfo="skip"))
     fig.add_trace(go.Scatter(x=x, y=proj["p10"], fill="tonexty", fillcolor=C.rgba(T.CYAN, 0.16), line=dict(width=0),
                              name=L("Likely range", "النطاق المرجح"), hoverinfo="skip"))
@@ -919,7 +961,7 @@ def projection_fig(proj, years, goal=None):
                       annotation_font=dict(color=T.GOLD, size=11), annotation_position="top left")
     C.style(fig, 380, L(f"Where the plan could be in {years} years", f"وين ممكن توصل الخطة خلال {years} سنة"))
     fig.update_xaxes(title=None, ticksuffix=L("y", " س"), dtick=max(1, round(years / 6)))
-    fig.update_yaxes(tickprefix="$", tickformat="~s")
+    fig.update_yaxes(tickprefix=_tp(), tickformat="~s")
     fig.update_layout(hovermode="x unified")
     return fig
 
@@ -937,7 +979,7 @@ def lines_fig(rep, bm, title, rng="all", height=380):
         b = b[b.index >= start] if b is not None else None
     fig = go.Figure()
     tr = go.Scatter(x=cur.index, y=cur["value"], name=L("Portfolio", "المحفظة"), line=dict(color=T.CYAN, width=2.8), fill="tozeroy",
-                    hovertemplate="%{x|%b %d, %Y}: $%{y:,.0f}<extra></extra>")
+                    hovertemplate="%{x|%b %d, %Y}: " + _tp() + "%{y:,.0f}<extra></extra>")
     try:
         tr.fillgradient = dict(type="vertical", colorscale=[[0, C.rgba(T.CYAN, 0.0)], [1, C.rgba(T.CYAN, 0.22)]])
     except (ValueError, AttributeError):
@@ -945,14 +987,14 @@ def lines_fig(rep, bm, title, rng="all", height=380):
     fig.add_trace(tr)
     if b is not None and len(b):
         fig.add_trace(go.Scatter(x=b.index, y=b, name=L("Benchmark", "المؤشر المرجعي"), line=dict(color=T.VIOLET, width=1.8, dash="dot"),
-                                 hovertemplate="%{x|%b %d, %Y}: $%{y:,.0f}<extra></extra>"))
+                                 hovertemplate="%{x|%b %d, %Y}: " + _tp() + "%{y:,.0f}<extra></extra>"))
     fig.add_trace(go.Scatter(x=cur.index, y=cur["invested"], name=L("Invested", "المستثمر"), line=dict(color=T.GOLD, width=1.6, dash="dash", shape="hv"),
-                             hovertemplate="%{x|%b %d, %Y}: $%{y:,.0f}<extra></extra>"))
+                             hovertemplate="%{x|%b %d, %Y}: " + _tp() + "%{y:,.0f}<extra></extra>"))
     ys = [float(v) for v in cur["value"]] + [float(v) for v in cur["invested"]] + ([float(v) for v in b] if b is not None else [])
     lo, hi = (min(ys), max(ys)) if ys else (0, 1)
     pad = max((hi - lo) * 0.12, hi * 0.004, 1)
     C.style(fig, height, title)
-    fig.update_yaxes(range=[lo - pad, hi + pad], tickprefix="$", tickformat=",.0f")
+    fig.update_yaxes(range=[lo - pad, hi + pad], tickprefix=_tp(), tickformat=",.0f")
     return fig
 
 
@@ -977,8 +1019,12 @@ def ips_parts(prof, ans, amount, monthly, created=None):
     word = lambda s: L("high", "عالية") if s >= 7 else L("moderate", "متوسطة") if s >= 4 else L("low", "منخفضة")
     maxloss = _answer("maxloss", ans)
     eq = prof["stocks"]
-    bench = (" ".join([_i("%.0f%%" % eq), L("global stocks", "أسهم عالمية"), _i("(VT)"), "+", _i("%.0f%%" % (100 - eq)),
-                       L("US bonds", "سندات أمريكية"), _i("(BND)")]) if eq < 100 else "100% VT")
+    if _sa():
+        bench = (" ".join([_i("%.0f%%" % eq), L("Saudi stocks", "أسهم سعودية"), _i("(9400)"), "+", _i("%.0f%%" % (100 - eq)),
+                           L("Saudi government sukuk", "صكوك حكومية سعودية"), _i("(9403)")]) if eq < 100 else "100% 9400")
+    else:
+        bench = (" ".join([_i("%.0f%%" % eq), L("global stocks", "أسهم عالمية"), _i("(VT)"), "+", _i("%.0f%%" % (100 - eq)),
+                           L("US bonds", "سندات أمريكية"), _i("(BND)")]) if eq < 100 else "100% VT")
     secs = [
         ("flag", L("Objectives", "الأهداف"), [
             (L("Goal", "الهدف"), _answer("goal", ans)),
@@ -1025,7 +1071,7 @@ def ips_parts(prof, ans, amount, monthly, created=None):
 
 def ips_html(prof, ans, amount, monthly, created=None):
     secs, policy, alloc = ips_parts(prof, ans, amount, monthly, created)
-    day = _date(pd.Timestamp(PF.parse(created).astimezone(PF.ET).date()) if created else pd.Timestamp(PF.utcnow().astimezone(PF.ET).date()))
+    day = _date(pd.Timestamp(PF.parse(created).astimezone(PF._tz()).date()) if created else pd.Timestamp(PF.utcnow().astimezone(PF._tz()).date()))
     blocks = ""
     for i, (ic, title, items) in enumerate(secs):
         its = "".join(f'<div class="it"><span>{_esc(a)}</span><b>{_esc(b)}</b></div>' for a, b in items)
@@ -1048,7 +1094,7 @@ def ips_file(prof, ans, amount, monthly, created=None):
     """The IPS as a standalone HTML page to download (opens in any browser, prints to PDF)."""
     secs, policy, alloc = ips_parts(prof, ans, amount, monthly, created)
     ar = is_ar()
-    day = _date(pd.Timestamp(PF.parse(created).astimezone(PF.ET).date()) if created else pd.Timestamp(PF.utcnow().astimezone(PF.ET).date()))
+    day = _date(pd.Timestamp(PF.parse(created).astimezone(PF._tz()).date()) if created else pd.Timestamp(PF.utcnow().astimezone(PF._tz()).date()))
     e = _html.escape
     body = ""
     for i, (ic, title, items) in enumerate(secs):
@@ -1284,9 +1330,9 @@ def lock_html(rec):
 
 def stress_html(prof):
     sl, sh = prof["sleeves"], prof["sharia"]
-    stocks = {"us": 60, "intl": 28, "em": 12}
+    stocks = {"sa": 75, "us": 25} if _sa() else {"us": 60, "intl": 28, "em": 12}
     rows = []
-    for k, (en, ar, wen, war, _, _) in R.SCENARIOS.items():
+    for k, (en, ar, wen, war, _, _) in R.scenarios().items():
         a, b = R.scenario(sl, k, sh), R.scenario(stocks, k, False)
         rows.append((L(en, ar), L(wen, war), a, b))
     top = max([abs(x) for r in rows for x in r[2:]] + [10])
@@ -1297,7 +1343,8 @@ def stress_html(prof):
                    f'<em class="{"dn" if a < 0 else "up"}">{_ltr("%+.0f%%" % a)}</em></div>'
                    f'<div class="b"><span class="lb">{L("All stocks", "أسهم بالكامل")}</span><span class="tr"><i style="width:{abs(b) / top * 100:.0f}%"></i></span>'
                    f'<em class="{"dn" if b < 0 else "up"}">{_ltr("%+.0f%%" % b)}</em></div></div>')
-    return (f'<div class="rbscn"><div class="hd">{T.icon("thunderstorm")}{L("Three real storms", "ثلاث عواصف حقيقية")}</div>{"".join(out)}'
+    hd = L("Four real storms", "أربع عواصف حقيقية") if len(rows) == 4 else L("Three real storms", "ثلاث عواصف حقيقية")
+    return (f'<div class="rbscn"><div class="hd">{T.icon("thunderstorm")}{hd}</div>{"".join(out)}'
             f'<div class="ft">{L("Peak to bottom, rough estimates from what each kind of asset did then.", "من القمة للقاع، تقديرات تقريبية من أداء كل نوع أصل وقتها.")}</div></div>')
 
 
@@ -1354,9 +1401,10 @@ def heat_html(mret):
 
 def next_scan(now=None):
     d = R.settled_day(now).date()
-    nxt = mcal.next_trading_day(d)
+    cal = PF._cal()
+    nxt = cal.next_trading_day(d)
     while nxt.isocalendar()[1] == d.isocalendar()[1]:
-        nxt = mcal.next_trading_day(nxt)
+        nxt = cal.next_trading_day(nxt)
     return nxt
 
 
@@ -1448,12 +1496,12 @@ def bot_tab(state, rep, feats, bp=None):
         if len(cv) > 1:
             fig = go.Figure()
             fig.add_trace(go.Scatter(x=cv.index, y=cv["value"], name=L("Bot slice", "حصة البوت"), line=dict(color=BOT_C, width=2.4), fill="tozeroy",
-                                     fillcolor=C.rgba(BOT_C, 0.10), hovertemplate="%{x|%b %d, %Y}: $%{y:,.0f}<extra></extra>"))
+                                     fillcolor=C.rgba(BOT_C, 0.10), hovertemplate="%{x|%b %d, %Y}: " + _tp() + "%{y:,.0f}<extra></extra>"))
             fig.add_trace(go.Scatter(x=cv.index, y=cv["cost"], name=L("Money in it", "المبلغ فيها"), line=dict(color=T.GOLD, width=1.4, dash="dash", shape="hv"),
-                                     hovertemplate="%{x|%b %d, %Y}: $%{y:,.0f}<extra></extra>"))
+                                     hovertemplate="%{x|%b %d, %Y}: " + _tp() + "%{y:,.0f}<extra></extra>"))
             lo, hi = float(min(cv.min())), float(max(cv.max()))
             C.style(fig, 300, L("The bot's slice", "حصة البوت"))
-            fig.update_yaxes(range=[lo - (hi - lo) * .1 - 1, hi + (hi - lo) * .1 + 1], tickprefix="$", tickformat=",.0f")
+            fig.update_yaxes(range=[lo - (hi - lo) * .1 - 1, hi + (hi - lo) * .1 + 1], tickprefix=_tp(), tickformat=",.0f")
             ui.chart(fig, key="rb_botcv")
     if book.trades:
         ui.sec("receipt_long", "Closed trades", "الصفقات المغلقة")
@@ -1489,7 +1537,7 @@ def plan_page(state, row, rkey, err):
     ui.html(allocation_html(prof))
     has_bot = R.BOT in prof["targets"]
     feats = load_bot() if has_bot else {}
-    px = R.prices([t for t in prof["targets"] if t != R.BOT] + list(R.BENCH), "5y")
+    px = R.prices([t for t in prof["targets"] if t != R.BOT] + list(R.bench_funds()), "5y")
     bt, btb = R.backtest(prof, amount, monthly, px, bot=feats if has_bot else None)
     if has_bot:
         ui.sec("radar", "Opportunity Bot", "بوت الفرص")
@@ -1504,7 +1552,7 @@ def plan_page(state, row, rkey, err):
         else:
             st.info(L("The bot's prices aren't available right now, so its radar and its past are missing here. Try again in a minute.",
                       "أسعار البوت مو متاحة الحين، فراداره وتاريخه ناقصين هنا. جرّب بعد دقيقة."), icon=":material/cloud_off:")
-    else:
+    elif not _sa():                            # the Saudi robo has no Opportunity Bot
         ui.html(lock_html(rec["rec"]))
     ui.sec("query_stats", "What to expect", "وش تتوقع")
     ui.html(expect_kpis(prof))
@@ -1520,7 +1568,7 @@ def plan_page(state, row, rkey, err):
         years = st.segmented_control(L("Years", "السنوات"), yrs, default=min(yrs, key=lambda y: abs(y - prof["years"])), key="rb_years",
                                      format_func=lambda y: L(f"{y} years", f"{y} سنة")) or prof["years"]
     with g2:
-        goal = st.number_input(L("A goal, if you have one ($)", "هدف مالي إذا عندك ($)"), min_value=0, max_value=100_000_000, step=10_000,
+        goal = st.number_input(L(f"A goal, if you have one ({_cur()})", f"هدف مالي إذا عندك ({_cur()})"), min_value=0, max_value=100_000_000, step=10_000,
                                key="rb_goal", help=L("The chance the plan gets there in time.", "احتمال إن الخطة توصله في الوقت."))
     proj = R.project(prof["mu"], prof["vol"], amount, monthly, years, goal=goal or None)
     ui.chart(projection_fig(proj, years, goal or None), key="rb_proj")
@@ -1537,8 +1585,10 @@ def plan_page(state, row, rkey, err):
         start = bt["curve"].index[0]
         ui.chart(lines_fig(bt, btb, L(f"Your plan since {_date(start)}, with the same deposits", f"خطتك من {_date(start)} بنفس الإيداعات")), key="rb_bt")
         ui.html(f'<div class="rbtw">{_mtab(R.metrics(bt["curve"]), R.metrics(btb["curve"]))}</div>')
-        st.caption(L("Real daily prices with dividends reinvested, managed by the same rules. The benchmark holds global stocks (VT) and US bonds (BND) at the same stock share. Past results do not repeat.",
-                     "أسعار يومية حقيقية مع إعادة استثمار التوزيعات، وبنفس قواعد الإدارة. المؤشر المرجعي فيه أسهم عالمية (VT) وسندات أمريكية (BND) بنفس نسبة الأسهم. النتائج السابقة ما تتكرر بالضرورة.")
+        st.caption(L(f"Real daily prices with dividends reinvested, managed by the same rules. The benchmark holds {_bench_txt()} at the same stock share. Past results do not repeat.",
+                     f"أسعار يومية حقيقية مع إعادة استثمار التوزيعات، وبنفس قواعد الإدارة. المؤشر المرجعي فيه {_bench_txt()} بنفس نسبة الأسهم. النتائج السابقة ما تتكرر بالضرورة.")
+                   + (L(" The Tadawul funds are young (the sukuk, gold and US funds listed in 2022), so the test starts when they all have prices.",
+                        " صناديق تداول حديثة (الصكوك والذهب والأسهم الأمريكية أُدرجت في 2022)، فالاختبار يبدأ من أول يوم لها كلها أسعار.") if _sa() else "")
                    + (L(" The bot's list is today's companies, so its past looks better than it really was.",
                         " قائمة البوت هي شركات اليوم، فماضيه يطلع أحسن من الحقيقة.") if has_bot else ""))
     else:
@@ -1806,7 +1856,7 @@ def dash_hero(state, rep, err):
     spark = PP._spark(cur["value"] if len(cur) else pd.Series([val, val]))
     return (f'<div class="pfhero"><div class="grid"></div><div class="top"><div class="eb">{T.icon("smart_toy")}{L("Robo portfolio", "المحفظة الآلية")}'
             f'</div>{badge}</div><div class="mid"><div><div class="eql">{L("Portfolio value", "قيمة المحفظة")}</div>'
-            f'<div class="eq"><span dir="ltr">${whole}<small>.{cents}</small></span></div><div class="pls">{pls}</div></div>'
+            f'<div class="eq"><span dir="ltr">{"SAR " if _sa() else "$"}{whole}<small>.{cents}</small></span></div><div class="pls">{pls}</div></div>'
             f'<div class="sp">{spark}</div></div><div class="chips">{"".join(chips)}</div></div>')
 
 
@@ -1841,7 +1891,7 @@ def manage(state, row, rkey, err):
         cur = int(state["monthly"][-1]["amount"]) if state.get("monthly") else 0
         c1, c2 = st.columns([2, 1], vertical_alignment="bottom")
         with c1:
-            v = st.number_input(L("Monthly deposit ($)", "الإيداع الشهري ($)"), min_value=0, max_value=1_000_000, value=cur, step=50, key="rb_mon_new")
+            v = st.number_input(L(f"Monthly deposit ({_cur()})", f"الإيداع الشهري ({_cur()})"), min_value=0, max_value=1_000_000, value=cur, step=50, key="rb_mon_new")
         with c2:
             if st.button(L("Save", "احفظ"), key="rb_mon_save", type="primary", width="stretch", disabled=int(v) == cur):
                 state["monthly"].append({"at": now, "amount": float(v)})
@@ -1854,7 +1904,7 @@ def manage(state, row, rkey, err):
             kind = st.segmented_control(L("Type", "النوع"), ["in", "out"], default="in", key="rb_flow_k",
                                         format_func=lambda k: L("Deposit", "إيداع") if k == "in" else L("Withdraw", "سحب")) or "in"
         with c2:
-            amt = st.number_input(L("Amount ($)", "المبلغ ($)"), min_value=50, max_value=10_000_000, value=1000, step=50, key="rb_flow_a")
+            amt = st.number_input(L(f"Amount ({_cur()})", f"المبلغ ({_cur()})"), min_value=50, max_value=10_000_000, value=1000, step=50, key="rb_flow_a")
         with c3:
             if st.button(L("Confirm", "تأكيد"), key="rb_flow_go", type="primary", width="stretch"):
                 state["flows"].append({"at": now, "amount": float(amt) if kind == "in" else -float(amt)})
@@ -1912,7 +1962,7 @@ def manage(state, row, rkey, err):
 
 
 def dashboard(state, row, rkey, err):
-    tick = sorted({t for p in state["plans"] for t in p["targets"] if t != R.BOT} | set(R.BENCH))
+    tick = sorted({t for p in state["plans"] for t in p["targets"] if t != R.BOT} | set(R.bench_funds()))
     has_bot = any(R.BOT in p["targets"] for p in state["plans"])
     feats = load_bot() if has_bot else {}
     px = R.prices(tick, "5y")
@@ -1971,7 +2021,7 @@ def dashboard(state, row, rkey, err):
             ("account_balance", L("Value", "القيمة"), _m(val, 2), f'{L("Invested", "المستثمر")} <b>{_m(cur["invested"].iloc[-1])}</b>', None, None),
             ("show_chart", L("Return", "العائد"), _p(m.get("ret"), 2, True), L("time-weighted, since the start", "موزون زمنياً، من البداية"), PP._k(m.get("ret")), None),
             ("compare_arrows", L("vs benchmark", "مقابل المؤشر"), "—" if vs is None else _m(vs, 0, True),
-             L("same money in VT/BND", "نفس المبالغ في VT/BND"), PP._k(vs), None),
+             L(f"same money in {_bench_txt(True)}", f"نفس المبالغ في {_bench_txt(True)}"), PP._k(vs), None),
             ("trending_down", L("Largest fall", "أكبر هبوط"), _p(m.get("mdd"), 1, True), f'{L("Volatility", "التذبذب")} <b>{_p(m.get("vol"), 1)}</b>',
              "neg" if (m.get("mdd") or 0) < 0 else None, None)], "c4"))
         ui.sec("monitoring", "Performance", "الأداء")
@@ -2039,7 +2089,9 @@ def plan_tab(state, row, rkey, err):
 def page_robo():
     ui.html(PP.CSS + CSS)
     code, key = PP.ident()
-    rkey = R.key_for(key)
+    rkey = R.key_for(PF.market_key(key, MK.current()))        # the Saudi robo: its own row (the US one keeps its key)
+    if _sa():
+        ui.html(f'<div class="rbnote">{T.icon("flag")}<span>{L("The Saudi market’s robo: its own portfolio in riyals, in the funds listed on Tadawul. Your US robo stays as it is.", "المستشار الآلي للسوق السعودي: محفظة مستقلة بالريال من الصناديق المتداولة في تداول. ومحفظتك الآلية الأمريكية تبقى مثل ما هي.")}</span></div>')
     err, state, row = None, None, None
     try:
         state, row = R.load(rkey)
@@ -2063,4 +2115,4 @@ def page_robo():
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.0"
+BUILD = "22.1"

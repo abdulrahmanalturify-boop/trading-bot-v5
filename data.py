@@ -635,7 +635,10 @@ def market_news(hours=48, market=None):
     if (market or MK.current()) == MK.SA:
         try:
             import newsbot
-            return _sort_news(newsbot.sa_headlines(hours))
+            items = newsbot.sa_headlines(hours)
+            for n in items:                 # read for the Saudi market (newsiq: Saudi Arabia, the Gulf and the US are home)
+                n["mkt"] = "sa"
+            return _sort_news(items)
         except Exception:
             return []
     items = []
@@ -1466,6 +1469,40 @@ def sa_snapshot():
     return df
 
 
+def sa_closes(period="2y"):
+    """DataFrame (dates x Saudi symbols) of the main market's daily closes (the same batch as the overview's sectors, so it is
+    downloaded once). Companies with less than 60 sessions are left out."""
+    import tasi
+    hist = history_many(tuple(tasi.SYMBOLS) + ("^TASI.SR",), period)
+    cl = pd.DataFrame({s_: df["Close"] for s_, df in hist.items() if tasi.known(s_) and len(df) > 60})
+    return cl.sort_index()
+
+
+def sa_index(closes):
+    """The Saudi market as one equal-weighted index (100 at the start) from sa_closes(): Yahoo keeps no history for TASI. A day's
+    move of one company is capped at 40% (a split or a bad print never moves the whole index)."""
+    if closes is None or closes.empty:
+        return pd.Series(dtype=float)
+    r = closes.pct_change(fill_method=None).clip(-0.4, 0.4).mean(axis=1, skipna=True).fillna(0.0)
+    return (1 + r).cumprod() * 100
+
+
+def sa_moves():
+    """The Saudi main market today, one row per company, with its names, sector, traded value and relative volume (from
+    sa_snapshot). Empty when the quotes can't be read."""
+    import tasi
+    df = sa_snapshot()
+    if df.empty:
+        return df
+    df = df.copy()
+    df["Name"] = [tasi.name_of(s_) for s_ in df["Symbol"]]
+    df["NameAr"] = [tasi.name_of(s_, True) for s_ in df["Symbol"]]
+    df["Sector"] = [tasi.sector_of(s_) for s_ in df["Symbol"]]
+    df["Value"] = df["Price"] * df["Volume"]
+    df["Rel Vol"] = df["Volume"] / df["Avg Vol"].replace(0, np.nan)
+    return df[df["Price"].notna() & df["Chg %"].notna()].reset_index(drop=True)
+
+
 ytd_change = ta.ytd_change        # year-to-date % change from the last close of the previous year
 
 
@@ -1750,4 +1787,4 @@ def revenues(symbols, limit=100):
     return out
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.0"
+BUILD = "22.1"

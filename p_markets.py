@@ -1042,7 +1042,185 @@ def _leaderboard(df, lg, n=12):
     return '<div class="lead">' + "".join(cards) + "</div>"
 
 
+# ---------------------------------------------------------------- the Saudi market's trending page
+SA_LISTS = {"gainers": ("Top Gainers", "الأكثر ارتفاعاً", "trending_up"), "losers": ("Top Losers", "الأكثر انخفاضاً", "trending_down"),
+            "value": ("Most Traded (value)", "الأعلى قيمة تداول", "payments"), "volume": ("Unusual Volume", "حجم تداول غير عادي", "bolt"),
+            "highs": ("Near a 52-week High", "قرب القمة السنوية", "north_east"), "lows": ("Near a 52-week Low", "قرب القاع السنوي", "south_east")}
+SA_LIQUID = 2e6                    # SAR traded today: below it a move says little (a few trades)
+
+
+def sa_lists(mv):
+    """{kind: DataFrame} the Saudi movers (SA_LISTS) from data.sa_moves()."""
+    if mv is None or mv.empty:
+        return {k: pd.DataFrame() for k in SA_LISTS}
+    mv = mv.copy()
+    if is_ar():
+        mv["Name"] = mv["NameAr"]
+    liq = mv[mv["Value"].fillna(0) >= SA_LIQUID]
+    out = {"gainers": liq.sort_values("Chg %", ascending=False), "losers": liq.sort_values("Chg %"),
+           "value": mv.sort_values("Value", ascending=False),
+           "volume": liq[liq["Rel Vol"].notna()].sort_values("Rel Vol", ascending=False),
+           "highs": mv[mv["Hi52 %"] >= -3].sort_values("Hi52 %", ascending=False),
+           "lows": mv[mv["Lo52 %"] <= 4].sort_values("Lo52 %")}
+    return {k: v.head(25).reset_index(drop=True) for k, v in out.items()}
+
+
+def summary_html_sa(px, mv, lists, lg):
+    """The Saudi market's summary: the day's tone from TASI and the breadth of the main market on top, then the sectors, oil, gold
+    and the dollar, and the biggest movers."""
+    tx = _last(px, "^TASI.SR")[2]
+    if tx is None:
+        tone, tic, tcls = L("Waiting for prices", "بانتظار الأسعار"), "hourglass_empty", "t-z"
+    elif tx >= 1:
+        tone, tic, tcls = L("Saudi stocks are rallying", "الأسهم السعودية في صعود قوي"), "rocket_launch", "t-u"
+    elif tx >= .25:
+        tone, tic, tcls = L("Saudi stocks are higher", "الأسهم السعودية على ارتفاع"), "trending_up", "t-u"
+    elif tx > -.25:
+        tone, tic, tcls = L("Saudi stocks are little changed", "الأسهم السعودية شبه مستقرة"), "trending_flat", "t-z"
+    elif tx > -1:
+        tone, tic, tcls = L("Saudi stocks are lower", "الأسهم السعودية على انخفاض"), "trending_down", "t-d"
+    else:
+        tone, tic, tcls = L("Saudi stocks are selling off", "الأسهم السعودية تحت ضغط بيع"), "south", "t-d"
+    nm_ = _last(px, "^NOMUC.SR")[2]
+    idx = " · ".join(f'<span>{n} {_sgn(v)}</span>' for n, v in ((L("TASI", "تاسي"), tx), (L("Nomu", "نمو"), nm_)) if v is not None)
+    n = len(mv) if mv is not None else 0
+    up = int((mv["Chg %"] > 0).sum()) if n else 0
+    dn = int((mv["Chg %"] < 0).sum()) if n else 0
+    pu = up / n * 100 if n else 0
+    breadth = (f'<div class="brd" title="{T.esc(L("How many of the main market companies are up today.", "كم شركة من السوق الرئيسية صاعدة اليوم."))}">'
+               f'<div class="bl"><span>{L("Breadth", "اتساع السوق")}</span><b dir="ltr">{pu:.0f}% {L("up", "صاعدة")}</b></div>'
+               f'<div class="bar"><i class="u" style="width:{pu:.1f}%"></i><i class="d" style="width:{(dn / n * 100 if n else 0):.1f}%"></i></div>'
+               f'<div class="bc"><span class="upt" dir="ltr">▲ {up}</span><span class="muted">{L(f"of {n} companies", f"من {n} شركة")}</span>'
+               f'<span class="dnt" dir="ltr">▼ {dn}</span></div></div>') if n else ""
+    top = (f'<div class="msh {tcls}"><div class="tone"><span class="ti">{T.icon(tic)}</span><div><div class="tt">{tone}</div>'
+           f'<div class="ix">{idx}</div></div></div>{breadth}</div>')
+    tiles = []
+    if n:
+        sec = mv.groupby("Sector")["Chg %"].mean().dropna().sort_values(ascending=False)
+        sec = [(k, float(v)) for k, v in sec.items() if k]
+        if sec:
+            mx = max(.5, max(abs(p) for _, p in sec))
+            rows = "".join(f'<div class="sr" title="{T.esc(_sa_sector(nm))}: {p:+.2f}%"><span class="n">{T.esc(_sa_sector(nm))}</span>'
+                           f'<span class="b"><i class="{_ud(p)}" style="width:{abs(p) / mx * 50:.1f}%"></i></span>{_sgn(p)}</div>' for nm, p in sec)
+            best, worst = sec[0], sec[-1]
+            why = L(f"Each sector is the average move of its companies today. Leading: {best[0]} ({best[1]:+.2f}%). Lagging: {worst[0]} ({worst[1]:+.2f}%).",
+                    f"كل قطاع = متوسط حركة شركاته اليوم. الأقوى: {_sa_sector(best[0])} ({best[1]:+.2f}%)، والأضعف: {_sa_sector(worst[0])} ({worst[1]:+.2f}%).")
+            tiles.append(_mst("donut_small", L("Sectors today", "القطاعات اليوم"), f'<div class="secs">{rows}</div>', why,
+                              f"?lang={lang()}&m=sa", " wide"))
+    rows = [(L("Brent crude", "خام برنت"), _last(px, "BZ=F")[2]), (L("WTI crude", "خام غرب تكساس"), _last(px, "CL=F")[2]),
+            (L("Gold", "الذهب"), _last(px, "GC=F")[2]), (L("US dollar", "الدولار"), _last(px, "DX-Y.NYB")[2]),
+            (L("Bitcoin", "بيتكوين"), _last(px, "BTC-USD")[2])]
+    rows = [(nm, p) for nm, p in rows if p is not None]
+    if rows:
+        mx = max(1.0, max(abs(p) for _, p in rows))
+        body = '<div class="rows">' + "".join(
+            f'<div class="r"><span class="n">{nm}</span><span class="b"><i class="{_ud(p)}" style="width:{abs(p) / mx * 100:.0f}%"></i></span>{_sgn(p)}</div>'
+            for nm, p in rows) + "</div>"
+        tiles.append(_mst("oil_barrel", L("Oil, gold & the dollar", "النفط والذهب والدولار"), body,
+                          L("Since yesterday's close. Oil matters most for the Saudi market: energy and petrochemicals are a large part of it, "
+                            "and the riyal is pegged to the dollar.",
+                            "منذ إغلاق أمس. النفط الأهم للسوق السعودي: الطاقة والبتروكيماويات جزء كبير منه، والريال مربوط بالدولار.")))
+    mvs = []
+    for key, lab in (("gainers", L("Biggest gainer", "الأكثر ارتفاعاً")), ("losers", L("Biggest loser", "الأكثر انخفاضاً"))):
+        d = lists.get(key)
+        if d is not None and not d.empty:
+            r = d.iloc[0]
+            mvs.append(f'<a class="mvr" href="{ui.href(r["Symbol"])}" target="_self">{T.logo_circle(r["Symbol"], lg.get(r["Symbol"]), 34)}'
+                       f'<span class="nm"><small>{lab}</small><b><bdi>{T.esc(r["Symbol"])}</bdi></b><em>{T.esc(str(r["Name"])[:24])}</em></span>{T.pill(r["Chg %"])}</a>')
+    d = lists.get("value")
+    if d is not None and not d.empty:
+        chips = "".join(f'<a class="mchip" href="{ui.href(s_)}" target="_self"><bdi>{T.esc(s_)}</bdi> {_sgn(p, 1)}</a>'
+                        for s_, p in zip(d["Symbol"].head(5), d["Chg %"].head(5)))
+        mvs.append(f'<div class="shl">{L("Most traded today", "الأعلى قيمة تداول اليوم")}</div><div class="chips">{chips}</div>')
+    if mvs:
+        tiles.append(_mst("swap_vert", L("Biggest movers", "الأكثر حركة"), "".join(mvs),
+                          L(f"Among the companies that traded more than SAR {SA_LIQUID / 1e6:.0f} million today, and the most traded by value.",
+                            f"بين الشركات اللي تداولت بأكثر من {SA_LIQUID / 1e6:.0f} مليون ريال اليوم، والأعلى قيمة تداول.")))
+    return f'<div class="msum{" rtl" if is_ar() else ""}">{top}<div class="msg">{"".join(tiles)}</div></div>'
+
+
+def page_trending_sa():
+    ui.header("local_fire_department", "What's Trending · Saudi Market", "الأكثر رواجاً · السوق السعودي",
+              "Today's most important Saudi stories, the biggest movers of the main market, the most traded and the unusual volumes, and a "
+              "plain-language summary.",
+              "أهم أخبار السوق السعودي اليوم، والأسهم الأكثر حركة في السوق الرئيسية، والأعلى تداولاً والأحجام غير العادية، وملخص بلغة بسيطة.")
+    px = _tile_prices()
+    mv = data.sa_moves()
+    lists = sa_lists(mv)
+    all_syms = [s_ for df in lists.values() if not df.empty for s_ in df["Symbol"].head(12)]
+    ui.sec("newspaper", "Top 3 trending stories", "أهم 3 أخبار رائجة")
+    stories = ui.safe(top_stories, 3) or []
+    tick = sorted({s_ for n in stories for s_ in n["tickers"]})
+    lg = data.logos(list(dict.fromkeys(all_syms + tick)))
+    if stories:
+        titles = [n["title"] for n in stories]
+        if is_ar():
+            titles = data.translate(titles)
+        chg = data.quick_changes(tick) if tick else {}
+        cards = []
+        for i, (n, t) in enumerate(zip(stories, titles)):
+            ch = ui.chips(n["tickers"], chg, lg) or f'<span class="muted">{L("Broad market", "السوق بشكل عام")}</span>'
+            iq = n.get("iq")
+            score = ""
+            if iq:
+                bg, fg, bd = newsiq.colors(iq["score"])
+                score = f'<span class="iqs" style="background:{bg};color:{fg};border-color:{bd}">{iq["score"]}/10 · {T.esc(L(*newsiq.level(iq["score"])))}</span>'
+            cards.append(f'<div class="story r{i + 1}{" rtl" if is_ar() else ""}">{T.news_thumb(n, big=True)}<div class="rank">0{i + 1}</div>'
+                         f'<a class="t" href="{T.esc(n["link"])}" target="_blank">{T.esc(t)}</a>'
+                         f'<div class="muted" style="font-size:.78rem;margin-top:6px">{T.esc(n["source"])} · {T.time_ago(n["time"], is_ar())}</div>'
+                         f'<div style="margin-top:8px">{score}</div>' + (T.kw_chips(iq, is_ar(), 3) if iq else "") +
+                         f'<div class="aff"><span class="lbl" style="width:100%">{L("Affected companies", "الشركات المتأثرة")}</span>{ch}</div></div>')
+        ui.html(f'<div class="stories n{len(cards)}">' + "".join(cards) + "</div>")
+    else:
+        st.caption(L("No trending stories right now.", "لا توجد أخبار رائجة حالياً."))
+    ui.sec("summarize", "Market summary", "ملخص السوق")
+    ui.html(summary_html_sa(px, mv, lists, lg))
+    if mv.empty:
+        st.info(L("Saudi quotes are unavailable right now. Try again in a minute.", "أسعار السوق السعودي غير متاحة حالياً. حاول بعد دقيقة."))
+        ui.foot()
+        return
+    ui.sec("leaderboard", "Movers at a glance", "الأسهم الأكثر حركة")
+    keys = list(SA_LISTS)
+    for i, row in enumerate((keys[:3], keys[3:])):
+        with st.container(key=f"mvrow_{i}"):
+            cols = st.columns(3)
+        for col, kind in zip(cols, row):
+            df = lists[kind]
+            en, ar, ic = SA_LISTS[kind]
+            body = ui.row_list(df.head(6), lg, show_vol=kind == "volume") if not df.empty else f'<div class="muted">{L("No data", "لا بيانات")}</div>'
+            col.markdown(f'<div class="mcard"><div class="hd">{T.icon(ic)}<span>{T.esc(L(en, ar))}</span></div>{body}</div>', unsafe_allow_html=True)
+    ui.sec("table_rows", "Full lists", "القوائم الكاملة")
+    tabs = st.tabs([f":material/{v[2]}: {L(v[0], v[1])}" for v in SA_LISTS.values()])
+    for tab, kind in zip(tabs, SA_LISTS):
+        with tab:
+            df = lists[kind]
+            if df.empty:
+                st.info(L("No company fits this list today.", "ما فيه شركة تنطبق عليها هالقائمة اليوم."))
+                continue
+            ui.html(_leaderboard(df, lg))
+            ui.chart(charts.movers_bubble(df, L("Change vs relative volume (bubble = market cap)", "التغير مقابل الحجم النسبي (حجم الفقاعة = القيمة السوقية)"),
+                                          L("Relative volume (×)", "الحجم النسبي (×)"), L("Change %", "التغير %")), key=f"bub_sa_{kind}")
+            show = df[["Symbol", "Name", "Price", "Chg %", "Value", "Rel Vol", "Mkt Cap"]].copy()
+            show.insert(0, "Logo", show["Symbol"].map(data.logo_url))
+            show["Value"] = show["Value"].map(T.fmt_big)
+            show["Mkt Cap"] = show["Mkt Cap"].map(T.fmt_big)
+            N = {"Symbol": L("Symbol", "الرمز"), "Name": L("Company", "الشركة"), "Price": L("Price (SAR)", "السعر (ر.س)"), "Chg %": L("Change %", "التغير %"),
+                 "Value": L("Traded value (SAR)", "قيمة التداول (ر.س)"), "Rel Vol": L("Rel. volume", "الحجم النسبي"),
+                 "Mkt Cap": L("Market cap (SAR)", "القيمة السوقية (ر.س)")}
+            show = show.rename(columns=N)
+            ui.table(show, sym=N["Symbol"], pills={N["Chg %"]}, height=480,
+                     fmt={N["Price"]: "{:,.2f}", N["Chg %"]: "{:+.2f}%", N["Rel Vol"]: "{:.1f}×"})
+            ui.open_picker(df["Symbol"].tolist(), f"tr_sa_{kind}", "Open a company", "افتح شركة")
+    st.caption(L(f"From Yahoo Finance quotes of the {len(mv)} main-market companies (may be delayed). Gainers, losers and unusual volume count only "
+                 f"companies that traded more than SAR {SA_LIQUID / 1e6:.0f} million today.",
+                 f"من أسعار ياهو فاينانس لـ {len(mv)} شركة في السوق الرئيسية (قد تكون متأخرة). الأكثر ارتفاعاً وانخفاضاً والحجم غير العادي تحسب بس "
+                 f"الشركات اللي تداولت بأكثر من {SA_LIQUID / 1e6:.0f} مليون ريال اليوم."))
+    ui.foot()
+
+
 def page_trending():
+    if MK.is_sa():
+        return page_trending_sa()
     ui.header("local_fire_department", "What's Trending", "الأكثر رواجاً",
               "Today's most important stories, the biggest movers, short interest and a plain-language market summary.",
               "أهم أخبار اليوم، الأسهم الأكثر حركة، البيع على المكشوف، وملخص السوق بلغة بسيطة.")
@@ -1277,4 +1455,4 @@ def page_news():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.0"
+BUILD = "22.1"

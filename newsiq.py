@@ -54,7 +54,36 @@ TOPICS = [
      r"slumps?|slumped|skyrockets?|sinks?|sank|jumps?|jumped|rall(?:y|ies|ied)|rebounds?|rebounded|slides?|slid)\b"),
     ("street", "Wall Street", "وول ستريت", 0.8, r"(\bs&p 500\b|\bnasdaq\b|\bdow jones\b|\bwall street\b|\bstock market\b|\bstocks\b|\bequities\b)"),
 ]
+# the same topics in the Saudi market's Arabic headlines (matched inside words: Arabic glues "و", "ب", "ال" to them)
+TOPICS_AR = {
+    "fed": r"(?:ال)?فائدة|(?:ال)?فيدرالي|ساما|(?:ال)?بنك المركزي|السياسة النقدية",
+    "inflation": r"(?:ال)?تضخم|أسعار المستهلك",
+    "jobs": r"(?:ال)?بطالة|سوق العمل|(?:ال)?توظيف|(?:ال)?سعودة",
+    "economy": r"(?:ال)?اقتصاد|(?:ال)?ناتج المحلي|النمو الاقتصادي|(?:ال)?ركود|الإنفاق",
+    "bonds": r"(?:ال)?سندات|(?:ال)?صكوك|(?:ال)?عوائد",
+    "trade": r"رسوم جمركية|(?:ال)?رسوم الجمركية|حرب تجارية|(?:ال)?عقوبات",
+    "geo": r"(?:ال)?حرب|صواريخ|هجوم|إيران|إسرائيل|غزة|البحر الأحمر|الحوثي|(?:ال)?توترات",
+    "policy": r"(?:ال)?ميزانية|مجلس الوزراء|ولي العهد|رؤية 2030|(?:ال)?حكومة|مرسوم|نظام جديد",
+    "earnings": r"نتائج|صافي (?:ال)?ربح|صافي (?:ال)?خسار|(?:ال)?أرباح|(?:ال)?خسائر|(?:ال)?إيرادات|ربح(?:ية)? السهم",
+    "guidance": r"توقعات(?:ها)?|(?:ال)?توجيهات",
+    "mna": r"استحواذ|اندماج|يستحوذ|تستحوذ",
+    "ipo": r"اكتتاب|(?:ال)?طرح العام|طرح أولي|(?:ال)?إدراج|السوق الموازية",
+    "legal": r"هيئة السوق (?:ال)?مالية|غرامة|مخالفة|عقوبة|دعوى|(?:ال)?محكمة|(?:ال)?نيابة",
+    "distress": r"إفلاس|تصفية|خسائر(?:ها)? المتراكمة|خسائر متراكمة|تعليق (?:ال)?تداول|إلغاء إدراج",
+    "layoffs": r"تسريح|إعادة هيكلة|إعادة الهيكلة",
+    "product": r"إطلاق|تدشين|افتتاح",
+    "payout": r"توزيع(?:ات)? (?:ال)?أرباح|توزيعات نقدية|أسهم منحة|منحة أسهم|إعادة شراء|شراء أسهم(?:ها)?",
+    "analyst": r"(?:ال)?سعر (?:ال)?مستهدف|توصية|(?:ال)?تصنيف الائتماني",
+    "ai": r"(?:ال)?ذكاء الاصطناعي|(?:ال)?رقائق|مراكز (?:ال)?بيانات|أشباه الموصلات",
+    "crypto": r"بيتكوين|(?:ال)?عملات (?:ال)?رقمية|(?:ال)?عملات المشفرة",
+    "oil": r"(?:ال)?نفط|أوبك|برنت|(?:ال)?خام|(?:ال)?غاز",
+    "metals": r"(?:ال)?ذهب|(?:ال)?فضة|(?:ال)?نحاس|(?:ال)?معادن",
+    "fx": r"(?:ال)?دولار|(?:ال)?ريال|(?:ال)?عملات",
+    "move": r"قفز|يقفز|تقفز|هبط|يهبط|تهبط|أعلى مستوى|أدنى مستوى|تراجع حاد|ارتفاع قياسي|ينهار|انهيار|يرتفع بقوة|موجة بيع",
+    "street": r"تاسي|(?:ال)?مؤشر العام|(?:ال)?سوق السعودي|(?:ال)?سوق السعودية|سوق الأسهم|(?:ال)?أسهم السعودية|(?:ال)?سوق الرئيسية",
+}
 _TOPICS = [(k, en, ar, w, re.compile(p, re.I)) for k, en, ar, w, p in TOPICS]
+_TOPICS_AR = {k: re.compile(p) for k, p in TOPICS_AR.items()}
 TOPIC_ICON = {"fed": "account_balance", "inflation": "trending_up", "jobs": "work", "economy": "public", "bonds": "percent",
               "trade": "local_shipping", "geo": "travel_explore", "policy": "gavel", "earnings": "request_quote", "guidance": "insights",
               "mna": "handshake", "ipo": "rocket_launch", "legal": "balance", "health": "medication", "distress": "warning",
@@ -94,12 +123,30 @@ _MINOR = re.compile(r"(central bank of|national bank of|reserve bank of|\b(?:rbi
                     r"danish|switzerland|swiss|iceland\w*|kazakh\w*|georgia\w*|armenia\w*|azerbaijan\w*|uzbek\w*|mongolia\w*|"
                     r"dominican|jamaica\w*|costa rica\w*|guatemala\w*|paraguay\w*|uruguay\w*|bolivia\w*|ecuador\w*|venezuela\w*)\b)", re.I)
 MACRO = {"fed", "inflation", "jobs", "economy", "bonds"}
+# the Saudi market's own economy: Saudi Arabia, the Gulf, oil, and (the riyal is pegged to the dollar) the Fed's rates and US data
+_SA_HOME = re.compile(r"(saudi\w*|riyadh|\bsama\b|tadawul|\btasi\b|aramco|\bgcc\b|\bgulf\b|\bopec\b|السعودي|السعودية|المملكة|ساما|"
+                      r"البنك المركزي السعودي|تاسي|تداول|الخليج|أوبك|الرياض|رؤية 2030)", re.I)
+_ARABIC = re.compile(r"[\u0600-\u06FF]")
+# rate decisions, data releases and deals in Arabic headlines
+EVENTS_AR = re.compile(r"((?:تثبيت|تثبت|يثبت|تبقي على|يبقي على) (?:أسعار )?(?:ال)?فائدة|(?:خفض|رفع|يخفض|يرفع|تخفيض) (?:أسعار )?(?:ال)?فائدة|أوبك\+? (?:تقرر|تخفض|تمدد|ترفع|تتفق)|"
+                       r"(?:يستحوذ|تستحوذ|استحواذ) على|توزيع(?:ات)? (?:ال)?أرباح|ترسية|إفلاس|تعليق (?:ال)?تداول|زيادة رأس ?(?:ال)?مال)")
 # the rate decisions and data releases among the market-moving events (a deal or a bankruptcy abroad keeps its weight)
 MACRO_EVENT = re.compile(
     r"(\b(?:cuts?|hikes?|raises?|holds?|keeps?|leaves?|lowers?) (?:its |key |benchmark |policy )*(?:interest |lending |policy )?rates?\b|"
     r"\brates? (?:unchanged|steady|decision)\b|"
     r"\b(?:cpi|inflation|pce|payrolls|jobs report|gdp|unemployment|jobless claims)\b.{0,50}\b(?:rose|rises|fell|falls|jumped|jumps|cooled|"
     r"cools|heated|hotter|cooler|beat|beats|missed|misses|came in|accelerat\w*|slow\w*|surged|slid|unexpectedly)\b)", re.I)
+
+
+def scope_sa(title, summary=""):
+    """scope() for the Saudi market: Saudi Arabia, the Gulf, OPEC and the US (the dollar peg) are home ('us': full weight), and an
+    Arabic headline about the economy is taken as local; other countries as in scope()."""
+    for text in (title, summary[:240]):
+        if _SA_HOME.search(text) or _US_CASE.search(text) or _US.search(text):
+            return "us"
+    if _ARABIC.search(title or ""):
+        return None
+    return scope(title, summary)
 
 
 def scope(title, summary=""):
@@ -127,9 +174,14 @@ SOURCES = [(1.0, ("reuters", "bloomberg", "wall street journal", "wsj", "associa
            (-0.8, ("zacks", "simply wall", "gurufocus", "24/7 wall", "benzinga insights", "stocktwits", "kiplinger")),
            (1.0, ("federal reserve", "bls", "sec")),
            (0.3, ("benzinga", "nasdaq", "investing.com", "fox business", "seeking alpha", "coindesk", "pr newswire", "globenewswire",
-                  "cointelegraph"))]
+                  "cointelegraph")),
+           # the Saudi market's own outlets
+           (0.6, ("argaam", "أرقام", "الاقتصادية", "aleqt", "الشرق", "asharq", "arab news", "saudi gazette", "العربية", "al arabiya",
+                  "تداول", "saudi exchange", "واس", "spa.gov"))]
 MEGA = {"AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "GOOG", "META", "AVGO", "TSLA", "BRK-B", "JPM", "LLY", "V", "MA", "UNH", "XOM", "WMT",
-        "ORCL", "NFLX", "COST", "JNJ", "PG", "HD", "BAC", "ABBV", "KO", "PLTR", "AMD", "CRM", "TSM", "SPY", "QQQ"}
+        "ORCL", "NFLX", "COST", "JNJ", "PG", "HD", "BAC", "ABBV", "KO", "PLTR", "AMD", "CRM", "TSM", "SPY", "QQQ",
+        # the Saudi market's giants (Aramco, Al Rajhi, SNB, Ma'aden, STC, SABIC, ACWA Power)
+        "2222.SR", "1120.SR", "1180.SR", "1211.SR", "7010.SR", "2010.SR", "2082.SR"}
 
 LEVELS = [(9, "Very important", "هام جداً"), (7, "Important", "هام"), (5, "Medium", "متوسط الأهمية"), (3, "Low", "منخفض الأهمية"),
           (1, "Not important", "غير هام")]
@@ -164,20 +216,22 @@ def analyze(n, chg=None, now=None):
     title = str(n.get("title") or "")
     summ = str(n.get("summary") or "")[:500]
     tickers = [t for t in (n.get("tickers") or []) if t]
+    home_sa = n.get("mkt") == "sa" or any(str(t).endswith(".SR") for t in tickers)     # a story read for the Saudi market
     hits = []
     for key, en, ar, w, pat in _TOPICS:
-        if pat.search(title):
+        par = _TOPICS_AR.get(key)
+        if pat.search(title) or (par is not None and par.search(title)):
             hits.append((w, key, en, ar))
-        elif summ and pat.search(summ):
+        elif summ and (pat.search(summ) or (par is not None and par.search(summ))):
             hits.append((w * 0.6, key, en, ar))
     def topic_of(hs):
         hs = sorted(hs, key=lambda h: -h[0])
         return hs, min(sum(w * (1.0, 0.5, 0.25)[i] for i, (w, *_) in enumerate(hs[:3])), 4.6)
     macro_event = bool(MACRO_EVENT.search(title))
-    where = scope(title, summ) if (any(h[1] in MACRO for h in hits) or macro_event) else None
+    where = (scope_sa if home_sa else scope)(title, summ) if (any(h[1] in MACRO for h in hits) or macro_event) else None
     mult = {"major": 0.6, "minor": 0.2}.get(where, 1.0)
     full_hits, full_topic = topic_of(hits)
-    full_event = 2.0 if (EVENTS.search(title) or macro_event) else 0.0
+    full_event = 2.0 if (EVENTS.search(title) or macro_event or EVENTS_AR.search(title)) else 0.0
     hits, topic = topic_of([(w * mult if key in MACRO else w, key, en, ar) for w, key, en, ar in hits])
     event = full_event * ((0.5 if where == "major" else 0.0 if where == "minor" else 1.0) if macro_event else 1.0)
     reasons = []
@@ -187,10 +241,13 @@ def analyze(n, chg=None, now=None):
         reasons.append(("Market-moving event", "حدث مؤثر في السوق", full_event))
     cut = round((full_topic + full_event) - (topic + event), 1)
     if cut > 0:                                # another country's rates or data: little to do with US stocks
-        reasons.append(("Another major economy: a smaller effect on US stocks" if where == "major" else
-                        "Another country's economy: little effect on US stocks",
-                        "اقتصاد كبير غير أمريكي: أثره على الأسهم الأمريكية أقل" if where == "major" else
-                        "اقتصاد دولة ثانية: أثره على الأسهم الأمريكية ضعيف", -cut))
+        mk_en, mk_ar = ("Saudi", "السعودية") if home_sa else ("US", "الأمريكية")
+        reasons.append((f"Another major economy: a smaller effect on {mk_en} stocks" if where == "major" else
+                        f"Another country's economy: little effect on {mk_en} stocks",
+                        (f"اقتصاد كبير آخر: أثره على الأسهم {mk_ar} أقل" if home_sa else "اقتصاد كبير غير أمريكي: أثره على الأسهم الأمريكية أقل")
+                        if where == "major" else
+                        (f"اقتصاد دولة ثانية: أثره على الأسهم {mk_ar} ضعيف" if home_sa else "اقتصاد دولة ثانية: أثره على الأسهم الأمريكية ضعيف"),
+                        -cut))
     opinion = -2.2 if OPINION.search(title) else 0.0
     if opinion:
         reasons.append(("Opinion / list article", "مقال رأي أو قائمة", opinion))
@@ -266,4 +323,4 @@ def rank(items):
     return sorted(items, key=lambda n: ((n.get("iq") or {}).get("raw", 0), n["time"] if pd.notna(n.get("time")) else zero), reverse=True)
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.0"
+BUILD = "22.1"

@@ -16,6 +16,10 @@ trading day of the month (into what is under its target first), a review each qu
 rebalance as soon as a fund leaves its band. Nothing runs in the background: the same replay at every visit gives the same
 history and today's value.
 
+The Saudi market has a robo of its own (its own account, in riyals): the same questionnaire and levels, held in the funds
+listed on Tadawul (Saudi stocks, US stocks, Saudi government sukuk, short sukuk for cash, gold), replayed on the exchange's
+Sunday-Thursday days; the market of the page (portfolio.market()) says which one a function works for.
+
 Kept in the paper bots' table like the paper portfolio: the row "<portfolio key>:robo" (the owner's key, or the visitor's
 own code), so it follows the same code from device to device. Its key (the strategy column) starts with "__portfolio__", so
 the Paper Bots page never lists it.
@@ -32,6 +36,7 @@ import pandas as pd
 import streamlit as st
 
 import data
+import markets as MK
 import mcal
 import portfolio as PF
 import robobot as RB
@@ -206,11 +211,33 @@ FUNDS = {
     "SPRE": ("SP Funds S&P Global REIT Sharia ETF", "Real estate (Sharia)", "عقارات متوافقة", "#F97316", "real"),
     "CASH": ("Cash", "Cash", "نقد", "#9D97A5", "cash"),
     "BOT": ("TURA Opportunity Bot", "Emerging companies & explosive moves", "الشركات الناشئة والانفجارات السعرية", "#EC4899", "bot"),
+    # the Saudi market's robo: funds listed on Tadawul (priced in riyals)
+    "9400.SR": ("YAQEEN Saudi Equity ETF", "Saudi stocks", "أسهم سعودية", "#22C55E", "stocks"),
+    "9406.SR": ("Albilad MSCI US Equity ETF", "US stocks", "أسهم أمريكية", "#3B8BEB", "stocks"),
+    "9403.SR": ("Albilad Saudi Sovereign Sukuk ETF", "Saudi government sukuk", "صكوك حكومية سعودية", "#34D399", "bonds"),
+    "9404.SR": ("Alinma Saudi Government Sukuk ETF (short maturity)", "Short sukuk (cash)", "صكوك قصيرة الأجل (شبه نقد)", "#9D97A5", "cash"),
+    "9405.SR": ("Albilad Gold ETF", "Gold", "ذهب", "#F5B94A", "gold"),
 }
 GROUPS = {"stocks": ("Stocks", "أسهم", "#3B8BEB"), "bonds": ("Bonds & sukuk", "سندات وصكوك", "#34D399"),
           "cash": ("Cash", "نقد", "#9D97A5"), "real": ("Real estate", "عقارات", "#F97316"), "gold": ("Gold", "ذهب", "#F5B94A"),
           "bot": ("Opportunity bot", "بوت الفرص", "#EC4899")}
 BENCH = ("VT", "BND")                   # the policy benchmark: global stocks and US bonds, at the plan's own stock share
+
+# ---- the Saudi market's robo: the same levels, in the funds listed on Tadawul
+SLEEVES_SA = ["sa", "us", "bond", "cash", "gold"]
+ETF_SA = {"sa": "9400.SR", "us": "9406.SR", "bond": "9403.SR", "cash": "9404.SR", "gold": "9405.SR"}
+BENCH_SA = ("9400.SR", "9403.SR")       # its benchmark: Saudi stocks and Saudi government sukuk at the plan's stock share
+SA_HOME = 0.75                          # of the stock part: Saudi stocks (the rest in US stocks, the market abroad Tadawul offers)
+
+
+def is_sa():
+    """True when the page (or the account replayed) is the Saudi market's."""
+    return PF.market() == MK.SA
+
+
+def bench_funds():
+    """The policy benchmark's two funds (stocks, bonds) of the page's market."""
+    return BENCH_SA if is_sa() else BENCH
 
 # the strategic mix of each level: stocks, bonds, inflation-protected bonds, cash, real estate, gold (percent)
 CORE = {1: (10, 45, 15, 25, 0, 5), 2: (20, 45, 12, 15, 3, 5), 3: (30, 42, 10, 8, 5, 5), 4: (40, 38, 7, 5, 5, 5),
@@ -226,6 +253,17 @@ def tier(level):
     """0..4: the grade of a risk level."""
     return (int(min(10, max(1, level))) - 1) // 2
 
+
+# the Saudi funds' long-run assumptions (rough: Saudi stocks swing with oil, sukuk and short sukuk earn about the riyal's rates)
+ASSUME_SA = {"sa": (8.0, 20.0), "us": (7.0, 16.0), "bond": (4.5, 4.5), "cash": (4.0, 0.5), "gold": (4.5, 15.0)}
+CORR_SA = np.array([
+    # sa   us   bond cash gold
+    [1.00, .45, .15, .00, .10],   # sa
+    [.45, 1.00, .10, .00, .05],   # us
+    [.15, .10, 1.00, .20, .25],   # bond (sukuk)
+    [.00, .00, .20, 1.00, .00],   # cash
+    [.10, .05, .25, .00, 1.00],   # gold
+])
 # long-run assumptions per sleeve: expected return a year, volatility (percent) - for the projection, not a promise
 ASSUME = {"us": (7.0, 16.0), "div": (6.8, 14.0), "intl": (6.5, 17.0), "em": (7.5, 22.0), "bond": (4.2, 6.0), "tips": (3.8, 3.0),
           "cash": (3.5, 0.5), "reit": (6.5, 20.0), "gold": (4.5, 15.0), "bot": (9.0, 35.0)}
@@ -259,9 +297,24 @@ def _round_weights(w, step=0.5):
     return r
 
 
+def sleeves_sa(level, cash=0):
+    """The Saudi market's sleeves of a risk level: the same strategic mix, its stocks three quarters Saudi and a quarter US, the
+    bonds and inflation-protected bonds in Saudi government sukuk, real estate with the Saudi stocks (Tadawul has no broad real
+    estate fund), and no Opportunity Bot slice."""
+    eq, bd, tp, ca, re_, go = CORE[int(min(10, max(1, level)))]
+    w = {"sa": eq * SA_HOME + re_, "us": eq * (1 - SA_HOME), "bond": bd + tp, "cash": ca, "gold": go}
+    if cash:
+        k = (100 - cash) / 100
+        w = {s: v * k for s, v in w.items()}
+        w["cash"] = w.get("cash", 0) + cash
+    return {s: v for s, v in w.items() if v > 1e-9}
+
+
 def sleeves(level, income=False, cash=0, sharia=False):
     """{sleeve: weight %} of a risk level: its strategic mix, the stock part split US / developed / emerging (more emerging from
     level 8), half of the US part in dividend stocks for an income goal, and `cash` points set aside for withdrawals."""
+    if is_sa():
+        return sleeves_sa(level, cash)
     level = int(min(10, max(1, level)))
     eq, bd, tp, ca, re, go = CORE[level]
     us_, intl_, em_ = (.60, .25, .15) if level >= 8 else (.60, .28, .12)
@@ -284,23 +337,26 @@ def sleeves(level, income=False, cash=0, sharia=False):
 def targets(sl, sharia=False):
     """{ticker: weight %} of a set of sleeves (two sleeves held in the same fund add up), rounded to half points."""
     out = {}
+    sa = is_sa()
     for s, v in sl.items():
-        t = ETF[s][1 if sharia else 0]
+        t = ETF_SA[s] if sa else ETF[s][1 if sharia else 0]
         out[t] = out.get(t, 0) + v
     return _round_weights(out)
 
 
 def expected(sl, sharia=False):
     """(expected return a year %, volatility %, a bad year % (1 in 20)) of a set of sleeves, from the long-run assumptions."""
-    w = np.array([sl.get(s, 0) / 100 for s in SLEEVES])
+    sa = is_sa()
+    names = SLEEVES_SA if sa else SLEEVES
+    w = np.array([sl.get(s, 0) / 100 for s in names])
     tot = w.sum()
     if tot <= 0:
         return 0.0, 0.0, 0.0
     w = w / tot
-    a = {**ASSUME, **(ASSUME_SHARIA if sharia else {})}
-    mu = np.array([a[s][0] for s in SLEEVES])
-    sd = np.array([a[s][1] for s in SLEEVES])
-    cov = np.outer(sd, sd) * CORR
+    a = ASSUME_SA if sa else {**ASSUME, **(ASSUME_SHARIA if sharia else {})}
+    mu = np.array([a[s][0] for s in names])
+    sd = np.array([a[s][1] for s in names])
+    cov = np.outer(sd, sd) * (CORR_SA if sa else CORR)
     m = float(w @ mu)
     v = float(math.sqrt(max(w @ cov @ w, 0)))
     return round(m, 2), round(v, 2), round(m - Z_BAD * v, 2)
@@ -323,9 +379,28 @@ SCENARIOS = {
 }
 
 
+# the Saudi market's storms (rough, peak to trough): TASI for Saudi stocks, the S&P 500 for US stocks, Saudi government sukuk,
+# short sukuk and gold - and the oil crash of 2014-16, the Saudi market's own
+SCENARIOS_SA = {
+    "gfc": ("2008 financial crisis", "الأزمة المالية 2008", "Jan 2008 – Mar 2009", "يناير 2008 – مارس 2009",
+            {"sa": -62, "us": -51, "bond": 2, "cash": 2, "gold": 20}, {}),
+    "oil": ("2014–16 oil crash", "انهيار النفط 2014–2016", "Sep 2014 – Jan 2016", "سبتمبر 2014 – يناير 2016",
+            {"sa": -50, "us": -8, "bond": -2, "cash": 1, "gold": -20}, {}),
+    "covid": ("2020 COVID crash", "انهيار كورونا 2020", "Jan – Mar 2020", "يناير – مارس 2020",
+              {"sa": -30, "us": -35, "bond": -3, "cash": 0.3, "gold": -4}, {}),
+    "rates": ("2022 rate shock", "صدمة الفائدة 2022", "May – Dec 2022", "مايو – ديسمبر 2022",
+              {"sa": -25, "us": -20, "bond": -9, "cash": 1, "gold": -9}, {}),
+}
+
+
+def scenarios():
+    """The storms of the page's market."""
+    return SCENARIOS_SA if is_sa() else SCENARIOS
+
+
 def scenario(sl, key, sharia=False):
-    """The plan's rough fall in one of the three storms (%)."""
-    _, _, _, _, base, sh = SCENARIOS[key]
+    """The plan's rough fall in one of the storms (%)."""
+    _, _, _, _, base, sh = scenarios()[key]
     c = {**base, **(sh if sharia else {})}
     tot = sum(sl.values()) or 1.0
     return round(sum(v / tot * c.get(s, 0) for s, v in sl.items()), 1)
@@ -356,13 +431,13 @@ def monthly_returns(curve):
 
 def stress(sl, sharia=False):
     """The plan's rough fall in a 2008-style crisis (%), from what each kind of asset did then."""
-    c = {**CRISIS, **(CRISIS_SHARIA if sharia else {})}
+    c = SCENARIOS_SA["gfc"][4] if is_sa() else {**CRISIS, **(CRISIS_SHARIA if sharia else {})}
     tot = sum(sl.values()) or 1.0
-    return round(sum(v / tot * c[s] for s, v in sl.items()), 1)
+    return round(sum(v / tot * c.get(s, 0) for s, v in sl.items()), 1)
 
 
 def stock_share(sl):
-    return sum(v for s, v in sl.items() if s in ("us", "div", "intl", "em", "bot"))
+    return sum(v for s, v in sl.items() if s in ("us", "div", "intl", "em", "bot", "sa"))
 
 
 def band(w):
@@ -475,8 +550,8 @@ def prices(tickers, period="5y"):
             continue
         s = pd.to_numeric(df["Close"], errors="coerce").dropna()
         idx = pd.to_datetime(s.index)
-        if getattr(idx, "tz", None) is not None:
-            idx = idx.tz_convert(PF.ET).tz_localize(None)
+        if getattr(idx, "tz", None) is not None:     # each fund's days in its own market's time (a Riyadh day stays that day)
+            idx = idx.tz_convert(MK.tz(MK.of_symbol(t))).tz_localize(None)
         s.index = idx.normalize()
         cols[t] = s[~s.index.duplicated(keep="last")]
     px = pd.DataFrame(cols).sort_index()
@@ -490,10 +565,13 @@ def prices(tickers, period="5y"):
 # ---------------------------------------------------------------- the managed portfolio
 def new_robo(ans, prof, amount, monthly, now=None):
     at = PF.iso(now or PF.utcnow())
-    return {"v": 1, "created": at, "answers": dict(ans), "amount": float(amount),
-            "plans": [{"at": at, "level": prof["level"], "rec": prof["rec"], "targets": prof["targets"], "sharia": prof["sharia"],
-                       "stocks": prof["stocks"], "why": "start"}],
-            "monthly": [{"at": at, "amount": float(monthly)}], "flows": [], "rev": 0}
+    out = {"v": 1, "created": at, "answers": dict(ans), "amount": float(amount),
+           "plans": [{"at": at, "level": prof["level"], "rec": prof["rec"], "targets": prof["targets"], "sharia": prof["sharia"],
+                      "stocks": prof["stocks"], "why": "start"}],
+           "monthly": [{"at": at, "amount": float(monthly)}], "flows": [], "rev": 0}
+    if is_sa():                                  # only the Saudi robo says its market (the US one is stored as before)
+        out["market"] = MK.SA
+    return out
 
 
 def clean(state):
@@ -511,12 +589,12 @@ def exec_day(at):
 
 def settled_day(now=None):
     """The last trading day whose close has passed."""
-    now = (now or PF.utcnow()).astimezone(PF.ET)
+    now = (now or PF.utcnow()).astimezone(PF._tz())
     d = now.date()
     s = PF.session(d)
     if s and now >= s[1]:
         return pd.Timestamp(d)
-    return pd.Timestamp(mcal.prev_trading_day(d))
+    return pd.Timestamp(PF._cal().prev_trading_day(d))
 
 
 def _buy_toward(h, w, cash):
@@ -559,9 +637,11 @@ def replay(robo, px, now=None, bench=False, bot=None, ext=None):
     flow, twr], units, cost, events, pending, start, last, live,
     book (the bot's robobot.Book or None)}."""
     now = now or PF.utcnow()
+    PF.use(robo.get("market"))                   # the robo's market: its calendar and hours (the Saudi one says so, the US one doesn't)
+    B = bench_funds()
     plans = sorted(robo["plans"], key=lambda p: p["at"])
     if bench:
-        plans = [{**p, "targets": {BENCH[0]: p["stocks"], BENCH[1]: 100 - p["stocks"]} if p["stocks"] < 100 else {BENCH[0]: 100}}
+        plans = [{**p, "targets": {B[0]: p["stocks"], B[1]: 100 - p["stocks"]} if p["stocks"] < 100 else {B[0]: 100}}
                  for p in plans]
     start = exec_day(robo["created"])
     last = settled_day(now)
@@ -758,7 +838,7 @@ def metrics(curve):
 def backtest(prof, amount, monthly, px, years=5, bot=None):
     """The plan (and its benchmark) as if it had been opened `years` ago with the same money: from the first day every fund
     has a price. -> (replay, benchmark replay) or (None, None)."""
-    tick = [t for t in prof["targets"] if t != BOT] + list(BENCH)
+    tick = [t for t in prof["targets"] if t != BOT] + list(bench_funds())
     if px is None or px.empty or any(t not in px.columns for t in tick):
         return None, None
     ok = px[tick].dropna()
@@ -766,9 +846,11 @@ def backtest(prof, amount, monthly, px, years=5, bot=None):
         return None, None
     first = max(ok.index[0], px.index[-1] - pd.Timedelta(days=int(years * 365.25)))
     first = px.index[min(px.index.searchsorted(first), len(px.index) - 1)]
-    at = PF.iso(pd.Timestamp(first).tz_localize(PF.ET).replace(hour=10).tz_convert("UTC").to_pydatetime())
+    at = PF.iso(pd.Timestamp(first).tz_localize(PF._tz()).replace(hour=10).tz_convert("UTC").to_pydatetime())
     robo = {"created": at, "amount": amount, "monthly": [{"at": at, "amount": monthly}], "flows": [],
             "plans": [{"at": at, "targets": prof["targets"], "stocks": prof["stocks"], "level": prof["level"], "sharia": prof["sharia"]}]}
+    if is_sa():
+        robo["market"] = MK.SA
     sub = px.loc[px.index >= px.index[max(0, px.index.get_loc(first) - 1)]]     # one day before: the bot's first signals
     return replay(robo, sub, bot=bot), replay(robo, sub, bench=True)
 
@@ -780,9 +862,11 @@ def next_dates(now=None, start=None):
     if start is not None:
         after = max(after, pd.Timestamp(start).date())
 
+    cal = PF._cal()                              # the page's market calendar (New York / Tadawul)
+
     def first_td(y, m):
         d = pd.Timestamp(y, m, 1).date()
-        return d if mcal.is_trading_day(d) else mcal.next_trading_day(d)
+        return d if cal.is_trading_day(d) else cal.next_trading_day(d)
 
     def nxt(months):
         y, m = after.year, after.month
@@ -910,4 +994,4 @@ def delete(row_id, key):
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.0"
+BUILD = "22.1"

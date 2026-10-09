@@ -17,6 +17,7 @@ import numpy as np
 import pandas as pd
 
 import newsiq
+import tasi
 import universe as U
 
 try:
@@ -68,6 +69,25 @@ EVENTS = [
      r"consumer (?:confidence|sentiment|prices)|ism|pmi|housing starts|central bank|ecb|boj)\b"),
 ]
 _EV = [(k, en, ar, ic, hz, re.compile(p, re.I)) for k, en, ar, ic, hz, p in EVENTS]
+# The Saudi market's Arabic headlines (Argaam, Al Eqtisadiah, Maaal, Asharq...): the same kinds in the words those outlets use.
+# Arabic glues "و", "ب", "ل" and "ال" to the word, so these match inside words (no \b); the order decides (a dividend before earnings:
+# "توزيع أرباح" is a payout, not results).
+EVENTS_AR = [
+    ("distress", r"إفلاس|تعثر(?:ها)? عن السداد|تصفية|خسائر(?:ها)? المتراكمة|خسائر متراكمة|شطب (?:السهم|الإدراج)|إلغاء إدراج"),
+    ("mna", r"استحواذ|يستحوذ|تستحوذ|اندماج|الاندماج|صفقة (?:شراء|بيع) حصة|عرض (?:شراء|استحواذ)"),
+    ("payout", r"توزيع(?:ات)? (?:ال)?أرباح|توزيعات نقدية|توزيع نقدي|أسهم منحة|منحة أسهم|شراء (?:ال)?أسهم(?:ها)?|إعادة شراء"),
+    ("offering", r"زيادة رأس ?(?:ال)?مال|حقوق (?:ال)?أولوية|طرح (?:أسهم|صكوك|سندات)|إصدار (?:صكوك|سندات)|اكتتاب|الطرح العام"),
+    ("earnings", r"نتائج|صافي (?:ال)?ربح|صافي (?:ال)?خسار|(?:ال)?أرباح|(?:ال)?خسائر|ربح(?:ية)? السهم|(?:ال)?إيرادات|(?:ال)?مبيعات|الربع (?:الأول|الثاني|الثالث|الرابع)"),
+    ("management", r"(?:ال)?رئيس التنفيذي|رئيس مجلس (?:ال)?إدارة|(?:ال)?عضو المنتدب|استقالة|يستقيل|تستقيل|تعيين"),
+    ("contract", r"توقيع عقد|توقع عقد|ترسية|عقد(?:اً|ا)? (?:مع|بقيمة|لـ)|اتفاقية|مذكرة تفاهم|شراكة"),
+    ("regulation", r"هيئة السوق (?:ال)?مالية|غرامة|مخالفة|عقوبة|تعليق (?:ال)?تداول|إيقاف (?:ال)?تداول|موافقة (?:ال)?هيئة|ترخيص"),
+    ("lawsuit", r"دعوى|قضية|(?:ال)?محكمة|حكم قضائي|تسوية"),
+    ("analyst", r"(?:ال)?سعر (?:ال)?مستهدف|رفع (?:ال)?توصية|خفض (?:ال)?توصية|توصية (?:بال)?(?:شراء|بيع|حياد)|تصنيف(?:ها)? (?:ال)?ائتماني"),
+    ("guidance", r"توقعات(?:ها)?|تتوقع|يتوقع|(?:ال)?توجيهات"),
+    ("product", r"إطلاق|تدشين|افتتاح"),
+    ("macro", r"(?:ال)?فائدة|(?:ال)?تضخم|(?:ال)?ناتج المحلي|(?:ال)?بنك المركزي|ساما|أوبك|(?:ال)?نفط|برنت|(?:ال)?ميزانية|(?:ال)?فيدرالي|(?:ال)?بطالة|الاقتصاد"),
+]
+_EV_AR = [(k, re.compile(p)) for k, p in EVENTS_AR]
 EVENT = {k: (en, ar, ic, hz) for k, en, ar, ic, hz, _ in _EV}
 EVENT["other"] = ("Company news", "خبر شركة", "article", "days")
 EVENT["market"] = ("Market news", "خبر السوق", "show_chart", "days")
@@ -82,6 +102,9 @@ def classify(title, summary=""):
     """The kind of event (key); the headline decides first, then the summary."""
     for text in (title or "", (summary or "")[:500]):
         for k, en, ar, ic, hz, pat in _EV:
+            if pat.search(text):
+                return k
+        for k, pat in _EV_AR:
             if pat.search(text):
                 return k
     return "other"
@@ -105,19 +128,29 @@ NEG = [r"miss(?:es|ed)?", r"fall(?:s|ing)?", r"fell", r"plung\w+", r"drops?", r"
 _POS = re.compile(r"\b(" + "|".join(POS) + r")\b", re.I)
 _NEG = re.compile(r"\b(" + "|".join(NEG) + r")\b", re.I)
 _NOT = re.compile(r"\b(not|no|without|fails? to|unlikely to)\b", re.I)
+# the same in Arabic (inside words: "وارتفاع", "بانخفاض")
+POS_AR = ["ارتفاع", "ارتفع", "ترتفع", "يرتفع", "نمو", "نما", "تنمو", "ينمو", "زيادة", "قفز", "تقفز", "يقفز", "صعود", "صعد", "تصعد", "يصعد",
+          "مكاسب", "تحسن", "قياسي", "أعلى مستوى", "تفوق", "يتجاوز", "تتجاوز", "ترسية", "فوز", "تفوز", "يفوز", "موافقة", "منحة",
+          "تعافي", "يتعافى", "انتعاش", "إيجابي", "رفع (?:ال)?توصية", "رفع (?:ال)?سعر (?:ال)?مستهدف", "تحول(?:ت)? (?:إلى|ل)ل?ربح"]
+NEG_AR = ["انخفاض", "انخفض", "تنخفض", "ينخفض", "تراجع", "يتراجع", "هبوط", "هبط", "تهبط", "يهبط", "خسائر", "خسارة", "خسر", "تخسر", "يخسر",
+          "تكبد", "أدنى مستوى", "غرامة", "مخالفة", "تعثر", "استقالة", "إيقاف", "تعليق (?:ال)?تداول", "تباطؤ", "انكماش", "عجز", "سلبي",
+          "خفض (?:ال)?توصية", "خفض (?:ال)?سعر (?:ال)?مستهدف", "تحول(?:ت)? (?:إلى|ل)ل?خسار", "دعوى", "تصفية"]
+_POS_AR = re.compile("|".join(POS_AR))
+_NEG_AR = re.compile("|".join(NEG_AR))
 # the usual sign of an event before its words are read (a downgrade is bearish, a buyback bullish, ...)
 EVENT_PRIOR = {"distress": -0.6, "lawsuit": -0.35, "offering": -0.35, "restructuring": -0.1, "payout": 0.3, "contract": 0.3,
                "regulation": -0.25}
 SENT = {"bull": ("Bullish", "صاعد", "#4ADE80"), "bear": ("Bearish", "هابط", "#F87171"), "neutral": ("Neutral", "محايد", "#C4B5FD")}
 
 
-def sentiment(title, summary="", event="other"):
-    """(-1..1 score, 'bull' | 'bear' | 'neutral', words found). The headline counts twice as much as the summary."""
+def sentiment(title, summary="", event="other", sa=False):
+    """(-1..1 score, 'bull' | 'bear' | 'neutral', words found). The headline counts twice as much as the summary. sa: a story read
+    for the Saudi market (oil prices read the other way round)."""
     t, s = title or "", (summary or "")[:500]
-    pos_w = [m.group(0) for m in _POS.finditer(t)]
-    neg_w = [m.group(0) for m in _NEG.finditer(t)]
-    p = len(pos_w) * 2.0 + len(_POS.findall(s)) * 0.7
-    n = len(neg_w) * 2.0 + len(_NEG.findall(s)) * 0.7
+    pos_w = [m.group(0) for m in _POS.finditer(t)] + [m.group(0) for m in _POS_AR.finditer(t)]
+    neg_w = [m.group(0) for m in _NEG.finditer(t)] + [m.group(0) for m in _NEG_AR.finditer(t)]
+    p = len(pos_w) * 2.0 + (len(_POS.findall(s)) + len(_POS_AR.findall(s))) * 0.7
+    n = len(neg_w) * 2.0 + (len(_NEG.findall(s)) + len(_NEG_AR.findall(s))) * 0.7
     if _NOT.search(t) and p > n:               # "fails to beat", "no approval" turns a positive headline
         p, n = n, p
     score = (p - n) / (p + n + 2.0) + EVENT_PRIOR.get(event, 0.0)
@@ -131,7 +164,7 @@ def sentiment(title, summary="", event="other"):
     if event == "macro":                        # the market's usual reading of the macro news (a hot inflation print is bad news)
         mk = macro_kind(t, s)
         if mk:
-            score += MACRO_SIGN.get(mk[0], 0.0)
+            score += (MACRO_SIGN_SA if sa else MACRO_SIGN).get(mk[0], 0.0)
     score = float(np.clip(score, -1, 1))
     lab = "bull" if score > 0.15 else "bear" if score < -0.15 else "neutral"
     return score, lab, pos_w + neg_w
@@ -151,8 +184,15 @@ LINKS = {
 }
 
 
-def company(sym):
-    """(name, sector, industry) for a symbol the site knows."""
+def company(sym, ar=False):
+    """(name, sector, industry) for a symbol the site knows (a Saudi company: its Tadawul sector and industry group; ar: its
+    Arabic name)."""
+    if str(sym).endswith(".SR"):
+        if tasi.known(sym):
+            return tasi.name_of(sym, ar), tasi.sector_of(sym), tasi.industry_of(sym)
+        return sym, "", ""
+    if sym == "KSA":
+        return ("السوق السعودي" if ar else "The Saudi market"), "", ""
     if sym in _SP:
         n, sec, sub = _SP[sym]
         return n, sec, sub
@@ -168,6 +208,13 @@ def _mcap(sym):
 
 def peers(sym, k=5, exclude=()):
     """Companies a story about sym can hit indirectly: its known links first, then the largest of its own GICS sub-industry."""
+    if str(sym).endswith(".SR"):                 # a Saudi company: the biggest of its industry group, then of its sector
+        grp, sec = tasi.industry_of(sym), tasi.sector_of(sym)
+        same = [s for s in tasi.SYMBOLS if s != sym and s not in exclude and grp and tasi.industry_of(s) == grp]
+        same.sort(key=lambda s: -tasi.cap_b(s))
+        more = [s for s in tasi.SYMBOLS if s != sym and s not in exclude and s not in same and sec and tasi.sector_of(s) == sec]
+        more.sort(key=lambda s: -tasi.cap_b(s))
+        return (same + more)[:k]
     out = [s for s in LINKS.get(sym, []) if s != sym and s not in exclude]
     sub = _SP.get(sym, (None, None, None))[2]
     if sub:
@@ -219,6 +266,30 @@ MACRO = [
       "Basic Materials": 0, "Industrials": 0, "Healthcare": 0, "Consumer Defensive": -1, "Communication Services": -1}),
 ]
 _MACRO = [(k, en, ar, re.compile(p, re.I), eff) for k, en, ar, p, eff in MACRO]
+MACRO_AR = {"cut": r"خفض (?:أسعار )?(?:ال)?فائدة|تخفيض (?:أسعار )?(?:ال)?فائدة|يخفض (?:ال)?فائدة",
+            "hike": r"رفع (?:أسعار )?(?:ال)?فائدة|يرفع (?:ال)?فائدة|زيادة (?:أسعار )?(?:ال)?فائدة",
+            "infl_hot": r"(?:ال)?تضخم.{0,40}(?:ارتفع|يرتفع|يتسارع|تسارع|ارتفاع|يقفز)",
+            "infl_cool": r"(?:ال)?تضخم.{0,40}(?:انخفض|ينخفض|يتباطأ|تباطأ|تراجع|يتراجع)",
+            "oil_up": r"(?:ال)?نفط.{0,30}(?:يرتفع|ترتفع|ارتفع|ارتفاع|يقفز|تقفز|قفز|صعود|يصعد|تصعد|مكاسب)|برنت.{0,30}(?:يرتفع|ارتفع|يقفز|يصعد)|أوبك\+? (?:تخفض|تمدد خفض)",
+            "oil_down": r"(?:ال)?نفط.{0,30}(?:ينخفض|تنخفض|انخفض|انخفاض|يتراجع|تتراجع|تراجع|يهبط|تهبط|هبوط|خسائر)|برنت.{0,30}(?:ينخفض|انخفض|يتراجع|يهبط)|أوبك\+? (?:تزيد|ترفع) (?:ال)?إنتاج",
+            "tariffs": r"رسوم جمركية|حرب تجارية"}
+_MACRO_AR = [(k, re.compile(p)) for k, p in MACRO_AR.items()]
+# the Saudi market reads oil the other way round: the state's revenue and spending follow it (and Aramco is a fifth of the index)
+MACRO_SIGN_SA = {"cut": 0.4, "hike": -0.4, "infl_hot": -0.3, "infl_cool": 0.3, "jobs_weak": -0.05, "oil_up": 0.35, "oil_down": -0.4,
+                 "tariffs": -0.3, "yields_up": -0.25}
+# how a Saudi sector usually takes each kind (Tadawul's sectors): banks earn more with higher rates (the riyal follows the dollar's
+# rates), petrochemicals and energy follow oil, real estate likes lower rates
+MACRO_EFF_SA = {
+    "cut": {"Real Estate": 2, "Consumer Discretionary": 1, "Industrials": 1, "Materials": 1, "Utilities": 1, "Financials": -1, "Energy": 0},
+    "hike": {"Real Estate": -2, "Consumer Discretionary": -1, "Industrials": -1, "Materials": -1, "Utilities": -1, "Financials": 1, "Energy": 0},
+    "infl_hot": {"Real Estate": -1, "Consumer Discretionary": -1, "Consumer Staples": -1, "Financials": 1, "Energy": 1, "Materials": 1},
+    "infl_cool": {"Real Estate": 1, "Consumer Discretionary": 1, "Consumer Staples": 1, "Financials": 0, "Energy": -1},
+    "oil_up": {"Energy": 2, "Materials": 1, "Financials": 1, "Industrials": 1, "Real Estate": 0, "Consumer Discretionary": 0, "Utilities": -1},
+    "oil_down": {"Energy": -2, "Materials": -1, "Financials": -1, "Industrials": -1, "Real Estate": 0, "Consumer Discretionary": 0, "Utilities": 1},
+    "tariffs": {"Materials": -2, "Energy": -1, "Industrials": -1, "Consumer Discretionary": -1, "Financials": 0},
+    "yields_up": {"Real Estate": -2, "Utilities": -1, "Financials": 1, "Consumer Discretionary": -1},
+    "jobs_weak": {"Financials": -1, "Real Estate": 0},
+}
 # how the stock market as a whole usually reads each kind (added to the words' sentiment)
 MACRO_SIGN = {"cut": 0.45, "hike": -0.45, "infl_hot": -0.5, "infl_cool": 0.45, "jobs_weak": -0.1, "oil_up": -0.2, "oil_down": 0.15,
               "tariffs": -0.4, "yields_up": -0.35}
@@ -230,7 +301,18 @@ def macro_kind(title, summary=""):
         for k, en, ar, pat, eff in _MACRO:
             if pat.search(text):
                 return k, en, ar, eff
+        for k, pat in _MACRO_AR:
+            if pat.search(text):
+                m = next(x for x in _MACRO if x[0] == k)
+                return k, m[1], m[2], m[4]
     return None
+
+
+def macro_sa(mk):
+    """A macro reading (macro_kind) with the Saudi sectors' rule of thumb."""
+    if not mk:
+        return mk
+    return mk[0], mk[1], mk[2], MACRO_EFF_SA.get(mk[0], {})
 
 
 # ---------------------------------------------------------------- 5) the price around the story
@@ -287,21 +369,28 @@ REGIME = {"bull": ("Bull market", "سوق صاعد"), "bear": ("Bear market", "�
 
 
 # ---------------------------------------------------------------- 6) one story, read from every angle
-def analyze(n, px=None, chg=None, spy_regime="mixed", now=None):
-    """The whole reading of one headline (n: an item of the news bot with n["iq"] from newsiq). px: {symbol: daily prices}."""
+BENCHES = ("SPY", "QQQ", "DIA", "IWM", "KSA", "^TASI.SR", "^TASI")
+
+
+def analyze(n, px=None, chg=None, spy_regime="mixed", now=None, bench="SPY"):
+    """The whole reading of one headline (n: an item of the news bot with n["iq"] from newsiq). px: {symbol: daily prices}.
+    bench: the market a story without a company is read on (the S&P 500's SPY; KSA for the Saudi market)."""
+    sa = bench == "KSA"
     px, chg = px or {}, chg or {}
     now = now or pd.Timestamp.now(tz="UTC")
     title, summ = str(n.get("title") or ""), str(n.get("summary") or "")
     iq = n.get("iq") or newsiq.analyze(n, chg, now)
-    tick = [t for t in (n.get("tickers") or []) if t and t not in ("SPY", "QQQ", "DIA", "IWM")][:4]
+    tick = [t for t in (n.get("tickers") or []) if t and t not in BENCHES][:4]
     ev = classify(title, summ)
     mk = macro_kind(title, summ) if (ev == "macro" or not tick) else None
+    if sa:
+        mk = macro_sa(mk)
     if not tick and mk:
         ev = "macro"
     elif not tick and ev == "other":
         ev = "market"
-    s, lab, words = sentiment(title, summ, ev)
-    main = tick[0] if tick else "SPY"                  # a story without a company is read on the whole market (the S&P 500)
+    s, lab, words = sentiment(title, summ, ev, sa)
+    main = tick[0] if tick else bench                  # a story without a company is read on the whole market (the S&P 500 / KSA)
     fa = price_facts(px.get(main), n.get("time"))
     if fa and main in chg and chg[main][1] is not None and pd.notna(chg[main][1]):
         fa["chg"] = float(chg[main][1])                 # today's change: the live quote (the daily bar can still be yesterday's)
@@ -319,7 +408,7 @@ def analyze(n, px=None, chg=None, spy_regime="mixed", now=None):
     d = 1 if lab == "bull" else -1 if lab == "bear" else 0
     # materiality 0-10: the importance score, the kind of event, the coverage, the volume
     ew = EVENT_WEIGHT.get(ev, 0.5)
-    if ev == "macro":                                  # another country's rates or data: less for US stocks (newsiq.scope)
+    if ev == "macro" and not sa:                       # another country's rates or data: less for US stocks (newsiq.scope)
         ew *= {"major": 0.6, "minor": 0.2}.get(newsiq.scope(title, summ), 1.0)
     mat = iq["score"] * 0.7 + ew
     if len(n.get("also") or []) >= 2:
@@ -338,7 +427,8 @@ def analyze(n, px=None, chg=None, spy_regime="mixed", now=None):
     conf += 10 * min(abs(s) / 0.6, 1)
     if move is not None and d:
         conf += 14 if d * move >= 1 else 6 if d * move > 0.3 else -16 if d * move <= -0.5 else 0
-    if tick and re.search(re.escape(company(main)[0].split()[0]), title, re.I):
+    if tick and (re.search(re.escape(company(main)[0].split()[0]), title, re.I)
+                 or (sa and re.search(re.escape(company(main, True)[0].split()[0]), title))):
         conf += 5
     conf = int(np.clip(conf, 20, 95))
     ts = n.get("time")
@@ -356,7 +446,7 @@ def analyze(n, px=None, chg=None, spy_regime="mixed", now=None):
     return {"n": n, "iq": iq, "event": ev, "macro": mk, "sent": s, "lab": lab, "words": words, "dir": d, "main": main, "facts": fa,
             "move": move, "materiality": mat, "impact": impact, "severity": int(round(impact / 10)), "confidence": conf,
             "horizon": EVENT[ev][3] if ev in EVENT else "days", "direct": direct, "indirect": indirect, "sectors": secs[:3],
-            "age_h": age_h, "new": age_h is not None and age_h < 6, "moved_before": moved_before, "regime": spy_regime,
+            "age_h": age_h, "new": age_h is not None and age_h < 6, "moved_before": moved_before, "regime": spy_regime, "sa": sa,
             "setup": setup(impact, d, fa, spy_regime)}
 
 
@@ -423,7 +513,7 @@ def scenario(a):
     p = plan(a)
     if not p:
         return None
-    fmt = lambda x: f"${x:,.2f}"
+    fmt = (lambda x: f"SAR {x:,.2f}") if a.get("sa") else (lambda x: f"${x:,.2f}")
     if p["dir"] > 0:
         return (f"Continuation if the price closes above today's high ({fmt(p['trigger'])}) with volume above its average. The idea is wrong "
                 f"below {fmt(p['stop'])} (today's low or 1.5 ATR under the price). A first target at 2× the risk: {fmt(p['target'])}.",
@@ -439,6 +529,7 @@ def why(a):
     """Why it matters, in plain words: (english, arabic)."""
     ev, main = a["event"], a["main"]
     name = company(main)[0].rstrip(".") if main and a["direct"] else ""
+    name_ar = (company(main, True)[0] if a.get("sa") else name) if name else ""
     en_ev, ar_ev = EVENT.get(ev, EVENT["other"])[:2]
     sec = a["sectors"][0] if a["sectors"] else None
     peers_ = ", ".join(a["indirect"][:3])
@@ -476,21 +567,22 @@ def why(a):
     en, ar = base
     if name:
         en = f"{en_ev} news on {name}. " + en
-        ar = f"خبر {ar_ev} عن {name}. " + ar
+        ar = f"خبر {ar_ev} عن {name_ar}. " + ar
     if sec and peers_:
         en += f" Companies in {sec[1] or sec[0]} such as {peers_} often move with it."
         ar += f" وشركات من نفس المجال مثل {peers_} غالباً تتحرك معه."
     return en, ar
 
 
-def analyze_all(items, px=None, chg=None, spy=None, now=None):
-    """Every story analysed, newest first; stories without a company that are neither macro nor market-wide are kept too."""
+def analyze_all(items, px=None, chg=None, spy=None, now=None, bench="SPY"):
+    """Every story analysed, newest first; stories without a company that are neither macro nor market-wide are kept too.
+    spy: the benchmark's daily prices (the market regime); bench: its symbol (SPY, or KSA for the Saudi market)."""
     now = now or pd.Timestamp.now(tz="UTC")
     rg = regime(spy) if spy is not None else "mixed"
     out = []
     for n in items:
         try:
-            out.append(analyze(n, px, chg, rg, now))
+            out.append(analyze(n, px, chg, rg, now, bench))
         except Exception:
             continue
     return out
@@ -499,7 +591,7 @@ def analyze_all(items, px=None, chg=None, spy=None, now=None):
 
 def word_sign(w):
     """+1 for a word that reads bullish, -1 bearish (for the chips of the words that decided the sentiment)."""
-    return 1 if _POS.fullmatch(w or "") else -1
+    return 1 if (_POS.fullmatch(w or "") or _POS_AR.fullmatch(w or "")) else -1
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.0"
+BUILD = "22.1"

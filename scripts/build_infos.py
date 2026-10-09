@@ -1,5 +1,5 @@
 """
-Builds infos.json: Yahoo Finance's summary of every company in the site's lists (market cap, ratios, margins, growth, balance
+Builds infos.json: Yahoo Finance's summary of every company in the site's lists, US and Saudi (market cap, ratios, margins, growth, balance
 sheet, analysts' targets, the description), read from GitHub's servers. The site uses it when Yahoo does not answer its own
 server (data.info); price-based figures are moved to the day's price there. Run twice a week by .github/workflows/infos.yml.
 """
@@ -27,7 +27,8 @@ def symbols():
     import universe as U
     from sp500 import SP500
     import taxonomy as X
-    out = list(U.US_UNIVERSE) + list(SP500) + list(X.EXTRA)
+    import tasi
+    out = list(U.US_UNIVERSE) + list(SP500) + list(X.EXTRA) + list(tasi.SYMBOLS)     # + the Saudi main market (its stock pages, dividends)
     return [s for s in dict.fromkeys(out) if s and "^" not in s and "=" not in s and not s.endswith("-USD")]
 
 
@@ -134,7 +135,7 @@ def main():
         if i % 50 == 0 or i == len(syms):
             save(items, ins)
             print(f"{i}/{len(syms)} · {time.time() - t0:.0f}s · {stats}")
-    for s in ("META", "NKE", "AAPL", "TSM"):
+    for s in ("META", "NKE", "AAPL", "TSM", "2222.SR", "1120.SR"):
         r = items.get(s) or {}
         print(f"{s}: {len(r)} fields · price {r.get('currentPrice')} · cap {r.get('marketCap')} · PE {r.get('trailingPE')} · "
               f"margin {r.get('profitMargins')} · rec {r.get('_rec')} · {r.get('_asof')}")

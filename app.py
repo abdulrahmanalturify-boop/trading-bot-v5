@@ -10,7 +10,7 @@ import streamlit as st
 # ---------------------------------------------------------------- always run the newest code
 # Streamlit Cloud re-reads app.py after every GitHub upload but can keep the other modules (theme, data, ...) from the
 # previous version in memory. Every module carries BUILD; if one in memory is older, all of them are reloaded in order.
-BUILD = "22.0"
+BUILD = "22.1"
 _ORDER = ["terms", "lightmode", "i18n", "ai_assistant", "flags", "mcal", "mcal_sa", "markets", "tasi", "universe", "sp500", "taxonomy", "ta", "academy_visuals", "academy", "insight", "heatmap", "newsiq", "newspics", "theme", "data",
           "caldata", "newsbot", "newsintel", "charts", "engine", "playbooks", "autotrader", "ui", "fairvalue", "segments", "holders", "sharia", "lab", "tdash", "mlbots", "brain", "paperbots", "smartbots", "portfolio", "robobot", "robo", "pfinsight", "p_markets", "p_newsintel", "p_research", "p_insight",
           "p_academy", "p_paper", "p_portfolio", "p_robo", "p_calendar", "hunter", "p_scanner", "home"]
@@ -265,7 +265,7 @@ pg = st.navigation({label: [P[k] for k in keys] for label, _, keys in SECTIONS},
 
 
 def menu_sections():
-    """The bar's menus: the Saudi market leaves out the pages that only exist for the US market (futures, options, the economy)."""
+    """The bar's menus: the Saudi market leaves out the pages that only exist for the US market (futures, options, the economy, IPOs)."""
     if MK.choice() != MK.SA:
         return SECTIONS
     return [(lab, ic, [k for k in keys if k not in MK.US_ONLY]) for lab, ic, keys in SECTIONS if any(k not in MK.US_ONLY for k in keys)]
@@ -275,7 +275,7 @@ def menu_sections():
 _KEY_OF = {getattr(pg_, "url_path", None): k for k, pg_ in P.items()}
 _PAGE_KEY = _KEY_OF.get(getattr(pg, "url_path", ""), "overview" if getattr(pg, "url_path", "") == "" else None)
 ss["mkt_page"] = MK.SA if MK.choice() == MK.SA and _PAGE_KEY in MK.SA_PAGES else MK.US
-p_portfolio.PF.use(ss["mkt_page"])     # the paper portfolio's session hours and calendar on this run (the Robo Advisor: US)
+p_portfolio.PF.use(ss["mkt_page"])     # the paper portfolio's and the Robo Advisor's session hours and calendar on this run
 
 try:                                   # the saved paper bots are replayed in the background, so the Paper Bots page opens at once
     p_paper.PB.warm()
@@ -521,10 +521,8 @@ if MK.choice() == MK.SA and _PAGE_KEY in MK.US_ONLY:
     st.info(L("This page is for the US market only: the Saudi market has nothing like it, so it isn't in the Saudi menus.",
               "هالصفحة للسوق الأمريكي فقط: ما لها مقابل في السوق السعودي، عشان كذا ما تطلع في قوائم السوق السعودي."), icon=":material/flag:")
 elif MK.choice() == MK.SA and _PAGE_KEY not in MK.SA_PAGES and not (_PAGE_KEY == "overview"):
-    st.info(L("This page shows the US market for now; its Saudi version is on the way. The Saudi market's pages: Overview, News, "
-              "Stock, Screener, Scanner, Paper Bots and Portfolio.",
-              "هالصفحة تعرض السوق الأمريكي حالياً، ونسختها السعودية جاية. صفحات السوق السعودي: النظرة العامة، والأخبار، والسهم، "
-              "والفلتر، وصائد الفرص، والبوتات الافتراضية، والمحفظة."), icon=":material/flag:")
+    st.info(L("This page shows the US market: it has no Saudi version.", "هالصفحة تعرض السوق الأمريكي: ما لها نسخة سعودية."),
+            icon=":material/flag:")
 try:
     pg.run()
 except Exception as e:  # Streamlit's own rerun / page-switch signals are not Exceptions, so they pass through

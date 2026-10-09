@@ -76,6 +76,14 @@ def year_events(year):
     return sorted(set(ev))
 
 
+def spans(year):
+    """[(first day, last day, key, trading days closed)] the market's holidays of a year, each Eid as one span."""
+    sp = [x for x in _HOLIDAYS if x[0].year == year or x[1].year == year]
+    if not sp:
+        sp = [(d, d, key) for d, key in _fixed(year)]
+    return sorted((a, b, key, sum(1 for d in _span(a, b) if d.weekday() not in WEEKEND)) for a, b, key in sp)
+
+
 def closed_days(years):
     return {d for y in years for d, _, _ in year_events(y)}
 
@@ -140,4 +148,4 @@ def close_min(d=None):
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.0"
+BUILD = "22.1"

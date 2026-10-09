@@ -16,8 +16,10 @@ import yfinance as yf
 
 import data
 import mcal
+import mcal_sa
 
 ET = mcal.ET
+RIYADH = mcal_sa.TZ
 EARN_COLS = ["Symbol", "Company", "Cap", "Date", "When", "Hour", "Quarter", "Est", "EPS", "Surprise"]
 
 
@@ -63,12 +65,34 @@ def _earnings(start, end, min_cap, pages):
     return _pages(lambda **k: cal.get_earnings_calendar(market_cap=min_cap or None, filter_most_active=False, start=start, end=end, **k), pages)
 
 
-def _et(series):
+@st.cache_data(ttl=1800, show_spinner=False)
+def _earnings_sa(start, end, pages):
+    """The Saudi companies' earnings dates: Yahoo's earnings calendar for region "sa" (yfinance's own call asks for the US)."""
+    from yfinance.calendars import CalendarQuery
+    cal = _calendars(start, end)
+    q = CalendarQuery("and", [CalendarQuery("eq", ["region", "sa"]),
+                              CalendarQuery("or", [CalendarQuery("eq", ["eventtype", "EAD"]), CalendarQuery("eq", ["eventtype", "ERA"])]),
+                              CalendarQuery("gte", ["startdatetime", start]), CalendarQuery("lte", ["startdatetime", end])])
+    return _pages(lambda **k: cal._get_data("sp_earnings", q, **k), pages)
+
+
+def _et(series, tz=None):
     t = pd.to_datetime(series, errors="coerce", utc=True)
-    return t.dt.tz_convert(ET)
+    return t.dt.tz_convert(tz or ET)
 
 
-def _norm_earnings(raw):
+def earnings_sa(start, end, pages=4):
+    """Saudi companies reporting between two dates (inclusive, Riyadh dates), biggest first. When: 'tns' (no time given) for most;
+    'amc' when Yahoo says after the session. Cap in riyals."""
+    q_end = (end + timedelta(days=1)).isoformat()
+    try:
+        df = _norm_earnings(_earnings_sa(start.isoformat(), q_end, pages), tz=RIYADH)
+    except Exception:
+        return pd.DataFrame(columns=EARN_COLS)
+    return df[(df["Date"] >= start) & (df["Date"] <= end)].reset_index(drop=True)
+
+
+def _norm_earnings(raw, tz=None):
     df = raw
     sym, comp, cap = _col(df, "symbol", "ticker"), _col(df, "company", "company name", "companyshortname"), _col(df, "marketcap", "market cap (intraday)", "intradaymarketcap")
     when_c, dt_c = _col(df, "timing", "startdatetimetype", "earnings call time"), _col(df, "event start date", "startdatetime", "earnings date")
@@ -76,7 +100,7 @@ def _norm_earnings(raw):
                          _col(df, "surprise(%)", "surprise (%)", "epssurprisepct"))
     if sym is None or dt_c is None:
         return pd.DataFrame(columns=EARN_COLS)
-    t = _et(df[dt_c])
+    t = _et(df[dt_c], tz)
     num = lambda c: pd.to_numeric(df[c], errors="coerce") if c else pd.Series(np.nan, index=df.index)
     out = pd.DataFrame({"Symbol": df[sym].astype(str).str.upper().str.strip(), "Company": df[comp].astype(str) if comp else "",
                         "Cap": num(cap), "Date": t.dt.date, "Hour": t.dt.hour + t.dt.minute / 60,
@@ -86,10 +110,13 @@ def _norm_earnings(raw):
     by_hour = np.where(out["Hour"] < 9.5, "bmo", np.where(out["Hour"] >= 16, "amc", "dmh"))
     has_time = (out["Hour"].fillna(0) > 0) & ~timing.isin(["TNS", ""])
     out["When"] = np.select([timing.eq("BMO"), timing.eq("AMC"), has_time], ["bmo", "amc", by_hour], default="tns")
+    if tz is not None:                                 # a Saudi calendar: Yahoo's hours are placeholders, only "after the session" counts
+        out["When"] = np.where(timing.isin(["AMC", "TAS"]), "amc", np.where(timing.eq("BMO"), "bmo", "tns"))
     # a missing surprise can be computed from estimate and actual
     miss = out["Surprise"].isna() & out["EPS"].notna() & out["Est"].notna() & (out["Est"].abs() > 0)
     out.loc[miss, "Surprise"] = (out.loc[miss, "EPS"] - out.loc[miss, "Est"]) / out.loc[miss, "Est"].abs() * 100
-    out = out[out["Symbol"].str.fullmatch(r"[A-Z][A-Z0-9.\-]{0,9}", na=False) & out["Date"].notna()]
+    pat = r"[0-9]{4}\.SR" if tz is not None else r"[A-Z][A-Z0-9.\-]{0,9}"          # Saudi codes: 2222.SR
+    out = out[out["Symbol"].str.fullmatch(pat, na=False) & out["Date"].notna()]
     out["_rep"] = out["EPS"].notna()
     out = out.sort_values(["_rep", "Cap"], ascending=False).drop_duplicates(["Symbol", "Date"]).drop(columns="_rep")
     return out[EARN_COLS].sort_values("Cap", ascending=False, na_position="last").reset_index(drop=True)
@@ -227,8 +254,9 @@ def _splits(start, end):
     return _pages(lambda **k: cal.get_splits_calendar(start=start, end=end, **k), 4)
 
 
-def splits(start, end):
-    """-> Symbol, Company, Date, Old, New, Ratio ("10-for-1"), Kind ("forward" / "reverse"), Optionable"""
+def splits(start, end, tz=None):
+    """-> Symbol, Company, Date, Old, New, Ratio ("10-for-1"), Kind ("forward" / "reverse"), Optionable. tz: the dates' time zone
+    (US Eastern; Riyadh for the Saudi market)"""
     try:
         df = _splits(start.isoformat(), (end + timedelta(days=1)).isoformat())
     except Exception:
@@ -240,7 +268,7 @@ def splits(start, end):
     new = pd.to_numeric(df[_col(df, "share worth", "share_worth")], errors="coerce") if _col(df, "share worth", "share_worth") else np.nan
     oc = _col(df, "optionable", "optionable?")
     out = pd.DataFrame({"Symbol": df[sym].astype(str).str.upper(), "Company": df[_col(df, "company", "company name")].astype(str)
-                        if _col(df, "company", "company name") else "", "Date": _et(df[dcol]).dt.date, "Old": old, "New": new,
+                        if _col(df, "company", "company name") else "", "Date": _et(df[dcol], tz).dt.date, "Old": old, "New": new,
                         "Optionable": df[oc].astype(str) if oc else ""})
     out = out[out["Date"].notna() & out["Old"].notna() & out["New"].notna() & (out["Old"] > 0) & (out["New"] > 0)]
     fmt = lambda v: f"{v:g}"
@@ -248,6 +276,45 @@ def splits(start, end):
     out["Kind"] = np.where(out["New"] > out["Old"], "forward", "reverse")
     out = out.drop_duplicates(["Symbol", "Date"])
     return out[(out["Date"] >= start) & (out["Date"] <= end)].sort_values("Date").reset_index(drop=True)
+
+
+def splits_sa(start, end, step=45):
+    """The Saudi companies' splits and bonus shares between two dates (Riyadh dates). Yahoo's splits calendar is worldwide (a few
+    hundred rows a month, and a call reads at most 400), so it is read in windows of 45 days and the Saudi codes kept."""
+    frames, d = [], start
+    while d <= end:
+        e = min(end, d + timedelta(days=step - 1))
+        f = splits(d, e, tz=RIYADH)
+        if not f.empty:
+            frames.append(f[f["Symbol"].str.fullmatch(r"[0-9]{4}\.SR", na=False)])
+        d = e + timedelta(days=1)
+    frames = [f for f in frames if not f.empty]
+    if not frames:
+        return pd.DataFrame(columns=["Symbol", "Company", "Date", "Old", "New", "Ratio", "Kind", "Optionable"])
+    return pd.concat(frames, ignore_index=True).drop_duplicates(["Symbol", "Date"]).sort_values("Date").reset_index(drop=True)
+
+
+def dividends_sa():
+    """(DataFrame, as-of date) - the Saudi main market's latest and coming ex-dividend dates, from the companies' summaries that
+    GitHub reads twice a week (infos.json: Yahoo refuses most of this server's summary calls), or a fresher copy read here.
+    Columns: Symbol, ExDate, PayDate (Riyadh dates), Amount (the latest declared dividend per share, SAR), Annual (the yearly rate)"""
+    import tasi
+    rows, asof = [], None
+    for s_ in tasi.SYMBOLS:
+        i = data._INFO_LAST.get(s_) or data.saved_info(s_)
+        ex = i.get("exDividendDate")
+        if not isinstance(ex, (int, float)) or ex <= 0:
+            continue
+        day = lambda v: (pd.Timestamp(v, unit="s", tz="UTC").tz_convert(RIYADH).date() if isinstance(v, (int, float)) and v > 0 else None)
+        amt, ann = i.get("lastDividendValue"), i.get("dividendRate")
+        rows.append({"Symbol": s_, "ExDate": day(ex), "PayDate": day(i.get("dividendDate")),
+                     "Amount": float(amt) if isinstance(amt, (int, float)) and amt > 0 else np.nan,
+                     "Annual": float(ann) if isinstance(ann, (int, float)) and ann > 0 else np.nan})
+        a_ = i.get("_asof")
+        if isinstance(a_, str) and (asof is None or a_ > asof):
+            asof = a_
+    df = pd.DataFrame(rows, columns=["Symbol", "ExDate", "PayDate", "Amount", "Annual"])
+    return df, asof
 
 
 # ---------------------------------------------------------------- economic events
@@ -282,8 +349,28 @@ def importance(name, region="US"):
     return min(stars, 2) if r in MAJOR_REGIONS else 1
 
 
-def econ(start, end, region="US"):
-    """-> Event, Time (ET), Date, Period, Actual, Expected, Last, Revised, Region, Stars (1-3)"""
+# the Saudi view: Saudi Arabia's own releases first (★★★ for inflation, GDP and SAMA's rates), the Fed's and the big US releases next
+# (the riyal is pegged to the dollar, so SAMA follows the Fed), the other Gulf states up to ★★
+GULF = {"AE", "KW", "QA", "BH", "OM"}
+SA_HIGH = re.compile(r"(\bcpi\b|consumer price|inflation|\bgdp\b|repo rate|reverse repo|interest rate|policy rate)", re.I)
+SA_MEDIUM = re.compile(r"(\bpmi\b|money supply|\bm3\b|loans|unemployment|budget|current account|trade balance|exports|imports|"
+                       r"wholesale price|\bwpi\b|industrial production|reserve|pcsi)", re.I)
+
+
+def importance_sa(name, region):
+    n, r = str(name or ""), str(region or "").upper()
+    if r == "SA":
+        return 3 if SA_HIGH.search(n) else 2 if SA_MEDIUM.search(n) else 1
+    if r in US_REGIONS:
+        return importance(n, "US")
+    if r in GULF:
+        return 2 if SA_HIGH.search(n) else 1
+    return min(importance(n, r), 1 if r not in MAJOR_REGIONS else 2)
+
+
+def econ(start, end, region="US", tz=None):
+    """-> Event, Time (ET, or `tz`), Date, Period, Actual, Expected, Last, Revised, Region, Stars (1-3).
+    region: 'US', 'ALL', or a set of region codes (the Saudi view: {'SA', 'US', ...}, stars from importance_sa)."""
     try:
         df = data._econ_calendar(start.isoformat(), (end + timedelta(days=1)).isoformat()).copy()
     except Exception:
@@ -294,16 +381,27 @@ def econ(start, end, region="US"):
         return pd.DataFrame()
     num = lambda *n: pd.to_numeric(df[_col(df, *n)], errors="coerce") if _col(df, *n) else pd.Series(np.nan, index=df.index)
     reg = _col(df, "region", "country", "country code", "country_code")
-    t = _et(df[tc])
+    t = _et(df[tc], tz)
     out = pd.DataFrame({"Event": df[ev].astype(str), "Time": t, "Date": t.dt.date, "Period": df[_col(df, "for", "period")].astype(str)
                         if _col(df, "for", "period") else "", "Actual": num("actual", "after_release_actual"),
                         "Expected": num("expected", "market expectation", "consensus_estimate"), "Last": num("last", "prior to this", "prior_release_actual"),
                         "Revised": num("revised", "revised from", "originally_reported_actual"),
                         "Region": df[reg].astype(str).str.upper() if reg else "US"})
+    saudi = isinstance(region, (set, frozenset, list, tuple))
     if region == "US":
         out = out[out["Region"].isin(["US", "USA", "UNITED STATES"])]
-    out["Stars"] = [importance(e, r) for e, r in zip(out["Event"], out["Region"])]
+    elif saudi:
+        out = out[out["Region"].isin(set(region))]
+    out["Stars"] = [(importance_sa if saudi else importance)(e, r) for e, r in zip(out["Event"], out["Region"])]
     out = out[out["Date"].notna()].drop_duplicates(["Event", "Time", "Region"])
+    if saudi:
+        # Yahoo repeats a release whose day isn't set yet on every day of the window (Saudi CPI on 7 days in a row): kept once, on the
+        # first day, marked as not confirmed
+        out = out.sort_values("Time")
+        key = out["Event"] + "|" + out["Period"].astype(str) + "|" + out["Region"]
+        rep_ = key.map(key.value_counts())
+        out = out.assign(Tentative=(rep_ > 1) & out["Actual"].isna())
+        out = out[~(key.duplicated(keep="first") & out["Actual"].isna())]
     return out[(out["Date"] >= start) & (out["Date"] <= end)].sort_values("Time").reset_index(drop=True)
 
 
@@ -404,4 +502,4 @@ def dividends(start, end):
     return df.drop_duplicates(["Symbol", "ExDate"]).sort_values(["ExDate", "Symbol"]).reset_index(drop=True), src
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.0"
+BUILD = "22.1"
