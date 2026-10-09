@@ -1,2 +1,2 @@
-TURA Pro - version 21.7 (the logo's glow in the dark look: softer colour, reaching further; the light look unchanged)
+TURA Pro - version 21.8 (the dark look's logo is back to the owner's picture as first put in, 21.3; the light look keeps its neon and halo)
 If you can see this file on GitHub, the new version was uploaded correctly.

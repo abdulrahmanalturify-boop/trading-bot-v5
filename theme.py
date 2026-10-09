@@ -110,9 +110,10 @@ def logo_parts(p="lg", light=True, shadow=.45, glow=1.0, aura=.85, spread=1.0):
             d_, e_ = _blobs(p, _AURA, 10, aura)
             defs += d_
             glows += e_
+        fade = ('<stop offset=".3" stop-color="#fff"/><stop offset=".7" stop-color="#fff" stop-opacity=".45"/>' if aura else
+                '<stop offset=".55" stop-color="#fff"/>')              # with the halo, a softer edge; the picture's own light as it was
         defs.append(f'<radialGradient id="{p}f" gradientUnits="userSpaceOnUse" cx="{x0 + w / 2:g}" cy="{y0 + h / 2:g}" r="{w / 2:g}">'
-                    f'<stop offset=".3" stop-color="#fff"/><stop offset=".7" stop-color="#fff" stop-opacity=".45"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>'
-                    f'</radialGradient>'
+                    f'{fade}<stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>'
                     f'<mask id="{p}m"><rect x="{x0}" y="{y0}" width="{w}" height="{h}" fill="url(#{p}f)"/></mask>')
         out.append(f'<g mask="url(#{p}m)">{"".join(glows)}</g>')
     tube = lambda d, stroke, width: f'<path d="{d}" fill="none" stroke="{stroke}" stroke-width="{width:g}" stroke-linejoin="round"/>'
@@ -137,8 +138,8 @@ def logo_parts(p="lg", light=True, shadow=.45, glow=1.0, aura=.85, spread=1.0):
 # the light look: no deep light behind it (it would read as a dark smudge on a pale page), the coloured halo and the neon
 # stronger, the shadow faint
 LIGHT_LOOK = dict(light=False, shadow=.12, glow=1.25, aura=.75)
-# the dark look: a softer neon that reaches further, a lighter halo
-DARK_LOOK = dict(glow=.6, spread=1.5, aura=.55)
+# the dark look: the owner's picture as it is (its deep light behind the mark and its shadow; no added neon or halo)
+DARK_LOOK = dict(light=True, shadow=.62, glow=0, aura=0)
 
 
 def logo_mark(p="lg", cls="", light=True):
@@ -149,15 +150,15 @@ def logo_mark(p="lg", cls="", light=True):
     return f'<svg{c} viewBox="{LOGO_BOX}" overflow="visible" style="overflow:visible" aria-hidden="true">{parts}</svg>'
 
 
-# the logo at the top of the page also glows past the edges of its picture (the light look keeps these colours as they are);
-# the dark look's glow is softer and reaches further
+# in the light look the logo at the top of the page also glows past the edges of its picture (these colours are kept as they
+# are); the dark look has no such glow
 _LOGO_SEL = 'img[data-testid="stLogo"], img.stLogo, [data-testid="stSidebarHeader"] img, [data-testid="stHeaderLogo"] img'
 
 
 def logo_glow_css(light_look=False):
-    f = ("drop-shadow(0 0 2px rgba(56,189,248,.5)) drop-shadow(0 0 8px rgba(124,92,255,.45)) drop-shadow(0 0 16px rgba(176,76,255,.2))"
-         if light_look else
-         "drop-shadow(0 0 3px rgba(56,189,248,.28)) drop-shadow(0 0 12px rgba(124,92,255,.26)) drop-shadow(0 0 26px rgba(176,76,255,.14))")
+    if not light_look:
+        return ""
+    f = "drop-shadow(0 0 2px rgba(56,189,248,.5)) drop-shadow(0 0 8px rgba(124,92,255,.45)) drop-shadow(0 0 16px rgba(176,76,255,.2))"
     return f'<style data-lm="keep">{_LOGO_SEL} {{ filter:{f}; }}</style>'
 
 
@@ -257,8 +258,8 @@ def brand_box(p="bw"):
 
 
 _GB = " ".join(str(v) for v in LOGO_GLOW_BOX)
-# small at the top of the page: the neon and the coloured halo, without the deep light (at that size it reads as a dark patch)
-_MARK = f'<svg x="0" y="0" width="64" height="64" viewBox="{_GB}">{logo_parts("mk", **dict(DARK_LOOK, light=False))}</svg>'
+# small at the top of the page, in the dark look as in the owner's picture
+_MARK = f'<svg x="0" y="0" width="64" height="64" viewBox="{_GB}">{logo_parts("mk", **DARK_LOOK)}</svg>'
 LOGO_ICON = f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">{_MARK}</svg>'
 LOGO_ICON_LIGHT = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">'
                    f'<svg x="0" y="0" width="64" height="64" viewBox="{_GB}">{logo_parts("il", **LIGHT_LOOK)}</svg></svg>')
@@ -2860,4 +2861,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "21.7"
+BUILD = "21.8"
