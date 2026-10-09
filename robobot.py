@@ -16,6 +16,10 @@ biotech). Everything it does is read from daily prices and volume, so the same r
 - each position has a stop 2.5 ATR away that trails the best close by 3 ATR; one that has not gained 10% after 60 trading
   days leaves (a winner stays with its trailing stop); a short pays a borrow fee (5% a year). A stopped stock waits 10 days
   before it can come back.
+- extended hours (from EXT_FROM on, with Yahoo's pre-market and after-hours prices): the scan reads the scan day's own close
+  and its trades are filled in that evening's after-hours session (the close of its first hour, 0.1% worse) instead of at the
+  next close; the stops are also checked on the last price of the pre-market and of the after-hours session. A day without
+  these prices trades the regular way.
 
 A Sharia-compliant portfolio is long only (no short selling) and hunts only the companies whose business passes a
 business-activity screen (no lending, insurance, brokerage, crypto, gambling or weapons; financial ratios are not checked).
@@ -37,6 +41,8 @@ KEEP_IF = 10.0                                  # % gained: past MAX_DAYS a posi
 BORROW = 0.05                                   # a year, on the value shorted
 MIN_PX_LONG, MIN_PX_SHORT = 3.0, 5.0
 MIN_DV_LONG, MIN_DV_SHORT = 10e6, 20e6          # average dollar volume a day (20 days)
+EXT_FROM = pd.Timestamp("2026-10-09")           # 21.9: the bot trades the extended hours from this session on (earlier days replay as before)
+EXT_SLIP = 0.001                                # extended hours: thinner trading, fills 0.1% worse
 
 THEMES = {"ai": ("AI & data", "الذكاء الاصطناعي والبيانات", "neurology"),
           "chips": ("AI chips & cloud", "رقائق وسحابة الذكاء الاصطناعي", "memory"),
@@ -210,6 +216,14 @@ def load(period="5y"):
     return out
 
 
+def load_ext(feats):
+    """The hunting list's pre-market and after-hours prices ({ticker: data.ext_summary}; {} when they can't be fetched)."""
+    try:
+        return data.extended_hours(list(feats)) if feats else {}
+    except Exception:
+        return {}
+
+
 def radar(feats, sharia=False, n_long=6, n_short=4):
     """The best long and short candidates on the latest bar: [{t, side, score, signal (passes), why, c, theme}]."""
     longs, shorts = [], []
@@ -267,7 +281,8 @@ def trade_plan(feats, value, level, sharia=False, held=(), cool=(), n_long_held=
 class Book:
     """The bot's slice: cash and positions (units < 0 for a short), run day by day on the robo's trading days."""
 
-    def __init__(self, feats, index, level=10, sharia=False):
+    def __init__(self, feats, index, level=10, sharia=False, ext=None, now=None):
+        """ext: {ticker: data.ext_summary} (the extended hours, see the module's notes); now: New York time (default: now)."""
         self.level, self.sharia = int(level), bool(sharia)
         self.n_long, self.n_short = slots(self.level, self.sharia)
         self.tick = [t for t in feats if len(feats[t])]
@@ -282,6 +297,53 @@ class Book:
         self.trades, self.opens = [], []
         self.cool = {}
         self.curve = []
+        self.wait = None                     # a scan day whose trades wait for tonight's after-hours session
+        self.now = pd.Timestamp(now) if now is not None else pd.Timestamp.now(tz="America/New_York").tz_localize(None)
+        self.X = None
+        if ext and self.tick:
+            # each day's extended prices on the footing of the adjusted daily ones (x the adjusted close / the regular last price)
+            days = pd.DatetimeIndex(index).normalize()
+            if getattr(days, "tz", None) is not None:
+                days = days.tz_localize(None)
+            X = {c: {} for c in ("PMc", "AHf", "AHc")}
+            for t in self.tick:
+                xs = ext.get(t)
+                if xs is None or not len(xs):
+                    continue
+                xs = xs[~xs.index.duplicated(keep="last")].reindex(days)
+                f = al[t]["c"].to_numpy(float) / xs["RC"].to_numpy(float)
+                f = np.where((f > 0.8) & (f < 1.25), f, np.nan)
+                for c in X:
+                    X[c][t] = xs[c].to_numpy(float) * f
+            if X["AHf"]:
+                self.X = {c: pd.DataFrame(v, index=index) for c, v in X.items()}
+                ah = self.X["AHf"]
+                self.xdays = set(ah.index[ah.notna().any(axis=1)])     # the days with after-hours prices at all
+
+    def xpx(self, col, t, d):
+        """An extended-hours price of ticker t on day d (None without one)."""
+        try:
+            v = self.X[col].at[d, t]
+        except (KeyError, TypeError):
+            return None
+        return None if v != v else float(v)
+
+    def _ext_on(self, d):
+        """Day d trades the extended hours (prices loaded, from EXT_FROM on)."""
+        if self.X is None:
+            return False
+        d = pd.Timestamp(d)
+        return (d.tz_localize(None) if d.tz is not None else d) >= EXT_FROM
+
+    def _after(self, d, minutes):
+        """`minutes` after day d's close has passed (always, for a day before today)."""
+        d = pd.Timestamp(d)
+        d = d.tz_localize(None) if d.tz is not None else d
+        if d.normalize() < self.now.normalize():
+            return True
+        import mcal
+        close = 13 * 60 if mcal.day_status(d.date())[0] == "early" else 16 * 60
+        return self.now >= d.normalize() + pd.Timedelta(minutes=close + minutes)
 
     def set_level(self, level, sharia, d=None):
         """A new plan: the slots of its level; turning Sharia-compliant closes the shorts and the companies off its list."""
@@ -327,14 +389,16 @@ class Book:
         self.cash *= k
         self.cost *= k
 
-    def _close(self, t, d, why):
+    def _close(self, t, d, why, price=None, x_=None):
+        """price: an extended-hours fill (x_: 'pm' / 'ah'); else the day's close."""
         p = self.pos.pop(t)
-        x = self.px(t, d) or p["last"]
+        x = price if price is not None else (self.px(t, d) or p["last"])
         self.cash += p["u"] * x
         sign = 1 if p["side"] == "long" else -1
         ret = (x / p["entry"] - 1) * sign
         self.trades.append({"t": t, "side": p["side"], "d_in": p["d"], "px_in": p["entry"], "d_out": d, "px_out": x, "ret": ret * 100,
-                            "pnl": p["u"] * (x - p["entry"]), "why": why, "days": p["held"], "reasons": p["why"]})
+                            "pnl": p["u"] * (x - p["entry"]), "why": why, "days": p["held"], "reasons": p["why"],
+                            **({"x_in": p["x"]} if p.get("x") else {}), **({"x_out": x_} if x_ else {})})
         if why in ("stop", "trail"):
             self.cool[t] = COOLDOWN
 
@@ -345,15 +409,29 @@ class Book:
                 x = self.px(t, d)
                 self.cash -= abs(p["u"]) * (x if x is not None else p["last"]) * BORROW / 252
 
+    def _ext_stops(self, d, col, tag):
+        """The stops on the last price of the pre-market (col PMc) or of the after-hours session (AHc)."""
+        for t, p in list(self.pos.items()):
+            x = self.xpx(col, t, d)
+            if x is None:
+                continue
+            if (x <= p["stop"]) if p["side"] == "long" else (x >= p["stop"]):
+                fill = x * (1 - EXT_SLIP) if p["side"] == "long" else x * (1 + EXT_SLIP)
+                self._close(t, d, "trail" if p["stop"] != p["stop0"] else "stop", fill, tag)
+
     def step(self, d, prev_d, scan, fees=True):
         """One trading day at its close: the borrow fee (unless charged already), the exits, then (on a scan day) new positions
-        from the previous close."""
+        from the previous close. With the extended hours: the stops also at the end of the pre-market and of the after-hours
+        session, and the scan reads this close and fills in this evening's after-hours session."""
+        ext = self._ext_on(d)
         if fees:
             self.fees(d)
         for t in list(self.cool):
             self.cool[t] -= 1
             if self.cool[t] <= 0:
                 del self.cool[t]
+        if ext:
+            self._ext_stops(d, "PMc", "pm")
         for t, p in list(self.pos.items()):
             x = self.px(t, d)
             if x is None:
@@ -372,11 +450,23 @@ class Book:
                 self._close(t, d, "trail" if p["stop"] != p["stop0"] else "stop")
             elif p["held"] >= MAX_DAYS and (x / p["entry"] - 1) * (1 if p["side"] == "long" else -1) * 100 < KEEP_IF:
                 self._close(t, d, "time")
-        if scan and prev_d is not None and self.tick:
+        self.wait = None
+        if scan and ext and self.tick:
+            if not self._after(d, 60):
+                self.wait = d                        # tonight, once the after-hours session's first hour is over
+            elif d in self.xdays:                    # filled at the close of that first hour
+                self._scan(d, d, ah=True)
+            elif prev_d is not None:                 # a day without after-hours prices: the regular way
+                self._scan(d, prev_d)
+        elif scan and prev_d is not None and self.tick:
             self._scan(d, prev_d)
+        if ext and self._after(d, 240):              # the after-hours session is over: its last price
+            self._ext_stops(d, "AHc", "ah")
         self.curve.append((d, self.value(d), self.cost))
 
-    def _scan(self, d, prev_d):
+    def _scan(self, d, prev_d, ah=False):
+        """New positions for the free slots from the signals of the close of prev_d, at the close of d (ah: at d's after-hours
+        price, prev_d = d)."""
         held = set(self.pos)
         n_l = sum(1 for p in self.pos.values() if p["side"] == "long")
         n_s = len(self.pos) - n_l
@@ -397,6 +487,9 @@ class Book:
                 if t in held or t in self.cool or (self.sharia and not UNIVERSE[t][2]):
                     continue
                 x = self.px(t, d)
+                if ah:                                 # no after-hours price for it: it waits for the next scan
+                    x = self.xpx("AHf", t, d)
+                    x = None if x is None else x * (1 + EXT_SLIP if side == "long" else 1 - EXT_SLIP)
                 fr = self.f[t].loc[prev_d]
                 atr = fr["atr"]
                 if x is None or atr != atr or atr <= 0:
@@ -415,8 +508,8 @@ class Book:
                     stop = x + STOP_ATR * atr
                 why = reasons(fr, side)
                 self.pos[t] = {"side": side, "u": u, "entry": x, "d": d, "atr": float(atr), "stop": stop, "stop0": stop, "best": x,
-                               "held": 0, "last": x, "size": amt, "score": float(row[t]), "why": why}
-                self.opens.append({"t": t, "side": side, "d": d, "px": x, "score": float(row[t]), "why": why})
+                               "held": 0, "last": x, "size": amt, "score": float(row[t]), "why": why, **({"x": "ah"} if ah else {})}
+                self.opens.append({"t": t, "side": side, "d": d, "px": x, "score": float(row[t]), "why": why, **({"x": "ah"} if ah else {})})
                 held.add(t)
                 free -= 1
 
@@ -446,4 +539,4 @@ def stats(book):
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "21.8"
+BUILD = "21.9"

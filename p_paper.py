@@ -90,7 +90,8 @@ DEFAULTS = {"pb_name": "", "pb_capital": 1_000_000, "pb_kind": "all", "pb_symbol
             "pb_ind_sector": "Technology", "pb_industry": "Semiconductors", "pb_maxpos": 10, "pb_store": ["SMA Crossover"],
             "pb_fee": 0.05, "pb_stop": 0.0, "pb_atr": 3.0, "pb_tp": 0.0, "pb_trail": 0.0, "pb_combine": "any", "pb_instr": "stock",
             "pb_otype": "call", "pb_dte": 30, "pb_strike": 0, "pb_oalloc": 5.0, "pb_otp": 100.0, "pb_osl": 50.0,
-            "pb_mode": "single", "pb_store_pb": [PBK.TREND_PULLBACK], "pb_pbmode": "any", "pb_pbwin": 5, "pb_riskpt": 0.0, "pb_regime": 0, "pb_trend": False}
+            "pb_mode": "single", "pb_store_pb": [PBK.TREND_PULLBACK], "pb_pbmode": "any", "pb_pbwin": 5, "pb_riskpt": 0.0, "pb_regime": 0, "pb_trend": False,
+            "pb_ext": True}
 
 _A, _V, _C, _D, _G, _BG, _BD, _MU = T.ACCENT, T.VIOLET, T.CYAN, T.DOWN, T.GOLD, T.CARD2, T.BORDER, T.MUTED
 REGIME_LABEL = {0: ("Off", "إيقاف"),
@@ -859,7 +860,7 @@ def hero_html(sims, n_bots):
         if ph == "live":
             chips.append(f'<span class="chip">{T.icon("swap_vert")}{L("Open trades", "صفقات مفتوحة")} <b>{n_open}</b></span>')
         if n_orders and ph == "live":
-            chips.append(f'<span class="chip">{T.icon("bolt")}{L("Orders at next open", "أوامر الافتتاح القادم")} <b>{n_orders}</b></span>')
+            chips.append(f'<span class="chip">{T.icon("bolt")}{L("Pending orders", "أوامر بانتظار التنفيذ")} <b>{n_orders}</b></span>')
         best = rk[0]
         chips.append(f'<span class="chip">{T.icon("emoji_events")}<b>{T.esc(best["bot"]["name"])}</b>{T.pill(best["ret"])}</span>')
     else:
@@ -885,6 +886,21 @@ def cbadge(text, kind="neu", ic=None):
     return f'<span class="badge b-{kind}" title="{T.esc(text)}">{T.icon(ic) if ic else ""}<span class="bt">{T.esc(text)}</span></span>'
 
 
+def tonight(sim):
+    """The share orders of the last close are filled in this evening's after-hours session (its first hour isn't over yet)."""
+    return bool(sim.get("ah_wait")) and any(k == "Stock" for *_, k in list(sim["next_buys"]) + list(sim["next_sells"]))
+
+
+def ext_caption():
+    return L("Stops and targets also work in the pre-market (4:00-9:30 am New York) and the after-hours session (to 8 pm); share "
+             "orders decided at the close are filled in that evening's after-hours session (its first hour) instead of the next "
+             "open. Extended-hours fills are 0.1% worse (thinner trading). Options and days without these prices (Yahoo keeps 2 "
+             "years) trade in the regular session.",
+             "الوقف والهدف يشتغلون كمان قبل الافتتاح (4:00 إلى 9:30 صباحاً بتوقيت نيويورك) وبعد الإغلاق (لين 8 مساءً)؛ وأوامر "
+             "الأسهم اللي تنقرر عند الإغلاق تتنفذ في تداول ما بعد الإغلاق نفس الليلة (أول ساعة) بدل الافتتاح التالي. التنفيذ خارج "
+             "الجلسة أسوأ بـ 0.1% (تداول أخف). العقود والأيام اللي ما فيها هالأسعار (ياهو يحفظ سنتين) تتداول في الجلسة العادية.")
+
+
 def status_badge(sim, mk=T.badge):
     if not sim["ok"]:
         if sim.get("why") in ("nohist", "gone5"):
@@ -898,6 +914,16 @@ def status_badge(sim, mk=T.badge):
     nb, ns = len(sim["next_buys"]), len(sim["next_sells"])
     if sim.get("intraday") and nb:
         return mk(L("Enters at the next 5-min candle", "يدخل مع شمعة الـ 5 دقائق القادمة"), "gold", "bolt")
+    if tonight(sim):                                   # filled in this evening's after-hours session
+        if sim["bot"]["kind"] == "company":
+            if nb:
+                return mk(L("Buys after the close", "يشتري بعد الإغلاق"), "gold", "dark_mode")
+            if ns:
+                return mk(L("Sells after the close", "يبيع بعد الإغلاق"), "gold", "dark_mode")
+        elif nb + ns == 1:
+            return mk(L("1 order after the close", "أمر بعد الإغلاق"), "gold", "dark_mode")
+        elif nb + ns:
+            return mk(L(f"{nb + ns} orders after the close", f"{nb + ns} أوامر بعد الإغلاق"), "gold", "dark_mode")
     if sim["bot"]["kind"] == "company":
         if nb:
             return mk(L("Buys at next open", "يشتري عند الافتتاح القادم"), "gold", "bolt")
@@ -989,11 +1015,12 @@ def phase_switch(sims):
                     st.button(L(en, ar_), key=f"pb_ph_{p}", on_click=_set_phase, args=(p,), width="stretch")
     if ph == "live":
         st.caption(L("Forward test: each bot starts it with its full capital on the first session after it is added (or after its trading "
-                     "rules change). After every US close, the session's fills, the orders for the next open and the closing balance are "
-                     "saved with the engine version; saved sessions are replayed from the record and never recalculated.",
-                     "التجربة الأمامية: كل بوت يبدأها برأس ماله كامل من أول جلسة بعد إضافته (أو بعد تغيير قواعد تداوله). بعد كل إغلاق "
-                     "للسوق الأمريكي تنحفظ صفقات الجلسة وأوامر الافتتاح القادم ورصيد الإغلاق مع نسخة المحرك، والجلسات المحفوظة "
-                     "تنعرض من السجل وما يُعاد حسابها أبداً."))
+                     "rules change). After every US session (with the pre-market and after-hours trading, once the after-hours session "
+                     "ends) the session's fills, its orders and the closing balance are saved with the engine version; saved sessions are "
+                     "replayed from the record and never recalculated.",
+                     "التجربة الأمامية: كل بوت يبدأها برأس ماله كامل من أول جلسة بعد إضافته (أو بعد تغيير قواعد تداوله). بعد كل جلسة "
+                     "للسوق الأمريكي (مع تداول ما قبل الافتتاح وما بعد الإغلاق، بعد ما يخلص تداول ما بعد الإغلاق) تنحفظ صفقات الجلسة "
+                     "وأوامرها ورصيد الإغلاق مع نسخة المحرك، والجلسات المحفوظة تنعرض من السجل وما يُعاد حسابها أبداً."))
     else:
         st.caption(L("Historical simulation: each bot's rules replayed on past prices from its start date up to the day its forward test "
                      "began. It is recalculated with the current engine whenever the page opens, so it shows how the rules would have "
@@ -1848,6 +1875,8 @@ def bot_header(sim):
         badges += T.badge(L(*REGIME_LABEL[int(b["regime"])]), "acc", "filter_alt")
     if b.get("trend_filter"):
         badges += T.badge(L("Only stocks above their 200-day average", "فقط الأسهم فوق متوسط 200 يوم"), "acc", "trending_up")
+    if b.get("ext"):
+        badges += T.badge(L("Pre-market & after-hours", "قبل الافتتاح وبعد الإغلاق"), "vio", "dark_mode")
     if b.get("ml"):
         mdl = MLB.load(b["ml"]) or {}
         kp = float(mdl.get("keep") or 1.0)
@@ -1937,6 +1966,12 @@ def next_orders(sim):
     note = L(" The latest candle is still moving, so these signals are confirmed at today's close.",
              " الشمعة الأخيرة لسا تتحرك، فالإشارات تتأكد عند إغلاق اليوم.") if _session_live() and last.date() == PB.today_ny() else ""
     day = iso(f"{last:%Y-%m-%d}")
+    if tonight(sim):
+        opts = any(k != "Stock" for *_, k in list(sim["next_buys"]) + list(sim["next_sells"]))
+        st.warning(L(f"Orders for this evening's after-hours session (signals of {day}{'; options wait for the next open' if opts else ''}): ",
+                     f"أوامر تداول ما بعد الإغلاق الليلة (إشارات {day}{'؛ العقود تنتظر الافتتاح القادم' if opts else ''}): ")
+                   + " · ".join(parts) + ".", icon=":material/dark_mode:")
+        return
     st.warning(L(f"Orders for the next open (signals of {day}): ", f"أوامر الافتتاح القادم (إشارات {day}): ")
                + " · ".join(parts) + "." + note, icon=":material/bolt:")
 
@@ -1951,10 +1986,16 @@ def _qty(e):
     return f"{q:,.2f}"
 
 
+XH_BUY = {"ah": ("Bought after the close", "شراء بعد الإغلاق")}
+XH_SELL = {"ah": ("Sold after the close", "بيع بعد الإغلاق"), "pm": ("Sold before the open", "بيع قبل الافتتاح")}
+XH_RANK = {"pm": -1, "ah": 3}                     # within a session: the pre-market first, the after-hours last
+
+
 def record_rows(rec):
     """Every saved fill and order of a forward-test record, newest first: [(session, event, symbol, type, strategy, price,
     quantity, note, engine)]."""
     rows = []
+    ext = bool((rec.get("cfg") or {}).get("ext"))
     for e in rec.get("ev") or []:
         k = str(e.get("k") or "Stock")
         typ = L(*TYPE_ONE.get(k, (k, k)))
@@ -1969,18 +2010,21 @@ def record_rows(rec):
             else:
                 note = " · ".join(x for x in (f'SL {_fp(e["st"])}' if e.get("st") else "",
                                                 f'TP {_fp(e["tg"])}' if e.get("tg") is not None else "") if x)
-            rows.append((e["d"], 0, L("Bought at the open", "شراء عند الافتتاح"), e["s"], typ, strat_short(e.get("l", "")),
-                         _fp(e["p"]), _qty(e), note, e.get("v", "")))
+            h = e.get("h")
+            rows.append((e["d"], XH_RANK.get(h, 0) + (1 if h else 0), L(*XH_BUY.get(h, ("Bought at the open", "شراء عند الافتتاح"))), e["s"], typ,
+                         strat_short(e.get("l", "")), _fp(e["p"]), _qty(e), note, e.get("v", "")))
         else:
-            r = str(e.get("r") or "")
-            rows.append((e["d"], 1, L("Sold", "بيع"), e["s"], typ, strat_short(e.get("l", "")), _fp(e["p"]), "",
+            r, h = str(e.get("r") or ""), e.get("h")
+            rows.append((e["d"], XH_RANK.get(h, 1), L(*XH_SELL.get(h, ("Sold", "بيع"))), e["s"], typ, strat_short(e.get("l", "")), _fp(e["p"]), "",
                          L(r, EXIT_AR.get(r, r)), e.get("v", "")))
     for e in rec.get("sig") or []:
         k = str(e.get("k") or "Stock")
         buy = e.get("a") == "B"
         r = str(e.get("r") or "")
-        rows.append((e["d"], 2, L("Buy order for the next open", "أمر شراء للافتتاح القادم") if buy else
-                     L("Sell order for the next open", "أمر بيع للافتتاح القادم"), e["s"], L(*TYPE_ONE.get(k, (k, k))),
+        late = ext and k == "Stock"                     # filled in that evening's after-hours session
+        rows.append((e["d"], 2, (L("Buy order (after the close)", "أمر شراء (بعد الإغلاق)") if late else L("Buy order for the next open", "أمر شراء للافتتاح القادم"))
+                     if buy else (L("Sell order (after the close)", "أمر بيع (بعد الإغلاق)") if late else L("Sell order for the next open", "أمر بيع للافتتاح القادم")),
+                     e["s"], L(*TYPE_ONE.get(k, (k, k))),
                      strat_short(e.get("l", "")), "", "", "" if buy or r in ("", "Signal") else L(r, EXIT_AR.get(r, r)), e.get("v", "")))
     rows.sort(key=lambda x: (x[0], x[1]), reverse=True)
     return [(d, *rest) for d, _, *rest in rows]
@@ -2119,6 +2163,12 @@ def _details_head(sim):
             st.info(L(f"The forward test starts with the US session of {d0} and trades during the session on 5-minute candles.",
                       f"التجربة الأمامية تبدأ مع جلسة {d0} الأمريكية وتتداول أثناء الجلسة على شموع 5 دقائق."),
                     icon=":material/schedule:")
+            return
+        if sim["bot"].get("ext"):
+            st.info(L(f"The forward test starts with the US session of {d0}, pre-market included. After that session closes the bot checks "
+                      "its strategies, and its share orders are filled in that evening's after-hours session.",
+                      f"التجربة الأمامية تبدأ مع جلسة {d0} الأمريكية، من تداول ما قبل الافتتاح. بعد إغلاق الجلسة يفحص البوت الاستراتيجيات، "
+                      "وأوامر الأسهم تتنفذ في تداول ما بعد الإغلاق نفس الليلة."), icon=":material/schedule:")
             return
         st.info(L(f"The forward test starts with the US session of {d0}. After that session closes the bot checks its strategies, "
                   "and any order is filled at the next open.",
@@ -2633,7 +2683,7 @@ def _load_form(bot):
                "pb_atr": _clip(bot["atr_mult"], 0.0, 10.0), "pb_tp": _clip(bot["tp_pct"], 0.0, 500.0),
                "pb_trail": _clip(bot["trail_pct"], 0.0, 50.0), "pb_start": pd.Timestamp(bot["start_date"]).date(),
                "pb_riskpt": _clip(bot.get("risk_pct") or 0.0, 0.0, 10.0), "pb_regime": int(bot.get("regime") or 0),
-               "pb_trend": bool(bot.get("trend_filter"))})
+               "pb_trend": bool(bot.get("trend_filter")), "pb_ext": bool(bot.get("ext", 1)) or instrument(bot) == "options"})
     for s in books:
         _pp_seed(s, bot["strategies"][s])
     if books:                                     # the agreement rule of combined strategies has its own keys
@@ -3009,7 +3059,7 @@ def classic_rules_html(name, params=None):
     """A Strategy Lab strategy as a small card: its buy rule and its sell rule, with its numbers."""
     p = PB.clean_params(name, params or {})
     (be, ba), (se, sa) = _classic_rules(name, p)
-    groups = [("Buy (on the close)", "الشراء (عند الإغلاق)", [(be + "; the order is filled at the next open", ba + "، والأمر يتنفذ عند الافتتاح التالي")]),
+    groups = [("Buy (on the close)", "الشراء (عند الإغلاق)", [(be + "; the order is filled after the close (after-hours) or at the next open", ba + "، والأمر يتنفذ بعد الإغلاق (ما بعد الإغلاق) أو عند الافتتاح التالي")]),
               ("Sell", "البيع", [(se, sa), ("Or the stop loss, take profit or trailing stop you set below",
                                             "أو وقف الخسارة أو جني الأرباح أو الوقف المتحرك اللي تحطها تحت")])]
     gh = "".join(f'<div class="g"><div class="gt"><span class="k">{i}</span>{T.esc(L(ge, ga))}</div><ul>'
@@ -3468,6 +3518,10 @@ def bot_form(mode, bot=None):
                 o6.number_input(L("Stop loss on the option %", "وقف خسارة العقد %"), 0.0, 95.0, step=1.0, key="pb_osl",
                                 help=L("0 = off", "0 = إيقاف"))
                 st.caption(options_caption())
+        if not orb and instr != "options":
+            x1, x2 = st.columns([1, 2], vertical_alignment="center")
+            x1.toggle(L("Trade pre-market & after-hours", "تداول قبل الافتتاح وبعد الإغلاق"), key="pb_ext")
+            x2.caption(ext_caption())
 
     # 6) start
     today = PB.today_ny()
@@ -3552,6 +3606,7 @@ def bot_form(mode, bot=None):
                          ({"mode": "combo", "min": int(need), **({"window": int(win)} if combined else {})} if combo else None),
                          instrument=instr, options=options, risk_pct=0.0 if instr == "options" else float(ss.get("pb_riskpt") or 0.0),
                          regime=0 if orb else int(ss.get("pb_regime") or 0), trend_filter=0 if orb else int(bool(ss.get("pb_trend"))),
+                         ext=0 if orb or instr == "options" else int(bool(ss.get("pb_ext", True))),
                          ml=(bot or {}).get("ml") if mode == "edit" and set(params) == set((bot or {}).get("strategies") or {}) else None,
                          brain=(bot or {}).get("brain") if mode == "edit" and instr != "options" and not orb else None)
     try:
@@ -3992,8 +4047,13 @@ def brain_today(sim):
                 rows.append(f'<div class="bwhy"><b>{T.esc(s_)}</b><span class="sc">{w_.get("sc", 0)}/100</span>'
                             + (f'<span class="st">{T.esc(how_)}</span>' if how_ else "") + f'<span class="pt">{T.esc(parts)}</span></div>')
             ui.html('<div class="bwhys">' + "".join(rows) + "</div>")
-            st.caption(L("Buys for the next open: the strategy the bot chose for each one, and the score that got it in (out of 100) "
+            st.caption(L("Buys waiting to be filled (tonight after the close, or at the next open): the strategy the bot chose for each "
+                         "one, and the score that got it in (out of 100) with its parts."
+                         if tonight(sim) else
+                         "Buys for the next open: the strategy the bot chose for each one, and the score that got it in (out of 100) "
                          "with its parts.",
+                         "مشتريات بانتظار التنفيذ (الليلة بعد الإغلاق، أو عند الافتتاح القادم): الاستراتيجية اللي اختارها البوت لكل وحدة، "
+                         "والتقييم اللي دخّلها (من 100) وأجزاءه." if tonight(sim) else
                          "مشتريات الافتتاح القادم: الاستراتيجية اللي اختارها البوت لكل وحدة، والتقييم اللي دخّلها (من 100) وأجزاءه."))
         elif gate is None:
             st.caption(L("No buy passed its score at the last close.", "ولا إشارة شراء عدّت التقييم عند آخر إغلاق."))
@@ -4091,10 +4151,10 @@ def ai_today(sim):
             ui.html('<div class="aiday"><span class="' + ("go" if go else "") + '">' + T.icon("check" if go else "block")
                     + f'<b>{p_ * 100:.0f}%</b> ' + T.esc(L("chance of a good month for stocks", "احتمال شهر زين للأسهم")) + '</span></div>')
             st.caption(L(f"At the close of {info['day']}. The bot holds stocks while the chance is at least {thr * 100:.0f}%; under it, it "
-                         "buys nothing and sells what it holds at the next open. "
+                         "buys nothing and sells what it holds right after the close (or at the next open). "
                          f"It called {info.get('risky_days', 0)} of the bot's {info.get('days', 0)} sessions risky.",
                          f"عند إغلاق {info['day']}. البوت يمسك أسهم ما دام الاحتمال {thr * 100:.0f}% أو أكثر؛ وتحته ما يشتري شي ويبيع اللي "
-                         f"عنده عند الافتتاح القادم. اعتبر {info.get('risky_days', 0)} من {info.get('days', 0)} جلسة للبوت خطرة."))
+                         f"عنده بعد الإغلاق مباشرة (أو عند الافتتاح القادم). اعتبر {info.get('risky_days', 0)} من {info.get('days', 0)} جلسة للبوت خطرة."))
             return
         sig = info.get("signals") or []
         if not sig:
@@ -4105,9 +4165,9 @@ def ai_today(sim):
             f'<span class="{"go" if p >= thr else ""}">{T.icon("check" if p >= thr else "close")}<b>{T.esc(s_)}</b> {p * 100:.0f}%</span>'
             for s_, p in sig) + "</div>")
         st.caption(L(f"The buy signals of {info['day']} with the model's chance of a winning trade. Green = at least {thr * 100:.0f}%, so "
-                     "the bot may buy it at the next open if it has a free place (highest chances first).",
+                     "the bot may buy it right after the close (or at the next open) if it has a free place (highest chances first).",
                      f"إشارات الشراء في {info['day']} مع احتمال نجاح الصفقة عند النموذج. الأخضر = {thr * 100:.0f}% أو أكثر، فممكن البوت يشتريه "
-                     "عند الافتتاح القادم إذا عنده مكان فاضي (الأعلى احتمالاً أول)."))
+                     "بعد الإغلاق مباشرة (أو عند الافتتاح القادم) إذا عنده مكان فاضي (الأعلى احتمالاً أول)."))
 
 
 def open_dialog(op, bots):
@@ -4167,9 +4227,10 @@ def page_paper_bots():
         ui.html(f'<div class="card" style="line-height:1.9;margin-top:14px">{T.ico("smart_toy", "acc")} ' + L(
             "No bots yet. Press <b>Add Bot</b>, choose what the bot trades (a company, a sector, an industry or all companies), what it buys "
             "(stocks, options or both) and its strategies. From then on it checks its strategies after every US close and trades with virtual "
-            "money at the next open.",
+            "money right after the close (after-hours) or at the next open, with its stops working before the open and after the close too.",
             "ما فيه بوتات للحين. اضغط <b>أضف بوت</b>، واختر وش يتداول (شركة أو قطاع أو صناعة أو كل الشركات)، ووش يشتري (أسهم أو أوبشن أو الاثنين)، "
-            "واستراتيجياته. بعدها يفحص استراتيجياته بعد كل إغلاق للسوق الأمريكي، ويتداول بأموال وهمية عند الافتتاح التالي.") + "</div>")
+            "واستراتيجياته. بعدها يفحص استراتيجياته بعد كل إغلاق للسوق الأمريكي، ويتداول بأموال وهمية بعد الإغلاق مباشرة أو عند الافتتاح التالي، "
+            "والوقف يشتغل كمان قبل الافتتاح وبعد الإغلاق.") + "</div>")
     elif sims:
         chosen = [s for s in ranked(shown) if s["bot"]["id"] in sel]
         if not chosen:
@@ -4186,13 +4247,16 @@ def page_paper_bots():
     ui.safe(test_section)
     ui.safe(compare_section, sims)
     st.caption(L("Virtual trading on real daily prices (dividend-adjusted, may be delayed); the Opening Range Breakout uses 5-minute prices from "
-                 "the last 60 days. Forward tests are saved session by session after each US close and never recalculated; historical "
+                 "the last 60 days. Pre-market and after-hours trading uses Yahoo's hourly prices of the last 2 years (older days trade "
+                 "the regular session) and fills 0.1% worse. Forward tests are saved session by session after each US close and never recalculated; historical "
                  "simulations are recalculated whenever the page opens. No real money and no broker are involved. Past results do not "
                  "guarantee future returns.",
                  "تداول وهمي على أسعار يومية حقيقية (معدّلة بالتوزيعات وقد تكون متأخرة)، واختراق نطاق الافتتاح يستخدم أسعار 5 دقائق لآخر 60 يوم. "
+                 "تداول ما قبل الافتتاح وما بعد الإغلاق يستخدم أسعار ياهو بالساعة لآخر سنتين (الأيام الأقدم تتداول في الجلسة العادية) "
+                 "وتنفيذه أسوأ بـ 0.1%. "
                  "التجارب الأمامية تنحفظ جلسة بجلسة بعد كل إغلاق للسوق الأمريكي وما يُعاد حسابها، والمحاكاة التاريخية تنحسب من جديد كل ما "
                  "تفتح الصفحة. لا توجد أموال حقيقية ولا وسيط. النتائج السابقة لا تضمن المستقبل."))
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "21.8"
+BUILD = "21.9"

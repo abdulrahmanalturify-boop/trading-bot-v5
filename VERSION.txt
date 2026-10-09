@@ -1,2 +1,2 @@
-TURA Pro - version 21.8 (the dark look's logo is back to the owner's picture as first put in, 21.3; the light look keeps its neon and halo)
+TURA Pro - version 21.9 (every bot trades the pre-market and the after-hours session: share orders decided at the close fill that evening after the close, stops and targets work before the open and after the close; old forward tests restart, kept)
 If you can see this file on GitHub, the new version was uploaded correctly.

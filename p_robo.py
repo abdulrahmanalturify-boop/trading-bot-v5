@@ -390,6 +390,9 @@ CSS = f"""<style>
 .rbpq .wy {{ margin-top:6px; }}
 .rbnx {{ display:inline-block; margin-inline-start:6px; border-radius:6px; padding:1px 6px; font-size:.64rem; font-weight:700; color:#FCD34D;
   border:1px dashed rgba(245,185,74,.5); }}
+.rbxh {{ display:inline-block; margin-inline-start:4px; border-radius:6px; padding:0 5px; font-size:.6rem; font-weight:700; white-space:nowrap;
+  color:#C4B5FD; background:rgba(139,92,246,.14); border:1px solid rgba(139,92,246,.35); }}
+.rbxh.pm {{ color:#7DD3FC; background:rgba(56,189,248,.12); border-color:rgba(56,189,248,.35); }}
 .rbds {{ display:inline-block; vertical-align:middle; width:46px; height:6px; border-radius:4px; background:rgba(157,151,165,.16); overflow:hidden; direction:ltr; }}
 .rbds i {{ display:block; height:100%; background:#F87171; }} .rbds i.short {{ background:#F97316; }}
 .rbrules {{ display:flex; gap:8px; align-items:flex-start; color:#B9B3C4; font-size:.76rem; line-height:1.55; margin:8px 0 12px; }}
@@ -1196,7 +1199,7 @@ def positions_html(rows):
 
 def plan_html(trades, summ, when=None, first=False):
     """The bot's trading plan: the trades its next scan would open (entry, first stop, size, shares, money at risk)."""
-    lab = L("First trades at the close of", "أول صفقاته مع إغلاق") if first else L("Next scan", "المسح الجاي")
+    lab = L("First trades after the close of", "أول صفقاته بعد إغلاق") if first else L("Next scan", "المسح الجاي")
     chips = [f'<span class="rbchip bot">{T.icon("rocket_launch" if first else "event_repeat")}{lab} <b>{_esc(when)}</b></span>' if when else
              f'<span class="rbchip bot">{T.icon("rocket_launch")}{L("If you start now", "لو بدأت الحين")}</span>',
              f'<span class="rbchip">{T.icon("north_east")}{L("Free long slots", "خانات شراء فاضية")} <b>{summ["free_long"]}/{summ["n_long"]}</b></span>']
@@ -1233,9 +1236,17 @@ def plan_html(trades, summ, when=None, first=False):
         table = PP.empty("event_busy", L("Nothing to open at the next scan", "ما فيه شي ينفتح في المسح الجاي"), msg)
     else:
         table = f'<div class="rbtw rbplan-t"><table class="rbtbl rbplan">{head}{body}</table></div><div class="rbplan-c">{cards}</div>'
-    rules = (f'<div class="rbrules">{T.icon("rule")}<span>{L("Each trade: bought (or sold short) at the close of the scan day if its signal still holds · the stop moves with the best close, 3 ATR behind · a position not up 10% after 60 trading days leaves.", "كل صفقة: تنشرى (أو تنباع على المكشوف) مع إغلاق يوم المسح إذا ظلت إشارتها · الوقف يتحرك مع أفضل إغلاق على بعد 3 ATR · المركز اللي ما ربح 10% بعد 60 يوم تداول يطلع.")}</span></div>')
+    rules = (f'<div class="rbrules">{T.icon("rule")}<span>{L("Each trade: read on the close of the scan day, bought (or sold short) right after it in the after-hours session · the stop moves with the best close, 3 ATR behind, and is checked at the end of the pre-market and the after-hours session too · a position not up 10% after 60 trading days leaves.", "كل صفقة: تنقرا على إغلاق يوم المسح، وتنشرى (أو تنباع على المكشوف) بعده مباشرة في تداول ما بعد الإغلاق · الوقف يتحرك مع أفضل إغلاق على بعد 3 ATR، ويُفحص كمان مع نهاية ما قبل الافتتاح وما بعد الإغلاق · المركز اللي ما ربح 10% بعد 60 يوم تداول يطلع.")}</span></div>')
     key = score_key() if trades else ""
     return f'<div class="rbchips" style="margin:0 0 8px">{"".join(chips)}</div>{key}{table}{rules}'
+
+
+XH = {"ah": ("after-hours", "بعد الإغلاق"), "pm": ("pre-market", "قبل الافتتاح")}
+
+
+def _xh(tag):
+    """A small tag for a fill in the pre-market or the after-hours session."""
+    return f' <span class="rbxh {tag}">{_esc(L(*XH[tag]))}</span>' if tag in XH else ""
 
 
 def trades_html(trades, limit=20):
@@ -1248,8 +1259,8 @@ def trades_html(trades, limit=20):
         k = "up" if x["ret"] > 0 else "dn"
         body += (f'<tr><td><span class="tk" style="--c:{BOT_C}">{x["t"]}</span><span class="cl">{_esc(RB.UNIVERSE.get(x["t"], (x["t"],))[0])}</span></td>'
                  f'<td>{L("Long", "شراء") if x["side"] == "long" else L("Short", "مكشوف")}</td>'
-                 f'<td class="n">{_ltr(_m(x["px_in"], 2))}<span class="cl"> {_date(x["d_in"])}</span></td>'
-                 f'<td class="n">{_ltr(_m(x["px_out"], 2))}<span class="cl"> {_date(x["d_out"])}</span></td><td class="n">{x["days"]}</td>'
+                 f'<td class="n">{_ltr(_m(x["px_in"], 2))}<span class="cl"> {_date(x["d_in"])}</span>{_xh(x.get("x_in"))}</td>'
+                 f'<td class="n">{_ltr(_m(x["px_out"], 2))}<span class="cl"> {_date(x["d_out"])}</span>{_xh(x.get("x_out"))}</td><td class="n">{x["days"]}</td>'
                  f'<td class="n {k}"><b>{_ltr("%+.1f%%" % x["ret"])}</b></td><td>{_esc(L(*RB.EXIT[x["why"]]))}</td></tr>')
     return f'<div class="rbtw"><table class="rbtbl">{head}{body}</table></div>'
 
@@ -1366,6 +1377,8 @@ def bot_plan(state, rep, feats):
     n_l = sum(1 for p in pos if p["side"] == "long")
     tp, summ = RB.trade_plan(feats, book.value(rep["vday"]), lv, sh, held=set(book.pos), cool=set(book.cool), n_long_held=n_l,
                              n_short_held=len(pos) - n_l)
+    if getattr(book, "wait", None) is not None:           # today's scan: filled in tonight's after-hours session
+        return tp, summ, f'{_date(book.wait)} · {L("after the close", "بعد الإغلاق")}', False
     return tp, summ, _date(next_scan()), False
 
 
@@ -1373,7 +1386,7 @@ def bot_notice_html(bp):
     """A slim card on the overview: the companies the bot opens next, the full plan in its own tab."""
     tp, summ, when, first = bp
     now = [x for x in tp if not x["next"]]
-    lab = L("first trades at the close of", "أول صفقاته مع إغلاق") if first else L("next scan", "المسح الجاي")
+    lab = L("first trades after the close of", "أول صفقاته بعد إغلاق") if first else L("next scan", "المسح الجاي")
     if now:
         ticks = "".join(f'<span class="rbtk {x["side"]}">{T.icon("north_east" if x["side"] == "long" else "south_east")}{x["t"]}</span>' for x in now)
     else:
@@ -1903,7 +1916,7 @@ def dashboard(state, row, rkey, err):
     has_bot = any(R.BOT in p["targets"] for p in state["plans"])
     feats = load_bot() if has_bot else {}
     px = R.prices(tick, "5y")
-    rep = R.replay(state, px, bot=feats if has_bot else None)
+    rep = R.replay(state, px, bot=feats if has_bot else None, ext=RB.load_ext(feats) if has_bot and feats else None)
     bm = R.replay(state, px, bench=True)
     ui.html(dash_hero(state, rep, err))
     if err is not None:
@@ -2050,4 +2063,4 @@ def page_robo():
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "21.8"
+BUILD = "21.9"

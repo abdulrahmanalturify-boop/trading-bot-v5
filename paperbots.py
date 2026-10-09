@@ -265,6 +265,7 @@ OPTION_TYPES = ("call", "put", "both")
 STRIKES = (-10, -5, 0, 5, 10)            # % out of the money (negative = in the money)
 OPT_FEE = 0.65                           # $ per contract, each side (same as the Auto Trader)
 TIME_EXIT_DAYS = 5                       # options are sold when this few calendar days are left
+EXT_SLIP = 0.001                         # extended hours: thinner trading, so their market orders and stops fill 0.1% worse
 
 
 def clean_options(o):
@@ -367,6 +368,9 @@ def _norm(r):
                 "regime": int(min(max(_num(params.get("regime")) if isinstance(params, dict) else 0, 0), 2)),
                 "trend_filter": int(bool(_num(params.get("trend_filter")))) if isinstance(params, dict) else 0,
                 "ml": str(params["ml"])[:40] if isinstance(params, dict) and params.get("ml") else None,
+                # extended hours: on unless saved off; never for the Opening Range Breakout or a bot of options only (they trade
+                # the regular session)
+                "ext": 0 if PB.ORB in strategies or instrument == "options" else int(bool(_num(params.get("ext"), 1))) if isinstance(params, dict) else 1,
                 "fwd": params.get("fwd") if isinstance(params, dict) and isinstance(params.get("fwd"), dict) else None,
                 "fwd_prev": list(params.get("fwd_prev") or []) if isinstance(params, dict) else [],
                 **({"brain": BR.clean(params.get("brain"))} if isinstance(params, dict) and BR.clean(params.get("brain")) else {})}
@@ -375,8 +379,10 @@ def _norm(r):
 
 
 def make_record(name, kind, value, strategies, max_pos, capital, fee, stop_pct, atr_mult, tp_pct, trail_pct, start_date, combine=None,
-                instrument="stock", options=None, risk_pct=0.0, regime=0, trend_filter=0, ml=None, brain=None):
+                instrument="stock", options=None, risk_pct=0.0, regime=0, trend_filter=0, ml=None, brain=None, ext=1):
     """Settings from the form -> a row for the table (FIELDS).
+    ext: 1 = the bot also trades in the pre-market and the after-hours session (see simulate); always 0 for the Opening Range
+    Breakout, which trades its own 5-minute candles, and for options only (options trade the regular session).
     combine: None / {'mode': 'any'} = any strategy opens its own trades; {'mode': 'combo', 'min': n} = buy only when at least
     n of the strategies agree (see simulate)."""
     strategies = {s: clean_params(s, p) for s, p in strategies.items() if s in ALL_STRATEGIES}
@@ -402,7 +408,8 @@ def make_record(name, kind, value, strategies, max_pos, capital, fee, stop_pct, 
                       **({"regime": int(min(max(int(regime), 0), 2))} if regime else {}),
                       **({"trend_filter": 1} if trend_filter else {}),
                       **({"ml": str(ml)[:40]} if ml else {}),
-                      **({"brain": BR.clean(brain)} if BR.clean(brain) else {})},
+                      **({"brain": BR.clean(brain)} if BR.clean(brain) else {}),
+                      "ext": 0 if PB.ORB in strategies or instrument == "options" else int(bool(ext))},
            "capital": float(capital), "fee": float(fee), "stop_pct": float(stop_pct), "atr_mult": float(atr_mult),
            "tp_pct": float(tp_pct), "trail_pct": float(trail_pct), "start_date": str(start_date)[:10]}
     rec["params"]["fwd"] = new_record(_settings_of_record(rec))
@@ -497,8 +504,12 @@ def forward_start(now=None):
     return f"{d:%Y-%m-%d}"
 
 
+EXT_SETTLE = 270                  # minutes after the close: the after-hours session (4 hours) is over and its prices are in
+
+
 def last_closed_session(now=None, settle=30):
-    """The latest session whose closing prices are final (`settle` minutes after the close)."""
+    """The latest session whose closing prices are final (`settle` minutes after the close; a bot that trades in the
+    after-hours session waits for its end: EXT_SETTLE)."""
     now = pd.Timestamp(now) if now is not None else ny_now()
     d = now.normalize()
     if mcal.is_trading_day(d.date()) and now >= d + pd.Timedelta(minutes=_close_min(d) + settle):
@@ -514,6 +525,7 @@ def _settings_of_record(rec):
     return {"kind": p["universe"]["kind"], "value": p["universe"]["value"], "strategies": p["strategies"], "combine": p["combine"],
             "max_pos": p["max_pos"], "instrument": p["instrument"], "options": p["options"], "risk_pct": p.get("risk_pct", 0.0),
             "regime": p.get("regime", 0), "trend_filter": p.get("trend_filter", 0), "ml": p.get("ml"), "brain": p.get("brain"),
+            "ext": p.get("ext", 0),
             **{k: rec[k] for k in ("capital", "fee", "stop_pct", "atr_mult", "tp_pct", "trail_pct")}}
 
 
@@ -531,7 +543,8 @@ def settings_of(bot):
          **({"regime": int(bot["regime"])} if bot.get("regime") else {}),
          **({"trend_filter": 1} if bot.get("trend_filter") else {}),
          **({"ml": str(bot["ml"])} if bot.get("ml") else {}),
-         **({"brain": bot["brain"]} if bot.get("brain") else {})}, default=float))
+         **({"brain": bot["brain"]} if bot.get("brain") else {}),
+         **({"ext": 1} if bot.get("ext") else {})}, default=float))
 
 
 def settings_hash(bot):
@@ -552,7 +565,7 @@ def record_update(bot, sim, now=None):
     rec = bot.get("fwd")
     if not rec or not sim.get("ok") or sim.get("waiting"):
         return None
-    last = last_closed_session(now)
+    last = last_closed_session(now, EXT_SETTLE if bot.get("ext") else 30)
     rows, until = sim.get("eq_rows") or {}, rec.get("until")
     new = sorted(d for d in rows if rec["since"] <= d <= last and (until is None or d > until))
     if not new:
@@ -574,7 +587,7 @@ def params_of(bot):
             **({"trend_filter": 1} if bot.get("trend_filter") else {}),
             **({"ml": str(bot["ml"])} if bot.get("ml") else {}),
             **({"brain": bot["brain"]} if bot.get("brain") else {}),
-            "fwd_prev": bot.get("fwd_prev") or []}
+            "ext": int(bool(bot.get("ext"))), "fwd_prev": bot.get("fwd_prev") or []}
 
 
 def save_record(bot, record):
@@ -687,8 +700,12 @@ def _signals_memo(name, df, params, spy, sym):
     return hit
 
 
-def simulate(bot, px, spy=None, record=None):
+def simulate(bot, px, spy=None, record=None, ext=None, now=None):
     """Replay the bot from its start date on the prices in px ({symbol: daily OHLC}).
+    ext: {symbol: data.ext_summary} for a bot with extended hours on (bot['ext']): its stops and targets also work in the
+    pre-market and the after-hours session, and the share orders decided at a close are filled in that evening's after-hours
+    session (the close of its first hour, EXT_SLIP worse) instead of at the next open. Options and the days without these
+    prices (Yahoo keeps 730 days) trade in the regular session. now: New York time (default: now), for today's after-hours.
     Returns a dict; 'ok' is False with 'why' = strategy | data when it can't run; 'waiting' is True when no session has
     closed since the start date yet.
     record: a forward-test record (see new_record). Its sessions since..until are REPLAYED from the recorded fills and closing
@@ -756,7 +773,7 @@ def simulate(bot, px, spy=None, record=None):
     O, H, Lo, C = (np.full((T, N), np.nan) for _ in range(4))
     regime, trend_on = int(bot.get("regime") or 0), bool(bot.get("trend_filter"))
     TRD = np.ones((T, N), bool)
-    ATRP, K, MOM = (np.full((T, N), np.nan) for _ in range(3))
+    ATRP, ATRC, K, MOM = (np.full((T, N), np.nan) for _ in range(4))
     HVP, HVC = (np.full((T, N), np.nan) for _ in range(2))
     ENT, EXT = np.zeros((S, T, N), bool), np.zeros((S, T, N), bool)
     PENT, PEXT = (np.zeros((S, T, N), bool) for _ in range(2)) if want_put else (None, None)
@@ -774,6 +791,7 @@ def simulate(bot, px, spy=None, record=None):
         if atr_on:
             a = ta.atr(df).to_numpy(float)
             ATRP[p, j] = np.r_[a[:1], a[:-1]]                  # the ATR of the previous bar (engine: atr_v[i - 1])
+            ATRC[p, j] = a
         if options:
             hv = (df["Close"].pct_change().rolling(20).std() * np.sqrt(252)).to_numpy(float)
             HVC[p, j], HVP[p, j] = hv, np.r_[np.nan, hv[:-1]]
@@ -917,6 +935,34 @@ def simulate(bot, px, spy=None, record=None):
         PENT &= valid[None, :, :]
 
     days = [str(d)[:10] for d in (idx.tz_localize(None) if getattr(idx, "tz", None) is not None else idx)]
+    # pre-market and after-hours prices (Yahoo's are not adjusted for dividends): each day's are put on the footing of the
+    # adjusted daily prices with that day's adjusted close / its regular session's last hourly price; a day where the two
+    # are far apart (bad data) is left out, and so is a day without them (the regular session then does everything)
+    XP = None
+    if bot.get("ext") and ext:
+        XP = {c: np.full((T, N), np.nan) for c in ("PMo", "PMh", "PMl", "AHo", "AHf", "AHh", "AHl", "AHh2", "AHl2")}
+        for j, s in enumerate(syms):
+            xs = ext.get(s)
+            if xs is None or not len(xs):
+                continue
+            xs = xs.set_axis(pd.DatetimeIndex(xs.index).strftime("%Y-%m-%d"))
+            xs = xs[~xs.index.duplicated(keep="last")].reindex(days)
+            with np.errstate(divide="ignore", invalid="ignore"):
+                f = C[:, j] / xs["RC"].to_numpy(float)
+            f = np.where((f > 0.8) & (f < 1.25), f, np.nan)
+            for c in XP:
+                XP[c][:, j] = xs[c].to_numpy(float) * f
+        if not np.isfinite(XP["AHf"]).any() and not np.isfinite(XP["PMl"]).any():
+            XP = None
+    now_ = pd.Timestamp(now) if now is not None else ny_now()
+    today_s = f"{now_:%Y-%m-%d}"
+
+    def ah_done(t):
+        """The first hour of day t's after-hours session is over (its orders can be filled)."""
+        if days[t] < today_s:
+            return True
+        d_ = pd.Timestamp(days[t])
+        return now_ >= d_ + pd.Timedelta(minutes=_close_min(d_) + 60)
     rec = record or {}
     r_since, r_until = rec.get("since"), rec.get("until")
     frozen = np.array([bool(r_since and r_until and r_since <= d <= r_until) for d in days])
@@ -944,13 +990,14 @@ def simulate(bot, px, spy=None, record=None):
     def sigma_of(hv, fallback=0.35):
         return float(np.clip((hv if np.isfinite(hv) else fallback) * 1.1, 0.15, 1.5))
 
-    def close(key, t, price, reason, under=None, log=True):
+    def close(key, t, price, reason, under=None, log=True, x=None):
+        """x: 'pm' / 'ah' for a fill in the pre-market / the after-hours session (the fill's 'h')."""
         nonlocal cash
         j = key[0]
         q = pos.pop(key)
         if log:
             events.append({"d": days[t], "a": "S", "s": syms[j], "k": q["kind"], "l": labels[q["k"]], "p": float(price), "r": reason,
-                           **({"u": float(under)} if under is not None and q["kind"] != "Stock" else {})})
+                           **({"u": float(under)} if under is not None and q["kind"] != "Stock" else {}), **({"h": x} if x else {})})
         if q["kind"] == "Stock":
             proceeds = q["shares"] * price * (1 - fee)
             cost = q["shares"] * q["entry"] * (1 + fee)
@@ -963,7 +1010,7 @@ def simulate(bot, px, spy=None, record=None):
         plan = q.get("plan", False)                        # a playbook trade keeps its stop and target in the journal
         trades.append({"Symbol": syms[j], "Strategy": labels[q["k"]], "Entry Date": idx[q["t"]], "Entry": q["entry"],
                        "Exit Date": idx[t], "Exit": price, "Shares": q["shares"], "P&L $": proceeds - cost,
-                       "P&L %": (proceeds / cost - 1) * 100, "Bars": int(K[t, j] - q["kb"]), "Exit Reason": reason,
+                       "P&L %": (proceeds / cost - 1) * 100, "Bars": max(int(K[t, j] - q["kb"]), 0), "Exit Reason": reason,
                        "Type": q["kind"], "Contract": q["contract"], "Stock Entry": q["s0"], "Stock Exit": under, "Fees": fees,
                        "Stop": q["stop"] if plan and q["stop"] > 0 else np.nan,
                        "Target": q["target"] if plan and np.isfinite(q["target"]) else np.nan, "Expiry": q.get("expiry")})
@@ -973,6 +1020,106 @@ def simulate(bot, px, spy=None, record=None):
 
     def slots(group, cap_=None):
         return (max_pos if cap_ is None else cap_) - sum(1 for key, q in pos.items() if key[1] == group and not q["exit"])
+
+    def buy_stock(j, k, t, ts, o, a_, eq_, dd_, kb, x=None, reserve=0.0):
+        """Buy shares of stock j at price o for the order of strategy k decided at the close of ts (one equal slot of eq_).
+        a_: the ATR of the signal bar; dd_: the smart bot's drawdown; kb: the stock's bar count the trade's age starts from;
+        x: 'ah' for an after-hours fill; reserve: cash the option orders of the same close will need.
+        True = bought, False = no trade (the plan's prices, the size), None = no cash for it now."""
+        nonlocal cash
+        i = PIDX[k]
+        stops, target = [], np.inf
+        if i >= 0:                                     # the playbook's plan, from the signal bar
+            ps, pt = PSTOP[i, ts, j], PTGT[i, ts, j]
+            if not np.isfinite(ps) or o <= ps or (np.isfinite(pt) and o >= pt):
+                return False                           # opened under the stop or over the target: no trade
+            stops.append(ps)
+            target = pt if np.isfinite(pt) else (o + TR[i] * (o - ps) if np.isfinite(TR[i]) else np.inf)
+        alloc = min(cash - reserve, eq_ / max_pos)
+        if alloc <= 0:
+            return None
+        if stop_pct:
+            stops.append(o * (1 - stop_pct / 100))
+        if atr_mult and not np.isnan(a_):
+            stops.append(o - atr_mult * a_)
+        shares = alloc / (o * (1 + fee))
+        if risk_pct and stops and o > max(stops) > 0:  # sized by risk: a stop-out loses risk_pct of the balance (at most the slot)
+            shares = min(shares, eq_ * risk_pct / 100 / (o - max(stops)))
+        if brain is not None:
+            # a smart bot: the stop is b_atr x ATR under the price; a full-size trade loses brain risk % there, and the
+            # size shrinks with a lower score, a weaker regime and a drawdown
+            if not np.isfinite(a_) or a_ <= 0 or o - b_atr * a_ <= 0:
+                return False
+            stops.append(o - b_atr * a_)
+            mult = BR.size_mult(float(np.nan_to_num(BSC[ts, j], nan=brain["min_score"])) + BON[k], brain["min_score"],
+                                brain["size"][BR.REGIMES[codes[ts]]], dd_, brain["dd_half"], brain["size_floor"])
+            shares = min(shares, eq_ * brain["risk"] / 100 / (o - max(stops))) * mult
+            if shares * o < 1:
+                return False
+        cash -= shares * o * (1 + fee)
+        if tp_pct:
+            target = min(target, o * (1 + tp_pct / 100))
+        pos[(j, "S")] = {"kind": "Stock", "shares": shares, "entry": o, "t": t, "kb": kb, "peak": o,
+                         "stop": max(stops) if stops else 0.0, "target": target,
+                         "k": k, "exit": False, "contract": syms[j], "s0": o}
+        if i >= 0:
+            pos[(j, "S")].update(plan=True, mb=int(MB[i]), floor=PFLOOR[i, ts, j])
+        if brain is not None:
+            pos[(j, "S")].update(R=o - max(stops), atr=float(a_), sk="Stop Loss")
+        if x:
+            pos[(j, "S")]["ah"] = True
+        q = pos[(j, "S")]
+        events.append({"d": days[t], "a": "B", "s": syms[j], "k": "Stock", "l": labels[k], "p": float(o), "q": float(shares),
+                       "st": float(q["stop"]), "tg": float(target) if np.isfinite(target) else None,
+                       **({"pl": 1, "mb": int(MB[i]), "fl": float(q["floor"]) if np.isfinite(q["floor"]) else None} if i >= 0 else {}),
+                       **({"at": float(q["atr"]), **bst["why"].get((ts, j), {})} if brain is not None else {}),
+                       **({"h": x} if x else {})})
+        return True
+
+    def ext_check(key, t, op_, hi_, lo_, x):
+        """A stock's stop and target in the pre-market (x 'pm') or the after-hours session (x 'ah'): op_ is where that session
+        starts, hi_ / lo_ its high and low. The stop wins a tie (like the daily candles)."""
+        q = pos[key]
+        trail = q["peak"] * (1 - trail_pct / 100) if trail_pct else 0.0
+        eff = max(q["stop"], trail)
+        if eff > 0 and lo_ <= eff:
+            close(key, t, min(op_, eff) * (1 - EXT_SLIP), "Trailing Stop" if trail >= q["stop"] and trail_pct else q.get("sk", "Stop Loss"), x=x)
+        elif np.isfinite(hi_) and hi_ >= q["target"]:
+            close(key, t, max(op_, q["target"]), "Take Profit", x=x)
+
+    def pre_market(t):
+        """0) the pre-market (4:00-9:30): the shares' stops and targets are on."""
+        for key in [key for key, q in pos.items() if q["kind"] == "Stock"]:
+            j = key[0]
+            if valid[t, j] and np.isfinite(XP["PMl"][t, j]) and np.isfinite(XP["PMo"][t, j]):
+                ext_check(key, t, XP["PMo"][t, j], XP["PMh"][t, j], XP["PMl"][t, j], "pm")
+
+    def after_hours(t):
+        """6) the after-hours session (after the close until 8 pm): the share orders decided at this close are filled at
+        the close of its first hour (sells first; options wait for the next open), then the stops and targets stay on (a
+        trade bought this evening: from its second hour)."""
+        nonlocal pend
+        AHo_, AHf_ = XP["AHo"], XP["AHf"]
+        eq_c = cash + float(sum(q["shares"] * CF[t, key[0]] if q["kind"] == "Stock" else q["shares"] * 100 * q["value"]
+                                for key, q in pos.items()))          # the balance at this close (the next open's eq_prev)
+        dd_c = 1 - eq_c / max(bst["peak"], eq_c) if brain is not None and bst["peak"] > 0 and eq_c > 0 else bst["dd"]
+        for key in [key for key, q in pos.items() if q["exit"] and q["kind"] == "Stock" and np.isfinite(AHf_[t, key[0]])]:
+            close(key, t, AHf_[t, key[0]] * (1 - EXT_SLIP), pos[key].get("why", "Signal"), x="ah")
+        reserve = sum(eq_c * oc["alloc"] / 100 for _, _, kind, _ in pend if kind != "Stock")
+        later = []
+        for j, k, kind, ts in pend:
+            if kind != "Stock" or not np.isfinite(AHf_[t, j]) or (j, "S") in pos or sum(1 for key in pos if key[1] == "S") >= max_pos:
+                later.append((j, k, kind, ts))                     # the next open (it checks the order again)
+                continue
+            if buy_stock(j, k, t, ts, AHf_[t, j] * (1 + EXT_SLIP), ATRC[t, j], eq_c, dd_c, K[t, j] + 1, "ah", reserve) is None:
+                later.append((j, k, kind, ts))                     # no cash yet (a sell that waits for the open)
+        pend = later
+        for key in [key for key, q in pos.items() if q["kind"] == "Stock"]:
+            j, q = key[0], pos[key]
+            new = q.get("ah") and q["t"] == t
+            lo_, hi_, op_ = (XP["AHl2"], XP["AHh2"], AHf_) if new else (XP["AHl"], XP["AHh"], AHo_)
+            if valid[t, j] and np.isfinite(lo_[t, j]) and np.isfinite(op_[t, j]):
+                ext_check(key, t, op_[t, j], hi_[t, j], lo_[t, j], "ah")
 
     def raise_stop(q):
         """A smart bot's open trade, at the end of a session: once it has been up be_r R the stop moves to the entry, and
@@ -1110,6 +1257,7 @@ def simulate(bot, px, spy=None, record=None):
         """A recorded session: apply its fills as they were recorded, value the options, move the trailing peaks, and take
         the orders recorded at its close (the sells flag their trades; the buys of the last recorded close fill next)."""
         nonlocal cash
+        gone, ah_buys = set(), set()                   # sold this session; bought in its after-hours session
         for e in replay.get(days[t], []):
             j, g = sym_pos.get(e["s"]), "S" if e["k"] == "Stock" else "O"
             if j is None:
@@ -1118,6 +1266,7 @@ def simulate(bot, px, spy=None, record=None):
             if e["a"] == "S":
                 if (j, g) in pos:
                     close((j, g), t, float(e["p"]), e["r"], e.get("u"), log=False)
+                    gone.add((j, g))
                 else:
                     mismatch.append(e)
                 continue
@@ -1128,9 +1277,12 @@ def simulate(bot, px, spy=None, record=None):
             p_, q_ = float(e["p"]), float(e["q"])
             if g == "S":
                 cash -= q_ * p_ * (1 + fee)
-                pos[(j, "S")] = {"kind": "Stock", "shares": q_, "entry": p_, "t": t, "kb": K[t, j], "peak": p_,
+                ah_ = e.get("h") == "ah"                    # bought in the after-hours: its age counts from the next session
+                pos[(j, "S")] = {"kind": "Stock", "shares": q_, "entry": p_, "t": t, "kb": K[t, j] + (1 if ah_ else 0), "peak": p_,
                                  "stop": float(e.get("st") or 0.0), "target": float(e["tg"]) if e.get("tg") is not None else np.inf,
-                                 "k": k, "exit": False, "contract": e["s"], "s0": p_}
+                                 "k": k, "exit": False, "contract": e["s"], "s0": p_, **({"ah": True} if ah_ else {})}
+                if ah_:
+                    ah_buys.add((j, "S"))
                 if brain is not None:
                     st_ = float(e.get("st") or 0.0)
                     pos[(j, "S")].update(R=p_ - st_ if 0 < st_ < p_ else 0.0, atr=float(e.get("at") or ATRP[t, j] or 0.0), sk="Stop Loss")
@@ -1147,6 +1299,8 @@ def simulate(bot, px, spy=None, record=None):
             if not valid[t, j]:
                 continue
             if q["kind"] == "Stock":
+                if q.get("ah") and q["t"] == t:            # bought after this session's high
+                    continue
                 q["peak"] = max(q["peak"], H[t, j])
                 if brain is not None:
                     raise_stop(q)
@@ -1162,8 +1316,12 @@ def simulate(bot, px, spy=None, record=None):
                     pos[(j, g)]["exit"] = True
                     if e.get("r") and e["r"] != "Signal":
                         pos[(j, g)]["why"] = e["r"]
+                elif (j, g) not in gone:                       # (sold in the after-hours session, right after this order)
+                    mismatch.append(e)
             elif days[t] == r_until:                           # the orders of the last recorded close: filled at the next open
                 k = lab_pos.get(e["l"])
+                if (j, g) in ah_buys:                          # already filled in that evening's after-hours session
+                    continue
                 if k is None:
                     mismatch.append(e)
                 else:
@@ -1179,6 +1337,8 @@ def simulate(bot, px, spy=None, record=None):
             replay_day(t)
             value(t)
             continue
+        if XP is not None:
+            pre_market(t)
         # 1) yesterday's exit signals: sell at today's open
         for key in [key for key, q in pos.items() if q["exit"] and valid[t, key[0]]]:
             q, j = pos[key], key[0]
@@ -1194,51 +1354,7 @@ def simulate(bot, px, spy=None, record=None):
                 continue
             o = O[t, j]
             if kind == "Stock":                                # one equal slot of the balance
-                i = PIDX[k]
-                stops, target = [], np.inf
-                if i >= 0:                                     # the playbook's plan, from the signal bar
-                    ps, pt = PSTOP[i, ts, j], PTGT[i, ts, j]
-                    if not np.isfinite(ps) or o <= ps or (np.isfinite(pt) and o >= pt):
-                        continue                               # opened under the stop or over the target: no trade
-                    stops.append(ps)
-                    target = pt if np.isfinite(pt) else (o + TR[i] * (o - ps) if np.isfinite(TR[i]) else np.inf)
-                alloc = min(cash, eq_prev / max_pos)
-                if alloc <= 0:
-                    continue
-                if stop_pct:
-                    stops.append(o * (1 - stop_pct / 100))
-                if atr_mult and not np.isnan(ATRP[t, j]):
-                    stops.append(o - atr_mult * ATRP[t, j])
-                shares = alloc / (o * (1 + fee))
-                if risk_pct and stops and o > max(stops) > 0:  # sized by risk: a stop-out loses risk_pct of the balance (at most the slot)
-                    shares = min(shares, eq_prev * risk_pct / 100 / (o - max(stops)))
-                if brain is not None:
-                    # a smart bot: the stop is b_atr x ATR under the open; a full-size trade loses brain risk % there, and the
-                    # size shrinks with a lower score, a weaker regime and a drawdown
-                    a_ = ATRP[t, j]
-                    if not np.isfinite(a_) or a_ <= 0 or o - b_atr * a_ <= 0:
-                        continue
-                    stops.append(o - b_atr * a_)
-                    mult = BR.size_mult(float(np.nan_to_num(BSC[ts, j], nan=brain["min_score"])) + BON[k], brain["min_score"],
-                                        brain["size"][BR.REGIMES[codes[ts]]], bst["dd"], brain["dd_half"], brain["size_floor"])
-                    shares = min(shares, eq_prev * brain["risk"] / 100 / (o - max(stops))) * mult
-                    if shares * o < 1:
-                        continue
-                cash -= shares * o * (1 + fee)
-                if tp_pct:
-                    target = min(target, o * (1 + tp_pct / 100))
-                pos[(j, "S")] = {"kind": "Stock", "shares": shares, "entry": o, "t": t, "kb": K[t, j], "peak": o,
-                                 "stop": max(stops) if stops else 0.0, "target": target,
-                                 "k": k, "exit": False, "contract": syms[j], "s0": o}
-                if i >= 0:
-                    pos[(j, "S")].update(plan=True, mb=int(MB[i]), floor=PFLOOR[i, ts, j])
-                if brain is not None:
-                    pos[(j, "S")].update(R=o - max(stops), atr=float(ATRP[t, j]), sk="Stop Loss")
-                q = pos[(j, "S")]
-                events.append({"d": days[t], "a": "B", "s": syms[j], "k": "Stock", "l": labels[k], "p": float(o), "q": float(shares),
-                               "st": float(q["stop"]), "tg": float(target) if np.isfinite(target) else None,
-                               **({"pl": 1, "mb": int(MB[i]), "fl": float(q["floor"]) if np.isfinite(q["floor"]) else None} if i >= 0 else {}),
-                               **({"at": float(q["atr"]), **bst["why"].get((ts, j), {})} if brain is not None else {})})
+                buy_stock(j, k, t, ts, o, ATRP[t, j], eq_prev, bst["dd"], K[t, j])
             else:                                              # options: a % of the balance, priced with Black-Scholes
                 sigma = sigma_of(HVP[t, j])
                 strike = strike_for(o * (1 + oc["strike"] / 100) if kind == "Call" else o * (1 - oc["strike"] / 100))
@@ -1288,6 +1404,8 @@ def simulate(bot, px, spy=None, record=None):
             if why:
                 close(key, t, q["value"], why, C[t, j])
         decide(t)
+        if XP is not None and ah_done(t):
+            after_hours(t)
         value(t)
 
     open_rows = []
@@ -1319,7 +1437,9 @@ def simulate(bot, px, spy=None, record=None):
                next_sells=[(syms[j], labels[q["k"]], q["kind"]) for (j, g), q in pos.items() if q["exit"]],
                n_open=len(pos), in_pos=bool(pos), cash=float(cash),
                events=[e for e in events if e["d"] >= days[0]], signals=signals,
-               eq_rows=eq_rows, mismatch=len(mismatch))
+               eq_rows=eq_rows, mismatch=len(mismatch),
+               # extended hours: on with prices; the share orders of the last close still wait for tonight's after-hours
+               ext=XP is not None, ah_wait=bool(XP is not None and not ah_done(T - 1)))
     if bot["kind"] == "company":
         out["frame"] = frames[syms[0]]
     if brain is not None:
@@ -1567,8 +1687,10 @@ def _run_cached(bot_json, build=None):
         spy = px.get("SPY")
         if spy is None or len(spy) < 2:
             spy = data.history("SPY", period)
-        fwd = simulate(fwd_bot, px, spy, record=rec)
-        hist = simulate(hist_bot, {s: _before(d, pd.Timestamp(since)) for s, d in px.items()}, spy) if hist_bot else None
+        # pre-market and after-hours prices for a bot that trades them (the stocks it watches, Yahoo's last 730 days)
+        xd = data.extended_hours([s for s in members(bot["kind"], bot["value"]) if s in px]) if bot.get("ext") and bot.get("valid") else None
+        fwd = simulate(fwd_bot, px, spy, record=rec, ext=xd)
+        hist = simulate(hist_bot, {s: _before(d, pd.Timestamp(since)) for s, d in px.items()}, spy, ext=xd) if hist_bot else None
     fwd["phase"] = "live"
     if hist is not None:
         hist["phase"] = "sim"
@@ -1592,6 +1714,16 @@ def run_all(bots):
     for b in bots:
         if not b.get("fwd") and b.get("id") is not None:         # a bot saved before forward tests were recorded: start now
             b = {**b, "fwd": new_record(b)}
+            try:
+                save_record(b, b["fwd"])
+            except Exception:
+                pass
+        old = b.get("fwd") or {}
+        if old and b.get("ext") and b.get("id") is not None and "ext" not in (old.get("cfg") or {}):
+            # 21.9: the bots trade in the pre-market and the after-hours session too. A forward test recorded without them ends
+            # here (kept with the earlier ones, like after an edit of the settings) and a new one starts with the next session
+            prev = (list(b.get("fwd_prev") or []) + ([dict(old, ended=_now_iso())] if old.get("until") else []))[-3:]
+            b = {**b, "fwd": new_record(b), "fwd_prev": prev}
             try:
                 save_record(b, b["fwd"])
             except Exception:
@@ -1706,4 +1838,4 @@ def journal(sim):
                          "Days": tr["Bars"], "Exit Reason": tr["Exit Reason"]})
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "21.8"
+BUILD = "21.9"

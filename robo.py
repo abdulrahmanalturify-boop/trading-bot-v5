@@ -551,11 +551,12 @@ def _sell_toward(h, w, cash):
     return {t: -v for t, v in sell.items()}
 
 
-def replay(robo, px, now=None, bench=False, bot=None):
+def replay(robo, px, now=None, bench=False, bot=None, ext=None):
     """The portfolio day by day from its first close to the last settled one, then valued at the latest prices.
     bench=True replays the policy benchmark (global stocks / US bonds at each plan's stock share) with the same money.
     bot: the Opportunity Bot's hunting list ({ticker: robobot.features}) for plans with a BOT slice (without it the slice
-    waits in cash). Returns {curve: DataFrame[value, invested, flow, twr], units, cost, events, pending, start, last, live,
+    waits in cash); ext: its pre-market and after-hours prices (robobot.load_ext). Returns {curve: DataFrame[value, invested,
+    flow, twr], units, cost, events, pending, start, last, live,
     book (the bot's robobot.Book or None)}."""
     now = now or PF.utcnow()
     plans = sorted(robo["plans"], key=lambda p: p["at"])
@@ -582,7 +583,8 @@ def replay(robo, px, now=None, bench=False, bot=None):
     units = {t: 0.0 for t in etfs}
     cost = {t: 0.0 for t in etfs}
     first_plan = ([p for d0, p in pdays if d0 <= days[0]] or plans)[-1]
-    book = RB.Book(bot or {}, px.index, first_plan.get("level") or 10, first_plan.get("sharia", False)) if BOT in tick else None
+    book = (RB.Book(bot or {}, px.index, first_plan.get("level") or 10, first_plan.get("sharia", False), ext=ext,
+                    now=pd.Timestamp(now.astimezone(PF.ET)).tz_localize(None)) if BOT in tick else None)
     plan = None
     pi, fi = 0, 0
     invested, twr, v_prev = 0.0, 1.0, None
@@ -908,4 +910,4 @@ def delete(row_id, key):
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "21.8"
+BUILD = "21.9"

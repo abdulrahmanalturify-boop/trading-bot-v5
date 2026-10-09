@@ -148,6 +148,136 @@ def history_many(symbols, period="1y", interval="1d"):
         return {}
 
 
+# ---------------------------------------------------------------- pre-market and after-hours (the bots' extended hours)
+# The bots trade in the pre-market (4:00-9:30 New York) and the after-hours session (from the close to 8:00 pm) too. Yahoo keeps
+# hourly prices with these sessions for 730 days: each session is summed up in one row per day (EXT_COLS), so a bot never holds
+# hourly candles. The long history is kept for 2 days; the last days are pulled again every 10 minutes while the after-hours
+# session runs, and once after each pre-market and each after-hours session ends (so Yahoo isn't asked all day long).
+EXT_COLS = ["PMo", "PMh", "PMl", "PMc", "RC", "AHo", "AHf", "AHh", "AHl", "AHh2", "AHl2", "AHc"]
+_EXT_LONG, _EXT_SHORT = {}, {}            # symbol -> (time, summary); the 730 days, the last 5 days
+_EXT_LOCK = threading.Lock()
+
+
+def _yf_download_ext(symbols, period):
+    syms = list(symbols)
+    try:
+        return yf.download(syms if len(syms) > 1 else syms[0], period=period, interval="1h", prepost=True, auto_adjust=False,
+                           progress=False, threads=len(syms) > 1)
+    finally:
+        if len(syms) > 1:
+            _yf_tidy()
+
+
+def ext_summary(df):
+    """Hourly candles with the pre/post sessions -> one row per session day (index: the day, no time), EXT_COLS:
+    PMo/PMh/PMl/PMc the pre-market's open, high, low and last price; RC the regular session's last price (to put these prices on
+    the same footing as the adjusted daily ones); AHo the after-hours open, AHf the close of its first hour (where an order decided
+    at the close is filled), AHh/AHl its high and low, AHh2/AHl2 after that first hour, AHc its last price. Unadjusted prices."""
+    if df is None or df.empty:
+        return pd.DataFrame(columns=EXT_COLS)
+    df = df.dropna(subset=["Open", "High", "Low", "Close"])
+    ix = pd.DatetimeIndex(df.index)
+    ix = ix.tz_convert("America/New_York").tz_localize(None) if ix.tz is not None else ix
+    day = ix.normalize()
+    mins = ix.hour * 60 + ix.minute
+    import mcal
+    close_min = {d: (13 * 60 if mcal.day_status(d.date())[0] == "early" else 16 * 60) for d in day.unique()}
+    cm = np.array([close_min[d] for d in day])
+    seg = np.where(mins < 570, "PM", np.where(mins < cm, "RG", "AH"))
+    f = pd.DataFrame({"d": day, "seg": seg, "o": df["Open"].to_numpy(float), "h": df["High"].to_numpy(float),
+                      "l": df["Low"].to_numpy(float), "c": df["Close"].to_numpy(float), "m": mins})
+    f = f.sort_values(["d", "m"])
+    out = pd.DataFrame(index=pd.DatetimeIndex(sorted(set(day))), columns=EXT_COLS, dtype=float)
+    pm = f[f["seg"] == "PM"].groupby("d")
+    out.loc[pm.size().index, ["PMo", "PMh", "PMl", "PMc"]] = np.c_[pm["o"].first(), pm["h"].max(), pm["l"].min(), pm["c"].last()]
+    rg = f[f["seg"] == "RG"].groupby("d")
+    out.loc[rg.size().index, "RC"] = rg["c"].last().to_numpy()
+    ah_ = f[f["seg"] == "AH"]
+    ah = ah_.groupby("d")
+    out.loc[ah.size().index, ["AHo", "AHf", "AHh", "AHl", "AHc"]] = np.c_[ah["o"].first(), ah["c"].first(), ah["h"].max(), ah["l"].min(),
+                                                                         ah["c"].last()]
+    later = ah_[ah_.groupby("d").cumcount() > 0].groupby("d")
+    out.loc[later.size().index, ["AHh2", "AHl2"]] = np.c_[later["h"].max(), later["l"].min()]
+    return out.astype(float)
+
+
+def _ny_now():
+    return pd.Timestamp.now(tz="America/New_York").tz_localize(None)
+
+
+def _ext_due(at, now):
+    """The last days' extended prices fetched at `at` (New York time) are fetched again at `now`: every 10 minutes while the
+    after-hours session runs, and once after each pre-market (9:35) and each after-hours session (its end + 40 minutes)."""
+    if now - at < pd.Timedelta(minutes=10):
+        return False
+    import mcal
+    d = now.normalize()
+    marks = []
+    for day in (d - pd.Timedelta(days=1), d):
+        if mcal.is_trading_day(day.date()):
+            close = 13 * 60 if mcal.day_status(day.date())[0] == "early" else 16 * 60
+            marks += [day + pd.Timedelta(minutes=575), day + pd.Timedelta(minutes=close + 280)]
+            if day == d and close <= now.hour * 60 + now.minute < close + 280:
+                return True                        # the after-hours session is under way
+    return any(at < m <= now for m in marks) or now - at > pd.Timedelta(hours=24)
+
+
+def _ext_fetch(symbols, period, store, ttl):
+    """Fills `store` with the summaries of the symbols it doesn't hold fresh, in chunks through the bulk gate. ttl: seconds,
+    or None for the last days' rule (_ext_due)."""
+    now = time.time()
+    ny = _ny_now()
+    with _EXT_LOCK:
+        if ttl is None:
+            todo = [s for s in symbols if s not in store or _ext_due(store[s][2], ny)]
+        else:
+            todo = [s for s in symbols if s not in store or now - store[s][0] > ttl]
+    if not todo:
+        return
+    chunks = [todo[i:i + _YF_CHUNK] for i in range(0, len(todo), _YF_CHUNK)]
+
+    def one(chunk):
+        try:
+            with _YF_BULK:
+                return {s: ext_summary(d) for s, d in _split(_yf_download_ext(chunk, period), chunk).items()}
+        except Exception:
+            return {}
+    got = {}
+    with ThreadPoolExecutor(max_workers=min(_YF_WORKERS, len(chunks))) as ex:
+        for part in ex.map(one, chunks):
+            got.update(part)
+    with _EXT_LOCK:
+        for s in todo:                     # a symbol Yahoo had nothing for is remembered empty (asked again after ttl)
+            store[s] = (now, got.get(s, pd.DataFrame(columns=EXT_COLS)), ny)
+        if len(store) > 1500:
+            for s in sorted(store, key=lambda k: store[k][0])[:300]:
+                store.pop(s, None)
+
+
+def extended_hours(symbols):
+    """{symbol: ext_summary} for these symbols (the 730 days Yahoo keeps, the last days fresh). Never raises; a symbol without
+    pre/post prices is left out."""
+    symbols = list(dict.fromkeys(s for s in symbols if s and not str(s).startswith("^")))
+    if not symbols:
+        return {}
+    try:
+        _ext_fetch(symbols, "730d", _EXT_LONG, 48 * 3600)          # the last 5 days cover what a 2-day-old copy misses
+        _ext_fetch(symbols, "5d", _EXT_SHORT, None)
+    except Exception:
+        pass
+    out = {}
+    with _EXT_LOCK:
+        for s in symbols:
+            a = _EXT_LONG.get(s, (0, None))[1]
+            b = _EXT_SHORT.get(s, (0, None))[1]
+            parts = [x for x in (a, b) if x is not None and len(x)]
+            if not parts:
+                continue
+            df = pd.concat(parts)
+            out[s] = df[~df.index.duplicated(keep="last")].sort_index()
+    return out
+
+
 def changes(symbols, period="5d"):
     """symbol -> (last price, % change vs previous close)."""
     out = {}
@@ -1522,4 +1652,4 @@ def revenues(symbols, limit=100):
     return out
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "21.8"
+BUILD = "21.9"
