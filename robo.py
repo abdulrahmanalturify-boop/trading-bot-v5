@@ -34,6 +34,7 @@ import streamlit as st
 import data
 import mcal
 import portfolio as PF
+import robobot as RB
 
 # ---------------------------------------------------------------- the questionnaire
 SECTIONS = [("goals", "flag", "Goals", "الأهداف"),
@@ -183,9 +184,10 @@ def opt(qid, value):
 
 # ---------------------------------------------------------------- the funds
 # sleeve -> (conventional ETF, Sharia-compliant ETF)
-SLEEVES = ["us", "div", "intl", "em", "bond", "tips", "cash", "reit", "gold"]
+SLEEVES = ["us", "div", "intl", "em", "bond", "tips", "cash", "reit", "gold", "bot"]
 ETF = {"us": ("VTI", "SPUS"), "div": ("SCHD", "SPUS"), "intl": ("VEA", "UMMA"), "em": ("VWO", "UMMA"), "bond": ("BND", "SPSK"),
-       "tips": ("VTIP", "SPSK"), "cash": ("SGOV", "CASH"), "reit": ("VNQ", "SPRE"), "gold": ("GLD", "GLD")}
+       "tips": ("VTIP", "SPSK"), "cash": ("SGOV", "CASH"), "reit": ("VNQ", "SPRE"), "gold": ("GLD", "GLD"), "bot": ("BOT", "BOT")}
+BOT = "BOT"                             # the Opportunity Bot's slice (robobot.py): not a fund, a book of its own
 # ticker -> (name, class en, class ar, colour, group: stocks / bonds / cash / real / gold)
 FUNDS = {
     "VTI": ("Vanguard Total Stock Market ETF", "US stocks", "أسهم أمريكية", "#3B8BEB", "stocks"),
@@ -203,9 +205,11 @@ FUNDS = {
     "SPSK": ("SP Funds Dow Jones Global Sukuk ETF", "Sukuk", "صكوك", "#34D399", "bonds"),
     "SPRE": ("SP Funds S&P Global REIT Sharia ETF", "Real estate (Sharia)", "عقارات متوافقة", "#F97316", "real"),
     "CASH": ("Cash", "Cash", "نقد", "#9D97A5", "cash"),
+    "BOT": ("TURA Opportunity Bot", "Emerging companies & explosive moves", "الشركات الناشئة والانفجارات السعرية", "#EC4899", "bot"),
 }
 GROUPS = {"stocks": ("Stocks", "أسهم", "#3B8BEB"), "bonds": ("Bonds & sukuk", "سندات وصكوك", "#34D399"),
-          "cash": ("Cash", "نقد", "#9D97A5"), "real": ("Real estate", "عقارات", "#F97316"), "gold": ("Gold", "ذهب", "#F5B94A")}
+          "cash": ("Cash", "نقد", "#9D97A5"), "real": ("Real estate", "عقارات", "#F97316"), "gold": ("Gold", "ذهب", "#F5B94A"),
+          "bot": ("Opportunity bot", "بوت الفرص", "#EC4899")}
 BENCH = ("VT", "BND")                   # the policy benchmark: global stocks and US bonds, at the plan's own stock share
 
 # the strategic mix of each level: stocks, bonds, inflation-protected bonds, cash, real estate, gold (percent)
@@ -224,19 +228,20 @@ def tier(level):
 
 # long-run assumptions per sleeve: expected return a year, volatility (percent) - for the projection, not a promise
 ASSUME = {"us": (7.0, 16.0), "div": (6.8, 14.0), "intl": (6.5, 17.0), "em": (7.5, 22.0), "bond": (4.2, 6.0), "tips": (3.8, 3.0),
-          "cash": (3.5, 0.5), "reit": (6.5, 20.0), "gold": (4.5, 15.0)}
+          "cash": (3.5, 0.5), "reit": (6.5, 20.0), "gold": (4.5, 15.0), "bot": (9.0, 35.0)}
 ASSUME_SHARIA = {"bond": (4.5, 5.5), "tips": (4.5, 5.5), "cash": (0.0, 0.0)}
 CORR = np.array([
-    # us   div  intl  em   bond tips cash reit gold
-    [1.00, .90, .85, .75, .10, .20, .00, .75, .05],   # us
-    [.90, 1.00, .80, .70, .15, .20, .00, .75, .05],   # div
-    [.85, .80, 1.00, .85, .10, .20, .00, .65, .15],   # intl
-    [.75, .70, .85, 1.00, .10, .25, .00, .60, .20],   # em
-    [.10, .15, .10, .10, 1.00, .70, .10, .25, .30],   # bond
-    [.20, .20, .20, .25, .70, 1.00, .10, .30, .40],   # tips
-    [.00, .00, .00, .00, .10, .10, 1.00, .00, .00],   # cash
-    [.75, .75, .65, .60, .25, .30, .00, 1.00, .10],   # reit
-    [.05, .05, .15, .20, .30, .40, .00, .10, 1.00],   # gold
+    # us   div  intl  em   bond tips cash reit gold bot
+    [1.00, .90, .85, .75, .10, .20, .00, .75, .05, .70],   # us
+    [.90, 1.00, .80, .70, .15, .20, .00, .75, .05, .55],   # div
+    [.85, .80, 1.00, .85, .10, .20, .00, .65, .15, .55],   # intl
+    [.75, .70, .85, 1.00, .10, .25, .00, .60, .20, .55],   # em
+    [.10, .15, .10, .10, 1.00, .70, .10, .25, .30, .00],   # bond
+    [.20, .20, .20, .25, .70, 1.00, .10, .30, .40, .05],   # tips
+    [.00, .00, .00, .00, .10, .10, 1.00, .00, .00, .00],   # cash
+    [.75, .75, .65, .60, .25, .30, .00, 1.00, .10, .45],   # reit
+    [.05, .05, .15, .20, .30, .40, .00, .10, 1.00, .05],   # gold
+    [.70, .55, .55, .55, .00, .05, .00, .45, .05, 1.00],   # bot (long and short: less tied to the market than its stocks)
 ])
 Z_BAD = 1.645                           # a bad year: about 1 year in 20
 
@@ -268,6 +273,11 @@ def sleeves(level, income=False, cash=0, sharia=False):
         k = (100 - cash) / 100
         w = {s: v * k for s, v in w.items()}
         w["cash"] = w.get("cash", 0) + cash
+    sat = RB.SAT.get(level, 0)                         # levels 9 and 10: a slice for the Opportunity Bot
+    if sat:
+        k = (100 - sat) / 100
+        w = {s: v * k for s, v in w.items()}
+        w["bot"] = sat
     return {s: v for s, v in w.items() if v > 1e-9}
 
 
@@ -297,8 +307,51 @@ def expected(sl, sharia=False):
 
 
 # a 2008-style crisis, peak to trough (Oct 2007 - Mar 2009, rough): what each sleeve did
-CRISIS = {"us": -51, "div": -50, "intl": -57, "em": -61, "bond": 6, "tips": -2, "cash": 2, "reit": -68, "gold": 20}
+CRISIS = {"us": -51, "div": -50, "intl": -57, "em": -61, "bond": 6, "tips": -2, "cash": 2, "reit": -68, "gold": 20, "bot": -65}
 CRISIS_SHARIA = {"bond": -6, "tips": -6, "cash": 0}
+
+
+# three real storms, peak to trough (rough): what each kind of asset did - (en, ar, when en, when ar, {sleeve: %}, Sharia overrides)
+SCENARIOS = {
+    "gfc": ("2008 financial crisis", "الأزمة المالية 2008", "Oct 2007 – Mar 2009", "أكتوبر 2007 – مارس 2009", CRISIS, CRISIS_SHARIA),
+    "covid": ("2020 COVID crash", "انهيار كورونا 2020", "Feb – Mar 2020", "فبراير – مارس 2020",
+              {"us": -35, "div": -38, "intl": -34, "em": -33, "bond": -3, "tips": -5, "cash": 0.3, "reit": -43, "gold": -4, "bot": -45},
+              {"bond": -5, "tips": -5, "cash": 0}),
+    "rates": ("2022 rate shock", "صدمة الفائدة 2022", "Jan – Oct 2022", "يناير – أكتوبر 2022",
+              {"us": -25, "div": -15, "intl": -28, "em": -30, "bond": -16, "tips": -5, "cash": 1, "reit": -33, "gold": -9, "bot": -65},
+              {"bond": -10, "tips": -10, "cash": 0}),
+}
+
+
+def scenario(sl, key, sharia=False):
+    """The plan's rough fall in one of the three storms (%)."""
+    _, _, _, _, base, sh = SCENARIOS[key]
+    c = {**base, **(sh if sharia else {})}
+    tot = sum(sl.values()) or 1.0
+    return round(sum(v / tot * c.get(s, 0) for s, v in sl.items()), 1)
+
+
+def frontier(income=False, cash=0, sharia=False):
+    """[(level, expected return, volatility, stock share)] of the ten levels for these answers."""
+    out = []
+    for lv in range(1, 11):
+        sl = sleeves(lv, income, cash, sharia)
+        mu, vol, _ = expected(sl, sharia)
+        out.append((lv, mu, vol, stock_share(sl)))
+    return out
+
+
+def monthly_returns(curve):
+    """{(year, month): return %} from a replay's time-weighted curve (the first month from its first day)."""
+    if curve is None or len(curve) < 2:
+        return {}
+    tw = curve["twr"].astype(float)
+    ends = tw.groupby([tw.index.year, tw.index.month]).last()
+    out, prev = {}, float(tw.iloc[0])
+    for (y, m), v in ends.items():
+        out[(int(y), int(m))] = (float(v) / prev - 1) * 100
+        prev = float(v)
+    return out
 
 
 def stress(sl, sharia=False):
@@ -309,7 +362,7 @@ def stress(sl, sharia=False):
 
 
 def stock_share(sl):
-    return sum(v for s, v in sl.items() if s in ("us", "div", "intl", "em"))
+    return sum(v for s, v in sl.items() if s in ("us", "div", "intl", "em", "bot"))
 
 
 def band(w):
@@ -388,7 +441,7 @@ def partial_level(ans):
 
 
 # ---------------------------------------------------------------- projection (Monte Carlo)
-def project(mu, vol, amount, monthly, years, n=1500, seed=7):
+def project(mu, vol, amount, monthly, years, n=1500, seed=7, goal=None):
     """Months 0..years*12 with the 10th / 50th / 90th percentile of the value and the money put in, from `n` random paths of
     monthly returns (log-normal, the plan's expected return and volatility), deposits at the start of each month."""
     months = int(max(1, years) * 12)
@@ -404,6 +457,8 @@ def project(mu, vol, amount, monthly, years, n=1500, seed=7):
     p10, p50, p90 = np.percentile(v, [10, 50, 90], axis=0)
     out = pd.DataFrame({"p10": p10, "p50": p50, "p90": p90, "invested": inv}, index=np.arange(months + 1))
     out.attrs["beat"] = float((v[:, -1] > inv[-1]).mean() * 100)
+    if goal:
+        out.attrs["goal_p"] = float((v[:, -1] >= goal).mean() * 100)
     return out
 
 
@@ -496,10 +551,12 @@ def _sell_toward(h, w, cash):
     return {t: -v for t, v in sell.items()}
 
 
-def replay(robo, px, now=None, bench=False):
+def replay(robo, px, now=None, bench=False, bot=None):
     """The portfolio day by day from its first close to the last settled one, then valued at the latest prices.
     bench=True replays the policy benchmark (global stocks / US bonds at each plan's stock share) with the same money.
-    Returns {curve: DataFrame[value, invested, flow, twr], units, cost, events, pending, start, last, live}."""
+    bot: the Opportunity Bot's hunting list ({ticker: robobot.features}) for plans with a BOT slice (without it the slice
+    waits in cash). Returns {curve: DataFrame[value, invested, flow, twr], units, cost, events, pending, start, last, live,
+    book (the bot's robobot.Book or None)}."""
     now = now or PF.utcnow()
     plans = sorted(robo["plans"], key=lambda p: p["at"])
     if bench:
@@ -511,32 +568,44 @@ def replay(robo, px, now=None, bench=False):
     mdays = sorted(((exec_day(m["at"]), m["amount"]) for m in robo.get("monthly") or []), key=lambda x: x[0])
     fdays = sorted(((exec_day(f["at"]), float(f["amount"]), f.get("note", "")) for f in robo.get("flows") or []), key=lambda x: x[0])
     tick = sorted({t for p in plans for t in p["targets"]})
-    out = {"start": start, "last": last, "pending": True, "events": [], "units": {}, "cost": {}, "live": None,
+    etfs = [t for t in tick if t != BOT]
+    out = {"start": start, "last": last, "pending": True, "events": [], "units": {}, "cost": {}, "live": None, "book": None,
            "curve": pd.DataFrame(columns=["value", "invested", "flow", "twr"])}
-    if px is None or px.empty or any(t not in px.columns for t in tick):
-        out["missing"] = [t for t in tick if px is None or t not in px.columns]
+    if px is None or px.empty or any(t not in px.columns for t in etfs):
+        out["missing"] = [t for t in etfs if px is None or t not in px.columns]
         return out
     days = px.index[(px.index >= start) & (px.index <= last)]
-    days = [d for d in days if px.loc[d, tick].notna().all()]
+    days = [d for d in days if px.loc[d, etfs].notna().all()]
     if not days:
         return out
-    P = px[tick]
-    units = {t: 0.0 for t in tick}
-    cost = {t: 0.0 for t in tick}
+    P = px[etfs]
+    units = {t: 0.0 for t in etfs}
+    cost = {t: 0.0 for t in etfs}
+    first_plan = ([p for d0, p in pdays if d0 <= days[0]] or plans)[-1]
+    book = RB.Book(bot or {}, px.index, first_plan.get("level") or 10, first_plan.get("sharia", False)) if BOT in tick else None
     plan = None
     pi, fi = 0, 0
     invested, twr, v_prev = 0.0, 1.0, None
     rows, events = [], []
+    cur = {"d": days[0]}
 
     def hold(p):
-        return {t: units[t] * p[t] for t in tick}
+        h = {t: units[t] * p[t] for t in etfs}
+        if book is not None:
+            h[BOT] = book.value(cur["d"])
+        return h
 
     def trade(p, dollars):
         done = {}
         for t, x in dollars.items():
             if abs(x) < 0.005:
                 continue
-            if x > 0:
+            if t == BOT:
+                if x > 0:
+                    book.deposit(x)
+                else:
+                    book.withdraw(-x, cur["d"])
+            elif x > 0:
                 units[t] += x / p[t]
                 cost[t] += x
             else:
@@ -557,9 +626,13 @@ def replay(robo, px, now=None, bench=False):
         return {t: h.get(t, 0) / tot * 100 - w.get(t, 0) for t in set(h) | set(w)}
 
     prev_d = None
+    pos = {d: i for i, d in enumerate(px.index)}
     for d in days:
+        cur["d"] = d
         p = P.loc[d].to_dict()
         flow = 0.0
+        if book is not None:                    # the bot's borrow fee belongs to the day's return
+            book.fees(d)
         if v_prev:
             twr *= sum(hold(p).values()) / v_prev
         # the plan in force (a change is carried out at its own day's close)
@@ -569,6 +642,8 @@ def replay(robo, px, now=None, bench=False):
             pi += 1
         if prev_d is None:
             plan = new_plan or plans[0]
+            if book is not None:
+                book.set_level(plan.get("level") or 10, plan.get("sharia", False), d)
             amt = float(robo["amount"])
             ev = trade(p, _buy_toward(hold(p), plan["targets"], amt))
             invested += amt
@@ -577,6 +652,8 @@ def replay(robo, px, now=None, bench=False):
         if prev_d is not None:
             if new_plan is not None and new_plan is not plan:
                 plan = new_plan
+                if book is not None:
+                    book.set_level(plan.get("level") or 10, plan.get("sharia", False), d)
                 h = hold(p)
                 tot = sum(h.values())
                 ev = trade(p, {t: plan["targets"].get(t, 0) / 100 * tot - h.get(t, 0) for t in tick})
@@ -619,17 +696,25 @@ def replay(robo, px, now=None, bench=False):
                                "max": mx, "trades": ev})
             elif quarter:                       # the quarterly review found every fund within a point of its target
                 events.append({"d": d, "kind": "review", "max": mx})
+        if book is not None:                    # the bot's own day: its exits, and on the week's first day new positions
+            i = pos[d]
+            sig = px.index[i - 1] if i > 0 else None
+            scan = prev_d is None or d.isocalendar()[1] != prev_d.isocalendar()[1]
+            book.step(d, sig, scan and plan["targets"].get(BOT, 0) > 0, fees=False)
         v = sum(hold(p).values())
         rows.append((d, v, invested, flow, twr))
         v_prev = v if v > 0 else None
         prev_d = d
     curve = pd.DataFrame(rows, columns=["d", "value", "invested", "flow", "twr"]).set_index("d")
-    out.update(pending=False, curve=curve, events=events, units=units, cost=cost, plan=plan, tick=tick)
+    out.update(pending=False, curve=curve, events=events, units=units, cost=cost, plan=plan, tick=tick, book=book, vday=days[-1],
+               bot_missing=book is not None and not bot)
     # today's value at the latest prices (a session under way)
     lx = P.dropna().index[-1] if len(P.dropna()) else None
     if lx is not None and lx > days[-1]:
         p = P.loc[lx].to_dict()
-        out["live"] = {"d": lx, "value": sum(units[t] * p[t] for t in tick), "prices": p}
+        val = sum(units[t] * p[t] for t in etfs) + (book.value(lx) if book is not None else 0.0)
+        out["live"] = {"d": lx, "value": val, "prices": p}
+        out["vday"] = lx
     out["prices"] = P.loc[days[-1]].to_dict() if out["live"] is None else out["live"]["prices"]
     return out
 
@@ -639,7 +724,10 @@ def holdings(rep):
     if rep.get("pending"):
         return []
     p, plan = rep["prices"], rep["plan"]
-    rows = [{"t": t, "units": rep["units"][t], "price": p[t], "value": rep["units"][t] * p[t], "cost": rep["cost"][t]} for t in rep["tick"]]
+    rows = [{"t": t, "units": rep["units"][t], "price": p[t], "value": rep["units"][t] * p[t], "cost": rep["cost"][t]} for t in rep["tick"] if t != BOT]
+    if rep.get("book") is not None:
+        bk = rep["book"]
+        rows.append({"t": BOT, "units": None, "price": None, "value": bk.value(rep["vday"]), "cost": bk.cost})
     tot = sum(r["value"] for r in rows) or 1.0
     for r in rows:
         r["gain"] = r["value"] - r["cost"]
@@ -665,21 +753,22 @@ def metrics(curve):
     return out
 
 
-def backtest(prof, amount, monthly, px, years=5):
+def backtest(prof, amount, monthly, px, years=5, bot=None):
     """The plan (and its benchmark) as if it had been opened `years` ago with the same money: from the first day every fund
     has a price. -> (replay, benchmark replay) or (None, None)."""
-    tick = list(prof["targets"]) + list(BENCH)
+    tick = [t for t in prof["targets"] if t != BOT] + list(BENCH)
     if px is None or px.empty or any(t not in px.columns for t in tick):
         return None, None
     ok = px[tick].dropna()
     if len(ok) < 60:
         return None, None
     first = max(ok.index[0], px.index[-1] - pd.Timedelta(days=int(years * 365.25)))
+    first = px.index[min(px.index.searchsorted(first), len(px.index) - 1)]
     at = PF.iso(pd.Timestamp(first).tz_localize(PF.ET).replace(hour=10).tz_convert("UTC").to_pydatetime())
-    robo = {"created": at, "amount": amount, "plans": [{"at": at, "targets": prof["targets"], "stocks": prof["stocks"]}],
-            "monthly": [{"at": at, "amount": monthly}], "flows": []}
-    sub = px.loc[px.index >= first]
-    return replay(robo, sub), replay(robo, sub, bench=True)
+    robo = {"created": at, "amount": amount, "monthly": [{"at": at, "amount": monthly}], "flows": [],
+            "plans": [{"at": at, "targets": prof["targets"], "stocks": prof["stocks"], "level": prof["level"], "sharia": prof["sharia"]}]}
+    sub = px.loc[px.index >= px.index[max(0, px.index.get_loc(first) - 1)]]     # one day before: the bot's first signals
+    return replay(robo, sub, bot=bot), replay(robo, sub, bench=True)
 
 
 def next_dates(now=None, start=None):
@@ -819,4 +908,4 @@ def delete(row_id, key):
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "20.8"
+BUILD = "20.9"

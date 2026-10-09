@@ -1,2 +1,2 @@
-TURA Pro - version 20.8 (Robo Advisor: a risk tolerance question in the IPS with five grades, conservative to aggressive)
+TURA Pro - version 20.9 (Robo Advisor: an Opportunity Bot at risk levels 9-10 that hunts emerging companies and explosive moves, long and short; stress tests, risk/return of the levels, goal odds, dashboard tabs, month-by-month returns)
 If you can see this file on GitHub, the new version was uploaded correctly.

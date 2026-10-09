@@ -17,10 +17,12 @@ import plotly.graph_objects as go
 import streamlit as st
 
 import charts as C
+import mcal
 import p_portfolio as PP
 import paperbots as PB
 import portfolio as PF
 import robo as R
+import robobot as RB
 import theme as T
 import ui
 from i18n import L, is_ar
@@ -328,6 +330,91 @@ CSS = f"""<style>
 .rbtl b {{ color:#F4F1F8; font-size:.88rem; }} .rbtl p {{ margin:2px 0 0; color:#A8A2B3; font-size:.76rem; line-height:1.5; }}
 .rbtl .dt {{ color:{_MU}; font-size:.74rem; white-space:nowrap; padding-top:2px; }}
 .rbtl .am {{ color:#fff; font-weight:700; direction:ltr; unicode-bidi:isolate; }}
+/* ---------- the Opportunity Bot ---------- */
+.rbchip.bot {{ color:#FBCFE8; border-color:rgba(236,72,153,.45); background:rgba(236,72,153,.12); }} .rbchip.bot .ms {{ color:#EC4899; }}
+.rbbot {{ position:relative; overflow:hidden; isolation:isolate; display:flex; gap:16px; align-items:flex-start; border-radius:20px; padding:18px 20px; margin:2px 0 12px;
+  border:1px solid rgba(236,72,153,.38); background:radial-gradient(120% 140% at 100% 0%, rgba(236,72,153,.22), transparent 55%),
+  radial-gradient(90% 120% at 0% 100%, rgba(123,69,240,.2), transparent 60%), linear-gradient(135deg,#170E22,#1C1230 60%,#140D20);
+  box-shadow:0 18px 40px -22px rgba(236,72,153,.55), {T.GLOW}; animation:rbup .5s cubic-bezier(.2,.8,.2,1) both; }}
+.rbbot .sweep {{ position:absolute; z-index:-1; top:-90px; inset-inline-end:-90px; width:260px; height:260px; border-radius:50%; pointer-events:none;
+  background:conic-gradient(from 0deg, transparent 0deg, rgba(236,72,153,.32) 50deg, transparent 70deg),
+  repeating-radial-gradient(circle, rgba(236,72,153,.16) 0 1px, transparent 1px 34px); animation:rbsweep 4.5s linear infinite; }}
+@keyframes rbsweep {{ to {{ transform:rotate(360deg); }} }}
+.rbbot .ic {{ flex:none; width:52px; height:52px; border-radius:16px; display:flex; align-items:center; justify-content:center;
+  background:linear-gradient(140deg,#EC4899,#7B45F0); box-shadow:0 10px 24px -10px rgba(236,72,153,.8); }}
+.rbbot .ic .ms {{ font-size:1.7rem; color:#fff; }}
+.rbbot .tx {{ flex:1; min-width:0; }}
+.rbbot .eb {{ color:#F9A8D4; font-size:.7rem; font-weight:800; letter-spacing:.14em; text-transform:uppercase; }}
+.rbbot h3 {{ color:#fff; font-size:1.25rem; font-weight:800; margin:5px 0 6px; padding:0; }}
+.rbbot p {{ color:#D9D2E3; font-size:.86rem; line-height:1.6; margin:0 0 10px; }}
+.rbbot .sl {{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:10px; color:#E9E5F0; font-size:.8rem; border-top:1px dashed rgba(236,72,153,.3); padding-top:9px; }}
+.rbbot .sl .ms {{ color:#F9A8D4; font-size:1.05rem; }}
+.rbsub {{ display:flex; align-items:center; gap:8px; color:#E9E5F0; font-weight:700; font-size:.9rem; margin:4px 0 8px; }}
+.rbsub .ms {{ color:#EC4899; }}
+.rbsd {{ display:inline-flex; align-items:center; gap:3px; border-radius:999px; padding:2px 8px 2px 6px; font-size:.68rem; font-weight:800; }}
+.rbsd .ms {{ font-size:.85rem; }}
+.rbsd.long {{ color:#86EFAC; background:rgba(34,197,94,.14); border:1px solid rgba(74,222,128,.4); }}
+.rbsd.short {{ color:#FCA5A5; background:rgba(239,68,68,.14); border:1px solid rgba(248,113,113,.4); }}
+.rbwc {{ display:inline-block; border-radius:7px; padding:2px 7px; font-size:.68rem; font-weight:600; color:#DCD7E3; background:rgba(157,151,165,.13);
+  border:1px solid rgba(157,151,165,.22); margin:0 4px 4px 0; }}
+.rbgrp2 {{ display:flex; align-items:center; gap:6px; font-size:.78rem; font-weight:700; margin:2px 0 7px; }}
+.rbgrp2 .ms {{ font-size:1rem; }} .rbgrp2.long {{ color:#86EFAC; }} .rbgrp2.short {{ color:#FCA5A5; }}
+.rbrad {{ display:grid; grid-template-columns:repeat(auto-fill,minmax(205px,1fr)); gap:10px; margin:0 0 12px; }}
+.rbrc {{ position:relative; overflow:hidden; background:{T.BOX_BG}; border:1px solid {_BD}; border-radius:16px; padding:12px 13px 11px;
+  animation:rbup .45s cubic-bezier(.2,.8,.2,1) both; animation-delay:calc(var(--i) * 45ms); transition:transform .2s, border-color .2s; }}
+.rbrc:hover {{ transform:translateY(-2px); border-color:rgba(236,72,153,.5); }}
+.rbrc::before {{ content:""; position:absolute; inset-inline-start:0; top:0; bottom:0; width:3px; background:#4ADE80; }}
+.rbrc.short::before {{ background:#F87171; }}
+.rbrc .top {{ display:flex; align-items:center; gap:7px; }}
+.rbrc .tk, .rbpc .tk {{ font-weight:800; font-size:.95rem; color:#fff; letter-spacing:.02em; }}
+.rbrc .ring {{ margin-inline-start:auto; width:40px; height:40px; }} .rbrc .ring svg {{ width:40px; height:40px; display:block; }}
+.rbrc .nm {{ color:#E9E5F0; font-size:.8rem; font-weight:600; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
+.rbrc .th, .rbpc .th {{ display:flex; align-items:center; gap:4px; color:{_MU}; font-size:.7rem; margin:2px 0 6px; }}
+.rbrc .th .ms, .rbpc .th .ms {{ font-size:.85rem; color:#F9A8D4; }}
+.rbrc .rpx {{ color:#CFC8DA; font-size:.78rem; margin-bottom:6px; }}
+.rbrc .ch, .rbpc .ch {{ min-height:22px; }}
+.rbrc .sg {{ display:inline-flex; align-items:center; gap:4px; margin-top:4px; font-size:.7rem; font-weight:700; color:{_MU}; }}
+.rbrc .sg .ms {{ font-size:.9rem; }}
+.rbrc .sg.on {{ color:#FCD34D; }}
+.rbpcs {{ display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:10px; margin:0 0 12px; }}
+.rbpc {{ position:relative; overflow:hidden; background:{T.BOX_BG}; border:1px solid {_BD}; border-radius:16px; padding:12px 14px;
+  animation:rbup .45s cubic-bezier(.2,.8,.2,1) both; animation-delay:calc(var(--i) * 45ms); }}
+.rbpc::before {{ content:""; position:absolute; inset-inline-start:0; top:0; bottom:0; width:3px; background:#4ADE80; }}
+.rbpc.short::before {{ background:#F87171; }}
+.rbpc .top {{ display:flex; align-items:center; gap:7px; }}
+.rbpc .ret {{ margin-inline-start:auto; font-size:1.15rem; font-weight:800; }}
+.rbpc .ret.up {{ color:{T.POS_FG}; }} .rbpc .ret.dn {{ color:{T.NEG_FG}; }}
+.rbpc .pp {{ display:flex; align-items:center; gap:6px; color:#E9E5F0; font-size:.86rem; font-weight:600; }}
+.rbpc .pp .ms {{ font-size:1rem; color:{_MU}; }}
+.rbpc .meta {{ display:flex; justify-content:space-between; gap:8px; color:{_MU}; font-size:.72rem; margin:6px 0 4px; }}
+.rbpc .bar {{ height:5px; border-radius:5px; background:rgba(157,151,165,.16); overflow:hidden; margin-bottom:8px; }}
+.rbpc .bar i {{ display:block; height:100%; background:linear-gradient(90deg,#7B45F0,#EC4899); }}
+.rblock {{ display:flex; gap:12px; align-items:center; border-radius:16px; padding:13px 16px; margin:2px 0 12px; border:1px dashed rgba(236,72,153,.4);
+  background:linear-gradient(135deg,rgba(236,72,153,.08),transparent 70%); }}
+.rblock > .ms {{ font-size:1.6rem; color:#F9A8D4; }}
+.rblock b {{ display:block; color:#fff; font-size:.92rem; }} .rblock span {{ color:#B9B3C4; font-size:.8rem; line-height:1.55; }}
+
+/* ---------- stress tests, monthly returns ---------- */
+.rbscn {{ background:{T.BOX_BG}; border:1px solid {_BD}; border-radius:18px; padding:14px 16px 12px; }}
+.rbscn .hd {{ display:flex; align-items:center; gap:8px; color:#fff; font-weight:700; font-size:.95rem; margin-bottom:8px; }}
+.rbscn .hd .ms {{ color:{T.GOLD}; }}
+.rbscn .r {{ padding:8px 0; border-top:1px solid rgba(44,39,56,.7); animation:rbup .45s cubic-bezier(.2,.8,.2,1) both; animation-delay:calc(var(--i) * 70ms); }}
+.rbscn .r:first-of-type {{ border-top:0; }}
+.rbscn .h {{ display:flex; justify-content:space-between; gap:8px; margin-bottom:5px; }}
+.rbscn .h b {{ color:#F4F1F8; font-size:.84rem; }} .rbscn .h span {{ color:{_MU}; font-size:.7rem; }}
+.rbscn .b {{ display:grid; grid-template-columns:72px minmax(0,1fr) 46px; gap:8px; align-items:center; margin:3px 0; }}
+.rbscn .lb {{ color:#B9B3C4; font-size:.7rem; }}
+.rbscn .tr {{ display:block; height:9px; border-radius:6px; background:rgba(157,151,165,.12); overflow:hidden; direction:ltr; }}
+.rbscn .tr i {{ display:block; height:100%; border-radius:6px; background:rgba(157,151,165,.55); animation:rbbar 1s cubic-bezier(.2,.8,.2,1) both; }}
+.rbscn .tr i.me {{ background:linear-gradient(90deg,#F87171,#F97316); }}
+.rbscn em {{ font-style:normal; font-weight:800; font-size:.8rem; text-align:end; }}
+.rbscn em.dn {{ color:{T.NEG_FG}; }} .rbscn em.up {{ color:{T.POS_FG}; }}
+.rbscn .ft {{ color:{_MU}; font-size:.7rem; margin-top:6px; line-height:1.45; }}
+.rbheat {{ width:100%; border-collapse:separate; border-spacing:3px; font-size:.74rem; }}
+.rbheat th {{ color:{_MU}; font-weight:700; padding:4px; text-align:center; white-space:nowrap; font-size:.68rem; }}
+.rbheat td {{ color:#F4F1F8; text-align:center; padding:7px 4px; border-radius:7px; background:rgba(157,151,165,.06); font-weight:600; white-space:nowrap; }}
+.rbheat td.yr {{ background:transparent; font-weight:800; }} .rbheat td.yr.up {{ color:{T.POS_FG}; }} .rbheat td.yr.dn {{ color:{T.NEG_FG}; }}
+@media (max-width: 640px) {{ .rbbot {{ flex-direction:column; padding:16px; }} .rbheat {{ font-size:.66rem; }} }}
 </style>"""
 
 
@@ -444,7 +531,8 @@ def intro(has_store=True):
             f'<div class="rbchips"><span class="rbchip">{T.icon("timer")}{L("About 2 minutes", "تقريباً دقيقتين")}</span>'
             f'<span class="rbchip">{T.icon("payments")}{L("Virtual money", "فلوس افتراضية")}</span>'
             f'<span class="rbchip gold">{T.icon("mosque")}{L("Sharia-compliant option", "خيار متوافق مع الشريعة")}</span>'
-            f'<span class="rbchip">{T.icon("description")}{L("Your IPS to download", "بيان السياسة للتحميل")}</span></div></div>{_art()}</div>'
+            f'<span class="rbchip">{T.icon("description")}{L("Your IPS to download", "بيان السياسة للتحميل")}</span>'
+            f'<span class="rbchip bot">{T.icon("radar")}{L("Opportunity Bot at levels 9–10", "بوت الفرص في المستوى 9–10")}</span></div></div>{_art()}</div>'
             f'<div class="rbsteps">{steps_html}</div>')
     c1, c2, c3 = st.columns([1, 1.3, 1])
     with c2:
@@ -460,7 +548,15 @@ def intro(has_store=True):
              ("currency_exchange", L("Dividends reinvested", "إعادة استثمار التوزيعات"), L("Every dividend goes back into the portfolio.",
                                                                                          "كل توزيع يرجع يُستثمر في المحفظة.")),
              ("monitoring", L("Clear tracking", "متابعة واضحة"), L("Value against the money put in and a fair benchmark, and everything the robo did.",
-                                                                   "القيمة مقابل المبلغ المستثمر ومؤشر مرجعي عادل، وكل اللي سواه المستشار."))]
+                                                                   "القيمة مقابل المبلغ المستثمر ومؤشر مرجعي عادل، وكل اللي سواه المستشار.")),
+             ("radar", L("Opportunity Bot", "بوت الفرص"), L("At levels 9 and 10 it hunts emerging companies and explosive moves, long and short.",
+                                                            "في المستوى 9 و10 يصطاد الشركات الناشئة والانفجارات السعرية، شراء وبيع على المكشوف.")),
+             ("thunderstorm", L("Stress tests", "اختبارات الضغط"), L("How the plan would have held up in 2008, 2020 and 2022.",
+                                                                    "كيف بتصمد الخطة في 2008 و2020 و2022.")),
+             ("flag", L("Goal odds", "احتمال الهدف"), L("Set a target amount and see the chance of reaching it in time.",
+                                                       "حط مبلغ تستهدفه وشوف احتمال توصله في الوقت.")),
+             ("mosque", L("Sharia-compliant option", "خيار متوافق مع الشريعة"), L("Islamic funds and sukuk; the bot buys only, from a screened list.",
+                                                                                "صناديق إسلامية وصكوك، والبوت يشتري فقط من قائمة مفلترة."))]
     ui.html('<div class="rbfeat">' + "".join(f'<div>{T.icon(ic)}<b>{_esc(t)}</b><span>{_esc(s)}</span></div>' for ic, t, s in feats) + "</div>" + note())
 
 
@@ -718,7 +814,7 @@ def groups_html(tg):
     for t, w in tg.items():
         k = _fund(t)["g"]
         g[k] = g.get(k, 0) + w
-    order = [k for k in ("stocks", "bonds", "real", "gold", "cash") if g.get(k)]
+    order = [k for k in ("stocks", "bot", "bonds", "real", "gold", "cash") if g.get(k)]
     bar = "".join(f'<i style="width:{g[k]:.2f}%;background:{R.GROUPS[k][2]}"></i>' for k in order)
     leg = "".join(f'<span><i style="background:{R.GROUPS[k][2]}"></i>{_esc(L(R.GROUPS[k][0], R.GROUPS[k][1]))} <b>{g[k]:.0f}%</b></span>' for k in order)
     return f'<div class="rbgrp">{bar}</div><div class="rbgl">{leg}</div>'
@@ -746,7 +842,7 @@ def expect_kpis(prof):
          "neg", None)], "c4")
 
 
-def projection_fig(proj, years):
+def projection_fig(proj, years, goal=None):
     x = proj.index / 12
     fig = go.Figure()
     hov = "%{y:$,.0f}<extra></extra>"
@@ -761,6 +857,9 @@ def projection_fig(proj, years):
                              hovertemplate=L("Weak: ", "ضعيفة: ") + hov, showlegend=False))
     fig.add_trace(go.Scatter(x=x, y=proj["invested"], name=L("Put in", "المستثمر"), line=dict(color=T.GOLD, width=1.8, dash="dash"),
                              hovertemplate=L("Put in: ", "المستثمر: ") + hov))
+    if goal:
+        fig.add_hline(y=goal, line=dict(color=T.GOLD, width=1.4, dash="dot"), annotation_text=L("Goal", "الهدف"),
+                      annotation_font=dict(color=T.GOLD, size=11), annotation_position="top left")
     C.style(fig, 380, L(f"Where the plan could be in {years} years", f"وين ممكن توصل الخطة خلال {years} سنة"))
     fig.update_xaxes(title=None, ticksuffix=L("y", " س"), dtick=max(1, round(years / 6)))
     fig.update_yaxes(tickprefix="$", tickformat="~s")
@@ -855,6 +954,14 @@ def ips_parts(prof, ans, amount, monthly, created=None):
                 "الإيداعات تروح للصناديق الأقل من نسبتها أولاً، والسحوبات من الأعلى من نسبتها."),
               L("Dividends are reinvested. The policy is reviewed every year, or after a change in your life (retake the questionnaire).",
                 "التوزيعات يُعاد استثمارها. السياسة تُراجع كل سنة أو بعد أي تغيير في حياتك (أعد الاستبيان).")]
+    if R.BOT in prof["targets"]:
+        n_l, n_s = RB.slots(prof["level"], prof["sharia"])
+        policy.append(L(f"Opportunity Bot ({prof['targets'][R.BOT]:g}%): a weekly scan of emerging companies, up to {n_l} long"
+                        + (f" and {n_s} short" if n_s else "") + " positions, each with a stop 2.5 ATR away that trails by 3 ATR; one not up 10% after 60 trading days leaves.",
+                        f"بوت الفرص ({prof['targets'][R.BOT]:g}%): مسح أسبوعي للشركات الناشئة، لين {n_l} مراكز شراء"
+                        + (f" و{n_s} بيع على المكشوف" if n_s else "") + "، لكل مركز وقف على بعد 2.5 ATR يتحرك بـ 3 ATR، واللي ما ربح 10% بعد 60 يوم تداول يطلع."))
+        secs[2][2].append((L("Short selling", "البيع على المكشوف"),
+                           L("Not used (Sharia)", "غير مستخدم (الشريعة)") if prof["sharia"] else L("Inside the Opportunity Bot only", "داخل بوت الفرص فقط")))
     alloc = [(t, _fund(t)["cls"], w, R.band(w)) for t, w in sorted(prof["targets"].items(), key=lambda x: -x[1])]
     return secs, policy, alloc
 
@@ -910,6 +1017,275 @@ def ips_file(prof, ans, amount, monthly, created=None):
             f"{body}<footer>{e(disc)}</footer></body></html>")
 
 
+# =====================================================================
+# the Opportunity Bot (levels 9 and 10), storms, frontier, monthly returns
+# =====================================================================
+BOT_C = "#EC4899"
+
+
+def load_bot():
+    """The bot's hunting list ({ticker: features}); {} when the prices can't be fetched right now."""
+    try:
+        with st.spinner(L("The bot is scanning emerging companies…", "البوت يمسح الشركات الناشئة…")):
+            return RB.load()
+    except Exception:
+        return {}
+
+
+def _why_chips(why, cls="rbwc"):
+    out = []
+    for k, v in why or []:
+        en, ar = RB.WHY[k]
+        txt = L(en, ar)
+        if "{v" in txt:
+            txt = txt.replace("×{v:.1f}", _i("×%.1f" % v))
+        if "{r" in txt:
+            txt = txt.replace("{r:+.0f}%", _i("%+.0f%%" % v))
+        out.append(f'<span class="{cls}">{_esc(txt)}</span>')
+    return "".join(out)
+
+
+def _theme(t):
+    th = RB.THEMES[RB.UNIVERSE[t][1]] if t in RB.UNIVERSE else ("", "", "category")
+    return T.icon(th[2]) + _esc(L(th[0], th[1]))
+
+
+def _side(side):
+    return (f'<span class="rbsd long">{T.icon("north_east")}{L("Long", "شراء")}</span>' if side == "long" else
+            f'<span class="rbsd short">{T.icon("south_east")}{L("Short", "مكشوف")}</span>')
+
+
+def bot_card(prof, n_list=None, stats_line=None):
+    lv = prof["level"]
+    sat = RB.SAT.get(lv, 0)
+    n_l, n_s = RB.slots(lv, prof["sharia"])
+    chips = [f'<span class="rbchip">{T.icon("event_repeat")}{L("Scans every week", "يمسح كل أسبوع")}</span>',
+             f'<span class="rbchip">{T.icon("north_east")}{L(f"Up to {n_l} long", f"لين {n_l} شراء")}</span>']
+    if n_s:
+        chips.append(f'<span class="rbchip">{T.icon("south_east")}{L(f"Up to {n_s} short", f"لين {n_s} مكشوف")}</span>')
+    chips += [f'<span class="rbchip">{T.icon("shield")}{L("Trailing stops", "وقف متحرك")}</span>',
+              f'<span class="rbchip">{T.icon("timer")}{L("A laggard leaves after 60 days", "المتأخر يطلع بعد 60 يوم")}</span>']
+    if prof["sharia"]:
+        chips.append(f'<span class="rbchip gold">{T.icon("mosque")}{L("Long only, screened list", "شراء فقط وقائمة مفلترة")}</span>')
+    n = len(RB.universe(prof["sharia"])) if n_list is None else n_list
+    side_txt = (L("buys a breakout as it starts", "يشتري الاختراق وقت بدايته") if prof["sharia"] else
+                L("buys a breakout as it starts and sells short a breakdown", "يشتري الاختراق وقت بدايته ويبيع على المكشوف عند الكسر"))
+    sl = f'<div class="sl">{stats_line}</div>' if stats_line else ""
+    return (f'<div class="rbbot"><span class="sweep"></span><div class="ic">{T.icon("radar")}</div><div class="tx">'
+            f'<div class="eb">{L("TURA Opportunity Bot", "بوت الفرص من TURA")} · {_ltr(f"{sat:.0f}%")}</div>'
+            f'<h3>{L("Hunting emerging companies and explosive price moves", "يصطاد الشركات الناشئة والانفجارات السعرية")}</h3>'
+            f'<p>{L(f"{sat:.0f}% of your portfolio watches {n} young, fast-growing companies (AI, chips, quantum, space, nuclear, fintech and more) and ", f"{sat:.0f}% من محفظتك تراقب {n} شركة ناشئة وسريعة النمو (ذكاء اصطناعي، رقائق، حوسبة كمية، فضاء، طاقة نووية، تقنية مالية وغيرها) و")}'
+            f'{side_txt}{L(", with a stop on every position.", "، مع وقف خسارة لكل مركز.")}</p>'
+            f'<div class="rbchips">{"".join(chips)}</div>{sl}</div></div>')
+
+
+def radar_html(longs, shorts):
+    def card(x, i):
+        sc = x["score"]
+        ring = (f'<svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="16" fill="none" stroke="rgba(157,151,165,.18)" stroke-width="4"/>'
+                f'<circle cx="20" cy="20" r="16" fill="none" stroke="{"#4ADE80" if x["side"] == "long" else "#F87171"}" stroke-width="4" '
+                f'pathLength="100" stroke-dasharray="{sc:.0f} 100" transform="rotate(-90 20 20)" stroke-linecap="round"/>'
+                f'<text x="20" y="24.5" text-anchor="middle" font-size="12" font-weight="800" fill="#FFFFFF">{sc:.0f}</text></svg>')
+        st_ = (f'<span class="sg on">{T.icon("bolt")}{L("Signal", "إشارة")}</span>' if x["signal"] else
+               f'<span class="sg">{T.icon("visibility")}{L("Watching", "تحت المراقبة")}</span>')
+        r63 = x.get("r63")
+        mom = "" if r63 is None or r63 != r63 else f' · {L("3m", "3 أشهر")} {_ltr("%+.0f%%" % (r63 * 100))}'
+        return (f'<div class="rbrc {x["side"]}" style="--i:{i}"><div class="top"><span class="tk">{x["t"]}</span>{_side(x["side"])}'
+                f'<span class="ring">{ring}</span></div><div class="nm">{_esc(x["name"])}</div><div class="th">{_theme(x["t"])}</div>'
+                f'<div class="rpx">{_ltr(_m(x["c"], 2))}{mom}</div><div class="ch">{_why_chips(x["why"])}</div>{st_}</div>')
+    if not longs and not shorts:
+        return PP.empty("radar", L("No candidates right now", "ما فيه مرشحين الحين"), L("The prices of the list aren't available.", "أسعار القائمة مو متاحة."))
+    out = ""
+    if longs:
+        out += (f'<div class="rbgrp2 long">{T.icon("north_east")}{L("Breakouts: buy candidates", "اختراقات: مرشحة للشراء")}</div>'
+                '<div class="rbrad">' + "".join(card(x, i) for i, x in enumerate(longs)) + "</div>")
+    if shorts:
+        out += (f'<div class="rbgrp2 short">{T.icon("south_east")}{L("Breakdowns: short candidates", "كسور: مرشحة للبيع على المكشوف")}</div>'
+                '<div class="rbrad">' + "".join(card(x, i) for i, x in enumerate(shorts)) + "</div>")
+    return out
+
+
+def positions_html(rows):
+    if not rows:
+        return PP.empty("radar", L("No open positions", "ما فيه مراكز مفتوحة"),
+                        L(f"The bot waits for a signal scoring {RB.THRESHOLD} or more at its weekly scan.", f"البوت ينتظر إشارة تقييمها {RB.THRESHOLD} أو أكثر في مسحه الأسبوعي."))
+    out = []
+    for i, r in enumerate(rows):
+        k = "up" if r["ret"] > 0 else "dn" if r["ret"] < 0 else ""
+        room = abs(r["px"] - r["stop"]) / r["px"] * 100 if r["px"] else 0
+        out.append(f'<div class="rbpc {r["side"]}" style="--i:{i}"><div class="top"><span class="tk">{r["t"]}</span>{_side(r["side"])}'
+                   f'<b class="ret {k}">{_ltr("%+.1f%%" % r["ret"])}</b></div><div class="th">{_theme(r["t"])}</div>'
+                   f'<div class="pp">{_ltr(_m(r["entry"], 2))} {T.icon("arrow_back" if is_ar() else "arrow_forward")} {_ltr(_m(r["px"], 2))}</div>'
+                   f'<div class="meta"><span>{L("Stop", "الوقف")} {_ltr(_m(r["stop"], 2))} · {_ltr("%.0f%%" % room)} {L("away", "بعيد")}</span>'
+                   f'<span>{L("Day", "اليوم")} {_ltr("%d/%d" % (r["held"], RB.MAX_DAYS))}</span></div>'
+                   f'<div class="bar"><i style="width:{min(100, r["held"] / RB.MAX_DAYS * 100):.0f}%"></i></div>'
+                   f'<div class="ch">{_why_chips(r["why"])}</div></div>')
+    return '<div class="rbpcs">' + "".join(out) + "</div>"
+
+
+def trades_html(trades, limit=20):
+    if not trades:
+        return ""
+    head = (f'<tr><th>{L("Company", "الشركة")}</th><th>{L("Side", "الاتجاه")}</th><th class="n">{L("In", "الدخول")}</th>'
+            f'<th class="n">{L("Out", "الخروج")}</th><th class="n">{L("Days", "الأيام")}</th><th class="n">{L("Result", "النتيجة")}</th><th>{L("Why it left", "سبب الخروج")}</th></tr>')
+    body = ""
+    for x in sorted(trades, key=lambda x: x["d_out"], reverse=True)[:limit]:
+        k = "up" if x["ret"] > 0 else "dn"
+        body += (f'<tr><td><span class="tk" style="--c:{BOT_C}">{x["t"]}</span><span class="cl">{_esc(RB.UNIVERSE.get(x["t"], (x["t"],))[0])}</span></td>'
+                 f'<td>{L("Long", "شراء") if x["side"] == "long" else L("Short", "مكشوف")}</td>'
+                 f'<td class="n">{_ltr(_m(x["px_in"], 2))}<span class="cl"> {_date(x["d_in"])}</span></td>'
+                 f'<td class="n">{_ltr(_m(x["px_out"], 2))}<span class="cl"> {_date(x["d_out"])}</span></td><td class="n">{x["days"]}</td>'
+                 f'<td class="n {k}"><b>{_ltr("%+.1f%%" % x["ret"])}</b></td><td>{_esc(L(*RB.EXIT[x["why"]]))}</td></tr>')
+    return f'<div class="rbtw"><table class="rbtbl">{head}{body}</table></div>'
+
+
+def bot_stats_line(book):
+    s = RB.stats(book)
+    if not s.get("n"):
+        return None
+    aw = "—" if s.get("avg_win") is None else "%+.1f%%" % s["avg_win"]
+    al = "—" if s.get("avg_loss") is None else "%+.1f%%" % s["avg_loss"]
+    return (f'{T.icon("insights")}{L("Its rules over these years:", "قواعده على هالسنوات:")} {_ltr(str(s["n"]))} {L("trades", "صفقة")} · '
+            f'{L("won", "ربحت")} {_ltr("%.0f%%" % s["win"])} · {L("average win", "متوسط الربح")} {_ltr(aw)} · {L("average loss", "متوسط الخسارة")} {_ltr(al)} · '
+            f'{L("best", "الأفضل")} {_ltr("%s %+.0f%%" % (s["best"]["t"], s["best"]["ret"]))}')
+
+
+def lock_html(rec):
+    return (f'<div class="rblock">{T.icon("lock")}<div><b>{L("Opportunity Bot · levels 9 and 10", "بوت الفرص · المستوى 9 و10")}</b>'
+            f'<span>{L("At the two highest risk levels a slice of the portfolio (10% or 20%) hunts emerging companies and explosive price moves, long and short.", "في أعلى مستويين للمخاطرة، جزء من المحفظة (10% أو 20%) يصطاد الشركات الناشئة والانفجارات السعرية، شراء وبيع على المكشوف.")}'
+            f'{"" if rec >= 8 else L(" Your answers point to a steadier plan.", " إجاباتك تشير لخطة أهدى.")}</span></div></div>')
+
+
+def stress_html(prof):
+    sl, sh = prof["sleeves"], prof["sharia"]
+    stocks = {"us": 60, "intl": 28, "em": 12}
+    rows = []
+    for k, (en, ar, wen, war, _, _) in R.SCENARIOS.items():
+        a, b = R.scenario(sl, k, sh), R.scenario(stocks, k, False)
+        rows.append((L(en, ar), L(wen, war), a, b))
+    top = max([abs(x) for r in rows for x in r[2:]] + [10])
+    out = []
+    for i, (name, when, a, b) in enumerate(rows):
+        out.append(f'<div class="r" style="--i:{i}"><div class="h"><b>{_esc(name)}</b><span>{_esc(when)}</span></div>'
+                   f'<div class="b"><span class="lb">{L("Your plan", "خطتك")}</span><span class="tr"><i class="me" style="width:{abs(a) / top * 100:.0f}%"></i></span>'
+                   f'<em class="{"dn" if a < 0 else "up"}">{_ltr("%+.0f%%" % a)}</em></div>'
+                   f'<div class="b"><span class="lb">{L("All stocks", "أسهم بالكامل")}</span><span class="tr"><i style="width:{abs(b) / top * 100:.0f}%"></i></span>'
+                   f'<em class="{"dn" if b < 0 else "up"}">{_ltr("%+.0f%%" % b)}</em></div></div>')
+    return (f'<div class="rbscn"><div class="hd">{T.icon("thunderstorm")}{L("Three real storms", "ثلاث عواصف حقيقية")}</div>{"".join(out)}'
+            f'<div class="ft">{L("Peak to bottom, rough estimates from what each kind of asset did then.", "من القمة للقاع، تقديرات تقريبية من أداء كل نوع أصل وقتها.")}</div></div>')
+
+
+def frontier_fig(prof):
+    pts = R.frontier(prof["income"], prof["cash"], prof["sharia"])
+    lv, rec = prof["level"], prof["rec"]
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=[p[2] for p in pts], y=[p[1] for p in pts], mode="lines", line=dict(color="rgba(157,151,165,.45)", width=2),
+                             hoverinfo="skip", showlegend=False))
+    fig.add_trace(go.Scatter(x=[p[2] for p in pts], y=[p[1] for p in pts], mode="markers+text", text=[str(p[0]) for p in pts],
+                             textposition="top center", textfont=dict(size=10, color="#B9B3C4"), showlegend=False,
+                             marker=dict(size=[22 if p[0] == lv else 11 for p in pts], color=LEVEL_COLORS,
+                                         line=dict(color=["#FFFFFF" if p[0] == lv else "rgba(0,0,0,0)" for p in pts], width=3)),
+                             customdata=[[_prof_name(p[0]), p[3]] for p in pts],
+                             hovertemplate=L("Level %{text} · %{customdata[0]}<br>Return %{y:.1f}% · swing %{x:.1f}%<br>Stocks %{customdata[1]:.0f}%",
+                                             "المستوى %{text} · %{customdata[0]}<br>العائد %{y:.1f}% · التذبذب %{x:.1f}%<br>الأسهم %{customdata[1]:.0f}%")
+                             + "<extra></extra>"))
+    me = pts[lv - 1]
+    fig.add_annotation(x=me[2], y=me[1], text=L("Your plan", "خطتك"), showarrow=True, arrowhead=0, ax=-40, ay=-34,
+                       font=dict(color="#FFFFFF", size=12), bgcolor=LEVEL_COLORS[lv - 1], borderpad=4)
+    if rec != lv:
+        r = pts[rec - 1]
+        fig.add_annotation(x=r[2], y=r[1], text=L("Recommended", "الموصى به"), showarrow=True, arrowhead=0, ax=40, ay=30,
+                           font=dict(color="#0E0918", size=11), bgcolor="#E9E5F0", borderpad=3)
+    C.style(fig, 330, L("Risk and return of the ten levels", "العائد والمخاطرة للمستويات العشرة"), legend=False)
+    fig.update_xaxes(title=L("Volatility (a year)", "التذبذب (سنوي)"), ticksuffix="%")
+    fig.update_yaxes(title=None, ticksuffix="%")
+    fig.update_layout(hovermode="closest")
+    return fig
+
+
+def heat_html(mret):
+    if not mret:
+        return ""
+    years = sorted({y for y, _ in mret}, reverse=True)
+    names = MONTHS_AR if is_ar() else ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+    head = "<tr><th></th>" + "".join(f"<th>{_esc(n)}</th>" for n in names) + f'<th>{L("Year", "السنة")}</th></tr>'
+    body = ""
+    for y in years:
+        cells, yr = "", 1.0
+        for m in range(1, 13):
+            v = mret.get((y, m))
+            if v is None:
+                cells += "<td></td>"
+                continue
+            yr *= 1 + v / 100
+            a = min(abs(v) / 6, 1) * .55 + .08
+            col = f"rgba(74,222,128,{a:.2f})" if v >= 0 else f"rgba(248,113,113,{a:.2f})"
+            cells += f'<td style="background:{col}">{_ltr("%+.1f" % v)}</td>'
+        tot = (yr - 1) * 100
+        body += f'<tr><th>{y}</th>{cells}<td class="yr {"up" if tot >= 0 else "dn"}">{_ltr("%+.1f%%" % tot)}</td></tr>'
+    return f'<div class="rbtw"><table class="rbheat">{head}{body}</table></div>'
+
+
+def next_scan(now=None):
+    d = R.settled_day(now).date()
+    nxt = mcal.next_trading_day(d)
+    while nxt.isocalendar()[1] == d.isocalendar()[1]:
+        nxt = mcal.next_trading_day(nxt)
+    return nxt
+
+
+def bot_tab(state, rep, feats):
+    book = rep.get("book")
+    plan = state["plans"][-1]
+    on = plan["targets"].get(R.BOT, 0) > 0
+    lv = plan.get("level") or 10
+    prof = {"level": lv if lv in RB.SAT else 10, "sharia": plan.get("sharia", False)}
+    if not on:
+        st.info(L("The bot is off at your current risk level (it runs at levels 9 and 10). Its past trades stay below.",
+                  "البوت متوقف في مستوى المخاطرة الحالي (يشتغل في المستوى 9 و10). صفقاته السابقة باقية تحت."), icon=":material/power_off:")
+    else:
+        ui.html(bot_card(prof, stats_line=None))
+    if book is None:
+        return
+    d = rep["vday"]
+    val, cost = book.value(d), book.cost
+    s = RB.stats(book)
+    pos = book.positions(d)
+    n_l = sum(1 for p in pos if p["side"] == "long")
+    gain = val - cost
+    ui.html(PP.kpis([
+        ("radar", L("Bot slice", "حصة البوت"), _m(val, 2), f'{L("money in it", "المبلغ فيها")} <b>{_m(cost)}</b>', None, None),
+        ("show_chart", L("Gain", "الربح"), _m(gain, 2, True), f'<b>{_p(gain / cost * 100 if cost else 0, 1, True)}</b>', PP._k(gain), None),
+        ("target", L("Closed trades", "الصفقات المغلقة"), str(s.get("n", 0)),
+         f'{L("won", "ربحت")} <b>{_p(s.get("win"), 0) if s.get("n") else "—"}</b>', None, None),
+        ("event_repeat", L("Next scan", "المسح الجاي"), _date(next_scan()) if on else "—",
+         f'{L("Long", "شراء")} <b>{n_l}</b> · {L("Short", "مكشوف")} <b>{len(pos) - n_l}</b>', None, None)], "c4"))
+    ui.sec("radar", "Open positions", "المراكز المفتوحة")
+    ui.html(positions_html(pos))
+    if on and feats:
+        ui.sec("travel_explore", "On the radar now", "على الرادار الحين")
+        lg, sh = RB.radar(feats, prof["sharia"], n_long=10 if prof["sharia"] else 5, n_short=5)
+        ui.html(radar_html(lg, sh))
+        st.caption(L(f"Scores from the latest prices. A signal of {RB.THRESHOLD} or more can be bought or sold short at the next weekly scan, when a slot is free.",
+                     f"التقييم من آخر الأسعار. الإشارة {RB.THRESHOLD} أو أكثر ممكن تنشرى أو تنباع على المكشوف في المسح الأسبوعي الجاي إذا فيه خانة فاضية."))
+    if book.curve and len(book.curve) > 1:
+        cv = pd.DataFrame(book.curve, columns=["d", "value", "cost"]).set_index("d")
+        cv = cv[cv["cost"] > 0]
+        if len(cv) > 1:
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(x=cv.index, y=cv["value"], name=L("Bot slice", "حصة البوت"), line=dict(color=BOT_C, width=2.4), fill="tozeroy",
+                                     fillcolor=C.rgba(BOT_C, 0.10), hovertemplate="%{x|%b %d, %Y}: $%{y:,.0f}<extra></extra>"))
+            fig.add_trace(go.Scatter(x=cv.index, y=cv["cost"], name=L("Money in it", "المبلغ فيها"), line=dict(color=T.GOLD, width=1.4, dash="dash", shape="hv"),
+                                     hovertemplate="%{x|%b %d, %Y}: $%{y:,.0f}<extra></extra>"))
+            lo, hi = float(min(cv.min())), float(max(cv.max()))
+            C.style(fig, 300, L("The bot's slice", "حصة البوت"))
+            fig.update_yaxes(range=[lo - (hi - lo) * .1 - 1, hi + (hi - lo) * .1 + 1], tickprefix="$", tickformat=",.0f")
+            ui.chart(fig, key="rb_botcv")
+    if book.trades:
+        ui.sec("receipt_long", "Closed trades", "الصفقات المغلقة")
+        ui.html(trades_html(book.trades))
+
+
 def plan_page(state, row, rkey, err):
     ans = dict(ss.get("rb_ans") or {})
     if not all(ans.get(q) for q in R.QIDS):
@@ -919,12 +1295,13 @@ def plan_page(state, row, rkey, err):
     if state:                                  # a new plan for an existing robo portfolio: the money already invested stays
         amount = float(state.get("amount") or amount)
     rec = R.profile(ans)
-    pick = ss.get("rb_lvl")
-    prof = R.profile(ans, level=pick) if pick else rec
+    if not isinstance(ss.get("rb_lvl"), int):
+        ss["rb_lvl"] = int(rec["rec"])
+    prof = R.profile(ans, level=ss["rb_lvl"])
     ui.html(result_html(prof))
     s1, s2 = st.columns([2.2, 1])
     with s1:
-        st.slider(L("Fine-tune the risk level", "عدّل مستوى المخاطرة"), 1, 10, value=int(rec["rec"]), key="rb_lvl",
+        st.slider(L("Fine-tune the risk level", "عدّل مستوى المخاطرة"), 1, 10, key="rb_lvl",
                   help=L("The plan updates as you move it. Above the recommended level, the swings may be more than your answers support.",
                          "الخطة تتحدث مع التحريك. فوق المستوى الموصى به، ممكن يكون التذبذب أكبر مما تسمح فيه إجاباتك."))
     with s2:
@@ -936,22 +1313,57 @@ def plan_page(state, row, rkey, err):
                       f"أقل من مستواك الموصى به ({rec['rec']}): أهدى، وعائده المتوقع أقل."), icon=":material/info:")
     ui.sec("donut_large", "Your portfolio", "محفظتك")
     ui.html(allocation_html(prof))
+    has_bot = R.BOT in prof["targets"]
+    feats = load_bot() if has_bot else {}
+    px = R.prices([t for t in prof["targets"] if t != R.BOT] + list(R.BENCH), "5y")
+    bt, btb = R.backtest(prof, amount, monthly, px, bot=feats if has_bot else None)
+    if has_bot:
+        ui.sec("radar", "Opportunity Bot", "بوت الفرص")
+        line = bot_stats_line(bt.get("book")) if bt is not None and not bt.get("pending") else None
+        ui.html(bot_card(prof, stats_line=line))
+        if feats:
+            lg, sh = RB.radar(feats, prof["sharia"], n_long=10 if prof["sharia"] else 5, n_short=5)
+            ui.html(f'<div class="rbsub">{T.icon("travel_explore")}{L("On its radar now", "على راداره الحين")}</div>' + radar_html(lg, sh))
+        else:
+            st.info(L("The bot's prices aren't available right now, so its radar and its past are missing here. Try again in a minute.",
+                      "أسعار البوت مو متاحة الحين، فراداره وتاريخه ناقصين هنا. جرّب بعد دقيقة."), icon=":material/cloud_off:")
+    else:
+        ui.html(lock_html(rec["rec"]))
     ui.sec("query_stats", "What to expect", "وش تتوقع")
     ui.html(expect_kpis(prof))
-    proj = R.project(prof["mu"], prof["vol"], amount, monthly, prof["years"])
-    ui.chart(projection_fig(proj, prof["years"]), key="rb_proj")
+    f1, f2 = st.columns([1.25, 1])
+    with f1:
+        ui.chart(frontier_fig(prof), key="rb_front")
+    with f2:
+        ui.html(stress_html(prof))
+    ui.sec("flag", "Your future", "مستقبلك")
+    yrs = [3, 5, 10, 15, 20, 25, 30]
+    g1, g2 = st.columns([1.6, 1], vertical_alignment="bottom")
+    with g1:
+        years = st.segmented_control(L("Years", "السنوات"), yrs, default=min(yrs, key=lambda y: abs(y - prof["years"])), key="rb_years",
+                                     format_func=lambda y: L(f"{y} years", f"{y} سنة")) or prof["years"]
+    with g2:
+        goal = st.number_input(L("A goal, if you have one ($)", "هدف مالي إذا عندك ($)"), min_value=0, max_value=100_000_000, step=10_000,
+                               key="rb_goal", help=L("The chance the plan gets there in time.", "احتمال إن الخطة توصله في الوقت."))
+    proj = R.project(prof["mu"], prof["vol"], amount, monthly, years, goal=goal or None)
+    ui.chart(projection_fig(proj, years, goal or None), key="rb_proj")
     beat = proj.attrs["beat"]
-    ui.html(f'<div class="rbchips" style="margin:-4px 0 10px">'
-            f'<span class="rbchip">{T.icon("percent")}{L(f"{beat:.0f}% of the paths end above the money put in", f"{beat:.0f}% من الاحتمالات تنتهي فوق المبلغ المستثمر")}</span></div>')
+    chips = [f'<span class="rbchip">{T.icon("percent")}{L(f"{beat:.0f}% of the paths end above the money put in", f"{beat:.0f}% من الاحتمالات تنتهي فوق المبلغ المستثمر")}</span>',
+             f'<span class="rbchip">{T.icon("insights")}{L("A middle outcome", "نتيجة متوسطة")} {_ltr(_m(proj["p50"].iloc[-1]))}</span>']
+    if goal:
+        gp = proj.attrs.get("goal_p", 0)
+        chips.append(f'<span class="rbchip {"gold" if gp >= 50 else "warn"}">{T.icon("flag")}{L("Chance to reach", "احتمال الوصول لـ")} {_ltr(_m(goal))}: '
+                     f'<b>{_ltr("%.0f%%" % gp)}</b></span>')
+    ui.html(f'<div class="rbchips" style="margin:-4px 0 10px">{"".join(chips)}</div>')
     ui.sec("history", "The last five years", "آخر خمس سنوات")
-    px = R.prices(list(prof["targets"]) + list(R.BENCH), "5y")
-    bt, btb = R.backtest(prof, amount, monthly, px)
     if bt is not None and not bt.get("pending"):
         start = bt["curve"].index[0]
         ui.chart(lines_fig(bt, btb, L(f"Your plan since {_date(start)}, with the same deposits", f"خطتك من {_date(start)} بنفس الإيداعات")), key="rb_bt")
         ui.html(f'<div class="rbtw">{_mtab(R.metrics(bt["curve"]), R.metrics(btb["curve"]))}</div>')
         st.caption(L("Real daily prices with dividends reinvested, managed by the same rules. The benchmark holds global stocks (VT) and US bonds (BND) at the same stock share. Past results do not repeat.",
-                     "أسعار يومية حقيقية مع إعادة استثمار التوزيعات، وبنفس قواعد الإدارة. المؤشر المرجعي فيه أسهم عالمية (VT) وسندات أمريكية (BND) بنفس نسبة الأسهم. النتائج السابقة ما تتكرر بالضرورة."))
+                     "أسعار يومية حقيقية مع إعادة استثمار التوزيعات، وبنفس قواعد الإدارة. المؤشر المرجعي فيه أسهم عالمية (VT) وسندات أمريكية (BND) بنفس نسبة الأسهم. النتائج السابقة ما تتكرر بالضرورة.")
+                   + (L(" The bot's list is today's companies, so its past looks better than it really was.",
+                        " قائمة البوت هي شركات اليوم، فماضيه يطلع أحسن من الحقيقة.") if has_bot else ""))
     else:
         st.info(L("The price history isn't available right now. Try again in a minute.", "تاريخ الأسعار مو متاح الحين. جرّب بعد دقيقة."), icon=":material/cloud_off:")
     ui.sec("description", "Your Investment Policy Statement", "بيان سياسة الاستثمار")
@@ -1083,8 +1495,8 @@ def holdings_html(rows):
         g = r["gain"]
         gp = g / r["cost"] * 100 if r["cost"] > 0 else 0
         k = "up" if g > 0.005 else "dn" if g < -0.005 else ""
-        units = "—" if r["t"] == "CASH" else f'{r["units"]:,.4f}'
-        price = "—" if r["t"] == "CASH" else _m(r["price"], 2)
+        units = "—" if r["t"] in ("CASH", R.BOT) or r["units"] is None else f'{r["units"]:,.4f}'
+        price = "—" if r["t"] in ("CASH", R.BOT) or r["price"] is None else _m(r["price"], 2)
         body += (f'<tr><td><span class="tk" style="--c:{f["c"]}">{r["t"]}</span><span class="cl">{_esc(f["cls"])}</span></td><td class="n">{_ltr(units)}</td>'
                  f'<td class="n">{_ltr(price)}</td><td class="n"><b>{_ltr(_m(r["value"], 2))}</b></td><td class="n">{_ltr("%.1f%%" % r["weight"])}</td>'
                  f'<td class="n">{_ltr("%g%%" % r["target"])}</td><td class="n {k}">{_ltr("%s (%+.1f%%)" % (_m(g, 2, True), gp))}</td></tr>')
@@ -1122,6 +1534,8 @@ def dash_hero(state, rep, err):
              f'<span class="chip">{T.icon("speed")}{L("Level", "المستوى")} <b>{lv}/10 · {_esc(_prof_name(lv))}</b></span>']
     if plan.get("sharia"):
         chips.append(f'<span class="chip">{T.icon("mosque")}<b>{L("Sharia-compliant", "متوافقة مع الشريعة")}</b></span>')
+    if plan["targets"].get(R.BOT):
+        chips.append(f'<span class="chip">{T.icon("radar")}{L("Opportunity Bot", "بوت الفرص")} <b>{_ltr("%g%%" % plan["targets"][R.BOT])}</b></span>')
     badge = (f'<span class="rbauto wait"><i></i>{L("Waiting for the first close", "بانتظار أول إغلاق")}</span>' if rep["pending"] else
              f'<span class="rbauto"><i></i>{L("Autopilot on", "الإدارة التلقائية شغالة")}</span>')
     if rep.get("missing"):
@@ -1236,9 +1650,11 @@ def manage(state, row, rkey, err):
 
 
 def dashboard(state, row, rkey, err):
-    tick = sorted({t for p in state["plans"] for t in p["targets"]} | set(R.BENCH))
+    tick = sorted({t for p in state["plans"] for t in p["targets"] if t != R.BOT} | set(R.BENCH))
+    has_bot = any(R.BOT in p["targets"] for p in state["plans"])
+    feats = load_bot() if has_bot else {}
     px = R.prices(tick, "5y")
-    rep = R.replay(state, px)
+    rep = R.replay(state, px, bot=feats if has_bot else None)
     bm = R.replay(state, px, bench=True)
     ui.html(dash_hero(state, rep, err))
     if err is not None:
@@ -1246,14 +1662,27 @@ def dashboard(state, row, rkey, err):
                      "الحفظ مو متاح الحين: هالمحفظة الآلية لهالزيارة فقط."), icon=":material/cloud_off:")
     if rep.get("missing"):
         st.info(L("Prices aren't available right now. Try again in a minute.", "الأسعار مو متاحة الحين. جرّب بعد دقيقة."), icon=":material/cloud_off:")
-    if rep["pending"] and not rep.get("missing"):
-        first, amt = _date(rep["start"]), _m(state["amount"])
-        ui.html(f'<div class="rbpend">{T.icon("hourglass_top")}<div><b>{L("Your first investment is on its way", "أول استثمار في الطريق")}</b>'
-                f'<span>{L(f"{amt} goes in at the close of {first}, split across your funds by their targets. Then the robo takes it from there.", f"{amt} تدخل مع إغلاق {first}، موزعة على صناديقك حسب نسبها. وبعدها المستشار الآلي يكمل الباقي.")}</span></div></div>')
-    ui.html(next_html(state, rep))
-    if not rep["pending"]:
-        cur = rep["curve"]
-        m, mb = R.metrics(cur), R.metrics(bm["curve"]) if not bm.get("pending") else {}
+    if has_bot and not feats:
+        st.info(L("The Opportunity Bot's prices aren't available right now: its slice shows as cash until they load. Try again in a minute.",
+                  "أسعار بوت الفرص مو متاحة الحين: حصته تظهر كنقد لين تتحمّل. جرّب بعد دقيقة."), icon=":material/cloud_off:")
+    if rep["pending"]:
+        if not rep.get("missing"):
+            first, amt = _date(rep["start"]), _m(state["amount"])
+            ui.html(f'<div class="rbpend">{T.icon("hourglass_top")}<div><b>{L("Your first investment is on its way", "أول استثمار في الطريق")}</b>'
+                    f'<span>{L(f"{amt} goes in at the close of {first}, split across your funds by their targets. Then the robo takes it from there.", f"{amt} تدخل مع إغلاق {first}، موزعة على صناديقك حسب نسبها. وبعدها المستشار الآلي يكمل الباقي.")}</span></div></div>')
+        ui.html(next_html(state, rep))
+        plan_tab(state, row, rkey, err)
+        return
+    names = [L(":material/space_dashboard: Overview", ":material/space_dashboard: نظرة عامة"),
+             L(":material/donut_large: Allocation", ":material/donut_large: التوزيع")]
+    if has_bot:
+        names.append(L(":material/radar: Opportunity Bot", ":material/radar: بوت الفرص"))
+    names += [L(":material/history: Activity", ":material/history: النشاط"), L(":material/tune: Plan & settings", ":material/tune: الخطة والإعدادات")]
+    tabs = st.tabs(names)
+    cur = rep["curve"]
+    with tabs[0]:
+        ui.html(next_html(state, rep))
+        m = R.metrics(cur)
         val = rep["live"]["value"] if rep.get("live") else float(cur["value"].iloc[-1])
         bval = None if bm.get("pending") else (bm["live"]["value"] if bm.get("live") else float(bm["curve"]["value"].iloc[-1]))
         vs = val - bval if bval else None
@@ -1270,12 +1699,16 @@ def dashboard(state, row, rkey, err):
                                        format_func=lambda k: {"1m": L("1M", "شهر"), "3m": L("3M", "3 أشهر"), "ytd": L("YTD", "من بداية السنة"),
                                                               "1y": L("1Y", "سنة"), "all": L("All", "الكل")}[k]) or "all"
             ui.chart(lines_fig(rep, bm, L("Value, money put in and the benchmark", "القيمة والمبلغ المستثمر والمؤشر المرجعي"), rng), key="rb_perf")
+            heat = heat_html(R.monthly_returns(cur))
+            if heat:
+                ui.sec("calendar_month", "Month by month", "شهر بشهر")
+                ui.html(heat)
         else:
             ui.html(PP.empty("insights", L("The chart starts after the next close", "الرسم يبدأ بعد الإغلاق الجاي"),
                              L("The value is recorded at every close.", "القيمة تنسجل مع كل إغلاق.")))
-        rows = R.holdings(rep)
-        ui.sec("donut_large", "Allocation: now vs target", "التوزيع: الحالي مقابل المستهدف")
-        tot = sum(r["weight"] for r in rows if _fund(r["t"])["g"] == "stocks")
+    rows = R.holdings(rep)
+    with tabs[1]:
+        tot = sum(r["weight"] for r in rows if _fund(r["t"])["g"] in ("stocks", "bot"))
         a1, a2 = st.columns([1, 1.6])
         with a1:
             ui.html(donut_svg([(r["t"], r["weight"]) for r in rows], f"{tot:.0f}%", L("stocks now", "أسهم حالياً"),
@@ -1285,12 +1718,22 @@ def dashboard(state, row, rkey, err):
             ui.html(drift_html(rows))
         ui.sec("inventory_2", "Holdings", "المراكز")
         ui.html(holdings_html(rows))
-        ui.sec("history", "What the robo did", "اللي سواه المستشار الآلي")
+    k = 2
+    if has_bot:
+        with tabs[k]:
+            bot_tab(state, rep, feats)
+        k += 1
+    with tabs[k]:
         ev = rep["events"]
-        ui.html(timeline_html(ev, 8))
-        if len(ev) > 8:
+        ui.html(timeline_html(ev, 12))
+        if len(ev) > 12:
             with st.expander(L(f"All {len(ev)} actions", f"كل الإجراءات ({len(ev)})"), icon=":material/list:"):
                 ui.html(timeline_html(ev))
+    with tabs[k + 1]:
+        plan_tab(state, row, rkey, err)
+
+
+def plan_tab(state, row, rkey, err):
     plan = state["plans"][-1]
     ans = state.get("answers") or {}
     if ans:
@@ -1303,6 +1746,7 @@ def dashboard(state, row, rkey, err):
                                file_name="TURA-IPS.html", mime="text/html", icon=":material/download:", key="rb_ips_dl2")
     manage(state, row, rkey, err)
     ui.html(note())
+
 
 
 # =====================================================================
@@ -1333,4 +1777,4 @@ def page_robo():
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "20.8"
+BUILD = "20.9"
