@@ -45,11 +45,25 @@ def t(name, fn):
 
 
 def main():
+    try:
+        _main()
+    except Exception:
+        log("CRASH", traceback.format_exc())
+    open(os.path.join(OUT, "saudi_probe2.txt"), "w", encoding="utf-8").write("\n".join(LINES) + "\n")
+    json.dump(J, open(os.path.join(OUT, "saudi_probe2.json"), "w", encoding="utf-8"), ensure_ascii=False, default=str)
+    return 0
+
+
+def _main():
     log("yfinance", yf.__version__)
     today = date.today()
     s0, s1 = (today - timedelta(days=45)).isoformat(), (today + timedelta(days=60)).isoformat()
-    from yfinance.calendars import CalendarQuery
-    cal = yf.Calendars(start=s0, end=s1)
+    try:
+        from yfinance.calendars import CalendarQuery
+    except Exception:
+        log("no CalendarQuery:", traceback.format_exc()[-400:])
+        CalendarQuery = None
+    cal = t("Calendars()", lambda: yf.Calendars(start=s0, end=s1))
 
     def earn(region):
         q = CalendarQuery("and", [CalendarQuery("eq", ["region", region]),
@@ -163,9 +177,6 @@ def main():
     for s in ["^TASI.SR", "^TASI", "TASI.SR", "^TASISR", "KSA", "FLSA", "^NOMUC.SR"] + tasi.top(25):
         t(f"history max {s}", lambda s=s: (lambda d: (len(d), str(d.index[0].date()) if len(d) else None))(yf.Ticker(s).history(period="max")))
 
-    open(os.path.join(OUT, "saudi_probe2.txt"), "w", encoding="utf-8").write("\n".join(LINES) + "\n")
-    json.dump(J, open(os.path.join(OUT, "saudi_probe2.json"), "w", encoding="utf-8"), ensure_ascii=False, default=str)
-    return 0
 
 
 if __name__ == "__main__":

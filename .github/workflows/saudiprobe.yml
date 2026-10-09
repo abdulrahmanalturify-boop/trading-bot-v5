@@ -24,12 +24,12 @@ jobs:
           python-version: "3.11"
           cache: pip
       - run: pip install -r requirements.txt
-      - run: python scripts/saudi_probe2.py 2>&1 | tee probe2_log.txt
+      - run: python scripts/saudi_probe2.py 2>&1 | tee saudi_probe2_log.txt
       - if: always()
         run: |
           git config user.name "research-lab"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          mkdir -p /tmp/sa && cp probe2_log.txt /tmp/sa/ && cp research/results/saudi_probe2.* /tmp/sa/ 2>/dev/null || true
+          mkdir -p /tmp/sa && cp saudi_probe2_log.txt /tmp/sa/ && cp research/results/saudi_probe2.* /tmp/sa/ 2>/dev/null || true
           git fetch -q origin research
           git checkout -q -B upd origin/research
           mkdir -p research/results && cp /tmp/sa/* research/results/ 2>/dev/null || true
