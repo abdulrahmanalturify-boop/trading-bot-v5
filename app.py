@@ -349,7 +349,7 @@ def market_switch():
             sp = MK.SPEC[code]
             on = code == cur
             with st.container(key=f"mkt_{code}{'_on' if on else ''}", width="content"):
-                st.button(L("US", "أمريكي") if code == MK.US else L("Saudi", "سعودي"), key=f"mktb_{code}",
+                st.button(L("US", "أمريكي") if code == MK.US else L("TASI", "تاسي"), key=f"mktb_{code}",
                           on_click=_set_market, args=(code,), help=L(*sp["name"]) + " · " + L(*sp["venue"]))
 
 
