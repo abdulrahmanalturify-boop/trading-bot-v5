@@ -111,6 +111,21 @@ QUESTIONS = [
               ("some", "event_repeat", "A little each year", "شوي كل سنة", "Up to about 5% a year", "تقريباً لين 5% بالسنة", 2.5, {"cash": 5}),
               ("big", "shopping_bag", "A large part within 2 years", "جزء كبير خلال سنتين", "A home, a wedding, studies...",
                "بيت، زواج، دراسة...", 0, {"cash": 20})]},
+    {"id": "risk", "sec": "will", "score": "will", "icon": "speed",
+     "en": "How would you describe your risk tolerance?", "ar": "كيف توصف تحمّلك للمخاطر؟",
+     "why_en": "Five grades from conservative to aggressive. The plan never goes beyond the grade you pick, and stays lower if your "
+               "other answers call for it.",
+     "why_ar": "خمس درجات من المتحفظ إلى الجريء. الخطة ما تتعدى الدرجة اللي تختارها، وتنزل عنها إذا إجاباتك الثانية تتطلب كذا.",
+     "opts": [("conservative", "shield", "Conservative", "متحفظ", "Protect what I have; small, steady gains",
+               "أحمي اللي عندي، ونمو بسيط وثابت", 0, {"cap": 2, "lv": 2}),
+              ("modcons", "security", "Moderately conservative", "متحفظ معتدل", "Mostly stability, a little growth",
+               "استقرار أكثر مع شوية نمو", 1, {"cap": 4, "lv": 4}),
+              ("moderate", "balance", "Moderate", "معتدل", "A balance of growth and stability", "توازن بين النمو والاستقرار", 2,
+               {"cap": 6, "lv": 6}),
+              ("modagg", "trending_up", "Moderately aggressive", "جريء معتدل", "Growth first; clear swings are fine",
+               "النمو أولاً، وأتقبل تقلبات واضحة", 3, {"cap": 8, "lv": 8}),
+              ("aggressive", "rocket_launch", "Aggressive", "جريء", "The most growth; big swings are fine",
+               "أعلى نمو حتى مع تقلبات كبيرة", 4, {"cap": 10, "lv": 10})]},
     {"id": "drop", "sec": "will", "score": "will", "icon": "trending_down",
      "en": "Your portfolio falls 20% in a few months. What do you do?", "ar": "محفظتك نزلت 20% خلال كم شهر. وش تسوي؟",
      "why_en": "Markets have done this many times (2008, 2020, 2022). What you would really do matters more than any number.",
@@ -197,9 +212,15 @@ BENCH = ("VT", "BND")                   # the policy benchmark: global stocks an
 CORE = {1: (10, 45, 15, 25, 0, 5), 2: (20, 45, 12, 15, 3, 5), 3: (30, 42, 10, 8, 5, 5), 4: (40, 38, 7, 5, 5, 5),
         5: (50, 32, 5, 3, 5, 5), 6: (60, 26, 4, 0, 5, 5), 7: (70, 19, 1, 0, 5, 5), 8: (80, 12, 0, 0, 4, 4),
         9: (88, 6, 0, 0, 3, 3), 10: (95, 0, 0, 0, 3, 2)}
-PROFILES = {1: ("Conservative", "محافظ"), 2: ("Conservative", "محافظ"), 3: ("Moderately conservative", "متحفظ معتدل"),
-            4: ("Moderately conservative", "متحفظ معتدل"), 5: ("Balanced", "متوازن"), 6: ("Balanced", "متوازن"),
-            7: ("Growth", "نمو"), 8: ("Growth", "نمو"), 9: ("Aggressive growth", "نمو جريء"), 10: ("Aggressive growth", "نمو جريء")}
+# the five grades of risk tolerance, conservative to aggressive: two levels each (1-2, 3-4, 5-6, 7-8, 9-10)
+TIERS = [("conservative", "Conservative", "متحفظ"), ("modcons", "Moderately conservative", "متحفظ معتدل"), ("moderate", "Moderate", "معتدل"),
+         ("modagg", "Moderately aggressive", "جريء معتدل"), ("aggressive", "Aggressive", "جريء")]
+PROFILES = {lv: TIERS[(lv - 1) // 2][1:] for lv in range(1, 11)}
+
+
+def tier(level):
+    """0..4: the grade of a risk level."""
+    return (int(min(10, max(1, level))) - 1) // 2
 
 # long-run assumptions per sleeve: expected return a year, volatility (percent) - for the projection, not a promise
 ASSUME = {"us": (7.0, 16.0), "div": (6.8, 14.0), "intl": (6.5, 17.0), "em": (7.5, 22.0), "bond": (4.2, 6.0), "tips": (3.8, 3.0),
@@ -332,6 +353,9 @@ def profile(ans, level=None):
     o = opt("goal", ans.get("goal"))
     if o and "cap" in o[7]:
         caps.append(("goal", o[7]["cap"]))
+    o = opt("risk", ans.get("risk"))
+    if o:
+        caps.append(("tolerance", o[7]["cap"]))
     o = opt("maxloss", ans.get("maxloss"))
     if o:
         loss = o[7]["loss"]
@@ -344,7 +368,7 @@ def profile(ans, level=None):
     lv = rec if level is None else int(min(10, max(1, level)))
     sl = sleeves(lv, ex["income"], ex["cash"], ex["sharia"])
     mu, vol, bad = expected(sl, ex["sharia"])
-    return {"crisis": stress(sl, ex["sharia"]), "ability": ab, "will": wl, "raw": raw, "rec": rec, "level": lv, "caps": caps, "binding": binding,
+    return {"crisis": stress(sl, ex["sharia"]), "stated": ans.get("risk"), "ability": ab, "will": wl, "raw": raw, "rec": rec, "level": lv, "caps": caps, "binding": binding,
             "governs": "ability" if ab < wl else "will" if wl < ab else "both", **ex,
             "sleeves": sl, "targets": targets(sl, ex["sharia"]), "mu": mu, "vol": vol, "bad": bad, "stocks": round(stock_share(sl), 1)}
 
@@ -353,7 +377,14 @@ def partial_level(ans):
     """The level the answers given so far point to (for the live meter in the questionnaire), None before any."""
     ab, wl = score(ans, "ability"), score(ans, "will")
     got = [s for s in (ab, wl) if s is not None]
-    return to_level(min(got)) if got else None
+    if not got:
+        return None
+    lv = to_level(min(got))
+    for qid in ("horizon", "goal", "risk"):           # the limits the answers set (a short horizon, the goal, the grade picked)
+        o = opt(qid, ans.get(qid))
+        if o and "cap" in o[7]:
+            lv = min(lv, o[7]["cap"])
+    return lv
 
 
 # ---------------------------------------------------------------- projection (Monte Carlo)
@@ -788,4 +819,4 @@ def delete(row_id, key):
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "20.7"
+BUILD = "20.8"

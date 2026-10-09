@@ -1,2 +1,2 @@
-TURA Pro - version 20.7 (Robo Advisor under Portfolio: an IPS questionnaire, a portfolio of ETFs that fits the answers, managed automatically with virtual money)
+TURA Pro - version 20.8 (Robo Advisor: a risk tolerance question in the IPS with five grades, conservative to aggressive)
 If you can see this file on GitHub, the new version was uploaded correctly.

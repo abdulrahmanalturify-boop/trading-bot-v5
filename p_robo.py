@@ -140,6 +140,11 @@ CSS = f"""<style>
 .rbo .dep i {{ position:absolute; left:0; right:0; top:0; background:linear-gradient(180deg,rgba(248,113,113,.25),rgba(248,113,113,.85));
   border-bottom:2px solid #F87171; animation:rbdepth .9s cubic-bezier(.2,.8,.2,1) both; animation-delay:calc(var(--i) * 70ms + .2s); }}
 @keyframes rbdepth {{ from {{ height:0; }} }}
+.rbo .tx .mixw {{ display:flex; align-items:center; justify-content:center; gap:7px; margin-top:4px; }}
+.rbo .tx .mix {{ display:block; width:64px; height:7px; border-radius:6px; overflow:hidden; background:rgba(52,211,153,.4); direction:ltr; }}
+.rbo .tx .mix i {{ display:block; height:100%; background:linear-gradient(90deg,#3B8BEB,#60A5FA); animation:rbbar .8s cubic-bezier(.2,.8,.2,1) both;
+  animation-delay:calc(var(--i) * 70ms + .2s); }}
+.rbo .tx .mixw em {{ font-style:normal; font-size:.72rem; font-weight:700; color:#B9B3C4; }}
 .rbo .rng {{ width:100%; max-width:200px; direction:ltr; }}
 .rbo .rng .tr {{ display:block; position:relative; height:12px; border-radius:6px; background:rgba(157,151,165,.13); }}
 .rbo .rng .tr::after {{ content:""; position:absolute; left:50%; top:-3px; bottom:-3px; width:2px; margin-left:-1px; background:rgba(255,255,255,.55); border-radius:2px; }}
@@ -171,6 +176,7 @@ CSS = f"""<style>
   .rbo .big {{ font-size:1.35rem; min-width:64px; }}
   .rbo .dep {{ order:3; width:34px; height:30px; margin-inline-start:auto; }}
   .rbo .rng {{ max-width:none; flex:1; }}
+  .rbo .tx .mixw {{ justify-content:flex-start; }}
   .rbq {{ padding:16px 16px 14px; }} .rbq h2 {{ font-size:1.2rem; }}
 }}
 .rbfund {{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin:2px 0 12px; }}
@@ -194,6 +200,19 @@ CSS = f"""<style>
 .rbres h2 {{ color:#fff; font-size:1.75rem; font-weight:800; margin:6px 0 6px; padding:0; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }}
 .rbres h2 .lv {{ font-size:.8rem; font-weight:700; border-radius:999px; padding:4px 11px; color:#0E0918; background:var(--lc,#60A5FA); }}
 .rbres p {{ color:#CFC8DA; font-size:.9rem; line-height:1.6; margin:0 0 10px; }}
+.rbtier {{ display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:5px; margin:2px 0 10px; }}
+.rbtier span {{ position:relative; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; min-height:34px;
+  padding:5px 4px; border-radius:10px; text-align:center; background:rgba(157,151,165,.1); border:1px solid rgba(157,151,165,.2);
+  animation:rbup .4s cubic-bezier(.2,.8,.2,1) both; animation-delay:calc(var(--i) * 50ms); }}
+.rbtier span::before {{ content:""; position:absolute; left:8px; right:8px; top:-1px; height:3px; border-radius:3px; background:var(--c); opacity:.55; }}
+.rbtier b {{ color:#B9B3C4; font-size:.72rem; font-weight:700; line-height:1.25; }}
+.rbtier em {{ font-style:normal; font-size:.62rem; font-weight:700; color:var(--c); }}
+.rbtier span.on {{ background:linear-gradient(160deg, color-mix(in srgb, var(--c) 30%, transparent), rgba(19,14,34,.4)); border-color:var(--c);
+  box-shadow:0 8px 20px -12px var(--c); }}
+.rbtier span.on::before {{ opacity:1; }}
+.rbtier span.on b {{ color:#fff; }}
+.rbtier span.you:not(.on) {{ border-style:dashed; border-color:var(--c); }}
+@media (max-width: 640px) {{ .rbtier {{ gap:3px; }} .rbtier b {{ font-size:.62rem; }} .rbtier span {{ padding:5px 2px; }} }}
 .rbsc {{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px 18px; margin:4px 0 10px; }}
 .rbsc .h {{ display:flex; justify-content:space-between; color:#CFC8DA; font-size:.78rem; font-weight:600; }}
 .rbsc .h b {{ color:#fff; direction:ltr; unicode-bidi:isolate; }}
@@ -407,7 +426,8 @@ def _art():
 
 
 def intro(has_store=True):
-    steps = [("quiz", L("Answer 12 questions", "جاوب على 12 سؤال"),
+    nq = len(R.QIDS)
+    steps = [("quiz", L(f"Answer {nq} questions", f"جاوب على {nq} سؤال"),
               L("Your goals, time horizon, and the risk you are able and willing to take: the heart of an IPS.",
                 "أهدافك ومدة استثمارك والمخاطرة اللي تقدر عليها وتتقبلها: هذا قلب بيان سياسة الاستثمار.")),
              ("donut_large", L("Get your plan", "استلم خطتك"),
@@ -491,6 +511,11 @@ def tile_html(q, o, i, on):
     if q["id"] == "maxloss":
         dep = min(x["loss"], 45) / 45 * 100
         body = f'<span class="big">{_esc(_lab(o))}</span><span class="tx"><span>{_esc(_sub(o))}</span></span><span class="dep"><i style="height:{dep:.0f}%"></i></span>'
+    elif q["id"] == "risk":
+        stocks = R.stock_share(R.sleeves(x["lv"]))
+        body = (f'<span class="ic">{T.icon(o[1])}</span><span class="tx"><b>{_esc(_lab(o))}</b><span>{_esc(_sub(o))}</span>'
+                f'<span class="mixw"><span class="mix"><i style="width:{stocks:.0f}%"></i></span>'
+                f'<em>{L("stocks", "أسهم")} {_ltr("%.0f%%" % stocks)}</em></span></span>')
     elif q["id"] == "range":
         lo, hi = abs(x["lo"]) / 40 * 50, x["hi"] / 40 * 50
         body = (f'<span class="big">{_esc(_lab(o))}</span><span class="rng"><span class="tr"><i class="lo" style="width:{lo:.1f}%"></i>'
@@ -616,11 +641,27 @@ def _why_text(prof):
     else:
         s = L("Your ability and your willingness to take risk agree.", "قدرتك ورغبتك في المخاطرة متفقة.")
     reasons = {"horizon": L("your time horizon", "مدة استثمارك"), "goal": L("your goal", "هدفك"),
+               "tolerance": L("the risk tolerance you picked", "درجة تحمّل المخاطر اللي اخترتها"),
                "loss": L("the largest loss you accept in a bad year", "أقصى خسارة تتقبلها في سنة سيئة")}
     if prof["binding"]:
         names = L(" and ", " و").join(reasons[k] for k in prof["binding"])
         s += " " + L(f"It is then limited to level {rec} by {names}.", f"وبعدها انحدّ عند المستوى {rec} بسبب {names}.")
     return s
+
+
+TIER_COLORS = [LEVEL_COLORS[2 * i + 1] for i in range(5)]
+
+
+def tiers_html(prof, stated=None):
+    """The five grades of risk tolerance, conservative to aggressive: the plan's grade lit, the grade the investor picked marked."""
+    cur = R.tier(prof["level"])
+    pick = next((i for i, t in enumerate(R.TIERS) if t[0] == (stated or prof.get("stated"))), None)
+    out = []
+    for i, (k, en, ar) in enumerate(R.TIERS):
+        cls = ("on " if i == cur else "") + ("you" if i == pick else "")
+        mark = f'<em>{L("your pick", "اختيارك")}</em>' if i == pick else ""
+        out.append(f'<span class="{cls.strip()}" style="--c:{TIER_COLORS[i]};--i:{i}"><b>{_esc(L(en, ar))}</b>{mark}</span>')
+    return f'<div class="rbtier">{"".join(out)}</div>'
 
 
 def result_html(prof):
@@ -644,7 +685,7 @@ def result_html(prof):
     lg = col.lstrip("#")
     glow = f"rgba({int(lg[0:2], 16)},{int(lg[2:4], 16)},{int(lg[4:6], 16)},.24)"
     return (f'<div class="rbres" style="--lg:{glow};--lc:{col}">{gauge_svg(lv)}<div><div class="eb">{L("Your risk profile", "ملفك الاستثماري")}</div>'
-            f'<h2>{_esc(_prof_name(lv))}<span class="lv">{L("Level", "المستوى")} {lv}/10</span></h2><p>{_esc(_why_text(prof))}</p>'
+            f'<h2>{_esc(_prof_name(lv))}<span class="lv">{L("Level", "المستوى")} {lv}/10</span></h2>{tiers_html(prof)}<p>{_esc(_why_text(prof))}</p>'
             f'<div class="rbsc">{bars}</div><div class="rbchips">{"".join(chips)}</div></div></div>')
 
 
@@ -788,6 +829,8 @@ def ips_parts(prof, ans, amount, monthly, created=None):
             (L("Return objective", "العائد المستهدف"), L(f"about {_i(_p(prof['mu']))} a year over the long run", f"تقريباً {_i(_p(prof['mu']))} سنوياً على المدى الطويل")),
             (L("Time horizon", "مدة الاستثمار"), years)]),
         ("shield_person", L("Risk tolerance", "تحمّل المخاطر"), [
+            (L("Stated risk tolerance", "تحمّل المخاطر المُعلن"), _answer("risk", ans) + ("" if not is_ar() or not R.opt("risk", ans.get("risk"))
+                                                                                     else f' ({R.opt("risk", ans.get("risk"))[2]})')),
             (L("Ability to take risk", "القدرة على المخاطرة"), _i("%.1f/10" % prof["ability"]) + " · " + word(prof["ability"])),
             (L("Willingness", "الرغبة في المخاطرة"), _i("%.1f/10" % prof["will"]) + " · " + word(prof["will"])),
             (L("Risk level", "مستوى المخاطرة"), _i("%d/10" % lvl) + " · " + _prof_name(lvl) + ("" if lvl == prof["rec"] else L(f" (recommended {prof['rec']})", f" (الموصى به {prof['rec']})"))),
@@ -1290,4 +1333,4 @@ def page_robo():
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "20.7"
+BUILD = "20.8"
