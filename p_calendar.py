@@ -155,7 +155,7 @@ def etile(r):
     res = ""
     if pd.notna(r.EPS) and pd.notna(r.Surprise):
         res = f'<i class="rs {"b" if r.Surprise >= 0 else "m"}"></i>'
-    tip = f"{r.Company} ({r.Symbol})"
+    tip = f"{T.sym_label(r.Symbol, default=r.Company)}" if str(r.Symbol).endswith(".SR") else f"{r.Company} ({r.Symbol})"
     if pd.notna(r.Cap):
         tip += f" · {L('Market cap', 'القيمة السوقية')} {usd(r.Cap)}"
     if pd.notna(r.Est):   # EPS Est
@@ -163,7 +163,7 @@ def etile(r):
     if pd.notna(r.EPS):
         tip += f" · {L('Reported', 'المُعلن')} {r.EPS:.2f} ({spct(r.Surprise)})"
     return (f'<a class="et" href="{ui.href(r.Symbol)}" target="_self" title="{T.esc(tip)}">{T.logo_obj(r.Symbol, 40)}'
-            f'<span class="tk"><bdi>{T.esc(r.Symbol)}</bdi></span>{res}</a>')
+            f'<span class="tk"><bdi>{T.esc(T.sym_label(r.Symbol)[:16])}</bdi></span>{res}</a>')
 
 
 def hub_grid(df, ipo, mon, lim=12):
@@ -220,7 +220,7 @@ def day_table(day):
         if pd.notna(r.Surprise):
             sur = f'<span class="pill {"pos" if r.Surprise >= 0 else "neg"}">{spct(r.Surprise)}</span>'
         rows.append(f'<div class="erow"><a class="lnk" href="{ui.href(r.Symbol)}" target="_self">{T.logo_obj(r.Symbol, 34)}'
-                    f'<span class="nm"><b><bdi>{T.esc(r.Symbol)}</bdi></b><small>{T.esc(r.Company)}</small></span></a>'
+                    f'<span class="nm"><b><bdi>{T.esc(T.sym_label(r.Symbol, default=r.Company))}</bdi></b><small>{T.esc(T.name_line(r.Symbol, r.Company))}</small></span></a>'
                     f'<span class="when {r.When}">{T.icon(ic)}{L(en, ar)}</span>'
                     f'<span class="q">{T.esc(r.Quarter) if isinstance(r.Quarter, str) else "—"}</span>'
                     f'<span class="v">{num(r.Est)}</span><span class="v">{num(r.EPS)}</span><span class="v">{sur or "—"}</span>'
@@ -256,8 +256,8 @@ def page_earnings_hub_sa():
             st.info(L(f"“{q}” is not expected to report this week.", f"«{q}» ما هي متوقعة تعلن نتائجها هذا الأسبوع."), icon=":material/search_off:")
         else:
             ui.html('<div class="ehit">' + "".join(
-                f'<a class="lnk chip" href="{ui.href(r.Symbol)}" target="_self">{T.logo_obj(r.Symbol, 26)}<b><bdi>{T.esc(r.Symbol)}</bdi></b>'
-                f'<span>{dshort(r.Date)} · {T.esc(str(r.Company)[:24])}</span></a>' for r in hit.head(8).itertuples()) + "</div>")
+                f'<a class="lnk chip" href="{ui.href(r.Symbol)}" target="_self">{T.logo_obj(r.Symbol, 26)}<b><bdi>{T.esc(T.sym_label(r.Symbol, default=r.Company))}</bdi></b>'
+                f'<span>{dshort(r.Date)}</span></a>' for r in hit.head(8).itertuples()) + "</div>")
     rep_ = df[df["EPS"].notna()]
     beat = int((rep_["Surprise"] > 0).sum()) if not rep_.empty else 0
     big = [str(c)[:16] for c in df.head(3)["Company"]]
@@ -360,7 +360,7 @@ def result_card(r, px, rev, react):
     kind = "neu" if pd.isna(sur) or abs(sur) < 0.5 else ("beat" if sur > 0 else "miss")
     ic, en, ar = WHEN[r.When]
     q = r.Quarter if isinstance(r.Quarter, str) and r.Quarter else ""
-    title = f"\u2066{r.Symbol}\u2069 {q} {L('Earnings', 'نتائج')}".replace("  ", " ")
+    title = f"\u2066{T.sym_label(r.Symbol, default=r.Company)}\u2069 {q} {L('Earnings', 'نتائج')}".replace("  ", " ")
     p, chg = px.get(r.Symbol, (None, None))
     price = (f'<div class="p">{T.fmt_price(p)}</div>{T.pill(chg)}' if p is not None else "")
     rx = react.get(r.Symbol)
@@ -378,7 +378,7 @@ def result_card(r, px, rev, react):
     if pd.isna(r.EPS):
         verdict = ("hourglass_top", "Waiting for results", "بانتظار النتائج")
     return (f'<div class="ecard {kind}"><div class="top"><a class="lnk" href="{ui.href(r.Symbol)}" target="_self">{T.logo_obj(r.Symbol, 44)}</a>'
-            f'<div class="t"><div class="nm">{T.esc(title)}</div><div class="co">{T.esc(r.Company)}</div>'
+            f'<div class="t"><div class="nm">{T.esc(title)}</div><div class="co">{T.esc(T.name_line(r.Symbol, r.Company))}</div>'
             f'<div class="d">{T.icon(ic)}{dshort(r.Date)} · {L(en, ar)}</div></div><div class="px">{price}{rx_html}</div></div>'
             f'<table class="res"><tr><th></th><th>{L("Estimate", "المتوقع")}</th><th>{L("Actual", "الفعلي")}</th><th>{L("Surprise", "المفاجأة")}</th></tr>'
             f'<tr><td class="k">EPS</td><td>{num(r.Est)}</td><td class="a">{num(r.EPS)}</td><td class="{eps_cls}">{spct(sur)}</td></tr>'
@@ -444,10 +444,10 @@ def page_earnings_results():
     kpis([("fact_check", L("Companies reported", "شركات أعلنت"), f"{len(rep)}", f"{T.esc(dshort(start))} → {T.esc(dshort(end))}", None),
           ("verified", L("Beat rate", "نسبة التفوق"), f"{rate:.0f}%", L(f"{beats} beat · {misses} missed", f"{beats} تفوقت · {misses} أقل"),
            "pos" if rate >= 60 else ("neg" if rate < 45 else None)),
-          ("trending_up", L("Biggest beat", "أكبر مفاجأة إيجابية"), (f"{best['Symbol']} {spct(best['Surprise'])}" if best is not None else "—"),
-           T.esc(str(best["Company"])[:26]) if best is not None else "", "pos"),
-          ("trending_down", L("Biggest miss", "أكبر مفاجأة سلبية"), (f"{worst['Symbol']} {spct(worst['Surprise'])}" if worst is not None else "—"),
-           T.esc(str(worst["Company"])[:26]) if worst is not None else "", "neg")])
+          ("trending_up", L("Biggest beat", "أكبر مفاجأة إيجابية"), (f"{T.esc(T.sym_label(best['Symbol'], default=best['Company']))} {spct(best['Surprise'])}" if best is not None else "—"),
+           T.esc(T.name_line(best["Symbol"], str(best["Company"]))[:26]) if best is not None else "", "pos"),
+          ("trending_down", L("Biggest miss", "أكبر مفاجأة سلبية"), (f"{T.esc(T.sym_label(worst['Symbol'], default=worst['Company']))} {spct(worst['Surprise'])}" if worst is not None else "—"),
+           T.esc(T.name_line(worst["Symbol"], str(worst["Company"]))[:26]) if worst is not None else "", "neg")])
     if res == "beat":
         rep = rep[rep["Surprise"] > 0]
     elif res == "miss":
@@ -712,8 +712,8 @@ def _sa_name(sym):
 
 def _sa_link(sym, size=32, sub=None):
     """A Saudi company's logo, code (kept left-to-right) and name, opening its page."""
-    return (f'<a class="lnk" href="{ui.href(sym)}" target="_self">{T.logo_obj(sym, size)}<span class="nm"><b><bdi>{T.esc(sym)}</bdi></b>'
-            f'<small>{T.esc((sub or _sa_name(sym))[:40])}</small></span></a>')
+    return (f'<a class="lnk" href="{ui.href(sym)}" target="_self">{T.logo_obj(sym, size)}<span class="nm"><b dir="auto">{T.esc(T.sym_label(sym, default=sub))}</b>'
+            f'<small>{T.esc(T.sym_sub(sym)[:40])}</small></span></a>')
 
 
 def page_dividends_sa():

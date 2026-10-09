@@ -74,6 +74,9 @@ def _numlike(s):
     return bool(v) and sum(bool(_NUMLIKE.match(x)) for x in v) >= 0.8 * len(v)
 
 
+NAME_COLS = {"Name", "Company", "الشركة", "الاسم", "اسم الشركة"}     # a table's company-name column (left out next to Saudi names)
+
+
 def table_html(df, fmt=None, pills=(), signed=(), cell=None, sym=None, words=None, height=None, title=None, icon="table_rows",
                chips="", min_width=None, wrap=(), index=False, logos=None):
     """A numbers table in the site's one table look (the Recent-trades panel): a box with the brand bar on its left, a muted
@@ -94,6 +97,18 @@ def table_html(df, fmt=None, pills=(), signed=(), cell=None, sym=None, words=Non
             logos = data.logos([s for s in df[sym].astype(str)])
         except Exception:
             logos = {}
+    sa_names = {}
+    if sym and sym in df.columns and len(df) and df[sym].astype(str).str.endswith(".SR").mean() >= 0.5:
+        # Saudi companies: the symbol column shows their names (a code is a number), so a separate name column would repeat them
+        name_col = next((c for c in df.columns if c != sym and str(c) in NAME_COLS), None)
+        if name_col is not None:
+            sa_names = {str(s_): n_ for s_, n_ in zip(df[sym], df[name_col]) if isinstance(n_, str) and n_}
+            df = df.drop(columns=[name_col])
+        new = L("Company", "الشركة")
+        df = df.rename(columns={sym: new})
+        cell = {(new if k == sym else k): v for k, v in cell.items()}
+        fmt = {(new if k == sym else k): v for k, v in fmt.items()}
+        sym = new
     cols = list(df.columns)
     num = {c for c in cols if c in pills or c in signed or c in cell and c != sym
            or pd.api.types.is_numeric_dtype(df[c]) and not pd.api.types.is_bool_dtype(df[c]) or _numlike(df[c])}
@@ -114,7 +129,7 @@ def table_html(df, fmt=None, pills=(), signed=(), cell=None, sym=None, words=Non
             elif c == sym:
                 s = str(v)
                 h = (f'<a class="as" href="{T.esc(href(s))}" target="_self">{T.logo_circle(s, (logos or {}).get(s), 22)}'
-                     f'<b>{T.esc(s)}</b></a>')
+                     f'<b dir="auto">{T.esc(T.sym_label(s, default=sa_names.get(s)))}</b></a>')
             else:
                 t = T.esc(_cell_text(v, fmt.get(c)))
                 if c in pills:
@@ -246,8 +261,8 @@ def open_picker(symbols, key, label_en="Open a company", label_ar="افتح شر
     a, b = st.columns([3, 1], vertical_alignment="bottom")
     import tasi
 
-    def name(s_):                                   # a Saudi code with its company's name (2222.SR · أرامكو السعودية)
-        return f"\u2066{s_}\u2069 · {tasi.name_of(s_, L(False, True))}" if tasi.known(s_) else s_
+    def name(s_):                                   # a Saudi company by its name (its code is a number)
+        return tasi.label(s_, L(False, True)) if tasi.is_sa(s_) else s_
     pick = a.selectbox(L(label_en, label_ar), symbols, key=f"op_{key}", format_func=name)
     if b.button(L("Open", "افتح"), icon=":material/open_in_new:", key=f"opb_{key}", width="stretch"):
         open_stock(pick)

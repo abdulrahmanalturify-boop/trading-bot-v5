@@ -213,6 +213,29 @@ def known(s):
     return s in SA
 
 
+# the Tadawul funds and indices the site shows (the Saudi Robo Advisor's funds, the market's indices)
+FUNDS = {"9400.SR": ("YAQEEN Saudi Equity", "يقين للأسهم السعودية"), "9403.SR": ("Albilad Sukuk", "البلاد للصكوك"),
+         "9404.SR": ("Alinma Sukuk", "الإنماء للصكوك"), "9405.SR": ("Albilad Gold", "البلاد للذهب"),
+         "9406.SR": ("Albilad US Equity", "البلاد للأسهم الأمريكية")}
+INDICES = {"^TASI.SR": ("TASI", "تاسي"), "^TASI": ("TASI", "تاسي"), "^NOMUC.SR": ("Nomu", "نمو")}
+
+
+def label(s, ar=False, default=None):
+    """How the site shows a Saudi symbol: the company's (or fund's, or index's) name, not its number. Any other symbol as it is;
+    a Saudi code the site doesn't know: `default` (a name from the data) or its number."""
+    s = str(s or "")
+    r = SA.get(s) or FUNDS.get(s) or INDICES.get(s)
+    if r:
+        return r[1] if ar else r[0]
+    if default:
+        return str(default)
+    return s[:-3] if s.endswith(".SR") else s
+
+
+def is_sa(s):
+    return str(s or "").endswith(".SR") or str(s or "") in INDICES
+
+
 def name_of(s, ar=False):
     r = SA.get(s)
     return (r[1] if ar else r[0]) if r else ""

@@ -646,7 +646,7 @@ def strat_short(k):
 def universe_label(bot, count=None):
     k, v = bot["kind"], bot["value"]
     if k == "company":
-        return v
+        return T.sym_label(v)                  # a Saudi company by its name (its code is a number)
     if k == "sector":
         txt = L("Sector · ", "قطاع · ") + sector_label(v, bot.get("market"))
     elif k == "industry":
@@ -1496,7 +1496,7 @@ def _asset(r, lg):
     else:
         sec = PB.sector_of(sym)
         sub = sector_label(sec, MK.of_symbol(sym)) if sec else ""
-    return (f'<a class="as" href="{ui.href(sym)}" target="_self">{T.logo_circle(sym, lg.get(sym), 22)}<b>{T.esc(sym)}</b>'
+    return (f'<a class="as" href="{ui.href(sym)}" target="_self">{T.logo_circle(sym, lg.get(sym), 22)}<b dir="auto">{T.esc(T.sym_label(sym))}</b>'
             f'<span class="m">{T.esc(sub)}</span></a>')
 
 
@@ -1815,11 +1815,11 @@ def orb_chart_section(sim):
         sym, day = k.split("|")
         rows = res[k]
         if rows.empty:
-            return f"{day} · {sym} · " + L("no trade", "بدون صفقة")
+            return f"{day} · {T.sym_label(sym)} · " + L("no trade", "بدون صفقة")
         r = rows.iloc[0]
         side = L("long", "شراء") if r["Type"] != "Short" else L("short", "بيع مكشوف")
         state = L("open", "مفتوحة") if r["Exit Reason"] == "Open" else f'{float(r["P&L %"]):+.2f}%'
-        return f"{day} · {sym} · {side} · {state}"
+        return f"{day} · {T.sym_label(sym)} · {side} · {state}"
     left, right = st.columns([3, 1.3], vertical_alignment="bottom")
     ui.valid(f"pb_orbday_{b['id']}", keys)
     key = left.selectbox(L("Trading day", "يوم التداول"), keys, key=f"pb_orbday_{b['id']}", format_func=label)
@@ -1905,7 +1905,7 @@ def all_trades(v, file_name):
 def _order_txt(item):
     sym, label, kind = item
     extra = "" if kind == "Stock" else f" {kind.upper()}"
-    return f"{sym} ({strat_short(label)}{extra})"
+    return f"{T.sym_label(sym)} ({strat_short(label)}{extra})"
 
 
 def lab_check(b):
@@ -2956,7 +2956,7 @@ def name_ideas(way):
     kind = ss.get("pb_kind") if ss.get("pb_kind") in PB.KINDS else DEFAULTS["pb_kind"]
     value = {"company": str(ss.get("pb_symbol") or "").strip().upper() or "AAPL", "sector": ss.get("pb_sector") or "",
              "industry": ss.get("pb_industry") or "", "all": "all"}[kind]
-    where = {"company": value, "sector": sector_label(value) if value else "", "industry": industry_label(value) if value else "",
+    where = {"company": T.sym_label(value), "sector": sector_label(value) if value else "", "industry": industry_label(value) if value else "",
              "all": L("Market", "السوق")}[kind]
     kinds = [engine.KIND_OF.get(x) for x in strats if engine.KIND_OF.get(x)]
     main = max(set(kinds), key=kinds.count) if kinds else "trend"
@@ -3513,7 +3513,7 @@ def bot_form(mode, bot=None):
                                  "رمز الشركة السعودية من 4 أرقام (2222 = أرامكو، 1120 = الراجحي) أو رمزها في ياهو (2222.SR)."))
             sym_ = PB.norm_symbol(ss.get("pb_symbol"), MK.SA)
             if tasi.known(sym_):
-                st.caption(f"{sym_} · {L(tasi.name_of(sym_), tasi.name_of(sym_, True))}")
+                st.caption(T.sym_label(sym_))
             count = 1
         elif kind == "company":
             st.text_input(L("Symbol", "الرمز"), key="pb_symbol", max_chars=15,
@@ -4181,7 +4181,7 @@ def brain_today(sim):
                 how_ = strat_short(w_["l"]) if w_.get("l") else ""
                 if how_ and w_.get("ed") is not None:
                     how_ += " · " + L("its signals lately ", "إشاراتها مؤخراً ") + iso(f"{w_['ed']:+.1f}%") + L(" vs the average stock", " مقابل السهم العادي")
-                rows.append(f'<div class="bwhy"><b>{T.esc(s_)}</b><span class="sc">{w_.get("sc", 0)}/100</span>'
+                rows.append(f'<div class="bwhy"><b dir="auto">{T.esc(T.sym_label(s_))}</b><span class="sc">{w_.get("sc", 0)}/100</span>'
                             + (f'<span class="st">{T.esc(how_)}</span>' if how_ else "") + f'<span class="pt">{T.esc(parts)}</span></div>')
             ui.html('<div class="bwhys">' + "".join(rows) + "</div>")
             st.caption(L("Buys waiting to be filled (tonight after the close, or at the next open): the strategy the bot chose for each "
@@ -4299,7 +4299,7 @@ def ai_today(sim):
             return
         thr = float(info.get("threshold") or 0)
         ui.html('<div class="aiday">' + "".join(
-            f'<span class="{"go" if p >= thr else ""}">{T.icon("check" if p >= thr else "close")}<b>{T.esc(s_)}</b> {p * 100:.0f}%</span>'
+            f'<span class="{"go" if p >= thr else ""}">{T.icon("check" if p >= thr else "close")}<b dir="auto">{T.esc(T.sym_label(s_))}</b> {p * 100:.0f}%</span>'
             for s_, p in sig) + "</div>")
         st.caption(L(f"The buy signals of {info['day']} with the model's chance of a winning trade. Green = at least {thr * 100:.0f}%, so "
                      "the bot may buy it right after the close (or at the next open) if it has a free place (highest chances first).",

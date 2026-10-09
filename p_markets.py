@@ -243,7 +243,7 @@ def heatmap_section():
     def tip(t):
         v = t.get("Val")
         chg = f"{v:+.2f}%" if v is not None and np.isfinite(v) else "—"
-        return f'{t["Symbol"]} · {t.get("Name", "")}\n{T.fmt_price(t.get("Price"))} · {chg} · {L("Mkt cap", "القيمة")} {T.fmt_big(t.get("Cap"))}'
+        return f'{T.sym_label(t["Symbol"])} · {T.name_line(t["Symbol"], t.get("Name", ""))}\n{T.fmt_price(t.get("Price"))} · {chg} · {L("Mkt cap", "القيمة")} {T.fmt_big(t.get("Cap"))}'
     if sa:                                                 # Saudi tiles show the company's name (the code is a number)
         tiles = [dict(t, Label=tasi.name_of(t["Symbol"], is_ar()) or t["Symbol"]) for t in tiles]
     ui.html(HM.render(tiles, groups, lg, rng, lang(), label, tip, rtl=is_ar()))
@@ -1126,10 +1126,10 @@ def summary_html_sa(px, mv, lists, lg):
         if d is not None and not d.empty:
             r = d.iloc[0]
             mvs.append(f'<a class="mvr" href="{ui.href(r["Symbol"])}" target="_self">{T.logo_circle(r["Symbol"], lg.get(r["Symbol"]), 34)}'
-                       f'<span class="nm"><small>{lab}</small><b><bdi>{T.esc(r["Symbol"])}</bdi></b><em>{T.esc(str(r["Name"])[:24])}</em></span>{T.pill(r["Chg %"])}</a>')
+                       f'<span class="nm"><small>{lab}</small><b dir="auto">{T.esc(T.sym_label(r["Symbol"]))}</b><em>{T.esc(T.sym_sub(r["Symbol"]))}</em></span>{T.pill(r["Chg %"])}</a>')
     d = lists.get("value")
     if d is not None and not d.empty:
-        chips = "".join(f'<a class="mchip" href="{ui.href(s_)}" target="_self"><bdi>{T.esc(s_)}</bdi> {_sgn(p, 1)}</a>'
+        chips = "".join(f'<a class="mchip" href="{ui.href(s_)}" target="_self"><bdi>{T.esc(T.sym_label(s_))}</bdi> {_sgn(p, 1)}</a>'
                         for s_, p in zip(d["Symbol"].head(5), d["Chg %"].head(5)))
         mvs.append(f'<div class="shl">{L("Most traded today", "الأعلى قيمة تداول اليوم")}</div><div class="chips">{chips}</div>')
     if mvs:
@@ -1198,7 +1198,8 @@ def page_trending_sa():
                 st.info(L("No company fits this list today.", "ما فيه شركة تنطبق عليها هالقائمة اليوم."))
                 continue
             ui.html(_leaderboard(df, lg))
-            ui.chart(charts.movers_bubble(df, L("Change vs relative volume (bubble = market cap)", "التغير مقابل الحجم النسبي (حجم الفقاعة = القيمة السوقية)"),
+            ui.chart(charts.movers_bubble(df.assign(Label=df["Symbol"].map(lambda s_: T.sym_label(s_)[:12])),
+                                          L("Change vs relative volume (bubble = market cap)", "التغير مقابل الحجم النسبي (حجم الفقاعة = القيمة السوقية)"),
                                           L("Relative volume (×)", "الحجم النسبي (×)"), L("Change %", "التغير %")), key=f"bub_sa_{kind}")
             show = df[["Symbol", "Name", "Price", "Chg %", "Value", "Rel Vol", "Mkt Cap"]].copy()
             show.insert(0, "Logo", show["Symbol"].map(data.logo_url))

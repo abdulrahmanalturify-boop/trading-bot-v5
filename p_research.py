@@ -58,7 +58,8 @@ def quote_header(sym, daily, inf):
         badges += T.badge(theme_name(tk, sk), "gold", X.THEMES[tk][2])
     uri = data.logos([sym]).get(sym)
     ui.html(f'<div style="display:flex;gap:14px;align-items:center">{T.logo_circle(sym, uri, 58)}<div>'
-            f'<div class="q-name"><b style="color:#fff;font-size:1.15rem">{T.esc(name)}</b> · <bdi dir="ltr">{T.esc(sym)}</bdi> · {T.esc(exch)}</div>'
+            f'<div class="q-name"><b style="color:#fff;font-size:1.15rem">{T.esc(name)}</b>'
+            + ("" if tasi.is_sa(sym) else f' · <bdi dir="ltr">{T.esc(sym)}</bdi>') + f' · {T.esc(exch)}</div>'
             f'<div>{badges}</div></div></div>'
             f'<div style="margin-top:6px"><span class="q-price">{T.fmt_price(last)}</span> <span class="muted">{inf.get("currency") or ("SAR" if MK.is_sa() else "USD")}</span></div>'
             f'<div><span class="q-chg {T.cls(chg)}">{chg:+,.2f} ({pct:+.2f}%)</span> '
@@ -1019,7 +1020,7 @@ def _options_tab(sym, price):
 def page_stock():
     sym = ss.symbol
     ss["mkt_page"] = MK.of_symbol(sym)              # the company's own market (prices in riyals for a Saudi one)
-    with st.spinner(L(f"Loading {sym}...", f"جاري تحميل {sym}...")):
+    with st.spinner(L(f"Loading {T.sym_label(sym)}...", f"جاري تحميل {T.sym_label(sym)}...")):
         daily = data.history(sym, "2y")
     if daily.empty or len(daily) < 3:
         st.error(L(f"No data found for {sym}. Use the search box at the top.", f"لا توجد بيانات للرمز {sym}. استخدم البحث في الأعلى."))

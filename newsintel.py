@@ -533,6 +533,11 @@ def why(a):
     en_ev, ar_ev = EVENT.get(ev, EVENT["other"])[:2]
     sec = a["sectors"][0] if a["sectors"] else None
     peers_ = ", ".join(a["indirect"][:3])
+    if a.get("sa"):                              # Saudi companies by their names (their codes are numbers)
+        peers_ar = "، ".join(company(s_, True)[0] for s_ in a["indirect"][:3])
+        peers_ = ", ".join(company(s_)[0] for s_ in a["indirect"][:3])
+    else:
+        peers_ar = peers_
     base = {
         "earnings": ("Earnings reset what the market expects the company to make; a surprise usually moves the price for days.",
                      "النتائج تعيد تقدير أرباح الشركة المتوقعة، والمفاجأة عادةً تحرك السعر لعدة أيام."),
@@ -570,7 +575,7 @@ def why(a):
         ar = f"خبر {ar_ev} عن {name_ar}. " + ar
     if sec and peers_:
         en += f" Companies in {sec[1] or sec[0]} such as {peers_} often move with it."
-        ar += f" وشركات من نفس المجال مثل {peers_} غالباً تتحرك معه."
+        ar += f" وشركات من نفس المجال مثل {peers_ar} غالباً تتحرك معه."
     return en, ar
 
 

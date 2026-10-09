@@ -955,7 +955,7 @@ def movers_bubble(df, title="Change vs relative volume (bubble = market cap)", x
     size = np.sqrt(cap / cap.max()) * 46 + 8
     fill, line, txt, _ = pastel(list(d["Chg %"]))
     fig = go.Figure(go.Scatter(
-        x=d["Rel Vol"], y=d["Chg %"], mode="markers+text", text=d["Symbol"], textposition="middle center",
+        x=d["Rel Vol"], y=d["Chg %"], mode="markers+text", text=d["Label"] if "Label" in d else d["Symbol"], textposition="middle center",
         textfont=dict(size=9, color=txt),
         marker=dict(size=size, color=fill, line=dict(width=1.5, color=line), opacity=0.95),
         customdata=d["Name"], hovertemplate="<b>%{text}</b> %{customdata}<br>%{y:+.2f}% · %{x:.1f}×<extra></extra>"))

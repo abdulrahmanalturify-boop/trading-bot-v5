@@ -500,8 +500,12 @@ def sidebar():
             right = (f'<div class="r"><div class="p">{T.fmt_price(p)}</div>{T.pill(pct)}</div>' if p is not None
                      else '<div class="r"><div class="p muted">—</div></div>')
             spark = T.sparkline(sp, T.UP if (pct or 0) >= 0 else T.DOWN, 56, 22) if sp is not None else "<span></span>"
-            st.markdown(f'<div class="wlr"><div class="l">{T.logo_circle(s_, lg.get(s_), 30)}<div class="nm"><b>{T.esc(s_)}</b>'
-                        f'<span>{T.esc(_name(s_))}</span></div></div>{spark}{right}</div>', unsafe_allow_html=True)
+            if tasi.is_sa(s_):                     # a Saudi company: its name, and its industry under it (not its number)
+                top_, sub_ = T.sym_label(s_), T.sym_sub(s_)
+            else:
+                top_, sub_ = s_, _name(s_)
+            st.markdown(f'<div class="wlr"><div class="l">{T.logo_circle(s_, lg.get(s_), 30)}<div class="nm"><b dir="auto">{T.esc(top_)}</b>'
+                        f'<span>{T.esc(sub_)}</span></div></div>{spark}{right}</div>', unsafe_allow_html=True)
             if st.button(s_, key=f"wl_{s_}", width="stretch"):
                 ui.open_stock(s_)
     st.text_input("add", key="wl_add", on_change=_wl_add, label_visibility="collapsed",

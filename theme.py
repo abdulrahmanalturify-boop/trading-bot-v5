@@ -2408,9 +2408,50 @@ def logo_obj(sym, size=40):
             f'</object></object></span>')
 
 
+def _ar():
+    try:
+        import streamlit as st
+        return st.session_state.get("lang") == "ar"
+    except Exception:
+        return False
+
+
+def sym_label(sym, ar=None, default=None):
+    """How a symbol is shown: a Saudi company by its name in the visitor's language (its code is a number), any other by its
+    ticker."""
+    import tasi
+    s = str(sym or "")
+    if not tasi.is_sa(s):
+        return s
+    return tasi.label(s, _ar() if ar is None else ar, default)
+
+
+def name_line(sym, name=""):
+    """The line under a symbol: a Saudi company's industry group (its name is already the title), else the name given."""
+    import tasi
+    return sym_sub(sym) if tasi.is_sa(sym) else (name or "")
+
+
+def sym_sub(sym, ar=None):
+    """The second line under a Saudi company's name: its industry group (in the visitor's language)."""
+    import tasi
+    g = tasi.industry_of(sym)
+    if not g:
+        return ""
+    return tasi.industry_ar(g) if (_ar() if ar is None else ar) else g
+
+
 def company(sym, name="", uri=None, size=32, sub=None, href=None):
+    import tasi
+    if tasi.is_sa(sym):                     # a Saudi company: its name, and under it its industry (never its number)
+        tk = f'<div class="tk" dir="auto">{esc(sym_label(sym, default=name or None))}</div>'
+        if sub is None:
+            sub = sym_sub(sym)
+        name = ""
+    else:
+        tk = f'<div class="tk"><bdi>{esc(sym)}</bdi></div>'
     sub_html = f'<div class="sub">{esc(sub if sub is not None else name)}</div>' if (sub or name) else ""
-    inner = f'<div class="co">{logo_circle(sym, uri, size)}<div class="nm"><div class="tk"><bdi>{esc(sym)}</bdi></div>{sub_html}</div></div>'
+    inner = f'<div class="co">{logo_circle(sym, uri, size)}<div class="nm">{tk}{sub_html}</div></div>'
     return f'<a class="lnk" href="{href}" target="_self">{inner}</a>' if href else inner
 
 
@@ -2466,7 +2507,9 @@ def badge(text, kind="neu", ic=None):
 def ticker_chip(sym, pct, uri=None, href=None):
     c = cls(pct) if pct is not None and not pd.isna(pct) else "neu"
     val = pill(pct) if pct is not None and not pd.isna(pct) else ""
-    inner = f'{logo_circle(sym, uri, 20)}{esc(sym)} {val}'
+    lab = sym_label(sym)
+    lab = lab if len(lab) <= 22 else lab[:21] + "…"
+    inner = f'{logo_circle(sym, uri, 20)}<bdi>{esc(lab)}</bdi> {val}'
     if href:
         return f'<a class="tkc {c}" href="{href}" target="_self">{inner}</a>'
     return f'<span class="tkc {c}">{inner}</span>'

@@ -465,6 +465,11 @@ def _m(v, dec=0, sign=False):
     return PP._m(v, dec, sign)
 
 
+def _tk(t):
+    """A fund as the robo shows it: its ticker (VTI), or a Tadawul fund by its name (its code is a number)."""
+    return T.sym_label(t)
+
+
 def _sa():
     """The Saudi market's robo (its own account, in riyals, in the funds listed on Tadawul)."""
     return MK.is_sa()
@@ -483,8 +488,8 @@ def _tp():
 def _bench_txt(short=False):
     """The benchmark in words: global stocks (VT) and US bonds (BND) / Saudi stocks (9400) and Saudi sukuk (9403)."""
     if _sa():
-        return L("9400/9403", "9400/9403") if short else L("Saudi stocks (9400) and Saudi government sukuk (9403)",
-                                                           "أسهم سعودية (9400) وصكوك حكومية سعودية (9403)")
+        return L("Saudi stocks/sukuk", "أسهم/صكوك سعودية") if short else L("Saudi stocks (YAQEEN fund) and Saudi government sukuk (Albilad fund)",
+                                                                            "أسهم سعودية (صندوق يقين) وصكوك حكومية سعودية (صندوق البلاد)")
     return "VT/BND" if short else L("global stocks (VT) and US bonds (BND)", "أسهم عالمية (VT) وسندات أمريكية (BND)")
 
 
@@ -896,7 +901,7 @@ def donut_svg(weights, center_big, center_small, inner=None):
             g = 0.7 if len(ws) > 1 else 0
             out.append(f'<circle class="{cls}" style="animation-delay:{i * 70}ms" cx="120" cy="120" r="{r}" fill="none" stroke="{_fund(t)["c"]}" '
                        f'stroke-width="{sw}" pathLength="100" stroke-dasharray="{max(w - g, 0.2):.2f} {100 - max(w - g, 0.2):.2f}" '
-                       f'stroke-dashoffset="{-start:.2f}"><title>{t} {w:.1f}%</title></circle>')
+                       f'stroke-dashoffset="{-start:.2f}"><title>{_esc(_tk(t))} {w:.1f}%</title></circle>')
             start += w
         return "".join(out)
     rings = ring(weights, 92, 24, "sg")
@@ -922,7 +927,7 @@ def groups_html(tg):
 def allocation_html(prof):
     tg = prof["targets"]
     rows = sorted(tg.items(), key=lambda x: -x[1])
-    leg = "".join(f'<div class="r" style="--i:{i};--c:{_fund(t)["c"]}"><span class="tk">{t}</span><span class="nm"><b>{_esc(_fund(t)["cls"])}</b>'
+    leg = "".join(f'<div class="r" style="--i:{i};--c:{_fund(t)["c"]}"><span class="tk">{_esc(_tk(t))}</span><span class="nm"><b>{_esc(_fund(t)["cls"])}</b>'
                   f'<span>{_esc(_fund(t)["name"])}</span></span><span class="w">{w:g}%<small>±{R.band(w):g}</small></span></div>'
                   for i, (t, w) in enumerate(rows))
     big = f"{prof['stocks']:.0f}%"
@@ -1020,8 +1025,8 @@ def ips_parts(prof, ans, amount, monthly, created=None):
     maxloss = _answer("maxloss", ans)
     eq = prof["stocks"]
     if _sa():
-        bench = (" ".join([_i("%.0f%%" % eq), L("Saudi stocks", "أسهم سعودية"), _i("(9400)"), "+", _i("%.0f%%" % (100 - eq)),
-                           L("Saudi government sukuk", "صكوك حكومية سعودية"), _i("(9403)")]) if eq < 100 else "100% 9400")
+        bench = (" ".join([_i("%.0f%%" % eq), L("Saudi stocks", "أسهم سعودية"), "+", _i("%.0f%%" % (100 - eq)),
+                           L("Saudi government sukuk", "صكوك حكومية سعودية")]) if eq < 100 else L("100% Saudi stocks", "100% أسهم سعودية"))
     else:
         bench = (" ".join([_i("%.0f%%" % eq), L("global stocks", "أسهم عالمية"), _i("(VT)"), "+", _i("%.0f%%" % (100 - eq)),
                            L("US bonds", "سندات أمريكية"), _i("(BND)")]) if eq < 100 else "100% VT")
@@ -1076,7 +1081,7 @@ def ips_html(prof, ans, amount, monthly, created=None):
     for i, (ic, title, items) in enumerate(secs):
         its = "".join(f'<div class="it"><span>{_esc(a)}</span><b>{_esc(b)}</b></div>' for a, b in items)
         blocks += f'<div class="sx"><h4>{T.icon(ic)}<i>{i + 1:02d}</i> {_esc(title)}</h4>{its}</div>'
-    rows = "".join(f'<tr><td><b>{t}</b></td><td>{_esc(c)}</td><td class="n">{w:g}%</td><td class="n">{max(w - b, 0):g}–{w + b:g}%</td></tr>'
+    rows = "".join(f'<tr><td><b>{_esc(_tk(t))}</b></td><td>{_esc(c)}</td><td class="n">{w:g}%</td><td class="n">{max(w - b, 0):g}–{w + b:g}%</td></tr>'
                    for t, c, w, b in alloc)
     blocks += (f'<div class="sx"><h4>{T.icon("donut_large")}<i>05</i> {L("Strategic allocation", "توزيع الأصول الاستراتيجي")}</h4>'
                f'<table><tr><th>{L("Fund", "الصندوق")}</th><th>{L("Asset class", "فئة الأصل")}</th><th class="n">{L("Target", "المستهدف")}</th>'
@@ -1101,7 +1106,7 @@ def ips_file(prof, ans, amount, monthly, created=None):
         body += f"<h2>{i + 1}. {e(title)}</h2><table>" + "".join(f"<tr><th>{e(a)}</th><td>{e(b)}</td></tr>" for a, b in items) + "</table>"
     body += (f"<h2>5. {e(L('Strategic allocation', 'توزيع الأصول الاستراتيجي'))}</h2><table class='al'><tr><th>{e(L('Fund', 'الصندوق'))}</th>"
              f"<th>{e(L('Asset class', 'فئة الأصل'))}</th><th>{e(L('Target', 'المستهدف'))}</th><th>{e(L('Range', 'النطاق'))}</th></tr>"
-             + "".join(f"<tr><td><b>{t}</b> · {e(_fund(t)['name'])}</td><td>{e(c)}</td><td class='n'>{w:g}%</td><td class='n'>{max(w - b, 0):g}–{w + b:g}%</td></tr>"
+             + "".join(f"<tr><td><b>{e(_tk(t))}</b> · {e(_fund(t)['name'])}</td><td>{e(c)}</td><td class='n'>{w:g}%</td><td class='n'>{max(w - b, 0):g}–{w + b:g}%</td></tr>"
                        for t, c, w, b in alloc) + "</table>")
     body += f"<h2>6. {e(L('Rebalancing & review', 'إعادة التوازن والمراجعة'))}</h2><ul>" + "".join(f"<li>{e(p)}</li>" for p in policy) + "</ul>"
     disc = L("Virtual portfolio on real prices, for learning. Not investment advice. Expected returns are long-run estimates, not promises.",
@@ -1750,9 +1755,9 @@ def _trades_text(tr):
     sells = sorted(((t, v) for t, v in (tr or {}).items() if v < 0), key=lambda x: x[1])
     parts = []
     if buys:
-        parts.append(L("Bought ", "شراء ") + _ltr(", ".join(f"{t} {_m(v)}" for t, v in buys[:4])))
+        parts.append(L("Bought ", "شراء ") + _ltr(", ".join(f"{_tk(t)} {_m(v)}" for t, v in buys[:4])))
     if sells:
-        parts.append(L("Sold ", "بيع ") + _ltr(", ".join(f"{t} {_m(-v)}" for t, v in sells[:4])))
+        parts.append(L("Sold ", "بيع ") + _ltr(", ".join(f"{_tk(t)} {_m(-v)}" for t, v in sells[:4])))
     return " · ".join(parts)
 
 
@@ -1786,7 +1791,7 @@ def drift_html(rows):
         lo, hi = max(r["target"] - r["band"], 0), r["target"] + r["band"]
         a = abs(r["drift"])
         k = "ok" if a <= r["band"] * 0.6 else "near" if a <= r["band"] else "out"
-        out.append(f'<div class="r" style="--c:{f["c"]}"><div class="f"><span class="tk">{r["t"]}</span><span>{_esc(f["cls"])}</span></div>'
+        out.append(f'<div class="r" style="--c:{f["c"]}"><div class="f"><span class="tk">{_esc(_tk(r["t"]))}</span><span>{_esc(f["cls"])}</span></div>'
                    f'<div class="tr"><span class="bd" style="left:{sc(lo):.1f}%;width:{sc(hi) - sc(lo):.1f}%"></span>'
                    f'<span class="cu" style="width:{sc(r["weight"]):.1f}%"></span><span class="tg" style="left:{sc(r["target"]):.1f}%"></span></div>'
                    f'<div class="v"><b>{_ltr("%.1f%%" % r["weight"])}</b><em class="{k}">{_ltr("%+.1f" % r["drift"])} {L("pts", "نقطة")}</em></div></div>')
@@ -1808,7 +1813,7 @@ def holdings_html(rows):
         k = "up" if g > 0.005 else "dn" if g < -0.005 else ""
         units = "—" if r["t"] in ("CASH", R.BOT) or r["units"] is None else f'{r["units"]:,.4f}'
         price = "—" if r["t"] in ("CASH", R.BOT) or r["price"] is None else _m(r["price"], 2)
-        body += (f'<tr><td><span class="tk" style="--c:{f["c"]}">{r["t"]}</span><span class="cl">{_esc(f["cls"])}</span></td><td class="n">{_ltr(units)}</td>'
+        body += (f'<tr><td><span class="tk" style="--c:{f["c"]}">{_esc(_tk(r["t"]))}</span><span class="cl">{_esc(f["cls"])}</span></td><td class="n">{_ltr(units)}</td>'
                  f'<td class="n">{_ltr(price)}</td><td class="n"><b>{_ltr(_m(r["value"], 2))}</b></td><td class="n">{_ltr("%.1f%%" % r["weight"])}</td>'
                  f'<td class="n">{_ltr("%g%%" % r["target"])}</td><td class="n {k}">{_ltr("%s (%+.1f%%)" % (_m(g, 2, True), gp))}</td></tr>')
     return f'<div class="rbtw"><table class="rbtbl">{head}{body}</table></div>'
@@ -1919,7 +1924,7 @@ def manage(state, row, rkey, err):
         lv = st.slider(L("Risk level", "مستوى المخاطرة"), 1, 10, value=cur, key="rb_lvl_new")
         prof = R.profile(ans, level=lv)
         ui.html(f'<div class="rbchips" style="margin:2px 0 8px">'
-                + "".join(f'<span class="rbchip"><b style="color:{_fund(t)["c"]}">{t}</b> {w:g}%</span>' for t, w in sorted(prof["targets"].items(), key=lambda x: -x[1]))
+                + "".join(f'<span class="rbchip"><b style="color:{_fund(t)["c"]}">{_esc(_tk(t))}</b> {w:g}%</span>' for t, w in sorted(prof["targets"].items(), key=lambda x: -x[1]))
                 + f'<span class="rbchip">{T.icon("trending_up")}{_p(prof["mu"], 1)} · {T.icon("ssid_chart")}{_p(prof["vol"], 1)}</span></div>')
         if lv > rec:
             st.warning(L(f"Above your recommended level ({rec}).", f"أعلى من مستواك الموصى به ({rec})."), icon=":material/warning:")

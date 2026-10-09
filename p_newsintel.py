@@ -797,7 +797,7 @@ def _tab_stocks(a, chg):
             c = chg.get(sym)
             secn = _secn(sec) if sec else ""
             rows.append(f'<a class="nx-row" href="stock?symbol={T.esc(sym)}" target="_self">{T.logo_obj(sym, 36)}'
-                        f'<div style="min-width:0"><div class="tk"><bdi>{T.esc(sym)}</bdi></div><div class="nm" dir="auto">{T.esc(name)}</div></div>'
+                        f'<div style="min-width:0"><div class="tk" dir="auto">{T.esc(T.sym_label(sym))}</div><div class="nm" dir="auto">{T.esc(T.name_line(sym, name))}</div></div>'
                         f'<span class="nx-badge {cls}">{T.esc(kind)}</span>'
                         f'<div class="sc">{T.esc(secn)}<span>{T.esc(_subn(sym, sub))}</span></div>{T.pill(c[1] if c else None)}</a>')
     if rows:
@@ -906,7 +906,7 @@ def _tab_tech(a, dfm=None):
         if v and c:
             above = c > v
             tiles.append(_tile("trending_up" if above else "trending_down", L(en, ar_), f'<bdi dir="ltr">{c / v - 1:+.1%}</bdi>',
-                               T.esc(L(f"{sym} {'above' if above else 'below'} it ({v:,.2f})", f"{sym} {'فوقه' if above else 'تحته'} ({v:,.2f})"))
+                               T.esc(L(f"{_tk(sym)} {'above' if above else 'below'} it ({v:,.2f})", f"{_tk(sym)} {'فوقه' if above else 'تحته'} ({v:,.2f})"))
                                + " " + (ok_((above and d > 0) or (not above and d < 0)) if a["dir"] else "")))
     rv = fa.get("rvol")
     if rv:

@@ -558,7 +558,7 @@ def _radar(res, rtl=False):
         s.append(f'<circle class="blip" cx="{x:.0f}" cy="{y:.0f}" r="5" fill="none" stroke="{col}" stroke-width="1.5" style="animation-delay:-{i * .35:.2f}s"/>'
                  f'<circle cx="{x:.0f}" cy="{y:.0f}" r="4" fill="{col}" filter="url(#hngl)"/>'
                  f'<text x="{x + side * 8:.0f}" y="{y - 6:.0f}" text-anchor="{"end" if rtl else "start"}" font-size="11" font-weight="800" '
-                 f'fill="#fff" font-family="{T.FONT}">{T.esc(r.Symbol)}</text>'
+                 f'fill="#fff" font-family="{T.FONT}">{T.esc(T.sym_label(r.Symbol))}</text>'
                  f'<text x="{x + side * 8:.0f}" y="{y + 7:.0f}" text-anchor="{"end" if rtl else "start"}" font-size="9.5" fill="{col}" '
                  f'font-family="{T.FONT}">{r.Grade} · {r.Score:.0f}</text>')
     s.append(f'<circle cx="{cx}" cy="{cy}" r="4" fill="#2DB6EB" filter="url(#hngl)"/>')
@@ -734,9 +734,9 @@ def card(r, det, selected):
     side = r["Side"] or 1
     top = (f'<div class="top"><span class="su">{T.icon(ic)}<span class="tx">{T.esc(short_name(k))}</span></span>'
            f'{status_tag(r["Status"], r["Age"])}</div>')
-    go_ = L(f"Open the {sym} page", f"افتح صفحة {sym}")
+    go_ = L(f"Open the {T.sym_label(sym)} page", f"افتح صفحة {T.sym_label(sym)}")
     hd = (f'<div class="hd"><a class="co" href="{T.esc(ui.href(sym))}" target="_self" title="{T.esc(go_)}">{T.logo_obj(sym, 36)}'
-          f'<div class="nm"><b>{T.esc(sym)}</b><span>{T.esc(str(r["Name"]))}</span></div></a>{ring(r["Score"], r["Grade"])}</div>')
+          f'<div class="nm"><b>{T.esc(T.sym_label(sym))}</b><span>{T.esc(T.name_line(sym, str(r["Name"])))}</span></div></a>{ring(r["Score"], r["Grade"])}</div>')
     sp = f'<div class="spk">{spark(det.get("spark", []), entry, stop, tgt, sym.replace(".", "_").replace("-", "_"))}</div>'
     watch = r["Status"] == "watch"
     lv = (f'<div class="lv"><div><span>{L("Buy above", "شراء فوق") if watch else L("Entry", "الدخول")}</span><b>{_money_px(entry)}</b></div>'
@@ -948,7 +948,7 @@ def plan_section(r, det, d):
         p = engine.trade_plan(d, acct, risk) if d is not None else None
         if p is None:
             return
-        st.info(L(f"No buying setup on {sym} right now: {p['bias']} ({p['setup']}).", f"ما فيه فرصة شراء على {sym} الحين: {p['bias_ar']} ({p['setup_ar']})."),
+        st.info(L(f"No buying setup on {T.sym_label(sym)} right now: {p['bias']} ({p['setup']}).", f"ما فيه فرصة شراء على {T.sym_label(sym)} الحين: {p['bias_ar']} ({p['setup_ar']})."),
                 icon=":material/do_not_disturb_on:")
         trig = L(p["trigger"], p["trigger_ar"])
         exits = [L(e, a) for e, a in p["exits"][:3]]
@@ -1440,8 +1440,9 @@ def detail(r, det, got):
                               H.SETUPS[s_["key"]][2])
         for ic_, txt, kind in flags_of(r):
             badges += T.badge(txt, kind, ic_)
-        ui.html(f'<div class="card hndh"><a class="co" href="{T.esc(ui.href(sym))}" target="_self" title="{T.esc(L(f"Open the {sym} page", f"افتح صفحة {sym}"))}">'
-                f'{T.logo_obj(sym, 48)}<div class="nm"><b>{T.esc(sym)}</b><span>{T.esc(str(r["Name"]))}</span></div></a>'
+        nm_ = T.sym_label(sym)
+        ui.html(f'<div class="card hndh"><a class="co" href="{T.esc(ui.href(sym))}" target="_self" title="{T.esc(L(f"Open the {nm_} page", f"افتح صفحة {nm_}"))}">'
+                f'{T.logo_obj(sym, 48)}<div class="nm"><b>{T.esc(nm_)}</b><span>{T.esc(T.name_line(sym, str(r["Name"])))}</span></div></a>'
                 f'{ring(r["Score"], r["Grade"], 62)}<div class="bd">{badges}</div>'
                 f'<div class="px"><b>{_money_px(r["Price"])}</b>{T.pill(r["Chg %"])}</div></div>')
         if k in H.SETUPS:
@@ -1525,7 +1526,7 @@ def detail(r, det, got):
                 st.button(L("In watchlist", "في المتابعة"), icon=":material/star:", key="hn_wl", disabled=True)
             elif st.button(L("Add to watchlist", "أضف للمتابعة"), icon=":material/star:", key="hn_wl"):
                 wl.append(sym)
-                st.toast(L(f"{sym} added to your watchlist", f"انضاف {sym} لقائمة المتابعة"), icon=":material/star:")
+                st.toast(L(f"{T.sym_label(sym)} added to your watchlist", f"انضاف {T.sym_label(sym)} لقائمة المتابعة"), icon=":material/star:")
 
 
 # ---------------------------------------------------------------- the table and the charts

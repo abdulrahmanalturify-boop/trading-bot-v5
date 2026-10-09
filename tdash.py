@@ -121,7 +121,7 @@ def recent_html(tr, lg, n=8):
     for _, r in tr.sort_values("Exit Date", ascending=False).head(n).iterrows():
         side = {"Call": T.badge("CALL", "acc"), "Put": T.badge("PUT", "vio")}.get(r["Type"], T.badge("LONG", "up"))
         rows.append(f'<tr><td><a href="{ui.href(r["Symbol"])}" target="_self" style="display:flex;align-items:center;gap:6px">'
-                    f'{T.logo_circle(r["Symbol"], lg.get(r["Symbol"]), 22)}{T.esc(r["Symbol"])}</a></td><td>{side}</td>'
+                    f'{T.logo_circle(r["Symbol"], lg.get(r["Symbol"]), 22)}{T.esc(T.sym_label(r["Symbol"]))}</a></td><td>{side}</td>'
                     f'<td class="muted">{pd.Timestamp(r["Exit Date"]):%Y-%m-%d}</td><td>{T.pbox(T.money(r["P&L $"]), r["P&L $"])}</td></tr>')
     return (f'<table class="rtab"><thead><tr><th>{L("Ticker", "الرمز")}</th><th>{L("Side", "النوع")}</th><th>{L("Date", "التاريخ")}</th>'
             f'<th>P&amp;L</th></tr></thead><tbody>{"".join(rows)}</tbody></table>')

@@ -38,13 +38,19 @@ def protected(orders, sym, qty):
                for o in orders)
 
 
+def _nm(sym, ar=False):
+    """A symbol in a sentence: a Saudi company by its name (its code is a number)."""
+    import tasi
+    return tasi.label(sym, ar) if tasi.is_sa(sym) else sym
+
+
 def _syms(names):
-    names = list(names)
+    names = [_nm(n) for n in names]
     return ", ".join(names[:3]) + (" …" if len(names) > 3 else "")
 
 
 def _syms_ar(names):
-    names = list(names)
+    names = [_nm(n, True) for n in names]
     return " و".join(names[:3]) + (" …" if len(names) > 3 else "")
 
 
@@ -73,7 +79,7 @@ def health(view, acct, stats, orders, sector_of, sec_name=None):
     if n:
         big = max(pos, key=lambda p: p["weight"])
         conc = _clamp(_interp(big["weight"], [10, 20, 30, 45, 60, 80], [100, 90, 72, 50, 30, 10]))
-        d = (f"Largest: {big['sym']} {big['weight']:.1f}%", f"الأكبر: {big['sym']} {big['weight']:.1f}%")
+        d = (f"Largest: {_nm(big['sym'])} {big['weight']:.1f}%", f"الأكبر: {_nm(big['sym'], True)} {big['weight']:.1f}%")
     else:
         big, conc, d = None, None, ("No positions", "ما فيه مراكز")
     factors.append({"key": "conc", "icon": "pie_chart", "name": ("Concentration", "التركيز"), "score": conc, "detail": d})
@@ -140,14 +146,14 @@ def health(view, acct, stats, orders, sector_of, sec_name=None):
             f"حط وقف خسارة على {_syms_ar(names)}: الوقف يحدد خسارتك إذا انعكس السعر ضدك.")})
     if big is not None and big["weight"] > 30:
         tips.append({"icon": "pie_chart", "kind": "warn", "text": (
-            f"{big['sym']} is {big['weight']:.0f}% of the account. Many traders keep one stock under 20–25%.",
-            f"{big['sym']} يمثل {big['weight']:.0f}% من الحساب. كثير من المتداولين يخلون السهم الواحد تحت 20–25%.")})
+            f"{_nm(big['sym'])} is {big['weight']:.0f}% of the account. Many traders keep one stock under 20–25%.",
+            f"{_nm(big['sym'], True)} يمثل {big['weight']:.0f}% من الحساب. كثير من المتداولين يخلون السهم الواحد تحت 20–25%.")})
     losers = [p for p in pos if p["upnl_pct"] <= -15]
     if losers:
         w = min(losers, key=lambda p: p["upnl_pct"])
         tips.append({"icon": "trending_down", "kind": "warn", "text": (
-            f"{w['sym']} is {w['upnl_pct']:.0f}% since you opened it: decide on purpose — cut it, or set a stop where you'd admit you were wrong.",
-            f"{w['sym']} نازل {abs(w['upnl_pct']):.0f}% من فتحته: قرّر بوعي — سكّره، أو حط وقف عند النقطة اللي تعترف فيها إنك غلطت.")})
+            f"{_nm(w['sym'])} is {w['upnl_pct']:.0f}% since you opened it: decide on purpose — cut it, or set a stop where you'd admit you were wrong.",
+            f"{_nm(w['sym'], True)} نازل {abs(w['upnl_pct']):.0f}% من فتحته: قرّر بوعي — سكّره، أو حط وقف عند النقطة اللي تعترف فيها إنك غلطت.")})
     if 0 < n < 4:
         tips.append({"icon": "hub", "kind": "info", "text": (
             f"Only {n} position{'s' if n != 1 else ''}: spreading over 5+ stocks from different sectors softens one bad surprise.",
