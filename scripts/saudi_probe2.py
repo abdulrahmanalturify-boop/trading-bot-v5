@@ -78,7 +78,7 @@ def _main():
             if len(df) < 100:
                 break
         return pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
-    df = t("earnings calendar region sa", lambda: earn("sa"))
+    df = t("earnings calendar region sa", lambda: earn("sa")) if os.environ.get("PROBE_CAL") else None
     if df is not None and len(df):
         log("columns", list(df.columns))
         log(df.head(30).to_string()[:4000])
@@ -94,7 +94,7 @@ def _main():
             if len(d) < 100:
                 break
         return pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
-    ev = t("economic events (all regions)", econ)
+    ev = t("economic events (all regions)", econ) if os.environ.get("PROBE_CAL") else None
     if ev is not None and len(ev):
         log("econ columns", list(ev.columns))
         reg = [c for c in ev.columns if c.lower() in ("region", "country", "country_code")]
@@ -111,7 +111,7 @@ def _main():
         d = t(name, fn)
         if d is not None and len(d):
             d = d.reset_index()
-            txt = d.astype(str).apply(" ".join, axis=1)
+            txt = d.apply(lambda r: " ".join(map(str, r.values)), axis=1)
             hit = d[txt.str.contains(r"\.SR|SAU|Saudi|Tadawul", case=False, regex=True)]
             log(f"{name}: {len(d)} rows, Saudi rows {len(hit)}")
             log(hit.head(20).to_string()[:2000])
