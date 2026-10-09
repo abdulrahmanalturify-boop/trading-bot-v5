@@ -10,10 +10,10 @@ import streamlit as st
 # ---------------------------------------------------------------- always run the newest code
 # Streamlit Cloud re-reads app.py after every GitHub upload but can keep the other modules (theme, data, ...) from the
 # previous version in memory. Every module carries BUILD; if one in memory is older, all of them are reloaded in order.
-BUILD = "20.6"
+BUILD = "20.7"
 _ORDER = ["terms", "lightmode", "i18n", "ai_assistant", "flags", "mcal", "universe", "sp500", "taxonomy", "ta", "academy_visuals", "academy", "insight", "heatmap", "newsiq", "newspics", "theme", "data",
-          "caldata", "newsbot", "newsintel", "charts", "engine", "playbooks", "autotrader", "ui", "fairvalue", "segments", "holders", "sharia", "lab", "tdash", "mlbots", "brain", "paperbots", "smartbots", "portfolio", "pfinsight", "p_markets", "p_newsintel", "p_research", "p_insight",
-          "p_academy", "p_paper", "p_portfolio", "p_calendar", "hunter", "p_scanner", "home"]
+          "caldata", "newsbot", "newsintel", "charts", "engine", "playbooks", "autotrader", "ui", "fairvalue", "segments", "holders", "sharia", "lab", "tdash", "mlbots", "brain", "paperbots", "smartbots", "portfolio", "robo", "pfinsight", "p_markets", "p_newsintel", "p_research", "p_insight",
+          "p_academy", "p_paper", "p_portfolio", "p_robo", "p_calendar", "hunter", "p_scanner", "home"]
 if any(m in sys.modules and getattr(sys.modules[m], "BUILD", None) != BUILD for m in _ORDER):
     for _m in _ORDER:
         if _m in sys.modules:
@@ -42,6 +42,7 @@ import p_markets
 import p_newsintel
 import p_paper
 import p_portfolio
+import p_robo
 import p_research
 import p_scanner
 import theme as T
@@ -202,6 +203,7 @@ P.update({
     "pf_analytics": st.Page(p_portfolio.page_analytics, title=L("Analytics", "التحليلات"), icon=":material/query_stats:", url_path="portfolio-analytics"),
     "pf_history": st.Page(p_portfolio.page_history, title=L("Orders & History", "الأوامر والسجل"), icon=":material/receipt_long:",
                           url_path="portfolio-history"),
+    "pf_robo": st.Page(p_robo.page_robo, title=L("Robo Advisor", "المستشار الآلي"), icon=":material/smart_toy:", url_path="robo-advisor"),
     "paper": st.Page(p_paper.page_paper_bots, title=L("Paper Bots", "البوتات الافتراضية"), icon=":material/robot_2:", url_path="paper-bots"),
     "scanner": st.Page(p_scanner.page_scanner, title=L("Scanner", "صائد الفرص"), icon=":material/radar:", url_path="scanner"),
 })
@@ -212,7 +214,7 @@ SECTIONS = [
     (L("Calendar", "التقويم"), "calendar_month", ["earnings", "results", "econcal", "holidays", "dividends", "splits", "ipos"]),
     (L("Insight", "رؤى"), "lightbulb", ["brief", "articles", "sentiment", "seasonality"]),
     (L("Academy", "الأكاديمية"), "school", ["academy", "glossary"]),
-    (L("Portfolio", "المحفظة"), "account_balance_wallet", ["pf_dash", "pf_trade", "pf_analytics", "pf_history"]),
+    (L("Portfolio", "المحفظة"), "account_balance_wallet", ["pf_dash", "pf_trade", "pf_analytics", "pf_history", "pf_robo"]),
     (L("Trading Bot", "بوت التداول"), "smart_toy", ["paper", "scanner"]),
 ]
 # the built-in menu is hidden; the bar below opens its menus on hover and navigates without reloading the site

@@ -355,6 +355,9 @@ def _from_link():
         return None
     try:
         _, row = PF.load(key_of(v))
+        if row is None:                      # a code with only a Robo Advisor portfolio opens too
+            import robo
+            _, row = robo.load(robo.key_for(key_of(v)))
     except PB.StoreError:
         return None
     return v if row is not None else None
@@ -391,15 +394,21 @@ def _remember(code):
         pass
 
 
+def ident():
+    """(code, stored row) of this visitor's portfolio, written into their browser again: the owner's own on the owner's devices,
+    else the visitor's own code. The Robo Advisor keeps its portfolio under the same code."""
+    if ss.get("pb_admin") and PF.owner_code() and not is_owner(ss.get("pf_vid")):
+        ss["pf_vid"] = PF.owner_code()       # the owner unlocked the Paper Bots on this device: it opens the owner's portfolio from now on
+    code = _vid()
+    _remember(code)
+    return code, key_of(code)
+
+
 def ctx():
     """The account of this page view (this visitor's own portfolio): its open orders checked against the real prices, then
     rebuilt day by day."""
     mode = "mine"
-    if ss.get("pb_admin") and PF.owner_code() and not is_owner(ss.get("pf_vid")):
-        ss["pf_vid"] = PF.owner_code()       # the owner unlocked the Paper Bots on this device: it opens the owner's portfolio from now on
-    code = _vid()
-    key = key_of(code)
-    _remember(code)
+    code, key = ident()
     mkt = PF.Market()
     err, row = None, None
     try:
@@ -1887,4 +1896,4 @@ def page_history():
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "20.6"
+BUILD = "20.7"

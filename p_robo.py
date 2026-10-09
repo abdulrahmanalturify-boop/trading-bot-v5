@@ -1,0 +1,1293 @@
+"""
+p_robo.py - Portfolio > Robo Advisor: an Investment Policy Statement from a short questionnaire, a portfolio of ETFs that fits
+it, and its management on autopilot (robo.py does the work).
+
+Four screens: the introduction; the questionnaire (one question at a time, tiles to tap, a live risk meter); the plan (the
+risk profile, the allocation, what to expect, a projection, the last five years, the IPS, the level can be moved by hand);
+and, once invested, the dashboard (value against the money put in and the benchmark, target against current weights, the
+holdings, everything the robo did, the IPS, and the controls: monthly deposit, add or withdraw, risk level, questionnaire,
+close). Virtual money, like the paper portfolio, kept under the same visitor code.
+"""
+import html as _html
+import math
+from datetime import datetime
+
+import pandas as pd
+import plotly.graph_objects as go
+import streamlit as st
+
+import charts as C
+import p_portfolio as PP
+import paperbots as PB
+import portfolio as PF
+import robo as R
+import theme as T
+import ui
+from i18n import L, is_ar
+
+ss = st.session_state
+_MU, _BD = "#9D97A5", T.BORDER
+LEVEL_COLORS = ["#34D399", "#2DD4BF", "#22D3EE", "#38BDF8", "#60A5FA", "#818CF8", "#A78BFA", "#F5B94A", "#F97316", "#F87171"]
+MONTHS_AR = PP.MONTHS_AR
+
+CSS = f"""<style>
+/* ---------- introduction ---------- */
+.rbhero {{ position:relative; overflow:hidden; border-radius:24px; border:1px solid {_BD}; padding:30px 30px 26px; margin:2px 0 16px;
+  display:grid; grid-template-columns:minmax(0,1.25fr) minmax(0,.9fr); gap:22px; align-items:center;
+  background:radial-gradient(110% 130% at 100% 0%, rgba(123,69,240,.32), transparent 55%), radial-gradient(90% 120% at 0% 100%, rgba(45,182,235,.18), transparent 60%),
+  linear-gradient(135deg,#130E22,#1A1430 55%,#120D20); box-shadow:0 18px 40px rgba(0,0,0,.28), {T.GLOW}; }}
+.rbhero::before {{ content:""; position:absolute; left:0; right:0; top:0; height:3px; background:linear-gradient(90deg,{T.ACCENT},{T.VIOLET},{T.CYAN}); }}
+.rbhero .eb {{ color:{T.CYAN}; font-weight:700; letter-spacing:.18em; font-size:.7rem; text-transform:uppercase; display:flex; align-items:center; gap:8px; }}
+.rbhero h1 {{ font-size:2.05rem; line-height:1.15; color:#fff; margin:10px 0 10px; padding:0; font-weight:800; letter-spacing:-.02em; }}
+.rbhero h1 em {{ font-style:normal; background:linear-gradient(90deg,#7DD3FC,#A78BFA); -webkit-background-clip:text; background-clip:text; color:transparent; }}
+.rbhero p {{ color:#CFC8DA; font-size:.95rem; line-height:1.65; margin:0 0 14px; }}
+.rbchips {{ display:flex; flex-wrap:wrap; gap:8px; }}
+.rbchip {{ display:inline-flex; align-items:center; gap:6px; border-radius:999px; padding:5px 11px; font-size:.76rem; font-weight:600; color:#DCD7E3;
+  background:rgba(26,22,36,.78); border:1px solid {_BD}; }}
+.rbchip .ms {{ font-size:1rem; color:{T.CYAN}; }}
+.rbchip.gold {{ color:#FCE3A6; border-color:rgba(245,185,74,.4); background:rgba(245,185,74,.1); }} .rbchip.gold .ms {{ color:{T.GOLD}; }}
+.rbchip.warn {{ color:#FDBA74; border-color:rgba(249,115,22,.45); background:rgba(249,115,22,.1); }} .rbchip.warn .ms {{ color:#F97316; }}
+.rbart {{ position:relative; width:100%; max-width:300px; aspect-ratio:1; margin:0 auto; }}
+.rbart svg {{ width:100%; height:100%; overflow:visible; }}
+.rbart .core {{ position:absolute; inset:34%; border-radius:50%; display:flex; align-items:center; justify-content:center;
+  background:radial-gradient(circle at 35% 30%, #4B3A8C, #1B1433 70%); box-shadow:0 0 0 1px rgba(167,139,250,.35), 0 0 46px rgba(123,69,240,.55);
+  animation:rbfloat 4s ease-in-out infinite; }}
+.rbart .core .ms {{ font-size:3.1rem; color:#fff; }}
+@keyframes rbfloat {{ 50% {{ transform:translateY(-6px); }} }}
+.rbsteps {{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin:0 0 14px; }}
+.rbstep {{ position:relative; overflow:hidden; background:{T.BOX_BG}; border:1px solid {_BD}; border-radius:18px; padding:16px 16px 14px;
+  animation:rbup .5s cubic-bezier(.2,.8,.2,1) both; animation-delay:calc(var(--i) * 90ms); }}
+.rbstep .n {{ width:34px; height:34px; border-radius:11px; display:flex; align-items:center; justify-content:center; color:#fff;
+  background:linear-gradient(140deg,{T.CYAN},{T.VIOLET}); box-shadow:0 8px 18px -8px rgba(123,69,240,.7); margin-bottom:10px; }}
+.rbstep .n .ms {{ font-size:1.2rem; color:#fff; }}
+.rbstep b {{ display:block; color:#fff; font-size:.98rem; margin-bottom:4px; }}
+.rbstep span {{ color:#A8A2B3; font-size:.8rem; line-height:1.5; }}
+.rbstep::after {{ content:attr(data-k); position:absolute; inset-inline-end:12px; top:6px; font-size:2.6rem; font-weight:800; color:rgba(255,255,255,.05); }}
+@keyframes rbup {{ from {{ opacity:0; transform:translateY(14px); }} }}
+.rbfeat {{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; margin:6px 0 14px; }}
+.rbfeat > div {{ background:{T.BOX_BG}; border:1px solid {_BD}; border-radius:16px; padding:13px 14px; }}
+.rbfeat .ms {{ color:{T.CYAN}; font-size:1.3rem; }}
+.rbfeat b {{ display:block; color:#F4F1F8; font-size:.86rem; margin:6px 0 3px; }}
+.rbfeat span:not(.ms) {{ color:#A8A2B3; font-size:.76rem; line-height:1.45; }}
+.rbnote {{ display:flex; gap:10px; align-items:flex-start; color:#A8A2B3; font-size:.78rem; line-height:1.55; border:1px dashed rgba(157,151,165,.35);
+  border-radius:14px; padding:10px 13px; margin:10px 0 4px; }}
+.rbnote .ms {{ color:{T.GOLD}; font-size:1.1rem; }}
+@media (max-width: 820px) {{ .rbhero {{ grid-template-columns:1fr; padding:22px 18px 18px; }} .rbhero h1 {{ font-size:1.6rem; }}
+  .rbart {{ max-width:210px; order:-1; }} .rbsteps {{ grid-template-columns:1fr; }} .rbfeat {{ grid-template-columns:repeat(2,minmax(0,1fr)); }} }}
+
+/* ---------- the questionnaire: progress, question, tiles ---------- */
+.rbprog {{ background:{T.BOX_BG}; border:1px solid {_BD}; border-radius:18px; padding:14px 16px 12px; margin:2px 0 12px; }}
+.rbprog .top {{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }}
+.rbprog .qn {{ color:#DCD7E3; font-weight:700; font-size:.86rem; }} .rbprog .qn em {{ font-style:normal; color:{_MU}; font-weight:500; }}
+.rbmeter {{ display:inline-flex; align-items:center; gap:9px; color:{_MU}; font-size:.76rem; font-weight:600; }}
+.rbmeter b {{ color:#fff; font-size:.9rem; }}
+.rbmeter .segs {{ display:inline-flex; gap:3px; direction:ltr; }}
+.rbmeter .segs i {{ width:9px; height:14px; border-radius:3px; background:rgba(157,151,165,.18); transition:background .4s; }}
+.rbprog .bar {{ position:relative; height:7px; border-radius:7px; background:rgba(157,151,165,.16); margin:11px 0 10px; overflow:hidden; }}
+.rbprog .bar i {{ position:absolute; inset-block:0; inset-inline-start:0; border-radius:7px; background:linear-gradient(90deg,{T.CYAN},{T.VIOLET});
+  box-shadow:0 0 12px rgba(45,182,235,.6); animation:rbgrow .6s cubic-bezier(.2,.8,.2,1) both; }}
+@keyframes rbgrow {{ from {{ width:var(--w0); }} }}
+.rbprog .secs {{ display:flex; gap:6px; flex-wrap:wrap; }}
+.rbprog .secs span {{ display:inline-flex; align-items:center; gap:5px; border-radius:999px; padding:4px 10px; font-size:.72rem; font-weight:600;
+  color:{_MU}; border:1px solid rgba(157,151,165,.22); }}
+.rbprog .secs span .ms {{ font-size:.95rem; }}
+.rbprog .secs span.done {{ color:#86EFAC; border-color:rgba(74,222,128,.35); background:rgba(34,197,94,.08); }}
+.rbprog .secs span.cur {{ color:#fff; border-color:rgba(45,182,235,.6); background:linear-gradient(90deg,rgba(45,182,235,.22),rgba(123,69,240,.18)); }}
+.rbprog .secs span.cur .ms {{ color:{T.CYAN}; }}
+@media (max-width: 640px) {{ .rbprog .secs {{ gap:4px; flex-wrap:nowrap; }} .rbprog .secs span:not(.cur) {{ padding:4px 6px; }} .rbprog .secs span:not(.cur) em {{ display:none; }} }}
+.rbprog .secs em {{ font-style:normal; }}
+.rbq {{ position:relative; overflow:hidden; border-radius:20px; border:1px solid {_BD}; padding:20px 22px 18px; margin:0 0 14px;
+  background:radial-gradient(90% 140% at 100% 0%, rgba(123,69,240,.16), transparent 60%), {T.BOX_BG}; animation:rbup .45s cubic-bezier(.2,.8,.2,1) both; }}
+.rbq .k {{ display:flex; align-items:center; gap:7px; color:{T.CYAN}; font-size:.7rem; font-weight:700; letter-spacing:.14em; text-transform:uppercase; }}
+.rbq .k .ms {{ font-size:1rem; }}
+.rbq h2 {{ color:#fff; font-size:1.45rem; font-weight:800; line-height:1.3; margin:8px 0 8px; padding:0; letter-spacing:-.01em; }}
+.rbq .why {{ display:flex; gap:8px; align-items:flex-start; color:#B9B3C4; font-size:.84rem; line-height:1.55; }}
+.rbq .why .ms {{ color:{T.GOLD}; font-size:1.05rem; margin-top:1px; }}
+.rbq .viz {{ margin-top:12px; }}
+.rbdrop {{ display:block; width:100%; max-width:520px; height:96px; direction:ltr; }}
+.rbdrop .ln {{ stroke-dasharray:600; stroke-dashoffset:600; animation:rbdraw 1.6s .2s ease-out forwards; }}
+.rbdrop .tg {{ opacity:0; animation:rbfade .5s 1.5s forwards; }}
+@keyframes rbdraw {{ to {{ stroke-dashoffset:0; }} }}
+@keyframes rbfade {{ to {{ opacity:1; }} }}
+[class*="st-key-rbt_"] {{ position:relative; gap:0 !important; }}
+[class*="st-key-rbt_"] [data-testid="stElementContainer"] {{ position:static !important; margin:0 !important; }}
+[class*="st-key-rbt_"] .stButton {{ position:absolute !important; inset:0; z-index:4; margin:0 !important; }}
+[class*="st-key-rbt_"] .stButton > div, [class*="st-key-rbt_"] [data-testid="stTooltipHoverTarget"] {{ width:100% !important; height:100% !important; }}
+[class*="st-key-rbt_"] .stButton button {{ width:100% !important; height:100% !important; min-height:0 !important; padding:0 !important;
+  opacity:0; cursor:pointer; border-radius:18px !important; }}
+.rbo {{ position:relative; overflow:hidden; isolation:isolate; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; gap:9px;
+  min-height:150px; padding:20px 12px 16px; border-radius:18px; border:1px solid transparent; box-sizing:border-box; color:#E9E5F0;
+  background:linear-gradient(rgba(19,14,34,.92),rgba(19,14,34,.92)) padding-box,
+             linear-gradient(140deg,rgba(121,184,244,.26),rgba(255,255,255,.06) 45%,rgba(123,69,240,.28)) border-box;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05), 0 10px 26px -18px rgba(0,0,0,.8);
+  transition:transform .25s cubic-bezier(.2,.8,.2,1), box-shadow .3s;
+  animation:rbtile .45s cubic-bezier(.2,.8,.2,1) both; animation-delay:calc(var(--i) * 55ms); }}
+.rbo.tall {{ min-height:164px; }}
+@keyframes rbtile {{ from {{ opacity:0; transform:translateY(14px) scale(.97); }} }}
+.rbo::before {{ content:""; position:absolute; inset:0; z-index:-1; pointer-events:none; opacity:0; transition:opacity .35s;
+  background:radial-gradient(120% 80% at 50% 0%, rgba(45,182,235,.22), transparent 65%); }}
+.rbo .ic {{ flex:none; width:48px; height:48px; border-radius:15px; display:flex; align-items:center; justify-content:center; color:#7DD3FC;
+  background:rgba(45,182,235,.1); box-shadow:inset 0 0 0 1px rgba(45,182,235,.28); transition:transform .4s cubic-bezier(.3,1.6,.5,1), background .3s; }}
+.rbo .ic .ms {{ font-size:1.55rem; }}
+.rbo .big {{ font-size:1.7rem; font-weight:800; color:#fff; line-height:1; direction:ltr; unicode-bidi:isolate; }}
+.rbo .tx {{ display:flex; flex-direction:column; gap:4px; min-width:0; }}
+.rbo .tx b {{ font-size:.98rem; font-weight:700; color:#F4F1F8; line-height:1.3; }}
+.rbo .tx span {{ font-size:.76rem; color:#A8A2B3; line-height:1.4; }}
+.rbo .ck {{ position:absolute; top:10px; inset-inline-end:10px; width:22px; height:22px; border-radius:50%; display:flex; align-items:center;
+  justify-content:center; border:1.5px solid rgba(157,151,165,.42); transition:background .25s, border-color .25s; }}
+.rbo .ck .ms {{ font-size:.9rem; color:#fff; opacity:0; }}
+.rbo .dep {{ width:54px; height:44px; border-radius:9px; position:relative; overflow:hidden; background:rgba(157,151,165,.13); direction:ltr; }}
+.rbo .dep i {{ position:absolute; left:0; right:0; top:0; background:linear-gradient(180deg,rgba(248,113,113,.25),rgba(248,113,113,.85));
+  border-bottom:2px solid #F87171; animation:rbdepth .9s cubic-bezier(.2,.8,.2,1) both; animation-delay:calc(var(--i) * 70ms + .2s); }}
+@keyframes rbdepth {{ from {{ height:0; }} }}
+.rbo .rng {{ width:100%; max-width:200px; direction:ltr; }}
+.rbo .rng .tr {{ display:block; position:relative; height:12px; border-radius:6px; background:rgba(157,151,165,.13); }}
+.rbo .rng .tr::after {{ content:""; position:absolute; left:50%; top:-3px; bottom:-3px; width:2px; margin-left:-1px; background:rgba(255,255,255,.55); border-radius:2px; }}
+.rbo .rng .lo, .rbo .rng .hi {{ position:absolute; top:0; bottom:0; animation:rbbar .8s cubic-bezier(.2,.8,.2,1) both; animation-delay:calc(var(--i) * 70ms + .2s); }}
+.rbo .rng .lo {{ right:50%; border-radius:6px 0 0 6px; background:linear-gradient(270deg,rgba(248,113,113,.45),#F87171); }}
+.rbo .rng .hi {{ left:50%; border-radius:0 6px 6px 0; background:linear-gradient(90deg,rgba(74,222,128,.45),#4ADE80); }}
+@keyframes rbbar {{ from {{ width:0; }} }}
+.rbo .rng .lb {{ display:flex; justify-content:space-between; margin-top:6px; font-size:.82rem; font-weight:700; }}
+.rbo .rng .lb .d {{ color:#F87171; }} .rbo .rng .lb .u {{ color:#4ADE80; }}
+@media (hover:hover) {{
+  [class*="st-key-rbt_"]:hover .rbo {{ transform:translateY(-3px); box-shadow:0 18px 34px -18px rgba(45,182,235,.6), inset 0 1px 0 rgba(255,255,255,.08); }}
+  [class*="st-key-rbt_"]:hover .rbo::before {{ opacity:1; }}
+  [class*="st-key-rbt_"]:hover .rbo .ic {{ transform:rotate(-8deg) scale(1.08); }}
+  [class*="st-key-rbt_"]:hover .rbo .ck {{ border-color:{T.CYAN}; }}
+}}
+[class*="st-key-rbt_"]:has(button:active) .rbo {{ transform:scale(.97); transition-duration:.08s; }}
+[class*="st-key-rbt_"]:has(button:focus-visible) .rbo {{ box-shadow:0 0 0 3px rgba(45,182,235,.55); }}
+.rbo.on {{ background:linear-gradient(160deg,rgba(45,182,235,.22),rgba(123,69,240,.16) 70%) padding-box,
+             linear-gradient(rgba(19,14,34,.9),rgba(19,14,34,.9)) padding-box, linear-gradient(135deg,{T.CYAN},{T.VIOLET}) border-box;
+  box-shadow:0 14px 34px -18px rgba(45,182,235,.75); }}
+.rbo.on .ic {{ background:linear-gradient(140deg,{T.CYAN},{T.VIOLET}); color:#fff; box-shadow:0 8px 18px -8px rgba(123,69,240,.8); }}
+.rbo.on .ck {{ background:linear-gradient(140deg,{T.CYAN},{T.VIOLET}); border-color:transparent; }}
+.rbo.on .ck .ms {{ opacity:1; animation:rbpop .5s cubic-bezier(.3,1.6,.5,1); }}
+@keyframes rbpop {{ 0% {{ transform:scale(.3); }} 70% {{ transform:scale(1.25); }} 100% {{ transform:scale(1); }} }}
+@media (max-width: 640px) {{
+  .rbo, .rbo.tall {{ flex-direction:row; justify-content:flex-start; text-align:start; min-height:0; padding-block:12px; padding-inline:12px 44px; gap:12px; }}
+  .rbo .ic {{ width:42px; height:42px; border-radius:13px; }} .rbo .ic .ms {{ font-size:1.35rem; }}
+  .rbo .ck {{ top:50%; margin-top:-11px; }}
+  .rbo .big {{ font-size:1.35rem; min-width:64px; }}
+  .rbo .dep {{ order:3; width:34px; height:30px; margin-inline-start:auto; }}
+  .rbo .rng {{ max-width:none; flex:1; }}
+  .rbq {{ padding:16px 16px 14px; }} .rbq h2 {{ font-size:1.2rem; }}
+}}
+.rbfund {{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin:2px 0 12px; }}
+.rbfund > div {{ background:{T.BOX_BG}; border:1px solid {_BD}; border-radius:16px; padding:12px 14px; }}
+.rbfund .l {{ color:{_MU}; font-size:.7rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; display:flex; gap:6px; align-items:center; }}
+.rbfund .l .ms {{ color:{T.CYAN}; font-size:1rem; }}
+.rbfund .v {{ color:#fff; font-size:1.35rem; font-weight:800; margin-top:5px; direction:ltr; unicode-bidi:isolate; display:inline-block; }}
+.rbfund .s {{ color:{_MU}; font-size:.74rem; margin-top:2px; }}
+@media (max-width: 640px) {{ .rbfund {{ grid-template-columns:1fr; }} }}
+
+/* ---------- the plan: profile, gauge, allocation ---------- */
+.rbres {{ position:relative; overflow:hidden; display:grid; grid-template-columns:250px minmax(0,1fr); gap:22px; align-items:center; border-radius:22px;
+  border:1px solid {_BD}; padding:20px 24px; margin:2px 0 12px;
+  background:radial-gradient(100% 140% at 0% 0%, var(--lg, rgba(45,182,235,.2)), transparent 60%), linear-gradient(135deg,#130E22,#1A1430 60%,#120D20);
+  box-shadow:0 18px 40px rgba(0,0,0,.26), {T.GLOW}; animation:rbup .5s cubic-bezier(.2,.8,.2,1) both; }}
+.rbres::before {{ content:""; position:absolute; left:0; right:0; top:0; height:3px; background:linear-gradient(90deg,#34D399,#60A5FA,#A78BFA,#F5B94A,#F87171); }}
+.rbg {{ width:100%; max-width:250px; margin:0 auto; direction:ltr; }}
+.rbg svg {{ width:100%; height:auto; overflow:visible; display:block; }}
+.rbg .seg {{ animation:rbfade .4s both; }}
+.rbres .eb {{ color:{T.CYAN}; font-size:.7rem; font-weight:700; letter-spacing:.16em; text-transform:uppercase; }}
+.rbres h2 {{ color:#fff; font-size:1.75rem; font-weight:800; margin:6px 0 6px; padding:0; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }}
+.rbres h2 .lv {{ font-size:.8rem; font-weight:700; border-radius:999px; padding:4px 11px; color:#0E0918; background:var(--lc,#60A5FA); }}
+.rbres p {{ color:#CFC8DA; font-size:.9rem; line-height:1.6; margin:0 0 10px; }}
+.rbsc {{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px 18px; margin:4px 0 10px; }}
+.rbsc .h {{ display:flex; justify-content:space-between; color:#CFC8DA; font-size:.78rem; font-weight:600; }}
+.rbsc .h b {{ color:#fff; direction:ltr; unicode-bidi:isolate; }}
+.rbsc .t {{ position:relative; height:8px; border-radius:8px; background:rgba(157,151,165,.16); margin-top:6px; overflow:hidden; direction:ltr; }}
+.rbsc .t i {{ position:absolute; left:0; top:0; bottom:0; border-radius:8px; animation:rbbar 1s cubic-bezier(.2,.8,.2,1) both; }}
+@media (max-width: 760px) {{ .rbres {{ grid-template-columns:1fr; padding:18px 16px; gap:10px; }} .rbg {{ max-width:210px; }} .rbres h2 {{ font-size:1.4rem; }} }}
+.rbal {{ display:grid; grid-template-columns:240px minmax(0,1fr); gap:20px; align-items:center; background:{T.BOX_BG}; border:1px solid {_BD};
+  border-radius:20px; padding:18px 20px; margin:2px 0 12px; }}
+.rbdon {{ width:100%; max-width:240px; margin:0 auto; direction:ltr; }}
+.rbdon svg {{ width:100%; height:auto; display:block; overflow:visible; }}
+.rbdon .sg {{ animation:rbseg 1s cubic-bezier(.2,.8,.2,1) both; }}
+@keyframes rbseg {{ from {{ stroke-dasharray:0 100; }} }}
+.rbgrp {{ display:flex; height:12px; border-radius:7px; overflow:hidden; gap:2px; direction:ltr; margin:0 0 6px; }}
+.rbgrp i {{ display:block; height:100%; animation:rbbar 1s cubic-bezier(.2,.8,.2,1) both; }}
+.rbgl {{ display:flex; flex-wrap:wrap; gap:6px 14px; color:#CFC8DA; font-size:.76rem; margin-bottom:12px; }}
+.rbgl span {{ display:inline-flex; align-items:center; gap:6px; }} .rbgl i {{ width:9px; height:9px; border-radius:3px; display:inline-block; }}
+.rbgl b {{ color:#fff; direction:ltr; unicode-bidi:isolate; }}
+.rbleg {{ display:flex; flex-direction:column; gap:2px; }}
+.rbleg .r {{ display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:10px; align-items:center; padding:7px 8px; border-radius:11px;
+  transition:background .2s; animation:rbup .45s cubic-bezier(.2,.8,.2,1) both; animation-delay:calc(var(--i) * 45ms); }}
+.rbleg .r:hover {{ background:rgba(157,151,165,.08); }}
+.rbleg .tk {{ min-width:52px; text-align:center; border-radius:8px; padding:3px 7px; font-size:.74rem; font-weight:800; color:#0E0918; background:var(--c); }}
+.rbleg .nm b {{ display:block; color:#F4F1F8; font-size:.85rem; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
+.rbleg .nm span {{ display:block; color:{_MU}; font-size:.72rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
+.rbleg .w {{ color:#fff; font-weight:800; font-size:.95rem; direction:ltr; unicode-bidi:isolate; }}
+.rbleg .w small {{ color:{_MU}; font-weight:600; font-size:.7rem; margin-inline-start:4px; }}
+@media (max-width: 760px) {{ .rbal {{ grid-template-columns:1fr; padding:14px; }} .rbdon {{ max-width:200px; }} }}
+
+/* ---------- the IPS document ---------- */
+.rbips {{ position:relative; overflow:hidden; border-radius:20px; padding:22px 24px 18px; margin:2px 0 10px;
+  background:linear-gradient(180deg,#18122A,#140F23); border:1px solid rgba(167,139,250,.32);
+  box-shadow:0 20px 44px -26px rgba(123,69,240,.6), inset 0 1px 0 rgba(255,255,255,.05); }}
+.rbips::before {{ content:""; position:absolute; inset:0; pointer-events:none; opacity:.5;
+  background-image:repeating-linear-gradient(0deg, rgba(167,139,250,.05) 0 1px, transparent 1px 28px); }}
+.rbips .hd {{ position:relative; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; border-bottom:1px solid rgba(167,139,250,.25);
+  padding-bottom:12px; margin-bottom:14px; }}
+.rbips .hd .t {{ display:flex; align-items:center; gap:12px; }}
+.rbips .seal {{ width:46px; height:46px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff;
+  background:conic-gradient(from 0deg,{T.CYAN},{T.VIOLET},{T.GOLD},{T.CYAN}); box-shadow:0 0 0 4px rgba(123,69,240,.18); }}
+.rbips .seal .ms {{ font-size:1.4rem; color:#fff; background:#18122A; border-radius:50%; width:36px; height:36px; display:flex; align-items:center; justify-content:center; }}
+.rbips .hd b {{ display:block; color:#fff; font-size:1.08rem; font-weight:800; }}
+.rbips .hd span {{ color:{_MU}; font-size:.76rem; }}
+.rbips .grid {{ position:relative; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px 22px; }}
+.rbips .sx h4 {{ display:flex; align-items:center; gap:8px; color:#C4B5FD; font-size:.8rem; font-weight:800; letter-spacing:.06em; text-transform:uppercase;
+  margin:0 0 7px; padding:0; }}
+.rbips .sx h4 .ms {{ font-size:1.05rem; }}
+.rbips .sx h4 i {{ font-style:normal; color:{_MU}; font-weight:700; }}
+.rbips .it {{ display:flex; justify-content:space-between; gap:12px; padding:5px 0; border-bottom:1px dashed rgba(157,151,165,.18); font-size:.82rem; }}
+.rbips .it span {{ color:{_MU}; }} .rbips .it b {{ color:#F4F1F8; text-align:end; font-weight:600; }}
+.rbips .pol {{ color:#CFC8DA; font-size:.82rem; line-height:1.6; margin:0; padding-inline-start:18px; }}
+.rbips .pol li {{ margin:2px 0; }}
+.rbips table {{ width:100%; border-collapse:collapse; font-size:.8rem; }}
+.rbips th {{ color:{_MU}; font-weight:700; text-align:start; padding:4px 6px; border-bottom:1px solid rgba(157,151,165,.25); }}
+.rbips td {{ color:#E9E5F0; padding:5px 6px; border-bottom:1px dashed rgba(157,151,165,.15); }}
+.rbips td.n {{ direction:ltr; unicode-bidi:isolate; text-align:end; font-weight:700; }}
+.rbips .sg {{ position:relative; display:flex; justify-content:space-between; align-items:flex-end; gap:12px; margin-top:16px; color:{_MU}; font-size:.74rem; }}
+.rbips .sg b {{ display:block; color:#E9E5F0; font-family:'Brush Script MT','Segoe Script',cursive; font-size:1.3rem; font-weight:400; }}
+@media (max-width: 760px) {{ .rbips .grid {{ grid-template-columns:1fr; }} .rbips {{ padding:16px 14px; }} }}
+
+/* ---------- the dashboard ---------- */
+.rbauto {{ display:inline-flex; align-items:center; gap:7px; border-radius:999px; padding:4px 11px; font-size:.74rem; font-weight:700;
+  color:#C4F1D8; background:rgba(34,197,94,.12); border:1px solid rgba(74,222,128,.38); }}
+.rbauto i {{ width:8px; height:8px; border-radius:50%; background:#4ADE80; box-shadow:0 0 0 0 rgba(74,222,128,.7); animation:rbpulse 1.8s infinite; }}
+.rbauto.wait {{ color:#FCE3A6; background:rgba(245,185,74,.12); border-color:rgba(245,185,74,.4); }} .rbauto.wait i {{ background:{T.GOLD}; }}
+@keyframes rbpulse {{ 70% {{ box-shadow:0 0 0 8px rgba(74,222,128,0); }} 100% {{ box-shadow:0 0 0 0 rgba(74,222,128,0); }} }}
+.rbnext {{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; margin:0 0 12px; }}
+.rbnext > div {{ display:flex; gap:11px; align-items:center; background:{T.BOX_BG}; border:1px solid {_BD}; border-radius:16px; padding:12px 14px; }}
+.rbnext .i {{ flex:none; width:38px; height:38px; border-radius:12px; display:flex; align-items:center; justify-content:center; background:rgba(45,182,235,.12);
+  color:#7DD3FC; box-shadow:inset 0 0 0 1px rgba(45,182,235,.3); }}
+.rbnext .i.g {{ background:rgba(74,222,128,.12); color:#86EFAC; box-shadow:inset 0 0 0 1px rgba(74,222,128,.3); }}
+.rbnext .i.y {{ background:rgba(245,185,74,.12); color:#FCD34D; box-shadow:inset 0 0 0 1px rgba(245,185,74,.32); }}
+.rbnext span {{ display:block; color:{_MU}; font-size:.7rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; }}
+.rbnext b {{ display:block; color:#fff; font-size:.92rem; margin-top:2px; }}
+.rbnext em {{ font-style:normal; color:#B9B3C4; font-size:.74rem; }}
+@media (max-width: 760px) {{ .rbnext {{ grid-template-columns:1fr; }} }}
+.rbpend {{ display:flex; gap:14px; align-items:center; border-radius:18px; padding:16px 18px; margin:0 0 12px; border:1px solid rgba(245,185,74,.38);
+  background:linear-gradient(135deg,rgba(245,185,74,.12),transparent 70%), {T.BOX_BG}; }}
+.rbpend .ms {{ font-size:2rem; color:{T.GOLD}; animation:rbfloat 3s ease-in-out infinite; }}
+.rbpend b {{ color:#fff; display:block; font-size:1rem; }} .rbpend span {{ color:#CFC8DA; font-size:.84rem; line-height:1.55; }}
+.rbdr {{ display:flex; flex-direction:column; gap:12px; }}
+.rbdr .r {{ display:grid; grid-template-columns:185px minmax(0,1fr) 92px; gap:12px; align-items:center; }}
+.rbdr .f {{ display:flex; align-items:center; gap:8px; min-width:0; }}
+.rbdr .f .tk {{ min-width:50px; text-align:center; border-radius:7px; padding:2px 6px; font-size:.72rem; font-weight:800; color:#0E0918; background:var(--c); }}
+.rbdr .f span {{ color:#B9B3C4; font-size:.74rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
+.rbdr .tr {{ position:relative; height:16px; border-radius:8px; background:rgba(157,151,165,.12); direction:ltr; }}
+.rbdr .tr .bd {{ position:absolute; top:0; bottom:0; background:rgba(45,182,235,.12); border-left:1px dashed rgba(45,182,235,.45);
+  border-right:1px dashed rgba(45,182,235,.45); }}
+.rbdr .tr .cu {{ position:absolute; left:0; top:4px; bottom:4px; border-radius:6px; background:var(--c); opacity:.9; animation:rbbar 1s cubic-bezier(.2,.8,.2,1) both; }}
+.rbdr .tr .tg {{ position:absolute; top:-3px; bottom:-3px; width:3px; margin-left:-1.5px; border-radius:2px; background:#FCD34D; box-shadow:0 0 6px rgba(252,211,77,.6); }}
+.rbdr .v {{ text-align:end; }}
+.rbdr .v b {{ color:#fff; font-size:.88rem; }} .rbdr .v em {{ display:block; font-style:normal; font-size:.72rem; font-weight:700; }}
+.rbdr .v em.ok {{ color:#86EFAC; }} .rbdr .v em.near {{ color:#FCD34D; }} .rbdr .v em.out {{ color:#F87171; }}
+.rbdr .rblg {{ display:flex; gap:14px; flex-wrap:wrap; color:{_MU}; font-size:.72rem; margin-top:2px; }}
+.rbdr .rblg i {{ display:inline-block; vertical-align:middle; margin-inline-end:5px; }}
+@media (max-width: 640px) {{ .rbdr .r {{ grid-template-columns:minmax(0,1fr) 84px; }} .rbdr .tr {{ grid-column:1 / -1; grid-row:2; }} }}
+.rbtbl {{ width:100%; border-collapse:separate; border-spacing:0; font-size:.84rem; background:{T.BOX_BG}; border:1px solid {_BD}; border-radius:16px; overflow:hidden; }}
+.rbtbl th {{ color:{_MU}; font-size:.7rem; font-weight:700; letter-spacing:.06em; text-transform:uppercase; text-align:start; padding:10px 12px;
+  border-bottom:1px solid {_BD}; white-space:nowrap; }}
+.rbtbl td {{ color:#E9E5F0; padding:10px 12px; border-bottom:1px solid rgba(44,39,56,.7); white-space:nowrap; }}
+.rbtbl tr:last-child td {{ border-bottom:0; }}
+.rbtbl td.n, .rbtbl th.n {{ text-align:end; }}
+.rbtbl .tk {{ display:inline-block; min-width:48px; text-align:center; border-radius:7px; padding:2px 6px; font-size:.72rem; font-weight:800; color:#0E0918;
+  background:var(--c); margin-inline-end:8px; }}
+.rbtbl .cl {{ color:{_MU}; font-size:.74rem; }}
+.rbtbl .up {{ color:{T.POS_FG}; }} .rbtbl .dn {{ color:{T.NEG_FG}; }}
+.rbtw {{ overflow-x:auto; margin:0 0 12px; border-radius:16px; }}
+.rbtl {{ position:relative; display:flex; flex-direction:column; gap:0; background:{T.BOX_BG}; border:1px solid {_BD}; border-radius:18px; padding:8px 14px; }}
+.rbtl .e {{ position:relative; display:grid; grid-template-columns:38px minmax(0,1fr) auto; gap:12px; align-items:start; padding:10px 0;
+  border-bottom:1px solid rgba(44,39,56,.6); animation:rbup .4s cubic-bezier(.2,.8,.2,1) both; animation-delay:calc(var(--i) * 40ms); }}
+.rbtl .e:last-child {{ border-bottom:0; }}
+.rbtl .ti {{ width:36px; height:36px; border-radius:12px; display:flex; align-items:center; justify-content:center; color:#fff; background:var(--c); }}
+.rbtl .ti .ms {{ font-size:1.15rem; color:#fff; }}
+.rbtl b {{ color:#F4F1F8; font-size:.88rem; }} .rbtl p {{ margin:2px 0 0; color:#A8A2B3; font-size:.76rem; line-height:1.5; }}
+.rbtl .dt {{ color:{_MU}; font-size:.74rem; white-space:nowrap; padding-top:2px; }}
+.rbtl .am {{ color:#fff; font-weight:700; direction:ltr; unicode-bidi:isolate; }}
+</style>"""
+
+
+# =====================================================================
+# small pieces
+# =====================================================================
+def _m(v, dec=0, sign=False):
+    return PP._m(v, dec, sign)
+
+
+def _p(v, dec=1, sign=False):
+    return PP._p(v, dec, sign)
+
+
+def _esc(s):
+    return T.esc(s)
+
+
+def _fwd():
+    return ":material/arrow_back:" if is_ar() else ":material/arrow_forward:"     # forward points left in Arabic
+
+
+def _back():
+    return ":material/arrow_forward:" if is_ar() else ":material/arrow_back:"
+
+
+def _ltr(s):
+    """A left-to-right run (a number, a ticker with an amount) kept whole inside Arabic text (HTML)."""
+    return f'<bdi dir="ltr">{s}</bdi>'
+
+
+def _i(s):
+    """The same for plain text (escaped later): Unicode isolates."""
+    return f"\u2066{s}\u2069"
+
+
+def _date(d):
+    d = pd.Timestamp(d)
+    return f"{d.day} {MONTHS_AR[d.month - 1]} {d.year}" if is_ar() else d.strftime("%b %-d, %Y")
+
+
+def _lab(o):
+    return o[3] if is_ar() else o[2]
+
+
+def _sub(o):
+    return o[5] if is_ar() else o[4]
+
+
+def _qtext(q):
+    return q["ar"] if is_ar() else q["en"]
+
+
+def _fund(t):
+    f = R.FUNDS.get(t, (t, t, t, "#9D97A5", "stocks"))
+    return {"name": f[0], "cls": f[2] if is_ar() else f[1], "c": f[3], "g": f[4]}
+
+
+def _prof_name(lv):
+    en, ar = R.PROFILES[int(lv)]
+    return L(en, ar)
+
+
+def _answer(qid, ans):
+    o = R.opt(qid, ans.get(qid))
+    return _lab(o) if o else "—"
+
+
+def _flash():
+    msg = ss.pop("rb_flash", None)
+    if msg:
+        st.toast(msg, icon=":material/task_alt:")
+
+
+def note():
+    return (f'<div class="rbnote">{T.icon("info")}<span>{L("Virtual money on real prices, for learning: not investment advice. Expected returns are long-run estimates, not promises; past results do not repeat.", "فلوس افتراضية على أسعار حقيقية بهدف التعلم، وليست توصية استثمارية. العوائد المتوقعة تقديرات طويلة المدى وليست وعود، والنتائج السابقة ما تتكرر بالضرورة.")}</span></div>')
+
+
+# =====================================================================
+# introduction
+# =====================================================================
+def _art():
+    segs, start = [], 0.0
+    for w, c in ((34, "#3B8BEB"), (18, "#2DB6EB"), (10, "#7B45F0"), (22, "#34D399"), (8, "#F97316"), (8, "#F5B94A")):
+        segs.append(f'<circle cx="150" cy="150" r="118" fill="none" stroke="{c}" stroke-width="16" pathLength="100" '
+                    f'stroke-dasharray="{w - 1.2:.1f} {100 - w + 1.2:.1f}" stroke-dashoffset="{-start:.1f}" stroke-linecap="round"/>')
+        start += w
+    dots = "".join(f'<circle cx="{150 + 140 * math.cos(a):.1f}" cy="{150 + 140 * math.sin(a):.1f}" r="{r}" fill="{c}"/>'
+                   for a, r, c in ((0.3, 4, "#7DD3FC"), (2.2, 3, "#C4B5FD"), (4.1, 5, "#FCD34D")))
+    return (f'<div class="rbart"><svg viewBox="0 0 300 300"><circle cx="150" cy="150" r="140" fill="none" stroke="rgba(167,139,250,.18)" stroke-dasharray="2 7"/>'
+            f'<g>{dots}<animateTransform attributeName="transform" type="rotate" from="360 150 150" to="0 150 150" dur="18s" repeatCount="indefinite"/></g>'
+            f'<g><g transform="rotate(-90 150 150)">{"".join(segs)}</g><animateTransform attributeName="transform" type="rotate" from="0 150 150" '
+            f'to="360 150 150" dur="28s" repeatCount="indefinite"/></g>'
+            f'<circle cx="150" cy="150" r="96" fill="none" stroke="rgba(45,182,235,.16)" stroke-width="1"/></svg>'
+            f'<div class="core">{T.icon("smart_toy")}</div></div>')
+
+
+def intro(has_store=True):
+    steps = [("quiz", L("Answer 12 questions", "جاوب على 12 سؤال"),
+              L("Your goals, time horizon, and the risk you are able and willing to take: the heart of an IPS.",
+                "أهدافك ومدة استثمارك والمخاطرة اللي تقدر عليها وتتقبلها: هذا قلب بيان سياسة الاستثمار.")),
+             ("donut_large", L("Get your plan", "استلم خطتك"),
+              L("A risk level from 1 to 10, a mix of low-cost ETFs, what to expect, and your IPS to download.",
+                "مستوى مخاطرة من 1 إلى 10، ومزيج من صناديق المؤشرات منخفضة التكلفة، والمتوقع، وبيان السياسة للتحميل.")),
+             ("autorenew", L("Let it run", "خلها تشتغل"),
+              L("Monthly deposits, rebalancing and reinvested dividends, all done for you every day.",
+                "إيداعات شهرية وإعادة توازن وإعادة استثمار التوزيعات، كلها تنعمل عنك كل يوم."))]
+    steps_html = "".join(f'<div class="rbstep" style="--i:{i}" data-k="{i + 1}"><div class="n">{T.icon(ic)}</div><b>{_esc(t)}</b><span>{_esc(s)}</span></div>'
+                         for i, (ic, t, s) in enumerate(steps))
+    ui.html(f'<div class="rbhero"><div><div class="eb">{T.icon("smart_toy")}{L("TURA Robo Advisor", "المستشار الآلي من TURA")}</div>'
+            f'<h1>{L("Your portfolio, <em>built from your goals</em> and managed for you", "محفظتك <em>مبنية على أهدافك</em> وتُدار عنك")}</h1>'
+            f'<p>{L("Answer a short questionnaire in the shape of an Investment Policy Statement (IPS). The robo builds a diversified portfolio of ETFs that fits you, then runs it on autopilot.", "جاوب على استبيان قصير مبني على بيان سياسة الاستثمار (IPS). المستشار الآلي يبني لك محفظة متنوعة من صناديق المؤشرات تناسبك، وبعدها يديرها تلقائياً.")}</p>'
+            f'<div class="rbchips"><span class="rbchip">{T.icon("timer")}{L("About 2 minutes", "تقريباً دقيقتين")}</span>'
+            f'<span class="rbchip">{T.icon("payments")}{L("Virtual money", "فلوس افتراضية")}</span>'
+            f'<span class="rbchip gold">{T.icon("mosque")}{L("Sharia-compliant option", "خيار متوافق مع الشريعة")}</span>'
+            f'<span class="rbchip">{T.icon("description")}{L("Your IPS to download", "بيان السياسة للتحميل")}</span></div></div>{_art()}</div>'
+            f'<div class="rbsteps">{steps_html}</div>')
+    c1, c2, c3 = st.columns([1, 1.3, 1])
+    with c2:
+        if st.button(L("Start the questionnaire", "ابدأ الاستبيان"), type="primary", width="stretch", key="rb_start", icon=_fwd()):
+            ss["rb_mode"] = "quiz"
+            ss["rb_step"] = 0
+            ss.setdefault("rb_ans", {})
+            st.rerun()
+    feats = [("balance", L("Rebalancing", "إعادة التوازن"), L("Back to target every quarter, and at once when a fund drifts out of its range.",
+                                                               "يرجع للنسب المستهدفة كل ربع، وفوراً إذا خرج صندوق عن نطاقه.")),
+             ("savings", L("Monthly deposits", "إيداع شهري"), L("Invested on the first trading day of each month, into what is under target first.",
+                                                                 "يُستثمر أول يوم تداول من كل شهر، في الأقل من نسبته أولاً.")),
+             ("currency_exchange", L("Dividends reinvested", "إعادة استثمار التوزيعات"), L("Every dividend goes back into the portfolio.",
+                                                                                         "كل توزيع يرجع يُستثمر في المحفظة.")),
+             ("monitoring", L("Clear tracking", "متابعة واضحة"), L("Value against the money put in and a fair benchmark, and everything the robo did.",
+                                                                   "القيمة مقابل المبلغ المستثمر ومؤشر مرجعي عادل، وكل اللي سواه المستشار."))]
+    ui.html('<div class="rbfeat">' + "".join(f'<div>{T.icon(ic)}<b>{_esc(t)}</b><span>{_esc(s)}</span></div>' for ic, t, s in feats) + "</div>" + note())
+
+
+# =====================================================================
+# the questionnaire
+# =====================================================================
+def _sec_of(step):
+    sid = R.STEPS[step]
+    return "fund" if sid == "fund" else R.Q[sid]["sec"]
+
+
+def progress_html(step, ans):
+    n = len(R.STEPS)
+    cur = _sec_of(step)
+    order = [s[0] for s in R.SECTIONS]
+    ci = order.index(cur)
+    secs = "".join(f'<span class="{"done" if i < ci else "cur" if i == ci else ""}">{T.icon("check_circle" if i < ci else ic)}<em>{_esc(L(en, ar))}</em></span>'
+                   for i, (k, ic, en, ar) in enumerate(R.SECTIONS))
+    lv = R.partial_level(ans)
+    segs = "".join(f'<i style="background:{LEVEL_COLORS[i] if lv and i < lv else "rgba(157,151,165,.18)"}"></i>' for i in range(10))
+    meter = (f'<span class="rbmeter">{L("Risk level so far", "مستوى المخاطرة حتى الآن")} <b>{lv}</b><span class="segs">{segs}</span></span>' if lv else
+             f'<span class="rbmeter">{L("Your risk level builds as you answer", "مستوى المخاطرة يتكوّن مع إجاباتك")}<span class="segs">{segs}</span></span>')
+    w = (step + 1) / n * 100
+    w0 = step / n * 100
+    return (f'<div class="rbprog"><div class="top"><span class="qn">{L("Step", "الخطوة")} {step + 1} <em>{L("of", "من")} {n}</em></span>{meter}</div>'
+            f'<div class="bar"><i style="width:{w:.1f}%;--w0:{w0:.1f}%"></i></div><div class="secs">{secs}</div></div>')
+
+
+def _drop_viz():
+    pts = [(0, 30), (40, 26), (80, 31), (120, 22), (160, 25), (200, 18), (240, 40), (280, 52), (320, 70), (360, 64), (400, 82)]
+    line = " ".join(f"{x},{y}" for x, y in pts)
+    return (f'<svg class="rbdrop" viewBox="0 0 520 96" preserveAspectRatio="xMinYMid meet"><defs><linearGradient id="rbdg" x1="0" y1="0" x2="0" y2="1">'
+            f'<stop offset="0" stop-color="#F87171" stop-opacity=".35"/><stop offset="1" stop-color="#F87171" stop-opacity="0"/></linearGradient></defs>'
+            f'<line x1="0" y1="18" x2="420" y2="18" stroke="rgba(157,151,165,.35)" stroke-dasharray="3 5"/>'
+            f'<polygon points="0,96 {line} 400,96" fill="url(#rbdg)" class="tg"/>'
+            f'<polyline class="ln" points="{line}" fill="none" stroke="#F87171" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>'
+            f'<g class="tg"><circle cx="400" cy="82" r="5" fill="#F87171" stroke="#fff" stroke-width="2"/>'
+            f'<rect x="416" y="62" rx="9" width="78" height="30" fill="rgba(248,113,113,.16)" stroke="#F87171"/>'
+            f'<text x="455" y="83" text-anchor="middle" fill="#FCA5A5" font-size="17" font-weight="800">−20%</text>'
+            f'<text x="455" y="54" text-anchor="middle" fill="#B9B3C4" font-size="11">{_esc(L("a few months", "خلال كم شهر"))}</text></g></svg>')
+
+
+def tile_html(q, o, i, on):
+    k = "on" if on else ""
+    tall = " tall" if any(x[4] for x in q["opts"]) else ""
+    ck = f'<span class="ck">{T.icon("check")}</span>'
+    x = o[7]
+    if q["id"] == "maxloss":
+        dep = min(x["loss"], 45) / 45 * 100
+        body = f'<span class="big">{_esc(_lab(o))}</span><span class="tx"><span>{_esc(_sub(o))}</span></span><span class="dep"><i style="height:{dep:.0f}%"></i></span>'
+    elif q["id"] == "range":
+        lo, hi = abs(x["lo"]) / 40 * 50, x["hi"] / 40 * 50
+        body = (f'<span class="big">{_esc(_lab(o))}</span><span class="rng"><span class="tr"><i class="lo" style="width:{lo:.1f}%"></i>'
+                f'<i class="hi" style="width:{hi:.1f}%"></i></span><span class="lb"><span class="d">{x["lo"]:+d}%</span><span class="u">{x["hi"]:+d}%</span></span></span>')
+    else:
+        sub = f"<span>{_esc(_sub(o))}</span>" if _sub(o) else ""
+        body = f'<span class="ic">{T.icon(o[1])}</span><span class="tx"><b>{_esc(_lab(o))}</b>{sub}</span>'
+    return f'<div class="rbo {k}{tall}" style="--i:{i}">{ck}{body}</div>'
+
+
+def question(q, ans, step):
+    sec = next(s for s in R.SECTIONS if s[0] == q["sec"])
+    viz = f'<div class="viz">{_drop_viz()}</div>' if q["id"] == "drop" else ""
+    if q["id"] == "range":
+        viz = f'<div class="viz rbchips"><span class="rbchip">{T.icon("swap_vert")}{L("Each tile: a bad year · a good year", "كل خيار: سنة سيئة · سنة جيدة")}</span></div>'
+    ui.html(f'<div class="rbq"><div class="k">{T.icon(sec[1])}{_esc(L(sec[2], sec[3]))}</div><h2>{_esc(_qtext(q))}</h2>'
+            f'<div class="why">{T.icon("lightbulb")}<span>{_esc(L(q["why_en"], q["why_ar"]))}</span></div>{viz}</div>')
+    opts = q["opts"]
+    n = len(opts)
+    cols = st.columns(n, gap="small")
+    for i, o in enumerate(opts):
+        with cols[i], st.container(key=f"rbt_{q['id']}_{i}"):
+            ui.html(tile_html(q, o, i, ans.get(q["id"]) == o[0]))
+            if st.button(_lab(o), key=f"rbb_{q['id']}_{i}", width="stretch"):
+                ans[q["id"]] = o[0]
+                ss["rb_ans"] = ans
+                ss["rb_step"] = step + 1
+                st.rerun()
+
+
+def funding(ans, step):
+    sec = R.SECTIONS[-1]
+    ui.html(f'<div class="rbq"><div class="k">{T.icon(sec[1])}{_esc(L(sec[2], sec[3]))}</div>'
+            f'<h2>{L("How much will you invest?", "كم بتستثمر؟")}</h2><div class="why">{T.icon("lightbulb")}<span>'
+            f'{L("Virtual money: try any amount. Regular monthly deposits are the quiet engine of long-term results.", "فلوس افتراضية فجرّب أي مبلغ. الإيداع الشهري المنتظم هو المحرك الهادي للنتائج على المدى الطويل.")}</span></div></div>')
+    ss.setdefault("rb_amt", int(ans.get("amount") or 10000))
+    ss.setdefault("rb_mon", int(ans.get("monthly") if ans.get("monthly") is not None else 500))
+    has = bool(ss.get("rb_has"))
+    c1, c2 = st.columns(2)
+    with c1:
+        amount = st.number_input(L("Starting amount ($)", "المبلغ المبدئي ($)"), min_value=1000, max_value=10_000_000, step=1000, key="rb_amt",
+                                 disabled=has, help=L("Already invested: add or withdraw money from Manage on the dashboard.",
+                                                      "مستثمر من قبل: تقدر تودع أو تسحب من الإدارة في لوحة المحفظة.") if has else None)
+    with c2:
+        monthly = st.number_input(L("Monthly deposit ($)", "الإيداع الشهري ($)"), min_value=0, max_value=1_000_000, step=50, key="rb_mon")
+    prof = R.profile(ans)
+    years = prof["years"]
+    proj = R.project(prof["mu"], prof["vol"], amount, monthly, years, n=600)
+    ui.html(f'<div class="rbfund"><div><div class="l">{T.icon("savings")}{L("You put in", "اللي بتحطه")}</div><div class="v">{_m(proj["invested"].iloc[-1])}</div>'
+            f'<div class="s">{L(f"over {years} years", f"خلال {years} سنة")}</div></div>'
+            f'<div><div class="l">{T.icon("insights")}{L("A middle outcome", "نتيجة متوسطة")}</div><div class="v">{_m(proj["p50"].iloc[-1])}</div>'
+            f'<div class="s">{L("half the paths end above it", "نص الاحتمالات تنتهي فوقها")}</div></div>'
+            f'<div><div class="l">{T.icon("shield")}{L("A weak outcome", "نتيجة ضعيفة")}</div><div class="v">{_m(proj["p10"].iloc[-1])}</div>'
+            f'<div class="s">{L("9 in 10 paths end above it", "9 من 10 احتمالات تنتهي فوقها")}</div></div></div>')
+    b1, b2, b3 = st.columns([1, 1.4, 1])
+    with b2:
+        if st.button(L("See my plan", "اعرض خطتي"), type="primary", width="stretch", key="rb_build", icon=":material/auto_awesome:"):
+            ans["amount"], ans["monthly"] = int(amount), int(monthly)
+            ss["rb_ans"] = ans
+            ss["rb_mode"] = "plan"
+            ss.pop("rb_lvl", None)
+            st.rerun()
+
+
+def quiz():
+    ans = ss.setdefault("rb_ans", {})
+    step = int(min(max(ss.get("rb_step", 0), 0), len(R.STEPS) - 1))
+    ss["rb_step"] = step
+    ui.html(progress_html(step, ans))
+    sid = R.STEPS[step]
+    if sid == "fund":
+        funding(ans, step)
+    else:
+        question(R.Q[sid], ans, step)
+    n1, n2, n3 = st.columns([1, 2.2, 1])
+    with n1:
+        if step > 0 and st.button(L("Back", "رجوع"), key="rb_back", icon=_back(), width="stretch"):
+            ss["rb_step"] = step - 1
+            st.rerun()
+        if step == 0 and st.button(L("Exit", "خروج"), key="rb_exit", icon=":material/close:", width="stretch"):
+            ss["rb_mode"] = None
+            st.rerun()
+    with n3:
+        if sid != "fund" and ans.get(sid) is not None and st.button(L("Next", "التالي"), key="rb_next", icon=_fwd(), width="stretch"):
+            ss["rb_step"] = step + 1
+            st.rerun()
+
+
+# =====================================================================
+# the plan
+# =====================================================================
+def gauge_svg(level):
+    cx, cy, r = 110, 110, 86
+    segs = []
+    for i in range(10):
+        a0 = math.radians(180 + i * 18 + 1.2)
+        a1 = math.radians(180 + (i + 1) * 18 - 1.2)
+        x0, y0 = cx + r * math.cos(a0), cy + r * math.sin(a0)
+        x1, y1 = cx + r * math.cos(a1), cy + r * math.sin(a1)
+        on = i < level
+        segs.append(f'<path class="seg" style="animation-delay:{i * 60}ms" d="M{x0:.1f},{y0:.1f} A{r},{r} 0 0 1 {x1:.1f},{y1:.1f}" fill="none" '
+                    f'stroke="{LEVEL_COLORS[i]}" stroke-opacity="{1 if on else .18}" stroke-width="18"/>')
+    ang = -90 + (level - 0.5) * 18
+    ticks = "".join(f'<text x="{cx + (r + 22) * math.cos(math.radians(180 + (k - .5) * 18)):.1f}" y="{cy + (r + 22) * math.sin(math.radians(180 + (k - .5) * 18)) + 4:.1f}" '
+                    f'text-anchor="middle" font-size="10" fill="#8E889A">{k}</text>' for k in (1, 5, 10))
+    col = LEVEL_COLORS[level - 1]
+    return (f'<div class="rbg"><svg viewBox="0 0 220 132">{"".join(segs)}{ticks}'
+            f'<g transform="rotate({ang:.1f} {cx} {cy})"><line x1="{cx}" y1="{cy}" x2="{cx}" y2="{cy - r + 16}" stroke="#fff" stroke-width="4" stroke-linecap="round"/>'
+            f'<animateTransform attributeName="transform" type="rotate" from="-90 {cx} {cy}" to="{ang:.1f} {cx} {cy}" dur="1.1s" fill="freeze" '
+            f'calcMode="spline" keyTimes="0;1" keySplines=".3 .9 .4 1"/></g>'
+            f'<circle cx="{cx}" cy="{cy}" r="11" fill="{col}" stroke="#fff" stroke-width="3"/>'
+            f'</svg></div>')
+
+
+def _why_text(prof):
+    ab, wl, raw, rec = prof["ability"], prof["will"], prof["raw"], prof["rec"]
+    if prof["governs"] == "ability":
+        s = L(f"You are more willing ({wl:.1f}/10) than able ({ab:.1f}/10) to take risk. A sound policy follows the lower of the two, so your ability sets the level.",
+              f"رغبتك في المخاطرة ({wl:.1f}/10) أعلى من قدرتك عليها ({ab:.1f}/10). السياسة السليمة تتبع الأقل من الاثنين، فقدرتك هي اللي تحدد المستوى.")
+    elif prof["governs"] == "will":
+        s = L(f"You are able ({ab:.1f}/10) to take more risk than you are willing to ({wl:.1f}/10). The plan follows your comfort: a portfolio you can stay with beats one you abandon.",
+              f"قدرتك على المخاطرة ({ab:.1f}/10) أعلى من رغبتك فيها ({wl:.1f}/10). الخطة تتبع راحتك: المحفظة اللي تقدر تكمل معها أفضل من اللي تتركها في نص الطريق.")
+    else:
+        s = L("Your ability and your willingness to take risk agree.", "قدرتك ورغبتك في المخاطرة متفقة.")
+    reasons = {"horizon": L("your time horizon", "مدة استثمارك"), "goal": L("your goal", "هدفك"),
+               "loss": L("the largest loss you accept in a bad year", "أقصى خسارة تتقبلها في سنة سيئة")}
+    if prof["binding"]:
+        names = L(" and ", " و").join(reasons[k] for k in prof["binding"])
+        s += " " + L(f"It is then limited to level {rec} by {names}.", f"وبعدها انحدّ عند المستوى {rec} بسبب {names}.")
+    return s
+
+
+def result_html(prof):
+    lv = prof["level"]
+    col = LEVEL_COLORS[lv - 1]
+    bars = ""
+    for k, en, ar, v in (("a", "Ability to take risk", "القدرة على المخاطرة", prof["ability"]), ("w", "Willingness", "الرغبة في المخاطرة", prof["will"])):
+        c = "linear-gradient(90deg,#2DB6EB,#60A5FA)" if k == "a" else "linear-gradient(90deg,#A78BFA,#7B45F0)"
+        bars += f'<div><div class="h"><span>{_esc(L(en, ar))}</span><b>{v:.1f}/10</b></div><div class="t"><i style="width:{v * 10:.0f}%;background:{c}"></i></div></div>'
+    chips = []
+    if prof["sharia"]:
+        chips.append(f'<span class="rbchip gold">{T.icon("mosque")}{L("Sharia-compliant", "متوافقة مع الشريعة")}</span>')
+    if prof["income"]:
+        chips.append(f'<span class="rbchip">{T.icon("payments")}{L("Income tilt (dividend stocks)", "تركيز على الدخل (أسهم توزيعات)")}</span>')
+    if prof["cash"]:
+        cash = prof["cash"]
+        chips.append(f'<span class="rbchip">{T.icon("account_balance_wallet")}{L(f"{cash}% kept for withdrawals", f"{cash}% محجوزة للسحب")}</span>')
+    if lv != prof["rec"]:
+        rc = prof["rec"]
+        chips.append(f'<span class="rbchip warn">{T.icon("tune")}{L(f"Set by hand (recommended: {rc})", f"معدّل يدوياً (الموصى به: {rc})")}</span>')
+    lg = col.lstrip("#")
+    glow = f"rgba({int(lg[0:2], 16)},{int(lg[2:4], 16)},{int(lg[4:6], 16)},.24)"
+    return (f'<div class="rbres" style="--lg:{glow};--lc:{col}">{gauge_svg(lv)}<div><div class="eb">{L("Your risk profile", "ملفك الاستثماري")}</div>'
+            f'<h2>{_esc(_prof_name(lv))}<span class="lv">{L("Level", "المستوى")} {lv}/10</span></h2><p>{_esc(_why_text(prof))}</p>'
+            f'<div class="rbsc">{bars}</div><div class="rbchips">{"".join(chips)}</div></div></div>')
+
+
+def donut_svg(weights, center_big, center_small, inner=None):
+    """weights: [(ticker, %)]; inner: [(ticker, %)] drawn as a thinner inner ring (the targets, under the current weights)."""
+    def ring(ws, r, sw, cls):
+        out, start = [], 0.0
+        tot = sum(w for _, w in ws) or 1
+        for i, (t, w) in enumerate(ws):
+            w = w / tot * 100
+            if w <= 0:
+                continue
+            g = 0.7 if len(ws) > 1 else 0
+            out.append(f'<circle class="{cls}" style="animation-delay:{i * 70}ms" cx="120" cy="120" r="{r}" fill="none" stroke="{_fund(t)["c"]}" '
+                       f'stroke-width="{sw}" pathLength="100" stroke-dasharray="{max(w - g, 0.2):.2f} {100 - max(w - g, 0.2):.2f}" '
+                       f'stroke-dashoffset="{-start:.2f}"><title>{t} {w:.1f}%</title></circle>')
+            start += w
+        return "".join(out)
+    rings = ring(weights, 92, 24, "sg")
+    if inner:
+        rings += ring(inner, 70, 8, "sg")
+    return (f'<div class="rbdon"><svg viewBox="0 0 240 240"><circle cx="120" cy="120" r="92" fill="none" stroke="rgba(157,151,165,.12)" stroke-width="24"/>'
+            f'<g transform="rotate(-90 120 120)">{rings}</g>'
+            f'<text x="120" y="122" text-anchor="middle" font-size="34" font-weight="800" fill="#FFFFFF">{_esc(center_big)}</text>'
+            f'<text x="120" y="{142 if inner else 146}" text-anchor="middle" font-size="{11 if inner else 12.5}" font-weight="600" fill="#9D97A5">{_esc(center_small)}</text></svg></div>')
+
+
+def groups_html(tg):
+    g = {}
+    for t, w in tg.items():
+        k = _fund(t)["g"]
+        g[k] = g.get(k, 0) + w
+    order = [k for k in ("stocks", "bonds", "real", "gold", "cash") if g.get(k)]
+    bar = "".join(f'<i style="width:{g[k]:.2f}%;background:{R.GROUPS[k][2]}"></i>' for k in order)
+    leg = "".join(f'<span><i style="background:{R.GROUPS[k][2]}"></i>{_esc(L(R.GROUPS[k][0], R.GROUPS[k][1]))} <b>{g[k]:.0f}%</b></span>' for k in order)
+    return f'<div class="rbgrp">{bar}</div><div class="rbgl">{leg}</div>'
+
+
+def allocation_html(prof):
+    tg = prof["targets"]
+    rows = sorted(tg.items(), key=lambda x: -x[1])
+    leg = "".join(f'<div class="r" style="--i:{i};--c:{_fund(t)["c"]}"><span class="tk">{t}</span><span class="nm"><b>{_esc(_fund(t)["cls"])}</b>'
+                  f'<span>{_esc(_fund(t)["name"])}</span></span><span class="w">{w:g}%<small>±{R.band(w):g}</small></span></div>'
+                  for i, (t, w) in enumerate(rows))
+    big = f"{prof['stocks']:.0f}%"
+    return (f'<div class="rbal">{donut_svg(rows, big, L("in stocks", "أسهم"))}<div>{groups_html(tg)}'
+            f'<div class="rbleg">{leg}</div></div></div>')
+
+
+def expect_kpis(prof):
+    return PP.kpis([
+        ("trending_up", L("Expected return", "العائد المتوقع"), _p(prof["mu"], 1, False),
+         L("a year · a long-run estimate, not a promise", "سنوياً · تقدير طويل المدى وليس وعد"), None, None),
+        ("ssid_chart", L("Volatility", "التذبذب"), _p(prof["vol"], 1, False), L("typical yearly swing", "التأرجح المعتاد بالسنة"), None,
+         (prof["vol"] / 18 * 100, LEVEL_COLORS[prof["level"] - 1])),
+        ("thunderstorm", L("A bad year", "سنة سيئة"), _p(prof["bad"], 1, True), L("about 1 year in 20", "تقريباً سنة من كل 20"), "neg", None),
+        ("crisis_alert", L("A 2008-style crisis", "أزمة مثل 2008"), _p(prof["crisis"], 0, True), L("peak to bottom, rough estimate", "من القمة للقاع، تقدير تقريبي"),
+         "neg", None)], "c4")
+
+
+def projection_fig(proj, years):
+    x = proj.index / 12
+    fig = go.Figure()
+    hov = "%{y:$,.0f}<extra></extra>"
+    fig.add_trace(go.Scatter(x=x, y=proj["p90"], line=dict(width=0), showlegend=False, hoverinfo="skip"))
+    fig.add_trace(go.Scatter(x=x, y=proj["p10"], fill="tonexty", fillcolor=C.rgba(T.CYAN, 0.16), line=dict(width=0),
+                             name=L("Likely range", "النطاق المرجح"), hoverinfo="skip"))
+    fig.add_trace(go.Scatter(x=x, y=proj["p90"], name=L("Good case", "حالة جيدة"), line=dict(color=C.rgba(T.CYAN, 0.6), width=1.2, dash="dot"),
+                             hovertemplate=L("Good: ", "جيدة: ") + hov, showlegend=False))
+    fig.add_trace(go.Scatter(x=x, y=proj["p50"], name=L("Middle", "المتوسطة"), line=dict(color=T.CYAN, width=3),
+                             hovertemplate=L("Middle: ", "متوسطة: ") + hov))
+    fig.add_trace(go.Scatter(x=x, y=proj["p10"], name=L("Weak case", "حالة ضعيفة"), line=dict(color=C.rgba(T.VIOLET, 0.8), width=1.2, dash="dot"),
+                             hovertemplate=L("Weak: ", "ضعيفة: ") + hov, showlegend=False))
+    fig.add_trace(go.Scatter(x=x, y=proj["invested"], name=L("Put in", "المستثمر"), line=dict(color=T.GOLD, width=1.8, dash="dash"),
+                             hovertemplate=L("Put in: ", "المستثمر: ") + hov))
+    C.style(fig, 380, L(f"Where the plan could be in {years} years", f"وين ممكن توصل الخطة خلال {years} سنة"))
+    fig.update_xaxes(title=None, ticksuffix=L("y", " س"), dtick=max(1, round(years / 6)))
+    fig.update_yaxes(tickprefix="$", tickformat="~s")
+    fig.update_layout(hovermode="x unified")
+    return fig
+
+
+def lines_fig(rep, bm, title, rng="all", height=380):
+    cur = rep["curve"].copy()
+    if rep.get("live"):
+        cur.loc[rep["live"]["d"]] = [rep["live"]["value"], cur["invested"].iloc[-1], 0.0, cur["twr"].iloc[-1]]
+    b = bm["curve"]["value"] if bm and not bm.get("pending") else None
+    if rng != "all" and len(cur):
+        end = cur.index[-1]
+        start = {"1m": end - pd.Timedelta(days=31), "3m": end - pd.Timedelta(days=92), "1y": end - pd.Timedelta(days=366),
+                 "ytd": pd.Timestamp(end.year, 1, 1)}.get(rng, cur.index[0])
+        cur = cur[cur.index >= start]
+        b = b[b.index >= start] if b is not None else None
+    fig = go.Figure()
+    tr = go.Scatter(x=cur.index, y=cur["value"], name=L("Portfolio", "المحفظة"), line=dict(color=T.CYAN, width=2.8), fill="tozeroy",
+                    hovertemplate="%{x|%b %d, %Y}: $%{y:,.0f}<extra></extra>")
+    try:
+        tr.fillgradient = dict(type="vertical", colorscale=[[0, C.rgba(T.CYAN, 0.0)], [1, C.rgba(T.CYAN, 0.22)]])
+    except (ValueError, AttributeError):
+        tr.fillcolor = C.rgba(T.CYAN, 0.1)
+    fig.add_trace(tr)
+    if b is not None and len(b):
+        fig.add_trace(go.Scatter(x=b.index, y=b, name=L("Benchmark", "المؤشر المرجعي"), line=dict(color=T.VIOLET, width=1.8, dash="dot"),
+                                 hovertemplate="%{x|%b %d, %Y}: $%{y:,.0f}<extra></extra>"))
+    fig.add_trace(go.Scatter(x=cur.index, y=cur["invested"], name=L("Put in", "المستثمر"), line=dict(color=T.GOLD, width=1.6, dash="dash", shape="hv"),
+                             hovertemplate="%{x|%b %d, %Y}: $%{y:,.0f}<extra></extra>"))
+    ys = [float(v) for v in cur["value"]] + [float(v) for v in cur["invested"]] + ([float(v) for v in b] if b is not None else [])
+    lo, hi = (min(ys), max(ys)) if ys else (0, 1)
+    pad = max((hi - lo) * 0.12, hi * 0.004, 1)
+    C.style(fig, height, title)
+    fig.update_yaxes(range=[lo - pad, hi + pad], tickprefix="$", tickformat=",.0f")
+    return fig
+
+
+def _mtab(m, bm):
+    def row(lab, a, b, f):
+        return f'<tr><td>{_esc(lab)}</td><td class="n">{_ltr(f(a))}</td><td class="n">{_ltr(f(b))}</td></tr>'
+    f1 = lambda v: "—" if v is None else _p(v, 1, True)
+    f2 = lambda v: "—" if v is None else _p(v, 1, False)
+    rows = row(L("Total return (time-weighted)", "العائد الكلي (موزون زمنياً)"), m.get("ret"), bm.get("ret"), f1)
+    if m.get("cagr") is not None:
+        rows += row(L("A year, on average", "بالمتوسط سنوياً"), m.get("cagr"), bm.get("cagr"), f1)
+    rows += row(L("Volatility (a year)", "التذبذب (سنوي)"), m.get("vol"), bm.get("vol"), f2)
+    rows += row(L("Largest fall", "أكبر هبوط"), m.get("mdd"), bm.get("mdd"), f1)
+    return (f'<table class="rbtbl"><tr><th></th><th class="n">{L("Your plan", "خطتك")}</th><th class="n">{L("Benchmark", "المؤشر المرجعي")}</th></tr>{rows}</table>')
+
+
+# ---------------------------------------------------------------- the IPS
+def ips_parts(prof, ans, amount, monthly, created=None):
+    """The IPS as data: [(icon, title, [(label, value)] or a list of lines)] and the allocation rows."""
+    years = _answer("horizon", ans)
+    lvl = prof["level"]
+    word = lambda s: L("high", "عالية") if s >= 7 else L("moderate", "متوسطة") if s >= 4 else L("low", "منخفضة")
+    maxloss = _answer("maxloss", ans)
+    eq = prof["stocks"]
+    bench = (" ".join([_i("%.0f%%" % eq), L("global stocks", "أسهم عالمية"), _i("(VT)"), "+", _i("%.0f%%" % (100 - eq)),
+                       L("US bonds", "سندات أمريكية"), _i("(BND)")]) if eq < 100 else "100% VT")
+    secs = [
+        ("flag", L("Objectives", "الأهداف"), [
+            (L("Goal", "الهدف"), _answer("goal", ans)),
+            (L("Return objective", "العائد المستهدف"), L(f"about {_i(_p(prof['mu']))} a year over the long run", f"تقريباً {_i(_p(prof['mu']))} سنوياً على المدى الطويل")),
+            (L("Time horizon", "مدة الاستثمار"), years)]),
+        ("shield_person", L("Risk tolerance", "تحمّل المخاطر"), [
+            (L("Ability to take risk", "القدرة على المخاطرة"), _i("%.1f/10" % prof["ability"]) + " · " + word(prof["ability"])),
+            (L("Willingness", "الرغبة في المخاطرة"), _i("%.1f/10" % prof["will"]) + " · " + word(prof["will"])),
+            (L("Risk level", "مستوى المخاطرة"), _i("%d/10" % lvl) + " · " + _prof_name(lvl) + ("" if lvl == prof["rec"] else L(f" (recommended {prof['rec']})", f" (الموصى به {prof['rec']})"))),
+            (L("Largest loss accepted in a bad year", "أقصى خسارة مقبولة في سنة سيئة"), maxloss),
+            (L("A bad year for this plan (1 in 20)", "سنة سيئة لهالخطة (1 من 20)"), _i(_p(prof["bad"], 1, True))),
+            (L("A 2008-style crisis", "أزمة مثل 2008"), L(f"about {_i(_p(prof['crisis'], 0, True))}", f"تقريباً {_i(_p(prof['crisis'], 0, True))}"))]),
+        ("lock", L("Constraints", "القيود"), [
+            (L("Liquidity", "السيولة"), _answer("withdraw", ans) + (L(f" · {_i(str(prof['cash']) + '%')} kept in cash", f" · {_i(str(prof['cash']) + '%')} محفوظة نقداً") if prof["cash"] else "")),
+            (L("Sharia-compliant", "التوافق مع الشريعة"), L("Yes", "نعم") if prof["sharia"] else L("No preference", "ما يفرق")),
+            (L("Emergency fund", "مبلغ الطوارئ"), _answer("emergency", ans)),
+            (L("Taxes and fees", "الضرائب والرسوم"), L("Not modelled (virtual); fund costs are inside the prices", "غير محتسبة (افتراضية)، وتكاليف الصناديق داخلة في الأسعار"))]),
+        ("payments", L("Funding", "التمويل"), [
+            (L("Starting amount", "المبلغ المبدئي"), _i(_m(amount))),
+            (L("Monthly deposit", "الإيداع الشهري"), _i(_m(monthly)) + L(" on the first trading day", " أول يوم تداول بالشهر")),
+            (L("Benchmark", "المؤشر المرجعي"), bench)]),
+    ]
+    policy = [L("Quarterly review on the first trading day of January, April, July and October: back to target when a fund is more than 1 point away.",
+                "مراجعة ربع سنوية أول يوم تداول من يناير وأبريل ويوليو وأكتوبر: يرجع للنسب المستهدفة إذا ابتعد أي صندوق أكثر من نقطة."),
+              L("Between reviews: rebalanced at once when a fund leaves its range (target ± band).",
+                "بين المراجعات: إعادة توازن فورية إذا خرج أي صندوق عن نطاقه (النسبة ± الهامش)."),
+              L("Deposits go to the funds under their target first; withdrawals come from those over it.",
+                "الإيداعات تروح للصناديق الأقل من نسبتها أولاً، والسحوبات من الأعلى من نسبتها."),
+              L("Dividends are reinvested. The policy is reviewed every year, or after a change in your life (retake the questionnaire).",
+                "التوزيعات يُعاد استثمارها. السياسة تُراجع كل سنة أو بعد أي تغيير في حياتك (أعد الاستبيان).")]
+    alloc = [(t, _fund(t)["cls"], w, R.band(w)) for t, w in sorted(prof["targets"].items(), key=lambda x: -x[1])]
+    return secs, policy, alloc
+
+
+def ips_html(prof, ans, amount, monthly, created=None):
+    secs, policy, alloc = ips_parts(prof, ans, amount, monthly, created)
+    day = _date(pd.Timestamp(PF.parse(created).astimezone(PF.ET).date()) if created else pd.Timestamp(PF.utcnow().astimezone(PF.ET).date()))
+    blocks = ""
+    for i, (ic, title, items) in enumerate(secs):
+        its = "".join(f'<div class="it"><span>{_esc(a)}</span><b>{_esc(b)}</b></div>' for a, b in items)
+        blocks += f'<div class="sx"><h4>{T.icon(ic)}<i>{i + 1:02d}</i> {_esc(title)}</h4>{its}</div>'
+    rows = "".join(f'<tr><td><b>{t}</b></td><td>{_esc(c)}</td><td class="n">{w:g}%</td><td class="n">{max(w - b, 0):g}–{w + b:g}%</td></tr>'
+                   for t, c, w, b in alloc)
+    blocks += (f'<div class="sx"><h4>{T.icon("donut_large")}<i>05</i> {L("Strategic allocation", "توزيع الأصول الاستراتيجي")}</h4>'
+               f'<table><tr><th>{L("Fund", "الصندوق")}</th><th>{L("Asset class", "فئة الأصل")}</th><th class="n">{L("Target", "المستهدف")}</th>'
+               f'<th class="n">{L("Range", "النطاق")}</th></tr>{rows}</table></div>')
+    blocks += (f'<div class="sx"><h4>{T.icon("balance")}<i>06</i> {L("Rebalancing & review", "إعادة التوازن والمراجعة")}</h4>'
+               f'<ul class="pol">{"".join(f"<li>{_esc(p)}</li>" for p in policy)}</ul></div>')
+    return (f'<div class="rbips"><div class="hd"><div class="t"><span class="seal">{T.icon("verified")}</span><div><b>{L("Investment Policy Statement", "بيان سياسة الاستثمار")}</b>'
+            f'<span>{L("Prepared by TURA Robo Advisor", "أعدّه المستشار الآلي من TURA")} · {day}</span></div></div>'
+            f'<span class="rbchip">{T.icon("science")}{L("Virtual · educational", "افتراضي · تعليمي")}</span></div>'
+            f'<div class="grid">{blocks}</div><div class="sg"><div><b>TURA Robo</b>{L("Robo advisor", "المستشار الآلي")}</div>'
+            f'<div>{L("Not investment advice", "ليست توصية استثمارية")}</div></div></div>')
+
+
+def ips_file(prof, ans, amount, monthly, created=None):
+    """The IPS as a standalone HTML page to download (opens in any browser, prints to PDF)."""
+    secs, policy, alloc = ips_parts(prof, ans, amount, monthly, created)
+    ar = is_ar()
+    day = _date(pd.Timestamp(PF.parse(created).astimezone(PF.ET).date()) if created else pd.Timestamp(PF.utcnow().astimezone(PF.ET).date()))
+    e = _html.escape
+    body = ""
+    for i, (ic, title, items) in enumerate(secs):
+        body += f"<h2>{i + 1}. {e(title)}</h2><table>" + "".join(f"<tr><th>{e(a)}</th><td>{e(b)}</td></tr>" for a, b in items) + "</table>"
+    body += (f"<h2>5. {e(L('Strategic allocation', 'توزيع الأصول الاستراتيجي'))}</h2><table class='al'><tr><th>{e(L('Fund', 'الصندوق'))}</th>"
+             f"<th>{e(L('Asset class', 'فئة الأصل'))}</th><th>{e(L('Target', 'المستهدف'))}</th><th>{e(L('Range', 'النطاق'))}</th></tr>"
+             + "".join(f"<tr><td><b>{t}</b> · {e(_fund(t)['name'])}</td><td>{e(c)}</td><td class='n'>{w:g}%</td><td class='n'>{max(w - b, 0):g}–{w + b:g}%</td></tr>"
+                       for t, c, w, b in alloc) + "</table>")
+    body += f"<h2>6. {e(L('Rebalancing & review', 'إعادة التوازن والمراجعة'))}</h2><ul>" + "".join(f"<li>{e(p)}</li>" for p in policy) + "</ul>"
+    disc = L("Virtual portfolio on real prices, for learning. Not investment advice. Expected returns are long-run estimates, not promises.",
+             "محفظة افتراضية على أسعار حقيقية بهدف التعلم. ليست توصية استثمارية. العوائد المتوقعة تقديرات طويلة المدى وليست وعود.")
+    title = L("Investment Policy Statement", "بيان سياسة الاستثمار")
+    return (f"<!doctype html><html lang='{'ar' if ar else 'en'}' dir='{'rtl' if ar else 'ltr'}'><head><meta charset='utf-8'>"
+            f"<meta name='viewport' content='width=device-width,initial-scale=1'><title>{e(title)} · TURA</title><style>"
+            "body{font-family:'DM Sans','Readex Pro',system-ui,sans-serif;max-width:820px;margin:32px auto;padding:0 20px;color:#1E1830;background:#fff;line-height:1.55}"
+            "header{border-bottom:3px solid #7B45F0;padding-bottom:12px;margin-bottom:8px}h1{margin:0;font-size:26px}header p{margin:4px 0 0;color:#6B6478}"
+            "h2{font-size:16px;color:#5B32C8;margin:22px 0 8px;text-transform:uppercase;letter-spacing:.04em}"
+            "table{width:100%;border-collapse:collapse;font-size:14px}th,td{padding:7px 8px;border-bottom:1px solid #E7E3EF;text-align:start;vertical-align:top}"
+            "table:not(.al) th{width:42%;color:#6B6478;font-weight:600}.al th{background:#F4F1FA}.n{text-align:end;direction:ltr;unicode-bidi:isolate}"
+            "ul{padding-inline-start:20px}li{margin:4px 0}footer{margin-top:28px;padding-top:10px;border-top:1px solid #E7E3EF;color:#8A8396;font-size:12px}"
+            "@media print{body{margin:0}}</style></head><body>"
+            f"<header><h1>{e(title)}</h1><p>TURA Robo Advisor · {e(day)} · {e(L('Risk level', 'مستوى المخاطرة'))} {prof['level']}/10 · {e(_prof_name(prof['level']))}</p></header>"
+            f"{body}<footer>{e(disc)}</footer></body></html>")
+
+
+def plan_page(state, row, rkey, err):
+    ans = dict(ss.get("rb_ans") or {})
+    if not all(ans.get(q) for q in R.QIDS):
+        ss["rb_mode"] = "quiz"
+        st.rerun()
+    amount, monthly = float(ans.get("amount") or 10000), float(ans.get("monthly") or 0)
+    if state:                                  # a new plan for an existing robo portfolio: the money already invested stays
+        amount = float(state.get("amount") or amount)
+    rec = R.profile(ans)
+    pick = ss.get("rb_lvl")
+    prof = R.profile(ans, level=pick) if pick else rec
+    ui.html(result_html(prof))
+    s1, s2 = st.columns([2.2, 1])
+    with s1:
+        st.slider(L("Fine-tune the risk level", "عدّل مستوى المخاطرة"), 1, 10, value=int(rec["rec"]), key="rb_lvl",
+                  help=L("The plan updates as you move it. Above the recommended level, the swings may be more than your answers support.",
+                         "الخطة تتحدث مع التحريك. فوق المستوى الموصى به، ممكن يكون التذبذب أكبر مما تسمح فيه إجاباتك."))
+    with s2:
+        if prof["level"] > rec["rec"]:
+            st.warning(L(f"Above your recommended level ({rec['rec']}): deeper falls than your answers allow.",
+                         f"أعلى من مستواك الموصى به ({rec['rec']}): نزول أعمق مما تسمح فيه إجاباتك."), icon=":material/warning:")
+        elif prof["level"] < rec["rec"]:
+            st.info(L(f"Below your recommended level ({rec['rec']}): steadier, with a lower expected return.",
+                      f"أقل من مستواك الموصى به ({rec['rec']}): أهدى، وعائده المتوقع أقل."), icon=":material/info:")
+    ui.sec("donut_large", "Your portfolio", "محفظتك")
+    ui.html(allocation_html(prof))
+    ui.sec("query_stats", "What to expect", "وش تتوقع")
+    ui.html(expect_kpis(prof))
+    proj = R.project(prof["mu"], prof["vol"], amount, monthly, prof["years"])
+    ui.chart(projection_fig(proj, prof["years"]), key="rb_proj")
+    beat = proj.attrs["beat"]
+    ui.html(f'<div class="rbchips" style="margin:-4px 0 10px">'
+            f'<span class="rbchip">{T.icon("percent")}{L(f"{beat:.0f}% of the paths end above the money put in", f"{beat:.0f}% من الاحتمالات تنتهي فوق المبلغ المستثمر")}</span></div>')
+    ui.sec("history", "The last five years", "آخر خمس سنوات")
+    px = R.prices(list(prof["targets"]) + list(R.BENCH), "5y")
+    bt, btb = R.backtest(prof, amount, monthly, px)
+    if bt is not None and not bt.get("pending"):
+        start = bt["curve"].index[0]
+        ui.chart(lines_fig(bt, btb, L(f"Your plan since {_date(start)}, with the same deposits", f"خطتك من {_date(start)} بنفس الإيداعات")), key="rb_bt")
+        ui.html(f'<div class="rbtw">{_mtab(R.metrics(bt["curve"]), R.metrics(btb["curve"]))}</div>')
+        st.caption(L("Real daily prices with dividends reinvested, managed by the same rules. The benchmark holds global stocks (VT) and US bonds (BND) at the same stock share. Past results do not repeat.",
+                     "أسعار يومية حقيقية مع إعادة استثمار التوزيعات، وبنفس قواعد الإدارة. المؤشر المرجعي فيه أسهم عالمية (VT) وسندات أمريكية (BND) بنفس نسبة الأسهم. النتائج السابقة ما تتكرر بالضرورة."))
+    else:
+        st.info(L("The price history isn't available right now. Try again in a minute.", "تاريخ الأسعار مو متاح الحين. جرّب بعد دقيقة."), icon=":material/cloud_off:")
+    ui.sec("description", "Your Investment Policy Statement", "بيان سياسة الاستثمار")
+    ui.html(ips_html(prof, ans, amount, monthly))
+    st.download_button(L("Download the IPS", "حمّل بيان السياسة"), ips_file(prof, ans, amount, monthly).encode("utf-8"), file_name="TURA-IPS.html",
+                       mime="text/html", icon=":material/download:", key="rb_ips_dl")
+    ui.html(note())
+    b1, b2, b3 = st.columns([1, 1.6, 1])
+    with b1:
+        if st.button(L("Edit answers", "عدّل الإجابات"), key="rb_edit", icon=":material/edit:", width="stretch"):
+            ss["rb_mode"] = "quiz"
+            ss["rb_step"] = 0
+            st.rerun()
+    with b2:
+        label = (L("Apply to my robo portfolio", "طبّق على محفظتي الآلية") if state else
+                 L(f"Start investing {_m(amount)}", f"ابدأ الاستثمار بـ {_m(amount)}"))
+        if st.button(label, type="primary", key="rb_go", icon=":material/rocket_launch:", width="stretch"):
+            activate(state, row, rkey, err, ans, prof, amount, monthly)
+
+
+def activate(state, row, rkey, err, ans, prof, amount, monthly):
+    now = PF.utcnow()
+    if state:
+        at = PF.iso(now)
+        state["answers"] = dict(ans)
+        state["plans"].append({"at": at, "level": prof["level"], "rec": prof["rec"], "targets": prof["targets"], "sharia": prof["sharia"],
+                               "stocks": prof["stocks"], "why": "retake"})
+        cur = state["monthly"][-1]["amount"] if state.get("monthly") else 0
+        if float(monthly) != float(cur):
+            state["monthly"].append({"at": at, "amount": float(monthly)})
+        flash = L("Your new plan is applied at the next close", "خطتك الجديدة تتطبق مع الإغلاق الجاي")
+    else:
+        state = R.new_robo(ans, prof, amount, monthly, now=now)
+        flash = L("Your robo portfolio is on: the first investment goes in at the next close", "محفظتك الآلية اشتغلت: أول استثمار يدخل مع الإغلاق الجاي")
+        return commit(state, row, rkey, err, flash, fresh=True)
+    commit(state, row, rkey, err, flash)
+
+
+def commit(state, row, rkey, err, flash=None, fresh=False):
+    """Keeps a change and reloads the page. fresh: a new robo portfolio (it replaces whatever the row held). If the saved one
+    moved on meanwhile (another tab), nothing is overwritten; if the store can't be reached, this visit keeps its own copy."""
+    if err is not None:
+        ss["rb_practice"] = state
+    else:
+        try:
+            R.save(state, row, expect="any" if fresh or row is None else state.get("rev"), key=rkey)
+        except R.Conflict:
+            ss["rb_flash"] = L("Your robo portfolio changed a moment ago. Check it and try again.", "محفظتك الآلية تغيرت قبل لحظات. راجعها وجرّب مرة ثانية.")
+            st.rerun()
+        except PB.StoreError:
+            st.error(L("Saving isn't available right now. Try again in a minute.", "الحفظ مو متاح الحين. جرّب بعد دقيقة."), icon=":material/cloud_off:")
+            return
+    ss["rb_mode"] = None
+    if flash:
+        ss["rb_flash"] = flash
+    st.rerun()
+
+
+# =====================================================================
+# the dashboard
+# =====================================================================
+EVENT = {"start": ("rocket_launch", "#7B45F0", "First investment", "أول استثمار"),
+         "monthly": ("savings", "#2DB6EB", "Monthly deposit invested", "استثمار الإيداع الشهري"),
+         "deposit": ("add_card", "#34D399", "Deposit invested", "استثمار إيداع"),
+         "withdraw": ("payments", "#F97316", "Withdrawal", "سحب"),
+         "rebalance": ("balance", "#3B8BEB", "Rebalanced", "إعادة توازن"),
+         "review": ("fact_check", "#4ADE80", "Quarterly review: on target", "مراجعة ربع سنوية: على النسب"),
+         "plan": ("tune", "#F5B94A", "New plan applied", "تطبيق خطة جديدة")}
+
+
+def _trades_text(tr):
+    buys = sorted(((t, v) for t, v in (tr or {}).items() if v > 0), key=lambda x: -x[1])
+    sells = sorted(((t, v) for t, v in (tr or {}).items() if v < 0), key=lambda x: x[1])
+    parts = []
+    if buys:
+        parts.append(L("Bought ", "شراء ") + _ltr(", ".join(f"{t} {_m(v)}" for t, v in buys[:4])))
+    if sells:
+        parts.append(L("Sold ", "بيع ") + _ltr(", ".join(f"{t} {_m(-v)}" for t, v in sells[:4])))
+    return " · ".join(parts)
+
+
+def timeline_html(events, limit=None):
+    evs = list(reversed(events))
+    if limit:
+        evs = evs[:limit]
+    out = []
+    for i, e in enumerate(evs):
+        ic, col, en, ar = EVENT[e["kind"]]
+        title = L(en, ar)
+        amt = f' <span class="am">{_m(abs(e["amount"]))}</span>' if e.get("amount") else ""
+        if e["kind"] == "rebalance":
+            title += " · " + (L("a fund left its range", "صندوق خرج عن نطاقه") if e.get("why") == "drift" else L("quarterly review", "مراجعة ربع سنوية"))
+        if e["kind"] == "plan" and e.get("level"):
+            title += f' · {L("level", "المستوى")} {e["level"]}'
+        det = _trades_text(e.get("trades"))
+        if e["kind"] == "review":
+            det = L(f"Largest gap {e.get('max', 0):.1f} points: no trade needed", f"أكبر فرق {e.get('max', 0):.1f} نقطة: ما احتاج أي صفقة")
+        out.append(f'<div class="e" style="--i:{i}"><span class="ti" style="--c:{col}">{T.icon(ic)}</span><div><b>{_esc(title)}</b>{amt}'
+                   f'{f"<p>{det}</p>" if det else ""}</div><span class="dt">{_date(e["d"])}</span></div>')
+    return f'<div class="rbtl">{"".join(out)}</div>'
+
+
+def drift_html(rows):
+    top = max([max(r["weight"], r["target"] + r["band"]) for r in rows] + [10])
+    sc = lambda v: max(0.0, min(100.0, v / top * 100))
+    out = []
+    for r in rows:
+        f = _fund(r["t"])
+        lo, hi = max(r["target"] - r["band"], 0), r["target"] + r["band"]
+        a = abs(r["drift"])
+        k = "ok" if a <= r["band"] * 0.6 else "near" if a <= r["band"] else "out"
+        out.append(f'<div class="r" style="--c:{f["c"]}"><div class="f"><span class="tk">{r["t"]}</span><span>{_esc(f["cls"])}</span></div>'
+                   f'<div class="tr"><span class="bd" style="left:{sc(lo):.1f}%;width:{sc(hi) - sc(lo):.1f}%"></span>'
+                   f'<span class="cu" style="width:{sc(r["weight"]):.1f}%"></span><span class="tg" style="left:{sc(r["target"]):.1f}%"></span></div>'
+                   f'<div class="v"><b>{_ltr("%.1f%%" % r["weight"])}</b><em class="{k}">{_ltr("%+.1f" % r["drift"])} {L("pts", "نقطة")}</em></div></div>')
+    leg = (f'<div class="rblg"><span><i style="width:14px;height:8px;border-radius:3px;background:#60A5FA"></i>{L("now", "الحالي")}</span>'
+           f'<span><i style="width:3px;height:12px;background:#FCD34D"></i>{L("target", "المستهدف")}</span>'
+           f'<span><i style="width:14px;height:10px;background:rgba(45,182,235,.18);border:1px dashed rgba(45,182,235,.6)"></i>{L("range", "النطاق")}</span></div>')
+    return f'<div class="rbdr">{"".join(out)}{leg}</div>'
+
+
+def holdings_html(rows):
+    head = (f'<tr><th>{L("Fund", "الصندوق")}</th><th class="n">{L("Units", "الوحدات")}</th><th class="n">{L("Price", "السعر")}</th>'
+            f'<th class="n">{L("Value", "القيمة")}</th><th class="n">{L("Weight", "الوزن")}</th><th class="n">{L("Target", "المستهدف")}</th>'
+            f'<th class="n">{L("Gain", "الربح")}</th></tr>')
+    body = ""
+    for r in rows:
+        f = _fund(r["t"])
+        g = r["gain"]
+        gp = g / r["cost"] * 100 if r["cost"] > 0 else 0
+        k = "up" if g > 0.005 else "dn" if g < -0.005 else ""
+        units = "—" if r["t"] == "CASH" else f'{r["units"]:,.4f}'
+        price = "—" if r["t"] == "CASH" else _m(r["price"], 2)
+        body += (f'<tr><td><span class="tk" style="--c:{f["c"]}">{r["t"]}</span><span class="cl">{_esc(f["cls"])}</span></td><td class="n">{_ltr(units)}</td>'
+                 f'<td class="n">{_ltr(price)}</td><td class="n"><b>{_ltr(_m(r["value"], 2))}</b></td><td class="n">{_ltr("%.1f%%" % r["weight"])}</td>'
+                 f'<td class="n">{_ltr("%g%%" % r["target"])}</td><td class="n {k}">{_ltr("%s (%+.1f%%)" % (_m(g, 2, True), gp))}</td></tr>')
+    return f'<div class="rbtw"><table class="rbtbl">{head}{body}</table></div>'
+
+
+def dash_hero(state, rep, err):
+    plan = state["plans"][-1]
+    lv = plan.get("level") or 5
+    cur = rep["curve"]
+    if rep["pending"]:
+        val, inv = float(state["amount"]), float(state["amount"])
+    else:
+        val = rep["live"]["value"] if rep.get("live") else float(cur["value"].iloc[-1])
+        inv = float(cur["invested"].iloc[-1])
+    gain = val - inv
+    whole, cents = f"{val:,.2f}".split(".")
+    m = R.metrics(cur) if not rep["pending"] else {}
+    ret = m.get("ret")
+    day = None
+    if not rep["pending"]:
+        if rep.get("live"):
+            day = val - float(cur["value"].iloc[-1])
+        elif len(cur) >= 2:
+            day = float(cur["value"].iloc[-1]) - float(cur["value"].iloc[-2]) - float(cur["flow"].iloc[-1])
+    arrow = lambda x: "▲" if x > 0 else "▼" if x < 0 else "•"
+    pls = f'<span class="pl {PP._k(gain)}">{arrow(gain)} {PP._bdi(_m(gain, 2, True))} <em>{L("vs money put in", "مقابل المبلغ المستثمر")}</em></span>'
+    if ret is not None:
+        pls += f'<span class="pl {PP._k(ret)}">{arrow(ret)} {PP._bdi(_p(ret, 2, True))} <em>{L("time-weighted", "موزون زمنياً")}</em></span>'
+    if day is not None:
+        pls += f'<span class="pl {PP._k(day)}">{arrow(day)} {PP._bdi(_m(day, 2, True))} <em>{L("Today", "اليوم") if rep.get("live") else L("Last session", "آخر جلسة")}</em></span>'
+    mon = state["monthly"][-1]["amount"] if state.get("monthly") else 0
+    chips = [f'<span class="chip">{T.icon("savings")}{L("Put in", "المستثمر")} <b>{_m(inv)}</b></span>',
+             f'<span class="chip">{T.icon("event_repeat")}{L("Monthly", "شهرياً")} <b>{_m(mon)}</b></span>',
+             f'<span class="chip">{T.icon("speed")}{L("Level", "المستوى")} <b>{lv}/10 · {_esc(_prof_name(lv))}</b></span>']
+    if plan.get("sharia"):
+        chips.append(f'<span class="chip">{T.icon("mosque")}<b>{L("Sharia-compliant", "متوافقة مع الشريعة")}</b></span>')
+    badge = (f'<span class="rbauto wait"><i></i>{L("Waiting for the first close", "بانتظار أول إغلاق")}</span>' if rep["pending"] else
+             f'<span class="rbauto"><i></i>{L("Autopilot on", "الإدارة التلقائية شغالة")}</span>')
+    if rep.get("missing"):
+        badge = f'<span class="rbauto wait"><i></i>{L("Prices loading", "الأسعار تتحمّل")}</span>'
+    if err is not None:
+        badge = f'<span class="pfmode prac">{T.icon("science")}{L("This visit only (not saved)", "لهالزيارة فقط (ما ينحفظ)")}</span>'
+    spark = PP._spark(cur["value"] if len(cur) else pd.Series([val, val]))
+    return (f'<div class="pfhero"><div class="grid"></div><div class="top"><div class="eb">{T.icon("smart_toy")}{L("Robo portfolio", "المحفظة الآلية")}'
+            f'</div>{badge}</div><div class="mid"><div><div class="eql">{L("Portfolio value", "قيمة المحفظة")}</div>'
+            f'<div class="eq"><span dir="ltr">${whole}<small>.{cents}</small></span></div><div class="pls">{pls}</div></div>'
+            f'<div class="sp">{spark}</div></div><div class="chips">{"".join(chips)}</div></div>')
+
+
+def next_html(state, rep):
+    nd, nq = R.next_dates(start=rep.get("start"))
+    mon = state["monthly"][-1]["amount"] if state.get("monthly") else 0
+    rows = R.holdings(rep)
+    if rows:
+        worst = max(rows, key=lambda r: abs(r["drift"]) / r["band"] if r["band"] else 0)
+        inside = all(abs(r["drift"]) <= r["band"] for r in rows)
+        dr = (f'<b>{L("All funds in range", "كل الصناديق داخل نطاقها") if inside else L("Rebalance due", "يحتاج إعادة توازن")}</b>'
+              f'<em>{L("largest gap", "أكبر فرق")} {_ltr(worst["t"])} {_ltr("%+.1f" % worst["drift"])} {L("pts", "نقطة")}</em>')
+    else:
+        dr = f'<b>—</b><em>{L("after the first close", "بعد أول إغلاق")}</em>'
+    dep = (f'<b>{_date(nd)}</b><em>{_m(mon)} {L("to invest", "للاستثمار")}</em>' if mon > 0 else
+           f'<b>{L("Off", "متوقف")}</b><em>{L("set one under Manage", "فعّله من الإدارة")}</em>')
+    return (f'<div class="rbnext"><div><span class="i">{T.icon("event_repeat")}</span><div><span>{L("Next deposit", "الإيداع الجاي")}</span>{dep}</div></div>'
+            f'<div><span class="i y">{T.icon("fact_check")}</span><div><span>{L("Next review", "المراجعة الجاية")}</span><b>{_date(nq)}</b>'
+            f'<em>{L("quarterly rebalance check", "فحص إعادة التوازن الربعي")}</em></div></div>'
+            f'<div><span class="i g">{T.icon("balance")}</span><div><span>{L("Drift", "الانحراف")}</span>{dr}</div></div></div>')
+
+
+def manage(state, row, rkey, err):
+    ui.sec("settings", "Manage", "الإدارة")
+    acts = ["monthly", "flow", "level", "quiz", "close"]
+    names = {"monthly": L("Monthly deposit", "الإيداع الشهري"), "flow": L("Add or withdraw", "إيداع أو سحب"), "level": L("Risk level", "مستوى المخاطرة"),
+             "quiz": L("Questionnaire", "الاستبيان"), "close": L("Close", "إغلاق")}
+    act = st.segmented_control(L("Action", "الإجراء"), acts, default="monthly", key="rb_act", label_visibility="collapsed",
+                               format_func=lambda k: names[k]) or "monthly"
+    now = PF.iso(PF.utcnow())
+    if act == "monthly":
+        cur = int(state["monthly"][-1]["amount"]) if state.get("monthly") else 0
+        c1, c2 = st.columns([2, 1], vertical_alignment="bottom")
+        with c1:
+            v = st.number_input(L("Monthly deposit ($)", "الإيداع الشهري ($)"), min_value=0, max_value=1_000_000, value=cur, step=50, key="rb_mon_new")
+        with c2:
+            if st.button(L("Save", "احفظ"), key="rb_mon_save", type="primary", width="stretch", disabled=int(v) == cur):
+                state["monthly"].append({"at": now, "amount": float(v)})
+                commit(state, row, rkey, err, L("Monthly deposit updated", "تحدّث الإيداع الشهري"))
+        st.caption(L("Invested on the first trading day of each month, into the funds under their target first. 0 stops it.",
+                     "يُستثمر أول يوم تداول من كل شهر، في الصناديق الأقل من نسبتها أولاً. صفر يوقفه."))
+    elif act == "flow":
+        c1, c2, c3 = st.columns([1.2, 1.4, 1], vertical_alignment="bottom")
+        with c1:
+            kind = st.segmented_control(L("Type", "النوع"), ["in", "out"], default="in", key="rb_flow_k",
+                                        format_func=lambda k: L("Deposit", "إيداع") if k == "in" else L("Withdraw", "سحب")) or "in"
+        with c2:
+            amt = st.number_input(L("Amount ($)", "المبلغ ($)"), min_value=50, max_value=10_000_000, value=1000, step=50, key="rb_flow_a")
+        with c3:
+            if st.button(L("Confirm", "تأكيد"), key="rb_flow_go", type="primary", width="stretch"):
+                state["flows"].append({"at": now, "amount": float(amt) if kind == "in" else -float(amt)})
+                commit(state, row, rkey, err, L("Done: it is carried out at the next close", "تم: يتنفذ مع الإغلاق الجاي"))
+        st.caption(L("A deposit buys the funds under their target first; a withdrawal sells those over it first. Carried out at the next close.",
+                     "الإيداع يشتري الصناديق الأقل من نسبتها أولاً، والسحب يبيع الأعلى من نسبتها أولاً. يتنفذ مع الإغلاق الجاي."))
+    elif act == "level":
+        plan = state["plans"][-1]
+        ans = state.get("answers") or {}
+        rec = R.profile(ans)["rec"] if ans else plan.get("level", 5)
+        cur = int(plan.get("level") or rec)
+        lv = st.slider(L("Risk level", "مستوى المخاطرة"), 1, 10, value=cur, key="rb_lvl_new")
+        prof = R.profile(ans, level=lv)
+        ui.html(f'<div class="rbchips" style="margin:2px 0 8px">'
+                + "".join(f'<span class="rbchip"><b style="color:{_fund(t)["c"]}">{t}</b> {w:g}%</span>' for t, w in sorted(prof["targets"].items(), key=lambda x: -x[1]))
+                + f'<span class="rbchip">{T.icon("trending_up")}{_p(prof["mu"], 1)} · {T.icon("ssid_chart")}{_p(prof["vol"], 1)}</span></div>')
+        if lv > rec:
+            st.warning(L(f"Above your recommended level ({rec}).", f"أعلى من مستواك الموصى به ({rec})."), icon=":material/warning:")
+        if st.button(L("Apply the new level", "طبّق المستوى الجديد"), key="rb_lvl_go", type="primary", disabled=lv == cur):
+            state["plans"].append({"at": now, "level": lv, "rec": rec, "targets": prof["targets"], "sharia": prof["sharia"], "stocks": prof["stocks"],
+                                   "why": "level"})
+            commit(state, row, rkey, err, L("New level applied at the next close", "المستوى الجديد يتطبق مع الإغلاق الجاي"))
+    elif act == "quiz":
+        st.caption(L("Life changed? Answer again: the new plan replaces the old one at the next close, the money stays invested.",
+                     "تغيرت ظروفك؟ جاوب من جديد: الخطة الجديدة تحل محل القديمة مع الإغلاق الجاي، والفلوس تبقى مستثمرة."))
+        if st.button(L("Retake the questionnaire", "أعد الاستبيان"), key="rb_retake", icon=":material/restart_alt:"):
+            a = dict(state.get("answers") or {})
+            a["amount"] = int(state.get("amount") or 10000)
+            a["monthly"] = int(state["monthly"][-1]["amount"]) if state.get("monthly") else 0
+            ss["rb_ans"] = a
+            ss["rb_step"] = 0
+            ss["rb_mode"] = "quiz"
+            for k in ("rb_amt", "rb_mon", "rb_lvl"):
+                ss.pop(k, None)
+            st.rerun()
+    else:
+        st.caption(L("Closing removes the robo portfolio and its history. You can start a new one any time.",
+                     "الإغلاق يحذف المحفظة الآلية وسجلها. تقدر تبدأ وحدة جديدة في أي وقت."))
+        sure = st.toggle(L("Yes, close my robo portfolio", "نعم، سكّر محفظتي الآلية"), key="rb_close_ok")
+        if st.button(L("Close the robo portfolio", "سكّر المحفظة الآلية"), key="rb_close", disabled=not sure, icon=":material/delete:"):
+            if err is not None:
+                ss.pop("rb_practice", None)
+            else:
+                try:
+                    R.delete(row, rkey)
+                except PB.StoreError:
+                    st.error(L("Closing isn't available right now. Try again in a minute.", "الإغلاق مو متاح الحين. جرّب بعد دقيقة."),
+                             icon=":material/cloud_off:")
+                    return
+            for k in ("rb_ans", "rb_step", "rb_mode", "rb_close_ok"):
+                ss.pop(k, None)
+            ss["rb_flash"] = L("Robo portfolio closed", "تسكّرت المحفظة الآلية")
+            st.rerun()
+
+
+def dashboard(state, row, rkey, err):
+    tick = sorted({t for p in state["plans"] for t in p["targets"]} | set(R.BENCH))
+    px = R.prices(tick, "5y")
+    rep = R.replay(state, px)
+    bm = R.replay(state, px, bench=True)
+    ui.html(dash_hero(state, rep, err))
+    if err is not None:
+        st.warning(L("Saving isn't available right now: this robo portfolio lasts for this visit only.",
+                     "الحفظ مو متاح الحين: هالمحفظة الآلية لهالزيارة فقط."), icon=":material/cloud_off:")
+    if rep.get("missing"):
+        st.info(L("Prices aren't available right now. Try again in a minute.", "الأسعار مو متاحة الحين. جرّب بعد دقيقة."), icon=":material/cloud_off:")
+    if rep["pending"] and not rep.get("missing"):
+        first, amt = _date(rep["start"]), _m(state["amount"])
+        ui.html(f'<div class="rbpend">{T.icon("hourglass_top")}<div><b>{L("Your first investment is on its way", "أول استثمار في الطريق")}</b>'
+                f'<span>{L(f"{amt} goes in at the close of {first}, split across your funds by their targets. Then the robo takes it from there.", f"{amt} تدخل مع إغلاق {first}، موزعة على صناديقك حسب نسبها. وبعدها المستشار الآلي يكمل الباقي.")}</span></div></div>')
+    ui.html(next_html(state, rep))
+    if not rep["pending"]:
+        cur = rep["curve"]
+        m, mb = R.metrics(cur), R.metrics(bm["curve"]) if not bm.get("pending") else {}
+        val = rep["live"]["value"] if rep.get("live") else float(cur["value"].iloc[-1])
+        bval = None if bm.get("pending") else (bm["live"]["value"] if bm.get("live") else float(bm["curve"]["value"].iloc[-1]))
+        vs = val - bval if bval else None
+        ui.html(PP.kpis([
+            ("account_balance", L("Value", "القيمة"), _m(val, 2), f'{L("Put in", "المستثمر")} <b>{_m(cur["invested"].iloc[-1])}</b>', None, None),
+            ("show_chart", L("Return", "العائد"), _p(m.get("ret"), 2, True), L("time-weighted, since the start", "موزون زمنياً، من البداية"), PP._k(m.get("ret")), None),
+            ("compare_arrows", L("vs benchmark", "مقابل المؤشر"), "—" if vs is None else _m(vs, 0, True),
+             L("same money in VT/BND", "نفس المبالغ في VT/BND"), PP._k(vs), None),
+            ("trending_down", L("Largest fall", "أكبر هبوط"), _p(m.get("mdd"), 1, True), f'{L("Volatility", "التذبذب")} <b>{_p(m.get("vol"), 1)}</b>',
+             "neg" if (m.get("mdd") or 0) < 0 else None, None)], "c4"))
+        ui.sec("monitoring", "Performance", "الأداء")
+        if len(cur) >= 2:
+            rng = st.segmented_control(L("Range", "المدة"), ["1m", "3m", "ytd", "1y", "all"], default="all", key="rb_rng", label_visibility="collapsed",
+                                       format_func=lambda k: {"1m": L("1M", "شهر"), "3m": L("3M", "3 أشهر"), "ytd": L("YTD", "من بداية السنة"),
+                                                              "1y": L("1Y", "سنة"), "all": L("All", "الكل")}[k]) or "all"
+            ui.chart(lines_fig(rep, bm, L("Value, money put in and the benchmark", "القيمة والمبلغ المستثمر والمؤشر المرجعي"), rng), key="rb_perf")
+        else:
+            ui.html(PP.empty("insights", L("The chart starts after the next close", "الرسم يبدأ بعد الإغلاق الجاي"),
+                             L("The value is recorded at every close.", "القيمة تنسجل مع كل إغلاق.")))
+        rows = R.holdings(rep)
+        ui.sec("donut_large", "Allocation: now vs target", "التوزيع: الحالي مقابل المستهدف")
+        tot = sum(r["weight"] for r in rows if _fund(r["t"])["g"] == "stocks")
+        a1, a2 = st.columns([1, 1.6])
+        with a1:
+            ui.html(donut_svg([(r["t"], r["weight"]) for r in rows], f"{tot:.0f}%", L("stocks now", "أسهم حالياً"),
+                              inner=[(r["t"], r["target"]) for r in rows if r["target"] > 0])
+                    + f'<div class="rbgl" style="justify-content:center;margin-top:6px"><span>{L("outer: now · inner: target", "الخارجية: الحالي · الداخلية: المستهدف")}</span></div>')
+        with a2:
+            ui.html(drift_html(rows))
+        ui.sec("inventory_2", "Holdings", "المراكز")
+        ui.html(holdings_html(rows))
+        ui.sec("history", "What the robo did", "اللي سواه المستشار الآلي")
+        ev = rep["events"]
+        ui.html(timeline_html(ev, 8))
+        if len(ev) > 8:
+            with st.expander(L(f"All {len(ev)} actions", f"كل الإجراءات ({len(ev)})"), icon=":material/list:"):
+                ui.html(timeline_html(ev))
+    plan = state["plans"][-1]
+    ans = state.get("answers") or {}
+    if ans:
+        prof = R.profile(ans, level=plan.get("level"))
+        prof["targets"] = plan["targets"]
+        mon = state["monthly"][-1]["amount"] if state.get("monthly") else 0
+        with st.expander(L("Your Investment Policy Statement", "بيان سياسة الاستثمار"), icon=":material/description:"):
+            ui.html(ips_html(prof, ans, state["amount"], mon, plan["at"]))
+            st.download_button(L("Download the IPS", "حمّل بيان السياسة"), ips_file(prof, ans, state["amount"], mon, plan["at"]).encode("utf-8"),
+                               file_name="TURA-IPS.html", mime="text/html", icon=":material/download:", key="rb_ips_dl2")
+    manage(state, row, rkey, err)
+    ui.html(note())
+
+
+# =====================================================================
+# the page
+# =====================================================================
+def page_robo():
+    ui.html(PP.CSS + CSS)
+    code, key = PP.ident()
+    rkey = R.key_for(key)
+    err, state, row = None, None, None
+    try:
+        state, row = R.load(rkey)
+    except PB.StoreError as e:            # the store can't be reached: this visit's own copy meanwhile (not saved)
+        err = e
+        state = ss.get("rb_practice")
+    _flash()
+    ss["rb_has"] = bool(state)
+    mode = ss.get("rb_mode")
+    if mode == "quiz":
+        quiz()
+    elif mode == "plan":
+        plan_page(state, row, rkey, err)
+    elif state:
+        dashboard(state, row, rkey, err)
+    else:
+        intro()
+    ui.foot()
+
+
+# version stamp: app.py reloads any module still in memory from an older version of the site
+BUILD = "20.7"

@@ -437,6 +437,7 @@ def background_css(url):
     sky, the globe and the market numbers in dark dots), under a light veil that deepens a little towards the bottom."""
     veil = "linear-gradient(180deg, rgba(246,244,251,.16) 0%, rgba(246,244,251,.26) 45%, rgba(246,244,251,.46) 100%)"
     keep_white = (".lg, .lgo .ini, .nth.fb .ms, .nth.fb em, .nth img::after, .sax .sx-ic, .sax .sx-ic .ms, "   # white letters on a coloured tile stay white
+                  ".rbtl .ti .ms, .rbstep .n .ms, .rbo.on .ic .ms, .rbo.on .ck .ms, "
                   '[data-testid="stTabs"] [role="tab"][data-selected], [data-testid="stTabs"] [role="tab"][data-selected] [role="img"]')
     return (f'<style data-lm="keep">:root {{ color-scheme: light; }} {keep_white} {{ color: white !important; }}'
             f'.stApp::before {{ background: {veil}, url("{url}") 68% 40% / cover no-repeat, #F6F4FB !important; }}'
@@ -457,4 +458,4 @@ def landing_css():
             '.st-key-langdd button, .st-key-langdd button * { color: #E7E3EB !important; }</style>')
 
 
-BUILD = "20.6"
+BUILD = "20.7"

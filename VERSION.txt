@@ -1,2 +1,2 @@
-TURA Pro - version 20.6 (The landing no longer scrolls down by itself after 5 seconds: it stays until the visitor scrolls)
+TURA Pro - version 20.7 (Robo Advisor under Portfolio: an IPS questionnaire, a portfolio of ETFs that fits the answers, managed automatically with virtual money)
 If you can see this file on GitHub, the new version was uploaded correctly.
