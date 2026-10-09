@@ -93,10 +93,10 @@ def _blobs(p, layers, k0, scale=1.0):
     return defs, els
 
 
-def logo_parts(p="lg", light=True, shadow=.45, glow=1.0, aura=.85):
+def logo_parts(p="lg", light=True, shadow=.45, glow=1.0, aura=.85, spread=1.0):
     """The mark's drawing (ids prefixed with p). light: the deep light of the owner's picture behind it (for dark surfaces);
-    aura: how strong the coloured halo round the mark is; glow: how strong the neon round the tubes is; shadow: how dark the
-    shadow under the tubes is (0: none). The light and the halo fade out inside LOGO_GLOW_BOX."""
+    aura: how strong the coloured halo round the mark is; glow: how strong the neon round the tubes is; spread: how far the
+    neon reaches; shadow: how dark the shadow under the tubes is (0: none). The light and the halo fade out inside LOGO_GLOW_BOX."""
     defs = [_lin(p + "a", _T_LINE, _T_IN), _lin(p + "b", _T_LINE, _T_RIM), _lin(p + "c", _P_LINE, _P_IN), _lin(p + "d", _P_LINE, _P_RIM)]
     out = []
     if light or aura:
@@ -122,11 +122,11 @@ def logo_parts(p="lg", light=True, shadow=.45, glow=1.0, aura=.85):
                    + "".join(tube(d, "#000", _LW + 1) for d in (_PILL, _TEE, _SHOULDER)) + "</g>")
     if glow:                                   # the neon: a wide soft bloom, then a tight bright one, under the tubes
         defs += [_lin(p + "e", _T_LINE, _T_GLOW), _lin(p + "h", _P_LINE, _P_GLOW),
-                 f'<filter id="{p}w" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="24"/></filter>',
-                 f'<filter id="{p}n" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="7"/></filter>']
+                 f'<filter id="{p}w" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="{24 * spread:g}"/></filter>',
+                 f'<filter id="{p}n" x="-35%" y="-35%" width="170%" height="170%"><feGaussianBlur stdDeviation="{7 * spread:g}"/></filter>']
         neon = lambda width: tube(_PILL, f"url(#{p}h)", width) + tube(_TEE, f"url(#{p}e)", width) + tube(_SHOULDER, f"url(#{p}e)", width)
-        out.append(f'<g filter="url(#{p}w)" opacity="{min(1.0, .9 * glow):g}">{neon(_LW + 18)}</g>'
-                   f'<g filter="url(#{p}n)" opacity="{min(1.0, .95 * glow):g}">{neon(_LW + 5)}</g>')
+        out.append(f'<g filter="url(#{p}w)" opacity="{min(1.0, .9 * glow):g}">{neon(_LW + 18 * spread)}</g>'
+                   f'<g filter="url(#{p}n)" opacity="{min(1.0, .95 * glow):g}">{neon(_LW + 5 * spread)}</g>')
     # the rims first, then every tube's inside over them, so where the tubes meet they join into one
     out.append(tube(_PILL, f"url(#{p}d)", _LW) + tube(_TEE, f"url(#{p}b)", _LW) + tube(_SHOULDER, f"url(#{p}b)", _LW))
     inner = _LW - 2 * _RIM
@@ -137,20 +137,28 @@ def logo_parts(p="lg", light=True, shadow=.45, glow=1.0, aura=.85):
 # the light look: no deep light behind it (it would read as a dark smudge on a pale page), the coloured halo and the neon
 # stronger, the shadow faint
 LIGHT_LOOK = dict(light=False, shadow=.12, glow=1.25, aura=.75)
+# the dark look: a softer neon that reaches further, a lighter halo
+DARK_LOOK = dict(glow=.6, spread=1.5, aura=.55)
 
 
 def logo_mark(p="lg", cls="", light=True):
     """The mark as inline SVG sized by its tubes; the shadow, the neon and the light spill out around it (give each copy on a
     page its own p)."""
     c = f' class="{cls}"' if cls else ""
-    parts = logo_parts(p) if light else logo_parts(p, **LIGHT_LOOK)
+    parts = logo_parts(p, **DARK_LOOK) if light else logo_parts(p, **LIGHT_LOOK)
     return f'<svg{c} viewBox="{LOGO_BOX}" overflow="visible" style="overflow:visible" aria-hidden="true">{parts}</svg>'
 
 
-# the logo at the top of the page also glows past the edges of its picture (kept as it is in the light look)
-LOGO_GLOW_CSS = ('<style data-lm="keep">img[data-testid="stLogo"], img.stLogo, [data-testid="stSidebarHeader"] img, [data-testid="stHeaderLogo"] img '
-                 '{ filter:drop-shadow(0 0 2px rgba(56,189,248,.5)) drop-shadow(0 0 8px rgba(124,92,255,.45)) drop-shadow(0 0 16px rgba(176,76,255,.2)); }'
-                 '</style>')
+# the logo at the top of the page also glows past the edges of its picture (the light look keeps these colours as they are);
+# the dark look's glow is softer and reaches further
+_LOGO_SEL = 'img[data-testid="stLogo"], img.stLogo, [data-testid="stSidebarHeader"] img, [data-testid="stHeaderLogo"] img'
+
+
+def logo_glow_css(light_look=False):
+    f = ("drop-shadow(0 0 2px rgba(56,189,248,.5)) drop-shadow(0 0 8px rgba(124,92,255,.45)) drop-shadow(0 0 16px rgba(176,76,255,.2))"
+         if light_look else
+         "drop-shadow(0 0 3px rgba(56,189,248,.28)) drop-shadow(0 0 12px rgba(124,92,255,.26)) drop-shadow(0 0 26px rgba(176,76,255,.14))")
+    return f'<style data-lm="keep">{_LOGO_SEL} {{ filter:{f}; }}</style>'
 
 
 # ---------------------------------------------------------------- the name, drawn in thin geometric lines (Fenomeno style)
@@ -250,7 +258,7 @@ def brand_box(p="bw"):
 
 _GB = " ".join(str(v) for v in LOGO_GLOW_BOX)
 # small at the top of the page: the neon and the coloured halo, without the deep light (at that size it reads as a dark patch)
-_MARK = f'<svg x="0" y="0" width="64" height="64" viewBox="{_GB}">{logo_parts("mk", light=False, aura=.7)}</svg>'
+_MARK = f'<svg x="0" y="0" width="64" height="64" viewBox="{_GB}">{logo_parts("mk", **dict(DARK_LOOK, light=False))}</svg>'
 LOGO_ICON = f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">{_MARK}</svg>'
 LOGO_ICON_LIGHT = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">'
                    f'<svg x="0" y="0" width="64" height="64" viewBox="{_GB}">{logo_parts("il", **LIGHT_LOOK)}</svg></svg>')
@@ -2852,4 +2860,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "21.6"
+BUILD = "21.7"

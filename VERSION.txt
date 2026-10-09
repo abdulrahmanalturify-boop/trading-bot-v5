@@ -1,2 +1,2 @@
-TURA Pro - version 21.6 (the logo glows more: a neon bloom round the tubes and a coloured halo, in the dark look and the light look; the logo at the top of the page also glows past its edges)
+TURA Pro - version 21.7 (the logo's glow in the dark look: softer colour, reaching further; the light look unchanged)
 If you can see this file on GitHub, the new version was uploaded correctly.
