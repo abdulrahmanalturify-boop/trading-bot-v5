@@ -1,0 +1,793 @@
+index history ^TASI.SR ok (1, '2026-10-08 00:00:00+03:00', 10376.2802734375)
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: ^TASI"}}}
+$^TASI: No data found, symbol may be delisted
+index history ^TASI ok (0, None, None)
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: TASI.SR"}}}
+$TASI.SR: No data found, symbol may be delisted
+index history TASI.SR ok (0, None, None)
+index history ^NOMUC.SR ok (1, '2026-10-08 00:00:00+03:00', 21612.439453125)
+2222.SR daily (tz, last rows) ok (22, 'Asia/Riyadh', {'Open': {Timestamp('2026-10-06 00:00:00+0300', tz='Asia/Riyadh'): 25.78, Timestamp('2026-10-07 00:00:00+0300', tz='Asia/Riyadh'): 25.8, Timestamp('2026-10-08 00:00:00+0300', tz='Asia/Riyadh'): 25.84}, 'Close': {Timestamp('2026-10-06 00:00:00+0300', tz='Asia/Riyadh'): 25.8, Times
+download 2222/1120/2010 2y ok ({'2222.SR': 501, '1120.SR': 501, '2010.SR': 501}, '2026-10-08 00:00:00')
+2222.SR info keys ok {'longName': 'Saudi Arabian Oil Company', 'shortName': 'Saudi Arabian Oil Co.', 'sector': 'Energy', 'industry': 'Oil & Gas Integrated', 'marketCap': 6226696470528, 'currency': 'SAR', 'exchange': 'SAU', 'trailingPE': 15.230768, 'dividendYield': 5.27, 'fullExchangeName': 'Saudi', 'quoteType': 'EQUITY'
+2222.SR fast_info ok {'currency': 'SAR', 'dayHigh': 26.040000915527344, 'dayLow': 25.719999313354492, 'exchange': 'SAU', 'fiftyDayAverage': 26.087199935913088, 'lastPrice': 25.739999771118164, 'lastVolume': 16824618, 'marketCap': 6226696420631.79, 'open': 25.84000015258789, 'previousClose': 25.780000686645508, 'quoteTyp
+2222.SR news ok []
+search Al Rajhi ok [('1120.SR', 'Al Rajhi Bank', 'SAU')]
+search الراجحي ok []
+search 2222 ok [('2222.SR', 'Saudi Arabian Oil Co.', 'SAU'), ('2222.T', 'KOTOBUKI SPIRITS', 'JPX'), ('2222.HK', 'NVC INTL', 'HKG')]
+screener region sa ok {'total': 172, 'n': 100, 'first': [('2222.SR', 'Saudi Arabian Oil Co.', 6226696470528, 15.230768), ('1120.SR', 'Al Rajhi Bank', 373800009728, 14.975962), ('1211.SR', 'Saudi Arabian Mining Co.', 242224349184, 31.515152), ('1180.SR', 'The Saudi National Bank', 224699105280, 9.0358), ('7010.SR', 'Saudi
+google news ar السوق السعودية ok (200, 100, ['أخبار Google', 'السوق السعودية تغلق على تراجع 165.95 نقطة عند مستوى 10376.28 - صحيفة سبق الإلكترونية', 'مؤشر سوق الأسهم السعودية ينخفض 0.5% في مستهل تداولات الخميس - alyaum', 'مؤشر سوق الأسهم السعودية يغلق منخفضًا عند مستوى 10376 نقطة - جريدة المدينة', 'السوق السعودية تتراجع 0.45 % وسط 
+google news en Saudi stocks ok (200, 100, ['Google News', 'Saudi Arabia stocks lower at close of trade; Tadawul All Share down 1.57% - Investing.com', 'Saudi Stocks Slip As Strait Of Hormuz Attacks Rattle Nerves - Finimize', 'Saudi stocks hit wartime low as Aramco slides, Gulf oil exports rebound - Al-Monitor', 'Closing Bell: Sau
+argaam rss ok (200, 'text/xml; charset=utf-8', '<?xml version="1.0" encoding="utf-8"?>\r\n<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/" />')
+hourly prepost 2222 ok 25
+$1015.SR: No data found, symbol may be delisted
+$1052.SR: No data found, symbol may be delisted
+$1040.SR: No data found, symbol may be delisted
+$1039.SR: No data found, symbol may be delisted
+$1079.SR: No data found, symbol may be delisted
+$1073.SR: No data found, symbol may be delisted
+$1023.SR: No data found, symbol may be delisted
+$1028.SR: No data found, symbol may be delisted
+$1033.SR: No data found, symbol may be delisted
+$1055.SR: No data found, symbol may be delisted
+$1087.SR: No data found, symbol may be delisted
+$1049.SR: No data found, symbol may be delisted
+$1083.SR: No data found, symbol may be delisted
+$1038.SR: No data found, symbol may be delisted
+$1057.SR: No data found, symbol may be delisted
+$1021.SR: No data found, symbol may be delisted
+$1053.SR: No data found, symbol may be delisted
+$1045.SR: No data found, symbol may be delisted
+$1014.SR: No data found, symbol may be delisted
+$1019.SR: No data found, symbol may be delisted
+$1061.SR: No data found, symbol may be delisted
+$1059.SR: No data found, symbol may be delisted
+$1062.SR: No data found, symbol may be delisted
+$1066.SR: No data found, symbol may be delisted
+$1089.SR: No data found, symbol may be delisted
+$1078.SR: No data found, symbol may be delisted
+$1051.SR: No data found, symbol may be delisted
+$1044.SR: No data found, symbol may be delisted
+$1037.SR: No data found, symbol may be delisted
+$1043.SR: No data found, symbol may be delisted
+$1016.SR: No data found, symbol may be delisted
+$1012.SR: No data found, symbol may be delisted
+$1013.SR: No data found, symbol may be delisted
+$1070.SR: No data found, symbol may be delisted
+$1046.SR: No data found, symbol may be delisted
+$1035.SR: No data found, symbol may be delisted
+$1077.SR: No data found, symbol may be delisted
+$1088.SR: No data found, symbol may be delisted
+$1041.SR: No data found, symbol may be delisted
+$1081.SR: No data found, symbol may be delisted
+$1082.SR: No data found, symbol may be delisted
+$1027.SR: No data found, symbol may be delisted
+$1025.SR: No data found, symbol may be delisted
+$1075.SR: No data found, symbol may be delisted
+$1084.SR: No data found, symbol may be delisted
+$1034.SR: No data found, symbol may be delisted
+$1017.SR: No data found, symbol may be delisted
+$1085.SR: No data found, symbol may be delisted
+$1029.SR: No data found, symbol may be delisted
+$1064.SR: No data found, symbol may be delisted
+$1068.SR: No data found, symbol may be delisted
+$1086.SR: No data found, symbol may be delisted
+$1067.SR: No data found, symbol may be delisted
+$1056.SR: No data found, symbol may be delisted
+$1018.SR: No data found, symbol may be delisted
+$1047.SR: No data found, symbol may be delisted
+$1054.SR: No data found, symbol may be delisted
+$1074.SR: No data found, symbol may be delisted
+$1048.SR: No data found, symbol may be delisted
+$1036.SR: No data found, symbol may be delisted
+$1031.SR: No data found, symbol may be delisted
+$1011.SR: No data found, symbol may be delisted
+$1032.SR: No data found, symbol may be delisted
+$1065.SR: No data found, symbol may be delisted
+$1042.SR: No data found, symbol may be delisted
+$1069.SR: No data found, symbol may be delisted
+$1022.SR: No data found, symbol may be delisted
+$1026.SR: No data found, symbol may be delisted
+$1076.SR: No data found, symbol may be delisted
+$1024.SR: No data found, symbol may be delisted
+$1072.SR: No data found, symbol may be delisted
+$1063.SR: No data found, symbol may be delisted
+$1071.SR: No data found, symbol may be delisted
+$1058.SR: No data found, symbol may be delisted
+
+74 Failed downloads:
+['1015.SR', '1052.SR', '1040.SR', '1039.SR', '1079.SR', '1073.SR', '1023.SR', '1028.SR', '1033.SR', '1055.SR', '1087.SR', '1049.SR', '1083.SR', '1038.SR', '1057.SR', '1021.SR', '1053.SR', '1045.SR', '1014.SR', '1019.SR', '1061.SR', '1059.SR', '1062.SR', '1066.SR', '1089.SR', '1078.SR', '1051.SR', '1044.SR', '1037.SR', '1043.SR', '1016.SR', '1012.SR', '1013.SR', '1070.SR', '1046.SR', '1035.SR', '1077.SR', '1088.SR', '1041.SR', '1081.SR', '1082.SR', '1027.SR', '1025.SR', '1075.SR', '1084.SR', '1034.SR', '1017.SR', '1085.SR', '1029.SR', '1064.SR', '1068.SR', '1086.SR', '1067.SR', '1056.SR', '1018.SR', '1047.SR', '1054.SR', '1074.SR', '1048.SR', '1036.SR', '1031.SR', '1011.SR', '1032.SR', '1065.SR', '1042.SR', '1069.SR', '1022.SR', '1026.SR', '1076.SR', '1024.SR', '1072.SR', '1063.SR', '1071.SR', '1058.SR']: No data found, symbol may be delisted
+80/2576 checked, 6 found
+$1090.SR: No data found, symbol may be delisted
+$1146.SR: No data found, symbol may be delisted
+$1115.SR: No data found, symbol may be delisted
+$1153.SR: No data found, symbol may be delisted
+$1095.SR: No data found, symbol may be delisted
+$1167.SR: No data found, symbol may be delisted
+$1154.SR: No data found, symbol may be delisted
+$1142.SR: No data found, symbol may be delisted
+$1117.SR: No data found, symbol may be delisted
+$1113.SR: No data found, symbol may be delisted
+$1145.SR: No data found, symbol may be delisted
+$1099.SR: No data found, symbol may be delisted
+$1128.SR: No data found, symbol may be delisted
+$1155.SR: No data found, symbol may be delisted
+$1169.SR: No data found, symbol may be delisted
+$1108.SR: No data found, symbol may be delisted
+$1118.SR: No data found, symbol may be delisted
+$1112.SR: No data found, symbol may be delisted
+$1152.SR: No data found, symbol may be delisted
+$1130.SR: No data found, symbol may be delisted
+$1137.SR: No data found, symbol may be delisted
+$1109.SR: No data found, symbol may be delisted
+$1127.SR: No data found, symbol may be delisted
+$1129.SR: No data found, symbol may be delisted
+$1093.SR: No data found, symbol may be delisted
+$1122.SR: No data found, symbol may be delisted
+$1132.SR: No data found, symbol may be delisted
+$1143.SR: No data found, symbol may be delisted
+$1134.SR: No data found, symbol may be delisted
+$1116.SR: No data found, symbol may be delisted
+$1119.SR: No data found, symbol may be delisted
+$1158.SR: No data found, symbol may be delisted
+$1114.SR: No data found, symbol may be delisted
+$1098.SR: No data found, symbol may be delisted
+$1166.SR: No data found, symbol may be delisted
+$1100.SR: No data found, symbol may be delisted
+$1105.SR: No data found, symbol may be delisted
+$1138.SR: No data found, symbol may be delisted
+$1163.SR: No data found, symbol may be delisted
+$1151.SR: No data found, symbol may be delisted
+$1121.SR: No data found, symbol may be delisted
+$1139.SR: No data found, symbol may be delisted
+$1094.SR: No data found, symbol may be delisted
+$1168.SR: No data found, symbol may be delisted
+$1106.SR: No data found, symbol may be delisted
+$1165.SR: No data found, symbol may be delisted
+$1124.SR: No data found, symbol may be delisted
+$1103.SR: No data found, symbol may be delisted
+$1091.SR: No data found, symbol may be delisted
+$1148.SR: No data found, symbol may be delisted
+$1131.SR: No data found, symbol may be delisted
+$1133.SR: No data found, symbol may be delisted
+$1162.SR: No data found, symbol may be delisted
+$1101.SR: No data found, symbol may be delisted
+$1092.SR: No data found, symbol may be delisted
+$1125.SR: No data found, symbol may be delisted
+$1160.SR: No data found, symbol may be delisted
+$1104.SR: No data found, symbol may be delisted
+$1156.SR: No data found, symbol may be delisted
+$1096.SR: No data found, symbol may be delisted
+$1107.SR: No data found, symbol may be delisted
+$1141.SR: No data found, symbol may be delisted
+$1123.SR: No data found, symbol may be delisted
+$1126.SR: No data found, symbol may be delisted
+$1161.SR: No data found, symbol may be delisted
+$1147.SR: No data found, symbol may be delisted
+$1097.SR: No data found, symbol may be delisted
+$1157.SR: No data found, symbol may be delisted
+$1159.SR: No data found, symbol may be delisted
+$1110.SR: No data found, symbol may be delisted
+$1149.SR: No data found, symbol may be delisted
+$1164.SR: No data found, symbol may be delisted
+$1102.SR: No data found, symbol may be delisted
+$1135.SR: No data found, symbol may be delisted
+$1144.SR: No data found, symbol may be delisted
+$1136.SR: No data found, symbol may be delisted
+
+76 Failed downloads:
+['1090.SR', '1146.SR', '1115.SR', '1153.SR', '1095.SR', '1167.SR', '1154.SR', '1142.SR', '1117.SR', '1113.SR', '1145.SR', '1099.SR', '1128.SR', '1155.SR', '1169.SR', '1108.SR', '1118.SR', '1112.SR', '1152.SR', '1130.SR', '1137.SR', '1109.SR', '1127.SR', '1129.SR', '1093.SR', '1122.SR', '1132.SR', '1143.SR', '1134.SR', '1116.SR', '1119.SR', '1158.SR', '1114.SR', '1098.SR', '1166.SR', '1100.SR', '1105.SR', '1138.SR', '1163.SR', '1151.SR', '1121.SR', '1139.SR', '1094.SR', '1168.SR', '1106.SR', '1165.SR', '1124.SR', '1103.SR', '1091.SR', '1148.SR', '1131.SR', '1133.SR', '1162.SR', '1101.SR', '1092.SR', '1125.SR', '1160.SR', '1104.SR', '1156.SR', '1096.SR', '1107.SR', '1141.SR', '1123.SR', '1126.SR', '1161.SR', '1147.SR', '1097.SR', '1157.SR', '1159.SR', '1110.SR', '1149.SR', '1164.SR', '1102.SR', '1135.SR', '1144.SR', '1136.SR']: No data found, symbol may be delisted
+160/2576 checked, 10 found
+$1233.SR: No data found, symbol may be delisted
+$1171.SR: No data found, symbol may be delisted
+$1198.SR: No data found, symbol may be delisted
+$1220.SR: No data found, symbol may be delisted
+$1206.SR: No data found, symbol may be delisted
+$1237.SR: No data found, symbol may be delisted
+$1172.SR: No data found, symbol may be delisted
+$1229.SR: No data found, symbol may be delisted
+$1173.SR: No data found, symbol may be delisted
+$1177.SR: No data found, symbol may be delisted
+$1185.SR: No data found, symbol may be delisted
+$1184.SR: No data found, symbol may be delisted
+$1239.SR: No data found, symbol may be delisted
+$1242.SR: No data found, symbol may be delisted
+$1194.SR: No data found, symbol may be delisted
+$1176.SR: No data found, symbol may be delisted
+$1195.SR: No data found, symbol may be delisted
+$1240.SR: No data found, symbol may be delisted
+$1192.SR: No data found, symbol may be delisted
+$1224.SR: No data found, symbol may be delisted
+$1217.SR: No data found, symbol may be delisted
+$1246.SR: No data found, symbol may be delisted
+$1216.SR: No data found, symbol may be delisted
+$1225.SR: No data found, symbol may be delisted
+$1186.SR: No data found, symbol may be delisted
+$1231.SR: No data found, symbol may be delisted
+$1222.SR: No data found, symbol may be delisted
+$1232.SR: No data found, symbol may be delisted
+$1234.SR: No data found, symbol may be delisted
+$1178.SR: No data found, symbol may be delisted
+$1208.SR: No data found, symbol may be delisted
+$1223.SR: No data found, symbol may be delisted
+$1175.SR: No data found, symbol may be delisted
+$1244.SR: No data found, symbol may be delisted
+$1189.SR: No data found, symbol may be delisted
+$1238.SR: No data found, symbol may be delisted
+$1188.SR: No data found, symbol may be delisted
+$1200.SR: No data found, symbol may be delisted
+$1226.SR: No data found, symbol may be delisted
+$1179.SR: No data found, symbol may be delisted
+$1174.SR: No data found, symbol may be delisted
+$1191.SR: No data found, symbol may be delisted
+$1193.SR: No data found, symbol may be delisted
+$1170.SR: No data found, symbol may be delisted
+$1247.SR: No data found, symbol may be delisted
+$1230.SR: No data found, symbol may be delisted
+$1215.SR: No data found, symbol may be delisted
+$1249.SR: No data found, symbol may be delisted
+$1209.SR: No data found, symbol may be delisted
+$1196.SR: No data found, symbol may be delisted
+$1197.SR: No data found, symbol may be delisted
+$1203.SR: No data found, symbol may be delisted
+$1204.SR: No data found, symbol may be delisted
+$1190.SR: No data found, symbol may be delisted
+$1227.SR: No data found, symbol may be delisted
+$1236.SR: No data found, symbol may be delisted
+$1205.SR: No data found, symbol may be delisted
+$1241.SR: No data found, symbol may be delisted
+$1218.SR: No data found, symbol may be delisted
+$1181.SR: No data found, symbol may be delisted
+$1248.SR: No data found, symbol may be delisted
+$1199.SR: No data found, symbol may be delisted
+$1187.SR: No data found, symbol may be delisted
+$1219.SR: No data found, symbol may be delisted
+$1221.SR: No data found, symbol may be delisted
+$1243.SR: No data found, symbol may be delisted
+$1207.SR: No data found, symbol may be delisted
+$1235.SR: No data found, symbol may be delisted
+$1228.SR: No data found, symbol may be delisted
+$1245.SR: No data found, symbol may be delisted
+
+70 Failed downloads:
+['1233.SR', '1171.SR', '1198.SR', '1220.SR', '1206.SR', '1237.SR', '1172.SR', '1229.SR', '1173.SR', '1177.SR', '1185.SR', '1184.SR', '1239.SR', '1242.SR', '1194.SR', '1176.SR', '1195.SR', '1240.SR', '1192.SR', '1224.SR', '1217.SR', '1246.SR', '1216.SR', '1225.SR', '1186.SR', '1231.SR', '1222.SR', '1232.SR', '1234.SR', '1178.SR', '1208.SR', '1223.SR', '1175.SR', '1244.SR', '1189.SR', '1238.SR', '1188.SR', '1200.SR', '1226.SR', '1179.SR', '1174.SR', '1191.SR', '1193.SR', '1170.SR', '1247.SR', '1230.SR', '1215.SR', '1249.SR', '1209.SR', '1196.SR', '1197.SR', '1203.SR', '1204.SR', '1190.SR', '1227.SR', '1236.SR', '1205.SR', '1241.SR', '1218.SR', '1181.SR', '1248.SR', '1199.SR', '1187.SR', '1219.SR', '1221.SR', '1243.SR', '1207.SR', '1235.SR', '1228.SR', '1245.SR']: No data found, symbol may be delisted
+240/2576 checked, 20 found
+$1300.SR: No data found, symbol may be delisted
+$1282.SR: No data found, symbol may be delisted
+$1280.SR: No data found, symbol may be delisted
+$1272.SR: No data found, symbol may be delisted
+$1262.SR: No data found, symbol may be delisted
+$1295.SR: No data found, symbol may be delisted
+$1260.SR: No data found, symbol may be delisted
+$1311.SR: No data found, symbol may be delisted
+$1269.SR: No data found, symbol may be delisted
+$1283.SR: No data found, symbol may be delisted
+$1299.SR: No data found, symbol may be delisted
+$1319.SR: No data found, symbol may be delisted
+$1291.SR: No data found, symbol may be delisted
+$1312.SR: No data found, symbol may be delisted
+$1271.SR: No data found, symbol may be delisted
+$1298.SR: No data found, symbol may be delisted
+$1261.SR: No data found, symbol may be delisted
+$1279.SR: No data found, symbol may be delisted
+$1265.SR: No data found, symbol may be delisted
+$1270.SR: No data found, symbol may be delisted
+$1328.SR: No data found, symbol may be delisted
+$1316.SR: No data found, symbol may be delisted
+$1281.SR: No data found, symbol may be delisted
+$1317.SR: No data found, symbol may be delisted
+$1284.SR: No data found, symbol may be delisted
+$1290.SR: No data found, symbol may be delisted
+$1329.SR: No data found, symbol may be delisted
+$1263.SR: No data found, symbol may be delisted
+$1259.SR: No data found, symbol may be delisted
+$1315.SR: No data found, symbol may be delisted
+$1306.SR: No data found, symbol may be delisted
+$1252.SR: No data found, symbol may be delisted
+$1276.SR: No data found, symbol may be delisted
+$1310.SR: No data found, symbol may be delisted
+$1318.SR: No data found, symbol may be delisted
+$1275.SR: No data found, symbol may be delisted
+$1254.SR: No data found, symbol may be delisted
+$1285.SR: No data found, symbol may be delisted
+$1256.SR: No data found, symbol may be delisted
+$1250.SR: No data found, symbol may be delisted
+$1294.SR: No data found, symbol may be delisted
+$1289.SR: No data found, symbol may be delisted
+$1278.SR: No data found, symbol may be delisted
+$1326.SR: No data found, symbol may be delisted
+$1288.SR: No data found, symbol may be delisted
+$1297.SR: No data found, symbol may be delisted
+$1313.SR: No data found, symbol may be delisted
+$1266.SR: No data found, symbol may be delisted
+$1305.SR: No data found, symbol may be delisted
+$1257.SR: No data found, symbol may be delisted
+$1286.SR: No data found, symbol may be delisted
+$1292.SR: No data found, symbol may be delisted
+$1309.SR: No data found, symbol may be delisted
+$1267.SR: No data found, symbol may be delisted
+$1327.SR: No data found, symbol may be delisted
+$1308.SR: No data found, symbol may be delisted
+$1255.SR: No data found, symbol may be delisted
+$1253.SR: No data found, symbol may be delisted
+$1264.SR: No data found, symbol may be delisted
+$1268.SR: No data found, symbol may be delisted
+$1277.SR: No data found, symbol may be delisted
+$1307.SR: No data found, symbol may be delisted
+$1293.SR: No data found, symbol may be delisted
+$1251.SR: No data found, symbol may be delisted
+$1273.SR: No data found, symbol may be delisted
+$1258.SR: No data found, symbol may be delisted
+$1274.SR: No data found, symbol may be delisted
+$1287.SR: No data found, symbol may be delisted
+$1314.SR: No data found, symbol may be delisted
+$1296.SR: No data found, symbol may be delisted
+
+70 Failed downloads:
+['1300.SR', '1282.SR', '1280.SR', '1272.SR', '1262.SR', '1295.SR', '1260.SR', '1311.SR', '1269.SR', '1283.SR', '1299.SR', '1319.SR', '1291.SR', '1312.SR', '1271.SR', '1298.SR', '1261.SR', '1279.SR', '1265.SR', '1270.SR', '1328.SR', '1316.SR', '1281.SR', '1317.SR', '1284.SR', '1290.SR', '1329.SR', '1263.SR', '1259.SR', '1315.SR', '1306.SR', '1252.SR', '1276.SR', '1310.SR', '1318.SR', '1275.SR', '1254.SR', '1285.SR', '1256.SR', '1250.SR', '1294.SR', '1289.SR', '1278.SR', '1326.SR', '1288.SR', '1297.SR', '1313.SR', '1266.SR', '1305.SR', '1257.SR', '1286.SR', '1292.SR', '1309.SR', '1267.SR', '1327.SR', '1308.SR', '1255.SR', '1253.SR', '1264.SR', '1268.SR', '1277.SR', '1307.SR', '1293.SR', '1251.SR', '1273.SR', '1258.SR', '1274.SR', '1287.SR', '1314.SR', '1296.SR']: No data found, symbol may be delisted
+320/2576 checked, 30 found
+$1408.SR: No data found, symbol may be delisted
+$1352.SR: No data found, symbol may be delisted
+$1409.SR: No data found, symbol may be delisted
+$1360.SR: No data found, symbol may be delisted
+$1354.SR: No data found, symbol may be delisted
+$1377.SR: No data found, symbol may be delisted
+$1403.SR: No data found, symbol may be delisted
+$1378.SR: No data found, symbol may be delisted
+$1388.SR: No data found, symbol may be delisted
+$1366.SR: No data found, symbol may be delisted
+$1381.SR: No data found, symbol may be delisted
+$1394.SR: No data found, symbol may be delisted
+$1391.SR: No data found, symbol may be delisted
+$1349.SR: No data found, symbol may be delisted
+$1393.SR: No data found, symbol may be delisted
+$1364.SR: No data found, symbol may be delisted
+$1382.SR: No data found, symbol may be delisted
+$1331.SR: No data found, symbol may be delisted
+$1389.SR: No data found, symbol may be delisted
+$1385.SR: No data found, symbol may be delisted
+$1372.SR: No data found, symbol may be delisted
+$1335.SR: No data found, symbol may be delisted
+$1400.SR: No data found, symbol may be delisted
+$1373.SR: No data found, symbol may be delisted
+$1332.SR: No data found, symbol may be delisted
+$1375.SR: No data found, symbol may be delisted
+$1398.SR: No data found, symbol may be delisted
+$1380.SR: No data found, symbol may be delisted
+$1340.SR: No data found, symbol may be delisted
+$1367.SR: No data found, symbol may be delisted
+$1386.SR: No data found, symbol may be delisted
+$1337.SR: No data found, symbol may be delisted
+$1384.SR: No data found, symbol may be delisted
+$1343.SR: No data found, symbol may be delisted
+$1347.SR: No data found, symbol may be delisted
+$1342.SR: No data found, symbol may be delisted
+$1353.SR: No data found, symbol may be delisted
+$1363.SR: No data found, symbol may be delisted
+$1405.SR: No data found, symbol may be delisted
+$1358.SR: No data found, symbol may be delisted
+$1345.SR: No data found, symbol may be delisted
+$1374.SR: No data found, symbol may be delisted
+$1339.SR: No data found, symbol may be delisted
+$1368.SR: No data found, symbol may be delisted
+$1387.SR: No data found, symbol may be delisted
+$1333.SR: No data found, symbol may be delisted
+$1370.SR: No data found, symbol may be delisted
+$1336.SR: No data found, symbol may be delisted
+$1348.SR: No data found, symbol may be delisted
+$1396.SR: No data found, symbol may be delisted
+$1369.SR: No data found, symbol may be delisted
+$1376.SR: No data found, symbol may be delisted
+$1390.SR: No data found, symbol may be delisted
+$1359.SR: No data found, symbol may be delisted
+$1402.SR: No data found, symbol may be delisted
+$1361.SR: No data found, symbol may be delisted
+$1330.SR: No data found, symbol may be delisted
+$1344.SR: No data found, symbol may be delisted
+$1392.SR: No data found, symbol may be delisted
+$1371.SR: No data found, symbol may be delisted
+$1406.SR: No data found, symbol may be delisted
+$1407.SR: No data found, symbol may be delisted
+$1338.SR: No data found, symbol may be delisted
+$1397.SR: No data found, symbol may be delisted
+$1356.SR: No data found, symbol may be delisted
+$1395.SR: No data found, symbol may be delisted
+$1350.SR: No data found, symbol may be delisted
+$1346.SR: No data found, symbol may be delisted
+$1383.SR: No data found, symbol may be delisted
+$1399.SR: No data found, symbol may be delisted
+$1401.SR: No data found, symbol may be delisted
+$1404.SR: No data found, symbol may be delisted
+$1334.SR: No data found, symbol may be delisted
+$1355.SR: No data found, symbol may be delisted
+$1362.SR: No data found, symbol may be delisted
+$1379.SR: No data found, symbol may be delisted
+$1357.SR: No data found, symbol may be delisted
+$1341.SR: No data found, symbol may be delisted
+$1351.SR: No data found, symbol may be delisted
+$1365.SR: No data found, symbol may be delisted
+
+80 Failed downloads:
+['1408.SR', '1352.SR', '1409.SR', '1360.SR', '1354.SR', '1377.SR', '1403.SR', '1378.SR', '1388.SR', '1366.SR', '1381.SR', '1394.SR', '1391.SR', '1349.SR', '1393.SR', '1364.SR', '1382.SR', '1331.SR', '1389.SR', '1385.SR', '1372.SR', '1335.SR', '1400.SR', '1373.SR', '1332.SR', '1375.SR', '1398.SR', '1380.SR', '1340.SR', '1367.SR', '1386.SR', '1337.SR', '1384.SR', '1343.SR', '1347.SR', '1342.SR', '1353.SR', '1363.SR', '1405.SR', '1358.SR', '1345.SR', '1374.SR', '1339.SR', '1368.SR', '1387.SR', '1333.SR', '1370.SR', '1336.SR', '1348.SR', '1396.SR', '1369.SR', '1376.SR', '1390.SR', '1359.SR', '1402.SR', '1361.SR', '1330.SR', '1344.SR', '1392.SR', '1371.SR', '1406.SR', '1407.SR', '1338.SR', '1397.SR', '1356.SR', '1395.SR', '1350.SR', '1346.SR', '1383.SR', '1399.SR', '1401.SR', '1404.SR', '1334.SR', '1355.SR', '1362.SR', '1379.SR', '1357.SR', '1341.SR', '1351.SR', '1365.SR']: No data found, symbol may be delisted
+400/2576 checked, 30 found
+$1418.SR: No data found, symbol may be delisted
+$1448.SR: No data found, symbol may be delisted
+$1478.SR: No data found, symbol may be delisted
+$1425.SR: No data found, symbol may be delisted
+$1485.SR: No data found, symbol may be delisted
+$1421.SR: No data found, symbol may be delisted
+$1447.SR: No data found, symbol may be delisted
+$1470.SR: No data found, symbol may be delisted
+$1465.SR: No data found, symbol may be delisted
+$1431.SR: No data found, symbol may be delisted
+$1417.SR: No data found, symbol may be delisted
+$1476.SR: No data found, symbol may be delisted
+$1430.SR: No data found, symbol may be delisted
+$1412.SR: No data found, symbol may be delisted
+$1454.SR: No data found, symbol may be delisted
+$1433.SR: No data found, symbol may be delisted
+$1455.SR: No data found, symbol may be delisted
+$1481.SR: No data found, symbol may be delisted
+$1429.SR: No data found, symbol may be delisted
+$1432.SR: No data found, symbol may be delisted
+$1456.SR: No data found, symbol may be delisted
+$1436.SR: No data found, symbol may be delisted
+$1458.SR: No data found, symbol may be delisted
+$1435.SR: No data found, symbol may be delisted
+$1451.SR: No data found, symbol may be delisted
+$1423.SR: No data found, symbol may be delisted
+$1464.SR: No data found, symbol may be delisted
+$1479.SR: No data found, symbol may be delisted
+$1442.SR: No data found, symbol may be delisted
+$1468.SR: No data found, symbol may be delisted
+$1422.SR: No data found, symbol may be delisted
+$1438.SR: No data found, symbol may be delisted
+$1434.SR: No data found, symbol may be delisted
+$1472.SR: No data found, symbol may be delisted
+$1469.SR: No data found, symbol may be delisted
+$1452.SR: No data found, symbol may be delisted
+$1459.SR: No data found, symbol may be delisted
+$1410.SR: No data found, symbol may be delisted
+$1443.SR: No data found, symbol may be delisted
+$1471.SR: No data found, symbol may be delisted
+$1439.SR: No data found, symbol may be delisted
+$1473.SR: No data found, symbol may be delisted
+$1467.SR: No data found, symbol may be delisted
+$1488.SR: No data found, symbol may be delisted
+$1484.SR: No data found, symbol may be delisted
+$1426.SR: No data found, symbol may be delisted
+$1466.SR: No data found, symbol may be delisted
+$1424.SR: No data found, symbol may be delisted
+$1411.SR: No data found, symbol may be delisted
+$1445.SR: No data found, symbol may be delisted
+$1415.SR: No data found, symbol may be delisted
+$1462.SR: No data found, symbol may be delisted
+$1489.SR: No data found, symbol may be delisted
+$1428.SR: No data found, symbol may be delisted
+$1420.SR: No data found, symbol may be delisted
+$1477.SR: No data found, symbol may be delisted
+$1440.SR: No data found, symbol may be delisted
+$1460.SR: No data found, symbol may be delisted
+$1457.SR: No data found, symbol may be delisted
+$1416.SR: No data found, symbol may be delisted
+$1446.SR: No data found, symbol may be delisted
+$1483.SR: No data found, symbol may be delisted
+$1444.SR: No data found, symbol may be delisted
+$1461.SR: No data found, symbol may be delisted
+$1441.SR: No data found, symbol may be delisted
+$1427.SR: No data found, symbol may be delisted
+$1487.SR: No data found, symbol may be delisted
+$1475.SR: No data found, symbol may be delisted
+$1480.SR: No data found, symbol may be delisted
+$1453.SR: No data found, symbol may be delisted
+$1486.SR: No data found, symbol may be delisted
+$1474.SR: No data found, symbol may be delisted
+$1463.SR: No data found, symbol may be delisted
+$1419.SR: No data found, symbol may be delisted
+$1414.SR: No data found, symbol may be delisted
+$1482.SR: No data found, symbol may be delisted
+$1450.SR: No data found, symbol may be delisted
+$1437.SR: No data found, symbol may be delisted
+$1449.SR: No data found, symbol may be delisted
+$1413.SR: No data found, symbol may be delisted
+
+80 Failed downloads:
+['1418.SR', '1448.SR', '1478.SR', '1425.SR', '1485.SR', '1421.SR', '1447.SR', '1470.SR', '1465.SR', '1431.SR', '1417.SR', '1476.SR', '1430.SR', '1412.SR', '1454.SR', '1433.SR', '1455.SR', '1481.SR', '1429.SR', '1432.SR', '1456.SR', '1436.SR', '1458.SR', '1435.SR', '1451.SR', '1423.SR', '1464.SR', '1479.SR', '1442.SR', '1468.SR', '1422.SR', '1438.SR', '1434.SR', '1472.SR', '1469.SR', '1452.SR', '1459.SR', '1410.SR', '1443.SR', '1471.SR', '1439.SR', '1473.SR', '1467.SR', '1488.SR', '1484.SR', '1426.SR', '1466.SR', '1424.SR', '1411.SR', '1445.SR', '1415.SR', '1462.SR', '1489.SR', '1428.SR', '1420.SR', '1477.SR', '1440.SR', '1460.SR', '1457.SR', '1416.SR', '1446.SR', '1483.SR', '1444.SR', '1461.SR', '1441.SR', '1427.SR', '1487.SR', '1475.SR', '1480.SR', '1453.SR', '1486.SR', '1474.SR', '1463.SR', '1419.SR', '1414.SR', '1482.SR', '1450.SR', '1437.SR', '1449.SR', '1413.SR']: No data found, symbol may be delisted
+480/2576 checked, 30 found
+$1494.SR: No data found, symbol may be delisted
+$1532.SR: No data found, symbol may be delisted
+$1535.SR: No data found, symbol may be delisted
+$1514.SR: No data found, symbol may be delisted
+$1505.SR: No data found, symbol may be delisted
+$1536.SR: No data found, symbol may be delisted
+$1533.SR: No data found, symbol may be delisted
+$1497.SR: No data found, symbol may be delisted
+$1541.SR: No data found, symbol may be delisted
+$1548.SR: No data found, symbol may be delisted
+$1522.SR: No data found, symbol may be delisted
+$1543.SR: No data found, symbol may be delisted
+$1525.SR: No data found, symbol may be delisted
+$1511.SR: No data found, symbol may be delisted
+$1542.SR: No data found, symbol may be delisted
+$1568.SR: No data found, symbol may be delisted
+$1554.SR: No data found, symbol may be delisted
+$1500.SR: No data found, symbol may be delisted
+$1510.SR: No data found, symbol may be delisted
+$1530.SR: No data found, symbol may be delisted
+$1553.SR: No data found, symbol may be delisted
+$1560.SR: No data found, symbol may be delisted
+$1518.SR: No data found, symbol may be delisted
+$1498.SR: No data found, symbol may be delisted
+$1508.SR: No data found, symbol may be delisted
+$1495.SR: No data found, symbol may be delisted
+$1499.SR: No data found, symbol may be delisted
+$1519.SR: No data found, symbol may be delisted
+$1520.SR: No data found, symbol may be delisted
+$1526.SR: No data found, symbol may be delisted
+$1516.SR: No data found, symbol may be delisted
+$1490.SR: No data found, symbol may be delisted
+$1546.SR: No data found, symbol may be delisted
+$1557.SR: No data found, symbol may be delisted
+$1504.SR: No data found, symbol may be delisted
+$1513.SR: No data found, symbol may be delisted
+$1555.SR: No data found, symbol may be delisted
+$1531.SR: No data found, symbol may be delisted
+$1545.SR: No data found, symbol may be delisted
+$1562.SR: No data found, symbol may be delisted
+$1569.SR: No data found, symbol may be delisted
+$1523.SR: No data found, symbol may be delisted
+$1507.SR: No data found, symbol may be delisted
+$1547.SR: No data found, symbol may be delisted
+$1501.SR: No data found, symbol may be delisted
+$1540.SR: No data found, symbol may be delisted
+$1496.SR: No data found, symbol may be delisted
+$1552.SR: No data found, symbol may be delisted
+$1529.SR: No data found, symbol may be delisted
+$1538.SR: No data found, symbol may be delisted
+$1556.SR: No data found, symbol may be delisted
+$1561.SR: No data found, symbol may be delisted
+$1564.SR: No data found, symbol may be delisted
+$1527.SR: No data found, symbol may be delisted
+$1521.SR: No data found, symbol may be delisted
+$1558.SR: No data found, symbol may be delisted
+$1566.SR: No data found, symbol may be delisted
+$1534.SR: No data found, symbol may be delisted
+$1567.SR: No data found, symbol may be delisted
+$1502.SR: No data found, symbol may be delisted
+$1551.SR: No data found, symbol may be delisted
+$1563.SR: No data found, symbol may be delisted
+$1565.SR: No data found, symbol may be delisted
+$1492.SR: No data found, symbol may be delisted
+$1539.SR: No data found, symbol may be delisted
+$1503.SR: No data found, symbol may be delisted
+$1506.SR: No data found, symbol may be delisted
+$1537.SR: No data found, symbol may be delisted
+$1559.SR: No data found, symbol may be delisted
+$1544.SR: No data found, symbol may be delisted
+$1509.SR: No data found, symbol may be delisted
+$1528.SR: No data found, symbol may be delisted
+$1512.SR: No data found, symbol may be delisted
+$1515.SR: No data found, symbol may be delisted
+$1493.SR: No data found, symbol may be delisted
+$1517.SR: No data found, symbol may be delisted
+$1524.SR: No data found, symbol may be delisted
+$1550.SR: No data found, symbol may be delisted
+$1491.SR: No data found, symbol may be delisted
+$1549.SR: No data found, symbol may be delisted
+
+80 Failed downloads:
+['1494.SR', '1532.SR', '1535.SR', '1514.SR', '1505.SR', '1536.SR', '1533.SR', '1497.SR', '1541.SR', '1548.SR', '1522.SR', '1543.SR', '1525.SR', '1511.SR', '1542.SR', '1568.SR', '1554.SR', '1500.SR', '1510.SR', '1530.SR', '1553.SR', '1560.SR', '1518.SR', '1498.SR', '1508.SR', '1495.SR', '1499.SR', '1519.SR', '1520.SR', '1526.SR', '1516.SR', '1490.SR', '1546.SR', '1557.SR', '1504.SR', '1513.SR', '1555.SR', '1531.SR', '1545.SR', '1562.SR', '1569.SR', '1523.SR', '1507.SR', '1547.SR', '1501.SR', '1540.SR', '1496.SR', '1552.SR', '1529.SR', '1538.SR', '1556.SR', '1561.SR', '1564.SR', '1527.SR', '1521.SR', '1558.SR', '1566.SR', '1534.SR', '1567.SR', '1502.SR', '1551.SR', '1563.SR', '1565.SR', '1492.SR', '1539.SR', '1503.SR', '1506.SR', '1537.SR', '1559.SR', '1544.SR', '1509.SR', '1528.SR', '1512.SR', '1515.SR', '1493.SR', '1517.SR', '1524.SR', '1550.SR', '1491.SR', '1549.SR']: No data found, symbol may be delisted
+560/2576 checked, 30 found
+$1582.SR: No data found, symbol may be delisted
+$1575.SR: No data found, symbol may be delisted
+$1604.SR: No data found, symbol may be delisted
+$1610.SR: No data found, symbol may be delisted
+$1577.SR: No data found, symbol may be delisted
+$1614.SR: No data found, symbol may be delisted
+$1617.SR: No data found, symbol may be delisted
+$1597.SR: No data found, symbol may be delisted
+$1608.SR: No data found, symbol may be delisted
+$1576.SR: No data found, symbol may be delisted
+$1645.SR: No data found, symbol may be delisted
+$1615.SR: No data found, symbol may be delisted
+$1642.SR: No data found, symbol may be delisted
+$1592.SR: No data found, symbol may be delisted
+$1589.SR: No data found, symbol may be delisted
+$1598.SR: No data found, symbol may be delisted
+$1624.SR: No data found, symbol may be delisted
+$1590.SR: No data found, symbol may be delisted
+$1637.SR: No data found, symbol may be delisted
+$1612.SR: No data found, symbol may be delisted
+$1588.SR: No data found, symbol may be delisted
+$1574.SR: No data found, symbol may be delisted
+$1628.SR: No data found, symbol may be delisted
+$1601.SR: No data found, symbol may be delisted
+$1587.SR: No data found, symbol may be delisted
+$1596.SR: No data found, symbol may be delisted
+$1602.SR: No data found, symbol may be delisted
+$1641.SR: No data found, symbol may be delisted
+$1622.SR: No data found, symbol may be delisted
+$1626.SR: No data found, symbol may be delisted
+$1580.SR: No data found, symbol may be delisted
+$1632.SR: No data found, symbol may be delisted
+$1585.SR: No data found, symbol may be delisted
+$1609.SR: No data found, symbol may be delisted
+$1570.SR: No data found, symbol may be delisted
+$1603.SR: No data found, symbol may be delisted
+$1635.SR: No data found, symbol may be delisted
+$1599.SR: No data found, symbol may be delisted
+$1640.SR: No data found, symbol may be delisted
+$1620.SR: No data found, symbol may be delisted
+$1613.SR: No data found, symbol may be delisted
+$1623.SR: No data found, symbol may be delisted
+$1634.SR: No data found, symbol may be delisted
+$1591.SR: No data found, symbol may be delisted
+$1573.SR: No data found, symbol may be delisted
+$1636.SR: No data found, symbol may be delisted
+$1586.SR: No data found, symbol may be delisted
+$1638.SR: No data found, symbol may be delisted
+$1647.SR: No data found, symbol may be delisted
+$1605.SR: No data found, symbol may be delisted
+$1581.SR: No data found, symbol may be delisted
+$1618.SR: No data found, symbol may be delisted
+$1629.SR: No data found, symbol may be delisted
+$1619.SR: No data found, symbol may be delisted
+$1583.SR: No data found, symbol may be delisted
+$1621.SR: No data found, symbol may be delisted
+$1611.SR: No data found, symbol may be delisted
+$1606.SR: No data found, symbol may be delisted
+$1584.SR: No data found, symbol may be delisted
+$1600.SR: No data found, symbol may be delisted
+$1572.SR: No data found, symbol may be delisted
+
+80 Failed downloads:
+['1582.SR', '1575.SR', '1604.SR', '1610.SR', '1577.SR', '1614.SR', '1617.SR', '1597.SR', '1608.SR', '1576.SR', '1645.SR', '1615.SR', '1642.SR', '1592.SR', '1589.SR', '1598.SR', '1624.SR', '1590.SR', '1637.SR', '1612.SR', '1588.SR', '1574.SR', '1628.SR', '1601.SR', '1587.SR', '1596.SR', '1602.SR', '1641.SR', '1622.SR', '1626.SR', '1580.SR', '1632.SR', '1585.SR', '1609.SR', '1570.SR', '1603.SR', '1635.SR', '1599.SR', '1640.SR', '1620.SR', '1613.SR', '1623.SR', '1634.SR', '1591.SR', '1573.SR', '1636.SR', '1586.SR', '1638.SR', '1647.SR', '1605.SR', '1581.SR', '1618.SR', '1629.SR', '1619.SR', '1583.SR', '1621.SR', '1611.SR', '1606.SR', '1584.SR', '1600.SR', '1572.SR']: No data found, symbol may be delisted
+['1631.SR', '1643.SR', '1607.SR', '1625.SR', '1578.SR', '1639.SR', '1593.SR', '1627.SR', '1594.SR', '1616.SR', '1579.SR', '1648.SR', '1646.SR', '1630.SR', '1633.SR', '1644.SR', '1649.SR', '1595.SR', '1571.SR']: YFRateLimitError('Too Many Requests. Rate limited. Try after a while.')
+640/2576 checked, 30 found
+
+80 Failed downloads:
+['1706.SR', '1666.SR', '1680.SR', '1664.SR', '1687.SR', '1663.SR', '1685.SR', '1679.SR', '1690.SR', '1698.SR', '1714.SR', '1688.SR', '1650.SR', '1697.SR', '1702.SR', '1653.SR', '1710.SR', '1725.SR', '1694.SR', '1712.SR', '1658.SR', '1695.SR', '1655.SR', '1724.SR', '1705.SR', '1719.SR', '1678.SR', '1726.SR', '1711.SR', '1693.SR', '1681.SR', '1671.SR', '1720.SR', '1696.SR', '1709.SR', '1676.SR', '1691.SR', '1672.SR', '1677.SR', '1729.SR', '1703.SR', '1675.SR', '1659.SR', '1700.SR', '1669.SR', '1708.SR', '1674.SR', '1686.SR', '1684.SR', '1660.SR', '1728.SR', '1651.SR', '1683.SR', '1661.SR', '1656.SR', '1665.SR', '1670.SR', '1689.SR', '1652.SR', '1718.SR', '1713.SR', '1704.SR', '1707.SR', '1654.SR', '1722.SR', '1701.SR', '1662.SR', '1682.SR', '1716.SR', '1721.SR', '1673.SR', '1657.SR', '1723.SR', '1717.SR', '1715.SR', '1667.SR', '1692.SR', '1668.SR', '1727.SR', '1699.SR']: YFRateLimitError('Too Many Requests. Rate limited. Try after a while.')
+720/2576 checked, 30 found
+
+80 Failed downloads:
+['1761.SR', '1798.SR', '1748.SR', '1741.SR', '1743.SR', '1784.SR', '1801.SR', '1781.SR', '1783.SR', '1778.SR', '1755.SR', '1793.SR', '1775.SR', '1744.SR', '1774.SR', '1731.SR', '1786.SR', '1758.SR', '1739.SR', '1788.SR', '1773.SR', '1777.SR', '1809.SR', '1740.SR', '1747.SR', '1782.SR', '1772.SR', '1756.SR', '1767.SR', '1791.SR', '1734.SR', '1742.SR', '1802.SR', '1730.SR', '1804.SR', '1760.SR', '1745.SR', '1757.SR', '1808.SR', '1736.SR', '1753.SR', '1771.SR', '1750.SR', '1732.SR', '1795.SR', '1797.SR', '1733.SR', '1746.SR', '1738.SR', '1763.SR', '1770.SR', '1776.SR', '1800.SR', '1762.SR', '1792.SR', '1737.SR', '1805.SR', '1752.SR', '1751.SR', '1749.SR', '1785.SR', '1806.SR', '1779.SR', '1789.SR', '1807.SR', '1735.SR', '1759.SR', '1790.SR', '1766.SR', '1768.SR', '1787.SR', '1764.SR', '1765.SR', '1803.SR', '1796.SR', '1799.SR', '1754.SR', '1769.SR', '1780.SR', '1794.SR']: YFRateLimitError('Too Many Requests. Rate limited. Try after a while.')
+800/2576 checked, 30 found
+Crumb fetch rate-limited (HTTP 429), continuing without crumb
+
+80 Failed downloads:
+['1814.SR', '1824.SR', '1878.SR', '1819.SR', '1847.SR', '1848.SR', '1849.SR', '1832.SR', '1818.SR', '1816.SR', '1867.SR', '1882.SR', '1843.SR', '1857.SR', '1838.SR', '1813.SR', '1884.SR', '1883.SR', '1858.SR', '1880.SR', '1854.SR', '1817.SR', '1839.SR', '1856.SR', '1821.SR', '1844.SR', '1830.SR', '1870.SR', '1823.SR', '1853.SR', '1827.SR', '1831.SR', '1845.SR', '1837.SR', '1862.SR', '1872.SR', '1869.SR', '1822.SR', '1866.SR', '1836.SR', '1881.SR', '1863.SR', '1840.SR', '1810.SR', '1815.SR', '1885.SR', '1871.SR', '1855.SR', '1874.SR', '1825.SR', '1820.SR', '1811.SR', '1841.SR', '1886.SR', '1887.SR', '1846.SR', '1826.SR', '1829.SR', '1812.SR', '1873.SR', '1876.SR', '1875.SR', '1877.SR', '1861.SR', '1842.SR', '1868.SR', '1834.SR', '1852.SR', '1859.SR', '1888.SR', '1850.SR', '1828.SR', '1835.SR', '1865.SR', '1879.SR', '1860.SR', '1833.SR', '1864.SR', '1889.SR', '1851.SR']: YFRateLimitError('Too Many Requests. Rate limited. Try after a while.')
+880/2576 checked, 30 found
+
+80 Failed downloads:
+['2025.SR', '2050.SR', '2002.SR', '2031.SR', '2059.SR', '2068.SR', '2027.SR', '2051.SR', '2022.SR', '1896.SR', '2045.SR', '2056.SR', '1892.SR', '2034.SR', '2009.SR', '2021.SR', '2061.SR', '2039.SR', '2062.SR', '2023.SR', '2038.SR', '2011.SR', '2070.SR', '2032.SR', '2057.SR', '1893.SR', '2017.SR', '2028.SR', '2048.SR', '2047.SR', '2044.SR', '2020.SR', '2033.SR', '2007.SR', '1897.SR', '2019.SR', '1898.SR', '1891.SR', '2008.SR', '2013.SR', '2001.SR', '1894.SR', '1895.SR', '2012.SR', '2005.SR', '2024.SR', '2049.SR', '1899.SR', '2064.SR', '2052.SR', '2055.SR', '2015.SR', '2063.SR', '2003.SR', '2053.SR', '2018.SR', '2054.SR', '2010.SR', '2066.SR', '2058.SR', '2035.SR', '2046.SR', '2016.SR', '2014.SR', '2042.SR', '2004.SR', '2026.SR', '2041.SR', '2069.SR', '1890.SR', '2030.SR', '2060.SR', '2067.SR', '2036.SR', '2006.SR', '2065.SR', '2029.SR', '2037.SR', '2040.SR', '2043.SR']: YFRateLimitError('Too Many Requests. Rate limited. Try after a while.')
+960/2576 checked, 30 found
+
+78 Failed downloads:
+['2135.SR', '2071.SR', '2124.SR', '2087.SR', '2075.SR', '2150.SR', '2083.SR', '2146.SR', '2117.SR', '2079.SR', '2104.SR', '2086.SR', '2147.SR', '2132.SR', '2080.SR', '2093.SR', '2077.SR', '2100.SR', '2112.SR', '2133.SR', '2141.SR', '2084.SR', '2091.SR', '2092.SR', '2088.SR', '2081.SR', '2125.SR', '2114.SR', '2095.SR', '2096.SR', '2140.SR', '2148.SR', '2110.SR', '2127.SR', '2101.SR', '2136.SR', '2111.SR', '2073.SR', '2076.SR', '2099.SR', '2126.SR', '2121.SR', '2072.SR', '2074.SR', '2138.SR', '2143.SR', '2116.SR', '2089.SR', '2119.SR', '2103.SR', '2105.SR', '2142.SR', '2128.SR', '2122.SR', '2106.SR', '2145.SR', '2109.SR', '2107.SR', '2134.SR', '2094.SR', '2123.SR', '2082.SR', '2137.SR', '2085.SR', '2149.SR', '2144.SR', '2130.SR', '2118.SR', '2108.SR', '2078.SR', '2102.SR', '2097.SR', '2139.SR', '2129.SR', '2098.SR', '2131.SR', '2113.SR', '2115.SR']: YFRateLimitError('Too Many Requests. Rate limited. Try after a while.')
+1040/2576 checked, 32 found
+Crumb fetch rate-limited (HTTP 429), continuing without crumb
+Crumb fetch rate-limited (HTTP 429), continuing without crumb
+Crumb fetch rate-limited (HTTP 429), continuing without crumb
+
+80 Failed downloads:
+['2203.SR', '2221.SR', '2153.SR', '2195.SR', '2194.SR', '2218.SR', '2226.SR', '2162.SR', '2188.SR', '2224.SR', '2157.SR', '2166.SR', '2154.SR', '2182.SR', '2163.SR', '2223.SR', '2184.SR', '2180.SR', '2216.SR', '2152.SR', '2197.SR', '2191.SR', '2159.SR', '2170.SR', '2225.SR', '2189.SR', '2198.SR', '2201.SR', '2229.SR', '2202.SR', '2212.SR', '2178.SR', '2167.SR', '2209.SR', '2151.SR', '2196.SR', '2161.SR', '2222.SR', '2207.SR', '2204.SR', '2175.SR', '2228.SR', '2205.SR', '2200.SR', '2185.SR', '2230.SR', '2155.SR', '2156.SR', '2227.SR', '2177.SR', '2181.SR', '2174.SR', '2169.SR', '2215.SR', '2199.SR', '2179.SR', '2158.SR', '2211.SR', '2164.SR', '2219.SR', '2206.SR', '2173.SR', '2186.SR', '2213.SR', '2187.SR', '2220.SR', '2208.SR', '2210.SR', '2165.SR', '2183.SR', '2192.SR', '2190.SR', '2172.SR', '2193.SR', '2214.SR', '2160.SR', '2176.SR', '2217.SR', '2171.SR', '2168.SR']: YFRateLimitError('Too Many Requests. Rate limited. Try after a while.')
+1120/2576 checked, 32 found
+Crumb fetch rate-limited (HTTP 429), continuing without crumb
+
+80 Failed downloads:
+['2309.SR', '2237.SR', '2249.SR', '2257.SR', '2248.SR', '2303.SR', '2236.SR', '2238.SR', '2279.SR', '2239.SR', '2302.SR', '2289.SR', '2231.SR', '2250.SR', '2276.SR', '2252.SR', '2277.SR', '2268.SR', '2297.SR', '2308.SR', '2269.SR', '2287.SR', '2245.SR', '2295.SR', '2267.SR', '2251.SR', '2272.SR', '2306.SR', '2234.SR', '2298.SR', '2261.SR', '2270.SR', '2278.SR', '2310.SR', '2273.SR', '2254.SR', '2241.SR', '2275.SR', '2293.SR', '2301.SR', '2263.SR', '2285.SR', '2305.SR', '2307.SR', '2235.SR', '2300.SR', '2258.SR', '2246.SR', '2264.SR', '2290.SR', '2253.SR', '2271.SR', '2291.SR', '2280.SR', '2281.SR', '2232.SR', '2233.SR', '2243.SR', '2299.SR', '2274.SR', '2265.SR', '2240.SR', '2242.SR', '2286.SR', '2296.SR', '2294.SR', '2256.SR', '2259.SR', '2266.SR', '2283.SR', '2244.SR', '2260.SR', '2262.SR', '2282.SR', '2255.SR', '2247.SR', '2288.SR', '2292.SR', '2284.SR', '2304.SR']: YFRateLimitError('Too Many Requests. Rate limited. Try after a while.')
+1200/2576 checked, 32 found
+Crumb fetch rate-limited (HTTP 429), continuing without crumb
+
+78 Failed downloads:
+['2364.SR', '2385.SR', '2351.SR', '2335.SR', '2371.SR', '2374.SR', '2346.SR', '2333.SR', '2355.SR', '2328.SR', '2380.SR', '2384.SR', '2370.SR', '2387.SR', '2390.SR', '2353.SR', '2349.SR', '2358.SR', '2386.SR', '2368.SR', '2363.SR', '2339.SR', '2337.SR', '2373.SR', '2350.SR', '2343.SR', '2344.SR', '2379.SR', '2367.SR', '2334.SR', '2317.SR', '2331.SR', '2376.SR', '2362.SR', '2320.SR', '2354.SR', '2316.SR', '2382.SR', '2342.SR', '2352.SR', '2322.SR', '2366.SR', '2329.SR', '2378.SR', '2313.SR', '2326.SR', '2330.SR', '2336.SR', '2389.SR', '2318.SR', '2338.SR', '2359.SR', '2356.SR', '2311.SR', '2388.SR', '2369.SR', '2315.SR', '2377.SR', '2375.SR', '2383.SR', '2325.SR', '2361.SR', '2314.SR', '2327.SR', '2372.SR', '2357.SR', '2332.SR', '2360.SR', '2345.SR', '2319.SR', '2347.SR', '2312.SR', '2365.SR', '2348.SR', '2341.SR', '2323.SR', '2321.SR', '2324.SR']: YFRateLimitError('Too Many Requests. Rate limited. Try after a while.')
+1280/2576 checked, 34 found
+
+79 Failed downloads:
+['3024.SR', '3016.SR', '3004.SR', '3067.SR', '3030.SR', '3023.SR', '3071.SR', '2398.SR', '3035.SR', '3013.SR', '3048.SR', '3044.SR', '3045.SR', '3063.SR', '3068.SR', '3033.SR', '3052.SR', '3010.SR', '3040.SR', '3054.SR', '3002.SR', '3055.SR', '2393.SR', '3058.SR', '2399.SR', '2394.SR', '3025.SR', '3066.SR', '3008.SR', '3056.SR', '3038.SR', '3012.SR', '3006.SR', '3065.SR', '3059.SR', '3011.SR', '3069.SR', '3001.SR', '3005.SR', '3031.SR', '3034.SR', '3057.SR', '3036.SR', '2395.SR', '3019.SR', '3029.SR', '3051.SR', '2392.SR', '3053.SR', '3041.SR', '3046.SR', '3061.SR', '3042.SR', '3032.SR', '3021.SR', '3003.SR', '3015.SR', '2397.SR', '3020.SR', '3009.SR', '3028.SR', '3027.SR', '2391.SR', '3062.SR', '3039.SR', '3017.SR', '3018.SR', '3060.SR', '3043.SR', '3049.SR', '3026.SR', '3070.SR', '3064.SR', '3014.SR', '3050.SR', '2396.SR', '3047.SR', '3037.SR', '3022.SR']: YFRateLimitError('Too Many Requests. Rate limited. Try after a while.')
+1360/2576 checked, 35 found
+
+79 Failed downloads:
+['4049.SR', '4044.SR', '4030.SR', '4015.SR', '4032.SR', '3092.SR', '4007.SR', '3099.SR', '3088.SR', '4024.SR', '4017.SR', '4018.SR', '4043.SR', '3093.SR', '4037.SR', '3072.SR', '4027.SR', '4035.SR', '3087.SR', '3096.SR', '3075.SR', '4016.SR', '4014.SR', '3095.SR', '4009.SR', '4025.SR', '4040.SR', '4020.SR', '4013.SR', '3076.SR', '4041.SR', '3080.SR', '4042.SR', '4038.SR', '3091.SR', '4039.SR', '4011.SR', '3097.SR', '4050.SR', '4005.SR', '4010.SR', '4002.SR', '3078.SR', '4012.SR', '3084.SR', '4048.SR', '4047.SR', '4021.SR', '4034.SR', '4001.SR', '3085.SR', '3079.SR', '3073.SR', '3090.SR', '3086.SR', '3094.SR', '4036.SR', '3081.SR', '4029.SR', '3077.SR', '4023.SR', '4031.SR', '4046.SR', '3089.SR', '3082.SR', '4006.SR', '4033.SR', '3074.SR', '4003.SR', '4022.SR', '4028.SR', '4052.SR', '4004.SR', '4026.SR', '4045.SR', '3098.SR', '3083.SR', '4051.SR', '4008.SR']: YFRateLimitError('Too Many Requests. Rate limited. Try after a while.')
+1440/2576 checked, 36 found
+
+80 Failed downloads:
+['4091.SR', '4119.SR', '4104.SR', '4055.SR', '4109.SR', '4077.SR', '4121.SR', '4108.SR', '4087.SR', '4095.SR', '4058.SR', '4114.SR', '4086.SR', '4123.SR', '4130.SR', '4075.SR', '4093.SR', '4068.SR', '4106.SR', '4082.SR', '4132.SR', '4062.SR', '4089.SR', '4054.SR', '4125.SR', '4088.SR', '4107.SR', '4073.SR', '4098.SR', '4120.SR', '4084.SR', '4103.SR', '4065.SR', '4083.SR', '4078.SR', '4113.SR', '4105.SR', '4059.SR', '4090.SR', '4079.SR', '4096.SR', '4076.SR', '4126.SR', '4085.SR', '4060.SR', '4115.SR', '4110.SR', '4066.SR', '4092.SR', '4053.SR', '4056.SR', '4122.SR', '4118.SR', '4124.SR', '4101.SR', '4057.SR', '4131.SR', '4128.SR', '4094.SR', '4072.SR', '4074.SR', '4080.SR', '4100.SR', '4097.SR', '4116.SR', '4129.SR', '4111.SR', '4117.SR', '4070.SR', '4061.SR', '4127.SR', '4112.SR', '4063.SR', '4081.SR', '4064.SR', '4067.SR', '4102.SR', '4099.SR', '4071.SR', '4069.SR']: YFRateLimitError('Too Many Requests. Rate limited. Try after a while.')
+1520/2576 checked, 36 found
+
+79 Failed downloads:
+['4149.SR', '4161.SR', '4140.SR', '4210.SR', '4142.SR', '4206.SR', '4195.SR', '4181.SR', '4148.SR', '4133.SR', '4160.SR', '4164.SR', '4170.SR', '4176.SR', '4203.SR', '4196.SR', '4198.SR', '4208.SR', '4180.SR', '4169.SR', '4137.SR', '4141.SR', '4174.SR', '4185.SR', '4152.SR', '4207.SR', '4201.SR', '4145.SR', '4167.SR', '4165.SR', '4202.SR', '4200.SR', '4139.SR', '4197.SR', '4138.SR', '4186.SR', '4192.SR', '4173.SR', '4158.SR', '4212.SR', '4162.SR', '4136.SR', '4168.SR', '4153.SR', '4156.SR', '4172.SR', '4190.SR', '4175.SR', '4144.SR', '4205.SR', '4179.SR', '4182.SR', '4150.SR', '4188.SR', '4189.SR', '4166.SR', '4163.SR', '4143.SR', '4199.SR', '4193.SR', '4154.SR', '4194.SR', '4147.SR', '4171.SR', '4209.SR', '4134.SR', '4157.SR', '4178.SR', '4204.SR', '4184.SR', '4135.SR', '4211.SR', '4155.SR', '4151.SR', '4177.SR', '4191.SR', '4183.SR', '4187.SR', '4159.SR']: YFRateLimitError('Too Many Requests. Rate limited. Try after a while.')
+1600/2576 checked, 37 found
+
+80 Failed downloads:
+['4242.SR', '4244.SR', '4284.SR', '4276.SR', '4270.SR', '4218.SR', '4219.SR', '4268.SR', '4233.SR', '4285.SR', '4231.SR', '4252.SR', '4226.SR', '4280.SR', '4271.SR', '4261.SR', '4236.SR', '4227.SR', '4273.SR', '4264.SR', '4215.SR', '4259.SR', '4243.SR', '4239.SR', '4238.SR', '4272.SR', '4245.SR', '4263.SR', '4258.SR', '4222.SR', '4275.SR', '4225.SR', '4249.SR', '4290.SR', '4269.SR', '4278.SR', '4262.SR', '4234.SR', '4260.SR', '4281.SR', '4265.SR', '4251.SR', '4224.SR', '4229.SR', '4282.SR', '4250.SR', '4292.SR', '4247.SR', '4257.SR', '4241.SR', '4248.SR', '4240.SR', '4266.SR', '4235.SR', '4228.SR', '4277.SR', '4254.SR', '4213.SR', '4286.SR', '4221.SR', '4274.SR', '4283.SR', '4279.SR', '4287.SR', '4220.SR', '4230.SR', '4246.SR', '4253.SR', '4291.SR', '4217.SR', '4216.SR', '4289.SR', '4237.SR', '4214.SR', '4255.SR', '4288.SR', '4232.SR', '4267.SR', '4223.SR', '4256.SR']: YFRateLimitError('Too Many Requests. Rate limited. Try after a while.')
+1680/2576 checked, 37 found
+
+78 Failed downloads:
+['4315.SR', '4299.SR', '4319.SR', '4293.SR', '4306.SR', '4355.SR', '4369.SR', '4321.SR', '4361.SR', '4344.SR', '4335.SR', '4331.SR', '4348.SR', '4350.SR', '4370.SR', '4296.SR', '4349.SR', '4359.SR', '4352.SR', '4301.SR', '4327.SR', '4332.SR', '4341.SR', '4307.SR', '4309.SR', '4318.SR', '4324.SR', '4329.SR', '4302.SR', '4305.SR', '4313.SR', '4346.SR', '4297.SR', '4366.SR', '4353.SR', '4303.SR', '4294.SR', '4310.SR', '4333.SR', '4334.SR', '4325.SR', '4308.SR', '4311.SR', '4330.SR', '4316.SR', '4342.SR', '4356.SR', '4312.SR', '4365.SR', '4300.SR', '4338.SR', '4351.SR', '4357.SR', '4317.SR', '4339.SR', '4328.SR', '4304.SR', '4367.SR', '4347.SR', '4326.SR', '4314.SR', '4343.SR', '4345.SR', '4371.SR', '4372.SR', '4322.SR', '4295.SR', '4298.SR', '4363.SR', '4364.SR', '4340.SR', '4362.SR', '4323.SR', '4354.SR', '4368.SR', '4360.SR', '4358.SR', '4336.SR']: YFRateLimitError('Too Many Requests. Rate limited. Try after a while.')
+1760/2576 checked, 39 found
+Crumb fetch rate-limited (HTTP 429), continuing without crumb
+
+78 Failed downloads:
+['6003.SR', '4393.SR', '4373.SR', '6018.SR', '6015.SR', '4391.SR', '6012.SR', '5119.SR', '6017.SR', '6029.SR', '4384.SR', '4396.SR', '4397.SR', '4382.SR', '6019.SR', '4390.SR', '6022.SR', '6034.SR', '4386.SR', '6035.SR', '6002.SR', '4383.SR', '4398.SR', '6014.SR', '6006.SR', '6004.SR', '4389.SR', '6027.SR', '4399.SR', '5110.SR', '5115.SR', '5113.SR', '6032.SR', '4376.SR', '5116.SR', '4374.SR', '4379.SR', '4392.SR', '6043.SR', '5117.SR', '6024.SR', '6009.SR', '6037.SR', '6025.SR', '6031.SR', '6033.SR', '6030.SR', '6010.SR', '6023.SR', '6007.SR', '6028.SR', '6036.SR', '6011.SR', '4395.SR', '6040.SR', '6038.SR', '6039.SR', '4394.SR', '6001.SR', '4380.SR', '5114.SR', '6020.SR', '6021.SR', '5112.SR', '5118.SR', '4387.SR', '6005.SR', '4378.SR', '5111.SR', '6042.SR', '4377.SR', '4385.SR', '4381.SR', '4375.SR', '6026.SR', '6008.SR', '4388.SR', '6041.SR']: YFRateLimitError('Too Many Requests. Rate limited. Try after a while.')
+1840/2576 checked, 41 found
+Crumb fetch rate-limited (HTTP 429), continuing without crumb
+
+80 Failed downloads:
+['6071.SR', '6062.SR', '6047.SR', '6080.SR', '6054.SR', '6093.SR', '7020.SR', '6072.SR', '6079.SR', '6065.SR', '6052.SR', '6092.SR', '6099.SR', '6063.SR', '6045.SR', '6069.SR', '6070.SR', '7014.SR', '6089.SR', '6078.SR', '7016.SR', '6060.SR', '7033.SR', '6066.SR', '6056.SR', '7019.SR', '6091.SR', '6046.SR', '7032.SR', '6067.SR', '6077.SR', '7027.SR', '6090.SR', '6096.SR', '7025.SR', '6088.SR', '7028.SR', '6073.SR', '6098.SR', '7021.SR', '6087.SR', '6075.SR', '7015.SR', '6049.SR', '6055.SR', '6044.SR', '7018.SR', '6082.SR', '6083.SR', '6068.SR', '6051.SR', '7017.SR', '7029.SR', '6061.SR', '7026.SR', '7030.SR', '6081.SR', '6058.SR', '7022.SR', '6084.SR', '6094.SR', '6085.SR', '6059.SR', '6076.SR', '7023.SR', '6086.SR', '6057.SR', '7031.SR', '6074.SR', '7024.SR', '7010.SR', '7012.SR', '6048.SR', '6050.SR', '6064.SR', '6097.SR', '7011.SR', '7013.SR', '6053.SR', '6095.SR']: YFRateLimitError('Too Many Requests. Rate limited. Try after a while.')
+1920/2576 checked, 41 found
+
+80 Failed downloads:
+['7109.SR', '7077.SR', '7085.SR', '7039.SR', '7050.SR', '7099.SR', '7058.SR', '7071.SR', '7064.SR', '7104.SR', '7084.SR', '7048.SR', '7098.SR', '7094.SR', '7067.SR', '7060.SR', '7062.SR', '7076.SR', '7111.SR', '7073.SR', '7080.SR', '7047.SR', '7042.SR', '7106.SR', '7100.SR', '7065.SR', '7051.SR', '7087.SR', '7086.SR', '7088.SR', '7103.SR', '7049.SR', '7055.SR', '7083.SR', '7092.SR', '7112.SR', '7091.SR', '7082.SR', '7066.SR', '7063.SR', '7072.SR', '7102.SR', '7101.SR', '7035.SR', '7052.SR', '7057.SR', '7090.SR', '7070.SR', '7113.SR', '7079.SR', '7043.SR', '7059.SR', '7036.SR', '7096.SR', '7107.SR', '7108.SR', '7061.SR', '7034.SR', '7054.SR', '7069.SR', '7041.SR', '7037.SR', '7040.SR', '7044.SR', '7089.SR', '7045.SR', '7078.SR', '7095.SR', '7053.SR', '7075.SR', '7105.SR', '7068.SR', '7081.SR', '7038.SR', '7056.SR', '7046.SR', '7074.SR', '7097.SR', '7093.SR', '7110.SR']: YFRateLimitError('Too Many Requests. Rate limited. Try after a while.')
+2000/2576 checked, 41 found
+
+80 Failed downloads:
+['7180.SR', '7188.SR', '7163.SR', '7176.SR', '7171.SR', '7116.SR', '7140.SR', '7154.SR', '7141.SR', '7127.SR', '7172.SR', '7193.SR', '7131.SR', '7114.SR', '7182.SR', '7133.SR', '7121.SR', '7178.SR', '7129.SR', '7164.SR', '7138.SR', '7142.SR', '7134.SR', '7122.SR', '7165.SR', '7128.SR', '7148.SR', '7126.SR', '7118.SR', '7187.SR', '7173.SR', '7167.SR', '7192.SR', '7185.SR', '7137.SR', '7155.SR', '7144.SR', '7191.SR', '7159.SR', '7158.SR', '7168.SR', '7170.SR', '7161.SR', '7153.SR', '7136.SR', '7151.SR', '7181.SR', '7125.SR', '7189.SR', '7157.SR', '7190.SR', '7156.SR', '7130.SR', '7183.SR', '7150.SR', '7147.SR', '7174.SR', '7186.SR', '7149.SR', '7162.SR', '7146.SR', '7179.SR', '7120.SR', '7177.SR', '7152.SR', '7139.SR', '7117.SR', '7135.SR', '7145.SR', '7119.SR', '7115.SR', '7166.SR', '7160.SR', '7143.SR', '7184.SR', '7123.SR', '7175.SR', '7169.SR', '7132.SR', '7124.SR']: YFRateLimitError('Too Many Requests. Rate limited. Try after a while.')
+2080/2576 checked, 41 found
+
+80 Failed downloads:
+['7258.SR', '7259.SR', '7221.SR', '7218.SR', '7206.SR', '7222.SR', '7196.SR', '7211.SR', '7237.SR', '7230.SR', '7236.SR', '7195.SR', '7214.SR', '7223.SR', '7250.SR', '7200.SR', '7239.SR', '7213.SR', '7199.SR', '7255.SR', '7232.SR', '7198.SR', '7261.SR', '7228.SR', '7202.SR', '7201.SR', '7205.SR', '7252.SR', '7215.SR', '7207.SR', '7265.SR', '7247.SR', '7256.SR', '7273.SR', '7219.SR', '7263.SR', '7212.SR', '7238.SR', '7227.SR', '7216.SR', '7248.SR', '7209.SR', '7262.SR', '7234.SR', '7204.SR', '7194.SR', '7231.SR', '7210.SR', '7249.SR', '7253.SR', '7254.SR', '7240.SR', '7203.SR', '7220.SR', '7260.SR', '7251.SR', '7266.SR', '7229.SR', '7197.SR', '7217.SR', '7268.SR', '7272.SR', '7208.SR', '7257.SR', '7243.SR', '7270.SR', '7267.SR', '7226.SR', '7225.SR', '7271.SR', '7269.SR', '7264.SR', '7242.SR', '7233.SR', '7244.SR', '7246.SR', '7235.SR', '7245.SR', '7224.SR', '7241.SR']: YFRateLimitError('Too Many Requests. Rate limited. Try after a while.')
+2160/2576 checked, 41 found
+
+80 Failed downloads:
+['8046.SR', '7292.SR', '8011.SR', '7287.SR', '8034.SR', '8020.SR', '8015.SR', '8049.SR', '8056.SR', '7276.SR', '7296.SR', '8025.SR', '8061.SR', '8035.SR', '8060.SR', '8014.SR', '8019.SR', '7299.SR', '8055.SR', '7285.SR', '8029.SR', '8018.SR', '8033.SR', '8040.SR', '7286.SR', '8041.SR', '8027.SR', '7295.SR', '8023.SR', '7293.SR', '7277.SR', '8038.SR', '8059.SR', '8030.SR', '7290.SR', '7288.SR', '8032.SR', '7294.SR', '8062.SR', '8013.SR', '8028.SR', '8036.SR', '8024.SR', '7297.SR', '8031.SR', '7278.SR', '8017.SR', '8044.SR', '7283.SR', '8050.SR', '7298.SR', '7289.SR', '8026.SR', '7280.SR', '8051.SR', '8057.SR', '8053.SR', '8047.SR', '8012.SR', '7282.SR', '8043.SR', '8063.SR', '7284.SR', '7281.SR', '8048.SR', '8042.SR', '7275.SR', '8039.SR', '8037.SR', '7291.SR', '8022.SR', '7279.SR', '8021.SR', '8045.SR', '8016.SR', '8058.SR', '8052.SR', '8054.SR', '7274.SR', '8010.SR']: YFRateLimitError('Too Many Requests. Rate limited. Try after a while.')
+2240/2576 checked, 41 found
+
+80 Failed downloads:
+['8135.SR', '8081.SR', '8104.SR', '8092.SR', '8089.SR', '8071.SR', '8094.SR', '8083.SR', '8078.SR', '8112.SR', '8117.SR', '8076.SR', '8139.SR', '8098.SR', '8140.SR', '8068.SR', '8065.SR', '8090.SR', '8103.SR', '8130.SR', '8107.SR', '8142.SR', '8138.SR', '8082.SR', '8080.SR', '8121.SR', '8133.SR', '8118.SR', '8108.SR', '8085.SR', '8088.SR', '8113.SR', '8134.SR', '8109.SR', '8101.SR', '8096.SR', '8111.SR', '8064.SR', '8114.SR', '8077.SR', '8100.SR', '8116.SR', '8095.SR', '8106.SR', '8084.SR', '8074.SR', '8097.SR', '8132.SR', '8124.SR', '8087.SR', '8119.SR', '8091.SR', '8093.SR', '8072.SR', '8120.SR', '8067.SR', '8123.SR', '8143.SR', '8127.SR', '8141.SR', '8126.SR', '8070.SR', '8115.SR', '8131.SR', '8075.SR', '8102.SR', '8128.SR', '8099.SR', '8110.SR', '8137.SR', '8069.SR', '8136.SR', '8073.SR', '8066.SR', '8105.SR', '8129.SR', '8122.SR', '8079.SR', '8086.SR', '8125.SR']: YFRateLimitError('Too Many Requests. Rate limited. Try after a while.')
+2320/2576 checked, 41 found
+
+80 Failed downloads:
+['8206.SR', '8148.SR', '8179.SR', '8176.SR', '8178.SR', '8197.SR', '8158.SR', '8218.SR', '8186.SR', '8217.SR', '8212.SR', '8207.SR', '8219.SR', '8164.SR', '8185.SR', '8195.SR', '8144.SR', '8162.SR', '8146.SR', '8198.SR', '8215.SR', '8203.SR', '8173.SR', '8152.SR', '8180.SR', '8200.SR', '8221.SR', '8220.SR', '8160.SR', '8211.SR', '8210.SR', '8214.SR', '8188.SR', '8181.SR', '8174.SR', '8204.SR', '8222.SR', '8169.SR', '8145.SR', '8151.SR', '8153.SR', '8193.SR', '8155.SR', '8201.SR', '8187.SR', '8150.SR', '8199.SR', '8223.SR', '8189.SR', '8175.SR', '8208.SR', '8196.SR', '8171.SR', '8205.SR', '8172.SR', '8194.SR', '8167.SR', '8149.SR', '8170.SR', '8147.SR', '8191.SR', '8177.SR', '8165.SR', '8166.SR', '8154.SR', '8168.SR', '8159.SR', '8202.SR', '8209.SR', '8182.SR', '8216.SR', '8190.SR', '8184.SR', '8213.SR', '8183.SR', '8163.SR', '8161.SR', '8156.SR', '8157.SR', '8192.SR']: YFRateLimitError('Too Many Requests. Rate limited. Try after a while.')
+2400/2576 checked, 41 found
+
+80 Failed downloads:
+['8267.SR', '8265.SR', '8263.SR', '8278.SR', '8269.SR', '8282.SR', '8232.SR', '8253.SR', '8300.SR', '8270.SR', '8226.SR', '8230.SR', '8236.SR', '8252.SR', '8271.SR', '8288.SR', '8239.SR', '8248.SR', '8245.SR', '8257.SR', '8301.SR', '8285.SR', '8255.SR', '8289.SR', '8273.SR', '8296.SR', '8237.SR', '8275.SR', '8228.SR', '8247.SR', '8293.SR', '8243.SR', '8290.SR', '8276.SR', '8303.SR', '8295.SR', '8251.SR', '8286.SR', '8254.SR', '8231.SR', '8227.SR', '8284.SR', '8264.SR', '8238.SR', '8246.SR', '8268.SR', '8302.SR', '8274.SR', '8234.SR', '8299.SR', '8241.SR', '8277.SR', '8233.SR', '8225.SR', '8261.SR', '8283.SR', '8266.SR', '8224.SR', '8235.SR', '8287.SR', '8279.SR', '8242.SR', '8249.SR', '8240.SR', '8280.SR', '8291.SR', '8297.SR', '8298.SR', '8272.SR', '8281.SR', '8244.SR', '8259.SR', '8256.SR', '8229.SR', '8260.SR', '8294.SR', '8262.SR', '8292.SR', '8250.SR', '8258.SR']: YFRateLimitError('Too Many Requests. Rate limited. Try after a while.')
+2480/2576 checked, 41 found
+Crumb fetch rate-limited (HTTP 429), continuing without crumb
+
+79 Failed downloads:
+['8379.SR', '8339.SR', '8368.SR', '8312.SR', '8366.SR', '8344.SR', '8342.SR', '8316.SR', '8318.SR', '8343.SR', '8355.SR', '8370.SR', '8377.SR', '8376.SR', '8306.SR', '8353.SR', '8362.SR', '8330.SR', '8311.SR', '8365.SR', '8364.SR', '8308.SR', '8323.SR', '8367.SR', '8351.SR', '8317.SR', '8320.SR', '8304.SR', '8363.SR', '8329.SR', '8333.SR', '8324.SR', '8361.SR', '8328.SR', '8371.SR', '8381.SR', '8341.SR', '8378.SR', '8307.SR', '8305.SR', '8326.SR', '8340.SR', '8347.SR', '8332.SR', '8369.SR', '8372.SR', '8309.SR', '8380.SR', '8352.SR', '8337.SR', '8336.SR', '8338.SR', '8314.SR', '8349.SR', '8321.SR', '8319.SR', '8373.SR', '8354.SR', '8358.SR', '8331.SR', '8315.SR', '8359.SR', '8357.SR', '8327.SR', '8383.SR', '8334.SR', '8313.SR', '8335.SR', '8346.SR', '8345.SR', '8374.SR', '8375.SR', '8382.SR', '8325.SR', '8322.SR', '8360.SR', '8356.SR', '8350.SR', '8348.SR']: YFRateLimitError('Too Many Requests. Rate limited. Try after a while.')
+2560/2576 checked, 42 found
+
+16 Failed downloads:
+['8384.SR', '8398.SR', '8392.SR', '8393.SR', '8391.SR', '8399.SR', '8386.SR', '8389.SR', '8390.SR', '8396.SR', '8395.SR', '8397.SR', '8388.SR', '8387.SR', '8385.SR', '8394.SR']: YFRateLimitError('Too Many Requests. Rate limited. Try after a while.')
+2576/2576 checked, 42 found
+found 42 codes in 168 s
+info retry 1010.SR Too Many Requests. Rate limited. Try after a while.
+info retry 1010.SR Too Many Requests. Rate limited. Try after a while.
+info retry 1010.SR Too Many Requests. Rate limited. Try after a while.
+details 0/42 1010.SR None None
+info retry 1020.SR Too Many Requests. Rate limited. Try after a while.
+info retry 1020.SR Too Many Requests. Rate limited. Try after a while.
+info retry 1020.SR Too Many Requests. Rate limited. Try after a while.
+info retry 1030.SR Too Many Requests. Rate limited. Try after a while.
+info retry 1030.SR Too Many Requests. Rate limited. Try after a while.
+info retry 1030.SR Too Many Requests. Rate limited. Try after a while.
+info retry 1050.SR Too Many Requests. Rate limited. Try after a while.
+info retry 1050.SR Too Many Requests. Rate limited. Try after a while.
+info retry 1050.SR Too Many Requests. Rate limited. Try after a while.
+info retry 1060.SR Too Many Requests. Rate limited. Try after a while.
+info retry 1060.SR Too Many Requests. Rate limited. Try after a while.
+info retry 1060.SR Too Many Requests. Rate limited. Try after a while.
+info retry 1080.SR Too Many Requests. Rate limited. Try after a while.
+info retry 1080.SR Too Many Requests. Rate limited. Try after a while.
+info retry 1080.SR Too Many Requests. Rate limited. Try after a while.
+info retry 1111.SR Too Many Requests. Rate limited. Try after a while.
+info retry 1111.SR Too Many Requests. Rate limited. Try after a while.
+info retry 1111.SR Too Many Requests. Rate limited. Try after a while.
+info retry 1120.SR Too Many Requests. Rate limited. Try after a while.
+info retry 1120.SR Too Many Requests. Rate limited. Try after a while.
+info retry 1120.SR Too Many Requests. Rate limited. Try after a while.
+info retry 1140.SR Too Many Requests. Rate limited. Try after a while.
+info retry 1140.SR Too Many Requests. Rate limited. Try after a while.
+info retry 1140.SR Too Many Requests. Rate limited. Try after a while.
+info retry 1150.SR Too Many Requests. Rate limited. Try after a while.
+info retry 1150.SR Too Many Requests. Rate limited. Try after a while.
+info retry 1150.SR Too Many Requests. Rate limited. Try after a while.
+info retry 1180.SR Too Many Requests. Rate limited. Try after a while.
+info retry 1180.SR Too Many Requests. Rate limited. Try after a while.
+info retry 1180.SR Too Many Requests. Rate limited. Try after a while.
+info retry 1182.SR Too Many Requests. Rate limited. Try after a while.
+info retry 1182.SR Too Many Requests. Rate limited. Try after a while.
+details 25/42 1321.SR East Pipes Integrated Company f Basic Materials
+done: 42 companies in 473 s
