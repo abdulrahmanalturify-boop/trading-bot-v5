@@ -1212,6 +1212,7 @@ def page_trending_sa():
         ui.html(f'<div class="stories n{len(cards)}">' + "".join(cards) + "</div>")
     else:
         st.caption(L("No trending stories right now.", "لا توجد أخبار رائجة حالياً."))
+    _talked_section()
     ui.sec("summarize", "Market summary", "ملخص السوق")
     ui.html(summary_html_sa(px, mv, lists, lg))
     if mv.empty:
@@ -1297,6 +1298,7 @@ def page_trending():
         ui.html(f'<div class="stories n{len(cards)}">' + "".join(cards) + "</div>")
     else:
         st.caption(L("No trending stories right now.", "لا توجد أخبار رائجة حالياً."))
+    _talked_section()
 
     ui.sec("summarize", "Market summary", "ملخص السوق")
     ui.html(summary_html(summary_data(px, moves, lists), lg))
@@ -1341,6 +1343,51 @@ def page_trending():
 # =====================================================================
 # NEWS
 # =====================================================================
+def talked_about(k=8):
+    """The companies the news talks about most in the last 24 hours: each story counts once per outlet that told it (the same
+    event from five outlets weighs five), and only the companies a story is about (its first two)."""
+    from collections import Counter
+    items = newsbot.cluster(data.market_news(24)[:800])
+    cnt, stories = Counter(), Counter()
+    for n in items:
+        w = 1 + len(n.get("also") or [])
+        for t in (n.get("tickers") or [])[:2]:
+            if t and "^" not in t and "=" not in t:
+                cnt[t] += w
+                stories[t] += 1
+    return [(t, c, stories[t]) for t, c in cnt.most_common(k)]
+
+
+def talked_html(rows, chg, lg):
+    """Cards of the most talked-about companies: logo, name, how many stories and outlets, today's move; a click opens the company."""
+    if not rows:
+        return ""
+    top = max(c for _, c, _ in rows) or 1
+    cards = []
+    for i, (t, c, k) in enumerate(rows):
+        pct = (chg.get(t) or (None, None))[1]
+        mv = T.pill(pct) if pct is not None and pd.notna(pct) else '<span class="muted">—</span>'
+        what = L(f"{k} {'story' if k == 1 else 'stories'} · {c} {'report' if c == 1 else 'reports'}",
+                 f"{k} {'خبر' if k == 1 else 'أخبار'} · {c} {'تقرير' if c == 1 else 'تقارير'}")
+        cards.append(f'<a class="tkt" href="{T.esc(ui.href(t))}" target="_self"><span class="rk">{i + 1}</span>'
+                     f'<span class="lg">{T.logo_obj(t, 34)}</span><span class="nm"><b dir="auto">{T.esc(T.sym_label(t))}</b>'
+                     f'<small>{T.esc(what)}</small></span><span class="mv">{mv}</span>'
+                     f'<i class="bar" style="width:{c / top * 100:.0f}%"></i></a>')
+    return '<div class="tktg">' + "".join(cards) + "</div>"
+
+
+def _talked_section():
+    rows = ui.safe(talked_about, 8) or []
+    if not rows:
+        return
+    ui.sec("forum", "Most talked-about companies", "أكثر الشركات حضوراً في الأخبار")
+    syms = [t for t, _, _ in rows]
+    chg = data.quick_changes(syms) if syms else {}
+    ui.html(talked_html(rows, chg, {}))
+    st.caption(L("Counted from the last 24 hours of news: a story told by several outlets counts once for each of them.",
+                 "محسوبة من أخبار آخر 24 ساعة: الخبر اللي نشرته عدة مصادر ينحسب مرة لكل مصدر."))
+
+
 def top_stories(k=3):
     """The most important recent stories that name at least one company (importance score, then freshness)."""
     items = [n for n in data.market_news(24)[:400]]
