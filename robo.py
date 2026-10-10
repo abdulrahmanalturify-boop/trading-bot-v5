@@ -993,4 +993,4 @@ def delete(row_id, key):
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.2"
+BUILD = "22.3"

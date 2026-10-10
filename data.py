@@ -330,6 +330,46 @@ def _info_file():
     return _INFO_FILE["items"]
 
 
+@st.cache_data(ttl=86400, show_spinner=False)
+def _similar(symbol):
+    """Yahoo's "people also watch" list for a symbol (its closest peers by what investors follow)."""
+    from yfinance.data import YfData
+    js = YfData().get_raw_json(f"https://query2.finance.yahoo.com/v6/finance/recommendationsbysymbol/{symbol}")
+    res = ((js or {}).get("finance") or {}).get("result") or []
+    out = [r.get("symbol") for x in res for r in (x.get("recommendedSymbols") or []) if r.get("symbol")]
+    if not out:
+        raise Empty(symbol)
+    return out
+
+
+def similar(symbol, k=8):
+    """Companies investors follow together with this one ([] when Yahoo has none)."""
+    try:
+        return [s for s in _similar(str(symbol).upper()) if s and s != symbol][:k]
+    except Exception:
+        return []
+
+
+def industry_peers(symbol, k=6):
+    """The biggest companies of the same industry among the summaries the site keeps (infos.json, US and Saudi), the
+    industry read from the company's own summary."""
+    i = _INFO_LAST.get(symbol) or saved_info(symbol) or {}
+    if not i.get("industry"):
+        try:
+            i = info(symbol) or {}
+        except Exception:
+            i = {}
+    ind, sec = i.get("industry"), i.get("sector")
+    if not ind:
+        return [], i
+    items = _info_file()
+    sa = str(symbol).upper().endswith(".SR")          # a Saudi company's peers are Saudi, an American one's American
+    same = [(s, float(d.get("marketCap") or 0)) for s, d in items.items()
+            if s != symbol and d.get("industry") == ind and s.upper().endswith(".SR") == sa]
+    same.sort(key=lambda x: -x[1])
+    return [s for s, _ in same[:k]], i
+
+
 def saved_info(symbol):
     """The copy GitHub saved of a company's summary (with "_rec", Yahoo's analysts per rating), {} when there is none."""
     return _info_file().get(symbol) or {}
@@ -1787,4 +1827,4 @@ def revenues(symbols, limit=100):
     return out
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.2"
+BUILD = "22.3"

@@ -352,6 +352,12 @@ header[data-testid="stHeader"]::after {{ content:""; position:absolute; left:0; 
 [data-testid="stToolbarActions"], [data-testid="stAppDeployButton"], [data-testid="stStatusWidget"], [data-testid="stDecoration"] {{ display:none !important; }}
 [data-testid="stElementContainer"]:has(.css-anchor), .element-container:has(.css-anchor) {{ display:none !important; }}
 .block-container {{ padding-top: 4.4rem; padding-bottom: 3rem; max-width: 1560px; }}
+/* Room between boxes everywhere: Streamlit pulls every markdown block 1rem up (margin-bottom:-1rem, meant for a paragraph's own
+   bottom margin). A card, a row of boxes or a table drawn as HTML has no such margin, so the pull made it touch whatever came
+   next (a chart, the next card). On the page itself the pull is taken off the blocks whose content is HTML: every box keeps the
+   page's 1rem gap (the sidebar keeps its own tight list). */
+[data-testid="stMain"] .stMarkdown:has(> [data-testid="stMarkdownContainer"] > :is(div, table, section, ul, ol):last-child),
+[data-testid="stMain"] [data-testid="stMarkdownContainer"]:has(> :is(div, table, section, ul, ol):last-child) {{ margin-bottom:0 !important; }}
 /* restrained type: large and light, the way n8n "whispers against the dark" */
 h1 {{ font-size: 2.1rem !important; font-weight: 300 !important; letter-spacing: -.03em; color:#fff; line-height:1.1 !important; }}
 h2 {{ font-weight: 400 !important; letter-spacing: -.02em; color:#fff; }}
@@ -371,19 +377,20 @@ h3 {{ font-weight: 500 !important; letter-spacing: -.01em; color:#fff; }}
 [data-testid="stTabs"] [data-baseweb="tab-highlight"] {{ background:{ELECTRIC} !important; height:2px; }}
 /* tabs (Streamlit's React Aria tabs): a frosted track; the chosen tab is a lit blue-violet pill that slides over to the tab you
    press (Streamlit's own selection indicator, grown to the tab's full size); the others light up under the pointer */
-[data-testid="stTabs"] [role="tablist"] {{ gap:4px; padding:5px; margin:0 0 6px; border-radius:14px; scroll-padding-inline:40px;
+[data-testid="stTabs"] [role="tablist"] {{ gap:6px; padding:6px; margin:0 0 14px; border-radius:16px; scroll-padding-inline:40px;
   background:linear-gradient(180deg, rgba(30,24,46,.80), rgba(16,12,28,.80)); border:1px solid rgba(157,151,165,.20);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.05), 0 10px 26px -16px rgba(0,0,0,.8); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); }}
 [data-testid="stTabs"] [role="tablist"]::after {{ display:none !important; }}
-[data-testid="stTabs"] [role="tab"] {{ height:40px; padding:0 15px; border-radius:10px; color:#B4AEC0; font-weight:500; font-size:.93rem;
-  transition:color .2s, background-color .2s; }}
+[data-testid="stTabs"] [role="tab"] {{ height:44px; padding:0 18px; border-radius:12px; color:#C2BCCD; font-weight:600; font-size:.98rem;
+  transition:color .2s, background-color .2s, transform .2s; }}
+[data-testid="stTabs"] [role="tab"]:active {{ transform:scale(.97); }}
 [data-testid="stTabs"] [role="tab"] p {{ color:inherit; font-size:inherit; font-weight:inherit; margin:0; }}
 [data-testid="stTabs"] [role="tab"] [role="img"] {{ color:#79B8F4; font-size:1.15em; margin-inline-end:3px; transition:transform .25s cubic-bezier(.3,1.6,.5,1), color .2s; }}
 [data-testid="stTabs"] [role="tab"][data-hovered]:not([data-selected]) {{ color:#fff; background-color:rgba(255,255,255,.06); }}
 [data-testid="stTabs"] [role="tab"][data-hovered] [role="img"] {{ transform:translateY(-1px) scale(1.12); }}
-[data-testid="stTabs"] [role="tab"][data-selected] {{ color:#fff; font-weight:600; }}
+[data-testid="stTabs"] [role="tab"][data-selected] {{ color:#fff; font-weight:700; }}
 [data-testid="stTabs"] [role="tab"][data-selected] [role="img"] {{ color:#fff; }}
-[data-testid="stTabs"] [role="tab"] .react-aria-SelectionIndicator {{ top:0; bottom:0 !important; height:auto !important; border-radius:10px !important; z-index:-1;
+[data-testid="stTabs"] [role="tab"] .react-aria-SelectionIndicator {{ top:0; bottom:0 !important; height:auto !important; border-radius:12px !important; z-index:-1;
   transition:translate .32s cubic-bezier(.3,1.3,.5,1), background-color .2s !important; }}
 [data-testid="stTabs"] [role="tab"][data-selected] .react-aria-SelectionIndicator {{ background:linear-gradient(135deg, #3B8BEB, #7B45F0) !important;
   box-shadow:0 8px 20px -8px rgba(91,124,242,.8), inset 0 1px 0 rgba(255,255,255,.25); }}
@@ -529,9 +536,17 @@ hr {{ border-color:{SHELL} !important; }}
 .num {{ font-variant-numeric: tabular-nums; direction:ltr; display:inline-block; }}
 .card {{ background:{BOX_BG}; border:1px solid {BORDER}; border-radius:16px; padding:16px 18px; margin-bottom:12px; }}
 /* section titles and page titles: the icon sits in a workflow "node" (a small dark tile with a hairline and a violet under-glow) */
-.sec {{ display:flex; align-items:center; gap:10px; font-size:.76rem; letter-spacing:.12em; text-transform:uppercase; color:{MUTED}; margin:28px 0 12px; font-weight:500; }}
-.sec .ms {{ color:#fff; background:{PANEL}; border-radius:9px; padding:5px; font-size:1.05rem; box-shadow:{GLOW}; }}
-.sec::after {{ content:""; flex:1; height:1px; background:linear-gradient(90deg, rgba(107,33,239,.45), rgba(7,122,199,.18) 30%, transparent); }}
+/* a section's title: big and clear (the page's chapters), its icon in a lit tile, a gradient rule that runs to the edge */
+.sec {{ display:flex; align-items:center; gap:12px; font-size:1.2rem; letter-spacing:.005em; text-transform:none; color:#F4F1F8 !important;
+  margin:36px 0 16px; font-weight:750; line-height:1.25; }}
+.sec > span {{ flex:0 1 auto; min-width:0; }}
+.sec::after {{ min-width:32px; }}
+.sec .ms {{ color:#fff; background:linear-gradient(140deg,#3B8BEB,#7B45F0 70%,#A855F7); border-radius:12px; padding:7px; font-size:1.25rem;
+  box-shadow:0 10px 22px -12px rgba(123,69,240,.9), inset 0 1px 0 rgba(255,255,255,.28); transition:transform .35s cubic-bezier(.3,1.6,.5,1); }}
+.sec:hover .ms {{ transform:rotate(-8deg) scale(1.06); }}
+.sec::after {{ content:""; flex:1; height:2px; border-radius:2px; background:linear-gradient(90deg, rgba(123,69,240,.7), rgba(45,182,235,.3) 35%, transparent);
+  background-size:200% 100%; background-position:100% 0; transition:background-position .8s ease; }}
+.sec:hover::after {{ background-position:0 0; }}
 .page-title {{ display:flex; align-items:center; gap:14px; margin:4px 0 4px; }}
 .page-title .ms {{ font-size:1.8rem; color:#fff; background:{PANEL}; border-radius:12px; padding:9px; box-shadow:{GLOW}; }}
 .page-title h1 {{ margin:0 !important; padding:0 !important; }}
@@ -639,6 +654,12 @@ a.lnk {{ color:inherit !important; text-decoration:none !important; }} a.lnk:hov
 /* news */
 .news {{ background:{BOX_BG}; border:1px solid {BORDER}; border-radius:14px; padding:14px 16px; margin-bottom:10px; transition:border-color .15s; }}
 .news:hover {{ border-color:{ACCENT}; }}
+/* the News page: each card with its "analyse this story" button tucked under it */
+[class*="st-key-nwc_"] {{ gap:6px !important; margin-bottom:6px; }}
+[class*="st-key-nwc_"] .news {{ margin-bottom:0; }}
+[class*="st-key-nwc_"] .stButton button {{ min-height:30px !important; padding:3px 14px !important; border-radius:999px !important; font-size:.8rem;
+  background:rgba(123,69,240,.12) !important; border:1px solid rgba(167,139,250,.38) !important; color:#C4B5FD !important; box-shadow:none !important; }}
+[class*="st-key-nwc_"] .stButton button:hover {{ background:rgba(123,69,240,.28) !important; color:#fff !important; transform:translateY(-1px); }}
 .news a.t {{ color:{TEXT}; text-decoration:none; font-weight:600; font-size:1rem; line-height:1.65; }}
 .news a.t:hover {{ color:#79B8F4; }}
 .news .meta {{ color:{MUTED}; font-size:.78rem; margin-top:4px; }}
@@ -772,7 +793,7 @@ a.mst:hover .mh .go {{ opacity:1; transform:none; color:{VIO_FG}; }}
 @media (max-width: 1100px) {{ .msg {{ grid-template-columns: repeat(2, minmax(0,1fr)); }} .mst.wide {{ grid-row:auto; }} }}
 @media (max-width: 700px) {{ .msh {{ grid-template-columns: 1fr; }} .msg {{ grid-template-columns: 1fr; }} .mst.wide {{ grid-column:auto; grid-row:auto; }} }}
 @media (prefers-reduced-motion: reduce) {{ .msum *, .msum *::before {{ animation:none !important; transition:none !important; }} }}
-.kpi {{ background:{BOX_BG}; border:1px solid {BORDER}; border-radius:14px; padding:12px 14px; height:100%; }}
+.kpi {{ background:{BOX_BG}; border:1px solid {BORDER}; border-radius:14px; padding:14px 16px; height:100%; }}
 .kpi.pos, .kpi.neg {{ border-color:transparent; }}
 .kpi .l {{ color:{MUTED}; font-size:.75rem; font-weight:500; display:flex; gap:6px; align-items:center; }}
 .kpi.pos .l {{ color:#8FD4A9; }} .kpi.neg .l {{ color:#E7A2A9; }}
@@ -1516,8 +1537,9 @@ table[data-tx] tbody tr.tx-hide {{ display:none; }}
 /* ---------- every chart sits in a box (never straight on the night sky); boxes in one row share one height ---------- */
 /* Streamlit draws the chart exactly as wide and as tall as this box, so the box takes no padding (it used to cut the chart's
    bottom and right edge: axis titles, colour-bar titles); its line is drawn inside it and the chart's own margins give the air */
-[data-testid="stPlotlyChart"] {{ background:{BOX_BG}; border:0 !important; box-shadow: inset 0 0 0 1px {BORDER}; border-radius:16px; padding:0 !important;
-  box-sizing:border-box; overflow:hidden; }}
+[data-testid="stPlotlyChart"] {{ background:{BOX_BG}; border:0 !important; box-shadow: inset 0 0 0 1px {BORDER}; border-radius:18px; padding:0 !important;
+  box-sizing:border-box; overflow:hidden; transition:box-shadow .25s ease; }}
+@media (hover:hover) {{ [data-testid="stPlotlyChart"]:hover {{ box-shadow: inset 0 0 0 1px rgba(167,139,250,.38), 0 22px 44px -30px rgba(123,69,240,.75); }} }}
 :is([class*="st-key-pbcalbox_"], [class*="st-key-pbf_"], [class*="st-key-hnbar"], [class*="st-key-pbmg_"], .st-key-czhero) [data-testid="stPlotlyChart"]
   {{ background:none; box-shadow:none; }}
 [data-testid="stColumn"] > [data-testid="stVerticalBlock"] > [data-testid="stElementContainer"]:only-child,
@@ -1551,7 +1573,6 @@ table[data-tx] tbody tr.tx-hide {{ display:none; }}
 .sgr .v {{ color:#CCC7D8; direction:ltr; font-variant-numeric:tabular-nums; }}
 .sgr .pill {{ min-width:64px; text-align:center; }}
 /* ---------- quiet text on the void (no photo behind it any more, so no shadows) ---------- */
-.sec {{ color:{MUTED}; }}
 [data-testid="stCaptionContainer"] {{ color:#A9A3B2 !important; }}
 [data-testid="stWidgetLabel"] p {{ color:#CFCAD6; }}
 /* ---------- coloured boxes keep their colour: a green wash with soft green edges, red the same ---------- */
@@ -1608,7 +1629,7 @@ input, textarea {{ text-align: right; }}
 html, body, .stApp, .stMarkdown, button, input, textarea, select, label, [data-baseweb] {{ font-family: {FONT_AR}, {FONT_LATIN}, system-ui, sans-serif; }}
 .sec::after {{ background: linear-gradient(270deg, rgba(107,33,239,.45), rgba(7,122,199,.18) 30%, transparent); }}
 h1 {{ font-weight: 400 !important; letter-spacing: 0; line-height:1.35 !important; }}
-:is(.pbhero .t, .hnhero .t, .hero .title, .article .at, .brief .hl) {{ font-weight:400; letter-spacing:0; line-height:1.3; }} h2, h3 {{ letter-spacing: 0; }} .sec {{ letter-spacing: 0; font-size:.86rem; }}
+:is(.pbhero .t, .hnhero .t, .hero .title, .article .at, .brief .hl) {{ font-weight:400; letter-spacing:0; line-height:1.3; }} h2, h3 {{ letter-spacing: 0; }} .sec {{ letter-spacing: 0; font-size:1.2rem; }}
 [class*="st-key-navdd_"] {{ left:auto; right:0; transform-origin: top right; }}
 [class*="st-key-navon_"] [data-testid="stPageLink"] a {{ box-shadow: inset -3px 0 0 {ACCENT}; }}
 [class*="st-key-navdd_"] [data-testid="stPageLink"] a:hover {{ transform: translateX(-2px); }}
@@ -2924,4 +2945,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.2"
+BUILD = "22.3"

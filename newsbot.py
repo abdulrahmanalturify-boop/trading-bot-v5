@@ -244,10 +244,22 @@ def _outlet(raw_source, feed_outlet):
     return ALIAS.get(s.lower(), s) if s else feed_outlet
 
 
+def subject_tickers(detect, text, lead=180, most=2):
+    """The companies a story is about, not the ones it mentions in passing: the companies named in the headline; when the
+    headline names none, the ones named at the start of the summary - and only when they are one or two (a summary listing
+    Amazon, Google and Broadcom as examples is background, not the subject)."""
+    title, _, summ = str(text or "").partition(" · ")
+    t_ = detect(title)
+    if t_:
+        return t_
+    s_ = detect(summ[:lead]) if summ else []
+    return s_ if len(s_) <= most else []
+
+
 def tickers_in(text, extra=()):
     found = [t for t in extra if t]
-    found += [m.group(1).replace(".", "-") for m in _EXCH.finditer(text or "")]
-    found += U.detect_tickers(text or "")
+    found += [m.group(1).replace(".", "-") for m in _EXCH.finditer(text or "")]      # "(NASDAQ: QNCX)": the company itself
+    found += subject_tickers(U.detect_tickers, text)
     return [s for s in dict.fromkeys(found) if s and "^" not in s and "=" not in s][:6]
 
 
@@ -590,7 +602,7 @@ def headlines(hours=48):
 # ---------------------------------------------------------------- the Saudi market's news bot
 def sa_tickers_in(text, extra=()):
     import tasi
-    found = [t for t in extra if t and str(t).endswith(".SR")] + tasi.tickers_in(text or "")
+    found = [t for t in extra if t and str(t).endswith(".SR")] + subject_tickers(tasi.tickers_in, text)
     return list(dict.fromkeys(found))[:6]
 
 
@@ -624,4 +636,4 @@ def sa_headlines(hours=48):
         return []
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.2"
+BUILD = "22.3"

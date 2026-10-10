@@ -182,7 +182,8 @@ def table_chip(label, value_html):
 
 def chart(fig, key=None, container=None):
     """Every Plotly chart goes through here: unified theme (no Streamlit override), clean toolbar, in the visitor's look."""
-    (container or st).plotly_chart(LM.figure(fig), theme=None, key=key, config=CHART_CONFIG)
+    import charts as C
+    (container or st).plotly_chart(LM.figure(C.polish(fig)), theme=None, key=key, config=CHART_CONFIG)
 
 
 def safe(fn, *args, **kwargs):
@@ -215,8 +216,13 @@ def row_list(rows, lg, show_vol=False):
     return '<div class="rowlist">' + "".join(out) + "</div>"
 
 
-def news_list(items, limit=20, translate=None, tag_key=None, iq=True):
-    """News cards: importance score (1-10), keywords and 'affected companies' chips (logo + today's move, click to open)."""
+def _open_story(link):
+    st.session_state["nw_story"] = link
+
+
+def news_list(items, limit=20, translate=None, tag_key=None, iq=True, analyze=False):
+    """News cards: importance score (1-10), keywords and 'affected companies' chips (logo + today's move, click to open).
+    analyze: each card gets a button that opens the story's analysis (the news engine's AI analysis, stocks and why it matters)."""
     items = items[:limit]
     if not items:
         st.info(L("No news available right now.", "لا توجد أخبار متاحة حالياً."))
@@ -243,7 +249,22 @@ def news_list(items, limit=20, translate=None, tag_key=None, iq=True):
     if translate and not translated_ok:
         st.caption(L("Translation service is busy right now; showing the original English. It will retry automatically.",
                      "خدمة الترجمة مشغولة حالياً؛ نعرض النص الإنجليزي الأصلي وستتم إعادة المحاولة تلقائياً."))
-    html("".join(out))
+    if not analyze:
+        html("".join(out))
+        return
+    import hashlib
+    for n, card in zip(items, out):                 # each card with its own "analyse" button under it
+        k = hashlib.md5(str(n.get("link") or n.get("title")).encode()).hexdigest()[:10]
+        with st.container(key=f"nwc_{k}"):
+            html(card)
+            st.button(L("Analyse this story", "حلّل الخبر"), key=f"nwa_{k}", icon=":material/neurology:", on_click=_open_story,
+                      args=(n.get("link") or n.get("title"),))
+    want = st.session_state.pop("nw_story", None)
+    if want:
+        n = next((x for x in items if (x.get("link") or x.get("title")) == want), None)
+        if n is not None:
+            import p_newsintel as PN
+            PN.story_quick(n)
 
 
 def valid(key, options):
@@ -291,4 +312,4 @@ def multiselect_free(label, options, key, placeholder="", max_n=4):
         return st.multiselect(label, options, key=key, max_selections=max_n, placeholder=placeholder)
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.2"
+BUILD = "22.3"

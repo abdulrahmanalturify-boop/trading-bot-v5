@@ -1490,8 +1490,8 @@ def page_news():
                   "لا توجد أخبار تطابق هذه الفلاتر حالياً. اختر وقتاً أطول أو أهمية أقل أو مصادر أكثر."), icon=":material/filter_alt_off:")
         ui.foot()
         return
-    ui.news_list(items, count, translate=translate)
+    ui.news_list(items, count, translate=translate, analyze=True)
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.2"
+BUILD = "22.3"

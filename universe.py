@@ -244,17 +244,19 @@ _ALIASES = {
     "JNJ": ["Johnson & Johnson"], "ABBV": ["AbbVie"], "MRNA": ["Moderna"], "COIN": ["Coinbase"], "HOOD": ["Robinhood"],
     "MSTR": ["MicroStrategy", "Strategy Inc"], "UBER": ["Uber"], "ABNB": ["Airbnb"], "SHOP": ["Shopify"], "CRM": ["Salesforce"],
     "ADBE": ["Adobe"], "MU": ["Micron"], "QCOM": ["Qualcomm"], "ARM": ["Arm Holdings"], "SMCI": ["Super Micro"], "DELL": ["Dell"],
-    "IBM": ["IBM"], "CSCO": ["Cisco"], "F": ["Ford Motor", "Ford"], "GM": ["General Motors"], "RIVN": ["Rivian"], "LCID": ["Lucid"],
+    "IBM": ["IBM"], "CSCO": ["Cisco"], "F": ["Ford Motor", "Ford"], "GM": ["General Motors"], "RIVN": ["Rivian"], "LCID": ["Lucid Group", "Lucid Motors", "Lucid Air"],
     "PYPL": ["PayPal"], "SOFI": ["SoFi"], "BLK": ["BlackRock"], "BX": ["Blackstone"], "SPOT": ["Spotify"], "RDDT": ["Reddit"],
     "NOW": ["ServiceNow"], "CRWD": ["CrowdStrike"], "PANW": ["Palo Alto Networks"], "SNOW": ["Snowflake"], "APP": ["AppLovin"],
     "MELI": ["MercadoLibre"], "HD": ["Home Depot"], "LOW": ["Lowe's"], "UPS": ["UPS"], "FDX": ["FedEx"], "GE": ["GE Aerospace"],
-    "GEV": ["GE Vernova"], "CEG": ["Constellation Energy"], "VST": ["Vistra"], "NEM": ["Newmont"], "FCX": ["Freeport"],
+    "GEV": ["GE Vernova"], "CEG": ["Constellation Energy"], "VST": ["Vistra"], "NEM": ["Newmont"], "FCX": ["Freeport-McMoRan", "Freeport McMoRan"],
     "DASH": ["DoorDash"], "WBD": ["Warner Bros"], "CMCSA": ["Comcast"], "VZ": ["Verizon"], "T": ["AT&T"], "TMUS": ["T-Mobile"],
-    "ISRG": ["Intuitive Surgical"], "VRTX": ["Vertex"], "REGN": ["Regeneron"], "AMGN": ["Amgen"], "GILD": ["Gilead"],
+    "ISRG": ["Intuitive Surgical"], "VRTX": ["Vertex Pharmaceuticals", "Vertex Pharma"], "REGN": ["Regeneron"], "AMGN": ["Amgen"], "GILD": ["Gilead"],
     "ANET": ["Arista"], "MRVL": ["Marvell"], "AMAT": ["Applied Materials"], "LRCX": ["Lam Research"], "TXN": ["Texas Instruments"],
 }
-_PATTERNS = [(sym, re.compile(r"(?<![\w$])(" + "|".join(re.escape(a) for a in names) + r")(?!\w)", re.I if all(len(a) > 4 for a in names) else 0))
-             for sym, names in _ALIASES.items()]
+# a company's name as a name: capitalised (or in a headline in capitals) - "lucid", "vertex", "target" or "amazon rainforest" in
+# lower case are words, not the companies
+_PATTERNS = [(sym, re.compile(r"(?<![\w$])(" + "|".join(re.escape(v) for a in names for v in dict.fromkeys((a, a.upper())))
+                              + r")(?!\w)")) for sym, names in _ALIASES.items()]
 _CASHTAG = re.compile(r"\$([A-Z]{1,5})\b|\((?:NASDAQ|NYSE|NYSEARCA)?:?\s?([A-Z]{1,5})\)")
 
 
@@ -301,4 +303,4 @@ OPTION_UNDERLYINGS = ["SPY", "QQQ", "IWM", "NVDA", "TSLA", "AAPL", "AMZN", "META
 VIX_CURVE = {"^VIX9D": ("9 days", "9 أيام"), "^VIX": ("30 days", "30 يوم"), "^VIX3M": ("3 months", "3 أشهر"), "^VIX6M": ("6 months", "6 أشهر")}
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.2"
+BUILD = "22.3"

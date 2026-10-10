@@ -19,15 +19,11 @@ URL = f"http://localhost:{PORT}"
 os.makedirs(OUT, exist_ok=True)
 
 # (name, path, market) - each page opened fresh with ?m=<market>&lang=<lang>
-PAGES = [("news", "news", "sa"), ("stock", "stock?symbol=2222.SR", "sa"), ("paper", "paper-bots", "sa"), ("pf_dash", "portfolio", "sa"),
-         # 22.1: the Discover, Insight and Calendar pages and the Robo Advisor in the Saudi market
-         ("trending", "trending", "sa"), ("newsintel", "news-intelligence", "sa"), ("brief", "brief", "sa"), ("sentiment", "sentiment", "sa"),
-         ("seasonality", "seasonality", "sa"), ("articles", "articles", "sa"), ("earnings", "earnings-calendar", "sa"),
-         ("results", "earnings-results", "sa"), ("econcal", "economic-calendar", "sa"), ("holidays", "market-holidays", "sa"),
-         ("dividends", "dividend-calendar", "sa"), ("splits", "stock-splits", "sa"), ("robo", "robo-advisor", "sa"), ("ipos_sa", "ipo-calendar", "sa"),
-         # the US versions of the pages that changed
-         ("us_newsintel", "news-intelligence", "us"), ("us_brief", "brief", "us"), ("us_seasonality", "seasonality", "us"),
-         ("us_splits", "stock-splits", "us"), ("us_robo", "robo-advisor", "us")]
+PAGES = [  # 22.3: the spacing, the section titles, the tabs and the charts; a story's analysis opened from the News page
+         ("stock", "stock?symbol=NVDA", "us"), ("news", "news", "us", '[class*="st-key-nwa_"] button'),
+         ("newsintel", "news-intelligence", "us", '[class*="st-key-nie_cb_"] button'),
+         ("sentiment", "sentiment", "us"), ("seasonality", "seasonality", "us"), ("pf_dash", "portfolio", "us"),
+         ("sa_stock", "stock?symbol=2222.SR", "sa"), ("sa_news", "news", "sa", '[class*="st-key-nwa_"] button')]
 
 
 def log(*a):
@@ -141,7 +137,7 @@ def main():
                     report["pages"][f"{lang}_us_overview"] = {"seconds": took, "problems": problems(pg), "url": pg.url}
                 except Exception as e:
                     report["pages"][f"{lang}_us_overview"] = {"error": str(e)[:400]}
-                for name, path, mk in PAGES:
+                for name, path, mk, *click in PAGES:
                     sep = "&" if "?" in path else "?"
                     t0 = time.time()
                     try:
@@ -155,6 +151,18 @@ def main():
                                 report.setdefault("notes", []).append(f"{lang} send: {e}"[:300])
                         shoot(pg, f"{lang}_{name}")
                         report["pages"][f"{lang}_{name}"] = {"seconds": took, "problems": problems(pg)}
+                        if click:                    # open the first story's analysis window and photograph it
+                            try:
+                                pg.set_viewport_size({"width": 1440, "height": 2400})
+                                pg.locator(click[0]).first.click(timeout=15000)
+                                time.sleep(2)
+                                settle(pg, 150)
+                                time.sleep(2)
+                                pg.locator('[role="dialog"]').first.screenshot(path=os.path.join(OUT, f"{lang}_{name}_open.jpg"),
+                                                                             type="jpeg", quality=78)
+                                report["pages"][f"{lang}_{name}_open"] = {"problems": problems(pg)}
+                            except Exception as e:
+                                report.setdefault("notes", []).append(f"{lang} {name} open: {e}"[:300])
                     except Exception as e:
                         report["pages"][f"{lang}_{name}"] = {"error": str(e)[:400], "seconds": time.time() - t0}
                     log(lang, name, json.dumps(report["pages"].get(f"{lang}_{name}"), ensure_ascii=False)[:300])

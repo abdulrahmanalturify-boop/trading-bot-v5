@@ -211,6 +211,9 @@ a.nx-row:hover { border-color:rgba(167,139,250,.5); transform:translateY(-1px); 
 </style>"""
 
 CSS2 = """<style>
+.nx-relc { display:flex; flex-wrap:wrap; gap:6px; margin-top:2px; }
+.nx-relc .tkc { font-size:.78rem; transition:transform .18s, box-shadow .18s; }
+.nx-relc .tkc:hover { transform:translateY(-2px); box-shadow:0 8px 18px -10px rgba(121,184,244,.7); }
 /* ---------- the command centre: the mood of the news, its numbers, its mood hour by hour ---------- */
 .nie-hero { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.45fr) minmax(0,1.05fr); gap:12px; margin:2px 0 12px; }
 .nie-hc { position:relative; overflow:hidden; border-radius:18px; padding:14px 16px 15px; border:1px solid rgba(157,151,165,.2); min-width:0;
@@ -695,7 +698,10 @@ def _detail(a, chg, sec_chg, titles_ar, dfm=None):
         secs = " · ".join(([L("Helped: ", "يستفيد: ") + "، ".join(up) if is_ar() else "Helped: " + ", ".join(up)] if up else [])
                           + ([L("Hurt: ", "يتضرر: ") + "، ".join(dn) if is_ar() else "Hurt: " + ", ".join(dn)] if dn else []))
     secs = secs or L("The whole market", "السوق كله")
-    rel = ", ".join(_tk(s_) for s_ in a["indirect"][:5]) or "—"
+    if a["indirect"]:                              # related companies: each a chip (logo, today's move) that opens its page
+        rel = '<div class="nx-relc">' + "".join(T.ticker_chip(s_, (chg.get(s_) or (None, None))[1], None, ui.href(s_)) for s_ in a["indirect"][:6]) + "</div>"
+    else:
+        rel = T.esc(L("None found for this company", "ما لقينا شركات مرتبطة"))
     fa = a["facts"] or {}
     if a["moved_before"] is None:
         mb = L("Not known (no prices before it)", "غير معروف (ما فيه أسعار قبله)")
@@ -720,7 +726,7 @@ def _detail(a, chg, sec_chg, titles_ar, dfm=None):
              _fact(L("Expected impact", "التأثير المتوقع"), f'<span style="color:{scol}">{T.esc(L(sen, sar))}</span>'),
              _fact(L("Time horizon", "الأفق الزمني"), T.esc(L(*hzt))),
              _fact(L("Sectors affected", "القطاعات المتأثرة"), T.esc(secs)),
-             _fact(L("Related companies", "شركات مرتبطة"), T.esc(rel)),
+             _fact(L("Related companies", "شركات مرتبطة"), rel),
              _fact(L("Reason", "السبب"), T.esc(reason)),
              _fact(L("Is the news new?", "هل الخبر جديد؟"), T.esc(new)),
              _fact(L("Did the price move before the news?", "هل تحرك السعر قبل الخبر؟"), T.esc(mb)),
@@ -802,6 +808,9 @@ def _tab_stocks(a, chg):
     for kind, cls, syms in ((L("Direct", "مباشر"), "dir", a["direct"]), (L("Indirect", "غير مباشر"), "ind", a["indirect"])):
         for sym in syms:
             name, sec, sub = NI.company(sym, is_ar())
+            if name == sym and not str(sym).endswith(".SR"):      # a company outside the site's lists: its saved summary
+                inf_ = data.saved_info(sym) or {}
+                name, sec, sub = inf_.get("shortName") or inf_.get("longName") or sym, sec or inf_.get("sector") or "", sub or inf_.get("industry") or ""
             c = chg.get(sym)
             secn = _secn(sec) if sec else ""
             rows.append(f'<a class="nx-row" href="stock?symbol={T.esc(sym)}" target="_self">{T.logo_obj(sym, 36)}'
@@ -1333,11 +1342,92 @@ def _table(rows, titles_ar):
     return None
 
 
+@st.cache_data(ttl=6 * 3600, show_spinner=False)
+def _more_peers(sym, exclude=()):
+    """Related companies for a stock the site's own lists don't cover: the biggest of its industry (from the summaries the
+    site keeps), then the ones investors follow with it on Yahoo. -> (peers, sector, industry)"""
+    peers_, info_ = data.industry_peers(sym, 6)
+    out = [s for s in peers_ if s not in exclude]
+    if len(out) < 5:
+        sa = str(sym).upper().endswith(".SR")      # the same market as the story's company
+        out += [s for s in data.similar(sym, 8) if s not in exclude and s not in out and "^" not in s and "=" not in s
+                and str(s).upper().endswith(".SR") == sa]
+    return out[:5], info_.get("sector") or "", info_.get("industry") or ""
+
+
+def _enrich(a):
+    """A story about a company the engine knows little about (no peers, no sector): its related companies and sector are
+    looked up when the story is opened."""
+    if not a["direct"] or (a["indirect"] and a["sectors"]):
+        return a
+    try:
+        more, sec, ind = _more_peers(a["main"], tuple(a["direct"]))
+    except Exception:
+        return a
+    a = dict(a)
+    if not a["indirect"] and more:
+        a["indirect"] = more
+    if not a["sectors"] and (sec or ind):
+        a["sectors"] = [(sec, ind)]
+    return a
+
+
+def _quick_window(a, chg):
+    """A story opened from the News page: its reading in four rings, then its AI analysis, the stocks it hits and why it matters."""
+    n = a["n"]
+    ar = is_ar()
+    title = n["title"]
+    if ar:
+        title = (_translate((n["title"],)) or {}).get(n["title"]) or title
+    en_ev, ar_ev, ic, _hz = NI.EVENT.get(a["event"], NI.EVENT["other"])
+    sen, sar, scol = NI.SENT[a["lab"]]
+    tags = (f'<span class="nie-tag" style="color:{scol};border-color:{scol}55;background:{scol}14">{T.esc(L(sen, sar))}</span>'
+            f'<span class="nie-tag" style="color:#C4B5FD;border-color:#C4B5FD44;background:#7C3AED14">{T.icon(ic)}{T.esc(_ev_name(a, en_ev, ar_ev))}</span>')
+    ui.html(f'<div class="nie-card">{T.news_thumb(n, big=True)}<div class="tx"><div class="tt"><a href="{T.esc(n.get("link") or "#")}" '
+            f'target="_blank" dir="auto">{T.esc(title)}</a></div><div class="mt">{T.esc(n.get("source") or "")} · '
+            f'{T.time_ago(n["time"], ar) if pd.notna(n.get("time")) else ""}</div><div class="hd">{tags}</div></div></div>')
+    ui.html(_verdict(a))
+    why_en, why_ar = NI.why(a)
+    tabs = st.tabs([L(":material/auto_awesome: AI analysis", ":material/auto_awesome: التحليل الذكي"),
+                    L(":material/hub: Stocks", ":material/hub: الأسهم المتأثرة"), L(":material/lightbulb: Why it matters", ":material/lightbulb: ليش يهم")])
+    with tabs[0]:
+        _tab_ai(a, n, ar)
+    with tabs[1]:
+        _tab_stocks(a, chg)
+    with tabs[2]:
+        ui.html(f'<div class="nx-callout">{T.icon("lightbulb")}<p>{T.esc(L(why_en, why_ar))}</p></div>')
+        if a["words"]:
+            ui.html(f'<div class="nx-h">{T.icon("key")}{T.esc(L("What in the headline decided it", "وش في العنوان حدد الاتجاه"))}</div>' + _word_chips(a))
+    st.page_link(ui.PAGES["newsintel"], label=L("The full analysis in the News Intelligence Engine", "التحليل الكامل في محرك ذكاء الأخبار"),
+                 icon=":material/neurology:")
+
+
+def story_quick(n):
+    """Opens one story of the News page in its analysis window (the engine reads it on the spot)."""
+    ui.html(CSS + CSS2)
+    bench = _bench()
+    tick = [t for t in (n.get("tickers") or []) if t and t not in NI.BENCHES][:4]
+    px = data.history_many((bench,) + tuple(tick[:1]), "1y") or {}
+    chg = data.quick_changes(tick) if tick else {}
+    if "iq" not in n:
+        newsiq.enrich([n], chg)
+    rg = NI.regime(px.get(bench)) if px.get(bench) is not None else "mixed"
+    a = _enrich(NI.analyze(n, px, chg, rg, None, bench))
+    more = [s_ for s_ in a["direct"] + a["indirect"] if s_ not in chg]
+    if more:
+        try:
+            chg = dict(chg, **data.quick_changes(more))
+        except Exception:
+            pass
+    st.dialog(L("Story analysis", "تحليل الخبر"), width="large")(_quick_window)(a, chg)
+
+
 def _story_window(a, chg, sec_chg, titles_ar, dfm):
     _detail(a, chg, sec_chg, titles_ar, dfm)
 
 
 def _show_story(a, chg, px, titles_ar):
+    a = _enrich(a)
     peers_ = sorted({s_ for s_ in a["direct"] + a["indirect"]})
     chg2 = dict(chg)
     if peers_:
@@ -1525,4 +1615,4 @@ def page_news_intel():
             _show_story(a, chg, px, titles_ar)
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.2"
+BUILD = "22.3"
