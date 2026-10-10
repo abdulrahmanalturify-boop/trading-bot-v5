@@ -12,7 +12,7 @@ import theme as T
 import ui
 from i18n import L, is_ar
 
-BUILD = "22.1"
+BUILD = "22.2"
 
 _LINE = "rgba(150,140,250,"
 CSS = f"""
@@ -387,7 +387,8 @@ def academy_texts():
     try:
         import academy as A
         import academy_labs as AL
-        n, labs, terms = len(A.COURSES), len(AL.LABS), len(A.GLOSSARY)
+        import terms as TM
+        n, labs, terms = len(A.COURSES), len(AL.LABS), len(TM.glossary(A.GLOSSARY))     # the same count as the glossary page
         return (L(f"{n} courses from beginner to advanced, in Arabic and English, each ending with a short quiz.",
                   f"{n} دورة من المبتدئ إلى المتقدم، بالعربي والإنجليزي، وكل دورة تنتهي باختبار قصير."),
                 L(f"{labs} interactive labs to try the ideas yourself, plus a glossary of {terms} market terms.",
@@ -925,7 +926,7 @@ def intro_html():
                       "دورات قصيرة تنتهي باختبار، ومختبرات تجرّب فيها الأفكار بنفسك، وقاموس لكل مصطلح يمرّ عليك."),
                     [L("From reading a candle to sizing a position.", "من قراءة الشمعة لين تحديد حجم الصفقة."),
                      L("In Arabic and English, side by side.", "بالعربي والإنجليزي."),
-                     L("Your progress is kept as you go.", "تقدّمك ينحفظ أول بأول.")],
+                     L("Your progress is kept in this browser as you go.", "تقدّمك ينحفظ في متصفحك أول بأول.")],
                     _mock_courses(f), rev=True)
     end = (f'<section class="ixend rv"><span class="ixl">{L("Ready when you are", "جاهز متى ما كنت جاهز")}</span>'
            f'<div class="ixh">{L("Your next trade<br><em>starts on paper.</em>", "صفقتك الجاية<br><em>تبدأ افتراضية.</em>")}</div>'

@@ -27,6 +27,53 @@ def _course(cid):
     return next((c for c in A.COURSES if c["id"] == cid), None)
 
 
+# ---------------------------------------------------------------- progress kept in the browser
+# The progress (courses completed, the step reached in the others) is kept in this browser like the portfolio code: a compact
+# text "3d_5x2" = course #3 done, course #5 at step 2 (the courses' order in academy.COURSES).
+def _progress_code():
+    parts = []
+    done = ss.get("completed", set())
+    for i, c in enumerate(A.COURSES):
+        if c["id"] in done:
+            parts.append(f"{i}d")
+        elif int(ss.get(f"step_{c['id']}", 0) or 0) > 0:
+            parts.append(f"{i}x{int(ss.get('step_' + c['id'], 0))}")
+    return "_".join(parts) or "0"
+
+
+def _progress_load(code):
+    for p in str(code or "").split("_"):
+        try:
+            if p.endswith("d") and p[:-1].isdigit() and int(p[:-1]) < len(A.COURSES):
+                ss.setdefault("completed", set()).add(A.COURSES[int(p[:-1])]["id"])
+            elif "x" in p:
+                i, step = (int(x) for x in p.split("x", 1))
+                if i < len(A.COURSES):
+                    k = f"step_{A.COURSES[i]['id']}"
+                    ss[k] = max(int(ss.get(k, 0) or 0), step)
+        except (ValueError, IndexError):
+            continue
+
+
+def _progress_sync():
+    """Once per visit the browser's copy is merged in; afterwards every change is written back to it."""
+    try:
+        import p_portfolio as PP
+        if not ss.get("_ac_loaded"):
+            got = PP.browser()
+            if got is None:                          # the browser hasn't answered yet: next run
+                return
+            _progress_load(got.get("tura_ac"))
+            ss["_ac_loaded"] = True
+            ss["_ac_kept"] = got.get("tura_ac")
+        code = _progress_code()
+        if code != ss.get("_ac_kept"):
+            PP.keep({"tura_ac": code})
+            ss["_ac_kept"] = code
+    except Exception:
+        pass
+
+
 def _status(cid):
     if cid in ss.get("completed", set()):
         return "done"
@@ -341,6 +388,14 @@ def _video_library():
 def page_academy():
     st.logo(AV.academy_wordmark(T.brand(None, "acsidebar", pro=None)), icon_image=AV.MARK, size="large")
     ui.html(AV.CSS)
+    _progress_sync()                                 # the progress this browser keeps
+    try:
+        _page_academy()
+    finally:
+        _progress_sync()                             # and what changed on this run, written back
+
+
+def _page_academy():
     with st.container(key="academy_root"):
         cid = ss.get("course") or st.query_params.get("course")
         c = _course(cid) if cid else None
@@ -400,7 +455,9 @@ def page_academy():
             AL.render(selected,namespace="hub")
         with progress:
             ui.safe(dashboard)
-            st.caption(L("Progress is stored for this session, not in a permanent learner account.","التقدم محفوظ للجلسة الحالية، مو بحساب متعلم دائم."))
+            st.caption(L("Your progress is kept in this browser on this device (no account needed). Another device, or clearing the browser's "
+                         "data, starts fresh.",
+                         "تقدمك محفوظ في هالمتصفح على هالجهاز (بدون حساب). أي جهاز ثاني أو مسح بيانات المتصفح يبدأ من جديد."))
         ui.foot()
 
 
@@ -421,6 +478,6 @@ def page_glossary():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.1"
+BUILD = "22.2"
 
 

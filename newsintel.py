@@ -61,6 +61,9 @@ EVENTS = [
      r"special dividend|dividend (?:hike|increase|cut))\b"),
     ("restructuring", "Layoffs & restructuring", "تسريح وإعادة هيكلة", "person_remove", "weeks",
      r"\b(layoffs?|lays? off|job cuts|cuts? [\d,]+ jobs|restructuring|plant closures?|closing (?:plants|stores))\b"),
+    ("competition", "Competition threat", "تهديد المنافسة", "swords", "weeks",
+     r"\b(competition|competitive threat|competitors?|rivals?|rivalry|threat(?:en|ens|ened|ening)?|challeng(?:e|es|er|ers|ing)|"
+     r"disrupt\w*|price war|market share|undercut\w*|takes? on)\b"),
     ("product", "Product launch", "إطلاق منتج", "new_releases", "weeks",
      r"\b(launch(?:es|ed)?|unveils?|unveiled|introduces?|rolls? out|debuts?|new (?:chip|model|product|device|service|ai model)|recalls?|recalled)\b"),
     ("macro", "Macro news", "أخبار الاقتصاد الكلي", "public", "days",
@@ -84,6 +87,7 @@ EVENTS_AR = [
     ("lawsuit", r"دعوى|قضية|(?:ال)?محكمة|حكم قضائي|تسوية"),
     ("analyst", r"(?:ال)?سعر (?:ال)?مستهدف|رفع (?:ال)?توصية|خفض (?:ال)?توصية|توصية (?:بال)?(?:شراء|بيع|حياد)|تصنيف(?:ها)? (?:ال)?ائتماني"),
     ("guidance", r"توقعات(?:ها)?|تتوقع|يتوقع|(?:ال)?توجيهات"),
+    ("competition", r"(?:ال)?منافس|المنافسة|حرب أسعار|(?:ال)?حصة السوقية|حصة سوقية|يهدد|تهديد"),
     ("product", r"إطلاق|تدشين|افتتاح"),
     ("macro", r"(?:ال)?فائدة|(?:ال)?تضخم|(?:ال)?ناتج المحلي|(?:ال)?بنك المركزي|ساما|أوبك|(?:ال)?نفط|برنت|(?:ال)?ميزانية|(?:ال)?فيدرالي|(?:ال)?بطالة|الاقتصاد"),
 ]
@@ -95,19 +99,26 @@ HORIZON = {"intraday": ("Intraday", "خلال اليوم"), "days": ("Days", "أ
 # how much an event of this kind usually matters for the stock (materiality, before the story itself)
 EVENT_WEIGHT = {"distress": 3.0, "mna": 2.6, "earnings": 2.4, "guidance": 2.2, "regulation": 1.8, "lawsuit": 1.2, "management": 1.2,
                 "contract": 1.2, "analyst": 0.8, "offering": 1.4, "payout": 1.0, "restructuring": 1.0, "product": 0.9, "macro": 1.6,
+                "competition": 1.2,
                 "other": 0.3, "market": 0.6}
+
+
+def classify_src(title, summary=""):
+    """(kind of event, where it was read: 'title' / 'summary' / None). The headline decides first; a kind read only from the
+    summary is less certain (the summary often mentions earnings or rates in passing)."""
+    for where, text in (("title", title or ""), ("summary", (summary or "")[:500])):
+        for k, en, ar, ic, hz, pat in _EV:
+            if pat.search(text):
+                return k, where
+        for k, pat in _EV_AR:
+            if pat.search(text):
+                return k, where
+    return "other", None
 
 
 def classify(title, summary=""):
     """The kind of event (key); the headline decides first, then the summary."""
-    for text in (title or "", (summary or "")[:500]):
-        for k, en, ar, ic, hz, pat in _EV:
-            if pat.search(text):
-                return k
-        for k, pat in _EV_AR:
-            if pat.search(text):
-                return k
-    return "other"
+    return classify_src(title, summary)[0]
 
 
 # ---------------------------------------------------------------- 2) sentiment
@@ -138,7 +149,7 @@ NEG_AR = ["انخفاض", "انخفض", "تنخفض", "ينخفض", "تراجع"
 _POS_AR = re.compile("|".join(POS_AR))
 _NEG_AR = re.compile("|".join(NEG_AR))
 # the usual sign of an event before its words are read (a downgrade is bearish, a buyback bullish, ...)
-EVENT_PRIOR = {"distress": -0.6, "lawsuit": -0.35, "offering": -0.35, "restructuring": -0.1, "payout": 0.3, "contract": 0.3,
+EVENT_PRIOR = {"distress": -0.6, "lawsuit": -0.35, "offering": -0.35, "restructuring": -0.1, "payout": 0.3, "contract": 0.3, "competition": -0.25,
                "regulation": -0.25}
 SENT = {"bull": ("Bullish", "صاعد", "#4ADE80"), "bear": ("Bearish", "هابط", "#F87171"), "neutral": ("Neutral", "محايد", "#C4B5FD")}
 
@@ -381,7 +392,7 @@ def analyze(n, px=None, chg=None, spy_regime="mixed", now=None, bench="SPY"):
     title, summ = str(n.get("title") or ""), str(n.get("summary") or "")
     iq = n.get("iq") or newsiq.analyze(n, chg, now)
     tick = [t for t in (n.get("tickers") or []) if t and t not in BENCHES][:4]
-    ev = classify(title, summ)
+    ev, ev_src = classify_src(title, summ)
     mk = macro_kind(title, summ) if (ev == "macro" or not tick) else None
     if sa:
         mk = macro_sa(mk)
@@ -430,6 +441,9 @@ def analyze(n, px=None, chg=None, spy_regime="mixed", now=None, bench="SPY"):
     if tick and (re.search(re.escape(company(main)[0].split()[0]), title, re.I)
                  or (sa and re.search(re.escape(company(main, True)[0].split()[0]), title))):
         conf += 5
+    unsure = ev_src == "summary" and ev not in ("macro", "market", "other")
+    if unsure:                                     # the kind was read in the summary only (a word in passing): less certain
+        conf -= 10
     conf = int(np.clip(conf, 20, 95))
     ts = n.get("time")
     age_h = (now - ts).total_seconds() / 3600 if ts is not None and pd.notna(ts) else None
@@ -447,6 +461,7 @@ def analyze(n, px=None, chg=None, spy_regime="mixed", now=None, bench="SPY"):
             "move": move, "materiality": mat, "impact": impact, "severity": int(round(impact / 10)), "confidence": conf,
             "horizon": EVENT[ev][3] if ev in EVENT else "days", "direct": direct, "indirect": indirect, "sectors": secs[:3],
             "age_h": age_h, "new": age_h is not None and age_h < 6, "moved_before": moved_before, "regime": spy_regime, "sa": sa,
+            "ev_unsure": unsure,
             "setup": setup(impact, d, fa, spy_regime)}
 
 
@@ -551,6 +566,9 @@ def why(a):
                     "القضية خطر غرامات أو تسويات، والسوق يسعّر أسوأ احتمال لين يتضح الأمر."),
         "management": ("A new leader can change the strategy; a sudden exit often worries the market more than a planned one.",
                        "القائد الجديد ممكن يغيّر الاستراتيجية، والخروج المفاجئ يقلق السوق أكثر من المخطط له."),
+        "competition": ("A new rival or a price war can take market share and squeeze margins; the market prices the threat before it shows "
+                        "in the numbers.",
+                        "منافس جديد أو حرب أسعار ممكن تاخذ من حصة الشركة وتضغط هوامشها، والسوق يسعّر التهديد قبل ما يبان في الأرقام."),
         "contract": ("A contract adds revenue that was not in the estimates, more so when it is large next to the company's sales.",
                      "العقد يضيف إيرادات ما كانت في التقديرات، خصوصاً لما يكون كبير مقارنة بمبيعات الشركة."),
         "analyst": ("A rating change moves the price mostly the same day, as the funds that follow that analyst react.",
@@ -570,7 +588,10 @@ def why(a):
     }.get(ev, ("The story names the company; its weight shows in the price and volume that follow.",
                "الخبر يذكر الشركة، ووزنه يبان في السعر وحجم التداول بعده."))
     en, ar = base
-    if name:
+    if a.get("ev_unsure"):                       # the kind was read in the summary only: said as a possibility
+        en = f"Possibly {en_ev.lower()} news (read in the summary, not the headline). " + en
+        ar = f"غالباً خبر {ar_ev} (من الملخص مو العنوان، فالتصنيف غير مؤكد). " + ar
+    elif name:
         en = f"{en_ev} news on {name}. " + en
         ar = f"خبر {ar_ev} عن {name_ar}. " + ar
     if sec and peers_:
@@ -599,4 +620,4 @@ def word_sign(w):
     return 1 if (_POS.fullmatch(w or "") or _POS_AR.fullmatch(w or "")) else -1
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.1"
+BUILD = "22.2"

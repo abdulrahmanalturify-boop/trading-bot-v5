@@ -43,6 +43,11 @@ NOTE = {"oco": ("the other leg filled", "تنفذ الطرف الثاني"), "cl
         "tif": ("end of its time", "انتهت مدته"), "parent": ("its entry did not fill", "ما تنفذ أمر الدخول"),
         "no_long": ("no shares to sell", "ما فيه أسهم للبيع"), "no_short": ("no short to cover", "ما فيه مركز مكشوف للتغطية"),
         "is_short": ("the position is short: cover first", "المركز مكشوف: غطّه أول"), "is_long": ("the position is long: sell first", "المركز شراء: بعه أول")}
+# the Saudi account's own wording (cash only: no short selling, no margin)
+ERR_SA = {"bad_symbol": ("No price found for this company. Type its 4-digit code (2222) or its name.",
+                         "ما لقينا سعر لهالشركة. اكتب رمزها من 4 أرقام (2222) أو اسمها."),
+          "no_long": ("You don't hold this company, so there is nothing to sell (the Saudi account has no short selling).",
+                      "ما عندك هالسهم فما فيه شي تبيعه (الحساب السعودي ما فيه بيع على المكشوف).")}
 ERR = {"bad": ("Choose an action and an order type.", "اختر الإجراء ونوع الأمر."),
        "bad_symbol": ("No price found for this symbol. Check the ticker (US stocks and ETFs).", "ما لقينا سعر لهالرمز. تأكد من الرمز (أسهم وصناديق أمريكية)."),
        "qty": ("Enter a quantity of at least 1 share.", "اكتب كمية سهم واحد على الأقل."),
@@ -372,7 +377,8 @@ def _from_link():
 # The portfolio code (one per browser: that visitor's own paper portfolio and Robo Advisor) and the robo questionnaire in progress.
 # Streamlit Community Cloud drops the site's cookies before they reach the app (st.context.cookies is empty there), so they are
 # kept in the browser's localStorage (and a cookie) and read back by a small frame of the page (webstore/index.html).
-STORE = (COOKIE, "alt_rb", "tura_mk")                 # tura_mk: the market the visitor picked (us / sa), see app.py
+STORE = (COOKIE, "alt_rb", "tura_mk", "tura_ac")      # tura_mk: the market the visitor picked (us / sa), see app.py;
+#                                                      tura_ac: the Academy's progress (p_academy._progress_sync)
 _STORE_VAL = re.compile(r"^[A-Za-z0-9_-]{1,4000}$")
 _WEBSTORE = []                                       # the frame, declared once per process
 
@@ -849,6 +855,10 @@ def positions_html(c):
     v = c.view
     pos = v["positions"]
     if not pos:
+        if _sa():                              # the Saudi account is cash only: buying is the only way in
+            return empty("inventory_2", L("No open positions", "ما فيه مراكز مفتوحة"),
+                         L("Open the Trade page to buy a Saudi company (a cash account: no short selling or margin).",
+                           "افتح صفحة التداول واشترِ سهم شركة سعودية (حساب نقدي: بدون بيع على المكشوف وبدون هامش)."))
         return empty("inventory_2", L("No open positions", "ما فيه مراكز مفتوحة"),
                      L("Open the Trade page to buy a stock, or sell one short if you expect it to fall.",
                        "افتح صفحة التداول واشترِ سهم، أو بعه على المكشوف إذا تتوقع ينزل."))
@@ -884,7 +894,8 @@ def positions_html(c):
     n_l = sum(1 for p in pos if p["qty"] > 0)
     n_s = len(pos) - n_l
     u = v["unrealized"]
-    sums = (ui.table_chip(L("Long", "شراء"), f"<b>{n_l}</b>") + ui.table_chip(L("Short", "مكشوف"), f"<b>{n_s}</b>")
+    sums = ((ui.table_chip(L("Positions", "المراكز"), f"<b>{n_l}</b>") if _sa() else      # the Saudi account holds no shorts
+             ui.table_chip(L("Long", "شراء"), f"<b>{n_l}</b>") + ui.table_chip(L("Short", "مكشوف"), f"<b>{n_s}</b>"))
             + ui.table_chip(L("Unrealized", "غير محقق"), T.pbox(_m(u, 0, True), u)))
     return (f'<div class="pfpos"><div class="hd"><div class="tt">{T.icon("inventory_2")}{L("Open positions", "المراكز المفتوحة")}</div>'
             f'<div class="sum">{sums}</div></div><div class="sc"><table><thead><tr>{th}</tr></thead><tbody>{"".join(rows)}</tbody></table></div></div>')
@@ -1012,8 +1023,12 @@ def equity_fig(view, rng="all"):
 def exposure_fig(c):
     v, a = c.view, c.acct
     eq = max(a["equity"], 1e-9)
-    labels = [L("Long", "شراء"), L("Short", "مكشوف"), L("Net", "الصافي"), L("Gross", "الإجمالي")]
-    vals = [a["lmv"] / eq * 100, -a["smv"] / eq * 100, a["net"] / eq * 100, a["gross"] / eq * 100]
+    if _sa():                                  # a cash account: what is invested and what waits in cash
+        labels = [L("Invested", "المستثمر"), L("Cash", "الكاش")]
+        vals = [a["lmv"] / eq * 100, a["cash"] / eq * 100]
+    else:
+        labels = [L("Long", "شراء"), L("Short", "مكشوف"), L("Net", "الصافي"), L("Gross", "الإجمالي")]
+        vals = [a["lmv"] / eq * 100, -a["smv"] / eq * 100, a["net"] / eq * 100, a["gross"] / eq * 100]
     fill, line, txt, out = C.pastel(vals)
     fig = go.Figure(go.Bar(x=vals, y=labels, orientation="h", marker=dict(color=fill, line=dict(color=line, width=1)),
                            text=[f"{x:+.0f}%" for x in vals], textposition="outside", textfont=dict(color=C.MUTED),
@@ -1076,7 +1091,7 @@ def alloc_fig(c):
     if c.acct["cash"] > 0 and c.acct["smv"] == 0:
         labels.append(L("Cash", "الكاش"))
         vals.append(c.acct["cash"])
-    return C.share_donut(labels, vals, L("Where the money is (▼ = short)", "وين الفلوس (▼ = مكشوف)"),
+    return C.share_donut(labels, vals, L("Where the money is", "وين الفلوس") if _sa() else L("Where the money is (▼ = short)", "وين الفلوس (▼ = مكشوف)"),
                          center=f"<b>{len(pos)}</b><br>{L('positions', 'مراكز')}")
 
 
@@ -1090,6 +1105,8 @@ def page_dashboard():
     ui.html(hero(c))
     access_bar(c)
     a, v = c.acct, c.view
+    ui.ai_note("Portfolio equity", f"{_m(a['equity'], 2)} (started with {_m(v['invested'], 0)}), cash {_m(a['cash'], 0)}")
+    ui.ai_note("Open positions", ", ".join(f"{T.sym_label(p['sym'], False)} {p['qty']:,.0f} sh, {p.get('upnl_pct', 0):+.1f}%" for p in v["positions"][:12]) or "none")
     if a["margin_call"]:
         st.error(L(f"Margin call: equity {_m(a['equity'], 0)} is under the maintenance requirement {_m(a['maint'], 0)}. "
                    "Close or cover positions (a real broker would start closing them for you).",
@@ -1382,7 +1399,7 @@ def _done(o):
 
 
 def _err(e):
-    msg = L(*ERR.get(e.code, ERR["bad"]))
+    msg = L(*((ERR_SA if _sa() else {}).get(e.code) or ERR.get(e.code, ERR["bad"])))
     if e.code == "bp":
         msg += " " + L(f"At most {e.info.get('max_qty', 0):,} shares.", f"الحد الأقصى {e.info.get('max_qty', 0):,} سهم.")
     if e.code == "too_many":
@@ -2099,4 +2116,4 @@ def page_history():
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.1"
+BUILD = "22.2"

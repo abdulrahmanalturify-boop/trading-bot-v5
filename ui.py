@@ -74,6 +74,15 @@ def _numlike(s):
     return bool(v) and sum(bool(_NUMLIKE.match(x)) for x in v) >= 0.8 * len(v)
 
 
+def ai_note(label, value):
+    """A figure this page shows, handed to the assistant with the visitor's question (so "explain this result" sees it)."""
+    try:
+        import ai_assistant
+        ai_assistant.note(label, value)
+    except Exception:
+        pass
+
+
 NAME_COLS = {"Name", "Company", "الشركة", "الاسم", "اسم الشركة"}     # a table's company-name column (left out next to Saudi names)
 
 
@@ -282,4 +291,4 @@ def multiselect_free(label, options, key, placeholder="", max_n=4):
         return st.multiselect(label, options, key=key, max_selections=max_n, placeholder=placeholder)
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.1"
+BUILD = "22.2"

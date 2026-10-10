@@ -242,6 +242,7 @@ def page_sentiment():
         ui.foot()
         return
     v = float(idx.iloc[-1])
+    ui.ai_note("Fear & Greed score", f"{v:.0f}/100 ({'Saudi market' if MK.is_sa() else 'US market'})")
     c1, c2 = st.columns([1, 1.25], vertical_alignment="center")
     with c1:
         ui.html(f'<div class="card" style="padding:14px 10px 6px">{T.fg_gauge(v, is_ar(), L("Updated with the latest close", "محدّث بآخر إغلاق"))}</div>')
@@ -515,6 +516,9 @@ def page_brief_sa():
     if fg is not None:
         bg, fgc, zl = _fg_box(fg)
         mood = f'<span class="mood" style="background:{bg};color:{fgc}">{T.icon("speed")} {L("Fear & Greed", "الخوف والطمع")} {fg:.0f} · {T.esc(zl)}</span>'
+    ui.ai_note("Brief headline", en)
+    for i_, (b_en, _b_ar) in enumerate(bullets):
+        ui.ai_note(f"Brief point {i_ + 1}", b_en)
     ui.html(f'<div class="brief{" rtl" if is_ar() else ""}"><div class="eyebrow">{T.icon("event")} {T.esc(_today_line())} {T.market_status(is_ar())} {mood}</div>'
             f'<div class="hl">{T.esc(L(en, ar))}</div><ul>' + "".join(f"<li>{T.esc(L(a, b))}</li>" for a, b in bullets) + "</ul></div>")
     items = []
@@ -612,6 +616,9 @@ def page_brief():
         bg, fgc, zl = _fg_box(fg)
         mood = f'<span class="mood" style="background:{bg};color:{fgc}">{T.icon("speed")} {L("Fear & Greed", "الخوف والطمع")} {fg:.0f} · {T.esc(zl)}</span>'
     status = T.market_status(is_ar())
+    ui.ai_note("Brief headline", en)
+    for i_, (b_en, _b_ar) in enumerate(bullets):
+        ui.ai_note(f"Brief point {i_ + 1}", b_en)
     ui.html(f'<div class="brief{" rtl" if is_ar() else ""}"><div class="eyebrow">{T.icon("event")} {T.esc(_today_line())} {status} {mood}</div>'
             f'<div class="hl">{T.esc(L(en, ar))}</div><ul>' + "".join(f"<li>{T.esc(L(a, b))}</li>" for a, b in bullets) + "</ul></div>")
     items = []
@@ -1000,4 +1007,4 @@ def page_seasonality():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.1"
+BUILD = "22.2"

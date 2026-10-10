@@ -1393,6 +1393,8 @@ def kpi_row(v):
         ret_sub = (L("Group bought equally ", "المجموعة بالتساوي ") if v["group"] else L("Buy & hold ", "شراء واحتفاظ ")) + iso(f"{v['base_ret']:+.2f}%")
     diff = None if v["bench_ret"] is None else v["ret"] - v["bench_ret"]
     n_open = len(op)
+    ui.ai_note("Bot balance", f"{T.money(v['final'])} from {T.money(v['cap'])}: return {v['ret']:+.2f}%"
+               + ("" if v["bench_ret"] is None else f", market {v['bench_ret']:+.2f}%") + f", {n_open} open positions")
     open_sub = L(f"{n_open} open positions", f"{n_open} مراكز مفتوحة") if n_open != 1 else L("1 open position", "مركز مفتوح واحد")
     tiles = [
         T.kpi("account_balance_wallet", L("Balance", "الرصيد"), T.money(v["final"]), L("start ", "البداية ") + iso(T.money(v["cap"])), T.cls(v["ret"])),
@@ -4434,4 +4436,4 @@ def page_paper_bots():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.1"
+BUILD = "22.2"

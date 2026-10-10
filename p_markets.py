@@ -50,7 +50,24 @@ def _sa_name(sym):
     return {"BZ=F": L("Brent", "برنت"), "GC=F": L("Gold", "الذهب"), "SAR=X": L("USD/SAR", "دولار/ريال")}.get(sym, sym)
 
 
+# currencies pegged to the dollar: a close far from the peg is a bad print in Yahoo's data (a USD/SAR "+3.2%" day), not a move
+PEGS = {"SAR=X": 3.75, "AED=X": 3.6725, "QAR=X": 3.64, "BHD=X": 0.376, "OMR=X": 0.3845}
+
+
+def _clean_pegs(px):
+    out = dict(px)
+    for sym, peg in PEGS.items():
+        df = out.get(sym)
+        if df is not None and len(df) and "Close" in df:
+            out[sym] = df[(pd.to_numeric(df["Close"], errors="coerce") / peg - 1).abs() < 0.01]
+    return out
+
+
 def _tile_prices():
+    return _clean_pegs(_tile_prices_raw())
+
+
+def _tile_prices_raw():
     if MK.is_sa():
         syms = [s for g in SA_TILES.values() for s in g]
         px = data.history_many(tuple(syms + SA_TAPE), "1mo")
@@ -64,7 +81,10 @@ def _last(px, sym):
     if df is None or len(df) < 2:
         return None, None, None
     last, prev = float(df["Close"].iloc[-1]), float(df["Close"].iloc[-2])
-    return last, last - prev, (last / prev - 1) * 100
+    pct = (last / prev - 1) * 100
+    if str(sym).endswith("=X") and abs(pct) > 4:     # a currency moving 4% in a day is almost always a bad print: no change shown
+        return last, None, None
+    return last, last - prev, pct
 
 
 def _chg(df, n):
@@ -160,17 +180,22 @@ def heatmap_frame(ukey, period, sizing):
             if "1Y_h" in df:
                 df["1Y"] = df["1Y"].fillna(df["1Y_h"])
     df["Val"] = pd.to_numeric(df.get(period), errors="coerce") if period in df else np.nan
-    cap = pd.to_numeric(df["Cap"], errors="coerce")
+    live = pd.to_numeric(df["Cap"], errors="coerce")
+    if source != "live":                               # the fallback quotes carry the site's own list figures, not live caps
+        live = pd.Series(np.nan, index=df.index)
     static = df["Symbol"].map(lambda s: U.STOCKS[s][3] * 1e9 if s in U.STOCKS else tasi.cap_b(s) * 1e9 if tasi.known(s) else np.nan)
-    cap = cap.fillna(static).fillna(cap.median() if cap.notna().any() else 2e10).fillna(2e10)
+    cap = live.fillna(static)
+    # where the market cap comes from: live (the quote), approx (the site's list, an older figure), none (unknown: the tile
+    # only gets a placeholder size and stays out of the weighted change)
+    df["CapSrc"] = np.where(live.notna(), "live", np.where(static.notna(), "approx", "none"))
     if sizing == "cap":
-        df["Size"] = cap
+        df["Size"] = cap.fillna(cap.median() if cap.notna().any() else 2e10).fillna(2e10)
     elif sizing == "dvol":
         dv = pd.to_numeric(df["Volume"], errors="coerce") * pd.to_numeric(df["Price"], errors="coerce")
         df["Size"] = dv.fillna(dv.median() if dv.notna().any() else 1.0).clip(lower=1.0)
     else:
         df["Size"] = 1.0
-    df["Cap"] = cap
+    df["Cap"] = cap                                    # NaN when unknown (never a stand-in figure)
     return df, source
 
 
@@ -243,16 +268,29 @@ def heatmap_section():
     def tip(t):
         v = t.get("Val")
         chg = f"{v:+.2f}%" if v is not None and np.isfinite(v) else "—"
-        return f'{T.sym_label(t["Symbol"])} · {T.name_line(t["Symbol"], t.get("Name", ""))}\n{T.fmt_price(t.get("Price"))} · {chg} · {L("Mkt cap", "القيمة")} {T.fmt_big(t.get("Cap"))}'
+        c_, src_ = t.get("Cap"), t.get("CapSrc")
+        if c_ is None or not np.isfinite(c_) or src_ == "none":
+            capt = L("unknown", "غير متاحة")
+        elif src_ == "approx":                             # the site's own list: an older, approximate figure
+            capt = "≈" + T.fmt_big(c_) + L(" (approx.)", " (تقديرية)")
+        else:
+            capt = T.fmt_big(c_)
+        return f'{T.sym_label(t["Symbol"])} · {T.name_line(t["Symbol"], t.get("Name", ""))}\n{T.fmt_price(t.get("Price"))} · {chg} · {L("Mkt cap", "القيمة")} {capt}'
     if sa:                                                 # Saudi tiles show the company's name (the code is a number)
         tiles = [dict(t, Label=tasi.name_of(t["Symbol"], is_ar()) or t["Symbol"]) for t in tiles]
     ui.html(HM.render(tiles, groups, lg, rng, lang(), label, tip, rtl=is_ar()))
     ui.html(HM.legend(rng))
     up, dn = int((view["Val"] > 0).sum()), int((view["Val"] < 0).sum())
-    w = np.average(view["Val"].fillna(0), weights=view["Size"]) if view["Size"].sum() > 0 else 0
-    st.caption(L(f"{len(view)} companies · {up} up · {dn} down · weighted change {w:+.2f}% · size = {L(*HM_SIZES[sizing])} · "
+    # the weighted change: only companies whose weight is known (a placeholder size never weighs on it)
+    known = view["Val"].notna() & ((view["CapSrc"] != "none") if sizing == "cap" else True)
+    wv = view[known]
+    w = np.average(wv["Val"], weights=wv["Size"]) if len(wv) and wv["Size"].sum() > 0 else 0
+    n_est = int((view["CapSrc"] != "live").sum()) if sizing == "cap" else 0
+    est_en = (f" · {n_est} sizes estimated (no live market cap)" if n_est else "")
+    est_ar = (f" · حجم {n_est} شركة تقديري (ما فيه قيمة سوقية مباشرة)" if n_est else "")
+    st.caption(L(f"{len(view)} companies · {up} up · {dn} down · weighted change {w:+.2f}% · size = {L(*HM_SIZES[sizing])}{est_en} · "
                  "click any company to open its page" + ("" if source == "live" else " · delayed data"),
-                 f"{len(view)} شركة · {up} صاعدة · {dn} نازلة · التغير المرجّح {w:+.2f}% · الحجم = {L(*HM_SIZES[sizing])} · "
+                 f"{len(view)} شركة · {up} صاعدة · {dn} نازلة · التغير المرجّح {w:+.2f}% · الحجم = {L(*HM_SIZES[sizing])}{est_ar} · "
                  "اضغط على أي شركة لفتح صفحتها" + ("" if source == "live" else " · بيانات متأخرة")))
     ui.open_picker(view.sort_values("Size", ascending=False)["Symbol"].tolist(), "hm", "Open a company from the map", "افتح شركة من الخريطة")
     return df if ukey in ("sp500", "sa_all") else None
@@ -1456,4 +1494,4 @@ def page_news():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.1"
+BUILD = "22.2"

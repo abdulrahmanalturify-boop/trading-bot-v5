@@ -3,6 +3,7 @@ app.py - TURA Pro · US and Saudi markets platform (entry point).
 Run locally:  streamlit run app.py
 """
 import importlib
+import re
 import sys
 
 import streamlit as st
@@ -10,7 +11,7 @@ import streamlit as st
 # ---------------------------------------------------------------- always run the newest code
 # Streamlit Cloud re-reads app.py after every GitHub upload but can keep the other modules (theme, data, ...) from the
 # previous version in memory. Every module carries BUILD; if one in memory is older, all of them are reloaded in order.
-BUILD = "22.1"
+BUILD = "22.2"
 _ORDER = ["terms", "lightmode", "i18n", "ai_assistant", "flags", "mcal", "mcal_sa", "markets", "tasi", "universe", "sp500", "taxonomy", "ta", "academy_visuals", "academy", "insight", "heatmap", "newsiq", "newspics", "theme", "data",
           "caldata", "newsbot", "newsintel", "charts", "engine", "playbooks", "autotrader", "ui", "fairvalue", "segments", "holders", "sharia", "lab", "tdash", "mlbots", "brain", "paperbots", "smartbots", "portfolio", "robobot", "robo", "pfinsight", "p_markets", "p_newsintel", "p_research", "p_insight",
           "p_academy", "p_paper", "p_portfolio", "p_robo", "p_calendar", "hunter", "p_scanner", "home"]
@@ -310,7 +311,8 @@ try:
     _static = bool(st.get_option("server.enableStaticServing"))
 except Exception:
     _static = False
-_bg = LM.background_css(f"app/static/{LM.BG_FILE}" if _static else LM.BG_CDN) if _light else T.background_css(_static)
+_calm = _cur not in ("", "overview")              # the reading pages: the background picture toned down behind the content
+_bg = LM.background_css(f"app/static/{LM.BG_FILE}" if _static else LM.BG_CDN, _calm) if _light else T.background_css(_static, _calm)
 st.markdown(f'<span class="css-anchor" data-th="{ss.get(LM.THEME_KEY, "dark")}"></span>' + T.CSS + _bg + (T.RTL_CSS if ss.lang == "ar" else "")
             + LM.landing_css() + T.logo_glow_css(_light), unsafe_allow_html=True)
 st.logo(T.logo_wordmark(_light), icon_image=T.LOGO_ICON_LIGHT if _light else T.LOGO_ICON, size="large")
@@ -450,10 +452,35 @@ def _wl_key():
     return "watchlist_sa" if MK.choice() == MK.SA else "watchlist"
 
 
-def _wl_add():
-    v = (ss.get("wl_add") or "").strip().upper()
+_WL_SYM = re.compile(r"^[A-Z0-9^][A-Z0-9.\-=^]{0,14}$")
+
+
+def _wl_sym(x):
+    """A watchlist entry as a symbol (2222 -> 2222.SR, a Saudi company's name -> its code), None when it can't be one."""
+    v = str(x or "").strip()
+    if not v:
+        return None
     if v.isdigit() and len(v) == 4:
-        v += ".SR"
+        return v + ".SR"
+    if not v.isascii():                              # a Saudi company typed by its Arabic name
+        hit = tasi.search(v)
+        return hit[0] if hit else None
+    v = v.upper()
+    return v if _WL_SYM.match(v) else None
+
+
+def _wl_clean(items, limit=40):
+    """Valid symbols, each once, in order (a repeated symbol would break the list: its rows are keyed by the symbol)."""
+    out = []
+    for x in items:
+        s_ = _wl_sym(x)
+        if s_ and s_ not in out:
+            out.append(s_)
+    return out[:limit]
+
+
+def _wl_add():
+    v = _wl_sym(ss.get("wl_add"))
     wl = ss[_wl_key()]
     if v and v not in wl:
         wl.append(v)
@@ -463,7 +490,7 @@ def _wl_add():
 def sidebar():
     sa = MK.choice() == MK.SA
     pulse = {k: v[1 if ss.lang == "ar" else 0] for k, v in PULSE_SA.items()} if sa else PULSE
-    wl = ss[_wl_key()]
+    wl = ss[_wl_key()] = _wl_clean(ss[_wl_key()])        # never a repeated or empty entry
     px = data.history_many(tuple(list(pulse) + list(wl)), "1mo")
     if sa:
         px = data.with_quotes(px, ["^TASI.SR"])
@@ -513,7 +540,7 @@ def sidebar():
     with st.expander(L("Edit watchlist", "تعديل القائمة"), icon=":material/edit:"):
         txt = st.text_area(L("Symbols (comma separated)", "الرموز (مفصولة بفاصلة)"), ", ".join(wl))
         if st.button(L("Save", "حفظ")):
-            ss[_wl_key()] = [(x.strip().upper() + (".SR" if x.strip().isdigit() and len(x.strip()) == 4 else "")) for x in txt.split(",") if x.strip()]
+            ss[_wl_key()] = _wl_clean(txt.replace("،", ",").split(","))
             st.rerun()
 
 
@@ -527,6 +554,10 @@ if MK.choice() == MK.SA and _PAGE_KEY in MK.US_ONLY:
 elif MK.choice() == MK.SA and _PAGE_KEY not in MK.SA_PAGES and not (_PAGE_KEY == "overview"):
     st.info(L("This page shows the US market: it has no Saudi version.", "هالصفحة تعرض السوق الأمريكي: ما لها نسخة سعودية."),
             icon=":material/flag:")
+try:
+    ai_assistant.reset_facts()             # the page adds the figures it shows, for the assistant ("explain this result")
+except Exception:
+    pass
 try:
     pg.run()
 except Exception as e:  # Streamlit's own rerun / page-switch signals are not Exceptions, so they pass through

@@ -330,7 +330,10 @@ MEDIUM = re.compile(r"(jobless|initial claims|continuing claims|durable goods|\b
                     r"employment cost|\beci\b|corporate profits|current account|construction spending|beige book|powell|fed chair|fomc minutes|"
                     r"average earnings|avg earnings|avg hourly|core capex|nondef|case.?shiller|house price|fhfa|federal budget|treasury budget|"
                     r"crude oil inventories|\beia\b|consumer credit|gdpnow)", re.I)
-LOWER_IS_BETTER = re.compile(r"(unemployment|jobless|claims|\bclm\b|inventor|invt|deficit)", re.I)
+# a lower reading than forecast is the better news: unemployment and claims, and inflation (a hot print is bad for markets, as
+# on the economy page); house prices are left out of the inflation words
+LOWER_IS_BETTER = re.compile(r"(unemployment|jobless|claims|\bclm\b|inventor|invt|deficit|\bcpi\b|inflation|\bpce\b|\bppi\b|"
+                             r"producer price|consumer price|prices paid|import price|deflator|\bwpi\b)", re.I)
 
 
 # the "World" view: the site follows US stocks, so ★★★ stays with US releases; the euro area, Japan, the UK and China (their central
@@ -502,4 +505,4 @@ def dividends(start, end):
     return df.drop_duplicates(["Symbol", "ExDate"]).sort_values(["ExDate", "Symbol"]).reset_index(drop=True), src
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.1"
+BUILD = "22.2"

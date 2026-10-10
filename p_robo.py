@@ -1538,6 +1538,9 @@ def plan_page(state, row, rkey, err):
         elif prof["level"] < rec["rec"]:
             st.info(L(f"Below your recommended level ({rec['rec']}): steadier, with a lower expected return.",
                       f"أقل من مستواك الموصى به ({rec['rec']}): أهدى، وعائده المتوقع أقل."), icon=":material/info:")
+    ui.ai_note("Robo plan", f"risk level {prof['level']}/10 (recommended {prof['rec']}), stocks {prof['stocks']:.0f}%, expected "
+               f"{prof['mu']:.1f}% a year, volatility {prof['vol']:.1f}%, a bad year {prof['bad']:.1f}%")
+    ui.ai_note("Robo funds", ", ".join(f"{T.sym_label(t, False)} {w:g}%" for t, w in sorted(prof["targets"].items(), key=lambda x: -x[1])))
     ui.sec("donut_large", "Your portfolio", "محفظتك")
     ui.html(allocation_html(prof))
     has_bot = R.BOT in prof["targets"]
@@ -1974,6 +1977,10 @@ def dashboard(state, row, rkey, err):
     rep = R.replay(state, px, bot=feats if has_bot else None, ext=RB.load_ext(feats) if has_bot and feats else None)
     bm = R.replay(state, px, bench=True)
     ui.html(dash_hero(state, rep, err))
+    if not rep.get("pending") and len(rep["curve"]):
+        cv_ = rep["curve"]
+        ui.ai_note("Robo portfolio", f"value {cv_['value'].iloc[-1]:,.0f}, invested {cv_['invested'].iloc[-1]:,.0f}, "
+                   f"time-weighted return {(cv_['twr'].iloc[-1] / cv_['twr'].iloc[0] - 1) * 100:+.2f}% since {cv_.index[0]:%Y-%m-%d}")
     if err is not None:
         st.warning(L("Saving isn't available right now: this robo portfolio lasts for this visit only.",
                      "الحفظ مو متاح الحين: هالمحفظة الآلية لهالزيارة فقط."), icon=":material/cloud_off:")
@@ -2120,4 +2127,4 @@ def page_robo():
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.1"
+BUILD = "22.2"

@@ -43,6 +43,12 @@ CHART_TYPES = {"Candles": "شموع", "Heikin Ashi": "هايكن آشي", "OHLC"
 def quote_header(sym, daily, inf):
     last, prev = daily["Close"].iloc[-1], daily["Close"].iloc[-2]
     chg, pct = last - prev, (last / prev - 1) * 100
+    ui.ai_note("Company", f"{T.sym_label(sym, False)} ({sym})")
+    ui.ai_note("Last price", f"{last:,.2f} {inf.get('currency') or ('SAR' if MK.is_sa() else 'USD')} on {daily.index[-1]:%Y-%m-%d} ({pct:+.2f}% on the day)")
+    for k_, lab_ in (("marketCap", "Market cap"), ("trailingPE", "P/E (trailing)"), ("forwardPE", "P/E (forward)"), ("dividendYield", "Dividend yield"),
+                     ("beta", "Beta"), ("fiftyTwoWeekLow", "52-week low"), ("fiftyTwoWeekHigh", "52-week high")):
+        if isinstance(inf.get(k_), (int, float)):
+            ui.ai_note(lab_, T.fmt_big(inf[k_]) if k_ == "marketCap" else f"{inf[k_]:,.2f}")
     if tasi.known(sym):                            # a Saudi company: its trading name and the exchange's sector and industry group
         name = tasi.name_of(sym, is_ar()) + ("" if is_ar() else f" · {tasi.name_of(sym, True)}")
         exch = L("Tadawul", "تداول")
@@ -2005,4 +2011,4 @@ def page_screener():
 # SCANNER
 # =====================================================================
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.1"
+BUILD = "22.2"

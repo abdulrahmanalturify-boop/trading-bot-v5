@@ -432,10 +432,11 @@ BG_FILE = "bg_markets_light.jpg"     # the site's background picture in light to
 BG_CDN = f"https://cdn.jsdelivr.net/gh/abdulrahmanalturify-boop/trading-bot-v5@main/static/{BG_FILE}"
 
 
-def background_css(url):
+def background_css(url, calm=False):
     """The same globe picture as the dark look, in light tones (its lightness turned over, its colours kept: a pale lavender
     sky, the globe and the market numbers in dark dots), under a light veil that deepens a little towards the bottom."""
-    veil = "linear-gradient(180deg, rgba(246,244,251,.16) 0%, rgba(246,244,251,.26) 45%, rgba(246,244,251,.46) 100%)"
+    veil = ("linear-gradient(180deg, rgba(246,244,251,.56) 0%, rgba(246,244,251,.64) 45%, rgba(246,244,251,.76) 100%)" if calm else   # a reading page
+            "linear-gradient(180deg, rgba(246,244,251,.16) 0%, rgba(246,244,251,.26) 45%, rgba(246,244,251,.46) 100%)")
     keep_white = (".lg, .lgo .ini, .nth.fb .ms, .nth.fb em, .nth img::after, .sax .sx-ic, .sax .sx-ic .ms, "   # white letters on a coloured tile stay white
                   ".rbtl .ti .ms, .rbstep .n .ms, .rbo.on .ic .ms, .rbo.on .ck .ms, "
                   '[data-testid="stTabs"] [role="tab"][data-selected], [data-testid="stTabs"] [role="tab"][data-selected] [role="img"]')
@@ -458,4 +459,4 @@ def landing_css():
             '.st-key-langdd button, .st-key-langdd button * { color: #E7E3EB !important; }</style>')
 
 
-BUILD = "22.1"
+BUILD = "22.2"

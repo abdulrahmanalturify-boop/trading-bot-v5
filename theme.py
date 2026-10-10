@@ -292,16 +292,19 @@ FLAG_US, FLAG_SA = flags.US, flags.SA
 BG_FILE = "bg_markets.jpg"
 BG_CDN = f"https://cdn.jsdelivr.net/gh/abdulrahmanalturify-boop/trading-bot-v5@main/static/{BG_FILE}"
 BG_VEIL = "linear-gradient(180deg, rgba(14,9,24,.20) 0%, rgba(14,9,24,.28) 45%, rgba(14,9,24,.48) 100%)"
+# the reading pages (news, tables, calendars...): a deeper veil, so the globe and its numbers stay behind the content
+BG_VEIL_CALM = "linear-gradient(180deg, rgba(14,9,24,.58) 0%, rgba(14,9,24,.66) 45%, rgba(14,9,24,.78) 100%)"
 BG_GLOWS = ("radial-gradient(1200px 620px at 50% 118%, rgba(107,33,239,.30), transparent 62%), "
             "radial-gradient(900px 520px at 8% -12%, rgba(7,122,199,.20), transparent 60%), "
             "radial-gradient(760px 460px at 96% 4%, rgba(123,69,240,.13), transparent 62%)")
 BG_DOTS = "radial-gradient(rgba(255,255,255,.075) 1px, transparent 1.3px) 0 0 / 24px 24px"
 
 
-def background_css(static_ok=False):
-    """The page background: the globe picture under its veil (the site's own static file, else the same file on the CDN)."""
+def background_css(static_ok=False, calm=False):
+    """The page background: the globe picture under its veil (the site's own static file, else the same file on the CDN).
+    calm: a reading page, where the picture is toned down behind the content."""
     url = f"app/static/{BG_FILE}" if static_ok else BG_CDN
-    return (f'<style>.stApp::before {{ background: {BG_VEIL}, url("{url}") 68% 40% / cover no-repeat, {BG}; }}'
+    return (f'<style>.stApp::before {{ background: {BG_VEIL_CALM if calm else BG_VEIL}, url("{url}") 68% 40% / cover no-repeat, {BG}; }}'
             f'.stApp::after {{ background: none; }}'
             f'@media (max-width: 768px) {{ .stApp::before {{ background-position: 0 0, 72% 30%; }} }}</style>')
 
@@ -1121,7 +1124,9 @@ html[data-menu-closed] [class*="st-key-navdd_"], html[data-menu-closed] .st-key-
   .st-key-navright .status b {{ display:none; }} .st-key-navright .status {{ padding: 0 12px; }} }}
 @container topnav (max-width: 1030px) {{ .navbtn > span:not(.ms) {{ display:none; }} .navbtn {{ padding:0 10px; }} .navbtn .ms {{ font-size:1.18rem; }} }}
 @container topnav (max-width: 760px) {{ .st-key-navright .status {{ display:none; }} .langbtn .chev {{ display:none; }} }}
-@container topnav (max-width: 1250px) {{ [class*="st-key-mkt_"] button p {{ display:none; }} [class*="st-key-mkt_"] button {{ padding:0 7px !important; }} }}
+@container topnav (max-width: 1250px) {{ [class*="st-key-mkt_"] button p {{ position:absolute !important; width:1px; height:1px; overflow:hidden;
+  clip:rect(0 0 0 0); clip-path:inset(50%); white-space:nowrap; margin:0 !important; }} [class*="st-key-mkt_"] button {{ padding:0 7px !important; }} }}
+/* (the flag alone on a narrow bar: the name stays for screen readers, only out of sight) */
 @container topnav (max-width: 600px) {{ .navbtn {{ padding:0 8px; }} }}      /* eight menus (Portfolio added) keep to one row on phones */
 @container topnav (max-width: 440px) {{ .navbtn {{ padding:0 6px; }} .langbtn {{ padding:0 6px; }} }}
 @container topnav (max-width: 350px) {{ .navbtn {{ padding:0 4px; }} .navbtn .ms {{ font-size:1.05rem; }} .langbtn {{ padding:0 4px; }} }}
@@ -2919,4 +2924,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.1"
+BUILD = "22.2"

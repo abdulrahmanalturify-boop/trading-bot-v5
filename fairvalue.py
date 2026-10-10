@@ -3,9 +3,11 @@ fairvalue.py - The fair value of a company: what its business is worth per share
 
   1. Discounted cash flow (DCF): the free cash flow of the last years grows for 5 years at the expected rate (analysts' 5-year
      estimate when Yahoo has it), slows down to the long-run rate over the next 5, and everything after year 10 is a terminal
-     value; all of it is discounted at the cost of equity (10-year Treasury yield + beta x 4.5% market premium), then the net
-     cash is added. Banks and insurers have no meaningful free cash flow: they get the justified price-to-book instead
-     (book value x (ROE - g) / (cost of equity - g)).
+     value; all of it is discounted at the cost of equity (10-year Treasury yield + beta x 4.5% market premium). One consistent
+     model: the free cash flow (operating cash flow - capital spending) is what is left after interest, so it belongs to the
+     shareholders; discounted at the shareholders' own rate it is the value of the shares, with no cash added or debt taken
+     away (that would count the debt twice). Banks and insurers have no meaningful free cash flow: they get the justified
+     price-to-book instead (book value x (ROE - g) / (cost of equity - g)).
   2. Earnings at the company's usual multiple: next year's EPS x the median P/E the stock traded at in its last fiscal years.
   3. Graham's growth formula: EPS x (8.5 + 2 x growth) x 4.4 / corporate bond yield (Benjamin Graham's intrinsic value).
 Weights 40 / 35 / 25 % (a method without the data it needs is left out and the others share its weight). A bear and a bull
@@ -193,7 +195,7 @@ def compute(sym, info, stm, ge, rf, hist, price):
         out = {}
         if fcf0:
             rows, tv, pv_tv, ev = dcf(fcf0, gg, r, gt)
-            out["dcf"] = (ev + cash - debt) / shares
+            out["dcf"] = ev / shares            # the shareholders' cash flow at their own rate: the shares' value itself
         if fin and bvps and bvps > 0 and roe and roe > 0:
             gs = min(gg, 0.04)
             out["pb"] = bvps * (_clip(roe, 0.0, 0.30) - gs) / (r - gs) if r > gs else None
@@ -222,7 +224,7 @@ def compute(sym, info, stm, ge, rf, hist, price):
     det = None
     if fcf0:
         rows, tv, pv_tv, ev = dcf(fcf0, g, ke, gt)
-        det = {"rows": rows, "tv": tv, "pv_tv": pv_tv, "ev": ev, "equity": ev + cash - debt}
+        det = {"rows": rows, "tv": tv, "pv_tv": pv_tv, "ev": ev, "equity": ev}
     total_w = sum({"dcf": W_DCF, "pb": W_DCF, "pe": W_PE, "graham": W_GR}[k] for k in base)
     return {"ok": True, "sym": sym, "price": price, "fv": fv, "bear": min(bear, bull), "bull": max(bear, bull), "up": up,
             "methods": base, "weights": {k: {"dcf": W_DCF, "pb": W_DCF, "pe": W_PE, "graham": W_GR}[k] / total_w for k in base},
@@ -400,9 +402,9 @@ def _method_card(key, v, w, r, ref=False):
     a, b = sorted((pos(p), pos(v)))
     if key == "dcf":
         desc = L(f"Free cash flow <bdi>{_big(r['fcf0'])}</bdi> grows <bdi>{r['g'] * 100:.1f}%</bdi> a year for 5 years, slows to "
-                 f"<bdi>{r['gt'] * 100:.1f}%</bdi>, discounted at <bdi>{r['ke'] * 100:.1f}%</bdi>, plus net cash.",
+                 f"<bdi>{r['gt'] * 100:.1f}%</bdi>, discounted at the shareholders' rate <bdi>{r['ke'] * 100:.1f}%</bdi>.",
                  f"التدفق النقدي الحر <bdi>{_big(r['fcf0'])}</bdi> ينمو <bdi>{r['g'] * 100:.1f}%</bdi> سنوياً 5 سنوات، ثم يتباطأ إلى "
-                 f"<bdi>{r['gt'] * 100:.1f}%</bdi>، مخصوم بـ <bdi>{r['ke'] * 100:.1f}%</bdi>، مع صافي الكاش.")
+                 f"<bdi>{r['gt'] * 100:.1f}%</bdi>، مخصوم بعائد المساهمين المطلوب <bdi>{r['ke'] * 100:.1f}%</bdi>.")
     elif key == "pb":
         desc = L(f"Book value <bdi>{_m(r['bvps'])}</bdi> a share × (ROE <bdi>{(r['roe'] or 0) * 100:.1f}%</bdi> − growth) ÷ (<bdi>{r['ke'] * 100:.1f}%</bdi> − growth).",
                  f"القيمة الدفترية <bdi>{_m(r['bvps'])}</bdi> للسهم × (العائد على الملكية <bdi>{(r['roe'] or 0) * 100:.1f}%</bdi> − النمو) ÷ (<bdi>{r['ke'] * 100:.1f}%</bdi> − النمو).")
@@ -478,6 +480,8 @@ def section(sym, price=None, key="fv"):
         ui.html(f'<div class="fvempty">{T.icon("balance")} {msg}</div>')
         return r
     ui.html(card_html(r))
+    ui.ai_note("Fair value (site estimate)", f"{r['fv']:,.2f} (range {r['bear']:,.2f} to {r['bull']:,.2f}), {r['up']:+.1f}% vs the price "
+               f"{r['price']:,.2f}; methods: " + ", ".join(f"{k} {v:,.2f}" for k, v in r["methods"].items()) + f"; confidence {r['conf']}")
     with st.expander(L("How this fair value is worked out", "كيف انحسبت القيمة العادلة"), icon=":material/calculate:"):
         ui.html(f'<div style="font-size:.86rem;line-height:1.7;color:#CFC8DA">{explain(r)}</div>')
         if r.get("dcf"):
@@ -489,7 +493,7 @@ def section(sym, price=None, key="fv"):
             ui.html(f'<div class="fvc" style="--fvline:linear-gradient(90deg,{T.ACCENT},{T.VIOLET});padding:12px 16px"><div class="as" style="margin-top:0">'
                     f'<span>{L("Ten years, today", "العشر سنوات بقيمة اليوم")} <b>{T.fmt_big(d["ev"] - d["pv_tv"])}</b></span>'
                     f'<span>{L("After year 10, today", "ما بعد السنة 10 بقيمة اليوم")} <b>{T.fmt_big(d["pv_tv"])}</b></span>'
-                    f'<span>{L("+ cash − debt", "+ الكاش − الدين")} <b>{T.fmt_big(r["cash"] - r["debt"])}</b></span>'
+                    f'<span>{L("= value of the shares", "= قيمة الأسهم")} <b>{T.fmt_big(d["equity"])}</b></span>'
                     f'<span>{L("÷ shares", "÷ عدد الأسهم")} <b>{T.fmt_big(r["shares"])}</b></span>'
                     f'<span>{L("= per share", "= للسهم")} <b>{_m(d["equity"] / r["shares"])}</b></span></div></div>')
     return r
@@ -502,11 +506,15 @@ def explain(r):
         parts.append(L("<b>Discounted cash flow</b>: a company is worth the cash it will make in the future, in today's money. Its free cash flow "
                        f"(the average of the last year and the two before, <bdi>{_big(r['fcf0'])}</bdi>) grows <bdi>{r['g'] * 100:.1f}%</bdi> a year for five years, "
                        f"then slows to <bdi>{r['gt'] * 100:.1f}%</bdi>; every year is brought back to today at <bdi>{r['ke'] * 100:.1f}%</bdi> (the 10-year Treasury "
-                       f"<bdi>{r['rf'] * 100:.2f}%</bdi> + beta <bdi>{r['beta']:.2f}</bdi> × 4.5% for the risk of stocks).",
+                       f"<bdi>{r['rf'] * 100:.2f}%</bdi> + beta <bdi>{r['beta']:.2f}</bdi> × 4.5% for the risk of stocks). The free cash flow is what "
+                       "is left after interest, so it belongs to the shareholders: discounted at their own rate it gives the value of the shares, "
+                       "with no cash added or debt taken away (that would count the debt twice).",
                        "<b>التدفقات النقدية المخصومة</b>: الشركة تسوى الكاش اللي بتحققه بالمستقبل، بقيمة اليوم. التدفق النقدي الحر "
                        f"(متوسط آخر سنة والسنتين قبلها، <bdi>{_big(r['fcf0'])}</bdi>) ينمو <bdi>{r['g'] * 100:.1f}%</bdi> سنوياً خمس سنوات، "
                        f"ثم يتباطأ إلى <bdi>{r['gt'] * 100:.1f}%</bdi>، وكل سنة ترجع لقيمة اليوم بمعدل <bdi>{r['ke'] * 100:.1f}%</bdi> (عائد سندات 10 سنوات "
-                       f"<bdi>{r['rf'] * 100:.2f}%</bdi> + بيتا <bdi>{r['beta']:.2f}</bdi> × 4.5% مقابل مخاطرة الأسهم)."))
+                       f"<bdi>{r['rf'] * 100:.2f}%</bdi> + بيتا <bdi>{r['beta']:.2f}</bdi> × 4.5% مقابل مخاطرة الأسهم). التدفق النقدي الحر هو اللي يبقى "
+                       "بعد الفوائد، يعني يخص المساهمين: ولما ينخصم بعائدهم المطلوب يعطي قيمة الأسهم مباشرة، بدون ما نضيف الكاش أو نطرح الدين "
+                       "(لأن هذا يحسب الدين مرتين)."))
     if "pb" in r["methods"]:
         parts.append(L("<b>Justified price-to-book</b> (banks and insurers, whose cash flows don't mean the same): the book value is worth more than "
                        "its face value when the company earns more on it than investors ask for.",
@@ -531,4 +539,4 @@ def explain(r):
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.1"
+BUILD = "22.2"

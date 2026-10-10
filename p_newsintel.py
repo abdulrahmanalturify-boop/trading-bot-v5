@@ -399,7 +399,7 @@ CSS2 = """<style>
 
 IMPACT_LEVELS = [(70, "High", "عالي"), (45, "Medium", "متوسط"), (0, "Low", "منخفض")]
 _EV_ABBR = {"macro": "MAC", "market": "MKT", "earnings": "EPS", "guidance": "GUI", "mna": "M&A", "regulation": "REG", "lawsuit": "LAW",
-            "management": "CEO", "contract": "WIN", "analyst": "RTG", "offering": "OFF", "payout": "DIV", "restructuring": "CUT",
+            "management": "CEO", "contract": "WIN", "analyst": "RTG", "offering": "OFF", "payout": "DIV", "restructuring": "CUT", "competition": "VS",
             "product": "NEW", "distress": "RSK", "other": "CO"}
 
 
@@ -437,6 +437,11 @@ def picture(a):
     if a["direct"]:
         return data.logo_url(a["direct"][0])
     return _ev_pic(a["event"])
+
+
+def _ev_name(a, en, ar):
+    """The kind of event, marked when it was read in the summary only (less certain)."""
+    return L(en, ar) + (L(" · uncertain", " · غير مؤكد") if a.get("ev_unsure") else "")
 
 
 def _sent_txt(lab):
@@ -670,12 +675,15 @@ def _detail(a, chg, sec_chg, titles_ar, dfm=None):
     who = _tk(a["direct"][0]) if a["direct"] else _bench()
     imp_word = {"bull": ("Positive Impact", "أثر إيجابي"), "bear": ("Negative Impact", "أثر سلبي"), "neutral": ("Neutral Impact", "أثر محايد")}[a["lab"]]
     tags = (f'<span class="nie-tag" style="color:{scol};border-color:{scol}55;background:{scol}14">{T.esc(who)} — {T.esc(L(*imp_word))}</span>'
-            f'<span class="nie-tag" style="color:#C4B5FD;border-color:#C4B5FD44;background:#7C3AED14">{T.icon(ic)}{T.esc(L(en_ev, ar_ev))}</span>')
+            f'<span class="nie-tag" style="color:#C4B5FD;border-color:#C4B5FD44;background:#7C3AED14">{T.icon(ic)}{T.esc(_ev_name(a, en_ev, ar_ev))}</span>')
     also = T.also_badge(n.get("also"), ar)
     ui.html(f'<div class="nie-card">{T.news_thumb(n, big=True)}<div class="tx"><div class="tt"><a href="{T.esc(n.get("link") or "#")}" '
             f'target="_blank">{T.esc(title)}</a></div><div class="mt">{T.esc(n.get("source") or "")}{also} · '
             f'{T.time_ago(n["time"], ar) if pd.notna(n.get("time")) else ""}</div><div class="hd">{tags}</div></div></div>')
     ui.html(_verdict(a))
+    ui.ai_note("Story", n.get("title") or "")
+    ui.ai_note("Engine reading", f"{NI.EVENT.get(a['event'], NI.EVENT['other'])[0]}{' (uncertain)' if a.get('ev_unsure') else ''}, "
+               f"{NI.SENT[a['lab']][0]}, impact {a['impact']:.0f}/100, setup {a['setup']['total']}/100, confidence {a['confidence']}%")
     # the facts, as in a research note
     main_ = a["direct"][0] if a["direct"] else ""
     secs = " / ".join(dict.fromkeys(x for sec, sub in a["sectors"] for x in (_secn(sec), _subn(main_, sub)) if x))
@@ -708,7 +716,7 @@ def _detail(a, chg, sec_chg, titles_ar, dfm=None):
     why_en, why_ar = NI.why(a)
     reason = L(why_en, why_ar).split(". ")[1] if ". " in L(why_en, why_ar) else L(why_en, why_ar)
     hzt = NI.HORIZON[hz]
-    cells = [_fact(L("Event type", "نوع الخبر"), T.esc(L(en_ev, ar_ev))),
+    cells = [_fact(L("Event type", "نوع الخبر"), T.esc(_ev_name(a, en_ev, ar_ev))),
              _fact(L("Expected impact", "التأثير المتوقع"), f'<span style="color:{scol}">{T.esc(L(sen, sar))}</span>'),
              _fact(L("Time horizon", "الأفق الزمني"), T.esc(L(*hzt))),
              _fact(L("Sectors affected", "القطاعات المتأثرة"), T.esc(secs)),
@@ -769,7 +777,7 @@ def _tab_ai(a, n, ar):
     who = _stock_txt(a)
     imp, mat, conf = a["impact"], a["materiality"], a["confidence"]
     tiles = [
-        _tile(ic, L("Event", "الحدث"), T.esc(L(en_ev, ar_ev)), T.esc(who)),
+        _tile(ic, L("Event", "الحدث"), T.esc(_ev_name(a, en_ev, ar_ev)), T.esc(who)),
         _tile("balance", L("Reading", "القراءة"), f'<span style="color:{scol}">{T.esc(L(sen, sar))}</span> <small>{a["sent"]:+.2f}</small>',
               T.esc(L("from the words and the price", "من الكلمات والسعر"))),
         _tile("schedule", L("Horizon", "الأفق"), T.esc(L(*NI.HORIZON[hz])), T.esc(L("how long it may last", "كم ممكن يدوم"))),
@@ -1267,12 +1275,12 @@ def _card_html(a, title, chg, big=False):
         sm = f'<div class="sm" dir="auto">{T.esc(summ[:320])}</div>' if summ and not ar else ""
         return (f'<div class="{cls}" data-nogq><div class="pic">{T.news_thumb(n, big=True)}</div><div class="bd">'
                 f'<span class="nie-spot">{T.icon("local_fire_department")}{T.esc(L("Top story right now", "أهم خبر الحين"))}</span>'
-                f'<div class="top"><span class="ev">{T.icon(ic)}{T.esc(L(en_ev, ar_ev))}</span>{"".join(tks)}{new}</div>'
+                f'<div class="top"><span class="ev">{T.icon(ic)}{T.esc(_ev_name(a, en_ev, ar_ev))}</span>{"".join(tks)}{new}</div>'
                 f'<div class="tt" dir="auto">{T.esc(title)}</div><div class="mt">{meta}</div>{sm}'
                 f'<div class="why">{T.icon("lightbulb")}<span>{T.esc(L(why_en, why_ar))}</span></div>{foot}'
                 f'<span class="go">{T.esc(L("Open the full analysis", "افتح التحليل الكامل"))} {T.icon("arrow_back" if ar else "arrow_forward")}</span></div></div>')
     return (f'<div class="{cls}" data-nogq><div class="pic">{T.news_thumb(n)}</div><div class="bd">'
-            f'<div class="top"><span class="ev">{T.icon(ic)}{T.esc(L(en_ev, ar_ev))}</span>{"".join(tks)}{new}</div>'
+            f'<div class="top"><span class="ev">{T.icon(ic)}{T.esc(_ev_name(a, en_ev, ar_ev))}</span>{"".join(tks)}{new}</div>'
             f'<div class="tt" dir="auto">{T.esc(title)}</div><div class="mt">{meta}</div>{foot}</div></div>')
 
 
@@ -1391,15 +1399,17 @@ def page_news_intel():
     else:
         titles_ar = {}
     # ---- the filters
-    c1, c2, c3, c4 = st.columns([2.1, 1.35, 1.25, 1.3], vertical_alignment="bottom")
+    # the filters on three rows, so no choice is cut on a narrower screen (or in Arabic, whose labels are longer)
+    c1, c2 = st.columns([1.7, 1.3], vertical_alignment="bottom")
     q = c1.text_input(L("Search", "بحث"), key="nie_q", placeholder=L("A word, a company or a ticker…", "كلمة أو شركة أو رمز…"))
     c2.segmented_control(L("Time", "الوقت"), [6, 24, 96], default=24, key="nie_hrs",
                          format_func=lambda h: {6: L("6 hours", "6 ساعات"), 24: L("24 hours", "24 ساعة"), 96: L("4 days", "4 أيام")}[h])
+    c3, c4, e2 = st.columns([1.2, 1.4, 1.1], vertical_alignment="bottom")
     sent = c3.segmented_control(L("Sentiment", "الاتجاه"), ["all", "bull", "bear"], default="all", key="nie_sent",
                                 format_func=lambda k: L("All", "الكل") if k == "all" else L(*NI.SENT[k][:2])) or "all"
     sort = c4.segmented_control(L("Sort by", "الترتيب"), ["impact", "setup", "new"], default="impact", key="nie_sort",
                                 format_func=lambda k: {"impact": L("Impact", "الأثر"), "setup": L("Setup", "الفرصة"), "new": L("Latest", "الأحدث")}[k]) or "impact"
-    e1, e2, e3 = st.columns([3, 1.4, 1.2], vertical_alignment="bottom")
+    e1, e3 = st.columns([3, 1.2], vertical_alignment="bottom")
     ev_keys = [k for k, *_ in NI.EVENTS] + ["market", "other"]
     ui.valid_multi("nie_ev", ev_keys)
     pick_ev = e1.multiselect(L("Event type", "نوع الخبر"), ev_keys, key="nie_ev", placeholder=L("All events", "كل الأحداث"),
@@ -1515,4 +1525,4 @@ def page_news_intel():
             _show_story(a, chg, px, titles_ar)
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.1"
+BUILD = "22.2"

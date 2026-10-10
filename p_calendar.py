@@ -573,19 +573,20 @@ def page_econ_calendar():
         st.caption(L("★★★ = Saudi inflation, GDP and SAMA's repo rates, and the US releases that move markets (the Fed, inflation, jobs): SAMA "
                      "follows the Fed because the riyal is pegged to the dollar. The other Gulf states go up to ★★. A release marked "
                      "“date not confirmed” has no set day yet in Yahoo's calendar; it is shown on the first possible day. Green actual = better "
-                     "than forecast for the economy, red = worse. Times are Riyadh time. Source: Yahoo Finance economic calendar.",
+                     "news than forecast, red = worse (for inflation and unemployment, lower is better). Times are Riyadh time. Source: Yahoo Finance economic calendar.",
                      "★★★ = التضخم والناتج المحلي السعوديين وأسعار الريبو من ساما، والبيانات الأمريكية اللي تحرك الأسواق (الفيدرالي والتضخم "
                      "والوظائف): ساما تتبع الفيدرالي لأن الريال مربوط بالدولار. باقي دول الخليج لين ★★. البيان المكتوب جنبه «الموعد غير مؤكد» "
-                     "ما له يوم محدد للحين في تقويم ياهو، ويظهر في أول يوم ممكن. الفعلي الأخضر = أفضل من المتوقع للاقتصاد، والأحمر = أسوأ. "
+                     "ما له يوم محدد للحين في تقويم ياهو، ويظهر في أول يوم ممكن. الفعلي الأخضر = خبر أفضل من المتوقع، والأحمر = أسوأ (في التضخم "
+                     "والبطالة الأقل أفضل). "
                      "الأوقات بتوقيت الرياض. المصدر: التقويم الاقتصادي في ياهو فاينانس."))
         ui.foot()
         return
     st.caption(L("★★★ = market-moving US releases (inflation, jobs, the Fed, GDP, retail sales, ISM). In the World view the euro area, Japan, "
-                 "the UK and China go up to ★★ and other countries are ★: their effect on US stocks is smaller. Green actual = better than "
-                 "forecast for the economy, red = worse (for unemployment and jobless claims, lower is better). Source: Yahoo Finance economic calendar.",
+                 "the UK and China go up to ★★ and other countries are ★: their effect on US stocks is smaller. Green actual = better news than "
+                 "forecast, red = worse (for inflation, unemployment and jobless claims, lower is better). Source: Yahoo Finance economic calendar.",
                  "★★★ = بيانات أمريكية تحرك السوق (التضخم والوظائف والفيدرالي والناتج المحلي ومبيعات التجزئة وISM). في عرض العالم منطقة اليورو واليابان "
-                 "وبريطانيا والصين لين ★★ وباقي الدول ★، لأن أثرها على الأسهم الأمريكية أقل. الفعلي الأخضر = أفضل من المتوقع للاقتصاد، "
-                 "والأحمر = أسوأ (في البطالة وطلبات إعانة البطالة الأقل أفضل). المصدر: التقويم الاقتصادي في ياهو فاينانس."))
+                 "وبريطانيا والصين لين ★★ وباقي الدول ★، لأن أثرها على الأسهم الأمريكية أقل. الفعلي الأخضر = خبر أفضل من المتوقع، "
+                 "والأحمر = أسوأ (في التضخم والبطالة وطلبات إعانة البطالة الأقل أفضل). المصدر: التقويم الاقتصادي في ياهو فاينانس."))
     ui.foot()
 
 
@@ -958,4 +959,4 @@ def page_ipos():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.1"
+BUILD = "22.2"
