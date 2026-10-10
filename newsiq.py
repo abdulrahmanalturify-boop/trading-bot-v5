@@ -52,7 +52,7 @@ TOPICS = [
     ("move", "Big move", "حركة قوية", 1.4,
      r"\b(record highs?|all-time highs?|plunges?|plunged|soars?|soared|surges?|surged|tumbles?|tumbled|crash(?:es|ed)?|sell-?off|"
      r"slumps?|slumped|skyrockets?|sinks?|sank|jumps?|jumped|rall(?:y|ies|ied)|rebounds?|rebounded|slides?|slid)\b"),
-    ("street", "Wall Street", "وول ستريت", 0.8, r"(\bs&p 500\b|\bnasdaq\b|\bdow jones\b|\bwall street\b|\bstock market\b|\bstocks\b|\bequities\b)"),
+    ("street", "Wall Street", "وول ستريت", 0.8, r"(\bs&p 500\b|\bnasdaq\b|\bdow jones\b|\bwall street\b|\bwall st\b|\bstock market\b|\bstocks\b|\bequities\b)"),
 ]
 # the same topics in the Saudi market's Arabic headlines (matched inside words: Arabic glues "و", "ب", "ال" to them)
 TOPICS_AR = {
@@ -217,11 +217,13 @@ def analyze(n, chg=None, now=None):
     summ = str(n.get("summary") or "")[:500]
     tickers = [t for t in (n.get("tickers") or []) if t]
     home_sa = n.get("mkt") == "sa" or any(str(t).endswith(".SR") for t in tickers)     # a story read for the Saudi market
-    hits = []
+    hits, first = [], {}
     for key, en, ar, w, pat in _TOPICS:
         par = _TOPICS_AR.get(key)
-        if pat.search(title) or (par is not None and par.search(title)):
+        m = pat.search(title) or (par.search(title) if par is not None else None)
+        if m:
             hits.append((w, key, en, ar))
+            first[key] = m.start()
         elif summ and (pat.search(summ) or (par is not None and par.search(summ))):
             hits.append((w * 0.6, key, en, ar))
     def topic_of(hs):
@@ -295,7 +297,9 @@ def analyze(n, chg=None, now=None):
             kws.append(("entity", en, ar))
     if opinion:
         kws.append(("opinion", "Opinion", "رأي"))
-    return {"score": score, "raw": raw, "keywords": kws, "reasons": reasons, "topics": [h[1] for h in hits], "move": mx}
+    # the photo's topic: what the headline names first ("Gold steadies as traders weigh the Fed" is about gold), else the strongest
+    pic = min(first, key=lambda k: (first[k], -dict((h[1], h[0]) for h in hits).get(k, 0))) if first else (hits[0][1] if hits else "street")
+    return {"score": score, "raw": raw, "keywords": kws, "reasons": reasons, "topics": [h[1] for h in hits], "move": mx, "pic": pic}
 
 
 def enrich(items, chg=None):

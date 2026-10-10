@@ -19,11 +19,11 @@ URL = f"http://localhost:{PORT}"
 os.makedirs(OUT, exist_ok=True)
 
 # (name, path, market) - each page opened fresh with ?m=<market>&lang=<lang>
-PAGES = [  # 22.3: the spacing, the section titles, the tabs and the charts; a story's analysis opened from the News page
-         ("stock", "stock?symbol=NVDA", "us"), ("news", "news", "us", '[class*="st-key-nwa_"] button'),
+PAGES = [  # 22.4: the Discover pages (trending, news, the news engine) and a story's window, the charts' new look
+         ("trending", "trending", "us"), ("news", "news", "us", '[class*="st-key-nwa_"] button'),
          ("newsintel", "news-intelligence", "us", '[class*="st-key-nie_cb_"] button'),
-         ("sentiment", "sentiment", "us"), ("seasonality", "seasonality", "us"), ("pf_dash", "portfolio", "us"),
-         ("sa_stock", "stock?symbol=2222.SR", "sa"), ("sa_news", "news", "sa", '[class*="st-key-nwa_"] button')]
+         ("sentiment", "sentiment", "us"), ("seasonality", "seasonality", "us"), ("stock", "stock?symbol=NVDA", "us"),
+         ("sa_trending", "trending", "sa"), ("sa_news", "news", "sa", '[class*="st-key-nwa_"] button')]
 
 
 def log(*a):
@@ -50,6 +50,56 @@ def seed_bots():
         except Exception as e:
             log("seed", r["name"], e)
     log("seeded", len(PB.list_bots()), "bots")
+
+
+def news_lab():
+    """A real sample for tuning the news bot (news_us.json, news_sa.json: every headline of one round with its companies,
+    keywords and score) and a contact sheet of every topic's photos (pics_*.jpg), so a wrong picture is seen at once."""
+    import newsbot as NB
+    import newsiq
+    for name, bot in (("us", NB.NewsBot()), ("sa", NB.NewsBot(NB.SA_FEEDS, finder=NB.sa_tickers_in))):
+        try:
+            bot.collect(force=True)
+            rows = []
+            for n in bot.items(96):
+                iq = newsiq.analyze(n)
+                rows.append({"title": n["title"], "source": n["source"], "also": n.get("also"), "time": str(n["time"]),
+                             "summary": (n.get("summary") or "")[:300], "tickers": n.get("tickers"), "cat": n.get("cat"),
+                             "img": bool(n.get("img")), "score": iq["score"], "topics": iq["topics"], "pic": iq.get("pic"),
+                             "kw": [k[1] for k in iq["keywords"]]})
+            with open(os.path.join(OUT, f"news_{name}.json"), "w", encoding="utf-8") as f:
+                json.dump(rows, f, ensure_ascii=False, indent=0)
+            log("news", name, len(rows))
+        except Exception as e:
+            log("news lab", name, e)
+    try:
+        import io
+        import requests
+        import newspics as NP
+        from PIL import Image, ImageDraw
+        NP.fill(budget=260)
+        topics = list(NP.TOPIC_Q)
+        W, H, PER = 240, 150, 8
+        for part in range(0, len(topics), 5):
+            group = topics[part:part + 5]
+            sheet = Image.new("RGB", (W * PER, (H + 34) * len(group)), (14, 12, 22))
+            dr = ImageDraw.Draw(sheet)
+            for r, t in enumerate(group):
+                pics = (NP._POOLS.get(t) or {}).get("pics") or []
+                dr.text((6, r * (H + 34) + 2), f"{t} ({len(pics)})", fill=(255, 220, 120))
+                for c, pic in enumerate(pics[:PER]):
+                    try:
+                        im = Image.open(io.BytesIO(requests.get(pic["u"], headers=NP.UA_WIKI, timeout=15).content)).convert("RGB")
+                        im.thumbnail((W - 6, H - 6))
+                        sheet.paste(im, (c * W + 3, r * (H + 34) + 16))
+                    except Exception:
+                        pass
+                    dr.text((c * W + 3, r * (H + 34) + H + 16), str(pic.get("f") or "")[:38], fill=(200, 200, 210))
+            sheet.save(os.path.join(OUT, f"pics_{part // 5}.jpg"), quality=78)
+        with open(os.path.join(OUT, "pics.json"), "w", encoding="utf-8") as f:
+            json.dump({t: [p.get("f") for p in (NP._POOLS.get(t) or {}).get("pics") or []] for t in topics}, f, ensure_ascii=False, indent=1)
+    except Exception as e:
+        log("pics lab", e)
 
 
 def settle(pg, limit=150):
@@ -85,6 +135,7 @@ def shoot(pg, name):
 
 
 def main():
+    news_lab()
     seed_bots()
     env = dict(os.environ, PYTHONUNBUFFERED="1")
     srv = subprocess.Popen([sys.executable, "-m", "streamlit", "run", "app.py", "--server.headless", "true", "--server.port", str(PORT),

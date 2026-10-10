@@ -27,38 +27,65 @@ UA_WIKI = {"User-Agent": "TURAPro/1.0 (https://abdulrahman.streamlit.app; market
 BROWSER = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0 Safari/537.36",
            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", "Accept-Language": "en-US,en;q=0.9"}
 
-# the searches behind each topic's photos (newsiq topic keys; "street" is the general market picture)
+# the searches behind each topic's photos: (search, what the photo's file name or its categories must say). A search inside one
+# Commons category is precise on its own (None); a free-text search must be confirmed, or "semiconductor wafer" brings back
+# a plate of wafer biscuits. "street" is the general market picture.
+def _cat(name):
+    return (f'incategory:"{name}"', None)
+
+
 TOPIC_Q = {
-    "fed": ["Eccles Building Federal Reserve", "Federal Reserve Bank building"],
-    "inflation": ["supermarket aisle", "grocery store shelves"],
-    "jobs": ["construction workers building site", "factory assembly line"],
-    "economy": ["Manhattan financial district skyline", "shopping street crowd"],
-    "bonds": ["Treasury Building Washington", "United States Department of the Treasury building"],
-    "trade": ["container ship port", "container terminal cranes"],
-    "geo": ["United Nations headquarters flags", "oil tanker at sea"],
-    "policy": ["United States Capitol", "White House Washington"],
-    "earnings": ["stock market quotes screen", "corporate headquarters skyscraper"],
-    "guidance": ["stock chart computer screen", "business meeting presentation"],
-    "analyst": ["stock market display board", "trading screens"],
-    "payout": ["stack of coins", "United States dollar banknotes"],
-    "mna": ["office towers skyscrapers", "conference room table"],
-    "ipo": ["New York Stock Exchange facade", "Nasdaq MarketSite Times Square"],
-    "legal": ["Supreme Court of the United States building", "courthouse columns"],
-    "health": ["pills tablets medicine", "laboratory pipette"],
-    "distress": ["store closing sign", "abandoned shopping mall"],
-    "layoffs": ["empty office", "office cubicles"],
-    "product": ["smartphones", "consumer electronics store"],
-    "ai": ["semiconductor wafer", "data center servers", "integrated circuit chip"],
-    "crypto": ["bitcoin coins", "cryptocurrency coins"],
-    "oil": ["pumpjack oil field", "oil refinery"],
-    "metals": ["gold bars", "gold bullion"],
-    "fx": ["banknotes currencies", "currency exchange rates board"],
-    "move": ["New York Stock Exchange trading floor", "stock ticker board"],
-    "street": ["Wall Street New York", "New York Stock Exchange"],
+    "fed": [_cat("Marriner S. Eccles Federal Reserve Board Building"), ("Eccles Building Federal Reserve", r"eccles|federal reserve"),
+            ("Federal Reserve Bank building", r"federal reserve")],
+    "inflation": [("supermarket aisle", r"supermarket|grocer|aisle|shelves|store"), ("grocery store shelves", r"grocer|supermarket|shelves|store")],
+    "jobs": [("construction workers building site", r"worker|construction|builder"), ("factory assembly line", r"assembly|factory|production|plant")],
+    "economy": [_cat("Financial District, Manhattan"), ("Manhattan financial district skyline", r"manhattan|financial district|skyline"),
+                ("shopping street crowd", r"shopping|street|mall|shoppers")],
+    "bonds": [_cat("Treasury Building (Washington, D.C.)"), ("Treasury Building Washington", r"treasury"),
+              ("United States Department of the Treasury building", r"treasury")],
+    "trade": [_cat("Container ships"), ("container ship port", r"container"), ("container terminal cranes", r"container|terminal|port|crane")],
+    "geo": [_cat("United Nations Headquarters"), ("United Nations headquarters flags", r"united nations|\bun\b|flags"),
+            ("oil tanker at sea", r"tanker")],
+    "policy": [_cat("United States Capitol"), ("United States Capitol", r"capitol"), ("White House Washington", r"white house")],
+    "earnings": [("stock market quotes screen", r"stock|quote|ticker|exchange|trading|market"),
+                 ("corporate headquarters skyscraper", r"headquarters|skyscraper|tower|office|building")],
+    "guidance": [("stock chart computer screen", r"stock|chart|screen|monitor|trading"), ("business meeting presentation", r"meeting|presentation|conference")],
+    "analyst": [("stock market display board", r"stock|board|display|ticker|exchange"), ("trading screens", r"trading|screen|monitor|terminal")],
+    "payout": [("stack of coins", r"coins?"), ("United States dollar banknotes", r"dollar|banknote|bills?|currency")],
+    "mna": [("office towers skyscrapers", r"office|tower|skyscraper|building"), ("conference room table", r"conference|meeting|board ?room")],
+    "ipo": [_cat("New York Stock Exchange Building"), ("New York Stock Exchange facade", r"stock exchange|nyse"),
+            ("Nasdaq MarketSite Times Square", r"nasdaq")],
+    "legal": [_cat("Supreme Court of the United States Building"), ("Supreme Court of the United States building", r"supreme court|court"),
+              ("courthouse columns", r"court")],
+    "health": [("pills tablets medicine", r"pills?|tablets?|capsules?|medic\w*|drug|pharma\w*"),
+               ("laboratory pipette", r"laborator\w*|pipette|lab\b|science")],
+    "distress": [("store closing sign", r"clos\w+|store|sign|shop"), ("abandoned shopping mall", r"mall|abandon\w*|dead|vacant|empty")],
+    "layoffs": [("empty office", r"office|desk|cubicle|workplace"), ("office cubicles", r"office|cubicle|desk")],
+    "product": [("smartphones", r"smartphone|phone|iphone|android|mobile"), ("consumer electronics store", r"electronic|store|shop|retail")],
+    "ai": [_cat("Silicon wafers"), _cat("Data centers"),
+           ("semiconductor wafer", r"silicon|semiconductor|integrated circuit|microchip|microprocessor|photolithograph\w*|\bdie\b|cleanroom|\bfab\b"),
+           ("data center servers", r"servers?|data ?cent(?:er|re)|rack|server room"),
+           ("integrated circuit chip", r"integrated circuit|microchip|microprocessor|processor|\bcpu\b|\bgpu\b|semiconductor|silicon")],
+    "crypto": [("bitcoin coins", r"bitcoin|crypto"), ("cryptocurrency coins", r"crypto|bitcoin|coin")],
+    "oil": [_cat("Pumpjacks"), ("pumpjack oil field", r"pump ?jack|oil|well"), ("oil refinery", r"refiner\w*|oil|petro\w*")],
+    "metals": [("gold bars", r"gold"), ("gold bullion", r"gold|bullion")],
+    "fx": [("banknotes currencies", r"banknotes?|currenc\w*|money|notes"), ("currency exchange rates board", r"currency|exchange|rates?|money")],
+    "move": [_cat("New York Stock Exchange trading floor"), ("New York Stock Exchange trading floor", r"stock exchange|nyse|trading floor|trader"),
+             ("stock ticker board", r"ticker|stock|board")],
+    "street": [_cat("Wall Street"), ("Wall Street New York", r"wall street|stock exchange|nyse|financial district"),
+               ("New York Stock Exchange", r"stock exchange|nyse|wall street")],
 }
+_MUST = {}            # search -> compiled "must say"
+# never a dish, a snack or a drink (an inflation story keeps its supermarket shelves)
+_OFF = re.compile(r"\b(foods?|cuisine|cookies?|biscuits?|waffles?|wafers? \(food\)|confection\w*|snacks?|desserts?|cakes?|pastr(?:y|ies)|"
+                  r"bakery|bakeries|candy|candies|chocolates?|potato chips|crisps|dish(?:es)?|meals?|recipes?|restaurants?|drinks?|"
+                  r"beverages?|cooking|kitchen|fruit|vegetables?|animals?|dogs?|cats?|birds?|flowers?)\b", re.I)
+_OFF_FREE = {"inflation"}                 # the topics whose photos may show food
+# files that slipped through once and are never shown again (by their Commons file name)
+_NEVER = set()
 GENERAL = "street"
 WEEK = 7 * 86400
-_DISK = os.path.join(tempfile.gettempdir(), "alturaifi_newspics_v1.json")
+_DISK = os.path.join(tempfile.gettempdir(), "alturaifi_newspics_v2.json")     # v2: the confirmed searches
 _POOLS = {}                 # topic -> {"at": time, "pics": [{"u": 500px url, "b": 960px url, "c": credit}]}
 _LOCK = threading.Lock()
 _FILLING = threading.Lock()
@@ -86,12 +113,16 @@ def _free(meta):
     return lic.startswith(("public domain", "pd", "cc0", "cc by", "cc-by"))
 
 
-def _search(q, quality=True, n=40):
-    """Landscape JPEG photos with a free licence for one search (the photos rated 'quality images' first)."""
+def _search(q, quality=True, n=40, must=None, food_ok=False):
+    """Landscape JPEG photos with a free licence for one search (the photos rated 'quality images' first). must: a pattern the
+    file's name or one of its categories has to match (a free-text search is confirmed by it); never a photo of food unless
+    food_ok."""
     params = {"action": "query", "format": "json", "formatversion": "2", "generator": "search", "gsrnamespace": "6",
               "gsrsearch": f"{q} filetype:bitmap" + (" incategory:Quality_images" if quality else ""), "gsrlimit": str(n),
-              "prop": "imageinfo", "iiprop": "url|size|mime|extmetadata", "iiurlwidth": "960",
-              "iiextmetadatafilter": "LicenseShortName|Artist", "maxlag": "5"}
+              "prop": "imageinfo|categories", "iiprop": "url|size|mime|extmetadata", "iiurlwidth": "960", "cllimit": "max",
+              "clshow": "!hidden", "iiextmetadatafilter": "LicenseShortName|Artist", "maxlag": "5"}
+    if must and q not in _MUST:
+        _MUST[q] = re.compile(must, re.I)
     r = requests.get("https://commons.wikimedia.org/w/api.php", params=params, headers=UA_WIKI, timeout=12)
     r.raise_for_status()
     pages = (r.json().get("query") or {}).get("pages") or []
@@ -107,8 +138,16 @@ def _search(q, quality=True, n=40):
             continue
         if w < 1200 or not (1.2 * h <= w <= 3.2 * h) or _BAD_WORDS.search(title) or not _free(meta):
             continue
+        if title.split(":", 1)[-1] in _NEVER:
+            continue
+        cats = " ".join(str(c.get("title") or "").split(":", 1)[-1] for c in (p.get("categories") or []))
+        said = title.split(":", 1)[-1].rsplit(".", 1)[0].replace("_", " ") + " | " + cats
+        if not food_ok and _OFF.search(said):
+            continue
+        if must and not _MUST[q].search(said):
+            continue
         small = big[:px.start()] + "/500px-" + big[px.end():] if int(px.group(1)) > 500 else big
-        out.append({"u": small, "b": big, "c": _credit(meta)})
+        out.append({"u": small, "b": big, "c": _credit(meta), "f": title.split(":", 1)[-1][:120]})
     return out
 
 
@@ -154,12 +193,12 @@ def fill(budget=90):
             if time.time() > end:
                 break
             pics, seen = [], set()
-            for q in TOPIC_Q[t]:
+            for q, must in TOPIC_Q[t]:
                 for quality in (True, False):
                     if len(pics) >= 10:
                         break
                     try:
-                        found = _search(q, quality)
+                        found = _search(q, quality, must=must, food_ok=t in _OFF_FREE)
                     except requests.HTTPError as e:
                         if getattr(e.response, "status_code", 0) in (403, 429):
                             _STATE["rest"] = time.time() + 1800
@@ -207,8 +246,12 @@ def topic_photo(topic, key, big=False):
 
 
 def topic_of(n, known=None):
-    """The story's topic (as theme.news_thumb picks it)."""
+    """The story's topic for its photo (as theme.news_thumb picks it): what the headline names first ("Gold steadies as ...
+    Fed ..." is a gold story), else its strongest topic."""
     iq = n.get("iq") or {}
+    pic = iq.get("pic")
+    if pic in TOPIC_Q and (known is None or pic in known):
+        return pic
     return next((t for t in iq.get("topics", []) if t in TOPIC_Q and (known is None or t in known)), GENERAL)
 
 

@@ -2621,7 +2621,7 @@ def news_thumb(n, big=False):
     if the photo cannot load, the topic picture is drawn in its place). The first affected company's logo sits in the corner."""
     import newsiq
     iq = n.get("iq") or {}
-    topic = next((t for t in iq.get("topics", []) if t in _TOPIC_GROUP), "street")
+    topic = iq.get("pic") if iq.get("pic") in _TOPIC_GROUP else next((t for t in iq.get("topics", []) if t in _TOPIC_GROUP), "street")
     ic = newsiq.TOPIC_ICON.get(topic, "show_chart")
     grad = _TG[_TOPIC_GROUP.get(topic, "market")]
     lab = next(((en, ar) for key, en, ar, *_ in newsiq.TOPICS if key == topic), ("Markets", "الأسواق"))
