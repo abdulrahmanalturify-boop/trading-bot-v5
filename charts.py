@@ -190,16 +190,20 @@ def polish(fig):
     return fig
 
 
+# signed bars (22.4): solid, saturated fills with no outline (the modern flat look), white text inside, the bright tone outside
+BAR_UP, BAR_DOWN = "#1E8A57", "#B23A4A"
+
+
 def pastel(values, neutral=False):
-    """fills, outlines, inside-text colors, outside-text colors for signed values."""
+    """fills, outlines, inside-text colors, outside-text colors for signed values (the outline is the fill: no border)."""
     fill, line, txt, out = [], [], [], []
     for v in values:
         if v is None or (isinstance(v, float) and np.isnan(v)) or (neutral and v == 0):
-            fill.append("#332E3D"); line.append("#3A3545"); txt.append(TEXT); out.append(MUTED)
+            fill.append("#3A3545"); line.append("#3A3545"); txt.append(TEXT); out.append(MUTED)
         elif v >= 0:
-            fill.append(POS_BG); line.append(POS_BD); txt.append(POS_FG); out.append(POS_BD)
+            fill.append(BAR_UP); line.append(BAR_UP); txt.append("#FFFFFF"); out.append(POS_BD)
         else:
-            fill.append(NEG_BG); line.append(NEG_BD); txt.append(NEG_FG); out.append(NEG_BD)
+            fill.append(BAR_DOWN); line.append(BAR_DOWN); txt.append("#FFFFFF"); out.append(NEG_BD)
     return fill, line, txt, out
 
 
@@ -955,13 +959,14 @@ def metric_bars(labels, values, title=None, kind="money", height=340):
             return f"${v:.2f}"
         return f"{v:.2f}"
     fig = go.Figure(go.Bar(x=labels, y=values, marker=dict(color=fill, line=dict(color=line, width=1.2)),
-                           text=[f(v) for v in values], textposition="auto", insidetextfont=dict(color=txt, size=12),
+                           text=[f(v) for v in values], textposition="auto", textangle=0, insidetextfont=dict(color=txt, size=12),
                            outsidetextfont=dict(color=out, size=12), hovertemplate="%{x}: %{text}<extra></extra>"))
     for i in range(1, len(values)):
         a, b = values[i - 1], values[i]
         if a and b is not None and not np.isnan(a) and not np.isnan(b) and a != 0 and kind in ("money", "eps"):
             g = (b / abs(a) - 1) * 100 if a > 0 else (b - a) / abs(a) * 100
-            fig.add_annotation(x=labels[i], y=max(b, 0), text=f"{g:+.0f}%", showarrow=False, yshift=16,
+            fig.add_annotation(x=i, y=max(b, 0), text=f"{g:+.0f}%", showarrow=False, yshift=16,      # by position: a label "2022"
+                                                                                                         # would be read as the 2022nd place
                                font=dict(size=11, color=POS_BD if g >= 0 else NEG_BD))
     style(fig, height, title, legend=False)
     fig.update_yaxes(side="left", showticklabels=False, showgrid=False, zeroline=True, zerolinecolor="#3A3545")
@@ -1015,7 +1020,7 @@ def cash_trend(periods, ocf, capex, fcf, margin=None, title="Cash flow trend", n
     if two:
         lo_, hi_ = min([m for m in margin if m is not None and not np.isnan(m)] or [0]), max([m for m in margin if m is not None and not np.isnan(m)] or [1])
         pad_ = (hi_ - lo_) * 0.35 or 5
-        fig.update_yaxes(ticksuffix="%", side="left", showgrid=True, gridcolor=GRID, nticks=3, range=[lo_ - pad_, hi_ + pad_], row=2, col=1)
+        fig.update_yaxes(ticksuffix="%", side="left", showgrid=True, gridcolor=GRID, nticks=3, range=[lo_ - pad_, hi_ + pad_ * 1.9], row=2, col=1)
     fig.update_xaxes(type="category")
     return _bars(fig)
 
