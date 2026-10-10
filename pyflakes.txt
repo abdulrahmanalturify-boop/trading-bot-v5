@@ -1,0 +1,46 @@
+academy.py:376:1: 'academy_extra.ACADEMY_REVISION' imported but unused
+academy.py:376:1: 'academy_extra.VIDEOS' imported but unused
+academy.py:376:1: 'academy_extra.COURSE_SOURCES' imported but unused
+academy.py:377:1: redefinition of unused 'course_art' from line 318
+academy.py:377:1: 'academy_visuals.cover as course_art' imported but unused
+caldata.py:9:1: 'datetime.date' imported but unused
+charts.py:20:1: redefinition of unused 'POS_BG' from line 14
+charts.py:20:9: redefinition of unused 'POS_BD' from line 14
+charts.py:20:17: redefinition of unused 'POS_FG' from line 14
+charts.py:21:1: redefinition of unused 'NEG_BG' from line 14
+charts.py:21:9: redefinition of unused 'NEG_BD' from line 14
+charts.py:21:17: redefinition of unused 'NEG_FG' from line 14
+data.py:362:10: local variable 'sec' is assigned to but never used
+fairvalue.py:26:1: 'i18n.is_ar' imported but unused
+insight.py:385:13: f-string is missing placeholders
+lab.py:14:1: 'theme as T' imported but unused
+p_newsintel.py:11:1: 'time' imported but unused
+p_newsintel.py:541:5: local variable 'n' is assigned to but never used
+p_newsintel.py:788:5: local variable 'imp' is assigned to but never used
+p_newsintel.py:788:10: local variable 'mat' is assigned to but never used
+p_newsintel.py:788:15: local variable 'conf' is assigned to but never used
+p_paper.py:21:1: 'datetime.datetime' imported but unused
+p_paper.py:23:1: 'zoneinfo.ZoneInfo' imported but unused
+p_paper.py:34:1: 'mcal' imported but unused
+p_paper.py:3217:16: import 'lab' from line 37 shadowed by loop variable
+p_portfolio.py:1024:5: local variable 'v' is assigned to but never used
+p_research.py:15:1: 'engine' imported but unused
+p_research.py:941:65: f-string is missing placeholders
+p_robo.py:13:1: 'datetime.datetime' imported but unused
+p_robo.py:834:13: local variable 'raw' is assigned to but never used
+p_robo.py:1929:17: f-string is missing placeholders
+p_scanner.py:16:1: 'datetime.datetime' imported but unused
+p_scanner.py:17:1: 'zoneinfo.ZoneInfo' imported but unused
+p_scanner.py:30:1: 'mcal' imported but unused
+p_scanner.py:746:5: local variable 'side' is assigned to but never used
+portfolio.py:43:1: 'mcal' imported but unused
+robo.py:32:1: 'datetime.timedelta' imported but unused
+robobot.py:27:1: 'math' imported but unused
+sharia.py:217:16: f-string is missing placeholders
+tdash.py:7:1: 'numpy as np' imported but unused
+theme.py:14:1: 'datetime.datetime' imported but unused
+theme.py:15:1: 'zoneinfo.ZoneInfo' imported but unused
+theme.py:23:1: 'mcal' imported but unused
+scripts/probe_yahoo.py:4:1: 'traceback' imported but unused
+scripts/saudi_list.py:20:1: 'requests' imported but unused
+scripts/site_check.py:112:5: 'markets as MK' imported but unused

@@ -1,0 +1,1028 @@
+{
+ "pages": {
+  "ar_landing": {
+   "seconds": 8.24741506576538,
+   "problems": []
+  },
+  "ar_overview": {
+   "seconds": 37.727715253829956,
+   "problems": [],
+   "url": "http://localhost:8599/?lang=ar&m=sa"
+  },
+  "ar_us_overview": {
+   "seconds": 40.67090702056885,
+   "problems": [],
+   "url": "http://localhost:8599/?lang=ar&m=us"
+  },
+  "ar_xbots": {
+   "seconds": 5.501123666763306,
+   "problems": []
+  },
+  "ar_xbots_sa": {
+   "seconds": 5.4521684646606445,
+   "problems": []
+  },
+  "en_landing": {
+   "seconds": 2.1017982959747314,
+   "problems": []
+  },
+  "en_overview": {
+   "seconds": 2.4334092140197754,
+   "problems": [],
+   "url": "http://localhost:8599/?m=sa"
+  },
+  "en_us_overview": {
+   "seconds": 3.575137138366699,
+   "problems": [],
+   "url": "http://localhost:8599/?m=us"
+  },
+  "en_xbots": {
+   "seconds": 5.369546175003052,
+   "problems": []
+  },
+  "en_xbots_sa": {
+   "seconds": 5.423462152481079,
+   "problems": []
+  }
+ },
+ "started": "2026-10-10 14:15 UTC",
+ "streamlit": "1.65.0",
+ "nav": {
+  "ar_first": [
+   {
+    "btn": "monitoring\nالأسواق",
+    "onTop": "SPAN",
+    "btnIsTop": true,
+    "opacity": "1",
+    "visibility": "visible",
+    "menuBox": [
+     1108,
+     57,
+     264,
+     228
+    ],
+    "closedFlag": false,
+    "hovered": true
+   },
+   {
+    "btn": "explore\nاكتشف",
+    "onTop": "SPAN",
+    "btnIsTop": true,
+    "opacity": "1",
+    "visibility": "visible",
+    "menuBox": [
+     1020,
+     57,
+     264,
+     182
+    ],
+    "closedFlag": false,
+    "hovered": true
+   },
+   {
+    "btn": "query_stats\nالأبحاث",
+    "onTop": "SPAN",
+    "btnIsTop": true,
+    "opacity": "1",
+    "visibility": "visible",
+    "menuBox": [
+     936,
+     57,
+     264,
+     136
+    ],
+    "closedFlag": false,
+    "hovered": true
+   },
+   {
+    "btn": "calendar_month\nالتقويم",
+    "onTop": "SPAN",
+    "btnIsTop": true,
+    "opacity": "1",
+    "visibility": "visible",
+    "menuBox": [
+     852,
+     57,
+     264,
+     366
+    ],
+    "closedFlag": false,
+    "hovered": true
+   },
+   {
+    "btn": "lightbulb\nرؤى",
+    "onTop": "SPAN",
+    "btnIsTop": true,
+    "opacity": "1",
+    "visibility": "visible",
+    "menuBox": [
+     771,
+     57,
+     264,
+     228
+    ],
+    "closedFlag": false,
+    "hovered": true
+   },
+   {
+    "btn": "school\nالأكاديمية",
+    "onTop": "SPAN",
+    "btnIsTop": true,
+    "opacity": "1",
+    "visibility": "visible",
+    "menuBox": [
+     704,
+     57,
+     264,
+     136
+    ],
+    "closedFlag": false,
+    "hovered": true
+   },
+   {
+    "btn": "account_balance_wallet\nالمحفظة",
+    "onTop": "SPAN",
+    "btnIsTop": true,
+    "opacity": "1",
+    "visibility": "visible",
+    "menuBox": [
+     609,
+     57,
+     264,
+     274
+    ],
+    "closedFlag": false,
+    "hovered": true
+   },
+   {
+    "btn": "smart_toy\nبوت التداول",
+    "onTop": "SPAN",
+    "btnIsTop": true,
+    "opacity": "1",
+    "visibility": "visible",
+    "menuBox": [
+     516,
+     57,
+     264,
+     182
+    ],
+    "closedFlag": false,
+    "hovered": true
+   }
+  ],
+  "ar_after_click": [
+   {
+    "btn": "monitoring\nالأسواق",
+    "onTop": "SPAN",
+    "btnIsTop": true,
+    "opacity": "1",
+    "visibility": "visible",
+    "menuBox": [
+     1108,
+     57,
+     264,
+     228
+    ],
+    "closedFlag": false,
+    "hovered": true
+   },
+   {
+    "btn": "explore\nاكتشف",
+    "onTop": "SPAN",
+    "btnIsTop": true,
+    "opacity": "1",
+    "visibility": "visible",
+    "menuBox": [
+     1020,
+     57,
+     264,
+     182
+    ],
+    "closedFlag": false,
+    "hovered": true
+   },
+   {
+    "btn": "query_stats\nالأبحاث",
+    "onTop": "SPAN",
+    "btnIsTop": true,
+    "opacity": "1",
+    "visibility": "visible",
+    "menuBox": [
+     936,
+     57,
+     264,
+     136
+    ],
+    "closedFlag": false,
+    "hovered": true
+   },
+   {
+    "btn": "calendar_month\nالتقويم",
+    "onTop": "SPAN",
+    "btnIsTop": true,
+    "opacity": "1",
+    "visibility": "visible",
+    "menuBox": [
+     852,
+     57,
+     264,
+     366
+    ],
+    "closedFlag": false,
+    "hovered": true
+   },
+   {
+    "btn": "lightbulb\nرؤى",
+    "onTop": "SPAN",
+    "btnIsTop": true,
+    "opacity": "1",
+    "visibility": "visible",
+    "menuBox": [
+     771,
+     57,
+     264,
+     228
+    ],
+    "closedFlag": false,
+    "hovered": true
+   },
+   {
+    "btn": "school\nالأكاديمية",
+    "onTop": "SPAN",
+    "btnIsTop": true,
+    "opacity": "1",
+    "visibility": "visible",
+    "menuBox": [
+     704,
+     57,
+     264,
+     136
+    ],
+    "closedFlag": false,
+    "hovered": true
+   },
+   {
+    "btn": "account_balance_wallet\nالمحفظة",
+    "onTop": "SPAN",
+    "btnIsTop": true,
+    "opacity": "1",
+    "visibility": "visible",
+    "menuBox": [
+     609,
+     57,
+     264,
+     274
+    ],
+    "closedFlag": false,
+    "hovered": true
+   },
+   {
+    "btn": "smart_toy\nبوت التداول",
+    "onTop": "SPAN",
+    "btnIsTop": true,
+    "opacity": "1",
+    "visibility": "visible",
+    "menuBox": [
+     516,
+     57,
+     264,
+     182
+    ],
+    "closedFlag": false,
+    "hovered": true
+   }
+  ],
+  "ar_sa_portfolio": [
+   {
+    "btn": "monitoring\nالأسواق",
+    "onTop": "SPAN",
+    "btnIsTop": true,
+    "opacity": "1",
+    "visibility": "visible",
+    "menuBox": [
+     1108,
+     57,
+     264,
+     90
+    ],
+    "closedFlag": false,
+    "hovered": true
+   },
+   {
+    "btn": "explore\nاكتشف",
+    "onTop": "SPAN",
+    "btnIsTop": true,
+    "opacity": "1",
+    "visibility": "visible",
+    "menuBox": [
+     1020,
+     57,
+     264,
+     182
+    ],
+    "closedFlag": false,
+    "hovered": true
+   },
+   {
+    "btn": "query_stats\nالأبحاث",
+    "onTop": "SPAN",
+    "btnIsTop": true,
+    "opacity": "1",
+    "visibility": "visible",
+    "menuBox": [
+     936,
+     57,
+     264,
+     136
+    ],
+    "closedFlag": false,
+    "hovered": true
+   },
+   {
+    "btn": "calendar_month\nالتقويم",
+    "onTop": "SPAN",
+    "btnIsTop": true,
+    "opacity": "1",
+    "visibility": "visible",
+    "menuBox": [
+     852,
+     57,
+     264,
+     320
+    ],
+    "closedFlag": false,
+    "hovered": true
+   },
+   {
+    "btn": "lightbulb\nرؤى",
+    "onTop": "SPAN",
+    "btnIsTop": true,
+    "opacity": "1",
+    "visibility": "visible",
+    "menuBox": [
+     771,
+     57,
+     264,
+     228
+    ],
+    "closedFlag": false,
+    "hovered": true
+   },
+   {
+    "btn": "school\nالأكاديمية",
+    "onTop": "SPAN",
+    "btnIsTop": true,
+    "opacity": "1",
+    "visibility": "visible",
+    "menuBox": [
+     704,
+     57,
+     264,
+     136
+    ],
+    "closedFlag": false,
+    "hovered": true
+   },
+   {
+    "btn": "account_balance_wallet\nالمحفظة",
+    "onTop": "SPAN",
+    "btnIsTop": true,
+    "opacity": "1",
+    "visibility": "visible",
+    "menuBox": [
+     609,
+     57,
+     264,
+     274
+    ],
+    "closedFlag": false,
+    "hovered": true
+   },
+   {
+    "btn": "smart_toy\nبوت التداول",
+    "onTop": "SPAN",
+    "btnIsTop": true,
+    "opacity": "1",
+    "visibility": "visible",
+    "menuBox": [
+     516,
+     57,
+     264,
+     182
+    ],
+    "closedFlag": false,
+    "hovered": true
+   }
+  ],
+  "ar_stopped_script": [
+   {
+    "btn": "monitoring\nالأسواق",
+    "onTop": "SPAN",
+    "btnIsTop": true,
+    "opacity": "1",
+    "visibility": "visible",
+    "menuBox": [
+     1108,
+     57,
+     264,
+     90
+    ],
+    "closedFlag": true,
+    "hovered": true
+   },
+   {
+    "btn": "explore\nاكتشف",
+    "onTop": "SPAN",
+    "btnIsTop": true,
+    "opacity": "1",
+    "visibility": "visible",
+    "menuBox": [
+     1020,
+     57,
+     264,
+     182
+    ],
+    "closedFlag": true,
+    "hovered": true
+   },
+   {
+    "btn": "query_stats\nالأبحاث",
+    "onTop": "SPAN",
+    "btnIsTop": true,
+    "opacity": "1",
+    "visibility": "visible",
+    "menuBox": [
+     936,
+     57,
+     264,
+     136
+    ],
+    "closedFlag": true,
+    "hovered": true
+   },
+   {
+    "btn": "calendar_month\nالتقويم",
+    "onTop": "SPAN",
+    "btnIsTop": true,
+    "opacity": "1",
+    "visibility": "visible",
+    "menuBox": [
+     852,
+     57,
+     264,
+     320
+    ],
+    "closedFlag": true,
+    "hovered": true
+   },
+   {
+    "btn": "lightbulb\nرؤى",
+    "onTop": "SPAN",
+    "btnIsTop": true,
+    "opacity": "1",
+    "visibility": "visible",
+    "menuBox": [
+     771,
+     57,
+     264,
+     228
+    ],
+    "closedFlag": true,
+    "hovered": true
+   },
+   {
+    "btn": "school\nالأكاديمية",
+    "onTop": "SPAN",
+    "btnIsTop": true,
+    "opacity": "1",
+    "visibility": "visible",
+    "menuBox": [
+     704,
+     57,
+     264,
+     136
+    ],
+    "closedFlag": true,
+    "hovered": true
+   },
+   {
+    "btn": "account_balance_wallet\nالمحفظة",
+    "onTop": "SPAN",
+    "btnIsTop": true,
+    "opacity": "1",
+    "visibility": "visible",
+    "menuBox": [
+     609,
+     57,
+     264,
+     274
+    ],
+    "closedFlag": true,
+    "hovered": true
+   },
+   {
+    "btn": "smart_toy\nبوت التداول",
+    "onTop": "SPAN",
+    "btnIsTop": true,
+    "opacity": "1",
+    "visibility": "visible",
+    "menuBox": [
+     516,
+     57,
+     264,
+     182
+    ],
+    "closedFlag": true,
+    "hovered": true
+   }
+  ],
+  "en_first": [
+   {
+    "btn": "monitoring\nMarkets",
+    "onTop": "SPAN",
+    "btnIsTop": true,
+    "opacity": "1",
+    "visibility": "visible",
+    "menuBox": [
+     320,
+     57,
+     264,
+     228
+    ],
+    "closedFlag": false,
+    "hovered": true
+   },
+   {
+    "btn": "explore\nDiscover",
+    "onTop": "SPAN",
+    "btnIsTop": true,
+    "opacity": "1",
+    "visibility": "visible",
+    "menuBox": [
+     415,
+     57,
+     264,
+     182
+    ],
+    "closedFlag": false,
+    "hovered": true
+   },
+   {
+    "btn": "query_stats\nResearch",
+    "onTop": "SPAN",
+    "btnIsTop": true,
+    "opacity": "1",
+    "visibility": "visible",
+    "menuBox": [
+     515,
+     57,
+     264,
+     136
+    ],
+    "closedFlag": false,
+    "hovered": true
+   },
+   {
+    "btn": "calendar_month\nCalendar",
+    "onTop": "SPAN",
+    "btnIsTop": true,
+    "opacity": "1",
+    "visibility": "visible",
+    "menuBox": [
+     617,
+     57,
+     264,
+     366
+    ],
+    "closedFlag": false,
+    "hovered": true
+   },
+   {
+    "btn": "lightbulb\nInsight",
+    "onTop": "SPAN",
+    "btnIsTop": true,
+    "opacity": "1",
+    "visibility": "visible",
+    "menuBox": [
+     718,
+     57,
+     264,
+     228
+    ],
+    "closedFlag": false,
+    "hovered": true
+   },
+   {
+    "btn": "school\nAcademy",
+    "onTop": "SPAN",
+    "btnIsTop": true,
+    "opacity": "1",
+    "visibility": "visible",
+    "menuBox": [
+     805,
+     57,
+     264,
+     136
+    ],
+    "closedFlag": false,
+    "hovered": true
+   },
+   {
+    "btn": "account_balance_wallet\nPortfolio",
+    "onTop": "SPAN",
+    "btnIsTop": true,
+    "opacity": "1",
+    "visibility": "visible",
+    "menuBox": [
+     910,
+     57,
+     264,
+     274
+    ],
+    "closedFlag": false,
+    "hovered": true
+   },
+   {
+    "btn": "smart_toy\nTrading Bot",
+    "onTop": "SPAN",
+    "btnIsTop": true,
+    "opacity": "1",
+    "visibility": "visible",
+    "menuBox": [
+     1007,
+     57,
+     264,
+     182
+    ],
+    "closedFlag": false,
+    "hovered": true
+   }
+  ],
+  "en_after_click": [
+   {
+    "btn": "monitoring\nMarkets",
+    "onTop": "SPAN",
+    "btnIsTop": true,
+    "opacity": "1",
+    "visibility": "visible",
+    "menuBox": [
+     320,
+     57,
+     264,
+     228
+    ],
+    "closedFlag": false,
+    "hovered": true
+   },
+   {
+    "btn": "explore\nDiscover",
+    "onTop": "SPAN",
+    "btnIsTop": true,
+    "opacity": "1",
+    "visibility": "visible",
+    "menuBox": [
+     415,
+     57,
+     264,
+     182
+    ],
+    "closedFlag": false,
+    "hovered": true
+   },
+   {
+    "btn": "query_stats\nResearch",
+    "onTop": "SPAN",
+    "btnIsTop": true,
+    "opacity": "1",
+    "visibility": "visible",
+    "menuBox": [
+     515,
+     57,
+     264,
+     136
+    ],
+    "closedFlag": false,
+    "hovered": true
+   },
+   {
+    "btn": "calendar_month\nCalendar",
+    "onTop": "SPAN",
+    "btnIsTop": true,
+    "opacity": "1",
+    "visibility": "visible",
+    "menuBox": [
+     617,
+     57,
+     264,
+     366
+    ],
+    "closedFlag": false,
+    "hovered": true
+   },
+   {
+    "btn": "lightbulb\nInsight",
+    "onTop": "SPAN",
+    "btnIsTop": true,
+    "opacity": "1",
+    "visibility": "visible",
+    "menuBox": [
+     718,
+     57,
+     264,
+     228
+    ],
+    "closedFlag": false,
+    "hovered": true
+   },
+   {
+    "btn": "school\nAcademy",
+    "onTop": "SPAN",
+    "btnIsTop": true,
+    "opacity": "1",
+    "visibility": "visible",
+    "menuBox": [
+     805,
+     57,
+     264,
+     136
+    ],
+    "closedFlag": false,
+    "hovered": true
+   },
+   {
+    "btn": "account_balance_wallet\nPortfolio",
+    "onTop": "SPAN",
+    "btnIsTop": true,
+    "opacity": "1",
+    "visibility": "visible",
+    "menuBox": [
+     910,
+     57,
+     264,
+     274
+    ],
+    "closedFlag": false,
+    "hovered": true
+   },
+   {
+    "btn": "smart_toy\nTrading Bot",
+    "onTop": "SPAN",
+    "btnIsTop": true,
+    "opacity": "1",
+    "visibility": "visible",
+    "menuBox": [
+     1007,
+     57,
+     264,
+     182
+    ],
+    "closedFlag": false,
+    "hovered": true
+   }
+  ],
+  "en_sa_portfolio": [
+   {
+    "btn": "monitoring\nMarkets",
+    "onTop": "SPAN",
+    "btnIsTop": true,
+    "opacity": "1",
+    "visibility": "visible",
+    "menuBox": [
+     320,
+     57,
+     264,
+     90
+    ],
+    "closedFlag": false,
+    "hovered": true
+   },
+   {
+    "btn": "explore\nDiscover",
+    "onTop": "SPAN",
+    "btnIsTop": true,
+    "opacity": "1",
+    "visibility": "visible",
+    "menuBox": [
+     415,
+     57,
+     264,
+     182
+    ],
+    "closedFlag": false,
+    "hovered": true
+   },
+   {
+    "btn": "query_stats\nResearch",
+    "onTop": "SPAN",
+    "btnIsTop": true,
+    "opacity": "1",
+    "visibility": "visible",
+    "menuBox": [
+     515,
+     57,
+     264,
+     136
+    ],
+    "closedFlag": false,
+    "hovered": true
+   },
+   {
+    "btn": "calendar_month\nCalendar",
+    "onTop": "SPAN",
+    "btnIsTop": true,
+    "opacity": "1",
+    "visibility": "visible",
+    "menuBox": [
+     617,
+     57,
+     264,
+     320
+    ],
+    "closedFlag": false,
+    "hovered": true
+   },
+   {
+    "btn": "lightbulb\nInsight",
+    "onTop": "SPAN",
+    "btnIsTop": true,
+    "opacity": "1",
+    "visibility": "visible",
+    "menuBox": [
+     718,
+     57,
+     264,
+     228
+    ],
+    "closedFlag": false,
+    "hovered": true
+   },
+   {
+    "btn": "school\nAcademy",
+    "onTop": "SPAN",
+    "btnIsTop": true,
+    "opacity": "1",
+    "visibility": "visible",
+    "menuBox": [
+     805,
+     57,
+     264,
+     136
+    ],
+    "closedFlag": false,
+    "hovered": true
+   },
+   {
+    "btn": "account_balance_wallet\nPortfolio",
+    "onTop": "SPAN",
+    "btnIsTop": true,
+    "opacity": "1",
+    "visibility": "visible",
+    "menuBox": [
+     910,
+     57,
+     264,
+     274
+    ],
+    "closedFlag": false,
+    "hovered": true
+   },
+   {
+    "btn": "smart_toy\nTrading Bot",
+    "onTop": "SPAN",
+    "btnIsTop": true,
+    "opacity": "1",
+    "visibility": "visible",
+    "menuBox": [
+     1007,
+     57,
+     264,
+     182
+    ],
+    "closedFlag": false,
+    "hovered": true
+   }
+  ],
+  "en_stopped_script": [
+   {
+    "btn": "monitoring\nMarkets",
+    "onTop": "SPAN",
+    "btnIsTop": true,
+    "opacity": "1",
+    "visibility": "visible",
+    "menuBox": [
+     320,
+     57,
+     264,
+     90
+    ],
+    "closedFlag": true,
+    "hovered": true
+   },
+   {
+    "btn": "explore\nDiscover",
+    "onTop": "SPAN",
+    "btnIsTop": true,
+    "opacity": "1",
+    "visibility": "visible",
+    "menuBox": [
+     415,
+     57,
+     264,
+     182
+    ],
+    "closedFlag": true,
+    "hovered": true
+   },
+   {
+    "btn": "query_stats\nResearch",
+    "onTop": "SPAN",
+    "btnIsTop": true,
+    "opacity": "1",
+    "visibility": "visible",
+    "menuBox": [
+     515,
+     57,
+     264,
+     136
+    ],
+    "closedFlag": true,
+    "hovered": true
+   },
+   {
+    "btn": "calendar_month\nCalendar",
+    "onTop": "SPAN",
+    "btnIsTop": true,
+    "opacity": "1",
+    "visibility": "visible",
+    "menuBox": [
+     617,
+     57,
+     264,
+     320
+    ],
+    "closedFlag": true,
+    "hovered": true
+   },
+   {
+    "btn": "lightbulb\nInsight",
+    "onTop": "SPAN",
+    "btnIsTop": true,
+    "opacity": "1",
+    "visibility": "visible",
+    "menuBox": [
+     718,
+     57,
+     264,
+     228
+    ],
+    "closedFlag": true,
+    "hovered": true
+   },
+   {
+    "btn": "school\nAcademy",
+    "onTop": "SPAN",
+    "btnIsTop": true,
+    "opacity": "1",
+    "visibility": "visible",
+    "menuBox": [
+     805,
+     57,
+     264,
+     136
+    ],
+    "closedFlag": true,
+    "hovered": true
+   },
+   {
+    "btn": "account_balance_wallet\nPortfolio",
+    "onTop": "SPAN",
+    "btnIsTop": true,
+    "opacity": "1",
+    "visibility": "visible",
+    "menuBox": [
+     910,
+     57,
+     264,
+     274
+    ],
+    "closedFlag": true,
+    "hovered": true
+   },
+   {
+    "btn": "smart_toy\nTrading Bot",
+    "onTop": "SPAN",
+    "btnIsTop": true,
+    "opacity": "1",
+    "visibility": "visible",
+    "menuBox": [
+     1007,
+     57,
+     264,
+     182
+    ],
+    "closedFlag": true,
+    "hovered": true
+   }
+  ]
+ }
+}
