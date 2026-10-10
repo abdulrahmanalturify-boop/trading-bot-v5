@@ -183,7 +183,8 @@ def nav_probe(pg, tag, report):
             }""", i)
             out.append(info)
             if i == 0:
-                pg.screenshot(path=os.path.join(OUT, f"nav_{tag}.jpg"), type="jpeg", quality=80, clip={"x": 0, "y": 0, "width": 1440, "height": 560})
+                vw = pg.viewport_size or {"width": 1440}
+                pg.screenshot(path=os.path.join(OUT, f"nav_{tag}.jpg"), type="jpeg", quality=80, clip={"x": 0, "y": 0, "width": vw["width"], "height": 560})
         pg.mouse.move(700, 700)
     except Exception as e:
         out.append({"error": str(e)[:300]})
@@ -340,6 +341,19 @@ def main():
                     report.setdefault("notes", []).append(f"topbar {lang}: {e}"[:300])
                 ctx.close()
             b.close()
+            if QUICK:                                 # the menus in other browsers and on narrower windows (a zoomed laptop)
+                for kind, w_ in (("chromium", 1280), ("chromium", 1000), ("webkit", 1440), ("webkit", 1100), ("firefox", 1440)):
+                    try:
+                        bx = getattr(p, kind).launch()
+                        cx = bx.new_context(viewport={"width": w_, "height": 900}, color_scheme="dark")
+                        px_ = cx.new_page()
+                        for path in ("news?m=us&lang=en", "?m=us&lang=en"):
+                            px_.goto(f"{URL}/{path}", wait_until="domcontentloaded")
+                            settle(px_, 180)
+                            nav_probe(px_, f"{kind}_{w_}_{'news' if 'news' in path else 'home'}", report)
+                        bx.close()
+                    except Exception as e:
+                        report.setdefault("notes", []).append(f"{kind} {w_}: {e}"[:300])
     finally:
         srv.terminate()
         try:
