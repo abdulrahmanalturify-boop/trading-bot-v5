@@ -1098,8 +1098,10 @@ a.mst:hover .mh .go {{ opacity:1; transform:none; color:{VIO_FG}; }}
     pointer-events: auto; }} }}
 /* a link/option was just chosen in a menu (FX_JS sets the flag on <html>): the menu closes at once, whatever hover or focus says,
    and opens again when a menu button is pressed or hovered */
-html[data-menu-closed] [class*="st-key-navdd_"], html[data-menu-closed] .st-key-langdd {{ opacity: 0 !important; visibility: hidden !important;
-  transition: none !important; pointer-events: none !important; }}
+/* held shut by an animation, not for good: if the flag is ever left behind (the script that clears it was stopped), the menus open
+   again on hover after 2.5 seconds */
+@keyframes navhold {{ from, to {{ opacity:0; visibility:hidden; pointer-events:none; }} }}
+html[data-menu-closed] [class*="st-key-navdd_"], html[data-menu-closed] .st-key-langdd {{ animation: navhold 2.5s steps(1, end) 1; transition: none; }}
 .navhd {{ font-size:.64rem; letter-spacing:.14em; text-transform:uppercase; color:{MUTED}; font-weight:600; padding: 0 10px 7px; line-height:1.2;
   border-bottom: 1px solid {BORDER}; margin-bottom: 4px; }}
 [class*="st-key-navdd_"] [data-testid="stPageLink"] a {{ border-radius: 11px; padding: 8px 10px; margin: 0; min-height: 38px; box-sizing: border-box;
@@ -1740,9 +1742,11 @@ FX_JS = """<script>
 (function () {
   var w = window.parent, d = w.document;
   var VER = '__VER__', KEY = '__alturaifiCards';
-  if (w[KEY] === VER) return;                       // this version already runs in this tab
+  var OLD = w[KEY + 'Frame'];                      // the frame that started the running copy: if Streamlit has re-created it,
+  if (w[KEY] === VER && OLD && OLD.isConnected) return;   // that copy's listeners died with it and this one takes over
   if (typeof w[KEY + 'Off'] === 'function') { try { w[KEY + 'Off'](); } catch (e) {} }   // an older one stops first
   w[KEY] = VER;
+  w[KEY + 'Frame'] = window.frameElement;
   var offs = [];
   w[KEY + 'Off'] = function () { offs.forEach(function (f) { try { f(); } catch (e) {} }); offs = []; };
   function on(t, ev, fn, o) { t.addEventListener(ev, fn, o); offs.push(function () { t.removeEventListener(ev, fn, o); }); }
@@ -1776,6 +1780,7 @@ FX_JS = """<script>
   // top menus: choosing a page (or a language) closes the menu at once. Hover and keyboard focus would keep it open over the
   // page that is loading, so the flag on <html> forces it shut until a menu button is hovered or pressed again.
   var ROOT = d.documentElement, MENU_ITEM = '[class*="st-key-navdd_"] a, .st-key-langdd button, .st-key-langdd [class*="st-key-langopt_"]';
+  ROOT.removeAttribute('data-menu-closed');        // a flag left by a copy of this script that has stopped
   on(d, 'click', function (e) {
     var t = e.target;
     if (!t || !t.closest || !t.closest(MENU_ITEM)) return;
@@ -1794,9 +1799,11 @@ FX_JS = """<script>
 (function () {                                   // the landing: parallax, spotlight, typing line, reveals, tilting cards
   var w = window.parent, d = w.document, de = d.documentElement;
   var VER = '__VER__', KEY = '__alturaifiLanding';
-  if (w[KEY] === VER) return;                       // this version already runs in this tab
+  var OLD = w[KEY + 'Frame'];                      // the frame that started the running copy: if Streamlit has re-created it,
+  if (w[KEY] === VER && OLD && OLD.isConnected) return;   // that copy's listeners died with it and this one takes over
   if (typeof w[KEY + 'Off'] === 'function') { try { w[KEY + 'Off'](); } catch (e) {} }   // an older one stops first
   w[KEY] = VER;
+  w[KEY + 'Frame'] = window.frameElement;
   var offs = [];
   w[KEY + 'Off'] = function () { offs.forEach(function (f) { try { f(); } catch (e) {} }); offs = []; };
   function on(t, ev, fn, o) { t.addEventListener(ev, fn, o); offs.push(function () { t.removeEventListener(ev, fn, o); }); }
@@ -1908,9 +1915,11 @@ FX_JS = """<script>
 (function () {                                   // the landing's sculpture: a cut amethyst, drawn with WebGL
   var w = window.parent, d = w.document;
   var VER = '__VER__', KEY = '__alturaifiSculpture';
-  if (w[KEY] === VER) return;                       // this version already runs in this tab
+  var OLD = w[KEY + 'Frame'];                      // the frame that started the running copy: if Streamlit has re-created it,
+  if (w[KEY] === VER && OLD && OLD.isConnected) return;   // that copy's listeners died with it and this one takes over
   if (typeof w[KEY + 'Off'] === 'function') { try { w[KEY + 'Off'](); } catch (e) {} }   // an older one stops first
   w[KEY] = VER;
+  w[KEY + 'Frame'] = window.frameElement;
   var offs = [];
   w[KEY + 'Off'] = function () { offs.forEach(function (f) { try { f(); } catch (e) {} }); offs = []; };
   function on(t, ev, fn, o) { t.addEventListener(ev, fn, o); offs.push(function () { t.removeEventListener(ev, fn, o); }); }
@@ -2029,9 +2038,11 @@ FX_JS = """<script>
 (function () {                                   // the logo opens the home page's first screen
   var w = window.parent, d = w.document;
   var VER = '__VER__', KEY = '__alturaifiLogoV';
-  if (w[KEY] === VER) return;                       // this version already runs in this tab
+  var OLD = w[KEY + 'Frame'];                      // the frame that started the running copy: if Streamlit has re-created it,
+  if (w[KEY] === VER && OLD && OLD.isConnected) return;   // that copy's listeners died with it and this one takes over
   if (typeof w[KEY + 'Off'] === 'function') { try { w[KEY + 'Off'](); } catch (e) {} }   // an older one stops first
   w[KEY] = VER;
+  w[KEY + 'Frame'] = window.frameElement;
   var offs = [];
   w[KEY + 'Off'] = function () { offs.forEach(function (f) { try { f(); } catch (e) {} }); offs = []; };
   function on(t, ev, fn, o) { t.addEventListener(ev, fn, o); offs.push(function () { t.removeEventListener(ev, fn, o); }); }
@@ -2049,9 +2060,11 @@ FX_JS = """<script>
 (function () {                                   // the site's colours follow Streamlit's theme (⋮ → System / Light / Dark)
   var w = window.parent, d = w.document;
   var VER = '__VER__', KEY = '__alturaifiThemeV';
-  if (w[KEY] === VER) return;                       // this version already runs in this tab
+  var OLD = w[KEY + 'Frame'];                      // the frame that started the running copy: if Streamlit has re-created it,
+  if (w[KEY] === VER && OLD && OLD.isConnected) return;   // that copy's listeners died with it and this one takes over
   if (typeof w[KEY + 'Off'] === 'function') { try { w[KEY + 'Off'](); } catch (e) {} }   // an older one stops first
   w[KEY] = VER;
+  w[KEY + 'Frame'] = window.frameElement;
   var offs = [];
   w[KEY + 'Off'] = function () { offs.forEach(function (f) { try { f(); } catch (e) {} }); offs = []; };
   function every(fn, ms) { var id = w.setInterval(fn, ms); offs.push(function () { w.clearInterval(id); }); }
@@ -2075,9 +2088,11 @@ FX_JS = """<script>
 (function () {                                   // news pictures: a story photo that cannot load gives way to its topic photo
   var w = window.parent, d = w.document;
   var VER = '__VER__', KEY = '__alturaifiPicsV';
-  if (w[KEY] === VER) return;
+  var OLD = w[KEY + 'Frame'];                      // the frame that started the running copy: if Streamlit has re-created it,
+  if (w[KEY] === VER && OLD && OLD.isConnected) return;   // that copy's listeners died with it and this one takes over
   if (typeof w[KEY + 'Off'] === 'function') { try { w[KEY + 'Off'](); } catch (e) {} }
   w[KEY] = VER;
+  w[KEY + 'Frame'] = window.frameElement;
   var offs = [];
   w[KEY + 'Off'] = function () { offs.forEach(function (f) { try { f(); } catch (e) {} }); offs = []; };
   function swap(img) {
@@ -2102,9 +2117,11 @@ FX_JS = """<script>
 (function () {                                   // every table: sort by any column, filter the long ones, the column under the pointer lights up
   var w = window.parent, d = w.document;
   var VER = '__VER__', KEY = '__alturaifiTablesV';
-  if (w[KEY] === VER) return;                       // this version already runs in this tab
+  var OLD = w[KEY + 'Frame'];                      // the frame that started the running copy: if Streamlit has re-created it,
+  if (w[KEY] === VER && OLD && OLD.isConnected) return;   // that copy's listeners died with it and this one takes over
   if (typeof w[KEY + 'Off'] === 'function') { try { w[KEY + 'Off'](); } catch (e) {} }   // an older one stops first
   w[KEY] = VER;
+  w[KEY + 'Frame'] = window.frameElement;
   var offs = [];
   w[KEY + 'Off'] = function () { offs.forEach(function (f) { try { f(); } catch (e) {} }); offs = []; };
   function on(t, ev, fn, o) { t.addEventListener(ev, fn, o); offs.push(function () { t.removeEventListener(ev, fn, o); }); }
@@ -2212,9 +2229,11 @@ FX_JS = """<script>
 (function () {                                   // the "?" next to every trading term: pressed, it explains the term in the page's language
   var w = window.parent, d = w.document;
   var VER = '__VER__', KEY = '__alturaifiTermsV';
-  if (w[KEY] === VER) return;                       // this version already runs in this tab
+  var OLD = w[KEY + 'Frame'];                      // the frame that started the running copy: if Streamlit has re-created it,
+  if (w[KEY] === VER && OLD && OLD.isConnected) return;   // that copy's listeners died with it and this one takes over
   if (typeof w[KEY + 'Off'] === 'function') { try { w[KEY + 'Off'](); } catch (e) {} }   // an older one stops first
   w[KEY] = VER;
+  w[KEY + 'Frame'] = window.frameElement;
   var offs = [];
   w[KEY + 'Off'] = function () { offs.forEach(function (f) { try { f(); } catch (e) {} }); offs = []; close(); };
   function on(t, ev, fn, o) { t.addEventListener(ev, fn, o); offs.push(function () { t.removeEventListener(ev, fn, o); }); }

@@ -300,6 +300,20 @@ def main():
                     time.sleep(2)
                     settle(pg)
                     nav_probe(pg, f"{lang}_after_click", report)
+                    # the visitor's path: the Saudi market, Portfolio chosen from its menu, then the Insight menu hovered
+                    pg.goto(f"{URL}/news?m=sa&lang={lang}", wait_until="domcontentloaded")
+                    settle(pg)
+                    pg.locator('.st-key-navsec_6 .navbtn').first.hover()
+                    time.sleep(0.6)
+                    pg.locator('.st-key-navdd_6 [data-testid="stPageLink"] a').first.click(timeout=8000)
+                    time.sleep(2)
+                    settle(pg)
+                    nav_probe(pg, f"{lang}_sa_portfolio", report)
+                    # a stopped page script (its frame re-created): the flag left behind must not keep the menus shut
+                    pg.evaluate("""() => { document.documentElement.setAttribute('data-menu-closed', '1');
+                        document.querySelectorAll('iframe').forEach(f => { try { if ((f.srcdoc || '').includes('__alturaifiCards')) f.remove(); } catch (e) {} }); }""")
+                    time.sleep(3)
+                    nav_probe(pg, f"{lang}_stopped_script", report)
                 except Exception as e:
                     report.setdefault("notes", []).append(f"nav {lang}: {e}"[:300])
                 for name, path, mk, *click in (QUICK_PAGES if QUICK else PAGES):
