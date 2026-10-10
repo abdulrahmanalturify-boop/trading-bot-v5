@@ -125,7 +125,7 @@ BOTS = [
                "يشتري الشركة السعودية اللي عنها 3 تغريدات على الأقل باليوم بنبرة صاعدة (0.2 أو أكثر) وما نزلت أكثر من 3% اليوم، ويبيع "
                "إذا انقلبت النبرة لهابطة، أو عند وقف -8%، أو هدف +15%، أو بعد 10 أيام؛ لين 4 شركات.")},
     {"id": "sa_pros", "market": MK.SA, "icon": "school", "color": "#BE8700",
-     "name": ("Chart Talk", "أهل التحليل الفني"),
+     "name": ("Chart Talk", "التحليل الفني"),
      "beat": ("The technical crowd of Saudi X: posts with supports, resistances, targets and calls on TASI companies.",
               "أهل التحليل الفني في X السعودي: تغريدات الدعوم والمقاومات والأهداف والتوصيات على شركات تاسي."),
      "query": ('(#تاسي OR #السوق_السعودي OR تاسي) (توصية OR "تحليل فني" OR دعم OR مقاومة OR اختراق OR هدف OR "وقف خسارة" OR نموذج) '
@@ -691,4 +691,4 @@ def save_state(bot, state):
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.6"
+BUILD = "22.6.1"

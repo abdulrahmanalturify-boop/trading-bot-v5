@@ -47,18 +47,20 @@ CSS = """<style>
 .xbc:hover { transform:translateY(-3px); border-color:rgba(167,139,250,.5); box-shadow:0 18px 36px -22px rgba(123,69,240,.8); }
 .xbc.sel { border-color:var(--xc); box-shadow:0 0 0 1px var(--xc), 0 18px 40px -22px var(--xc); }
 .xbc::before { content:""; position:absolute; inset:0 0 auto 0; height:3px; background:linear-gradient(90deg, var(--xc), transparent 140%); }
-.xbc .rk { position:absolute; top:10px; inset-inline-end:12px; font-size:.68rem; font-weight:800; color:#8F899B; letter-spacing:.04em; }
-.xbc .rk.top { color:#F5B94A; }
-.xbc .hd { display:flex; align-items:center; gap:10px; padding-inline-end:28px; }
+.xbc .rk { display:inline-block; padding:0 6px; border-radius:99px; font-size:.66rem; font-weight:800; color:#B9B3C4; background:rgba(255,255,255,.08); letter-spacing:.03em; margin-inline-end:4px; }
+.xbc .rk.top { color:#1A1624; background:#F5B94A; }
+.xbc .hd { display:flex; align-items:center; gap:10px; }
 .xbc .ic { flex:none; width:38px; height:38px; border-radius:12px; display:grid; place-items:center; color:#fff;
   background:linear-gradient(140deg, var(--xc), rgba(255,255,255,.12)); box-shadow:0 10px 22px -12px var(--xc); }
 .xbc .ic .ms { font-size:1.3rem; }
-.xbc .nm { min-width:0; } .xbc .nm b { display:block; color:#fff; font-size:.95rem; line-height:1.25; }
-.xbc .nm small { color:#8F899B; font-size:.72rem; }
+.xbc .nm { min-width:0; } .xbc .nm b { display:block; color:#fff; font-size:.92rem; line-height:1.25; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.xbc .nm small { display:flex; align-items:center; gap:4px; color:#8F899B; font-size:.72rem; white-space:nowrap; }
 .xbc .beat { color:#B9B3C4; font-size:.77rem; line-height:1.5; min-height:3.1em; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
 .xbc .eq { display:flex; align-items:flex-end; justify-content:space-between; gap:8px; }
-.xbc .eq .v { color:#fff; font-weight:800; font-size:1.05rem; font-variant-numeric:tabular-nums; line-height:1.1; }
-.xbc .eq .v small { display:block; color:#8F899B; font-weight:500; font-size:.7rem; margin-bottom:3px; }
+.xbc .eq .v { display:flex; flex-direction:column; align-items:flex-start; gap:3px; color:#fff; font-weight:800; font-size:1rem; font-variant-numeric:tabular-nums; line-height:1.1; min-width:0; }
+.xbc .eq .v small { color:#8F899B; font-weight:500; font-size:.7rem; }
+.xbc .eq .v .n { white-space:nowrap; } .xbc .eq .v .n em { font-style:normal; font-weight:600; font-size:.72rem; color:#B9B3C4; margin-inline-end:3px; }
+.xbc .eq .v .pill, .xbc .eq .v [class*="pill"] { font-size:.72rem; }
 .xbc .eq svg { flex:none; }
 .xbc .gg { display:flex; align-items:center; gap:10px; }
 .xbc .gg svg { flex:none; }
@@ -241,11 +243,11 @@ def _card(bot, state, rank, sel):
     cls, words = _status(state)
     slots = "".join(f'<i class="{"on" if i < st_["open"] else ""}"></i>' for i in range(bot["slots"]))
     rk = f'<span class="rk {"top" if rank == 1 else ""}" title="{T.esc(L("Rank by return", "الترتيب حسب العائد"))}">#{rank}</span>'
-    return (f'<div class="xbc {"sel" if sel else ""}" style="--xc:{bot["color"]}">{rk}'
+    return (f'<div class="xbc {"sel" if sel else ""}" style="--xc:{bot["color"]}">'
             f'<div class="hd"><span class="ic">{T.icon(bot["icon"])}</span><span class="nm"><b>{T.esc(L(*bot["name"]))}</b>'
-            f'<small>{T.esc(L("Paper account", "حساب وهمي"))} · {_cur(bot)}{led["start"]:,.0f}</small></span></div>'
+            f'<small>{rk}{T.esc(L("Paper account", "حساب وهمي"))} · {_cur(bot)}{led["start"]:,.0f}</small></span></div>'
             f'<div class="beat">{T.esc(L(*bot["beat"]))}</div>'
-            f'<div class="eq"><span class="v"><small>{T.esc(L("Account", "الحساب"))}</small>{_cur(bot)}{st_["equity"]:,.0f} {T.pill(st_["ret"])}</span>'
+            f'<div class="eq"><span class="v"><small>{T.esc(L("Account", "الحساب"))}</small><span class="n"><em>{_cur(bot).strip()}</em>{st_["equity"]:,.0f}</span>{T.pill(st_["ret"])}</span>'
             f'{_spark(led.get("curve"), bot["color"])}</div>'
             f'<div class="gg">{_gauge(m, col)}<span class="t"><span>{T.esc(L("Mood · 6 h", "المزاج · 6 ساعات"))}</span>'
             f'<b style="color:{col}">{"—" if m is None else f"{m:+.0f}"}</b><span>{T.esc(word)}</span></span></div>'
@@ -461,4 +463,4 @@ def page_xbots():
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.6"
+BUILD = "22.6.1"
