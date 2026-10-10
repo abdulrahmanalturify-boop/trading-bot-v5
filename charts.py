@@ -1341,5 +1341,21 @@ def seasonal_path(avg, cur=None, title=None, names=("Average year", "This year")
     fig.update_layout(hovermode="x unified")
     return fig
 
+
+def mood_bars(times, values, title=None, height=300, names=("Mood", "Posts")):
+    """The mood of a beat hour by hour (-100 bearish .. +100 bullish): green bars up, red bars down, an empty hour left blank."""
+    t = pd.to_datetime(list(times), utc=True)
+    v = [None if x is None or (isinstance(x, float) and np.isnan(x)) else float(x) for x in values]
+    col = [BAR_UP if (x or 0) >= 0 else BAR_DOWN for x in v]
+    fig = go.Figure(go.Bar(x=t, y=v, marker=dict(color=col, line=dict(width=0)), name=names[0],
+                           hovertemplate="%{x|%d %b %H:%M} · " + names[0] + ": %{y:+.0f}<extra></extra>"))
+    fig.add_hline(y=0, line=dict(color="rgba(231,227,235,.35)", width=1))
+    style(fig, height, title, legend=False)
+    hi = max([abs(x) for x in v if x is not None] + [20])
+    fig.update_yaxes(range=[-hi * 1.15, hi * 1.15], side="left", zeroline=False, ticksuffix="")
+    fig.update_layout(bargap=0.25, hovermode="x unified")
+    fig.update_xaxes(tickformat="%H:%M<br>%d %b", tickangle=0, nticks=8)
+    return _bars(fig)
+
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.4.2"
+BUILD = "22.5"

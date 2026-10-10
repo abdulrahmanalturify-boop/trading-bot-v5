@@ -24,7 +24,7 @@ PAGES = [  # 22.4: the Discover pages (trending, news, the news engine) and a st
          ("newsintel", "news-intelligence", "us", '[class*="st-key-nie_cb_"] button'),
          ("sentiment", "sentiment", "us"), ("seasonality", "seasonality", "us"), ("stock", "stock?symbol=NVDA", "us"),
          ("sa_trending", "trending", "sa"), ("sa_news", "news", "sa", '[class*="st-key-nwa_"] button')]
-QUICK_PAGES = [("sa_trade", "portfolio-trade", "sa"), ("sa_scanner", "scanner", "sa"), ("sa_news", "news", "sa"), ("sa_stock", "stock?symbol=2222.SR", "sa")]
+QUICK_PAGES = [("xbots", "x-bots", "us"), ("xbots_sa", "x-bots", "sa")]
 NAV_BROWSERS = False  # the top bar's menus in WebKit and Firefox too (a quick run)
 
 
@@ -102,6 +102,59 @@ def news_lab():
             json.dump({t: [p.get("f") for p in (NP._POOLS.get(t) or {}).get("pics") or []] for t in topics}, f, ensure_ascii=False, indent=1)
     except Exception as e:
         log("pics lab", e)
+
+
+def seed_xbots():
+    """Sample posts for the X bots page's photos (clearly sample accounts; the site check has no X key): each bot reads them through
+    its own engine, at the real latest prices, so the page shows a full reading, positions and trades."""
+    import random
+    import pandas as pd
+    import markets as MK
+    import xbots as XB
+    rnd = random.Random(7)
+    now = pd.Timestamp.now(tz="UTC").floor("min")
+    texts = {
+        "pulse": ["S&P 500 pushing to a new record high, breadth improving, bullish into the close 📈", "Stock market rally broadening, small caps joining 🚀",
+                  "Wall Street nervous ahead of CPI, sellers in control, bearish tone", "Nasdaq rebounds strongly after the dip, buyers back"],
+        "trend": ["$NVDA breaking out again, loading up calls 🚀", "$PLTR ripping to all-time highs, bullish", "$TSLA breakdown below support, bearish 📉",
+                  "$NVDA demand is insane, strong beat incoming", "$AMD accumulating here, undervalued"],
+        "pros": ["Earnings growth for $MSFT remains strong, upgrade to outperform", "$AAPL services margin record high, bullish setup",
+                 "Breadth is weak, $SPY may struggle near term"],
+        "flash": ["*NVIDIA BEATS ESTIMATES, RAISES GUIDANCE $NVDA", "*MICROSOFT WINS $10B CLOUD CONTRACT $MSFT", "*BOEING CUTS OUTLOOK $BA"],
+        "saudi": ["أرامكو اختراق قوي مع ارتفاع أسعار النفط، فرصة دخول", "الراجحي يواصل الصعود بعد أرباح قوية، إيجابي", "سابك تراجع وكسر الدعم، سلبي",
+                  "تاسي يرتفع بدعم من البنوك، السوق إيجابي"],
+    }
+    users = [{"id": "u1", "username": "sample_trader", "name": "Sample Trader", "verified": False, "public_metrics": {"followers_count": 12000}},
+             {"id": "u2", "username": "sample_analyst", "name": "Sample Analyst", "verified": True, "public_metrics": {"followers_count": 250000}}]
+
+    class R:
+        def __init__(self, js):
+            self.js, self.status_code, self.text = js, 200, ""
+
+        def json(self):
+            return self.js
+    meta = {}
+    for bot in XB.BOTS:
+        feed, i = [], 0
+        for h in range(46, -1, -2):
+            for _ in range(rnd.randint(1, 3)):
+                i += 1
+                feed.append({"id": str(10_000_000 + i), "text": rnd.choice(texts[bot["id"]]),
+                             "created_at": (now - pd.Timedelta(hours=h, minutes=rnd.randint(0, 50))).isoformat().replace("+00:00", "Z"),
+                             "author_id": rnd.choice(["u1", "u2"]), "public_metrics": {"like_count": rnd.randint(5, 900), "retweet_count": rnd.randint(0, 200),
+                                                                                    "reply_count": rnd.randint(0, 40), "quote_count": 0}})
+        feed.sort(key=lambda p: -int(p["id"]))
+
+        def get(url, params=None, headers=None, timeout=None, feed=feed):
+            return R({"data": feed[:60], "includes": {"users": users}, "meta": {"newest_id": feed[0]["id"]}})
+        try:
+            XB.PER_RUN = 60
+            state = XB.run(bot, "SAMPLE", meta, now=now, get=get, force=True)
+            XB.save_state(bot, state)
+            log("xbots seed", bot["id"], len(state["posts"]), list(state["ledger"]["pos"]))
+        except Exception as e:
+            log("xbots seed", bot["id"], e)
+    XB.save(XB.META, meta)
 
 
 def chart_lab(b, report):
@@ -229,6 +282,8 @@ QUICK = True          # a quick run: the top bar's menus and two pages, no news/
 
 
 def main():
+    if QUICK:
+        seed_xbots()
     if not QUICK:
         news_lab()
     seed_bots()

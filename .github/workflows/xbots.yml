@@ -1,0 +1,30 @@
+# The five X bots (xbots.py): every hour of the US day (13:07 to 21:07 UTC covers 9 am to 4 pm New York, summer and winter, with an
+# hour on each side) and of the Saudi day (07:07 to 12:07 UTC = 10 am to 3 pm Riyadh), each bot inside its market's day reads its
+# new posts on X, updates its reading and trades its paper account. Needs the Actions secrets X_BEARER_TOKEN, SUPABASE_URL and
+# SUPABASE_KEY; without X_BEARER_TOKEN the bots wait (and nothing is charged).
+name: x bots
+on:
+  schedule:
+    - cron: "7 13-21 * * 1-5"
+    - cron: "7 7-12 * * 0-4"
+  workflow_dispatch:
+concurrency:
+  group: x-bots
+  cancel-in-progress: false
+jobs:
+  run:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: python scripts/xbots_run.py
+        env:
+          X_BEARER_TOKEN: ${{ secrets.X_BEARER_TOKEN }}
+          X_DAILY_READS: ${{ vars.X_DAILY_READS }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}

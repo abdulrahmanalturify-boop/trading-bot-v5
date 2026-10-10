@@ -37,7 +37,9 @@ SA_PAGES = {"overview", "news", "stock", "screener", "scanner", "paper", "pf_das
             "academy", "glossary",
             # 22.1: the Discover, Insight and Calendar pages and the Robo Advisor (its own Saudi account)
             "trending", "newsintel", "brief", "articles", "sentiment", "seasonality", "earnings", "results", "econcal", "holidays",
-            "dividends", "splits", "pf_robo"}
+            "dividends", "splits", "pf_robo",
+            # 22.5: the X bots (one of them reads the Saudi market)
+            "xbots"}
 # no Saudi counterpart: not in the Saudi menus (futures and options don't trade on Tadawul's main market, the economy page is the
 # Fed's data, and Yahoo's IPO calendar has no Saudi listings)
 US_ONLY = {"futures", "options", "economy", "ipos"}
@@ -227,4 +229,4 @@ def session_live(code=None):
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.4.2"
+BUILD = "22.5"

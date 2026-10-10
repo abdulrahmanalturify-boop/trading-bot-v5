@@ -374,4 +374,4 @@ def multiselect_free(label, options, key, placeholder="", max_n=4, format_func=N
         return st.multiselect(label, options, key=key, max_selections=max_n, placeholder=placeholder, format_func=fmt)
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.4.2"
+BUILD = "22.5"
