@@ -371,6 +371,11 @@ def _base(unis):
     if k not in unis:
         k = ss["hn_uni"] = list(unis)[0]
     if unis[k][1] is None:
+        if MK.is_sa():                                   # the Saudi list is picked by names (ui.sa_companies)
+            got = ss.get("hn_custom_sa")
+            if not isinstance(got, list):
+                got = ["2222.SR", "1120.SR", "2010.SR", "7010.SR", "1211.SR"]
+            return k, list(dict.fromkeys(got))[:200]
         raw = str(ss.get("hn_custom") or "").replace("،", ",").replace(" ", ",")
         out = [s.strip().upper() for s in raw.split(",") if s.strip()]
         if MK.is_sa():                                   # a Tadawul code alone: 2222 -> 2222.SR
@@ -620,10 +625,17 @@ def hunt_bar(unis, secs, inds, n):
         c[4].button(L("Refresh", "تحديث"), icon=":material/refresh:", key="hn_refresh", on_click=_refresh,
                     help=L("Fresh prices now", "أسعار جديدة الحين"), width="stretch")
         if ss.get("hn_uni") == "custom":
-            st.text_input(L("Symbols (comma separated)", "الرموز (مفصولة بفاصلة)"), key="hn_custom",
-                          placeholder="2222, 1120, 2010, 7010" if MK.is_sa() else "AAPL, MSFT, NVDA, 2222.SR")
+            if MK.is_sa():
+                ui.sa_companies(L("Companies", "الشركات"), "hn_custom_sa", ["2222.SR", "1120.SR", "2010.SR", "7010.SR", "1211.SR"],
+                                placeholder=L("Type a name: Aramco, Al Rajhi…", "اكتب اسم: أرامكو، الراجحي…"))
+            else:
+                st.text_input(L("Symbols (comma separated)", "الرموز (مفصولة بفاصلة)"), key="hn_custom", placeholder="AAPL, MSFT, NVDA, 2222.SR")
         a, b, cap = st.columns([1.9, 1, 4.2], vertical_alignment="bottom")
-        a.text_input(L("Analyze one symbol", "حلّل سهم واحد"), key="hn_look_in", placeholder="2222" if MK.is_sa() else "NVDA", on_change=_look)
+        if MK.is_sa():
+            ui.sa_company(L("Analyze one company", "حلّل شركة وحدة"), "hn_look_in", container=a, on_change=_look,
+                          none_label=L("Choose a company…", "اختر شركة…"))
+        else:
+            a.text_input(L("Analyze one symbol", "حلّل سهم واحد"), key="hn_look_in", placeholder="NVDA", on_change=_look)
         b.button(L("Analyze", "حلّل"), icon=":material/manage_search:", key="hn_look_go", on_click=_look, width="stretch")
         note = L(f"{n:,} stocks in this hunt.", f"{n:,} سهم في هذا الصيد.")
         if ss.get("hn_uni") == "sp500" and n > 250:
@@ -1681,4 +1693,4 @@ def page_scanner():
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.4.1"
+BUILD = "22.4.2"

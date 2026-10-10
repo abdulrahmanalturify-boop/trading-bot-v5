@@ -726,11 +726,17 @@ def histogram(values, title, color=ACCENT):
     return _bars(style(fig, 300, title, legend=False))
 
 
+def _names(syms, width=18):
+    """Point labels: a Saudi company by its (short) name, any other symbol as it is."""
+    from theme import sym_label
+    return [sym_label(s)[:width] for s in syms]
+
+
 def scan_scatter(res, title="Momentum map: 1-month return vs RSI (bubble = volume, color = score)"):
     d = res.dropna(subset=["RSI", "1M %"])
     size = d["Vol ×"].fillna(1).clip(0.5, 5) * 9
     fig = go.Figure(go.Scatter(
-        x=d["1M %"], y=d["RSI"], mode="markers+text", text=d["Symbol"], textposition="top center",
+        x=d["1M %"], y=d["RSI"], mode="markers+text", text=_names(d["Symbol"]), textposition="top center",
         textfont=dict(size=9, color=MUTED),
         marker=dict(size=size, color=d["Score"], colorscale=[[0, DOWN], [0.5, GOLD], [1, UP]],
                     showscale=True, colorbar=dict(title="Score", thickness=10), line=dict(width=0)),
@@ -754,7 +760,8 @@ def hunt_map(res, title=None, words=("From 52-week high %", "RS rating (1-99)", 
     size = np.clip(np.log10(d["$Vol"].clip(lower=1e6).astype(float)) - 5.5, 0.6, 4.0) * 7
     top = set(d.nlargest(18, "Score")["Symbol"])
     fig = go.Figure(go.Scatter(
-        x=d["From high %"], y=d["RS"], mode="markers+text", text=[s if s in top else "" for s in d["Symbol"]], customdata=d[["Symbol", "Score"]],
+        x=d["From high %"], y=d["RS"], mode="markers+text", text=[n if s in top else "" for s, n in zip(d["Symbol"], _names(d["Symbol"]))],
+        customdata=np.column_stack([_names(d["Symbol"], 40), d["Score"].to_numpy()]),
         textposition="top center", textfont=dict(size=9, color="#CAC5D1"), cliponaxis=False,
         marker=dict(size=size, color=d["Score"], cmin=20, cmax=95, colorscale=[[0, DOWN], [0.45, GOLD], [0.7, CYAN], [1, UP]], showscale=True,
                     colorbar=dict(title=words[2], thickness=10), line=dict(width=0.5, color="rgba(255,255,255,.25)"), opacity=0.9),
@@ -1335,4 +1342,4 @@ def seasonal_path(avg, cur=None, title=None, names=("Average year", "This year")
     return fig
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.4.1"
+BUILD = "22.4.2"

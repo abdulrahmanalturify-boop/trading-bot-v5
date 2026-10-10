@@ -1763,7 +1763,7 @@ def price_chart_section(sim):
             st.caption(L("No trades yet. The chart appears after the first trade.", "لا توجد صفقات بعد. الشارت يظهر بعد أول صفقة."))
             return
         ui.valid(f"pb_chart_{b['id']}", traded)
-        sym = left.selectbox(L("Stock", "السهم"), traded, key=f"pb_chart_{b['id']}")
+        sym = left.selectbox(L("Stock", "السهم"), traded, key=f"pb_chart_{b['id']}", format_func=ui.sym_name)
         full = data.history(sym, PB.period_for(b["start_date"], PB.market_of(b)))
     else:
         sym, full = b["value"], sim.get("frame")
@@ -2372,7 +2372,10 @@ def compare_section(sims):
     ss.setdefault("pb_cmp_per", "2y")
     with st.expander(L("Compare all strategies on a symbol", "قارن كل الاستراتيجيات على سهم"), icon=":material/leaderboard:"):
         a, b_, c = st.columns([1.2, 1.8, 1.1], vertical_alignment="bottom")
-        a.text_input(L("Symbol", "الرمز"), key="pb_cmp_sym")
+        if _sa():
+            ui.sa_company(L("Company", "الشركة"), "pb_cmp_sym", "2222.SR", container=a)
+        else:
+            a.text_input(L("Symbol", "الرمز"), key="pb_cmp_sym")
         b_.segmented_control(L("Period", "المدة"), list(CMP_PERIODS), key="pb_cmp_per", format_func=lambda k: L(*CMP_PERIODS[k][2:4]))
         run = c.button(L("Run comparison", "شغّل المقارنة"), icon=":material/play_arrow:", key="pb_cmp_run", width="stretch")
         sym = PB.norm_symbol(ss.get("pb_cmp_sym"), MK.SA)      # a bare 4-digit code is a Saudi company
@@ -2460,7 +2463,10 @@ def _qt_settings():
     if ss["pb_qt_strat"] not in names:
         ss["pb_qt_strat"] = names[0]
     c = st.columns([1, 1.5, 1.8, 1.1, 1.1, 0.9], vertical_alignment="bottom")
-    c[0].text_input(L("Symbol", "الرمز"), key="pb_qt_sym")
+    if _sa():
+        ui.sa_company(L("Company", "الشركة"), "pb_qt_sym", "2222.SR", container=c[0])
+    else:
+        c[0].text_input(L("Symbol", "الرمز"), key="pb_qt_sym")
     c[1].segmented_control(L("Period", "المدة"), list(QT_PERIODS), key="pb_qt_per", format_func=lambda k: L(*QT_PERIODS[k][2:4]))
     c[2].selectbox(L("Strategy", "الاستراتيجية"), names, key="pb_qt_strat", format_func=strat_name)
     c[3].number_input(L(f"Account ({cur()})", f"المحفظة ({cur()})"), 100, 100_000_000, step=1000, key="pb_qt_cap")
@@ -3510,12 +3516,8 @@ def bot_form(mode, bot=None):
                                     format_func=lambda k: L(*KIND_LABEL[k]), label_visibility="collapsed") or DEFAULTS["pb_kind"]
         sectors = PB.sector_members(_mk())
         if kind == "company" and _sa():
-            st.text_input(L("Company code", "رمز الشركة"), key="pb_symbol", max_chars=15,
-                          help=L("A Saudi company's 4-digit code (2222 = Aramco, 1120 = Al Rajhi) or its Yahoo symbol (2222.SR).",
-                                 "رمز الشركة السعودية من 4 أرقام (2222 = أرامكو، 1120 = الراجحي) أو رمزها في ياهو (2222.SR)."))
-            sym_ = PB.norm_symbol(ss.get("pb_symbol"), MK.SA)
-            if tasi.known(sym_):
-                st.caption(T.sym_label(sym_))
+            ui.sa_company(L("Company", "الشركة"), "pb_symbol", "2222.SR",
+                          help=L("Type part of the name to find it (Aramco, Al Rajhi…).", "اكتب جزء من الاسم وتلقاها (أرامكو، الراجحي…)."))
             count = 1
         elif kind == "company":
             st.text_input(L("Symbol", "الرمز"), key="pb_symbol", max_chars=15,
@@ -4436,4 +4438,4 @@ def page_paper_bots():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.4.1"
+BUILD = "22.4.2"

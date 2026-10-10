@@ -237,7 +237,7 @@ def page_earnings_hub_sa():
               "الشركات السعودية المتوقع إعلان نتائجها هذا الأسبوع (من الأحد إلى الخميس). اضغط على الشعار لفتح صفحة الشركة.")
     sun = week_nav("eh_wk_sa")
     f1, f2 = st.columns([1.6, 3], vertical_alignment="bottom")
-    q = f1.text_input(L("Find a company", "ابحث عن شركة"), key="eh_q_sa", placeholder=L("e.g. 2222 or Aramco", "مثال: 2222 أو أرامكو")).strip()
+    q = f1.text_input(L("Find a company", "ابحث عن شركة"), key="eh_q_sa", placeholder=L("e.g. Aramco, Al Rajhi", "مثال: أرامكو، الراجحي")).strip()
     with st.spinner(L("Loading this week's earnings calendar...", "جاري تحميل مواعيد الأرباح لهذا الأسبوع...")):
         df = C.earnings_sa(sun, sun + timedelta(days=4))
     if not df.empty:
@@ -727,7 +727,7 @@ def page_dividends_sa():
     c1, c2 = st.columns([1.5, 2], vertical_alignment="bottom")
     view = c1.segmented_control(L("Show", "عرض"), ["up", "recent"], default="up", key="dv_view_sa",
                                 format_func=lambda k: L("Coming", "القادمة") if k == "up" else L("Last 45 days", "آخر 45 يوماً")) or "up"
-    q = c2.text_input(L("Find a company", "ابحث عن شركة"), key="dv_q_sa", placeholder=L("e.g. 2222 or Aramco", "مثال: 2222 أو أرامكو")).strip()
+    q = c2.text_input(L("Find a company", "ابحث عن شركة"), key="dv_q_sa", placeholder=L("e.g. Aramco, Al Rajhi", "مثال: أرامكو، الراجحي")).strip()
     df, asof = C.dividends_sa()
     snap = data.sa_snapshot()
     if not snap.empty:
@@ -959,4 +959,4 @@ def page_ipos():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.4.1"
+BUILD = "22.4.2"

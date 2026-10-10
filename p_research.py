@@ -408,8 +408,8 @@ def financials_tab(sym, inf, price=None):
         note = L(" (annualized)", " (سنوي)") if pick in ("roe", "roa") and freq == "q" else ""
         peers = _peers(sym)
         cmp = ui.multiselect_free(L("Compare with other companies (up to 4)", "قارن مع شركات أخرى (حتى 4)"), peers, "fin_cmp",
-                                  L("Pick peers or type any symbol…", "اختر شركات منافسة أو اكتب أي رمز…"), 4)
-        cmp = [c_.strip().upper() for c_ in cmp if c_ and c_.strip().upper() != sym][:4]
+                                  L("Pick peers or type a company…", "اختر شركات منافسة أو اكتب اسم شركة…"), 4)
+        cmp = [r_ for r_ in dict.fromkeys(ui.resolve_sym(c_) for c_ in cmp) if r_ and r_ != sym][:4]
         if cmp:
             comp, missing = {sym: s_}, []
             with st.spinner(L("Loading the companies to compare...", "جاري تحميل الشركات للمقارنة...")):
@@ -421,7 +421,7 @@ def financials_tab(sym, inf, price=None):
                         missing.append(c_)
             by = {n_: dict(zip(_period_labels(sr.index, freq), [float(v) if pd.notna(v) else None for v in sr.values])) for n_, sr in comp.items()}
             all_labels = sorted({l_ for m_ in by.values() for l_ in m_}, key=_label_key)[-8:]
-            ui.chart(charts.compare_bars(all_labels, {n_: [m_.get(l_) for l_ in all_labels] for n_, m_ in by.items()},
+            ui.chart(charts.compare_bars(all_labels, {T.sym_label(n_): [m_.get(l_) for l_ in all_labels] for n_, m_ in by.items()},
                                          L(en, ar) + note + L(" · comparison", " · مقارنة"), kind), key="fin_cmp_chart")
             lg = data.logos(list(comp))
             cards = []
@@ -437,10 +437,10 @@ def financials_tab(sym, inf, price=None):
                              f'<div style="margin-top:4px">{T.pill(ch, suffix=unit_) if ch is not None else ""}</div></div>')
             ui.html('<div class="mx">' + "".join(cards) + "</div>")
             if missing:
-                st.caption(L("No data for: ", "لا توجد بيانات لـ: ") + ", ".join(missing))
+                st.caption(L("No data for: ", "لا توجد بيانات لـ: ") + "، ".join(T.sym_label(m_) for m_ in missing))
         else:
             # same design as the comparison chart (value on every bar, $ axis, company legend), even for one company
-            ui.chart(charts.compare_bars(labels_, {sym: vals}, L(en, ar) + note, kind), key="fin_chart")
+            ui.chart(charts.compare_bars(labels_, {T.sym_label(sym): vals}, L(en, ar) + note, kind), key="fin_chart")
             last_v = vals[-1]
             prev_v = vals[-2] if len(vals) > 1 else np.nan
             yoy_v = vals[-5] if freq == "q" and len(vals) > 4 else (prev_v if freq == "a" else np.nan)
@@ -1565,7 +1565,7 @@ def _share_view(df, total, group_name):
     """Revenue market share inside the chosen group: donut + ranked cards."""
     d = df.dropna(subset=["Revenue"]).sort_values("Revenue", ascending=False)
     top = d.head(8)
-    labels = list(top["Symbol"])
+    labels = [T.sym_label(x) for x in top["Symbol"]]
     values = list(top["Revenue"])
     rest = d["Revenue"].iloc[8:].sum()
     if rest > 0:
@@ -2011,4 +2011,4 @@ def page_screener():
 # SCANNER
 # =====================================================================
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.4.1"
+BUILD = "22.4.2"

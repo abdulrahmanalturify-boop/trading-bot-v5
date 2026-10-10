@@ -11,7 +11,7 @@ import streamlit as st
 # ---------------------------------------------------------------- always run the newest code
 # Streamlit Cloud re-reads app.py after every GitHub upload but can keep the other modules (theme, data, ...) from the
 # previous version in memory. Every module carries BUILD; if one in memory is older, all of them are reloaded in order.
-BUILD = "22.4.1"
+BUILD = "22.4.2"
 _ORDER = ["terms", "lightmode", "i18n", "ai_assistant", "flags", "mcal", "mcal_sa", "markets", "tasi", "universe", "sp500", "taxonomy", "ta", "academy_visuals", "academy", "insight", "heatmap", "newsiq", "newspics", "theme", "data",
           "caldata", "newsbot", "newsintel", "charts", "engine", "playbooks", "autotrader", "ui", "fairvalue", "segments", "holders", "sharia", "lab", "tdash", "mlbots", "brain", "paperbots", "smartbots", "portfolio", "robobot", "robo", "pfinsight", "p_markets", "p_newsintel", "p_research", "p_insight",
           "p_academy", "p_paper", "p_portfolio", "p_robo", "p_calendar", "hunter", "p_scanner", "home"]
@@ -462,9 +462,12 @@ def _wl_sym(x):
         return None
     if v.isdigit() and len(v) == 4:
         return v + ".SR"
-    if not v.isascii():                              # a Saudi company typed by its Arabic name
-        hit = tasi.search(v)
-        return hit[0] if hit else None
+    if MK.choice() == MK.SA or not v.isascii():
+        r = ui.resolve_sym(v, True)                   # a Saudi company typed by its name, in Arabic or English
+        if r.endswith(".SR"):
+            return r
+        if not v.isascii():
+            return None
     v = v.upper()
     return v if _WL_SYM.match(v) else None
 
@@ -536,9 +539,10 @@ def sidebar():
             if st.button(s_, key=f"wl_{s_}", width="stretch"):
                 ui.open_stock(s_)
     st.text_input("add", key="wl_add", on_change=_wl_add, label_visibility="collapsed",
-                  placeholder=L("+ Add a code (e.g. 2222)", "+ أضف رمزاً (مثال: 2222)") if sa else L("+ Add a symbol (e.g. PLTR)", "+ أضف رمزاً (مثال: PLTR)"))
+                  placeholder=L("+ Add a company (e.g. Aramco)", "+ أضف شركة (مثال: أرامكو)") if sa else L("+ Add a symbol (e.g. PLTR)", "+ أضف رمزاً (مثال: PLTR)"))
     with st.expander(L("Edit watchlist", "تعديل القائمة"), icon=":material/edit:"):
-        txt = st.text_area(L("Symbols (comma separated)", "الرموز (مفصولة بفاصلة)"), ", ".join(wl))
+        txt = st.text_area(L("Companies (comma separated)", "الشركات (مفصولة بفاصلة)") if sa else L("Symbols (comma separated)", "الرموز (مفصولة بفاصلة)"),
+                           "، ".join(T.sym_label(x) for x in wl) if sa else ", ".join(wl))
         if st.button(L("Save", "حفظ")):
             ss[_wl_key()] = _wl_clean(txt.replace("،", ",").split(","))
             st.rerun()

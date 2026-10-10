@@ -934,9 +934,7 @@ def page_seasonality():
     pick = c1.selectbox(L("Market", "السوق"), list(seas), key="se_sym_sa" if sa else "se_sym", format_func=lambda k: L(*seas[k]))
     sym = pick
     if pick == "other" and sa:
-        import tasi
-        raw = (c2.text_input(L("Company code or name", "رمز الشركة أو اسمها"), "2222", key="se_other_sa") or "2222").strip().upper()
-        sym = f"{raw}.SR" if raw.isdigit() and len(raw) == 4 else (tasi.search(raw) or [raw if raw.endswith(".SR") else "2222.SR"])[0]
+        sym = ui.sa_company(L("Company", "الشركة"), "se_other_sa", "2222.SR", container=c2) or "2222.SR"
     elif pick == "other":
         sym = (c2.text_input(L("Symbol", "الرمز"), "AAPL", key="se_other") or "AAPL").strip().upper()
     if sa:      # the Saudi histories are shorter: KSA from 2015, the biggest companies from 2010 (Aramco from its listing in Dec 2019)
@@ -1007,4 +1005,4 @@ def page_seasonality():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.4.1"
+BUILD = "22.4.2"

@@ -24,7 +24,8 @@ PAGES = [  # 22.4: the Discover pages (trending, news, the news engine) and a st
          ("newsintel", "news-intelligence", "us", '[class*="st-key-nie_cb_"] button'),
          ("sentiment", "sentiment", "us"), ("seasonality", "seasonality", "us"), ("stock", "stock?symbol=NVDA", "us"),
          ("sa_trending", "trending", "sa"), ("sa_news", "news", "sa", '[class*="st-key-nwa_"] button')]
-QUICK_PAGES = [("news", "news", "us"), ("stock", "stock?symbol=NVDA", "us")]
+QUICK_PAGES = [("sa_trade", "portfolio-trade", "sa"), ("sa_scanner", "scanner", "sa"), ("sa_news", "news", "sa"), ("sa_stock", "stock?symbol=2222.SR", "sa")]
+NAV_BROWSERS = False  # the top bar's menus in WebKit and Firefox too (a quick run)
 
 
 def log(*a):
@@ -224,7 +225,7 @@ def shoot(pg, name):
     pg.screenshot(path=os.path.join(OUT, f"{name}.jpg"), type="jpeg", quality=72, full_page=True)
 
 
-QUICK = False         # a quick run: the top bar's menus and two pages, no news/photo/chart labs
+QUICK = True          # a quick run: the top bar's menus and two pages, no news/photo/chart labs
 
 
 def main():
@@ -355,7 +356,7 @@ def main():
                     report.setdefault("notes", []).append(f"topbar {lang}: {e}"[:300])
                 ctx.close()
             b.close()
-            if QUICK:                                 # the menus in other browsers and on narrower windows (a zoomed laptop)
+            if QUICK and NAV_BROWSERS:                # the menus in other browsers and on narrower windows (a zoomed laptop)
                 for kind, w_ in (("chromium", 1280), ("chromium", 1000), ("webkit", 1440), ("webkit", 1100), ("firefox", 1440)):
                     try:
                         bx = getattr(p, kind).launch()

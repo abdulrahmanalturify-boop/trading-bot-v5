@@ -1083,7 +1083,7 @@ def alloc_fig(c):
     pos = c.view["positions"]
     if not pos:
         return None
-    labels = [p["sym"] + (" ▼" if p["qty"] < 0 else "") for p in pos[:9]]
+    labels = [T.sym_label(p["sym"]) + (" ▼" if p["qty"] < 0 else "") for p in pos[:9]]
     vals = [abs(p["mv"]) for p in pos[:9]]
     if len(pos) > 9:
         labels.append(L("Others", "أخرى"))
@@ -1476,10 +1476,15 @@ def _sym_in(v):
     v = str(v or "").strip()
     sym = PB.norm_symbol(v, MK.SA)
     if _sa() and not sym.endswith(".SR") and v:
-        hit = tasi.search(v)
-        if hit:
-            return hit[0]
+        hit = ui.resolve_sym(v, True)             # the exact name first (الراجحي is Al Rajhi Bank, not Al Rajhi REIT)
+        if hit.endswith(".SR"):
+            return hit
     return sym.upper()
+
+
+def _box(sym):
+    """What the ticket's company box shows for a symbol: a Saudi company's name (typed back, it finds the same company)."""
+    return T.sym_label(sym) if _sa() and tasi.is_sa(sym) else sym
 
 
 def quote_card(sym, q, inf, held):
@@ -1590,7 +1595,8 @@ def _pick():
     """A quick-pick chip was pressed: open the ticket on that stock (runs before the page, so the inputs can change)."""
     v = ss.get("pf_pick")
     if v:
-        ss["pf_sym"] = ss["pf_sym_in"] = ss["pf_sym_last"] = v
+        ss["pf_sym"] = ss["pf_sym_last"] = v
+        ss["pf_sym_in"] = _box(v)
     ss["pf_pick"] = None
 
 
@@ -1610,20 +1616,20 @@ def page_trade():
         ss.pop("pf_sym", None)
     default = ss.get("pf_sym") or (c.view["positions"][0]["sym"] if c.view["positions"] else ("2222.SR" if sa else "AAPL"))
     if "pf_sym_in" not in ss:
-        ss["pf_sym_in"] = default
+        ss["pf_sym_in"] = _box(default)
     if ss.get("pf_sym") and ss.get("pf_sym") != ss.get("pf_sym_last"):
-        ss["pf_sym_in"] = ss["pf_sym"]
+        ss["pf_sym_in"] = _box(ss["pf_sym"])
         ss["pf_sym_last"] = ss["pf_sym"]
     left, right = st.columns([1.25, 1], gap="medium")
     with left:
         s1, s2 = st.columns([1, 2], vertical_alignment="bottom")
-        ui.html('<style>.st-key-pf_sym_in input { direction:ltr; }</style>')
-        sym = _sym_in(s1.text_input(L("Company code", "رمز الشركة") if sa else L("Symbol", "الرمز"), key="pf_sym_in",
-                                    placeholder="2222" if sa else "AAPL"))
+        if not sa:
+            ui.html('<style>.st-key-pf_sym_in input { direction:ltr; }</style>')
+        sym = _sym_in(s1.text_input(L("Company", "الشركة") if sa else L("Symbol", "الرمز"), key="pf_sym_in",
+                                    placeholder=L("Name or code, e.g. Aramco", "الاسم أو الرمز، مثل أرامكو") if sa else "AAPL"))
         picks = list(dict.fromkeys(list(held_map) + (POPULAR_SA if sa else POPULAR)))[:8]
         ui.valid("pf_pick", picks + [None])
-        s2.pills(L("Quick pick", "اختيار سريع"), picks, key="pf_pick", on_change=_pick,
-                 format_func=(lambda x: f"{x.split('.')[0]} {L(tasi.name_of(x), tasi.name_of(x, True))}".strip()) if sa else str)
+        s2.pills(L("Quick pick", "اختيار سريع"), picks, key="pf_pick", on_change=_pick, format_func=ui.sym_name if sa else str)
         if sym and MK.of_symbol(sym) != MK.current():     # each market's portfolio trades its own companies
             ui.html(empty("swap_horiz", L("This company trades in the other market", "هالشركة تتداول في السوق الثاني"),
                           L("The Saudi portfolio trades Saudi companies (codes like 2222). Switch to the US market at the top to trade US stocks.",
@@ -2046,7 +2052,8 @@ def page_history():
     access_bar(c)
     st_ = c.state
     syms = sorted({o["sym"] for o in st_["orders"]})
-    pick = st.multiselect(L("Stocks", "الأسهم"), syms, key="pf_h_syms", placeholder=L("All stocks", "كل الأسهم")) if syms else []
+    pick = st.multiselect(L("Stocks", "الأسهم"), syms, key="pf_h_syms", placeholder=L("All stocks", "كل الأسهم"),
+                          format_func=ui.sym_name) if syms else []
     keep = (lambda s: s in pick) if pick else (lambda s: True)
     tabs = st.tabs([L(":material/pending_actions: Working orders", ":material/pending_actions: الأوامر قيد التنفيذ"),
                     L(":material/list_alt: All orders", ":material/list_alt: كل الأوامر"),
@@ -2116,4 +2123,4 @@ def page_history():
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.4.1"
+BUILD = "22.4.2"

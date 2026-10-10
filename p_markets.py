@@ -1472,11 +1472,11 @@ def page_news():
     bot_panel([n for n in everything if pd.notna(n.get("time")) and n["time"] >= now - pd.Timedelta(hours=24)])
     with st.container(key="nwfilt"):
         c1, c2, c3, c4 = st.columns([1.7, 1.25, 1.35, 0.75], vertical_alignment="bottom")
-        sym = c1.text_input(L("Company", "الشركة"), "", key="nw_sym_sa" if sa else "nw_sym",
-                            placeholder=L("Code or name · empty = all the market", "الرمز أو الاسم · فاضي = السوق كله") if sa else
-                            L("Symbol, e.g. NVDA · empty = all the market", "رمز السهم مثل NVDA · فاضي = السوق كله")).strip().upper()
-        if sa and sym:
-            sym = f"{sym}.SR" if sym.isdigit() and len(sym) == 4 else (tasi.search(sym) or [sym])[0]
+        if sa:
+            sym = ui.sa_company(L("Company", "الشركة"), "nw_sym_sa2", container=c1, none_label=L("All the market", "السوق كله")) or ""
+        else:
+            sym = c1.text_input(L("Company", "الشركة"), "", key="nw_sym",
+                                placeholder=L("Symbol, e.g. NVDA · empty = all the market", "رمز السهم مثل NVDA · فاضي = السوق كله")).strip().upper()
         sort = c2.segmented_control(L("Order", "الترتيب"), ["imp", "new"], default="new" if sa else "imp", key="nw_sort_sa" if sa else "nw_sort",
                                     format_func=lambda k: L("Important", "الأهم") if k == "imp" else L("Latest", "الأحدث")) or "imp"
         lvl = c3.segmented_control(L("Importance", "الأهمية"), [1, 5, 7, 9], default=1, key="nw_min",
@@ -1554,4 +1554,4 @@ def page_news():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.4.1"
+BUILD = "22.4.2"

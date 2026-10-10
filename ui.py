@@ -292,11 +292,7 @@ def open_picker(symbols, key, label_en="Open a company", label_ar="افتح شر
         return
     valid(f"op_{key}", symbols)
     a, b = st.columns([3, 1], vertical_alignment="bottom")
-    import tasi
-
-    def name(s_):                                   # a Saudi company by its name (its code is a number)
-        return tasi.label(s_, L(False, True)) if tasi.is_sa(s_) else s_
-    pick = a.selectbox(L(label_en, label_ar), symbols, key=f"op_{key}", format_func=name)
+    pick = a.selectbox(L(label_en, label_ar), symbols, key=f"op_{key}", format_func=sym_name)
     if b.button(L("Open", "افتح"), icon=":material/open_in_new:", key=f"opb_{key}", width="stretch"):
         open_stock(pick)
 
@@ -305,14 +301,77 @@ def foot():
     html(f'<div class="foot">{T.brand(".95em", "ftb", dot=True, pro="inline", color="currentColor")} · {L("Data: Yahoo Finance, FRED & BLS, may be delayed. Educational use only, not investment advice.", "البيانات: ياهو فاينانس وFRED ومكتب إحصاءات العمل وقد تكون متأخرة. للاستخدام التعليمي فقط وليست توصية استثمارية.")}</div>')
 
 
-def multiselect_free(label, options, key, placeholder="", max_n=4):
-    """Multiselect that also accepts typed values (newer Streamlit), with a safe fallback for older versions."""
+def sym_name(s):
+    """A choice in a list of companies, as the visitor reads it: a Saudi company by its name in the page's language (never its
+    number), any other symbol as it is (format_func for every company list)."""
+    return T.sym_label(s) if isinstance(s, str) else s
+
+
+def resolve_sym(text, sa=None):
+    """A company typed by the visitor -> its symbol: a Saudi code (2222 or 2222.SR), a Saudi name in Arabic or English
+    (أرامكو, Al Rajhi), or any other symbol as typed (upper case)."""
+    import markets as MK
+    import tasi
+    t = str(text or "").strip()
+    if not t:
+        return ""
+    sa = MK.is_sa() if sa is None else sa
+    up = t.upper()
+    if up.endswith(".SR") or (up.isdigit() and len(up) == 4):
+        return up if up.endswith(".SR") else f"{up}.SR"
+    if sa or not t.isascii():
+        named = {**{s_: (tasi.name_of(s_), tasi.name_of(s_, True)) for s_ in tasi.SYMBOLS}, **tasi.FUNDS, **tasi.INDICES}
+        exact = [s_ for s_, nm in named.items() if t.lower() in (str(nm[0]).lower(), str(nm[1]))]
+        hits = exact or tasi.search(t)
+        if hits:
+            return hits[0]
+    return up
+
+
+def _sa_options():
+    import tasi
+    return sorted(tasi.SYMBOLS, key=lambda s_: T.sym_label(s_))
+
+
+def sa_company(label, key, default=None, container=None, none_label=None, on_change=None, help=None):
+    """A Saudi company chosen by its name (the list filters as you type, in Arabic or English): every main-market company;
+    returns its symbol ("" for none_label, the "all the market" choice). A value kept from before - a code, a name or another
+    market's symbol - is turned into the company it names, else the default."""
+    opts = ([""] if none_label else []) + _sa_options()
+    if default is None:
+        default = "" if none_label else "2222.SR"
+    cur = st.session_state.get(key)
+    if cur is not None and cur not in opts:
+        r = resolve_sym(cur, True)
+        st.session_state[key] = r if r in opts else ("" if none_label else (default if default in opts else opts[0]))
+    kw = {} if key in st.session_state else {"index": opts.index(default) if default in opts else 0}
+    return (container or st).selectbox(label, opts, key=key, on_change=on_change, help=help,
+                                       format_func=lambda s_: none_label if s_ == "" else sym_name(s_), **kw)
+
+
+def sa_companies(label, key, default=(), container=None, placeholder=None):
+    """Several Saudi companies chosen by their names; returns their symbols. Kept values (codes, names) are turned into symbols."""
+    opts = _sa_options()
+    cur = st.session_state.get(key)
+    if cur is not None and not isinstance(cur, list):
+        cur = [x for x in str(cur).replace("،", ",").split(",") if x.strip()]
+    if isinstance(cur, list):
+        st.session_state[key] = [r for r in dict.fromkeys(resolve_sym(x, True) for x in cur) if r in opts]
+    kw = {} if key in st.session_state else {"default": [d for d in default if d in opts]}
+    return (container or st).multiselect(label, opts, key=key, format_func=sym_name, placeholder=placeholder, **kw)
+
+
+def multiselect_free(label, options, key, placeholder="", max_n=4, format_func=None):
+    """Multiselect that also accepts typed values (newer Streamlit), with a safe fallback for older versions. Companies show by
+    their names (sym_name) unless another format_func is given."""
+    fmt = format_func or sym_name
     try:
-        return st.multiselect(label, options, key=key, max_selections=max_n, accept_new_options=True, placeholder=placeholder)
+        return st.multiselect(label, options, key=key, max_selections=max_n, accept_new_options=True, placeholder=placeholder,
+                              format_func=fmt)
     except TypeError:
         if isinstance(st.session_state.get(key), list):
             st.session_state[key] = [v for v in st.session_state[key] if v in options]
-        return st.multiselect(label, options, key=key, max_selections=max_n, placeholder=placeholder)
+        return st.multiselect(label, options, key=key, max_selections=max_n, placeholder=placeholder, format_func=fmt)
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.4.1"
+BUILD = "22.4.2"
