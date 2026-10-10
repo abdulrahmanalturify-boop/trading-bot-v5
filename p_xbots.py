@@ -57,11 +57,11 @@ CSS = """<style>
 .xbc .nm small { display:flex; align-items:center; gap:4px; color:#8F899B; font-size:.72rem; white-space:nowrap; }
 .xbc .beat { color:#B9B3C4; font-size:.77rem; line-height:1.5; min-height:3.1em; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
 .xbc .eq { display:flex; align-items:flex-end; justify-content:space-between; gap:8px; }
-.xbc .eq .v { display:flex; flex-direction:column; align-items:flex-start; gap:3px; color:#fff; font-weight:800; font-size:1rem; font-variant-numeric:tabular-nums; line-height:1.1; min-width:0; }
-.xbc .eq .v small { color:#8F899B; font-weight:500; font-size:.7rem; }
+.xbc .eq .v { display:flex; flex-direction:row; align-items:center; flex-wrap:wrap; gap:3px 8px; color:#fff; font-weight:800; font-size:1rem; font-variant-numeric:tabular-nums; line-height:1.1; min-width:0; }
+.xbc .eq .v small { flex-basis:100%; color:#8F899B; font-weight:500; font-size:.7rem; }
 .xbc .eq .v .n { white-space:nowrap; } .xbc .eq .v .n em { font-style:normal; font-weight:600; font-size:.72rem; color:#B9B3C4; margin-inline-end:3px; }
 .xbc .eq .v .pill, .xbc .eq .v [class*="pill"] { font-size:.72rem; }
-.xbc .eq svg { flex:none; }
+.xbc .sp { margin-top:-4px; } .xbc .sp svg { width:100%; height:30px; display:block; }
 .xbc .gg { display:flex; align-items:center; gap:10px; }
 .xbc .gg svg { flex:none; }
 .xbc .gg .t { display:flex; flex-direction:column; line-height:1.2; font-size:.72rem; color:#8F899B; }
@@ -170,18 +170,17 @@ def _spark(curve, color, w=110, h=34):
     """The account's curve as a small line (flat and faint before its first trading day)."""
     ys = [float(c["eq"]) for c in (curve or []) if c.get("eq") is not None][-60:]
     if len(ys) < 2:
-        return (f'<svg width="{w}" height="{h}" viewBox="0 0 {w} {h}" aria-hidden="true"><line x1="2" y1="{h / 2:.0f}" x2="{w - 2}" y2="{h / 2:.0f}" '
+        return (f'<svg viewBox="0 0 {w} {h}" preserveAspectRatio="none" aria-hidden="true"><line x1="2" y1="{h / 2:.0f}" x2="{w - 2}" y2="{h / 2:.0f}" vector-effect="non-scaling-stroke" '
                 f'stroke="rgba(255,255,255,.18)" stroke-width="2" stroke-dasharray="3 4" stroke-linecap="round"/></svg>')
     lo, hi = min(ys), max(ys)
     span = (hi - lo) or 1.0
     pts = [(2 + i * (w - 4) / (len(ys) - 1), 3 + (h - 6) * (1 - (y - lo) / span)) for i, y in enumerate(ys)]
     d = " ".join(f"{x:.1f},{y:.1f}" for x, y in pts)
     gid = f"g{abs(hash(d)) % 10 ** 8}"
-    return (f'<svg width="{w}" height="{h}" viewBox="0 0 {w} {h}" aria-hidden="true"><defs><linearGradient id="{gid}" x1="0" x2="0" y1="0" y2="1">'
+    return (f'<svg viewBox="0 0 {w} {h}" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="{gid}" x1="0" x2="0" y1="0" y2="1">'
             f'<stop offset="0" stop-color="{color}" stop-opacity=".35"/><stop offset="1" stop-color="{color}" stop-opacity="0"/></linearGradient></defs>'
             f'<polygon points="{pts[0][0]:.1f},{h} {d} {pts[-1][0]:.1f},{h}" fill="url(#{gid})"/>'
-            f'<polyline points="{d}" fill="none" stroke="{color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'
-            f'<circle cx="{pts[-1][0]:.1f}" cy="{pts[-1][1]:.1f}" r="2.6" fill="{color}" stroke="#15121F" stroke-width="1.2"/></svg>')
+            f'<polyline points="{d}" fill="none" stroke="{color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/></svg>')
 
 
 def _gauge(m, color, size=58):
@@ -245,10 +244,10 @@ def _card(bot, state, rank, sel):
     rk = f'<span class="rk {"top" if rank == 1 else ""}" title="{T.esc(L("Rank by return", "الترتيب حسب العائد"))}">#{rank}</span>'
     return (f'<div class="xbc {"sel" if sel else ""}" style="--xc:{bot["color"]}">'
             f'<div class="hd"><span class="ic">{T.icon(bot["icon"])}</span><span class="nm"><b>{T.esc(L(*bot["name"]))}</b>'
-            f'<small>{rk}{T.esc(L("Paper account", "حساب وهمي"))} · {_cur(bot)}{led["start"]:,.0f}</small></span></div>'
+            f'<small>{rk}{T.esc(L("Paper account", "حساب وهمي"))}</small></span></div>'
             f'<div class="beat">{T.esc(L(*bot["beat"]))}</div>'
-            f'<div class="eq"><span class="v"><small>{T.esc(L("Account", "الحساب"))}</small><span class="n"><em>{_cur(bot).strip()}</em>{st_["equity"]:,.0f}</span>{T.pill(st_["ret"])}</span>'
-            f'{_spark(led.get("curve"), bot["color"])}</div>'
+            f'<div class="eq"><span class="v"><small>{T.esc(L("Account", "الحساب"))}</small><span class="n"><em>{_cur(bot).strip()}</em>{st_["equity"]:,.0f}</span>{T.pill(st_["ret"])}</span></div>'
+            f'<div class="sp">{_spark(led.get("curve"), bot["color"])}</div>'
             f'<div class="gg">{_gauge(m, col)}<span class="t"><span>{T.esc(L("Mood · 6 h", "المزاج · 6 ساعات"))}</span>'
             f'<b style="color:{col}">{"—" if m is None else f"{m:+.0f}"}</b><span>{T.esc(word)}</span></span></div>'
             f'<div class="slots">{slots}<span>{st_["open"]} / {bot["slots"]} {T.esc(L("positions", "مراكز"))}</span></div>'
@@ -463,4 +462,4 @@ def page_xbots():
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.6.1"
+BUILD = "22.6.2"
