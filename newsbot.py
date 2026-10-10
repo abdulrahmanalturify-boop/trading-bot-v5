@@ -138,7 +138,14 @@ NOISE = re.compile(r"\b(cd rates?|savings (?:account )?rates?|mortgage (?:and re
 JUNK = re.compile(r"(مقابل USD\s*$|\|\s*TADAWUL\s*\|\s*TASI|TADAWUL:\d{4}\s*$|%[0-9A-F]{2}%[0-9A-F]{2}|^\s*[\w&.\- ]{2,30} - (?:Disclosures|Latest News|"
                   r"Announcements|Financials?|Profile|Overview)\s*$|^\s*(?:Calendar|Home|Markets?)\s*$|\b(?:golf|lpga|pga tour|ladies european tour|"
                   r"championship|tournament|grand prix|world cup|premier league|(?:day \w+|round \d|match|game|race) highlights)\b|"
-                  r"[\u3040-\u30ff\u4e00-\u9fff\uac00-\ud7af]|مقابل الجنيه|السوق المصري|البنوك المصرية|السوق السوداء)", re.I)
+                  r"[\u3040-\u30ff\u4e00-\u9fff\uac00-\ud7af]|مقابل الجنيه|السوق المصري|البنوك المصرية|السوق السوداء|"
+                  # shopping deals, profile pages, law-firm adverts, call transcripts and automatic "stocks moving" lists
+                  r"\bis selling an? .{3,80} for (?:only |just )?\$[\d,.]+|: profile and biography\b|\binvestor counsel\b|\bclass action lawsuit\b|"
+                  r"\b(?:final )?deadline(?: alert)?:|\bshareholder alert\b|\bearnings call(?::)? (?:complete )?transcript\b|^full transcript:|"
+                  r"\b\d+ [\w ]{0,40}stocks (?:moving|with whale alerts)\b|"
+                  # a data feed's test rows, company pages and forum threads, daily gold-and-riyal price posts, Bengali video titles
+                  r"^test data\b|معلومات وتحديثات|مناقشات السوق|عيار 2[14]|سعر الريال السعودي اليوم|سعر الذهب في السعودية|[\u0980-\u09ff]|"
+                  r"^\W*\w+\W+\w+\W*$|^middle east economy$)", re.I)
 BLOCKED = {"vietnam.vn", "sky sports", "yahoo sports", "ladies european tour", "www.golfpost.com", "golfpost", "스타뉴스", "espn",
            "golf channel", "golf digest"}
 _TAG = re.compile(r"<[^>]+>")
@@ -322,8 +329,9 @@ def tokens(title):
 # ---------------------------------------------------------------- one story told by several outlets ("full coverage")
 # the bot itself merges a headline repeated almost word for word; the pages also group the same event told in different words
 # ("White House forms committee to probe Fed's Cook", "Can Trump fire Fed governor Lisa Cook?") into one card with its coverage
-_SERIES = re.compile(r"^(?:stock market today,?\s*\w{3,9}\.?\s*\d{1,2}\s*[:\-]|world economy latest:|morning bid:|closing bell:|exclusive:|"
-                     r"breaking:|update \d+[:\-]|analysis[:\-]|factbox[:\-]|explainer[:\-]|wall st\.? week ahead[:\-]?|instant view:|live:)\s*", re.I)
+_SERIES = re.compile(r"^(?:(?:stock market today,?\s*\w{3,9}\.?\s*\d{1,2}\s*[:\-]|world economy latest:|morning bid:|closing bell:|exclusive[:\-|]|"
+                     r"breaking:|update \d+[:\-]|analysis[:\-]|factbox[:\-]|explainer[:\-]|wall st\.? week ahead[:\-]?|instant view:|live:|"
+                     r"commentary:|opinion:|firstft:)\s*)+", re.I)
 _SERIES_END = re.compile(r"\s*(?:\|\s*closing bell|-\s*live updates?|\|\s*live)\s*$", re.I)
 _SAME = [(re.compile(p, re.I), r) for p, r in ((r"federal reserve", "fed"), (r"\bu\.s\.", "us"), (r"\bwall st\b", "wall street"),
                                              (r"\bs&p 500\b", "spx"), (r"\bnasdaq composite\b", "nasdaq"))]
@@ -333,14 +341,39 @@ CL_STOP = STOP | set("stock stocks share shares market markets investors traders
                      "wall street monday tuesday wednesday thursday friday saturday sunday january february march april june july "
                      "august september october november december transcript complete full call session intraday premarket pre-market "
                      "after-hours moving falling rising trading futures settle modestly steady steadie price prices q1 q2 q3 q4 "
-                     "here what's whats know".split())
+                     "here what's whats know best right buy sell can hit hits top worth invested much funding round valuation "
+                     "billion million trillion percent record low high near report reuters bloomberg benzinga exclusive commentary "
+                     "update analysis backed seek seeks one two three four five six seven eight nine ten company companies firm "
+                     "group shares fiscal financial result results quarter half announces announce earning earnings revenue revenues "
+                     "profit reveal reveals filing filings plan plans".split()) | set(
+    # the Arabic headlines' everyday words (a profit story about Extra is not a profit story about Samsung)
+    "في من إلى الى على عن مع عند بعد قبل خلال حتى منذ بين نحو أن إن كان كانت التي الذي هذا هذه ذلك تلك ما لا لم لن قد كما أو ثم "
+    "بسبب وسط رغم اليوم أمس السبت الأحد الإثنين الاثنين الثلاثاء الأربعاء الخميس الجمعة يناير فبراير مارس أبريل مايو يونيو يوليو "
+    "أغسطس سبتمبر أكتوبر نوفمبر ديسمبر الربع الأول الثاني الثالث الرابع النصف العام السنة أرباح الأرباح ارتفاع تراجع انخفاض يرتفع "
+    "ترتفع يتراجع تتراجع ينخفض تنخفض تقفز يقفز صعود هبوط مليون مليار ريال ريالا ريالات دولار دولارا السعودية السعودي سعر أسعار سوق "
+    "السوق الأسهم أسهم شركة الشركة خبر أخبار عاجل مستوى أعلى أدنى نسبة بنسبة تسجل يسجل تحقق يحقق مؤشر المؤشر يغلق تغلق إغلاق "
+    "منخفضا منخفضًا مرتفعا مرتفعًا مكاسب خسائر أسبوعية أسبوعي الأسبوع للأسبوع التوالي middle east".split())
 
 
+_CL_STOP = set()                 # CL_STOP and its stems (filled below, once _stem exists)
 # words that tell the same thing
 _SYN = {w: k for k, ws in {"probe": "investigate investigation inquiry probing", "acquire": "acquisition takeover buyout",
                            "tariff": "duty duties levy levies", "layoff": "job-cuts", "plunge": "tumble sink sank slump crash",
                            "soar": "surge jump skyrocket", "approve": "approval approved clear clears", "ceo": "chief-executive",
                            "lawsuit": "sue sued suing"}.items() for w in ws.split()}
+
+
+def _stem(w):
+    """A light stem: probes -> probe, launches -> launch, companies -> company, futures -> future."""
+    w = w[:-2] if w.endswith("'s") else w
+    if len(w) > 4:
+        if w.endswith("ies"):
+            return w[:-3] + "y"
+        if w.endswith(("ches", "shes", "sses", "xes", "zes")):
+            return w[:-2]
+        if w.endswith("s") and not w.endswith(("ss", "us", "is")):
+            return w[:-1]
+    return w
 
 
 def _cl_tokens(title):
@@ -349,16 +382,8 @@ def _cl_tokens(title):
         t = rx.sub(rep, t)
     out = set()
     for w in re.findall(r"[^\W_]+(?:'s)?", t.lower()):
-        w = w[:-2] if w.endswith("'s") else w
-        if len(w) > 4:                                  # a light stem: probes -> probe, launches -> launch, companies -> company
-            if w.endswith("ies"):
-                w = w[:-3] + "y"
-            elif w.endswith(("ches", "shes", "sses", "xes", "zes")):
-                w = w[:-2]
-            elif w.endswith("s") and not w.endswith(("ss", "us", "is")):
-                w = w[:-1]
-        w = _SYN.get(w, w)
-        if len(w) > 2 and w not in CL_STOP and not w.isdigit():
+        w = _SYN.get(_stem(w), _stem(w))
+        if len(w) > 2 and w not in _CL_STOP and not w.isdigit():
             out.add(w)
     return out
 
@@ -368,6 +393,58 @@ def _cl_time(n):
     return ts if ts is not None and pd.notna(ts) else None
 
 
+def _cl_join(groups, items, idf, rare, hours):
+    """Second pass: two groups (or a story and a group) that tell the same event in different words - the first pass compares
+    one headline with another, so "Trump strikes deal with Putin to get diesel" can miss each single telling of the diesel deal
+    yet share most of its rare words with all of them together - are joined."""
+    from collections import Counter
+    words = [set().union(*G["t"]) if G["t"] else set() for G in groups]
+    ticks = [frozenset().union(*G["k"]) if G["k"] else frozenset() for G in groups]
+    when = []
+    for G in groups:
+        ts = [_cl_time(items[i]) for i in G["m"] if _cl_time(items[i]) is not None]
+        when.append((min(ts), max(ts)) if ts else None)
+    rare_w = [{w for w in W if idf.get(w, 0) >= rare} for W in words]
+    weight = [sum(idf.get(w, 0) for w in W) for W in words]
+    inv = {}
+    for g, R in enumerate(rare_w):
+        for w in R:
+            inv.setdefault(w, []).append(g)
+    parent = list(range(len(groups)))
+
+    def find(x):
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+    span = hours * 3600
+    for g, R in enumerate(rare_w):
+        if not R:
+            continue
+        for h, c in Counter(h for w in R for h in inv[w] if h > g).items():
+            if c < 3 or find(g) == find(h):
+                continue
+            if ticks[g] and ticks[h] and not (ticks[g] & ticks[h]):
+                continue
+            a, b = when[g], when[h]
+            if a and b and max(abs((a[0] - b[1]).total_seconds()), abs((b[0] - a[1]).total_seconds())) > span * 1.5:
+                continue
+            ws = sum(idf[w] for w in words[g] & words[h])
+            if ws / max(min(weight[g], weight[h]), 1e-9) >= 0.5:
+                parent[find(h)] = find(g)
+    if all(find(g) == g for g in range(len(groups))):
+        return groups
+    out = {}
+    for g, G in enumerate(groups):
+        r = find(g)
+        M = out.setdefault(r, {"m": [], "t": [], "k": [], "ts": G.get("ts")})
+        M["m"] += G["m"]
+        M["t"] += G["t"]
+        M["k"] += G["k"]
+    return [out[r] for r in sorted(out, key=lambda r: min(out[r]["m"]))]
+
+
+_CL_STOP = CL_STOP | {_stem(w) for w in CL_STOP}
 _CL_MEMO = {}
 
 
@@ -422,7 +499,7 @@ def _cluster(items, hours=30, rank=None):
                 wj = ws / sum(idf[w] for w in tk | o)
                 ov = ws / min(sum(idf[w] for w in tk), sum(idf[w] for w in o))
                 n_rare = sum(1 for w in sh if idf[w] >= rare)
-                s_ = wj if (wj >= 0.30 and n_rare >= 1) else (ov * 0.7 if ov >= 0.58 and n_rare >= 2 else 0.0)
+                s_ = wj if (wj >= 0.30 and n_rare >= 2) else (ov * 0.7 if ov >= 0.58 and n_rare >= 2 else 0.0)
                 if s_ > best_s:
                     best, best_s = g, s_
         if best is None:
@@ -435,6 +512,7 @@ def _cluster(items, hours=30, rank=None):
         for w in tk:
             if idf.get(w, 0) >= rare:
                 index.setdefault(w, set()).add(best)
+    groups = _cl_join(groups, items, idf, rare, hours)
     key = rank or (lambda n: (RANK.get(n.get("source"), 99), -(_cl_time(n).value if _cl_time(n) is not None else 0)))
     zero = pd.Timestamp(0, tz="UTC")
     out = []

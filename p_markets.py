@@ -1367,11 +1367,12 @@ def talked_html(rows, chg, lg):
     for i, (t, c, k) in enumerate(rows):
         pct = (chg.get(t) or (None, None))[1]
         mv = T.pill(pct) if pct is not None and pd.notna(pct) else '<span class="muted">—</span>'
-        what = L(f"{k} {'story' if k == 1 else 'stories'} · {c} {'report' if c == 1 else 'reports'}",
-                 f"{k} {'خبر' if k == 1 else 'أخبار'} · {c} {'تقرير' if c == 1 else 'تقارير'}")
+        what = L(f"{k} {'story' if k == 1 else 'stories'}", f"{k} {'خبر' if k == 1 else 'أخبار'}")
+        if c > k:
+            what += L(f" · {c} reports", f" · {c} تقارير")
         cards.append(f'<a class="tkt" href="{T.esc(ui.href(t))}" target="_self"><span class="rk">{i + 1}</span>'
-                     f'<span class="lg">{T.logo_obj(t, 34)}</span><span class="nm"><b dir="auto">{T.esc(T.sym_label(t))}</b>'
-                     f'<small>{T.esc(what)}</small></span><span class="mv">{mv}</span>'
+                     f'<span class="lg">{T.logo_obj(t, 34)}</span><b class="nm" dir="auto">{T.esc(T.sym_label(t))}</b>'
+                     f'<span class="mv">{mv}</span><small class="sub">{T.esc(what)}</small>'
                      f'<i class="bar" style="width:{c / top * 100:.0f}%"></i></a>')
     return '<div class="tktg">' + "".join(cards) + "</div>"
 

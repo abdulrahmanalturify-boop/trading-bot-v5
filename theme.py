@@ -667,17 +667,17 @@ a.lnk {{ color:inherit !important; text-decoration:none !important; }} a.lnk:hov
 .tktg {{ display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:12px; }}
 @media (max-width: 1100px) {{ .tktg {{ grid-template-columns:repeat(2, minmax(0,1fr)); }} }}
 @media (max-width: 560px) {{ .tktg {{ grid-template-columns:1fr; }} }}
-a.tkt {{ position:relative; display:flex; align-items:center; gap:10px; padding:12px 14px 16px; border-radius:16px; overflow:hidden;
+a.tkt {{ position:relative; display:grid; grid-template-columns:22px 34px minmax(0,1fr) auto; grid-template-rows:auto auto; column-gap:10px;
+  row-gap:2px; align-items:center; padding:12px 14px 16px; border-radius:16px; overflow:hidden;
   background:{BOX_BG}; border:1px solid {BORDER}; text-decoration:none !important; color:inherit !important;
   transition:transform .18s, border-color .2s, box-shadow .2s; }}
 a.tkt:hover {{ transform:translateY(-2px); border-color:rgba(167,139,250,.55); box-shadow:0 16px 30px -20px rgba(123,69,240,.85); }}
-a.tkt .rk {{ flex:none; width:22px; height:22px; border-radius:7px; display:grid; place-items:center; font-size:.72rem; font-weight:800;
+a.tkt .rk {{ grid-row:1 / 3; width:22px; height:22px; border-radius:7px; display:grid; place-items:center; font-size:.72rem; font-weight:800;
   color:#E9E3FF; background:linear-gradient(140deg,#3B8BEB,#7B45F0); }}
-a.tkt .lg {{ flex:none; display:grid; place-items:center; }}
-a.tkt .nm {{ flex:1; min-width:0; display:flex; flex-direction:column; }}
-a.tkt .nm b {{ color:#fff; font-size:.92rem; font-weight:750; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
-a.tkt .nm small {{ color:{MUTED}; font-size:.72rem; }}
-a.tkt .mv {{ flex:none; }}
+a.tkt .lg {{ grid-row:1 / 3; display:grid; place-items:center; }}
+a.tkt .nm {{ grid-column:3; min-width:0; color:#fff; font-size:.92rem; font-weight:750; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
+a.tkt .mv {{ grid-column:4; grid-row:1; }}
+a.tkt .sub {{ grid-column:3 / 5; grid-row:2; color:{MUTED}; font-size:.72rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
 a.tkt .bar {{ position:absolute; inset-inline-start:0; bottom:0; height:3px; border-radius:0 3px 3px 0;
   background:linear-gradient(90deg,#5088F2,#DF4E92); box-shadow:0 0 10px rgba(223,78,146,.55); }}
 /* the News page's filters: one panel */
@@ -2295,6 +2295,7 @@ FX_JS = """<script>
            + '.st-key-topnav, .ixp, .st-key-introgo, .tape, .navbtn, .langbtn, .lopt, [class*="st-key-alturaifi_ai"], [class*="ai-"], .tx-tools, '
            + '[data-baseweb="select"], [data-baseweb="tab"], [data-baseweb="popover"], [role="listbox"], [role="option"], [data-testid="stPageLink"], '
            + '[aria-hidden="true"], [data-testid="stTooltipIcon"], .lg, .lgo, .nth, .gqpop, [data-nogq], .as, .tk, .tkc, .lnk, .co, .mchip, .mvr, .wlr, .hm, '
+           + '.nogq, .tt, .mt, .meta, .kw, .kws, a.t, .ncov, .tkt, '
            + ICONS + ', [role="tab"], [data-testid="stTab"], [role="tablist"]';
   var WORD = /[A-Za-z0-9\u0621-\u064A]/, AR = /[\u0600-\u06FF]/;
   var seen = new WeakMap();

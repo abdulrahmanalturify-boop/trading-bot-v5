@@ -801,10 +801,8 @@ def _tab_ai(a, n, ar):
     if a["words"]:
         ui.html(f'<div class="nx-h">{T.icon("key")}{T.esc(L("Words that decided the sentiment", "الكلمات اللي حددت الاتجاه"))}</div>' + _word_chips(a))
     if not key:
-        ui.html(_note(L("This is the engine’s own reading: the kind of event, the words and today’s price, scored by fixed rules. "
-                        "Open the full analysis for the stocks it hits and the setup score.",
-                        "هذي قراءة المحرك نفسه: نوع الحدث والكلمات وسعر اليوم، بقواعد ثابتة. افتح التحليل الكامل تشوف الأسهم المتأثرة ودرجة الفرصة."),
-                      "auto_awesome"))
+        ui.html(_note(L("This is the engine’s own reading: the kind of event, the words and today’s price, scored by fixed rules.",
+                        "هذي قراءة المحرك نفسه: نوع الحدث والكلمات وسعر اليوم، بقواعد ثابتة."), "auto_awesome"))
 
 
 def _tab_stocks(a, chg):

@@ -86,7 +86,10 @@ PINS = {
              "Construction worker on a building site in Tulaghi, Central Province. (10690383443).jpg",
              "Male labour working at Building construction site.jpg", "Building construction Moira Close Broadwater Farm Haringey 2025 01.jpg"],
     "economy": ["Lower Manhattan skyline from New York Harbor, New York.jpg",
-                "NYC – Financial District - Lower Manhattan in the early morning - panoramio.jpg", "Brooklyn Bridge At Sunset (21745657).jpeg"],
+                "NYC – Financial District - Lower Manhattan in the early morning - panoramio.jpg", "Brooklyn Bridge At Sunset (21745657).jpeg",
+                "Lower Manhattan from Jersey City September 2020 panorama.jpg",
+                "Brooklyn Bridge and the Lower Manhattan skyline from Pebble Beach, New York.jpg",
+                "Manhattan skyline from Upper New York Bay, 20231001 1043 0903.jpg"],
     "bonds": ["Us-treasury-building.jpg", "United States Treasury Washington DC 5383075936 o.jpg", "United States Treasury Building.JPG",
               "U.S. Treasury Building and Albert Gallatin Statue.jpg", "Washington (31119786125).jpg"],
     "trade": ["Aerial photograph of a cargo ship.jpg", "Peel Ports Dublin. Marine Terminals Ltd MTL Dublin 5148.jpg", "Le Verdon Container ships.jpg",
@@ -116,7 +119,8 @@ PINS = {
     "legal": ["US Supreme Court.JPG", "Panorama of United States Supreme Court Building at Dusk.jpg", "US Supreme Court - corrected.jpg",
               "Exterior of Supreme Court Building 20240601.jpg", "Supreme Court of the United States (Washington D.C.).jpg",
               "The United States Supreme Court Building.jpg"],
-    "health": ["Tablets pills medicine medical waste.jpg", "Gfp-medicine-container-and-medicine-tablet.jpg", "Sandoz.Methylprednisolone.4mg.jpg"],
+    "health": ["Tablets pills medicine medical waste.jpg", "Gfp-medicine-container-and-medicine-tablet.jpg", "Sandoz.Methylprednisolone.4mg.jpg",
+               "Pipette gallery.jpg", "Disposable Pipette Tips in Laboratory Tip Boxes.jpg", "Laboratory pipettes.jpg"],
     "distress": ["Boswells of Oxford - store closing signs 2.jpg", "Store Closing Flags.jpg", "Hudson's Bay - Store closing sale - 20250524 - 05.jpg",
                  "Hudson's Bay - Store closing sale - 20250524 - 01.jpg", "Store Closing etc. (4079485053).jpg"],
     "layoffs": ["Empty office.jpg", "Empty office in a coworking building.jpg",
@@ -134,7 +138,8 @@ PINS = {
     "metals": ["Gold ingot and bar of Banque de France.jpg", "Gold Ingots on white background.jpg",
                "Bullion Gold bar at Swiss Money Museum (Ank Kumar, Infosys).jpg", "Gold bar of Banque de France.jpg", "Gold bullion bars.jpg",
                "Gold bullion 1.jpg"],
-    "fx": ["One stands out 002 2025 01 01.jpg"],
+    "fx": ["One stands out 002 2025 01 01.jpg", "Currencies on White Background.jpg",
+           "International Currency Exchange (ICE) office at Toronto Pearson (YYZ) Terminal 3.jpg"],
     "move": ["Gaming-Wall-Street BTS Prodigium-266.jpg", "NYSE Advanced Trading Floor.jpg", "Peter Tuchman in NYSE, 2021.jpg",
              "NYSE Institute-Photo-MW-20240215-0051.jpg"],
     "street": ["New York Stock Exchange August 2017 02.jpg", "NYSE - panoramio - Bekim D..jpg", "New York City Stock Exchange NYSE 01.jpg",
@@ -153,7 +158,10 @@ _OFF = re.compile(r"\b(foods?|cuisine|cookies?|biscuits?|waffles?|wafers? \(food
                   r"beverages?|cooking|kitchen|fruit|vegetables?|animals?|dogs?|cats?|birds?|flowers?)\b", re.I)
 _OFF_FREE = {"inflation"}                 # the topics whose photos may show food
 # files that slipped through once and are never shown again (by their Commons file name)
-_NEVER = set()
+_NEVER = {"Triton face on US Botanic Garden Conservatory (8371514546).jpg", "Flickr - USCapitol - National Garden.jpg",
+          "Guy on a scooter (44759596865).jpg", "FRED-US Dollar.jpg", "Riding crop.jpeg", "Washington Times bag.jpg",
+          "Alliances of container ship companies.jpg", "Tiefgänge einlaufend.jpg", "17-jewel-lady-watch-inside-view-01.jpg",
+          "1969 AMC SC-Rambler at Summit display in Georgia 3of7.jpg", "2017-09-01 22-49-53 laiterie-belfort.jpg"}
 GENERAL = "street"
 WEEK = 7 * 86400
 _DISK = os.path.join(tempfile.gettempdir(), "alturaifi_newspics_v3.json")     # v2: the confirmed searches
@@ -307,7 +315,7 @@ def fill(budget=90):
                 pics = []
             for p in pics:
                 seen.add(p["b"])
-            want = 12 if len(pics) < 5 else len(pics) + 2     # a well-picked topic takes only a couple of searched photos
+            want = 12 if len(pics) < 3 else len(pics)         # a topic with hand-picked photos shows only those
             for q, must in TOPIC_Q[t]:
                 for quality in (True, False):
                     if len(pics) >= want:
