@@ -22,7 +22,10 @@ NEG_BG, NEG_BD, NEG_FG = "#6E2330", "#F26B6B", "#FDECEE"
 NEU_FILL, NEU_LINE, NEU_TEXT = "#2A2535", "#3E3A46", "#D8D3DE"
 ACC_FILL, ACC_LINE = "#1B3A66", "#79B8F4"
 GRID = "rgba(157,151,165,0.13)"
-PALETTE = [ACCENT, CYAN, VIOLET, GOLD, "#F472B6", "#34D399", ORANGE, "#60A5FA", "#A3E635", "#FB7185", "#C084FC", "#2DD4BF"]
+# the series colours, in this fixed order (22.4): blue and pink first, the way modern dashboards pair them, then amber, teal, violet,
+# orange, sky and green - checked with the dataviz validator on the chart surface (#1A1624): every colour inside the dark
+# lightness band, none greyish, adjacent pairs apart for colour-blind readers (deutan ΔE ≥ 13.9). A 9th series cycles back.
+PALETTE = ["#5088F2", "#DF4E92", "#BE8700", "#00A99C", "#9260DA", "#D8662A", "#1292C0", "#68A63F"]
 
 
 def rgba(hex_color, alpha):
@@ -44,7 +47,7 @@ pio.templates["alturaifi"] = go.layout.Template(layout=dict(
                title=dict(font=dict(color="#A8A2B3", size=12))),
     legend=dict(bgcolor="rgba(0,0,0,0)", font=dict(color="#CFC9D9", size=12), itemsizing="constant", itemwidth=30),
     title=dict(font=dict(size=16, color="#FFFFFF", family=FONT_FAMILY), x=0.01, xanchor="left"),
-    bargap=0.3, bargroupgap=0.08, barcornerradius=4,
+    bargap=0.34, bargroupgap=0.1, barcornerradius=6,
 ))
 TEMPLATE = "plotly_dark+alturaifi"
 pio.templates.default = TEMPLATE
@@ -108,6 +111,65 @@ def _ranges(fig):
         bordercolor="rgba(157,151,165,.25)", borderwidth=1, font=dict(color="#D8D3E2", size=11))))
 
 
+_HEX = re.compile(r"#[0-9A-Fa-f]{6}")
+_RGB = re.compile(r"rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)")
+_NO_NEON = {"candlestick", "ohlc", "heatmap", "pie", "indicator", "sunburst", "treemap", "table", "funnel", "sankey", "scatterpolar", "barpolar"}
+
+
+def _hex(c):
+    c = str(c or "").strip()
+    if _HEX.fullmatch(c):
+        return c
+    m = _RGB.match(c)
+    return "#%02X%02X%02X" % tuple(min(255, int(x)) for x in m.groups()) if m else None
+
+
+def _neon(fig):
+    """The modern look (22.4): smooth lines with a soft glow under them, dots with a ring of the background around them and
+    area fills that fade to nothing. Lines keep their data (the glow is a wider, faint copy that takes no hover and no legend);
+    a price chart (candles) and the charts of shares, maps and gauges are left as they are."""
+    data = list(fig.data)
+    if not data or len(data) > 16 or any(getattr(t, "type", "") in _NO_NEON for t in data):
+        return
+    under = []                     # (index of the line, its glow)
+    for i, t in enumerate(data):
+        if getattr(t, "type", "") != "scatter":
+            continue
+        ys = t.y if t.y is not None else ()
+        n = len(ys)
+        mode = t.mode or ("lines+markers" if n < 20 else "lines")
+        line = t.line
+        col = _hex(line.color) if line is not None else None
+        if col is None and line is not None and line.color is None and "lines" in mode:
+            col = PALETTE[i % len(PALETTE)]
+        solid = line is None or line.dash in (None, "solid")
+        if "lines" in mode and solid and line.shape is None and 4 <= n <= 600:
+            t.line.shape, t.line.smoothing = "spline", 0.55
+        if "markers" in mode and t.marker is not None and t.marker.line.width is None and not isinstance(t.marker.size, (list, tuple)):
+            t.marker.line.color, t.marker.line.width = BG, 2
+            if t.marker.size is None:
+                t.marker.size = 8
+        if col and t.fill == "tozeroy" and getattr(t, "fillgradient", None) is not None and t.fillgradient.type is None:
+            try:
+                t.fillgradient = dict(type="vertical", colorscale=[[0, rgba(col, 0.0)], [1, rgba(col, 0.26)]])
+            except (ValueError, AttributeError):
+                pass
+        w = (line.width if line is not None and line.width is not None else 2)
+        if ("lines" in mode and solid and col and len(under) < 3 and 4 <= n <= 2500 and w >= 1.6 and t.visible in (None, True)
+                and (t.opacity is None or t.opacity >= 0.8) and t.fill in (None, "none")):
+            under.append((i, go.Scatter(x=t.x, y=t.y, mode="lines", hoverinfo="skip", showlegend=False, xaxis=t.xaxis, yaxis=t.yaxis,
+                                        legendgroup=t.legendgroup, line=dict(color=rgba(col, 0.17), width=w + 6, shape=t.line.shape,
+                                                                             smoothing=t.line.smoothing))))
+    if not under:
+        return
+    k = len(data)
+    for _, g in under:
+        fig.add_trace(g)
+    d = fig.data                   # plotly only takes back its own traces, reordered: each glow goes right under its line
+    glow_of = {i: d[k + j] for j, (i, _) in enumerate(under)}
+    fig.data = tuple(x for i in range(k) for x in ((glow_of[i], d[i]) if i in glow_of else (d[i],)))
+
+
 def polish(fig):
     """The last touch every chart gets (ui.chart): a crosshair that follows the pointer on the charts read along a date or
     a category (hover "x unified"), the hover card's look, rounded bar ends. A chart that set its own keeps it."""
@@ -117,7 +179,8 @@ def polish(fig):
             fig.update_xaxes(showspikes=True, spikemode="across", spikesnap="cursor", spikethickness=1, spikedash="solid",
                              spikecolor="rgba(196,181,253,.55)")
         if lay.barcornerradius is None:
-            fig.update_layout(barcornerradius=4)
+            fig.update_layout(barcornerradius=6)
+        _neon(fig)
         _ranges(fig)
         if lay.hoverlabel.bordercolor is None:
             fig.update_layout(hoverlabel=dict(bgcolor="rgba(18,14,30,.96)", bordercolor="rgba(167,139,250,.55)",
@@ -1267,4 +1330,4 @@ def seasonal_path(avg, cur=None, title=None, names=("Average year", "This year")
     return fig
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.3"
+BUILD = "22.4"

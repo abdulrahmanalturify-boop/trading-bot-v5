@@ -39,8 +39,7 @@ TOPIC_Q = {
             ("Federal Reserve Bank building", r"federal reserve")],
     "inflation": [("supermarket aisle", r"supermarket|grocer|aisle|shelves|store"), ("grocery store shelves", r"grocer|supermarket|shelves|store")],
     "jobs": [("construction workers building site", r"worker|construction|builder"), ("factory assembly line", r"assembly|factory|production|plant")],
-    "economy": [_cat("Financial District, Manhattan"), ("Manhattan financial district skyline", r"manhattan|financial district|skyline"),
-                ("shopping street crowd", r"shopping|street|mall|shoppers")],
+    "economy": [("Manhattan skyline", r"skyline"), ("shoppers shopping mall", r"shopping|mall|shoppers")],
     "bonds": [_cat("Treasury Building (Washington, D.C.)"), ("Treasury Building Washington", r"treasury"),
               ("United States Department of the Treasury building", r"treasury")],
     "trade": [_cat("Container ships"), ("container ship port", r"container"), ("container terminal cranes", r"container|terminal|port|crane")],
@@ -49,7 +48,7 @@ TOPIC_Q = {
     "policy": [_cat("United States Capitol"), ("United States Capitol", r"capitol"), ("White House Washington", r"white house")],
     "earnings": [("stock market quotes screen", r"stock|quote|ticker|exchange|trading|market"),
                  ("corporate headquarters skyscraper", r"headquarters|skyscraper|tower|office|building")],
-    "guidance": [("stock chart computer screen", r"stock|chart|screen|monitor|trading"), ("business meeting presentation", r"meeting|presentation|conference")],
+    "guidance": [("stock exchange display board", r"stock|board|display|ticker|exchange"), ("trading screens", r"trading|screen|monitor|terminal")],
     "analyst": [("stock market display board", r"stock|board|display|ticker|exchange"), ("trading screens", r"trading|screen|monitor|terminal")],
     "payout": [("stack of coins", r"coins?"), ("United States dollar banknotes", r"dollar|banknote|bills?|currency")],
     "mna": [("office towers skyscrapers", r"office|tower|skyscraper|building"), ("conference room table", r"conference|meeting|board ?room")],
@@ -57,8 +56,7 @@ TOPIC_Q = {
             ("Nasdaq MarketSite Times Square", r"nasdaq")],
     "legal": [_cat("Supreme Court of the United States Building"), ("Supreme Court of the United States building", r"supreme court|court"),
               ("courthouse columns", r"court")],
-    "health": [("pills tablets medicine", r"pills?|tablets?|capsules?|medic\w*|drug|pharma\w*"),
-               ("laboratory pipette", r"laborator\w*|pipette|lab\b|science")],
+    "health": [("laboratory pipette", r"laborator\w*|pipette|lab\b|science"), ("pills tablets medicine", r"pills?|tablets?|capsules?|medic\w*|drug|pharma\w*")],
     "distress": [("store closing sign", r"clos\w+|store|sign|shop"), ("abandoned shopping mall", r"mall|abandon\w*|dead|vacant|empty")],
     "layoffs": [("empty office", r"office|desk|cubicle|workplace"), ("office cubicles", r"office|cubicle|desk")],
     "product": [("smartphones", r"smartphone|phone|iphone|android|mobile"), ("consumer electronics store", r"electronic|store|shop|retail")],
@@ -69,13 +67,86 @@ TOPIC_Q = {
     "crypto": [("bitcoin coins", r"bitcoin|crypto"), ("cryptocurrency coins", r"crypto|bitcoin|coin")],
     "oil": [_cat("Pumpjacks"), ("pumpjack oil field", r"pump ?jack|oil|well"), ("oil refinery", r"refiner\w*|oil|petro\w*")],
     "metals": [("gold bars", r"gold"), ("gold bullion", r"gold|bullion")],
-    "fx": [("banknotes currencies", r"banknotes?|currenc\w*|money|notes"), ("currency exchange rates board", r"currency|exchange|rates?|money")],
+    "fx": [("euro dollar banknotes", r"euro|dollar|banknotes?|currenc\w*"), ("currency exchange office", r"currency|exchange|bureau|change")],
     "move": [_cat("New York Stock Exchange trading floor"), ("New York Stock Exchange trading floor", r"stock exchange|nyse|trading floor|trader"),
              ("stock ticker board", r"ticker|stock|board")],
     "street": [_cat("Wall Street"), ("Wall Street New York", r"wall street|stock exchange|nyse|financial district"),
                ("New York Stock Exchange", r"stock exchange|nyse|wall street")],
 }
+# photos picked by hand for each topic from the contact sheet the site check draws (scripts/site_check.py, pics_*.jpg): they come
+# first, and the searches only add a couple more (a topic with few picks gets more from its searches)
+PINS = {
+    "fed": ["Eccles Building (26088200676).jpg", "Marriner S. Eccles Federal Reserve Board Building.jpg",
+            "Washington D.C. - Federal Reserve 0001-0003 HDR.jpg", "Eccles Building 2013.JPG", "Eccles Building - north side.JPG",
+            "Federal reserve building 1160435.jpg"],
+    "inflation": ["99 Ranch Market San Jose June 2011 001.jpg", "Aisle in L Intermarche supermarket in Quebec City.jpg",
+                  "Grocery Store Aisle, vermont.jpg", "Langenstein's Supermarket Uptown New Orleans, Center aisle, March 2021 02.jpg",
+                  "Langenstein's Supermarket Uptown New Orleans, Center aisle, March 2021 01.jpg", "Rimi supermarket at Kaunas Mega mall, 2025 aisle.jpg"],
+    "jobs": ["Construction Photography of Workers on Site by Construction Photographer Daniel Mekis.jpg",
+             "Construction worker on a building site in Tulaghi, Central Province. (10690383443).jpg",
+             "Male labour working at Building construction site.jpg", "Building construction Moira Close Broadwater Farm Haringey 2025 01.jpg"],
+    "economy": ["Lower Manhattan skyline from New York Harbor, New York.jpg",
+                "NYC – Financial District - Lower Manhattan in the early morning - panoramio.jpg", "Brooklyn Bridge At Sunset (21745657).jpeg"],
+    "bonds": ["Us-treasury-building.jpg", "United States Treasury Washington DC 5383075936 o.jpg", "United States Treasury Building.JPG",
+              "U.S. Treasury Building and Albert Gallatin Statue.jpg", "Washington (31119786125).jpg"],
+    "trade": ["Aerial photograph of a cargo ship.jpg", "Peel Ports Dublin. Marine Terminals Ltd MTL Dublin 5148.jpg", "Le Verdon Container ships.jpg",
+              "Taking Back The Empties.jpg", "Río Saigón, Ciudad Ho Chi Minh, Vietnam, 2013-08-14, DD 11.JPG",
+              "Maersk Sealand Vessel Hull Hold Hatch Crane Container Brazil.jpg", "Containership in gulf of Finland.jpg",
+              "Container Ship pulling into Honolulu (5318008892).jpg"],
+    "geo": ["Flags at the United Nations headquarters 2.jpg", "United Nations Headquarters (5013024600).jpg", "United Nations Flags - cropped.jpg",
+            "Flags at United Nations.jpg", "United Nations HQ.jpg", "The United Nations Secretariat Building (cropped).jpg"],
+    "policy": ["View of the U.S. Capitol's East Front Before Dawn (51749291999).jpg", "The Capitol Building 5 (27697846732).jpg",
+               "United States Capitol Washington 01.jpg", "United States Capitol 13.jpg", "United States Capitol Washington 02.jpg", "US CAPITOL.jpg"],
+    "earnings": ["The headquarters of DNP.jpg", "Kobe harborland08s3200.jpg", "Willis Tower, Chicago, Illinois (9179399743).jpg",
+                 "Bonn, Post-Tower -- 2017 -- 2125.jpg", "Highlight Towers Munich, February 2017 -01.jpg", "London, Canary Wharf -- 2016 -- 4751.jpg"],
+    "guidance": ["Electronic stock board in Yaesu, Tokyo 2007.jpg",
+                 "Shinko Securities's electronic stock board nearby Yaesu side of Tokyo Station in March 2009.jpg",
+                 "Trading apps on an iPhone screen.jpg", "Willis Tower, Chicago, Illinois (9179399743).jpg", "The headquarters of DNP.jpg"],
+    "analyst": ["Electronic stock board in Yaesu, Tokyo 2007.jpg",
+                "Shinko Securities's electronic stock board nearby Yaesu side of Tokyo Station in March 2009.jpg",
+                "Trading apps on an iPhone screen.jpg",
+                "Tech equipment on display at an industrial trade show with screens showing data and a busy environment.jpg"],
+    "payout": ["Stack of pennies.jpg", "Stacks of Canadian Coins (16269886909).jpg", "A stack of coins from the hoard (7460123178).jpg",
+               "Toy Plane Between Stack Of Coins (45418154314).jpg", "Stacks of Coins.jpg"],
+    "mna": ["Highlight Towers Munich, February 2017 -01.jpg", "Seattle (WA, USA), Hochhäuser -- 2022 -- 1494.jpg",
+            "London, Canary Wharf -- 2016 -- 4751.jpg", "Bonn, Post-Tower -- 2017 -- 2125.jpg", "London MMB O9 Cabot Square.jpg"],
+    "ipo": ["New York City Stock Exchange NYSE 01.jpg", "New York Stock Exchange 02010.JPG", "Nova iorque (17397145305).jpg",
+            "Is there a new way on Wall Street? (8235905065).jpg", "NYSE Institute-Photo-MW-20240215-0069.jpg",
+            "New York Stock Exchange (6214361043).jpg", "New York Stock Exchange - Wall Street, New York, NY, USA - August 19, 2015 - panoramio.jpg"],
+    "legal": ["US Supreme Court.JPG", "Panorama of United States Supreme Court Building at Dusk.jpg", "US Supreme Court - corrected.jpg",
+              "Exterior of Supreme Court Building 20240601.jpg", "Supreme Court of the United States (Washington D.C.).jpg",
+              "The United States Supreme Court Building.jpg"],
+    "health": ["Tablets pills medicine medical waste.jpg", "Gfp-medicine-container-and-medicine-tablet.jpg", "Sandoz.Methylprednisolone.4mg.jpg"],
+    "distress": ["Boswells of Oxford - store closing signs 2.jpg", "Store Closing Flags.jpg", "Hudson's Bay - Store closing sale - 20250524 - 05.jpg",
+                 "Hudson's Bay - Store closing sale - 20250524 - 01.jpg", "Store Closing etc. (4079485053).jpg"],
+    "layoffs": ["Empty office.jpg", "Empty office in a coworking building.jpg",
+                "Empty office building, off Kirkstall Road, Leeds - geograph.org.uk - 4627332.jpg", "Empty Office Real Estate (22789285225).jpg"],
+    "product": ["Xiaomi Redmi Note 10 Pro.jpg", "Huawei P10.jpg", "Smartphone display screen.jpg", "5 different Smartphones.jpg",
+                "Smartphones - MediaMarkt - HUMA Einkaufspark 2025 - 07.jpg", "Girl listening to music with a smartphone.jpg"],
+    "ai": ["Silicon Wafer 20190210.jpg", "IMaGe 31116R+ HDR – Silicon Wafer 20120926.jpg", "IMaGe 31000R – Silicon Wafer 20120926.jpg",
+           "A semiconductor wafer being removed from processing equipment.jpg", "IMaGe 30961R+ HDR – Silicon Wafer 20120926.jpg",
+           "5C2A5961R – Silicon Wafer 20200519.jpg"],
+    "crypto": ["Bitcoin BTC golden coin with the symbol.jpg", "Bitcoin on Laptop Keyboard.jpg", "Bitcoin \"challenge coin\".jpg",
+               "Close-up of a Bitcoin physical coin in a womans hand and a laptop on her lap.jpg", "Holding Bitcoin cryptocurrency coin.jpg",
+               "Coinbank BitCoin (38461155220).jpg"],
+    "oil": ["Pumpjacks.JPG", "Sunniland Oil Field preserved pumpjack.jpg", "Pumpjack, Glenn Pool oil field OK.jpg", "Brunei Pumpjack-2.jpg",
+            "Pumpjack in Seria.jpg", "Signal Hill pumpjack, 2011.jpg"],
+    "metals": ["Gold ingot and bar of Banque de France.jpg", "Gold Ingots on white background.jpg",
+               "Bullion Gold bar at Swiss Money Museum (Ank Kumar, Infosys).jpg", "Gold bar of Banque de France.jpg", "Gold bullion bars.jpg",
+               "Gold bullion 1.jpg"],
+    "fx": ["One stands out 002 2025 01 01.jpg"],
+    "move": ["Gaming-Wall-Street BTS Prodigium-266.jpg", "NYSE Advanced Trading Floor.jpg", "Peter Tuchman in NYSE, 2021.jpg",
+             "NYSE Institute-Photo-MW-20240215-0051.jpg"],
+    "street": ["New York Stock Exchange August 2017 02.jpg", "NYSE - panoramio - Bekim D..jpg", "New York City Stock Exchange NYSE 01.jpg",
+               "New York Stock Exchange 02010.JPG", "Nova iorque (17397145305).jpg", "Is there a new way on Wall Street? (8235905065).jpg",
+               "New York City (New York, USA), Wall Street -- 2012 -- 6614.jpg", "Wall Street - New York Stock Exchange.jpg",
+               "Gaming-Wall-Street BTS Prodigium-266.jpg"],
+}
 _MUST = {}            # search -> compiled "must say"
+# never a painting, a drawing, a diagram or a map, an old black-and-white print or a museum's catalogue photo
+_NOT_PHOTO = re.compile(r"\b(paintings?|drawings?|diagrams?|charts?|graphs?|maps?|illustrations?|engravings?|lithographs?|artworks?|"
+                        r"infographics?|statistics|black and white|monochrome|b&w|sculptures?|statues?|reliefs?|mascarons?|"
+                        r"museum objects?|dpla)\b|\(bw\)|\(am [\d.\-]+|\b1[5-9][0-8]\d\b", re.I)
 # never a dish, a snack or a drink (an inflation story keeps its supermarket shelves)
 _OFF = re.compile(r"\b(foods?|cuisine|cookies?|biscuits?|waffles?|wafers? \(food\)|confection\w*|snacks?|desserts?|cakes?|pastr(?:y|ies)|"
                   r"bakery|bakeries|candy|candies|chocolates?|potato chips|crisps|dish(?:es)?|meals?|recipes?|restaurants?|drinks?|"
@@ -85,7 +156,7 @@ _OFF_FREE = {"inflation"}                 # the topics whose photos may show foo
 _NEVER = set()
 GENERAL = "street"
 WEEK = 7 * 86400
-_DISK = os.path.join(tempfile.gettempdir(), "alturaifi_newspics_v2.json")     # v2: the confirmed searches
+_DISK = os.path.join(tempfile.gettempdir(), "alturaifi_newspics_v3.json")     # v2: the confirmed searches
 _POOLS = {}                 # topic -> {"at": time, "pics": [{"u": 500px url, "b": 960px url, "c": credit}]}
 _LOCK = threading.Lock()
 _FILLING = threading.Lock()
@@ -144,11 +215,48 @@ def _search(q, quality=True, n=40, must=None, food_ok=False):
         said = title.split(":", 1)[-1].rsplit(".", 1)[0].replace("_", " ") + " | " + cats
         if not food_ok and _OFF.search(said):
             continue
+        if _NOT_PHOTO.search(said):
+            continue
         if must and not _MUST[q].search(said):
             continue
         small = big[:px.start()] + "/500px-" + big[px.end():] if int(px.group(1)) > 500 else big
-        out.append({"u": small, "b": big, "c": _credit(meta), "f": title.split(":", 1)[-1][:120]})
+        out.append({"u": small, "b": big, "c": _credit(meta), "f": title.split(":", 1)[-1][:200]})
     return out
+
+
+def _pinned(names):
+    """The hand-picked photos (PINS) by their Commons file names, in that order (the ones Commons no longer has are skipped)."""
+    names = [n for n in names if n][:50]
+    if not names:
+        return []
+    params = {"action": "query", "format": "json", "formatversion": "2", "titles": "|".join("File:" + n for n in names),
+              "prop": "imageinfo", "iiprop": "url|size|mime|extmetadata", "iiurlwidth": "960",
+              "iiextmetadatafilter": "LicenseShortName|Artist", "maxlag": "5"}
+    r = requests.get("https://commons.wikimedia.org/w/api.php", params=params, headers=UA_WIKI, timeout=12)
+    r.raise_for_status()
+    js = r.json().get("query") or {}
+    norm = {x.get("from"): x.get("to") for x in js.get("normalized") or []}
+    pages = js.get("pages") or []
+    if isinstance(pages, dict):
+        pages = list(pages.values())
+    by = {str(p.get("title") or ""): p for p in pages}
+    out = []
+    for n in names:
+        t = "File:" + n
+        p = by.get(norm.get(t, t)) or by.get(t)
+        ii = ((p or {}).get("imageinfo") or [{}])[0]
+        big = str(ii.get("thumburl") or "")
+        px = _PX.search(big)
+        if not p or p.get("missing") or not big.startswith("https://") or not px or not _free(ii.get("extmetadata") or {}):
+            continue
+        small = big[:px.start()] + "/500px-" + big[px.end():] if int(px.group(1)) > 500 else big
+        out.append({"u": small, "b": big, "c": _credit(ii.get("extmetadata") or {}), "f": n})
+    return out
+
+
+def _series(name):
+    """Photos of one shoot share a name but its number ("Fossil Creek Planning - Public Meeting (33272908506)"): one of each."""
+    return re.sub(r"[\W\d_]+", " ", str(name or "")).strip().lower()[:28]
 
 
 def _load():
@@ -192,10 +300,17 @@ def fill(budget=90):
         for t in todo:
             if time.time() > end:
                 break
-            pics, seen = [], set()
+            pics, seen, shoots = [], set(), set()
+            try:
+                pics = _pinned(PINS.get(t, []))
+            except Exception:
+                pics = []
+            for p in pics:
+                seen.add(p["b"])
+            want = 12 if len(pics) < 5 else len(pics) + 2     # a well-picked topic takes only a couple of searched photos
             for q, must in TOPIC_Q[t]:
                 for quality in (True, False):
-                    if len(pics) >= 10:
+                    if len(pics) >= want:
                         break
                     try:
                         found = _search(q, quality, must=must, food_ok=t in _OFF_FREE)
@@ -207,8 +322,10 @@ def fill(budget=90):
                     except Exception:
                         found = []
                     for p in found:
-                        if p["b"] not in seen:
+                        sh = _series(p.get("f"))
+                        if p["b"] not in seen and sh not in shoots and len(pics) < want:
                             seen.add(p["b"])
+                            shoots.add(sh)
                             pics.append(p)
                     time.sleep(0.3)
             if pics:
@@ -362,4 +479,4 @@ def find_images(stories, budget=60, workers=8):
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.3"
+BUILD = "22.4"

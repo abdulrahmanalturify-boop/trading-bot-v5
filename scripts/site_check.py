@@ -102,6 +102,64 @@ def news_lab():
         log("pics lab", e)
 
 
+def chart_lab(b, report):
+    """Every kind of chart drawn from made-up data with the site's last touch (charts.polish), on one page photographed
+    (charts.jpg): the new look is seen without opening every page, and a chart that fails is named in the report."""
+    import numpy as np
+    import pandas as pd
+    import charts as C
+    rng = np.random.default_rng(7)
+    idx = pd.bdate_range("2024-01-02", periods=420)
+    walk = lambda s0, v: pd.Series(s0 * np.exp(np.cumsum(rng.normal(0.0004, v, len(idx)))), index=idx)
+    a, bb, c = walk(100, 0.012), walk(100, 0.016), walk(100, 0.009)
+    months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+    fg = pd.Series(np.clip(50 + np.cumsum(rng.normal(0, 4, len(idx))), 3, 97), index=idx)
+    tries = [
+        ("line", lambda: C.line(a, "Price")),
+        ("area", lambda: C.area(a * 10, "Portfolio value")),
+        ("norm_lines", lambda: C.norm_lines({"NVDA": a, "AMD": bb, "INTC": c}, "Growth of 100")),
+        ("equity_chart", lambda: C.equity_chart(a * 1000, bb * 1000)),
+        ("compare_bars", lambda: C.compare_bars(["2021", "2022", "2023", "2024", "2025"],
+                                                {"Revenue": list(rng.uniform(40e9, 90e9, 5)), "Net income": list(rng.uniform(5e9, 30e9, 5))},
+                                                "Revenue vs net income")),
+        ("pct_bars", lambda: C.pct_bars(months, list(rng.normal(1, 4, 12)), "Monthly returns")),
+        ("hbar", lambda: C.hbar(["Tech", "Health", "Energy", "Banks", "Retail"], list(rng.normal(0, 2, 5)), "Sectors today")),
+        ("cash_trend", lambda: C.cash_trend(["2021", "2022", "2023", "2024", "2025"], list(rng.uniform(20e9, 40e9, 5)),
+                                            list(-rng.uniform(5e9, 12e9, 5)), list(rng.uniform(10e9, 30e9, 5)), list(rng.uniform(15, 35, 5)))),
+        ("season_bars", lambda: C.season_bars(months, list(rng.normal(0.8, 1.5, 12)), list(rng.uniform(35, 80, 12)), cur=9, title="Seasonality")),
+        ("fg_history", lambda: C.fg_history(fg, "Fear & Greed", spx=a * 50)),
+        ("lines", lambda: C.lines({"10Y": pd.Series(rng.normal(4.2, 0.1, 60).cumsum() / 15 + 3.8, index=idx[:60]),
+                                    "2Y": pd.Series(rng.normal(4.0, 0.1, 60).cumsum() / 15 + 3.6, index=idx[:60])}, "Yields")),
+        ("metric_bars", lambda: C.metric_bars(["2021", "2022", "2023", "2024", "2025"], list(rng.uniform(1e9, 9e9, 5)), "Free cash flow")),
+        ("share_donut", lambda: C.share_donut(["AAPL", "MSFT", "NVDA", "Cash"], [30, 25, 35, 10], "Portfolio")),
+        ("histogram", lambda: C.histogram(list(rng.normal(0, 2, 400)), "Today's moves")),
+    ]
+    parts, errs = [], {}
+    for name, make in tries:
+        try:
+            fig = C.polish(make())
+            parts.append(f'<div class="box"><div class="nm">{name}</div>'
+                         + fig.to_html(full_html=False, include_plotlyjs=not parts, config={"displayModeBar": False}) + "</div>")
+        except Exception as e:
+            errs[name] = f"{type(e).__name__}: {e}"[:300]
+    page = ('<html><head><meta charset="utf-8"><style>body{background:#0E0918;margin:0;padding:24px;font-family:sans-serif}'
+            '.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}.box{background:#1A1624;border-radius:18px;'
+            'box-shadow:inset 0 0 0 1px #2C2738;overflow:hidden}.nm{color:#8F899B;font-size:12px;padding:8px 14px 0}</style></head>'
+            '<body><div class="grid">' + "".join(parts) + "</div></body></html>")
+    with open(os.path.join(OUT, "charts.html"), "w", encoding="utf-8") as f:
+        f.write(page)
+    report["charts"] = {"drawn": len(parts), "errors": errs}
+    try:
+        pg = b.new_page(viewport={"width": 1500, "height": 1000})
+        pg.goto("file://" + os.path.join(OUT, "charts.html"))
+        time.sleep(4)
+        pg.screenshot(path=os.path.join(OUT, "charts.jpg"), type="jpeg", quality=80, full_page=True)
+        pg.close()
+    except Exception as e:
+        report["charts"]["shot"] = str(e)[:300]
+    log("charts", json.dumps(report["charts"])[:600])
+
+
 def settle(pg, limit=150):
     """Wait until the page has finished running (no 'Running...' status, no spinner) for 3 seconds in a row."""
     t0, calm = time.time(), 0
@@ -154,6 +212,7 @@ def main():
         from playwright.sync_api import sync_playwright
         with sync_playwright() as p:
             b = p.chromium.launch()
+            chart_lab(b, report)
             for lang in ("ar", "en"):
                 ctx = b.new_context(viewport={"width": 1440, "height": 900}, locale="ar-SA" if lang == "ar" else "en-US", color_scheme="dark")
                 pg = ctx.new_page()

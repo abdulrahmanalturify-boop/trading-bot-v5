@@ -229,13 +229,16 @@ def news_list(items, limit=20, translate=None, tag_key=None, iq=True, analyze=Fa
         return
     translate = is_ar() if translate is None else translate
     titles = [n["title"] for n in items]
-    sums = [(n["summary"] or "")[:320] for n in items]
-    translated_ok = True
+    sums = [(n.get("summary") or "")[:320] for n in items]
+    more = list(dict.fromkeys(m["title"] for n in items for m in (n.get("more") or [])[:8] if m.get("title")))
+    translated_ok, cov_tr = True, {}
     if translate:
         with st.spinner(L("Translating...", "جاري الترجمة للعربية...")):
-            tr = data.translate(titles + sums)
-        translated_ok = tr[:len(items)] != titles
-        titles, sums = tr[:len(items)], tr[len(items):]
+            tr = data.translate(titles + sums + more)
+        k = len(items)
+        translated_ok = tr[:k] != titles
+        titles, sums = tr[:k], tr[k:2 * k]
+        cov_tr = dict(zip(more, tr[2 * k:])) if translated_ok else {}
     tickers = sorted({s for n in items for s in n.get("tickers", [])})
     chg = data.quick_changes(tickers) if tickers else {}
     lg = data.logos(tickers) if tickers else {}
@@ -245,7 +248,7 @@ def news_list(items, limit=20, translate=None, tag_key=None, iq=True, analyze=Fa
     for n, t, s in zip(items, titles, sums):
         out.append(T.news_card(n, t, s, chips(n.get("tickers", []), chg, lg), L("Affected companies", "الشركات المتأثرة"),
                                ar=translate and translated_ok, tag=n.get(tag_key) if tag_key else None,
-                               iq=n.get("iq") if iq else None, ui_ar=is_ar()))
+                               iq=n.get("iq") if iq else None, ui_ar=is_ar(), cov_titles=cov_tr, foot=analyze))
     if translate and not translated_ok:
         st.caption(L("Translation service is busy right now; showing the original English. It will retry automatically.",
                      "خدمة الترجمة مشغولة حالياً؛ نعرض النص الإنجليزي الأصلي وستتم إعادة المحاولة تلقائياً."))
@@ -312,4 +315,4 @@ def multiselect_free(label, options, key, placeholder="", max_n=4):
         return st.multiselect(label, options, key=key, max_selections=max_n, placeholder=placeholder)
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.3"
+BUILD = "22.4"

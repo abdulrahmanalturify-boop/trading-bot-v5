@@ -715,7 +715,9 @@ _SKIP_TAGS = {"button", "script", "style", "svg", "textarea", "select", "option"
 _SKIP_CLASS = {"gq", "nogq", "ms", "material-symbols-rounded", "navbtn", "navhd", "langbtn", "lopt", "tape", "t-row", "brand", "flag",
                "status", "dot", "lg", "lgo", "ini", "nth", "rank",
                # tickers and company names (CCI, ATR, ADX, OI, DOW are also symbols) and the sidebar's watchlist rows
-               "as", "tk", "tkc", "lnk", "co", "mchip", "mvr", "wlr", "hm"}
+               "as", "tk", "tkc", "lnk", "co", "mchip", "mvr", "wlr", "hm",
+               # a headline and its outlet line read clean (a "?" in "Fed ?'s Cook" breaks the sentence); the summary keeps them
+               "tt", "mt", "meta"}
 _VOID = {"area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"}
 _TAG = re.compile(r"<(/?)([a-zA-Z][a-zA-Z0-9-]*)([^>]*)>")
 _CLS = re.compile(r"""class\s*=\s*["']([^"']*)["']""")
@@ -855,4 +857,4 @@ def client():
     return {"t": t, "p": p}
 
 
-BUILD = "22.3"
+BUILD = "22.4"

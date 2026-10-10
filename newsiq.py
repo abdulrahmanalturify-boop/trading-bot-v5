@@ -26,7 +26,8 @@ TOPICS = [
     ("policy", "Policy & politics", "السياسة والحكومة", 1.8,
      r"\b(white house|congress|senate|election|shutdown|debt ceiling|stimulus|budget|tax bill|tax cuts?|executive order|trump|administration)\b"),
     ("earnings", "Earnings", "الأرباح", 2.4,
-     r"\b(earnings|quarterly results|results|q[1-4]|eps|revenue|profits?|deliveries|beats? estimates|miss(?:es|ed)? estimates|tops? estimates)\b"),
+     r"\b(earnings|(?:quarterly|quarter|q[1-4]|full-year|annual|interim|financial|fiscal(?: \d{4})?|\d{4}) results|results (?:beat|top|miss|show)\w*|"
+     r"reports? (?:\w+ ){0,4}results|q[1-4]|eps|revenue|profits?(?!-taking)|deliveries|beats? estimates|miss(?:es|ed)? estimates|tops? estimates)\b"),
     ("guidance", "Guidance", "التوقعات المستقبلية", 2.0,
      r"\b(guidance|outlook|forecasts?|raises? (?:its )?(?:full-year|annual)|cuts? (?:its )?(?:forecast|outlook))\b"),
     ("mna", "M&A", "استحواذ واندماج", 2.6,
@@ -39,7 +40,8 @@ TOPICS = [
      r"\b(bankrupt\w*|chapter 11|defaults?|defaulted|insolven\w*|delist\w*|going concern)\b"),
     ("layoffs", "Layoffs", "تسريح موظفين", 1.6, r"\b(layoffs?|job cuts|cuts? [\d,]+ jobs|restructuring)\b"),
     ("product", "Products & launches", "منتجات وإطلاقات", 1.2,
-     r"\b(unveils?|unveiled|launch(?:es|ed)?|rolls? out|new models?|iphone|product event)\b"),
+     r"\b(unveils?|unveiled|launch(?:es|ed)?(?! (?:an? |the |its |new )?(?:probe|investigation|inquiry|review|committee|bid|attack|strikes?|"
+     r"campaign|offensive|lawsuit|challenge|effort|crackdown|counteroffensive|talks))|rolls? out|new models?|iphone|product event)\b"),
     ("payout", "Dividends & buybacks", "التوزيعات وإعادة الشراء", 1.2, r"\b(dividends?|buybacks?|share repurchases?|stock split)\b"),
     ("analyst", "Analyst ratings", "تصنيفات المحللين", 1.2,
      r"\b(upgrades?|downgrades?|upgraded|downgraded|price target|initiates? coverage|overweight|underweight|outperform)\b"),
@@ -327,4 +329,4 @@ def rank(items):
     return sorted(items, key=lambda n: ((n.get("iq") or {}).get("raw", 0), n["time"] if pd.notna(n.get("time")) else zero), reverse=True)
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.3"
+BUILD = "22.4"

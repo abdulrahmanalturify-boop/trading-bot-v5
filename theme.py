@@ -654,12 +654,33 @@ a.lnk {{ color:inherit !important; text-decoration:none !important; }} a.lnk:hov
 /* news */
 .news {{ background:{BOX_BG}; border:1px solid {BORDER}; border-radius:14px; padding:14px 16px; margin-bottom:10px; transition:border-color .15s; }}
 .news:hover {{ border-color:{ACCENT}; }}
-/* the News page: each card with its "analyse this story" button tucked under it */
-[class*="st-key-nwc_"] {{ gap:6px !important; margin-bottom:6px; }}
+/* the News page: the "analyse this story" button sits in the card's own foot (the card keeps a strip for it at the bottom) */
+[class*="st-key-nwc_"] {{ gap:0 !important; margin-bottom:12px; position:relative; }}
 [class*="st-key-nwc_"] .news {{ margin-bottom:0; }}
-[class*="st-key-nwc_"] .stButton button {{ min-height:30px !important; padding:3px 14px !important; border-radius:999px !important; font-size:.8rem;
-  background:rgba(123,69,240,.12) !important; border:1px solid rgba(167,139,250,.38) !important; color:#C4B5FD !important; box-shadow:none !important; }}
-[class*="st-key-nwc_"] .stButton button:hover {{ background:rgba(123,69,240,.28) !important; color:#fff !important; transform:translateY(-1px); }}
+.news.hasft {{ padding-bottom:58px; }}
+[class*="st-key-nwc_"] [data-testid="stElementContainer"]:has(.stButton) {{ position:absolute; bottom:12px; inset-inline-end:16px; width:auto !important; z-index:2; }}
+[class*="st-key-nwc_"] .stButton button {{ min-height:34px !important; padding:4px 16px !important; border-radius:999px !important; font-size:.82rem; font-weight:650;
+  background:linear-gradient(135deg, rgba(59,139,235,.22), rgba(123,69,240,.30)) !important; border:1px solid rgba(167,139,250,.5) !important;
+  color:#E9E3FF !important; box-shadow:0 8px 18px -12px rgba(123,69,240,.9) !important; transition:transform .15s, background .2s; }}
+[class*="st-key-nwc_"] .stButton button:hover {{ background:linear-gradient(135deg, #3B8BEB, #7B45F0) !important; color:#fff !important; transform:translateY(-1px); }}
+/* the News page's filters: one panel */
+.st-key-nwfilt {{ background:{BOX_BG}; border:1px solid {BORDER}; border-radius:18px; padding:14px 18px 16px; gap:12px !important; margin-bottom:6px; }}
+/* the same event told by other outlets: a drawer at the card's foot */
+.ncov {{ margin:12px 0 0; border-top:1px dashed rgba(157,151,165,.22); padding-top:10px; }}
+.ncov summary {{ list-style:none; cursor:pointer; display:inline-flex; align-items:center; gap:7px; font-size:.8rem; font-weight:650; color:#C4B5FD;
+  padding:5px 12px; border-radius:999px; background:rgba(123,69,240,.10); border:1px solid rgba(167,139,250,.28); transition:background .2s; }}
+.ncov summary::-webkit-details-marker {{ display:none; }}
+.ncov summary:hover {{ background:rgba(123,69,240,.22); color:#fff; }}
+.ncov summary .ms {{ font-size:1.05rem; }}
+.ncov summary .ms:last-child {{ transition:transform .25s; }}
+.ncov[open] summary .ms:last-child {{ transform:rotate(180deg); }}
+.ncov ul {{ list-style:none; margin:10px 0 0; padding:0; display:grid; gap:6px; }}
+.ncov li {{ display:flex; justify-content:space-between; gap:14px; align-items:baseline; padding:8px 12px; border-radius:10px;
+  background:rgba(255,255,255,.03); border:1px solid rgba(157,151,165,.12); }}
+.ncov li a {{ color:#E7E3EB !important; text-decoration:none !important; font-size:.86rem; font-weight:550; line-height:1.45; }}
+.ncov li a:hover {{ color:#79B8F4 !important; }}
+.ncov li span {{ flex:none; color:{MUTED}; font-size:.74rem; white-space:nowrap; }}
+@media (max-width: 640px) {{ .ncov li {{ flex-direction:column; gap:2px; }} }}
 .news a.t {{ color:{TEXT}; text-decoration:none; font-weight:600; font-size:1rem; line-height:1.65; }}
 .news a.t:hover {{ color:#79B8F4; }}
 .news .meta {{ color:{MUTED}; font-size:.78rem; margin-top:4px; }}
@@ -2654,8 +2675,25 @@ def also_badge(also, ar=False):
     return f' <span class="also" title="{esc(tip)}">+{len(also)}</span>'
 
 
-def news_card(n, title, summary, chips="", aff_label="", ar=False, tag=None, iq=None, ui_ar=None):
-    """News card. iq = newsiq.analyze(...) adds the importance box, a colored edge and keyword chips."""
+def coverage(n, ui_ar=False, titles=None):
+    """The same event told by other outlets (newsbot.cluster's "more"): a drawer at the foot of the card that opens on a click.
+    titles: {original title: translated title}."""
+    more = [m for m in (n.get("more") or []) if m.get("title")]
+    if not more:
+        return ""
+    tr = titles or {}
+    rows = "".join(f'<li><a class="nogq" href="{esc(m.get("link") or "#")}" target="_blank" dir="auto">{esc(tr.get(m["title"]) or m["title"])}</a>'
+                   f'<span>{esc(m.get("source") or "")} · {time_ago(m.get("time"), ui_ar)}</span></li>' for m in more[:8])
+    k = len(more)
+    lab = (f"تغطية كاملة · {k} {'خبر آخر' if k == 1 else 'أخبار أخرى'} عن نفس الحدث" if ui_ar else
+           f"Full coverage · {k} more {'story' if k == 1 else 'stories'} on this")
+    return (f'<details class="ncov"><summary>{icon("stacks")}<span>{esc(lab)}</span>{icon("expand_more")}</summary>'
+            f'<ul>{rows}</ul></details>')
+
+
+def news_card(n, title, summary, chips="", aff_label="", ar=False, tag=None, iq=None, ui_ar=None, cov_titles=None, foot=False):
+    """News card. iq = newsiq.analyze(...) adds the importance box, a colored edge and keyword chips. The other outlets'
+    stories of the same event open in a drawer at its foot; foot=True leaves room there for the "analyse" button."""
     import newsiq
     ui_ar = ar if ui_ar is None else ui_ar
     summary = summary or ""
@@ -2663,15 +2701,17 @@ def news_card(n, title, summary, chips="", aff_label="", ar=False, tag=None, iq=
     tag_html = f"{badge(tag, 'acc')} " if tag else ""
     aff = f'<div class="aff"><span class="lbl">{esc(aff_label)}</span>{chips}</div>' if chips else ""
     rtl = " rtl" if ar else ""
-    head = (f'<div class="nb">{tag_html}<a class="t" href="{esc(n["link"])}" target="_blank">{esc(title)}</a>'
-            f'<div class="meta">{icon("schedule")} {esc(n["source"])}{also_badge(n.get("also"), ui_ar)} · {time_ago(n["time"], ar)}</div></div>')
+    head = (f'<div class="nb">{tag_html}<a class="t nogq" href="{esc(n["link"])}" target="_blank">{esc(title)}</a>'
+            f'<div class="meta">{icon("schedule")} <bdi>{esc(n["source"])}</bdi>{also_badge(n.get("also"), ui_ar)} · {time_ago(n["time"], ui_ar)}</div></div>')
     pic = news_thumb(n)
+    cov = coverage(n, ui_ar, cov_titles)
+    ft = " hasft" if foot else ""
     if iq:
         edge = newsiq.colors(iq["score"])[2]
-        return (f'<div class="news hasiq{rtl}" style="--iqd:{edge}"><div class="nwrap">{pic}<div class="nbody"><div class="nh">{head}{iq_badge(iq, ui_ar)}</div>'
-                + (f'<div class="sum">{short}</div>' if short else "") + kw_chips(iq, ui_ar) + aff + "</div></div></div>")
-    return (f'<div class="news{rtl}"><div class="nwrap">{pic}<div class="nbody"><div class="nh">{head}</div>'
-            + (f'<div class="sum">{short}</div>' if short else "") + aff + "</div></div></div>")
+        return (f'<div class="news hasiq{rtl}{ft}" style="--iqd:{edge}"><div class="nwrap">{pic}<div class="nbody"><div class="nh">{head}{iq_badge(iq, ui_ar)}</div>'
+                + (f'<div class="sum">{short}</div>' if short else "") + kw_chips(iq, ui_ar) + aff + "</div></div>" + cov + "</div>")
+    return (f'<div class="news{rtl}{ft}"><div class="nwrap">{pic}<div class="nbody"><div class="nh">{head}</div>'
+            + (f'<div class="sum">{short}</div>' if short else "") + aff + "</div></div>" + cov + "</div>")
 
 
 def market_status(ar=False, market=None):
@@ -2945,4 +2985,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.3"
+BUILD = "22.4"

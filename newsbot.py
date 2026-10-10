@@ -133,6 +133,14 @@ ALIAS = {"the wall street journal": "WSJ", "wsj": "WSJ", "financial times": "Fin
 # not market news: personal-finance rate tables, price-prediction spam, sports and celebrity items
 NOISE = re.compile(r"\b(cd rates?|savings (?:account )?rates?|mortgage (?:and refinance )?rates? today|best (?:high-yield )?savings|credit cards? (?:of|for)|"
                    r"horoscope|price prediction|sweepstakes|promo code|coupon|grand prix|nfl|nba|mlb|nhl|wwe|aew|super bowl|recipe)\b", re.I)
+# pages that are not news (a quote page "NFLX مقابل USD", a company's page "BAAN 3 | 1820 | TADAWUL | TASI", "TAQA - Disclosures"),
+# sport (a golf tournament named after Aramco) and outlets that cover another market
+JUNK = re.compile(r"(مقابل USD\s*$|\|\s*TADAWUL\s*\|\s*TASI|TADAWUL:\d{4}\s*$|%[0-9A-F]{2}%[0-9A-F]{2}|^\s*[\w&.\- ]{2,30} - (?:Disclosures|Latest News|"
+                  r"Announcements|Financials?|Profile|Overview)\s*$|^\s*(?:Calendar|Home|Markets?)\s*$|\b(?:golf|lpga|pga tour|ladies european tour|"
+                  r"championship|tournament|grand prix|world cup|premier league|(?:day \w+|round \d|match|game|race) highlights)\b|"
+                  r"[\u3040-\u30ff\u4e00-\u9fff\uac00-\ud7af]|مقابل الجنيه|السوق المصري|البنوك المصرية|السوق السوداء)", re.I)
+BLOCKED = {"vietnam.vn", "sky sports", "yahoo sports", "ladies european tour", "www.golfpost.com", "golfpost", "스타뉴스", "espn",
+           "golf channel", "golf digest"}
 _TAG = re.compile(r"<[^>]+>")
 _IMG = re.compile(r"""<img[^>]+?src=["']([^"']+)["']""", re.I)
 _WS = re.compile(r"\s+")
@@ -239,9 +247,22 @@ def parse_feed(content):
 
 
 # ---------------------------------------------------------------- one headline
+# outlet names as Google News sends them -> the short name readers know
+_OUTLET_RX = [(re.compile(p, re.I), name) for p, name in (
+    (r"^(?:ارقام|أرقام)\b", "أرقام"), (r"^argaam", "Argaam"), (r"^(?:https?://)?(?:www\.)?marketscreener", "MarketScreener"),
+    (r"^(?:https?://)?(?:www\.)?alsaudi\.news", "السعودي نيوز"), (r"^(?:https?://)?(?:www\.)?([\w-]+)\.(?:com|net|org|news|sa)/?$", None))]
+
+
 def _outlet(raw_source, feed_outlet):
     s = (raw_source or "").strip()
-    return ALIAS.get(s.lower(), s) if s else feed_outlet
+    if not s:
+        return feed_outlet
+    for rx, name in _OUTLET_RX:
+        m = rx.search(s)
+        if m:
+            s = name or m.group(1).replace("-", " ").title()
+            break
+    return ALIAS.get(s.lower(), s)
 
 
 def subject_tickers(detect, text, lead=180, most=2):
@@ -257,7 +278,11 @@ def subject_tickers(detect, text, lead=180, most=2):
 
 
 def tickers_in(text, extra=()):
+    title = str(text or "").partition(" · ")[0]
     found = [t for t in extra if t]
+    if len(found) > 2 and not U.detect_tickers(title) and not _EXCH.search(title):
+        found = []        # a market round-up ("Stocks settle higher on earnings optimism"): the feed lists the day's movers, the
+                          # story is about the market, not about Apple or Verizon
     found += [m.group(1).replace(".", "-") for m in _EXCH.finditer(text or "")]      # "(NASDAQ: QNCX)": the company itself
     found += subject_tickers(U.detect_tickers, text)
     return [s for s in dict.fromkeys(found) if s and "^" not in s and "=" not in s][:6]
@@ -292,6 +317,145 @@ def key_of(title):
 
 def tokens(title):
     return frozenset(w for w in re.findall(r"(?:[^\W_]|[$%])+", (title or "").lower()) if len(w) > 2 and w not in STOP)
+
+
+# ---------------------------------------------------------------- one story told by several outlets ("full coverage")
+# the bot itself merges a headline repeated almost word for word; the pages also group the same event told in different words
+# ("White House forms committee to probe Fed's Cook", "Can Trump fire Fed governor Lisa Cook?") into one card with its coverage
+_SERIES = re.compile(r"^(?:stock market today,?\s*\w{3,9}\.?\s*\d{1,2}\s*[:\-]|world economy latest:|morning bid:|closing bell:|exclusive:|"
+                     r"breaking:|update \d+[:\-]|analysis[:\-]|factbox[:\-]|explainer[:\-]|wall st\.? week ahead[:\-]?|instant view:|live:)\s*", re.I)
+_SERIES_END = re.compile(r"\s*(?:\|\s*closing bell|-\s*live updates?|\|\s*live)\s*$", re.I)
+_SAME = [(re.compile(p, re.I), r) for p, r in ((r"federal reserve", "fed"), (r"\bu\.s\.", "us"), (r"\bwall st\b", "wall street"),
+                                             (r"\bs&p 500\b", "spx"), (r"\bnasdaq composite\b", "nasdaq"))]
+CL_STOP = STOP | set("stock stocks share shares market markets investors traders could may might just now still says say week weeks "
+                     "today day days year years month amid ahead latest big after first next last time about against while back "
+                     "higher lower rise rises rose fall falls fell gains gain loses lose slips slip jumps jump surges surge "
+                     "wall street monday tuesday wednesday thursday friday saturday sunday january february march april june july "
+                     "august september october november december transcript complete full call session intraday premarket pre-market "
+                     "after-hours moving falling rising trading futures settle modestly steady steadie price prices q1 q2 q3 q4 "
+                     "here what's whats know".split())
+
+
+# words that tell the same thing
+_SYN = {w: k for k, ws in {"probe": "investigate investigation inquiry probing", "acquire": "acquisition takeover buyout",
+                           "tariff": "duty duties levy levies", "layoff": "job-cuts", "plunge": "tumble sink sank slump crash",
+                           "soar": "surge jump skyrocket", "approve": "approval approved clear clears", "ceo": "chief-executive",
+                           "lawsuit": "sue sued suing"}.items() for w in ws.split()}
+
+
+def _cl_tokens(title):
+    t = _SERIES_END.sub("", _SERIES.sub("", str(title or "")))
+    for rx, rep in _SAME:
+        t = rx.sub(rep, t)
+    out = set()
+    for w in re.findall(r"[^\W_]+(?:'s)?", t.lower()):
+        w = w[:-2] if w.endswith("'s") else w
+        if len(w) > 4:                                  # a light stem: probes -> probe, launches -> launch, companies -> company
+            if w.endswith("ies"):
+                w = w[:-3] + "y"
+            elif w.endswith(("ches", "shes", "sses", "xes", "zes")):
+                w = w[:-2]
+            elif w.endswith("s") and not w.endswith(("ss", "us", "is")):
+                w = w[:-1]
+        w = _SYN.get(w, w)
+        if len(w) > 2 and w not in CL_STOP and not w.isdigit():
+            out.add(w)
+    return out
+
+
+def _cl_time(n):
+    ts = n.get("time")
+    return ts if ts is not None and pd.notna(ts) else None
+
+
+_CL_MEMO = {}
+
+
+def cluster(items, hours=30, rank=None):
+    """_cluster() remembered for the same list of stories (a page runs again on every click): fresh copies each time."""
+    if rank is not None:
+        return _cluster(items, hours, rank)
+    key = (hours, len(items), hash(tuple((n.get("link"), n.get("title")) for n in items)))
+    hit = _CL_MEMO.get(key)
+    if hit is None:
+        hit = _cluster(items, hours)
+        if len(_CL_MEMO) > 6:
+            _CL_MEMO.pop(next(iter(_CL_MEMO)))
+        _CL_MEMO[key] = hit
+    return [{k: v for k, v in n.items() if k != "iq"} for n in hit]
+
+
+def _cluster(items, hours=30, rank=None):
+    """[lead story, ...]: the same event told by several outlets grouped under its best outlet's story. The lead gets "more"
+    (the other stories: title, source, link, time, newest first), its "also" lists every other outlet and its companies are
+    pooled. Order: the order of each group's first story in items. rank(n) -> sort key for the lead (default: the outlet's
+    rank, then the newest)."""
+    import math
+    items = [n for n in items if n.get("title")]
+    if len(items) < 2:
+        return [dict(n) for n in items]
+    toks = [_cl_tokens(n["title"]) for n in items]
+    tick = [frozenset(n.get("tickers") or ()) for n in items]
+    df = {}
+    for tk in toks:
+        for w in tk:
+            df[w] = df.get(w, 0) + 1
+    N = len(items)
+    idf = {w: math.log((N + 1) / (c + 0.5)) for w, c in df.items()}
+    rare = math.log((N + 1) / (max(3.0, N * 0.02) + 0.5))      # a word found in under 2% of the headlines (or in three)
+    groups, index = [], {}                                      # [{"m": member indexes, "t": their words, "ts": first time}]
+    for i, n in enumerate(items):
+        tk, ts = toks[i], _cl_time(n)
+        cand = {g for w in tk if idf.get(w, 0) >= rare for g in index.get(w, ())}
+        best, best_s = None, 0.0
+        for g in cand:
+            G = groups[g]
+            if ts is not None and G["ts"] is not None and abs((G["ts"] - ts).total_seconds()) > hours * 3600:
+                continue
+            for o, ok_ in zip(G["t"], G["k"]):
+                if tick[i] and ok_ and not (tick[i] & ok_):
+                    continue                  # two different companies ("Why is Arm stock falling", "Why is AST stock falling")
+                sh = tk & o
+                if len(sh) < 2:
+                    continue
+                ws = sum(idf[w] for w in sh)
+                wj = ws / sum(idf[w] for w in tk | o)
+                ov = ws / min(sum(idf[w] for w in tk), sum(idf[w] for w in o))
+                n_rare = sum(1 for w in sh if idf[w] >= rare)
+                s_ = wj if (wj >= 0.30 and n_rare >= 1) else (ov * 0.7 if ov >= 0.58 and n_rare >= 2 else 0.0)
+                if s_ > best_s:
+                    best, best_s = g, s_
+        if best is None:
+            best = len(groups)
+            groups.append({"m": [], "t": [], "k": [], "ts": ts})
+        G = groups[best]
+        G["m"].append(i)
+        G["t"].append(tk)
+        G["k"].append(tick[i])
+        for w in tk:
+            if idf.get(w, 0) >= rare:
+                index.setdefault(w, set()).add(best)
+    key = rank or (lambda n: (RANK.get(n.get("source"), 99), -(_cl_time(n).value if _cl_time(n) is not None else 0)))
+    zero = pd.Timestamp(0, tz="UTC")
+    out = []
+    for G in groups:
+        mem = [items[i] for i in G["m"]]
+        top = min(mem, key=key)
+        lead = dict(top)
+        rest = [m for m in mem if m is not top and m.get("link") != top.get("link")]
+        if rest:
+            outlets = [top.get("source")] + list(top.get("also") or [])
+            for m in rest:
+                outlets += [m.get("source")] + list(m.get("also") or [])
+            lead["also"] = [o for o in dict.fromkeys(outlets) if o and o != top.get("source")]
+            lead["more"] = [{"title": m["title"], "source": m.get("source"), "link": m.get("link"), "time": m.get("time")}
+                            for m in sorted(rest, key=lambda m: _cl_time(m) or zero, reverse=True)]
+            lead["tickers"] = list(dict.fromkeys(list(top.get("tickers") or []) + [t for m in rest for t in m.get("tickers") or []]))[:6]
+            if not lead.get("img"):
+                lead["img"] = next((m["img"] for m in rest if m.get("img")), "")
+            lead.pop("iq", None)                  # its importance is read again with its full coverage
+        out.append(lead)
+    return out
 
 
 # ---------------------------------------------------------------- the bot
@@ -357,7 +521,7 @@ class NewsBot:
 
     def _add(self, it):
         """True when the headline is new (not the same story as one already stored)."""
-        if NOISE.search(it["title"]):
+        if NOISE.search(it["title"]) or JUNK.search(it["title"]) or str(it.get("source") or "").strip().lower() in BLOCKED:
             return False
         k = key_of(it["title"])
         if not k:
@@ -636,4 +800,4 @@ def sa_headlines(hours=48):
         return []
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.3"
+BUILD = "22.4"

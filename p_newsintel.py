@@ -17,6 +17,7 @@ import streamlit as st
 import data
 import lightmode as LM
 import markets as MK
+import newsbot
 import newsintel as NI
 import newsiq
 import tasi
@@ -250,9 +251,10 @@ CSS2 = """<style>
 .nie-tl { display:flex; align-items:stretch; gap:3px; height:84px; min-height:84px; flex:1; margin:14px 0 5px; position:relative; direction:ltr; }
 .nie-tl::before { content:""; position:absolute; left:0; right:0; top:50%; border-top:1px dashed rgba(157,151,165,.35); }
 .nie-tl span { flex:1; position:relative; }
-.nie-tl span i { position:absolute; left:14%; right:14%; border-radius:3px; animation:niebar .7s cubic-bezier(.2,.8,.2,1) both; }
-.nie-tl span i.u { bottom:50%; background:linear-gradient(0deg, rgba(74,222,128,.4), #4ADE80); transform-origin:bottom; }
-.nie-tl span i.d { top:50%; background:linear-gradient(180deg, rgba(248,113,113,.4), #F87171); transform-origin:top; }
+.nie-tl span i { position:absolute; left:16%; right:16%; border-radius:99px; animation:niebar .7s cubic-bezier(.2,.8,.2,1) both; transition:filter .2s, transform .2s; }
+.nie-tl span:hover i { filter:brightness(1.25); }
+.nie-tl span i.u { bottom:calc(50% + 1px); background:linear-gradient(0deg, rgba(74,222,128,.35), #4ADE80); transform-origin:bottom; box-shadow:0 0 10px -2px rgba(74,222,128,.55); }
+.nie-tl span i.d { top:calc(50% + 1px); background:linear-gradient(180deg, rgba(248,113,113,.35), #F87171); transform-origin:top; box-shadow:0 0 10px -2px rgba(248,113,113,.55); }
 .nie-tl span.e i { top:calc(50% - 1px); height:2px; background:rgba(157,151,165,.35); }
 @keyframes niebar { from { transform:scaleY(0); } to { transform:none; } }
 .nie-tll { display:flex; justify-content:space-between; color:#8F899B; font-size:.66rem; direction:ltr; }
@@ -681,8 +683,10 @@ def _detail(a, chg, sec_chg, titles_ar, dfm=None):
             f'<span class="nie-tag" style="color:#C4B5FD;border-color:#C4B5FD44;background:#7C3AED14">{T.icon(ic)}{T.esc(_ev_name(a, en_ev, ar_ev))}</span>')
     also = T.also_badge(n.get("also"), ar)
     ui.html(f'<div class="nie-card">{T.news_thumb(n, big=True)}<div class="tx"><div class="tt"><a href="{T.esc(n.get("link") or "#")}" '
-            f'target="_blank">{T.esc(title)}</a></div><div class="mt">{T.esc(n.get("source") or "")}{also} · '
+            f'target="_blank">{T.esc(title)}</a></div><div class="mt"><bdi>{T.esc(n.get("source") or "")}</bdi>{also} · '
             f'{T.time_ago(n["time"], ar) if pd.notna(n.get("time")) else ""}</div><div class="hd">{tags}</div></div></div>')
+    if n.get("more"):                                    # the same event told by other outlets
+        ui.html(T.coverage(n, ar))
     ui.html(_verdict(a))
     ui.ai_note("Story", n.get("title") or "")
     ui.ai_note("Engine reading", f"{NI.EVENT.get(a['event'], NI.EVENT['other'])[0]}{' (uncertain)' if a.get('ev_unsure') else ''}, "
@@ -797,10 +801,10 @@ def _tab_ai(a, n, ar):
     if a["words"]:
         ui.html(f'<div class="nx-h">{T.icon("key")}{T.esc(L("Words that decided the sentiment", "الكلمات اللي حددت الاتجاه"))}</div>' + _word_chips(a))
     if not key:
-        ui.html(_note(L("This is the engine’s own reading (rules and numbers). With an AI key (OPENAI_API_KEY in the site’s Secrets) a button here "
-                        "asks the AI analyst to explain the story in words.",
-                        "هذي قراءة المحرك نفسه (قواعد وأرقام). ولما يكون للموقع مفتاح ذكاء اصطناعي (OPENAI_API_KEY في Secrets) يطلع هنا زر "
-                        "يطلب من محلل الذكاء الاصطناعي يشرح الخبر بالكلام."), "auto_awesome"))
+        ui.html(_note(L("This is the engine’s own reading: the kind of event, the words and today’s price, scored by fixed rules. "
+                        "Open the full analysis for the stocks it hits and the setup score.",
+                        "هذي قراءة المحرك نفسه: نوع الحدث والكلمات وسعر اليوم، بقواعد ثابتة. افتح التحليل الكامل تشوف الأسهم المتأثرة ودرجة الفرصة."),
+                      "auto_awesome"))
 
 
 def _tab_stocks(a, chg):
@@ -1112,12 +1116,17 @@ def _hero(res, hrs, now, n_src):
     nums = (f'<div class="nie-hc"><div class="h">{T.icon("monitoring")}{T.esc(L("This window", "هالفترة"))}</div>'
             f'<div class="nie-stats">{st_html}</div></div>')
     bars = []
-    for v in _mood_bars(res, hrs, now):
+    vals = _mood_bars(res, hrs, now)
+    top = max([abs(v) for v in vals if v is not None] + [1.0])        # the strongest hour fills its half: the shape is readable
+    step = hrs / max(len(vals), 1)
+    for k, v in enumerate(vals):
+        ago = round((len(vals) - 1 - k) * step, 1)
+        when = L(f"{ago:g}h ago" if ago else "latest", f"قبل {ago:g} ساعة" if ago else "الأحدث")
         if v is None or abs(v) < 1:
-            bars.append('<span class="e"><i></i></span>')
+            bars.append(f'<span class="e" title="{T.esc(when)} · {T.esc(L("calm", "هادئ"))}"><i></i></span>')
         else:
-            h = max(6.0, min(abs(v), 100) / 100 * 50)
-            bars.append(f'<span><i class="{"u" if v > 0 else "d"}" style="height:{h:.0f}%"></i></span>')
+            h = max(8.0, abs(v) / top * 47)
+            bars.append(f'<span title="{T.esc(when)} · {v:+.0f}"><i class="{"u" if v > 0 else "d"}" style="height:{h:.0f}%"></i></span>')
     upd = _ny_time(now)
     tz_en, tz_ar = MK.get()["tz_label"]
     flow = (f'<div class="nie-hc" data-nogq><div class="h">{T.icon("timeline")}{T.esc(L("Mood through time", "المزاج مع الوقت"))}'
@@ -1273,7 +1282,7 @@ def _card_html(a, title, chg, big=False):
     when = T.time_ago(n["time"], ar) if pd.notna(n.get("time")) else ""
     imp = a["impact"]
     st_ = a["setup"]
-    meta = f'{T.esc(n.get("source") or "")}{T.also_badge(n.get("also"), ar)} · {when}'
+    meta = f'<bdi>{T.esc(n.get("source") or "")}</bdi>{T.also_badge(n.get("also"), ar)} · {when}'
     foot = (f'<div class="ft"><span class="se {a["lab"]}">{arrow} {T.esc(L(sen, sar))}</span>'
             f'<span class="im">{T.esc(L("Impact", "الأثر"))} <span class="bar"><i style="width:{imp:.0f}%;background:{_imp_col(imp)}"></i></span><b>{imp:.0f}</b></span>'
             f'<span class="su">{T.esc(L("Setup", "الفرصة"))} {_ring(st_["total"], 100, _setup_col(st_), 30, 4)}</span></div>')
@@ -1384,8 +1393,10 @@ def _quick_window(a, chg):
     tags = (f'<span class="nie-tag" style="color:{scol};border-color:{scol}55;background:{scol}14">{T.esc(L(sen, sar))}</span>'
             f'<span class="nie-tag" style="color:#C4B5FD;border-color:#C4B5FD44;background:#7C3AED14">{T.icon(ic)}{T.esc(_ev_name(a, en_ev, ar_ev))}</span>')
     ui.html(f'<div class="nie-card">{T.news_thumb(n, big=True)}<div class="tx"><div class="tt"><a href="{T.esc(n.get("link") or "#")}" '
-            f'target="_blank" dir="auto">{T.esc(title)}</a></div><div class="mt">{T.esc(n.get("source") or "")} · '
+            f'target="_blank" dir="auto">{T.esc(title)}</a></div><div class="mt"><bdi>{T.esc(n.get("source") or "")}</bdi> · '
             f'{T.time_ago(n["time"], ar) if pd.notna(n.get("time")) else ""}</div><div class="hd">{tags}</div></div></div>')
+    if n.get("more"):                                    # the same event told by other outlets
+        ui.html(T.coverage(n, ar))
     ui.html(_verdict(a))
     why_en, why_ar = NI.why(a)
     tabs = st.tabs([L(":material/auto_awesome: AI analysis", ":material/auto_awesome: التحليل الذكي"),
@@ -1468,7 +1479,8 @@ def page_news_intel():
     with st.spinner(L("Reading the news and the prices...", "يقرأ الأخبار والأسعار...")):
         items = data.market_news(96)
         now = pd.Timestamp.now(tz="UTC")
-        items = [n for n in items if pd.notna(n.get("time")) and n["time"] >= now - pd.Timedelta(hours=hrs)][:400]
+        items = [n for n in items if pd.notna(n.get("time")) and n["time"] >= now - pd.Timedelta(hours=hrs)][:600]
+        items = newsbot.cluster(items)[:400]            # one card per event, with every outlet that told it
         tick = sorted({t for n in items[:300] for t in (n.get("tickers") or [])[:2] if t})
         chg = data.quick_changes(tick) if tick else {}
         newsiq.enrich(items, chg)
@@ -1615,4 +1627,4 @@ def page_news_intel():
             _show_story(a, chg, px, titles_ar)
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.3"
+BUILD = "22.4"
