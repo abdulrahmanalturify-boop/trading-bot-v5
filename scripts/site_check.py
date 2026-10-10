@@ -121,8 +121,17 @@ def seed_xbots():
         "pros": ["Earnings growth for $MSFT remains strong, upgrade to outperform", "$AAPL services margin record high, bullish setup",
                  "Breadth is weak, $SPY may struggle near term"],
         "flash": ["*NVIDIA BEATS ESTIMATES, RAISES GUIDANCE $NVDA", "*MICROSOFT WINS $10B CLOUD CONTRACT $MSFT", "*BOEING CUTS OUTLOOK $BA"],
-        "saudi": ["أرامكو اختراق قوي مع ارتفاع أسعار النفط، فرصة دخول", "الراجحي يواصل الصعود بعد أرباح قوية، إيجابي", "سابك تراجع وكسر الدعم، سلبي",
-                  "تاسي يرتفع بدعم من البنوك، السوق إيجابي"],
+        "contra": ["$TSLA is a bubble, dump it before it crashes 📉", "$META overvalued, selling everything, bearish", "$TSLA demand collapsing, short it",
+                   "$NVDA still the best, bullish 🚀"],
+        "tasi": ["تاسي يرتفع بدعم من البنوك، السوق إيجابي وصاعد 📈", "السوق السعودي يواصل الصعود، سيولة قوية ودخول", "تاسي يتراجع مع ضغط بيع على البتروكيماويات، سلبي",
+                 "المؤشر العام يخترق المقاومة، فرصة شراء"],
+        "sa_trend": ["أرامكو اختراق قوي مع ارتفاع أسعار النفط، فرصة دخول", "الراجحي يواصل الصعود بعد أرباح قوية، إيجابي", "سابك تراجع وكسر الدعم، سلبي",
+                     "معادن قمة جديدة مع صعود الذهب، قوي"],
+        "sa_pros": ["#تاسي الراجحي توصية شراء، الدعم 95 والهدف 105، اختراق", "#السوق_السعودي سابك كسر الدعم، وقف خسارة وخروج",
+                    "#تاسي أرامكو نموذج صاعد، هدف 27، دخول"],
+        "sa_flash": ["أرامكو تعلن ارتفاع أرباحها الفصلية 20% وتوزيعات نقدية", "الراجحي يوقع عقد تمويل بقيمة 5 مليارات ريال", "سابك تخفض توقعاتها للعام"],
+        "oil": ["النفط يرتفع 3% بعد قرار أوبك+ خفض الإنتاج، برنت فوق 80 دولار، صاعد 📈", "Brent jumps as OPEC+ extends cuts, bullish for oil prices 🚀",
+                "أسعار النفط تتراجع مع مخاوف الطلب، سلبي"],
     }
     users = [{"id": "u1", "username": "sample_trader", "name": "Sample Trader", "verified": False, "public_metrics": {"followers_count": 12000}},
              {"id": "u2", "username": "sample_analyst", "name": "Sample Analyst", "verified": True, "public_metrics": {"followers_count": 250000}}]
@@ -137,7 +146,7 @@ def seed_xbots():
     for bot in XB.BOTS:
         feed, i = [], 0
         for h in range(46, -1, -2):
-            for _ in range(rnd.randint(1, 3)):
+            for _ in range(rnd.randint(1, 3) if h > 6 else rnd.randint(3, 5)):
                 i += 1
                 feed.append({"id": str(10_000_000 + i), "text": rnd.choice(texts[bot["id"]]),
                              "created_at": (now - pd.Timedelta(hours=h, minutes=rnd.randint(0, 50))).isoformat().replace("+00:00", "Z"),
@@ -150,6 +159,15 @@ def seed_xbots():
         try:
             XB.PER_RUN = 60
             state = XB.run(bot, "SAMPLE", meta, now=now, get=get, force=True)
+            # a sample curve of the past four weeks, so the photos show the account charts (the real curve starts on the first run)
+            eq, curve = XB.START_CASH, []
+            for d in pd.bdate_range(end=now.tz_convert(None).normalize(), periods=22):
+                eq *= 1 + rnd.gauss(0.0006, 0.007)
+                curve.append({"d": d.date().isoformat(), "eq": round(eq, 2)})
+            curve[-1]["eq"] = state["ledger"]["curve"][-1]["eq"] if state["ledger"]["curve"] else curve[-1]["eq"]
+            state["ledger"]["curve"] = curve
+            if state["ledger"]["trades"]:
+                state["ledger"]["since"] = curve[0]["d"]
             XB.save_state(bot, state)
             log("xbots seed", bot["id"], len(state["posts"]), list(state["ledger"]["pos"]))
         except Exception as e:
@@ -278,7 +296,7 @@ def shoot(pg, name):
     pg.screenshot(path=os.path.join(OUT, f"{name}.jpg"), type="jpeg", quality=72, full_page=True)
 
 
-QUICK = False          # a quick run: the top bar's menus and two pages, no news/photo/chart labs
+QUICK = True          # a quick run: the top bar's menus and two pages, no news/photo/chart labs
 
 
 def main():

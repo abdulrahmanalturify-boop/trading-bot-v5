@@ -1357,5 +1357,49 @@ def mood_bars(times, values, title=None, height=300, names=("Mood", "Posts")):
     fig.update_xaxes(tickformat="%H:%M<br>%d %b", tickangle=0, nticks=8)
     return _bars(fig)
 
+def equity_race(series_map, title=None, height=320, colors=None, names=None):
+    """The accounts of several bots since their start, in % (one line each, the bot's own colour), with the day in the hover."""
+    fig = go.Figure()
+    for i, (name, s) in enumerate(series_map.items()):
+        col = (colors or {}).get(name) or PALETTE[i % len(PALETTE)]
+        lab = (names or {}).get(name, name)
+        fig.add_trace(go.Scatter(x=s.index, y=s.values, name=lab, mode="lines", line=dict(color=col, width=2.2, shape="spline", smoothing=0.4),
+                                 hovertemplate=f"<b>{lab}</b> %{{y:+.2f}}%<extra></extra>"))
+    fig.add_hline(y=0, line=dict(color="rgba(231,227,235,.3)", width=1))
+    style(fig, height, title)
+    fig.update_yaxes(ticksuffix="%", side="left", tickformat="+.1f")
+    fig.update_xaxes(tickformat="%d %b", nticks=8)
+    fig.update_layout(hovermode="x unified")
+    return fig
+
+
+def equity_trades(series, trades=(), title=None, height=320, color=ACCENT, prefix="$"):
+    """One bot's account day by day, its buys (up triangles) and sells (down triangles) on the line."""
+    fig = go.Figure(go.Scatter(x=series.index, y=series.values, mode="lines", name=title or "", line=dict(color=color, width=2.2, shape="spline", smoothing=0.4),
+                               fill="tozeroy", fillcolor=rgba(color, 0.1), hovertemplate=f"%{{x|%d %b %Y}} · {prefix}%{{y:,.0f}}<extra></extra>"))
+    try:
+        fig.data[0].fillgradient = dict(type="vertical", colorscale=[[0, rgba(color, 0.0)], [1, rgba(color, 0.2)]])
+    except (ValueError, AttributeError):
+        pass
+    if len(series):
+        lo, hi = float(series.min()), float(series.max())
+        pad = (hi - lo) * 0.25 or max(1.0, hi * 0.01)
+        fig.update_yaxes(range=[lo - pad, hi + pad])
+    for side, sym_, col, nm in (("buy", "triangle-up", UP, "Buy"), ("sell", "triangle-down", DOWN, "Sell")):
+        pts = [t for t in trades if t.get("side") == side]
+        if not pts or not len(series):
+            continue
+        xs = pd.to_datetime([t["t"] for t in pts], utc=True).tz_localize(None).normalize()
+        ys = [float(series.reindex([x], method="nearest").iloc[0]) if len(series) else None for x in xs]
+        txt = [f"{t['sym']} · {t['px']:,.2f}" + (f" · {t['pnl']:+.1f}%" if t.get("pnl") is not None else "") for t in pts]
+        fig.add_trace(go.Scatter(x=xs, y=ys, mode="markers", name=nm, text=txt, hovertemplate="%{text}<extra>" + nm + "</extra>",
+                                 marker=dict(symbol=sym_, size=11, color=col, line=dict(color="#15121F", width=1.5))))
+    style(fig, height, title, legend=False)
+    fig.update_yaxes(tickprefix=prefix, side="left")
+    fig.update_xaxes(tickformat="%d %b", nticks=8)
+    fig.update_layout(hovermode="x unified")
+    return fig
+
+
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.5.1"
+BUILD = "22.6"

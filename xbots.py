@@ -1,8 +1,9 @@
 """
-xbots.py - Five bots that read X (Twitter) about the market and trade what they read, on paper.
+xbots.py - Ten bots that read X (Twitter) about the market and trade what they read, on paper: five for the US market and five
+for the Saudi market.
 
-Each bot has a beat on X: the US market's mood, the stocks suddenly talked about, well-known market accounts, breaking-news
-accounts, and the Saudi market in Arabic. Every hour of its market's day (scripts/xbots_run.py, run by GitHub Actions, so it
+Each bot has a beat on X: the market's mood, the companies suddenly talked about, the analysts' calls, the breaking-news
+accounts, and (US) the crowd's fear about the mega-caps / (Saudi) the talk about oil. Every hour of its market's day (scripts/xbots_run.py, run by GitHub Actions, so it
 works while nobody has the site open) a bot reads the newest posts of its beat and turns them into a reading:
 
 - each post: the companies it is about, its tone (bullish / bearish, from the news engine's words plus the words people use
@@ -35,7 +36,7 @@ import pandas as pd
 import markets as MK
 
 API = "https://api.x.com/2/tweets/search/recent"
-DAILY_READS = 800                 # posts read a day by the five bots together (X_DAILY_READS overrides it)
+DAILY_READS = 800                 # posts read a day by the ten bots together (X_DAILY_READS overrides it)
 PER_RUN = 20                      # posts read by one bot in one run at most (X returns 10 to 100)
 KEEP_HOURS = 72                   # posts kept for the reading
 START_CASH = 100_000.0
@@ -43,12 +44,13 @@ FEE = 0.001                       # 0.1% of the value, each way
 KEY = "__portfolio__:xbot:"       # the row of a bot (paper_bots.strategy): left out of the bots' list like the portfolios
 META = "__portfolio__:xbots"      # the shared row: posts read today
 
-# ---------------------------------------------------------------- the five bots
+# ---------------------------------------------------------------- the bots: five for the US market, five for the Saudi market
 # rules: entry (what has to be true to buy), size (share of the account per position), slots (positions at most), stop / target
-# (% from the entry), days (calendar days a position may stay)
+# (% from the entry), days (calendar days a position may stay). color: the bot's own hue on the page (the chart palette).
 BOTS = [
-    {"id": "pulse", "market": MK.US, "icon": "monitor_heart",
-     "name": ("US Market Pulse", "نبض السوق الأمريكي"),
+    # ---- US
+    {"id": "pulse", "market": MK.US, "icon": "monitor_heart", "color": "#5088F2",
+     "name": ("Market Pulse", "نبض السوق"),
      "beat": ("The mood of X about the US market: the indices, Wall Street, the Fed and the economy.",
               "مزاج X عن السوق الأمريكي: المؤشرات ووول ستريت والفيدرالي والاقتصاد."),
      "query": '($SPY OR $QQQ OR $SPX OR "stock market" OR "Wall Street" OR "S&P 500" OR Nasdaq OR "the Fed") lang:en -is:retweet -is:reply',
@@ -57,7 +59,7 @@ BOTS = [
                "before; goes back to cash when the mood turns bearish (-12 or less).",
                "يمسك SPY (مؤشر S&P 500) طالما مزاج آخر 6 ساعات صاعد (+12 أو أكثر) وما نزل عن الست ساعات اللي قبلها، ويرجع كاش لما "
                "يصير المزاج هابط (-12 أو أقل).")},
-    {"id": "trend", "market": MK.US, "icon": "local_fire_department",
+    {"id": "trend", "market": MK.US, "icon": "local_fire_department", "color": "#DF4E92",
      "name": ("Trending Stocks", "الأسهم الرائجة"),
      "beat": ("The stocks X suddenly talks about: the most-followed tickers, and how fast their mentions grow.",
               "الأسهم اللي فجأة صار عنها كلام في X: أشهر الرموز، وكم تزيد الإشارات لها."),
@@ -67,7 +69,7 @@ BOTS = [
                "stop at -8%, a target at +15% or after 7 days.",
                "يشتري السهم اللي صار الكلام عنه ضعف معدله أو أكثر (آخر 6 ساعات مقابل معدل 3 أيام) بنبرة صاعدة، وعنه 4 تغريدات على "
                "الأقل باليوم، وما نزل أكثر من 3% اليوم؛ لين 4 أسهم. يبيع إذا انقلبت النبرة لهابطة، أو عند وقف -8%، أو هدف +15%، أو بعد 7 أيام.")},
-    {"id": "pros", "market": MK.US, "icon": "school",
+    {"id": "pros", "market": MK.US, "icon": "school", "color": "#BE8700",
      "name": ("Market Pros", "حسابات المحللين"),
      "beat": ("Well-known strategists and market accounts: what they say about stocks and the market.",
               "استراتيجيون وحسابات سوق معروفة: وش يقولون عن الأسهم والسوق."),
@@ -78,7 +80,7 @@ BOTS = [
                "bearish on it, at a stop of -8%, a target of +15% or after 10 days; up to 5 stocks.",
                "يشتري السهم اللي يكتب عنه أحد هالحسابات بنبرة صاعدة واضحة (0.3 أو أكثر)، ويبيع إذا قلب واحد منهم هابط عليه، أو عند وقف "
                "-8%، أو هدف +15%، أو بعد 10 أيام؛ لين 5 أسهم.")},
-    {"id": "flash", "market": MK.US, "icon": "bolt",
+    {"id": "flash", "market": MK.US, "icon": "bolt", "color": "#00A99C",
      "name": ("Breaking on X", "العاجل في X"),
      "beat": ("The fastest breaking-news accounts: earnings, deals, guidance, ratings and rulings about companies.",
               "أسرع حسابات الأخبار العاجلة: أرباح وصفقات وتوقعات وتصنيفات وقرارات عن الشركات."),
@@ -89,19 +91,79 @@ BOTS = [
                "0.35 or more) if its price agrees today; a short trade: stop -5%, target +8%, out after 2 days; up to 5 stocks.",
                "يشتري الشركة بعد خبر زين واضح عنها (أرباح أعلى من المتوقع، صفقة، رفع توقعات، ترقية، موافقة: نبرة 0.35 أو أكثر) إذا سعرها "
                "اليوم يوافق؛ صفقة قصيرة: وقف -5%، هدف +8%، يطلع بعد يومين؛ لين 5 أسهم.")},
-    {"id": "saudi", "market": MK.SA, "icon": "mosque",
-     "name": ("Saudi Market on X", "السوق السعودي على X"),
-     "beat": ("Arabic posts about TASI and Saudi companies, and the Saudi market news accounts.",
-              "التغريدات العربية عن تاسي والشركات السعودية، وحسابات أخبار السوق السعودي."),
-     "query": ('(تاسي OR #تاسي OR #السوق_السعودي OR "سوق الأسهم السعودية" OR أرامكو OR الراجحي OR سابك OR معادن OR from:Argaam '
-               "OR from:CNBCArabia OR from:AsharqBusiness OR from:SaudiExchange) lang:ar -is:retweet"),
+    {"id": "contra", "market": MK.US, "icon": "swap_vert", "color": "#9260DA",
+     "name": ("Against the Crowd", "ضد التيار"),
+     "beat": ("The ten largest US companies: buys the one the crowd is loudly bearish on, and waits for the fear to pass.",
+              "أكبر عشر شركات أمريكية: يشتري اللي الناس متشائمين فيها بصوت عالي، وينتظر الخوف يروح."),
+     "query": "($AAPL OR $MSFT OR $NVDA OR $AMZN OR $GOOGL OR $META OR $TSLA OR $AVGO OR $NFLX OR $AMD) lang:en -is:retweet -is:reply",
+     "style": "contra", "size": 0.2, "slots": 4, "stop": 7.0, "target": 10.0, "days": 10,
+     "rules": ("Buys a mega-cap written about in at least 6 posts in a day in a clearly bearish tone (-0.25 or less) that is not down "
+               "more than 6% today (fear, not a collapse); sells when the tone recovers (+0.15), at a stop of -7%, a target of +10% or "
+               "after 10 days; up to 4 stocks.",
+               "يشتري الشركة العملاقة اللي عنها 6 تغريدات على الأقل باليوم بنبرة هابطة واضحة (-0.25 أو أقل) وما نزلت أكثر من 6% اليوم "
+               "(خوف مو انهيار)، ويبيع لما تتحسن النبرة (+0.15)، أو عند وقف -7%، أو هدف +10%، أو بعد 10 أيام؛ لين 4 أسهم.")},
+    # ---- Saudi
+    {"id": "tasi", "market": MK.SA, "icon": "monitor_heart", "color": "#5088F2",
+     "name": ("TASI Pulse", "نبض تاسي"),
+     "beat": ("The mood of Arabic X about TASI and the Saudi market as a whole.",
+              "مزاج X العربي عن تاسي والسوق السعودي ككل."),
+     "query": '(تاسي OR #تاسي OR #السوق_السعودي OR "سوق الأسهم السعودية" OR "المؤشر العام" OR "سوق الأسهم") lang:ar -is:retweet -is:reply',
+     "style": "pulse", "trade": ["2222.SR", "1120.SR", "1180.SR"], "size": 0.31, "slots": 3, "stop": 0.0, "target": 0.0, "days": 0,
+     "rules": ("Holds the market's three heaviest companies (Aramco, Al Rajhi, SNB) in equal parts while the mood of the last 6 hours "
+               "is bullish (+12 or more) and not falling against the 6 hours before; goes back to cash when the mood turns bearish (-12 or less).",
+               "يمسك أثقل ثلاث شركات في المؤشر (أرامكو، الراجحي، الأهلي) بالتساوي طالما مزاج آخر 6 ساعات صاعد (+12 أو أكثر) وما نزل عن "
+               "الست ساعات اللي قبلها، ويرجع كاش لما يصير المزاج هابط (-12 أو أقل).")},
+    {"id": "sa_trend", "market": MK.SA, "icon": "local_fire_department", "color": "#DF4E92",
+     "name": ("Talk of TASI", "حديث تاسي"),
+     "beat": ("The Saudi companies X talks about most, in what tone, and the ones suddenly on everyone's lips.",
+              "الشركات السعودية اللي يتكلم عنها X أكثر، وبأي نبرة، واللي فجأة صارت على كل لسان."),
+     "query": ("(أرامكو OR الراجحي OR سابك OR معادن OR الأهلي OR الإنماء OR \"اس تي سي\" OR أكوا OR \"سليمان الحبيب\" OR المراعي OR جرير OR "
+               "كيان OR ينساب OR الاتصالات OR الكهرباء OR البلاد OR الرياض) lang:ar -is:retweet"),
      "style": "saudi", "size": 0.22, "slots": 4, "stop": 8.0, "target": 15.0, "days": 10,
      "rules": ("Buys a Saudi company talked about in at least 3 posts in a day in a bullish tone (0.2 or more) that is not down more "
                "than 3% today; sells on a bearish turn, a stop of -8%, a target of +15% or after 10 days; up to 4 companies.",
                "يشتري الشركة السعودية اللي عنها 3 تغريدات على الأقل باليوم بنبرة صاعدة (0.2 أو أكثر) وما نزلت أكثر من 3% اليوم، ويبيع "
                "إذا انقلبت النبرة لهابطة، أو عند وقف -8%، أو هدف +15%، أو بعد 10 أيام؛ لين 4 شركات.")},
+    {"id": "sa_pros", "market": MK.SA, "icon": "school", "color": "#BE8700",
+     "name": ("Chart Talk", "أهل التحليل الفني"),
+     "beat": ("The technical crowd of Saudi X: posts with supports, resistances, targets and calls on TASI companies.",
+              "أهل التحليل الفني في X السعودي: تغريدات الدعوم والمقاومات والأهداف والتوصيات على شركات تاسي."),
+     "query": ('(#تاسي OR #السوق_السعودي OR تاسي) (توصية OR "تحليل فني" OR دعم OR مقاومة OR اختراق OR هدف OR "وقف خسارة" OR نموذج) '
+               "lang:ar -is:retweet -is:reply"),
+     "style": "calls", "size": 0.18, "slots": 5, "stop": 8.0, "target": 15.0, "days": 10,
+     "rules": ("Buys a company a technical post is clearly bullish on (0.3 or more); sells when a post turns bearish on it, at a stop of "
+               "-8%, a target of +15% or after 10 days; up to 5 companies.",
+               "يشتري الشركة اللي تغريدة فنية متفائلة فيها بوضوح (0.3 أو أكثر)، ويبيع إذا جت تغريدة هابطة عليها، أو عند وقف -8%، أو هدف "
+               "+15%، أو بعد 10 أيام؛ لين 5 شركات.")},
+    {"id": "sa_flash", "market": MK.SA, "icon": "bolt", "color": "#00A99C",
+     "name": ("Tadawul Wire", "عاجل تداول"),
+     "beat": ("The Saudi market's news accounts: announcements, results, dividends, contracts and deals of listed companies.",
+              "حسابات أخبار السوق السعودي: إعلانات ونتائج وتوزيعات وعقود وصفقات الشركات المدرجة."),
+     "query": ("(from:Argaam OR from:SaudiExchange OR from:aleqt OR from:MaaalNews OR from:Mubasher OR from:CNBCArabia OR "
+               "from:AsharqBusiness) -is:retweet"),
+     "style": "flash", "size": 0.15, "slots": 5, "stop": 5.0, "target": 8.0, "days": 2,
+     "rules": ("Buys a company right after clearly good news about it (results above expectations, a contract, a dividend, an upgrade: "
+               "tone 0.35 or more) if its price agrees today; a short trade: stop -5%, target +8%, out after 2 days; up to 5 companies.",
+               "يشتري الشركة بعد خبر زين واضح عنها (نتائج أعلى من المتوقع، عقد، توزيعات، ترقية: نبرة 0.35 أو أكثر) إذا سعرها اليوم "
+               "يوافق؛ صفقة قصيرة: وقف -5%، هدف +8%، يطلع بعد يومين؛ لين 5 شركات.")},
+    {"id": "oil", "market": MK.SA, "icon": "oil_barrel", "color": "#9260DA",
+     "name": ("Oil Watch", "راصد النفط"),
+     "beat": ("What X says about oil, Brent and OPEC+, in Arabic and English: the market's biggest outside force.",
+              "وش يقول X عن النفط وبرنت وأوبك+ بالعربي والإنجليزي: أكبر مؤثر خارجي على السوق."),
+     "query": '(النفط OR برنت OR أوبك OR "أسعار النفط" OR "oil prices" OR Brent OR OPEC OR "crude oil") -is:retweet -is:reply',
+     "style": "pulse", "trade": ["2222.SR", "2010.SR", "2350.SR"], "size": 0.31, "slots": 3, "stop": 0.0, "target": 0.0, "days": 0,
+     "rules": ("Holds Aramco, SABIC and Saudi Kayan in equal parts while the mood about oil over the last 6 hours is bullish (+12 or "
+               "more) and not falling; goes back to cash when it turns bearish (-12 or less).",
+               "يمسك أرامكو وسابك وكيان بالتساوي طالما مزاج آخر 6 ساعات عن النفط صاعد (+12 أو أكثر) وما نزل، ويرجع كاش لما يصير هابط "
+               "(-12 أو أقل).")},
 ]
 BY_ID = {b["id"]: b for b in BOTS}
+
+
+def bots_of(market):
+    return [b for b in BOTS if b["market"] == market]
+
+
 # the tickers the trending bot follows (X's search takes 512 characters: the most-followed names)
 TREND_TAGS = ["NVDA", "TSLA", "AAPL", "AMD", "PLTR", "MSFT", "META", "AMZN", "GOOGL", "SMCI", "MSTR", "COIN", "AVGO", "NFLX", "SOFI",
               "HOOD", "MU", "INTC", "ARM", "RIVN", "LCID", "NIO", "BA", "DIS", "UBER", "SNOW", "CRWD", "SHOP", "RDDT", "IONQ",
@@ -351,7 +413,9 @@ WHY = {"stop": ("Stop", "وقف الخسارة"), "target": ("Target reached", "
        "bear": ("The tone turned bearish", "النبرة انقلبت هابطة"), "mood_up": ("The mood is bullish", "المزاج صاعد"),
        "mood_down": ("The mood turned bearish", "المزاج انقلب هابط"), "spike": ("Talked about far more than usual, bullish", "كلام أكثر بكثير من المعتاد وبنبرة صاعدة"),
        "pro": ("A market pro is bullish on it", "محلل معروف متفائل فيه"), "news": ("Good breaking news", "خبر عاجل إيجابي"),
-       "sa": ("Bullish talk about it on X", "كلام إيجابي عنه في X")}
+       "sa": ("Bullish talk about it on X", "كلام إيجابي عنه في X"),
+       "contra": ("The crowd is loudly bearish on it: buying the fear", "الناس متشائمين فيه بصوت عالي: شراء الخوف"),
+       "calm": ("The tone recovered", "النبرة تحسنت")}
 
 
 def decide(bot, read, posts, ledger, quotes, now=None):
@@ -386,6 +450,8 @@ def decide(bot, read, posts, ledger, quotes, now=None):
                 why = "bear"
             elif style in ("trend", "saudi") and sym in tone_of and tone_of[sym]["n24"] >= 2 and tone_of[sym]["s"] <= -0.1:
                 why = "bear"
+            elif style == "contra" and sym in tone_of and tone_of[sym]["n24"] >= 2 and tone_of[sym]["s"] >= 0.15:
+                why = "calm"
         if why:
             t = _sell(ledger, sym, price, why, now)
             if t:
@@ -399,7 +465,11 @@ def decide(bot, read, posts, ledger, quotes, now=None):
     if style == "pulse":
         m6, prev = read.get("mood6"), read.get("prev6")
         if m6 is not None and m6 >= 12 and read.get("n6", 0) >= 8 and (prev is None or m6 >= prev - 5):
-            cands = [(bot["trade"][0], "mood_up", m6)]
+            cands = [(s, "mood_up", m6) for s in bot["trade"]]
+    elif style == "contra":
+        for d in read.get("talked") or []:
+            if d["n24"] >= 6 and d["s"] <= -0.25 and (chg.get(d["sym"]) is None or chg[d["sym"]] > -6):
+                cands.append((d["sym"], "contra", -d["s"] * d["n24"]))
     elif style in ("trend", "saudi"):
         for d in read.get("talked") or []:
             need_n = 4 if style == "trend" else 3
@@ -621,4 +691,4 @@ def save_state(bot, state):
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.5.1"
+BUILD = "22.6"
