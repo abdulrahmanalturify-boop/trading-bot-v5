@@ -1358,4 +1358,4 @@ def mood_bars(times, values, title=None, height=300, names=("Mood", "Posts")):
     return _bars(fig)
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.5"
+BUILD = "22.5.1"

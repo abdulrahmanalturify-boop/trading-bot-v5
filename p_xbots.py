@@ -127,6 +127,16 @@ def _card(bot, state):
             f'<div class="stt {cls}"><i></i>{T.esc(words)}</div></div>')
 
 
+def _fol(n):
+    """A follower count the way X shows it: 950, 12K, 250K, 1.2M."""
+    n = int(n or 0)
+    for d, u in ((1e6, "M"), (1e3, "K")):
+        if n >= d:
+            v = n / d
+            return f"{v:.1f}".rstrip("0").rstrip(".") + u if v < 10 else f"{v:,.0f}{u}"
+    return f"{n:,}"
+
+
 def _post(p, ar):
     lab = p.get("lab") or "neutral"
     words = {"bull": L("Bullish", "صاعد"), "bear": L("Bearish", "هابط"), "neutral": L("Neutral", "محايد")}[lab]
@@ -134,7 +144,7 @@ def _post(p, ar):
     link = f"https://x.com/{p.get('user') or 'i'}/status/{p.get('id')}"
     return (f'<div class="xpost"><div class="who"><b dir="auto">{T.esc(p.get("name") or p.get("user") or "")}</b>'
             f'<span dir="ltr">@{T.esc(p.get("user") or "")}</span><span>· {T.esc(_when(p.get("t")))}</span>'
-            f'<span>· {T.fmt_big(p.get("followers") or 0)} {T.esc(L("followers", "متابع"))}</span></div>'
+            f'<span>· {_fol(p.get("followers"))} {T.esc(L("followers", "متابع"))}</span></div>'
             f'<div class="tx" dir="auto">{T.esc(p.get("text") or "")}</div>'
             f'<div class="ft"><span class="tag {lab}">{T.esc(words)} {p.get("s", 0):+.2f}</span>{tick}'
             f'<span>♥ {int(p.get("likes") or 0):,} · ↻ {int(p.get("reposts") or 0):,}</span>'
@@ -188,33 +198,30 @@ def _bot_view(bot, state):
                  fmt={L("Growth", "النمو"): "{:.1f}×", L("Tone", "النبرة"): "{:+.2f}", L("Today %", "اليوم %"): "{:+.2f}%"})
     else:
         st.caption(L("No company in its posts yet.", "ما فيه شركات في تغريداته للحين."))
-    c1, c2 = st.columns(2)
-    with c1:
-        ui.sec("work", "Open positions", "المراكز المفتوحة")
-        if led["pos"]:
-            rows = []
-            for s, p in led["pos"].items():
-                px = now_px.get(s) or p["px"]
-                rows.append({"Symbol": s, L("Shares", "الأسهم"): p["qty"], L("Entry", "الدخول"): p["px"], L("Now", "الآن"): px,
-                             L("Return %", "العائد %"): (px / p["px"] - 1) * 100, L("Why", "السبب"): L(*XB.WHY.get(p.get("why"), ("", "")))})
-            ui.table(pd.DataFrame(rows), sym="Symbol", pills={L("Return %", "العائد %")}, wrap={L("Why", "السبب")},
-                     fmt={L("Entry", "الدخول"): "{:,.2f}", L("Now", "الآن"): "{:,.2f}", L("Return %", "العائد %"): "{:+.2f}%"})
-        else:
-            st.caption(L("No open position: the bot waits for its signal.", "ما فيه مراكز: البوت ينتظر إشارته."))
-    with c2:
-        ui.sec("receipt_long", "Latest trades", "آخر الصفقات")
-        if led["trades"]:
-            rows = []
-            for t in reversed(led["trades"][-15:]):
-                rows.append({L("When", "متى"): _when(t["t"]), "Symbol": t["sym"],
-                             L("Side", "الجهة"): L("Buy", "شراء") if t["side"] == "buy" else L("Sell", "بيع"),
-                             L("Price", "السعر"): t["px"], L("Result %", "النتيجة %"): t.get("pnl"),
-                             L("Why", "السبب"): L(*XB.WHY.get(t.get("why"), ("", "")))})
-            ui.table(pd.DataFrame(rows), sym="Symbol", pills={L("Result %", "النتيجة %")}, wrap={L("Why", "السبب")},
-                     words={L("Side", "الجهة"): (L("Buy", "شراء"), L("Sell", "بيع"))},
-                     fmt={L("Price", "السعر"): "{:,.2f}", L("Result %", "النتيجة %"): lambda v: "—" if v is None or pd.isna(v) else f"{v:+.2f}%"})
-        else:
-            st.caption(L("No trade yet.", "ما فيه صفقات للحين."))
+    ui.sec("work", "Open positions", "المراكز المفتوحة")
+    if led["pos"]:
+        rows = []
+        for s, p in led["pos"].items():
+            px = now_px.get(s) or p["px"]
+            rows.append({"Symbol": s, L("Shares", "الأسهم"): p["qty"], L("Entry", "الدخول"): p["px"], L("Now", "الآن"): px,
+                         L("Return %", "العائد %"): (px / p["px"] - 1) * 100, L("Why", "السبب"): L(*XB.WHY.get(p.get("why"), ("", "")))})
+        ui.table(pd.DataFrame(rows), sym="Symbol", pills={L("Return %", "العائد %")}, wrap={L("Why", "السبب")},
+                 fmt={L("Entry", "الدخول"): "{:,.2f}", L("Now", "الآن"): "{:,.2f}", L("Return %", "العائد %"): "{:+.2f}%"})
+    else:
+        st.caption(L("No open position: the bot waits for its signal.", "ما فيه مراكز: البوت ينتظر إشارته."))
+    ui.sec("receipt_long", "Latest trades", "آخر الصفقات")
+    if led["trades"]:
+        rows = []
+        for t in reversed(led["trades"][-15:]):
+            rows.append({L("When", "متى"): _when(t["t"]), "Symbol": t["sym"],
+                         L("Side", "الجهة"): L("Buy", "شراء") if t["side"] == "buy" else L("Sell", "بيع"),
+                         L("Price", "السعر"): t["px"], L("Result %", "النتيجة %"): t.get("pnl"),
+                         L("Why", "السبب"): L(*XB.WHY.get(t.get("why"), ("", "")))})
+        ui.table(pd.DataFrame(rows), sym="Symbol", pills={L("Result %", "النتيجة %")}, wrap={L("Why", "السبب")},
+                 words={L("Side", "الجهة"): (L("Buy", "شراء"), L("Sell", "بيع"))},
+                 fmt={L("Price", "السعر"): "{:,.2f}", L("Result %", "النتيجة %"): lambda v: "—" if v is None or pd.isna(v) else f"{v:+.2f}%"})
+    else:
+        st.caption(L("No trade yet.", "ما فيه صفقات للحين."))
     ui.sec("chat", "Its strongest posts (24 h)", "أقوى تغريداته (24 ساعة)")
     top = read.get("top") or []
     if top:
@@ -263,4 +270,4 @@ def page_xbots():
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.5"
+BUILD = "22.5.1"

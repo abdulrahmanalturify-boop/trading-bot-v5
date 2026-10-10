@@ -27,7 +27,7 @@ import os
 import re
 import tempfile
 import threading
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 import numpy as np
 import pandas as pd
@@ -299,7 +299,15 @@ def reading(posts, now=None):
         talked.append({"sym": d["sym"], "n24": d["n24"], "n6": d["n6"], "spike": round(d["n6"] / pace, 2) if pace else 0.0,
                        "s": round(d["ws"] / d["w"], 3) if d["w"] else 0.0, "authors": len(d["users"] - {""})})
     talked.sort(key=lambda d: (-d["n24"], -d["spike"]))
-    top = sorted((r for r in r24), key=lambda r: -(r["w"] * (0.5 + abs(r["s"]))))[:12]
+    top, seen = [], set()
+    for r in sorted(r24, key=lambda r: -(r["w"] * (0.5 + abs(r["s"])))):    # the same words posted again (copies, bots) show once
+        k = re.sub(r"https?://\S+|[^\w$]+", " ", (r.get("text") or "").lower()).strip()
+        if k in seen:
+            continue
+        seen.add(k)
+        top.append(r)
+        if len(top) == 12:
+            break
     return {"mood6": _mood(r6), "mood24": _mood(r24), "prev6": _mood(rprev), "n6": len(r6), "n24": len(r24), "hours": hours,
             "talked": talked[:25], "top": [{k: v for k, v in r.items() if k != "_t"} for r in top]}
 
@@ -613,4 +621,4 @@ def save_state(bot, state):
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.5"
+BUILD = "22.5.1"

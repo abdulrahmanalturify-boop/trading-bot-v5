@@ -2314,7 +2314,7 @@ FX_JS = """<script>
            + '.st-key-topnav, .ixp, .st-key-introgo, .tape, .navbtn, .langbtn, .lopt, [class*="st-key-alturaifi_ai"], [class*="ai-"], .tx-tools, '
            + '[data-baseweb="select"], [data-baseweb="tab"], [data-baseweb="popover"], [role="listbox"], [role="option"], [data-testid="stPageLink"], '
            + '[aria-hidden="true"], [data-testid="stTooltipIcon"], .lg, .lgo, .nth, .gqpop, [data-nogq], .as, .tk, .tkc, .lnk, .co, .mchip, .mvr, .wlr, .hm, '
-           + '.nogq, .tt, .mt, .meta, .kw, .kws, a.t, .ncov, .tkt, '
+           + '.nogq, .tt, .mt, .meta, .kw, .kws, a.t, .ncov, .tkt, .xpost, '
            + ICONS + ', [role="tab"], [data-testid="stTab"], [role="tablist"]';
   var WORD = /[A-Za-z0-9\u0621-\u064A]/, AR = /[\u0600-\u06FF]/;
   var seen = new WeakMap();
@@ -3022,4 +3022,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.5"
+BUILD = "22.5.1"
