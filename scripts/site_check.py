@@ -24,6 +24,7 @@ PAGES = [  # 22.4: the Discover pages (trending, news, the news engine) and a st
          ("newsintel", "news-intelligence", "us", '[class*="st-key-nie_cb_"] button'),
          ("sentiment", "sentiment", "us"), ("seasonality", "seasonality", "us"), ("stock", "stock?symbol=NVDA", "us"),
          ("sa_trending", "trending", "sa"), ("sa_news", "news", "sa", '[class*="st-key-nwa_"] button')]
+QUICK_PAGES = [("news", "news", "us"), ("stock", "stock?symbol=NVDA", "us")]
 
 
 def log(*a):
@@ -160,6 +161,36 @@ def chart_lab(b, report):
     log("charts", json.dumps(report["charts"])[:600])
 
 
+def nav_probe(pg, tag, report):
+    """Hovers every menu of the top bar and records what the browser shows: the element on top of the button, the menu's
+    opacity and visibility, the "menu closed" flag; a photo of the bar with the first menu open (nav_<tag>.jpg)."""
+    out = []
+    try:
+        n = pg.locator('[class*="st-key-navsec_"] .navbtn').count()
+        for i in range(n):
+            btn = pg.locator(f'.st-key-navsec_{i} .navbtn').first
+            btn.hover(timeout=8000)
+            time.sleep(0.6)
+            info = pg.evaluate("""(i) => {
+                const b = document.querySelector('.st-key-navsec_' + i + ' .navbtn'), dd = document.querySelector('.st-key-navdd_' + i);
+                const r = b.getBoundingClientRect(), top = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+                const cs = dd ? getComputedStyle(dd) : null, rr = dd ? dd.getBoundingClientRect() : null;
+                return {btn: b.innerText.trim(), onTop: top ? (top.className || top.tagName).toString().slice(0, 80) : null,
+                        btnIsTop: !!(top && b.contains(top)), opacity: cs && cs.opacity, visibility: cs && cs.visibility,
+                        menuBox: rr && [Math.round(rr.x), Math.round(rr.y), Math.round(rr.width), Math.round(rr.height)],
+                        closedFlag: document.documentElement.hasAttribute('data-menu-closed'),
+                        hovered: !!document.querySelector('.st-key-navsec_' + i + ':hover')};
+            }""", i)
+            out.append(info)
+            if i == 0:
+                pg.screenshot(path=os.path.join(OUT, f"nav_{tag}.jpg"), type="jpeg", quality=80, clip={"x": 0, "y": 0, "width": 1440, "height": 560})
+        pg.mouse.move(700, 700)
+    except Exception as e:
+        out.append({"error": str(e)[:300]})
+    report.setdefault("nav", {})[tag] = out
+    log("nav", tag, json.dumps(out)[:900])
+
+
 def settle(pg, limit=150):
     """Wait until the page has finished running (no 'Running...' status, no spinner) for 3 seconds in a row."""
     t0, calm = time.time(), 0
@@ -192,14 +223,23 @@ def shoot(pg, name):
     pg.screenshot(path=os.path.join(OUT, f"{name}.jpg"), type="jpeg", quality=72, full_page=True)
 
 
+QUICK = True          # a quick run: the top bar's menus and two pages, no news/photo/chart labs
+
+
 def main():
-    news_lab()
+    if not QUICK:
+        news_lab()
     seed_bots()
     env = dict(os.environ, PYTHONUNBUFFERED="1")
     srv = subprocess.Popen([sys.executable, "-m", "streamlit", "run", "app.py", "--server.headless", "true", "--server.port", str(PORT),
                             "--browser.gatherUsageStats", "false"], cwd=ROOT, env=env, stdout=open(os.path.join(OUT, "server.log"), "w"),
                            stderr=subprocess.STDOUT)
     report = {"pages": {}, "started": time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime())}
+    try:
+        import streamlit
+        report["streamlit"] = streamlit.__version__
+    except Exception:
+        pass
     try:
         import requests
         for _ in range(60):
@@ -212,7 +252,8 @@ def main():
         from playwright.sync_api import sync_playwright
         with sync_playwright() as p:
             b = p.chromium.launch()
-            chart_lab(b, report)
+            if not QUICK:
+                chart_lab(b, report)
             for lang in ("ar", "en"):
                 ctx = b.new_context(viewport={"width": 1440, "height": 900}, locale="ar-SA" if lang == "ar" else "en-US", color_scheme="dark")
                 pg = ctx.new_page()
@@ -247,7 +288,20 @@ def main():
                     report["pages"][f"{lang}_us_overview"] = {"seconds": took, "problems": problems(pg), "url": pg.url}
                 except Exception as e:
                     report["pages"][f"{lang}_us_overview"] = {"error": str(e)[:400]}
-                for name, path, mk, *click in PAGES:
+                try:                                 # the top bar's menus: on a page, then after choosing a page from a menu
+                    pg.set_viewport_size({"width": 1440, "height": 900})
+                    pg.goto(f"{URL}/news?m=us&lang={lang}", wait_until="domcontentloaded")
+                    settle(pg)
+                    nav_probe(pg, f"{lang}_first", report)
+                    pg.locator('.st-key-navsec_0 .navbtn').first.hover()
+                    time.sleep(0.6)
+                    pg.locator('.st-key-navdd_0 [data-testid="stPageLink"] a').nth(1).click(timeout=8000)
+                    time.sleep(2)
+                    settle(pg)
+                    nav_probe(pg, f"{lang}_after_click", report)
+                except Exception as e:
+                    report.setdefault("notes", []).append(f"nav {lang}: {e}"[:300])
+                for name, path, mk, *click in (QUICK_PAGES if QUICK else PAGES):
                     sep = "&" if "?" in path else "?"
                     t0 = time.time()
                     try:
