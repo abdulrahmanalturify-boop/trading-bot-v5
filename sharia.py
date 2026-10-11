@@ -287,11 +287,11 @@ CSS = f"""<style>
 .shc .dt a {{ color:#79B8F4; text-decoration:none; }}
 .shpur {{ margin-bottom:10px; }}
 .shpur .big {{ margin-top:2px; }}
-.shpur .big small {{ direction:rtl; }}
+.shpur .big[dir="rtl"] {{ direction:rtl; text-align:start; }}
 .shres {{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; flex-wrap:wrap; background:{T.POS_BG};
   border:1px solid {T.UP_EDGE}; border-radius:14px; padding:12px 16px; margin:2px 0 6px; }}
 .shres span {{ color:#CCC7D8; font-size:.84rem; }}
-.shres b {{ color:{T.POS_FG}; font-size:1.35rem; font-weight:600; direction:ltr; font-variant-numeric:tabular-nums; }}
+.shres b {{ color:{T.POS_FG}; font-size:1.35rem; font-weight:600; font-variant-numeric:tabular-nums; }}
 .shsub {{ display:flex; align-items:center; gap:8px; color:#DFDAE8; font-size:.98rem; font-weight:600; margin:20px 0 8px; }}
 .shsub .ms {{ color:#A78BFA; font-size:1.15rem; }}
 </style>"""
@@ -482,8 +482,8 @@ def _board_card(b, bd, src, sym, industry):
 
 
 def _money(v, cur):
-    if cur in ("SAR", None):
-        return f"{v:,.2f} ر.س" if is_ar() else f"SAR {v:,.2f}"
+    if cur in ("SAR", None):                       # the number kept left to right inside the Arabic line: "0.08 ر.س"
+        return f'<span dir="rtl"><bdi dir="ltr">{v:,.2f}</bdi> ر.س</span>' if is_ar() else f"SAR {v:,.2f}"
     if cur == "USD":
         return f"${v:,.2f}" if v >= 0.01 or v == 0 else f"${v:,.4f}"
     return f"{cur} {v:,.2f}"
@@ -491,7 +491,8 @@ def _money(v, cur):
 
 def _purify(sym, amount, cur, title, rule):
     """The purification amount per share for a year, and a calculator: shares x amount x days held / 365."""
-    big = (f'<div class="big">{_money(amount, cur)} <small>{L("per share, for a year", "للسهم عن سنة")}</small></div>' if amount > 0 else
+    big = (f'<div class="big" dir="{"rtl" if is_ar() else "ltr"}">{_money(amount, cur)} <small>{L("per share, for a year", "للسهم عن سنة")}</small></div>'
+           if amount > 0 else
            f'<div class="big" style="font-size:1.1rem">{L("No purification needed", "ما يحتاج تطهير")} '
            f'<small>({_money(0, cur)})</small></div>')
     ui.html(f'<div class="shc shpur"><div class="hd">{T.icon("volunteer_activism")}<div class="t">{title}</div></div>{big}'

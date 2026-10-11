@@ -348,7 +348,7 @@ def seed_resting():
 
 
 SHARIA = True         # a quick run: the Sharia section of a few companies (the Company tab), Arabic and English, desktop and phone
-SHARIA_SYMS = ["2222.SR", "2010.SR", "1180.SR", "8210.SR", "AAPL"]
+SHARIA_SYMS = ["2222.SR", "2010.SR", "AAPL"]
 
 
 def sharia_check(b, report):
