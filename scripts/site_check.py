@@ -168,6 +168,37 @@ def seed_xbots():
             state["ledger"]["curve"] = curve
             if state["ledger"]["trades"]:
                 state["ledger"]["since"] = curve[0]["d"]
+            # a sample log of the past six weeks (the evaluation's photos): each bot's readings and the next day's moves, with a
+            # different link between the two per bot so every verdict shows; and a few closed sample trades for the metrics
+            lean = {"pulse": 0.9, "trend": -0.12, "pros": 0.7, "flash": 1.0, "contra": -0.8, "tasi": 0.1, "sa_trend": 0.8, "sa_pros": -0.7,
+                    "sa_flash": 0.9, "oil": 0.6}[bot["id"]]
+            syms = ["NVDA", "AMD", "PLTR", "TSLA", "MSFT"] if bot["market"] == "us" else ["2222.SR", "1120.SR", "2010.SR", "1211.SR", "7010.SR"]
+            if bot["style"] == "pulse":
+                syms = [bot["ref"]]
+            jl = state.get("_log") or XB.new_log(now)
+            days_ = pd.bdate_range(end=now.tz_convert(None).normalize() - pd.Timedelta(days=1), periods=30 if bot["id"] != "oil" else 9)
+            for d in days_:
+                for sym in syms[: (1 if bot["style"] == "pulse" else 3)]:
+                    tone_ = max(-1.0, min(1.0, rnd.gauss(0.05, 0.45)))
+                    move = lean * tone_ * 2.2 + rnd.gauss(0, 1.1)
+                    jl["sig"].append({"d": d.date().isoformat(), "t": d.isoformat() + "Z", "sym": sym, "s": round(tone_, 3), "n": rnd.randint(2, 9),
+                                       "px": 100.0, "r1": round(move, 3), "r3": round(move * 1.4 + rnd.gauss(0, 1.5), 3)})
+            jl["since"] = days_[0].isoformat() + "Z"
+            state["_log"] = jl
+            state["score"] = XB.scorecard(bot, jl["sig"])
+            state["log_meta"] = {"since": jl["since"] + "", "hours": len(jl["hourly"]), "days": len({x["d"] for x in jl["sig"]}),
+                                 "signals": len(jl["sig"]), "known": sum(1 for x in jl["sig"] if x.get("r1") is not None)}
+            b0 = 100.0
+            for c in state["ledger"]["curve"]:
+                b0 *= 1 + rnd.gauss(0.0004, 0.008)
+                c["b"] = round(b0, 3)
+            for k in range(rnd.randint(3, 7)):
+                pnl = round(rnd.gauss(1.0, 5.0), 2)
+                t_ = now - pd.Timedelta(days=rnd.randint(2, 25))
+                state["ledger"]["trades"].insert(0, {"t": t_.isoformat(), "sym": syms[k % len(syms)], "side": "sell", "qty": 10, "px": 100.0,
+                                                     "why": "target" if pnl > 0 else "stop", "pnl": pnl,
+                                                     "held_from": (t_ - pd.Timedelta(days=rnd.randint(1, 6))).isoformat()})
+            state["perf"] = XB.perf(state["ledger"], state.get("reads"))
             XB.save_state(bot, state)
             log("xbots seed", bot["id"], len(state["posts"]), list(state["ledger"]["pos"]))
         except Exception as e:
@@ -299,7 +330,7 @@ def shoot(pg, name):
 QUICK = True          # a quick run: the top bar's menus and two pages, no news/photo/chart labs
 
 
-XB_SEED = "resting"     # the X bots' photos: "sample" (clearly-marked sample posts) · "resting" (the key in, before the market's day) · "" (no key)
+XB_SEED = "sample"      # the X bots' photos: "sample" (clearly-marked sample posts) · "resting" (the key in, before the market's day) · "" (no key)
 
 
 def seed_resting():

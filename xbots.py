@@ -43,6 +43,11 @@ START_CASH = 100_000.0
 FEE = 0.001                       # 0.1% of the value, each way
 KEY = "__portfolio__:xbot:"       # the row of a bot (paper_bots.strategy): left out of the bots' list like the portfolios
 META = "__portfolio__:xbots"      # the shared row: posts read today
+LOG = "__portfolio__:xbotlog:"    # the bot's log (its own row, read only for the bot shown): its hourly mood and its daily signals
+LOG_DAYS = 120                    # signals kept (days)
+HOURLY_DAYS = 45                  # hourly mood lines kept (days)
+MIN_OBS = 20                      # readings with a known next day before a bot is judged
+COST = 0.005                      # what X charges for one post read, in dollars
 
 # ---------------------------------------------------------------- the bots: five for the US market, five for the Saudi market
 # rules: entry (what has to be true to buy), size (share of the account per position), slots (positions at most), stop / target
@@ -54,7 +59,7 @@ BOTS = [
      "beat": ("The mood of X about the US market: the indices, Wall Street, the Fed and the economy.",
               "مزاج X عن السوق الأمريكي: المؤشرات ووول ستريت والفيدرالي والاقتصاد."),
      "query": '($SPY OR $QQQ OR $SPX OR "stock market" OR "Wall Street" OR "S&P 500" OR Nasdaq OR "the Fed") lang:en -is:retweet -is:reply',
-     "style": "pulse", "trade": ["SPY"], "size": 0.95, "slots": 1, "stop": 0.0, "target": 0.0, "days": 0,
+     "style": "pulse", "trade": ["SPY"], "ref": "SPY", "size": 0.95, "slots": 1, "stop": 0.0, "target": 0.0, "days": 0,
      "rules": ("Holds SPY (the S&P 500) while the mood of the last 6 hours is bullish (+12 or more) and not falling against the 6 hours "
                "before; goes back to cash when the mood turns bearish (-12 or less).",
                "يمسك SPY (مؤشر S&P 500) طالما مزاج آخر 6 ساعات صاعد (+12 أو أكثر) وما نزل عن الست ساعات اللي قبلها، ويرجع كاش لما "
@@ -108,7 +113,7 @@ BOTS = [
      "beat": ("The mood of Arabic X about TASI and the Saudi market as a whole.",
               "مزاج X العربي عن تاسي والسوق السعودي ككل."),
      "query": '(تاسي OR #تاسي OR #السوق_السعودي OR "سوق الأسهم السعودية" OR "المؤشر العام" OR "سوق الأسهم") lang:ar -is:retweet -is:reply',
-     "style": "pulse", "trade": ["2222.SR", "1120.SR", "1180.SR"], "size": 0.31, "slots": 3, "stop": 0.0, "target": 0.0, "days": 0,
+     "style": "pulse", "trade": ["2222.SR", "1120.SR", "1180.SR"], "ref": "^TASI.SR", "size": 0.31, "slots": 3, "stop": 0.0, "target": 0.0, "days": 0,
      "rules": ("Holds the market's three heaviest companies (Aramco, Al Rajhi, SNB) in equal parts while the mood of the last 6 hours "
                "is bullish (+12 or more) and not falling against the 6 hours before; goes back to cash when the mood turns bearish (-12 or less).",
                "يمسك أثقل ثلاث شركات في المؤشر (أرامكو، الراجحي، الأهلي) بالتساوي طالما مزاج آخر 6 ساعات صاعد (+12 أو أكثر) وما نزل عن "
@@ -151,7 +156,7 @@ BOTS = [
      "beat": ("What X says about oil, Brent and OPEC+, in Arabic and English: the market's biggest outside force.",
               "وش يقول X عن النفط وبرنت وأوبك+ بالعربي والإنجليزي: أكبر مؤثر خارجي على السوق."),
      "query": '(النفط OR برنت OR أوبك OR "أسعار النفط" OR "oil prices" OR Brent OR OPEC OR "crude oil") -is:retweet -is:reply',
-     "style": "pulse", "trade": ["2222.SR", "2010.SR", "2350.SR"], "size": 0.31, "slots": 3, "stop": 0.0, "target": 0.0, "days": 0,
+     "style": "pulse", "trade": ["2222.SR", "2010.SR", "2350.SR"], "ref": "2222.SR", "size": 0.31, "slots": 3, "stop": 0.0, "target": 0.0, "days": 0,
      "rules": ("Holds Aramco, SABIC and Saudi Kayan in equal parts while the mood about oil over the last 6 hours is bullish (+12 or "
                "more) and not falling; goes back to cash when it turns bearish (-12 or less).",
                "يمسك أرامكو وسابك وكيان بالتساوي طالما مزاج آخر 6 ساعات عن النفط صاعد (+12 أو أكثر) وما نزل، ويرجع كاش لما يصير هابط "
@@ -317,6 +322,8 @@ def read_post(p, users, market):
 def _ts(x):
     try:
         t = pd.Timestamp(x)
+        if pd.isna(t):                                  # None / "" -> NaT: no time
+            return None
         return t.tz_localize("UTC") if t.tzinfo is None else t.tz_convert("UTC")
     except (ValueError, TypeError):
         return None
@@ -513,8 +520,9 @@ def decide(bot, read, posts, ledger, quotes, now=None):
     return made
 
 
-def mark(ledger, prices, now=None):
-    """Today's point of the account's curve (one per day, the latest value of the day)."""
+def mark(ledger, prices, now=None, bench=None):
+    """Today's point of the account's curve (one per day, the latest value of the day) with the market's benchmark (bench: its
+    price now, SPY / TASI) so the account can be set against its market."""
     now = now or pd.Timestamp.now(tz="UTC")
     d = now.tz_convert(MK.tz(ledger.get("market"))).date().isoformat()
     eq = round(equity(ledger, prices), 2)
@@ -522,6 +530,8 @@ def mark(ledger, prices, now=None):
         ledger["curve"][-1]["eq"] = eq
     else:
         ledger["curve"].append({"d": d, "eq": eq})
+    if bench:
+        ledger["curve"][-1]["b"] = round(float(bench), 4)
     ledger["curve"] = ledger["curve"][-400:]
     return eq
 
@@ -534,6 +544,151 @@ def stats(ledger, prices=None):
     return {"equity": eq, "ret": (eq / ledger["start"] - 1) * 100, "closed": len(closed), "wins": len(wins),
             "win_rate": len(wins) / len(closed) * 100 if closed else None,
             "avg": float(np.mean([t["pnl"] for t in closed])) if closed else None, "open": len(ledger["pos"])}
+
+
+# ---------------------------------------------------------------- the log: does the mood come before the price?
+# Every run adds a line to the bot's hourly log (its mood, posts and the price of what it is judged against). While its market is
+# open it also keeps, for every trading day, its last reading of each company it talks about (for a market-mood bot: of the
+# market) and the price at that moment; once the next sessions have closed, the log fills in where the price went (the next
+# day's close, three days later). Those pairs say whether the bot's reading came before the price: a "truthful" bot's bullish
+# readings are followed by rises and its bearish ones by falls more often than not; a "noise" bot's are not; a "reversed" bot's
+# go the other way.
+def new_log(now=None):
+    return {"since": (now or pd.Timestamp.now(tz="UTC")).isoformat(), "hourly": [], "sig": []}
+
+
+def log_reading(log, bot, read, px, now, live):
+    """Adds this run to the log. px: {symbol: price now} (the companies talked about and the bot's reference); live: its market
+    is open (a signal is kept only with a price that trades)."""
+    ref = bot.get("ref")
+    log["hourly"].append({"t": now.floor("min").isoformat(), "m": None if read.get("mood6") is None else round(read["mood6"], 1),
+                          "n": int(read.get("n6") or 0), "px": px.get(ref) if ref else None})
+    cut = (now - pd.Timedelta(days=HOURLY_DAYS)).isoformat()
+    log["hourly"] = [h for h in log["hourly"] if h["t"] >= cut][-2000:]
+    if not live:
+        return
+    d = now.tz_convert(MK.tz(bot["market"])).date().isoformat()
+    obs = []
+    if bot["style"] == "pulse":
+        if read.get("mood24") is not None and px.get(ref):
+            obs.append((ref, read["mood24"] / 100, int(read.get("n24") or 0), px[ref]))
+    else:
+        for t in (read.get("talked") or [])[:10]:
+            if t["n24"] >= 2 and px.get(t["sym"]):
+                obs.append((t["sym"], t["s"], t["n24"], px[t["sym"]]))
+    keep = {(x["d"], x["sym"]): x for x in log["sig"]}
+    for sym, s_, n_, p_ in obs:                          # the day's last reading of each (a later run of the day replaces it)
+        keep[(d, sym)] = {"d": d, "t": now.floor("min").isoformat(), "sym": sym, "s": round(float(s_), 3), "n": int(n_),
+                          "px": round(float(p_), 4), "r1": None, "r3": None}
+    cutd = (now - pd.Timedelta(days=LOG_DAYS)).date().isoformat()
+    log["sig"] = sorted((x for x in keep.values() if x["d"] >= cutd), key=lambda x: (x["d"], x["sym"]))
+
+
+def fill_moves(log, market, now, closes_fn=None):
+    """Fills in the next day's and the third day's move of every signal whose sessions have closed: from the daily closes, or
+    (an index Yahoo keeps no history for, TASI) from the log's own later readings of it."""
+    today = now.tz_convert(MK.tz(market)).date().isoformat()
+    todo = [x for x in log["sig"] if x["d"] < today and (x.get("r1") is None or x.get("r3") is None)]
+    if not todo:
+        return
+    syms = sorted({x["sym"] for x in todo})
+    try:
+        closes = (closes_fn or _closes)(syms)
+    except Exception:
+        closes = {}
+    by_sym = {}
+    for x in log["sig"]:
+        by_sym.setdefault(x["sym"], []).append(x)
+    for x in todo:
+        c = closes.get(x["sym"])
+        later = []
+        if c is not None and len(c):
+            later = [float(v) for k, v in c.items() if k.date().isoformat() > x["d"] and k.date().isoformat() < today and pd.notna(v)]
+        if not later:                                   # no history (TASI): the log's own last readings of the next days
+            later = [y["px"] for y in by_sym.get(x["sym"], []) if x["d"] < y["d"] < today]
+        if x.get("r1") is None and len(later) >= 1:
+            x["r1"] = round((later[0] / x["px"] - 1) * 100, 3)
+        if x.get("r3") is None and len(later) >= 3:
+            x["r3"] = round((later[2] / x["px"] - 1) * 100, 3)
+
+
+def _closes(syms):
+    """{symbol: daily closes (Series)} of the last three months."""
+    import data
+    hist = data.history_many(tuple(syms), period="3mo")
+    out = {}
+    for s_, df in (hist or {}).items():
+        if df is not None and len(df) and "Close" in df:
+            c = df["Close"].dropna()
+            c.index = pd.to_datetime(c.index)
+            out[s_] = c.tz_localize(None) if c.index.tz is not None else c
+    return out
+
+
+def scorecard(bot, sig):
+    """Does the bot's reading come before the price? From its signals with a known next day: hit (% of bullish readings followed
+    by a rise and bearish ones by a fall; for the contrarian bot the other way round), edge (the next day's average move after
+    its bullish readings minus after its bearish ones, in %), ic (rank correlation between the tone and the next day's move),
+    the average move after bearish / neutral / bullish readings, and the verdict."""
+    sign = -1.0 if bot["style"] == "contra" else 1.0
+    obs = [x for x in sig if x.get("r1") is not None]
+    bull = [x for x in obs if x["s"] >= 0.12]
+    bear = [x for x in obs if x["s"] <= -0.12]
+    neut = [x for x in obs if -0.12 < x["s"] < 0.12]
+    n = len(bull) + len(bear)
+
+    def avg(rows, k="r1"):
+        v = [x[k] for x in rows if x.get(k) is not None]
+        return round(float(np.mean(v)), 3) if v else None
+    hits = sum(1 for x in bull if x["r1"] * sign > 0) + sum(1 for x in bear if x["r1"] * sign < 0)
+    hit = round(hits / n * 100, 1) if n else None
+    edge = round(((avg(bull) or 0.0) - (avg(bear) or 0.0)) * sign, 3) if bull and bear else (
+        round((avg(bull) or 0.0) * sign, 3) if bull else round(-(avg(bear) or 0.0) * sign, 3) if bear else None)
+    ic = None
+    if len(obs) >= 5:
+        a = pd.Series([x["s"] for x in obs]).rank()
+        b = pd.Series([x["r1"] for x in obs]).rank()
+        if a.std() > 0 and b.std() > 0:
+            ic = round(float(np.corrcoef(a, b)[0, 1]) * sign, 3)
+    if n < MIN_OBS:
+        verdict = "collecting"
+    elif hit >= 55 and (edge or 0) > 0 and (ic is None or ic > 0.05):
+        verdict = "truthful"
+    elif hit <= 45 and (edge or 0) < 0:
+        verdict = "reversed"
+    else:
+        verdict = "noise"
+    return {"n": n, "obs": len(obs), "hit": hit, "edge": edge, "ic": ic, "verdict": verdict,
+            "buckets": {"bear": [avg(bear), len(bear)], "neutral": [avg(neut), len(neut)], "bull": [avg(bull), len(bull)]},
+            "r3": {"bear": avg(bear, "r3"), "bull": avg(bull, "r3")}}
+
+
+def perf(ledger, reads=0):
+    """The account's metrics: return, the market's return over the same days, the difference, the deepest fall from a high,
+    closed trades, wins, average win and loss, profit factor (gains / losses), average days held, and the cost of its reading."""
+    curve = ledger.get("curve") or []
+    eqs = [c["eq"] for c in curve if c.get("eq") is not None]
+    ret = (eqs[-1] / ledger["start"] - 1) * 100 if eqs else 0.0
+    bs = [c["b"] for c in curve if c.get("b")]
+    bench = (bs[-1] / bs[0] - 1) * 100 if len(bs) >= 2 else None
+    mdd = 0.0
+    if eqs:
+        e = pd.Series([ledger["start"]] + eqs)
+        mdd = float((e / e.cummax() - 1).min() * 100)
+    closed = [t for t in ledger["trades"] if t["side"] == "sell" and t.get("pnl") is not None]
+    wins = [t["pnl"] for t in closed if t["pnl"] > 0]
+    losses = [t["pnl"] for t in closed if t["pnl"] <= 0]
+    holds = []
+    for t in closed:
+        a, b = _ts(t.get("held_from")), _ts(t.get("t"))
+        if a is not None and b is not None:
+            holds.append((b - a).total_seconds() / 86400)
+    return {"ret": round(ret, 3), "bench": None if bench is None else round(bench, 3), "vs": None if bench is None else round(ret - bench, 3),
+            "mdd": round(mdd, 3), "closed": len(closed), "wins": len(wins),
+            "win_rate": round(len(wins) / len(closed) * 100, 1) if closed else None,
+            "avg_win": round(float(np.mean(wins)), 3) if wins else None, "avg_loss": round(float(np.mean(losses)), 3) if losses else None,
+            "pf": round(sum(wins) / -sum(losses), 2) if losses and sum(losses) < 0 else None,      # None: no losing trade yet
+            "hold": round(float(np.mean(holds)), 2) if holds else None, "cost": round(int(reads or 0) * COST, 2)}
 
 
 # ---------------------------------------------------------------- the store (one row per bot, and one shared row)
@@ -621,7 +776,7 @@ def in_hours(bot, now=None):
     return sp["open"] - 60 <= m <= sp["close"] + 60
 
 
-def run(bot, token, meta, now=None, get=None, quotes_fn=None, force=False):
+def run(bot, token, meta, now=None, get=None, quotes_fn=None, force=False, closes_fn=None):
     """One run of a bot: read the new posts (within today's ceiling), update its reading, trade while its market is open, mark its
     account. meta: the shared row (posts read today), updated in place. Returns the bot's new state (saved by the caller)."""
     now = now or pd.Timestamp.now(tz="UTC")
@@ -671,9 +826,43 @@ def run(bot, token, meta, now=None, get=None, quotes_fn=None, force=False):
         state.setdefault("log", [])
         for t in decide(bot, state["read"], state["posts"], led, quotes, now):
             state["log"] = (state["log"] + [t])[-50:]
-    mark(led, {s: q[0] for s, q in quotes.items() if q and q[0]}, now)
+    bench = BENCH[bot["market"]]
+    extra = [x for x in (bot.get("ref"), bench) if x]
+    px_x = _index_px(extra, quotes_fn)
+    px = {s: q[0] for s, q in quotes.items() if q and q[0]}
+    px.update({k: v for k, v in px_x.items() if v})
+    mark(led, px, now, px.get(bench))
+    # the log (its own row): this run's line, the day's signals, the moves that followed; the verdict and the metrics
+    if token:
+        try:
+            log, log_row = load(LOG + bot["id"])
+        except Exception:
+            log, log_row = None, None
+        log = log or new_log(now)
+        log_reading(log, bot, state["read"], px, now, open_ and state["status"] != "no_key")
+        fill_moves(log, bot["market"], now, closes_fn)
+        state["_log"], state["_log_row"] = log, log_row
+        state["score"] = scorecard(bot, log["sig"])
+        state["log_meta"] = {"since": log["since"], "hours": len(log["hourly"]), "days": len({x["d"] for x in log["sig"]}),
+                             "signals": len(log["sig"]), "known": sum(1 for x in log["sig"] if x.get("r1") is not None)}
+    state["perf"] = perf(led, state.get("reads"))
     state["updated"] = now.isoformat()
     return state
+
+
+def _index_px(syms, quotes_fn=None):
+    """{symbol: price now} for indices and other symbols the batch quotes leave out (TASI, SPY)."""
+    if quotes_fn:
+        try:
+            return {s: q[0] for s, q in quotes_fn(syms).items() if q and q[0]}
+        except Exception:
+            return {}
+    import data
+    try:
+        df = data.quotes_df(list(syms))
+        return {r["Symbol"]: float(r["Price"]) for _, r in df.iterrows() if pd.notna(r.get("Price"))} if not df.empty else {}
+    except Exception:
+        return {}
 
 
 def _quotes(syms):
@@ -687,8 +876,20 @@ def _quotes(syms):
 
 def save_state(bot, state):
     row = state.pop("_row", None)
+    log, log_row = state.pop("_log", None), state.pop("_log_row", None)
     save(KEY + bot["id"], state, row)
+    if log is not None:
+        save(LOG + bot["id"], log, log_row)
+
+
+def load_log(bot_id):
+    """The bot's log (or an empty one)."""
+    try:
+        log, _ = load(LOG + bot_id)
+    except Exception:
+        log = None
+    return log or {"since": None, "hourly": [], "sig": []}
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.6.4"
+BUILD = "22.7"

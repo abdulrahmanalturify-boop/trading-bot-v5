@@ -1401,5 +1401,22 @@ def equity_trades(series, trades=(), title=None, height=320, color=ACCENT, prefi
     return fig
 
 
+def signal_bars(labels, values, counts, title=None, height=300, unit=("readings", "%")):
+    """The next day's average move after bearish / neutral / bullish readings (one bar each, red / grey / green) with how many
+    readings each bar stands on: does the mood come before the price?"""
+    cols = [BAR_DOWN, "#6E6879", BAR_UP]
+    v = [None if x is None else float(x) for x in values]
+    txt = ["—" if x is None else f"{x:+.2f}%" for x in v]
+    fig = go.Figure(go.Bar(x=list(labels), y=[x or 0.0 for x in v], marker=dict(color=cols[:len(v)], line=dict(width=0)), text=txt,
+                           textposition="outside", cliponaxis=False, customdata=list(counts),
+                           hovertemplate="%{x}: %{y:+.2f}% · %{customdata} " + unit[0] + "<extra></extra>"))
+    fig.add_hline(y=0, line=dict(color="rgba(231,227,235,.35)", width=1))
+    style(fig, height, title, legend=False)
+    hi = max([abs(x) for x in v if x is not None] + [0.5])
+    fig.update_yaxes(range=[-hi * 1.35, hi * 1.35], ticksuffix=unit[1], side="left")
+    fig.update_layout(bargap=0.45, hovermode="closest")
+    return _bars(fig)
+
+
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.6.4"
+BUILD = "22.7"

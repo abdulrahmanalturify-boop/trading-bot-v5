@@ -80,7 +80,7 @@ CSS = """<style>
 .xbd .ic .ms { font-size:1.55rem; }
 .xbd .tx { flex:1 1 320px; min-width:0; }
 .xbd .tx b { display:block; color:#fff; font-size:1.1rem; }
-.xbd .tx p { margin:3px 0 0; color:#B9B3C4; font-size:.84rem; line-height:1.55; }
+.xbd .tx p { margin:3px 0 8px; color:#B9B3C4; font-size:.84rem; line-height:1.55; }
 .xbd .chips { display:flex; flex-wrap:wrap; gap:6px; }
 .xbd .chips span { display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:99px; font-size:.74rem; color:#E7E3EB;
   background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); font-variant-numeric:tabular-nums; }
@@ -120,6 +120,24 @@ CSS = """<style>
 [class*="st-key-xb_pick_"] [data-testid="stButtonGroup"] button[kind="segmented_controlActive"] [data-testid="stIconMaterial"],
 [class*="st-key-xb_pick_"] [data-testid="stButtonGroup"] button[aria-checked="true"] [data-testid="stIconMaterial"] { color:#fff; }
 [class*="st-key-xb_pick_"] [data-testid="stButtonGroup"] button:focus-visible { box-shadow:0 0 0 2px rgba(121,184,244,.75); }
+.xvd { display:inline-flex; align-items:center; gap:6px; padding:3px 10px; border-radius:99px; font-size:.74rem; font-weight:700; white-space:nowrap;
+  border:1px solid currentColor; }
+.xvd i { width:7px; height:7px; border-radius:50%; background:currentColor; }
+.xvd.truthful { color:#4ADE80; background:rgba(74,222,128,.08); } .xvd.noise { color:#B9B3C4; background:rgba(185,179,196,.06); }
+.xvd.reversed { color:#F5B94A; background:rgba(245,185,74,.08); } .xvd.collecting { color:#79B8F4; background:rgba(121,184,244,.08); }
+.xlog { display:inline-flex; align-items:center; gap:7px; padding:4px 11px; border-radius:99px; font-size:.74rem; color:#D8D3E2;
+  background:rgba(52,210,122,.08); border:1px solid rgba(52,210,122,.35); }
+.xlog i { width:8px; height:8px; border-radius:50%; background:#34D27A; box-shadow:0 0 0 3px rgba(52,210,122,.18); }
+.xlog.off { background:rgba(255,255,255,.04); border-color:rgba(157,151,165,.3); } .xlog.off i { background:#8F899B; box-shadow:none; }
+.xverd { display:flex; align-items:center; gap:14px; flex-wrap:wrap; padding:14px 16px; border-radius:16px; margin:4px 0 12px;
+  border:1px solid rgba(157,151,165,.22); background:rgba(255,255,255,.03); }
+.xverd.truthful { border-color:rgba(74,222,128,.45); background:linear-gradient(120deg, rgba(74,222,128,.10), transparent 70%); }
+.xverd.reversed { border-color:rgba(245,185,74,.45); background:linear-gradient(120deg, rgba(245,185,74,.10), transparent 70%); }
+.xverd.collecting { border-color:rgba(121,184,244,.4); background:linear-gradient(120deg, rgba(121,184,244,.09), transparent 70%); }
+.xverd .q { flex:1 1 300px; min-width:0; color:#B9B3C4; font-size:.86rem; line-height:1.6; }
+.xverd .q b { display:block; color:#fff; font-size:1.02rem; margin-bottom:2px; }
+.xverd .bar { width:160px; height:8px; border-radius:99px; background:rgba(255,255,255,.08); overflow:hidden; }
+.xverd .bar i { display:block; height:100%; border-radius:99px; background:linear-gradient(90deg,#3B8BEB,#7B45F0); }
 .xwait { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:10px; margin-top:8px; }
 @media (max-width: 760px) { .xwait { grid-template-columns:1fr; } }
 .xwait div { padding:12px 14px; border-radius:14px; background:rgba(255,255,255,.03); border:1px solid rgba(157,151,165,.16); font-size:.82rem; color:#B9B3C4; line-height:1.55; }
@@ -298,6 +316,137 @@ def _post(p):
             f'<a class="go" href="{T.esc(link)}" target="_blank" rel="noopener">{T.esc(L("Open on X", "افتح في X"))} ↗</a></div></div>')
 
 
+VERDICT = {"truthful": ("Truthful signals", "إشاراته صادقة"), "noise": ("Noise", "ضوضاء"),
+           "reversed": ("Reversed: the price goes the other way", "عكسية: السعر يمشي عكس كلامه"),
+           "collecting": ("Collecting data", "يجمع البيانات")}
+
+
+def _verdict(score):
+    v = (score or {}).get("verdict") or "collecting"
+    words = L(*VERDICT[v])
+    if v == "collecting":
+        words += f" · {int((score or {}).get('n') or 0)}/{XB.MIN_OBS}"
+    return f'<span class="xvd {v}"><i></i>{T.esc(words)}</span>'
+
+
+def _log_mark(state):
+    """The mark that the bot's log is being kept: since when, how many hours and trading days."""
+    lm = (state or {}).get("log_meta")
+    if not lm or not lm.get("since"):
+        return (f'<span class="xlog off"><i></i>{T.esc(L("Its log starts with its first run", "سجله يبدأ مع أول تشغيل"))}</span>')
+    since = pd.Timestamp(lm["since"]).tz_convert(MK.tz((state or {}).get("market"))).strftime("%d %b")
+    days = int(lm.get("days") or 0)
+    words = L(f"Log kept since {since} · {days} trading days", f"السجل محفوظ منذ {since} · {days} يوم تداول")
+    return f'<span class="xlog"><i></i>{T.esc(words)}</span>'
+
+
+def _csvs(bot, log, led):
+    """The bot's log as three files to keep: its daily signals with the moves that followed, its hourly mood, its trades."""
+    ar = is_ar()
+    sig = pd.DataFrame([{L("Day", "اليوم"): x["d"], L("Time (UTC)", "الوقت (UTC)"): x["t"][11:16], L("Company", "الشركة"): T.sym_label(x["sym"], ar),
+                         L("Symbol", "الرمز"): x["sym"], L("Tone", "النبرة"): x["s"], L("Posts (24 h)", "تغريدات (24 ساعة)"): x["n"],
+                         L("Price then", "السعر وقتها"): x["px"], L("Next day %", "اليوم التالي %"): x.get("r1"),
+                         L("After 3 days %", "بعد 3 أيام %"): x.get("r3")} for x in log.get("sig") or []])
+    hrs = pd.DataFrame([{L("Time (UTC)", "الوقت (UTC)"): h["t"][:16].replace("T", " "), L("Mood (6 h)", "المزاج (6 ساعات)"): h.get("m"),
+                         L("Posts (6 h)", "تغريدات (6 ساعات)"): h.get("n"), L("Price", "السعر"): h.get("px")} for h in log.get("hourly") or []])
+    trd = pd.DataFrame([{L("Time (UTC)", "الوقت (UTC)"): t["t"][:16].replace("T", " "), L("Company", "الشركة"): T.sym_label(t["sym"], ar),
+                         L("Symbol", "الرمز"): t["sym"], L("Side", "الجهة"): L("Buy", "شراء") if t["side"] == "buy" else L("Sell", "بيع"),
+                         L("Shares", "الأسهم"): t.get("qty"), L("Price", "السعر"): t.get("px"), L("Result %", "النتيجة %"): t.get("pnl"),
+                         L("Why", "السبب"): L(*XB.WHY.get(t.get("why"), ("", "")))} for t in led.get("trades") or []])
+    return [(d.to_csv(index=False).encode("utf-8-sig"), f"xbot_{bot['id']}_{n}.csv", lab, ic) for d, n, lab, ic in (
+        (sig, "signals", L("Signals and what followed", "الإشارات وش صار بعدها"), ":material/insights:"),
+        (hrs, "hourly_mood", L("Mood hour by hour", "المزاج ساعة بساعة"), ":material/schedule:"),
+        (trd, "trades", L("Trades", "الصفقات"), ":material/receipt_long:"))]
+
+
+@st.cache_data(ttl=120, show_spinner=False)
+def _load_log(bot_id):
+    return XB.load_log(bot_id)
+
+
+def _pct(v, dec=2):
+    return "—" if v is None else f"{v:+.{dec}f}%"
+
+
+def _score_view(bot, state):
+    """Does the mood come before the price, is the bot's reading truthful or noise, and how its account does: the verdict, its
+    numbers, the next day's move after bearish / neutral / bullish readings, the account's metrics, and its log to download."""
+    sc = state.get("score") or XB.scorecard(bot, [])
+    pf = state.get("perf") or XB.perf(state["ledger"], state.get("reads"))
+    v = sc.get("verdict") or "collecting"
+    mood_bot = bot["style"] == "pulse"
+    what = (L("the market's mood", "مزاج السوق") if mood_bot else L("its tone about a company", "نبرته عن الشركة"))
+    if v == "collecting":
+        msg = L(f"It needs {XB.MIN_OBS} bullish or bearish readings with a known next day before it can be judged; it has {sc.get('n', 0)}. "
+                "Each trading day adds one reading per company it talks about (one a day for a market-mood bot).",
+                f"يحتاج {XB.MIN_OBS} قراءة صاعدة أو هابطة عرفنا وش صار بعدها في اليوم التالي عشان ينحكم عليه، وعنده {sc.get('n', 0)}. "
+                "كل يوم تداول يضيف قراءة لكل شركة يتكلم عنها (ولبوت مزاج السوق قراءة وحدة باليوم).")
+        bar = f'<span class="bar"><i style="width:{min(100, sc.get("n", 0) / XB.MIN_OBS * 100):.0f}%"></i></span>'
+    else:
+        msg = {"truthful": L(f"When {what} was bullish the price rose the next day {sc['hit']:.0f}% of the time (counting bearish calls the other way): "
+                             "its reading came before the price.",
+                             f"لما كانت {what} صاعدة ارتفع السعر في اليوم التالي {sc['hit']:.0f}% من المرات (والهابطة بالعكس): قراءته تسبق السعر."),
+               "noise": L(f"Its calls were right {sc['hit']:.0f}% of the time, about a coin toss: what it reads on X does not tell where the price goes.",
+                          f"إشاراته صحّت {sc['hit']:.0f}% من المرات، قريب من رمي العملة: اللي يقرأه في X ما يدل وين يروح السعر."),
+               "reversed": L(f"Its calls were right only {sc['hit']:.0f}% of the time: the price tends to go against what X says on its beat.",
+                             f"إشاراته صحّت {sc['hit']:.0f}% بس: السعر يميل يمشي عكس كلام X في مجاله.")}[v]
+        bar = ""
+    ui.html(f'<div class="xverd {v}">{_verdict(sc)}<span class="q"><b>{T.esc(L("Does the mood come before the price?", "هل المزاج يسبق السعر؟"))}</b>'
+            f'{T.esc(msg)}</span>{bar}</div>')
+    k = st.columns(4)
+    k[0].markdown(T.kpi("ads_click", L("Direction right", "دقة الاتجاه"), "—" if sc.get("hit") is None else f"{sc['hit']:.0f}%",
+                        L("bullish then up, bearish then down", "صاعد ثم ارتفاع، هابط ثم نزول")), unsafe_allow_html=True)
+    k[1].markdown(T.kpi("compare_arrows", L("Edge (next day)", "الفرق (اليوم التالي)"), _pct(sc.get("edge")),
+                        L("after bullish minus after bearish", "بعد الصاعدة ناقص بعد الهابطة"),
+                        "pos" if (sc.get("edge") or 0) > 0 else "neg" if (sc.get("edge") or 0) < 0 else None), unsafe_allow_html=True)
+    k[2].markdown(T.kpi("scatter_plot", L("Correlation", "الارتباط"), "—" if sc.get("ic") is None else f"{sc['ic']:+.2f}",
+                        L("tone vs next day's move (−1..+1)", "النبرة مقابل حركة اليوم التالي (−1..+1)")), unsafe_allow_html=True)
+    k[3].markdown(T.kpi("dataset", L("Readings judged", "قراءات محسوبة"), f"{sc.get('n', 0)}",
+                        L(f"{sc.get('obs', 0)} with a known next day", f"{sc.get('obs', 0)} عرفنا يومها التالي")), unsafe_allow_html=True)
+    bk = sc.get("buckets") or {}
+    if any((bk.get(x) or [None, 0])[1] for x in ("bear", "neutral", "bull")):
+        ui.chart(charts.signal_bars([L("After bearish", "بعد الهابطة"), L("After neutral", "بعد المحايدة"), L("After bullish", "بعد الصاعدة")],
+                                    [(bk.get(x) or [None])[0] for x in ("bear", "neutral", "bull")],
+                                    [(bk.get(x) or [None, 0])[1] for x in ("bear", "neutral", "bull")],
+                                    L("The next day's average move after its readings", "متوسط حركة السعر في اليوم التالي بعد قراءاته"), 300,
+                                    (L("readings", "قراءة"), "%")), key=f"xb_sig_{bot['id']}")
+    else:
+        _empty("insights", "The chart of what followed its readings appears after its first trading days.",
+               "رسم وش صار بعد قراءاته يطلع بعد أول أيام تداول.")
+    ui.sec("monitoring", "The account's metrics", "مؤشرات الحساب")
+    bn = L("the S&P 500", "S&P 500") if bot["market"] == MK.US else L("TASI", "تاسي")
+    k = st.columns(4)
+    k[0].markdown(T.kpi("balance", L(f"Against {bn}", f"مقابل {bn}"), _pct(pf.get("vs")),
+                        L(f"{bn}: {_pct(pf.get('bench'))} over the same days", f"{bn}: {_pct(pf.get('bench'))} بنفس الأيام"),
+                        "pos" if (pf.get("vs") or 0) > 0 else "neg" if (pf.get("vs") or 0) < 0 else None), unsafe_allow_html=True)
+    k[1].markdown(T.kpi("trending_down", L("Deepest fall", "أقصى تراجع"), _pct(pf.get("mdd")),
+                        L("from the account's high", "من أعلى قيمة للحساب")), unsafe_allow_html=True)
+    pf_txt = "—" if pf.get("pf") is None else f"{pf['pf']:.2f}"
+    if pf.get("pf") is None and pf.get("wins"):
+        pf_txt = L("no loss yet", "بدون خسارة")
+    k[2].markdown(T.kpi("scale", L("Profit factor", "معامل الربح"), pf_txt,
+                        L(f"avg win {_pct(pf.get('avg_win'))} · loss {_pct(pf.get('avg_loss'))}",
+                          f"متوسط الربح {_pct(pf.get('avg_win'))} · الخسارة {_pct(pf.get('avg_loss'))}")), unsafe_allow_html=True)
+    hold = "—" if pf.get("hold") is None else L(f"{pf['hold']:.1f} days", f"{pf['hold']:.1f} يوم")
+    k[3].markdown(T.kpi("payments", L("Reading cost", "تكلفة القراءة"), f"${pf.get('cost', 0):,.2f}",
+                        L(f"avg trade held {hold}", f"متوسط مدة الصفقة {hold}")), unsafe_allow_html=True)
+    st.caption(L(f"How it is judged: every trading day its last reading of each company it talks about (of the market, for a market-mood bot) and the "
+                 f"price at that moment are kept, then set against the next day's close. Truthful: right 55% of the time or more with a positive "
+                 f"edge, over {XB.MIN_OBS} readings at least. Profit factor: the gains of the winning trades over the losses of the losing ones (above 1 = it makes money).",
+                 f"طريقة الحكم: كل يوم تداول تنحفظ آخر قراءة للبوت عن كل شركة يتكلم عنها (وعن السوق لبوت المزاج) والسعر وقتها، وتنقارن بإغلاق "
+                 f"اليوم اللي بعده. صادقة: تصيب 55% أو أكثر مع فرق موجب، على {XB.MIN_OBS} قراءة على الأقل. معامل الربح: أرباح الصفقات الرابحة على "
+                 f"خسائر الخاسرة (فوق 1 يعني يكسب)."))
+    ui.sec("save", "Save the bot's log", "حفظ سجل البوت")
+    ui.html(_log_mark(state))
+    log = _load_log(bot["id"])
+    files = _csvs(bot, log, state["ledger"])
+    c = st.columns(3)
+    for col, (blob, name, lab, ic) in zip(c, files):
+        col.download_button(lab, blob, file_name=name, mime="text/csv", icon=ic, key=f"xb_dl_{bot['id']}_{name}", use_container_width=True)
+    st.caption(L("The log is kept by itself every hour (its signals for 120 days, its hourly mood for 45 days); each file opens in Excel.",
+                 "السجل ينحفظ لحاله كل ساعة (الإشارات 120 يوم، والمزاج بالساعة 45 يوم)، وكل ملف ينفتح في Excel."))
+
+
 def _empty(ic, en, ar):
     ui.html(f'<div class="xbempty">{T.icon(ic)}<span>{T.esc(L(en, ar))}</span></div>')
 
@@ -315,7 +464,7 @@ def _bot_view(bot, state):
     stt = XB.stats(led, {s: v for s, v in now_px.items() if v})
     cur = _cur(bot)
     ui.html(f'<div class="xbd" style="--xc:{bot["color"]}"><span class="ic">{T.icon(bot["icon"])}</span>'
-            f'<span class="tx"><b>{T.esc(L(*bot["name"]))}</b><p>{T.esc(L(*bot["beat"]))}</p></span><span class="chips">{_chips(bot)}</span></div>')
+            f'<span class="tx"><b>{T.esc(L(*bot["name"]))}</b><p>{T.esc(L(*bot["beat"]))}</p>{_log_mark(state)}</span><span class="chips">{_chips(bot)}</span></div>')
     k = st.columns(4)
     k[0].markdown(T.kpi("account_balance_wallet", L("Account value", "قيمة الحساب"), f"{cur}{stt['equity']:,.0f}",
                         L(f"started with {cur}{led['start']:,.0f}", f"بدأ بـ {cur}{led['start']:,.0f}")), unsafe_allow_html=True)
@@ -347,8 +496,10 @@ def _bot_view(bot, state):
                                           bot["color"], cur), key=f"xb_eq_{bot['id']}")
         else:
             _empty("show_chart", "The account's curve starts with its first trading day.", "منحنى الحساب يبدأ من أول يوم تداول.")
-    t1, t2, t3 = st.tabs([f":material/forum: {L('The reading', 'القراءة')}", f":material/work: {L('The account', 'الحساب')}",
-                          f":material/gavel: {L('The rules', 'القواعد')}"])
+    t1, t2, t4, t3 = st.tabs([f":material/forum: {L('The reading', 'القراءة')}", f":material/work: {L('The account', 'الحساب')}",
+                              f":material/verified: {L('Is it truthful?', 'هل هو صادق؟')}", f":material/gavel: {L('The rules', 'القواعد')}"])
+    with t4:
+        _score_view(bot, state)
     with t1:
         ui.sec("trending_up", "What X talks about", "وش يتكلم عنه X")
         if talked:
@@ -452,6 +603,33 @@ def _hero(cur, bots, states, meta):
                 f'<div><b>{T.icon("candlestick_chart")}{T.esc(L("3 · On paper", "3 · وهمياً"))}</b>{T.esc(L("It turns what it reads into a mood and signals, and trades a paper account by its written rules.", "يحوّل اللي يقرأه لمزاج وإشارات، ويتداول حساب وهمي حسب قواعده المكتوبة."))}</div></div>')
 
 
+def _compare(bots, states):
+    """Which bot's signals are truthful and which are noise: the five side by side."""
+    ui.sec("verified", "Which bot is truthful, which is noise?", "أي بوت إشاراته صادقة وأي واحد ضوضاء؟")
+    rows = []
+    for b in bots:
+        stt = states.get(b["id"]) or {}
+        sc = stt.get("score") or XB.scorecard(b, [])
+        pf = stt.get("perf") or XB.perf(stt.get("ledger") or XB.new_ledger(b["market"]), stt.get("reads"))
+        rows.append({L("Bot", "البوت"): L(*b["name"]), L("Verdict", "الحكم"): sc.get("verdict") or "collecting",
+                     L("Direction right", "دقة الاتجاه"): sc.get("hit"), L("Edge", "الفرق"): sc.get("edge"), L("Readings", "قراءات"): sc.get("n", 0),
+                     L("Return %", "العائد %"): pf.get("ret"), L("Vs market", "مقابل السوق"): pf.get("vs"), L("Deepest fall", "أقصى تراجع"): pf.get("mdd"),
+                     L("Cost", "التكلفة"): pf.get("cost", 0.0), "_score": sc})
+    df = pd.DataFrame(rows)
+    vcol = L("Verdict", "الحكم")
+    ui.table(df.drop(columns=["_score"]), pills={L("Return %", "العائد %"), L("Vs market", "مقابل السوق")}, signed={L("Edge", "الفرق")},
+             cell={vcol: lambda v, r: _verdict({"verdict": v, "n": r[L("Readings", "قراءات")]})},
+             fmt={L("Direction right", "دقة الاتجاه"): lambda v: "—" if v is None or pd.isna(v) else f"{v:.0f}%",
+                  L("Edge", "الفرق"): lambda v: _pct(None if v is None or pd.isna(v) else v),
+                  L("Return %", "العائد %"): "{:+.2f}%", L("Vs market", "مقابل السوق"): lambda v: _pct(None if v is None or pd.isna(v) else v),
+                  L("Deepest fall", "أقصى تراجع"): "{:+.2f}%", L("Cost", "التكلفة"): "${:,.2f}"})
+    st.caption(L("Truthful: its bullish readings were followed by rises and its bearish ones by falls (55% of the time or more, over "
+                 f"{XB.MIN_OBS} readings at least). Noise: about a coin toss. Reversed: the price tends to go the other way. Each bot is judged "
+                 "on its own log; open its tab \"Is it truthful?\" for the detail.",
+                 f"صادقة: قراءاته الصاعدة تبعها ارتفاع والهابطة نزول (55% من المرات أو أكثر، على {XB.MIN_OBS} قراءة على الأقل). ضوضاء: قريب من "
+                 "رمي العملة. عكسية: السعر يميل يمشي بالعكس. كل بوت ينحكم على سجله، وتفاصيله في تبويب \"هل هو صادق؟\"."))
+
+
 def page_xbots():
     ui.html(CSS)
     cur = MK.current()
@@ -495,6 +673,7 @@ def page_xbots():
     if race:
         ui.chart(charts.equity_race(race, L("The five accounts since their start", "الحسابات الخمسة من بدايتها"), 300,
                                     colors={b["id"]: b["color"] for b in bots}, names={b["id"]: L(*b["name"]) for b in bots}), key=f"xb_race_{cur}")
+    _compare(bots, states)
     names = {b["id"]: f":material/{b['icon']}: {L(*b['name'])}" for b in bots}
     chosen = st.segmented_control(L("Bot", "البوت"), list(names), default=pick, key=key, format_func=names.get, label_visibility="collapsed")
     bot = XB.BY_ID.get(chosen if chosen in ids else pick, bots[0])
@@ -507,4 +686,4 @@ def page_xbots():
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.6.4"
+BUILD = "22.7"
