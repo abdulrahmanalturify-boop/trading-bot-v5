@@ -878,4 +878,4 @@ def sa_headlines(hours=48):
         return []
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.8.1"
+BUILD = "23.0"

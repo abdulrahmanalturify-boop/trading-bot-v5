@@ -32,6 +32,7 @@ import data
 import engine
 import markets as MK
 import mcal
+import p_portfolio as PP
 import paperbots as PB
 import playbooks as PBK
 import lab
@@ -844,8 +845,13 @@ def storage_notice(err):
                "auth": L("Supabase refused the key. In Secrets, SUPABASE_KEY must be the secret key (Supabase → Settings → API Keys → secret).",
                          "Supabase رفض المفتاح. لازم يكون SUPABASE_KEY في Secrets هو المفتاح السري (Supabase ← Settings ← API Keys ← secret)."),
                "network": L("Couldn't reach Supabase right now. Check SUPABASE_URL in Secrets, or try again in a minute.",
-                            "تعذر الاتصال بـ Supabase حالياً. تأكد من SUPABASE_URL في Secrets، أو حاول بعد دقيقة.")}.get(
+                            "تعذر الاتصال بـ Supabase حالياً. تأكد من SUPABASE_URL في Secrets، أو حاول بعد دقيقة."),
+               "crowded": L("The site holds as many visitors' bots as it can run right now. Try again in a few days, when older ones make room.",
+                            "الموقع وصل أقصى عدد يقدر يشغّله من بوتات الزوار حالياً. جرّب بعد كم يوم لما تفضى أماكن.")}.get(
             err.kind, L("Supabase returned an error.", "Supabase رجّع خطأ."))
+        if err.kind == "crowded":
+            st.info(msg, icon=":material/groups:")
+            return
         st.error(msg, icon=":material/database:")
         if err.kind == "no_table":
             st.code(PB.SETUP_SQL, language="sql")
@@ -889,8 +895,8 @@ def _hero_art(ranked_sims):
     s.append('<path d="M461 35 L476.5 35.6 L475.9 51" fill="none" stroke="#A78BFA" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>')
     s.append(f'<circle class="mv" r="4.5" fill="#2DB6EB" filter="url(#pbgl)" style="offset-path:path(\'{path}\')"/>')
     for i, (x, y) in enumerate(_SLOTS):
-        rank = PB.MAX_BOTS - i
-        if rank > len(ranked_sims):
+        rank = (len(_SLOTS) if _view() == "mine" else PB.MAX_BOTS) - i
+        if rank > len(ranked_sims) or rank < 1:
             s.append(f'<g opacity=".8"><circle cx="{x}" cy="{y}" r="14" fill="#0E0918" fill-opacity=".55" stroke="#9D97A5" stroke-width="1.6" '
                      f'stroke-dasharray="3 4"/><path d="M{x - 5} {y} H{x + 5} M{x} {y - 5} V{y + 5}" stroke="#9D97A5" stroke-width="2" '
                      f'stroke-linecap="round"/></g>')
@@ -914,7 +920,7 @@ def hero_html(sims, n_bots):
     rk = ranked(sims)
     live = [s for s in sims if s["ok"] and not s["waiting"]]
     ph = phase()
-    chips = [f'<span class="chip">{T.icon("smart_toy")}<b>{n_bots}/{PB.MAX_BOTS}</b> {L("bots", "بوتات")}</span>']
+    chips = [f'<span class="chip">{T.icon("smart_toy")}<b>{n_bots}/{_cap()}</b> {L("bots", "بوتات")}</span>']
     if sims:
         chips.append(f'<span class="chip">{T.icon(PHASES[ph][0])}{T.esc(L(*PHASES[ph][1:3]))} {phase_tag(ph)}</span>')
     if live:
@@ -934,20 +940,27 @@ def hero_html(sims, n_bots):
         chips.append(f'<span class="chip">{T.icon("payments")}{L("Virtual money", "أموال وهمية")}</span>')
         chips.append(f'<span class="chip">{T.icon("candlestick_chart")}{L("Real prices", "أسعار حقيقية")}</span>')
     title = L("Paper <b>Bots</b>", "البوتات <b>الافتراضية</b>")
-    if _sa():
-        tag = L(f"Up to {PB.MAX_BOTS} bots trade Saudi companies with virtual riyals on real prices: a company, a sector, an industry "
+    if _view() == "mine":
+        title = L("My <b>Bots</b>", "<b>بوتاتي</b>")
+        tag = L(f"Your own bots: up to {_cap()} in the {MK.name(_mk())}, built by you and kept for you on this browser. Each one trades "
+                "virtual money on real prices, with a forward test recorded session by session, kept apart from its historical simulation.",
+                f"بوتاتك أنت: لين {_cap()} في {MK.name(_mk(), True)}، تبنيها بنفسك وتنحفظ لك على هالمتصفح. كل بوت يتداول بفلوس وهمية على "
+                "أسعار حقيقية، وله تجربة أمامية تُسجَّل جلسة بجلسة ومفصولة عن محاكاته التاريخية.")
+    elif _sa():
+        tag = L(f"Up to {_cap()} bots trade Saudi companies with virtual riyals on real prices: a company, a sector, an industry "
                 "group or the whole main market, with one or more strategies or ready-made combined strategies. Each one has a forward "
                 "test recorded session by session, kept apart from its historical simulation. Kept apart from the US bots.",
-                f"حتى {PB.MAX_BOTS} بوتات تتداول الشركات السعودية بريالات وهمية على أسعار حقيقية: شركة أو قطاع أو مجموعة صناعية أو السوق "
+                f"حتى {_cap()} بوتات تتداول الشركات السعودية بريالات وهمية على أسعار حقيقية: شركة أو قطاع أو مجموعة صناعية أو السوق "
                 "الرئيسية كاملة، باستراتيجية وحدة أو أكثر أو باستراتيجيات مركّبة جاهزة. لكل بوت تجربة أمامية تُسجَّل جلسة بجلسة، "
                 "ومفصولة عن محاكاته التاريخية. ومنفصلة عن البوتات الأمريكية.")
     else:
-        tag = L(f"Up to {PB.MAX_BOTS} bots trade with virtual money on real prices: a company, a sector, an industry or all companies, with "
+        tag = L(f"Up to {_cap()} bots trade with virtual money on real prices: a company, a sector, an industry or all companies, with "
                 "one or more strategies or ready-made combined strategies. Each one has a forward test recorded session by session, kept "
                 "apart from its historical simulation.",
-                f"حتى {PB.MAX_BOTS} بوتات تتداول بأموال وهمية على أسعار حقيقية: شركة أو قطاع أو صناعة أو كل الشركات، باستراتيجية وحدة أو "
+                f"حتى {_cap()} بوتات تتداول بأموال وهمية على أسعار حقيقية: شركة أو قطاع أو صناعة أو كل الشركات، باستراتيجية وحدة أو "
                 "أكثر أو باستراتيجيات مركّبة جاهزة. لكل بوت تجربة أمامية تُسجَّل جلسة بجلسة، ومفصولة عن محاكاته التاريخية.")
-    eb = L("Paper trading lab", "مختبر التداول الافتراضي") + (L(" · Saudi market", " · السوق السعودي") if _sa() else "")
+    eb = (L("Paper trading lab", "مختبر التداول الافتراضي") + (L(" · Saudi market", " · السوق السعودي") if _sa() else "")
+          + (L(" · yours", " · خاصة فيك") if _view() == "mine" else L(" · the site's bots", " · بوتات الموقع")))
     return (f'<div class="pbhero{" rtl" if is_ar() else ""}"><div class="grid"></div><div class="art">{_hero_art(rk)}</div>'
             f'<div class="txt"><div class="eb">{T.icon("robot_2")}{T.esc(eb)}</div>'
             f'<div class="t">{title}</div><div class="tg">{T.esc(tag)}</div><div class="chips">{"".join(chips)}</div>'
@@ -1199,10 +1212,10 @@ PLUS_SVG = ('<svg viewBox="0 0 92 92" xmlns="http://www.w3.org/2000/svg" aria-hi
 
 
 def add_card(n_bots):
-    left = PB.MAX_BOTS - n_bots
-    slots = "".join(f'<span class="{"on" if i < n_bots else "off"}"></span>' for i in range(PB.MAX_BOTS))
+    left = _cap() - n_bots
+    slots = "".join(f'<span class="{"on" if i < n_bots else "off"}"></span>' for i in range(_cap()))
     return (f'<div class="card pbc pbadd"><div class="plus">{PLUS_SVG}</div><div class="ttl">{L("Add Bot", "أضف بوت")}</div>'
-            f'<div class="sub">{L(f"{left} of {PB.MAX_BOTS} slots left", f"باقي {left} من {PB.MAX_BOTS} أماكن")}</div>'
+            f'<div class="sub">{L(f"{left} of {_cap()} slots left", f"باقي {left} من {_cap()} أماكن")}</div>'
             f'<div class="slots">{slots}</div></div>')
 
 
@@ -1239,7 +1252,10 @@ def _open(mode, bot=None):
 
 
 def leaderboard(sims, n_bots, can_add):
-    ui.sec("leaderboard", "Leaderboard", "ترتيب البوتات")
+    if _view() == "mine":
+        ui.sec("smart_toy", "My bots", "بوتاتي")
+    else:
+        ui.sec("leaderboard", "Leaderboard", "ترتيب البوتات")
     ids = [s["bot"]["id"] for s in sims]
     sel = _selected(ids)
     if sims:
@@ -1262,7 +1278,10 @@ def leaderboard(sims, n_bots, can_add):
                 if rank == "add":
                     with st.container(key="pbcard_add"):
                         ui.html(add_card(n_bots))
-                        st.button(L("Add Bot", "أضف بوت"), key="pb_pick_add", on_click=_open, args=("add",), width="stretch")
+                        if _personal() and _view() == "site":
+                            st.button(L("Build your bot", "ابنِ بوتك"), key="pb_pick_add", on_click=_build_now, width="stretch")
+                        else:
+                            st.button(L("Add Bot", "أضف بوت"), key="pb_pick_add", on_click=_open, args=("add",), width="stretch")
                     continue
                 b = sim["bot"]
                 with st.container(key=f"pbcard_{b['id']}"):
@@ -2669,7 +2688,68 @@ def _unlock():
         ss.pb_bad_pw = True
 
 
+# ---------------------------------------------------------------- whose bots: the visitor's own, or the site's
+VIEWS = ("mine", "site")
+
+
+def _my_tag():
+    """This visitor's tag on their own bots (from the code their browser keeps for their portfolio: one code, both theirs)."""
+    t = ss.get("pb_owner")
+    if isinstance(t, str) and t:
+        return t
+    ss["pf_wait_msg"] = L("Opening your bots…", "نفتح بوتاتك…")
+    code, _ = PP.ident()
+    ss.pop("pf_wait_msg", None)
+    ss["pb_owner"] = PB.owner_tag(code)
+    return ss["pb_owner"]
+
+
+def _view():
+    v = ss.get("pb_view")
+    return v if v in VIEWS else "site"
+
+
+def _whose():
+    return _my_tag() if _view() == "mine" else "site"
+
+
+def _cap():
+    """How many bots the list on show may hold: a visitor's own (MAX_MINE) or the site's (MAX_BOTS)."""
+    return PB.MAX_MINE if _view() == "mine" else PB.MAX_BOTS
+
+
+def _owner_now():
+    """The owner a new bot gets: the visitor on their own list, nobody (the site) on the site's."""
+    return _my_tag() if _view() == "mine" else None
+
+
+def _build():
+    """Build your bot: the visitor's own list, with the new bot's form open."""
+    ss["pb_view"] = "mine"
+    ss["pb_build"] = True
+
+
+def _admin_now():
+    """The site's owner, unlocked on this device (or a trial site with no password): the site's own bots are theirs to change."""
+    mode = PB.admin_mode()
+    return mode == "open" or (mode == "password" and bool(ss.get("pb_admin")))
+
+
+def _personal():
+    """A bot added from here goes to the visitor's own list: on their list, and on the site's list for anyone but its owner."""
+    return _view() == "mine" or not _admin_now()
+
+
+def _build_now():
+    """The same, from a button on this page (a callback, before the page runs)."""
+    _build()
+    ss["pb_view_last"] = "mine"
+    ss.pop("pb_selected", None)
+
+
 def can_edit():
+    if _view() == "mine":                  # a visitor's own bots: theirs to add, change and delete, no password
+        return True
     mode = PB.admin_mode()
     if mode == "open" or (mode == "password" and ss.get("pb_admin")):
         return True
@@ -3748,15 +3828,18 @@ def bot_form(mode, bot=None):
                          regime=0 if orb else int(ss.get("pb_regime") or 0), trend_filter=0 if orb else int(bool(ss.get("pb_trend"))),
                          ext=0 if orb or instr == "options" or _sa() else int(bool(ss.get("pb_ext", True))), market=_mk(),
                          ml=(bot or {}).get("ml") if mode == "edit" and set(params) == set((bot or {}).get("strategies") or {}) else None,
-                         brain=(bot or {}).get("brain") if mode == "edit" and instr != "options" and not orb else None)
+                         brain=(bot or {}).get("brain") if mode == "edit" and instr != "options" and not orb else None,
+                         owner=_owner_now())
     try:
         if mode == "add":
-            PB.create_bot(rec)
+            new_id = PB.create_bot(rec)
+            if new_id is not None:                 # the new bot opens at once: its card selected, its dashboard below
+                ss["pb_selected"] = [new_id]
         else:
             PB.update_bot(bot["id"], rec, old=bot)
     except PB.StoreError as e:
         if e.kind == "full":
-            st.error(L(f"You already have {PB.MAX_BOTS} bots in the {MK.name(_mk())}.", f"عندك {PB.MAX_BOTS} بوتات في {MK.name(_mk(), True)} بالفعل."))
+            st.error(L(f"You already have {_cap()} bots in the {MK.name(_mk())}.", f"عندك {_cap()} بوتات في {MK.name(_mk(), True)} بالفعل."))
         else:
             storage_notice(e)
         return
@@ -3767,12 +3850,17 @@ def bot_form(mode, bot=None):
     st.rerun()
 
 
+def _mine_ok(bot):
+    """On the visitor's own list, a bot may be changed only if it is theirs."""
+    return bot is None or _view() != "mine" or bot.get("owner") == _my_tag()
+
+
 def _bot_dialog_body(mode, bot, n_bots):
-    if not can_edit():
+    if not can_edit() or not _mine_ok(bot):
         return
-    if mode == "add" and n_bots >= PB.MAX_BOTS:
-        st.info(L(f"You have {PB.MAX_BOTS} bots, the maximum. Delete one to add another.",
-                  f"عندك {PB.MAX_BOTS} بوتات، وهذا الحد الأعلى. احذف واحد عشان تضيف غيره."), icon=":material/block:")
+    if mode == "add" and n_bots >= _cap():
+        st.info(L(f"You have {_cap()} bots, the maximum. Delete one to add another.",
+                  f"عندك {_cap()} بوتات، وهذا الحد الأعلى. احذف واحد عشان تضيف غيره."), icon=":material/block:")
         return
     if mode == "edit" and (bot or {}).get("brain"):
         st.info(L("A smart bot: what it reads in the market, its score, its risk sizing and its self-check stay with it when you change "
@@ -3783,7 +3871,7 @@ def _bot_dialog_body(mode, bot, n_bots):
 
 
 def _delete_body(bot):
-    if not can_edit():
+    if not can_edit() or not _mine_ok(bot):
         return
     st.markdown(L(f"Delete **{bot['name']}** and its whole record? This can't be undone.",
                   f"حذف **{bot['name']}** وكل سجله؟ ما تقدر ترجعه بعدين."))
@@ -4097,15 +4185,24 @@ def ready_section(bots, can_add):
                  "بالاحتفاظ، مو بالصفر. النتائج السابقة ما تضمن اللي جاي."))
 
 
+def _target():
+    """(owner of a bot added now, its list, its cap): the visitor's own, or (the owner, on the site's list) the site's."""
+    if _personal():
+        tag = _my_tag()
+        return tag, PB.list_bots(_mk(), tag), PB.MAX_MINE
+    return None, PB.list_bots(_mk(), "site"), PB.MAX_BOTS
+
+
 def _ready_body(key, bots):
-    if not can_edit():
-        return
     if key not in SB.BOTS:
         st.error(L("This bot isn't available.", "هالبوت غير متاح."))
         return
-    if len(bots) >= PB.MAX_BOTS:
-        st.info(L(f"You have {PB.MAX_BOTS} bots, the maximum. Delete one to add another.",
-                  f"عندك {PB.MAX_BOTS} بوتات، وهذا الحد الأعلى. احذف واحد عشان تضيف غيره."), icon=":material/block:")
+    owner, have, cap = _target()
+    if owner and _view() == "site":
+        st.caption(L("It will be added to your own bots.", "بينضاف لبوتاتك أنت."))
+    if len(have) >= cap:
+        st.info(L(f"You have {cap} bots, the maximum. Delete one to add another.",
+                  f"عندك {cap} بوتات، وهذا الحد الأعلى. احذف واحد عشان تضيف غيره."), icon=":material/block:")
         return
     ui.valid("pb_rd_risk", list(SB.RISK))
     if ss.get("pb_rd_risk") not in SB.RISK:
@@ -4125,15 +4222,17 @@ def _ready_body(key, bots):
     ra = SB.record_args(key, risk)
     rec = PB.make_record(L(*SB.BOTS[key]["name"])[:40], "all", "all", ra["strategies"], ra["max_pos"], float(ss.get("pb_rd_cap") or 100_000),
                          ra["fee"], 0.0, ra["atr_mult"], 0.0, 0.0, pd.Timestamp(start).strftime("%Y-%m-%d"), instrument="stock",
-                         brain=ra["brain"])
+                         brain=ra["brain"], owner=owner, market=_mk())
     try:
         PB.create_bot(rec)
     except PB.StoreError as e:
         storage_notice(e)
         return
-    new = [x for x in PB.list_bots() if SB.same_bot(x, key)]
+    new = [x for x in PB.list_bots(_mk(), owner or "site") if SB.same_bot(x, key)]
     if new:
         ss["pb_selected"] = [new[-1]["id"]]
+    if owner:
+        ss["pb_goto_mine"] = True
     st.toast(L("Bot started.", "بدأ البوت."), icon=":material/smart_toy:")
     st.rerun()
 
@@ -4242,11 +4341,12 @@ def ai_section(bots, can_add):
 
 
 def _ai_body(mid, bots):
-    if not can_edit():
-        return
-    if len(bots) >= PB.MAX_BOTS:
-        st.info(L(f"You have {PB.MAX_BOTS} bots, the maximum. Delete one to add another.",
-                  f"عندك {PB.MAX_BOTS} بوتات، وهذا الحد الأعلى. احذف واحد عشان تضيف غيره."), icon=":material/block:")
+    owner, have, cap = _target()
+    if owner and _view() == "site":
+        st.caption(L("It will be added to your own bots.", "بينضاف لبوتاتك أنت."))
+    if len(have) >= cap:
+        st.info(L(f"You have {cap} bots, the maximum. Delete one to add another.",
+                  f"عندك {cap} بوتات، وهذا الحد الأعلى. احذف واحد عشان تضيف غيره."), icon=":material/block:")
         return
     res = MLB.results() or {}
     r = (res.get("bots") or {}).get(mid)
@@ -4267,15 +4367,17 @@ def _ai_body(mid, bots):
     rec = PB.make_record(L(*r["name"]), "all", "all", {x: {} for x in c["strategies"]}, c["max_pos"], float(ss.get("pb_ai_cap") or 1_000_000),
                          0.05, c.get("stop_pct", 0.0), c.get("atr_mult", 0.0), c.get("tp_pct", 0.0), c.get("trail_pct", 0.0),
                          pd.Timestamp(start).strftime("%Y-%m-%d"), instrument="stock", risk_pct=c.get("risk_pct", 0.0),
-                         regime=c.get("regime", 0), trend_filter=c.get("trend_filter", 0), ml=r.get("ml", mid))
+                         regime=c.get("regime", 0), trend_filter=c.get("trend_filter", 0), ml=r.get("ml", mid), owner=owner)
     try:
         PB.create_bot(rec)
     except PB.StoreError as e:
         storage_notice(e)
         return
-    new = [x for x in PB.list_bots() if _is_ai_bot(x, mid, r)]
+    new = [x for x in PB.list_bots(_mk(), owner or "site") if _is_ai_bot(x, mid, r)]
     if new:
         ss["pb_selected"] = [new[-1]["id"]]
+    if owner:
+        ss["pb_goto_mine"] = True
     st.toast(L("AI bot started.", "بدأ بوت الذكاء."), icon=":material/psychology:")
     st.rerun()
 
@@ -4342,14 +4444,93 @@ def _market_changed():
         ss["pb_mkt"] = _mk()
 
 
+VIEW_CSS = """<style>
+.st-key-pb_view [data-testid="stButtonGroup"] { display:flex; flex-wrap:wrap; gap:6px; padding:6px; border-radius:16px; width:fit-content; max-width:100%;
+  background:linear-gradient(180deg, rgba(30,24,46,.80), rgba(16,12,28,.80)); border:1px solid rgba(157,151,165,.20);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05), 0 10px 26px -16px rgba(0,0,0,.8); }
+.st-key-pb_view [data-testid="stButtonGroup"] button { height:44px; padding:0 18px; border-radius:12px !important; border:none !important;
+  background:transparent; color:#C2BCCD; font-weight:600; font-size:.98rem; box-shadow:none; }
+.st-key-pb_view [data-testid="stButtonGroup"] button p { color:inherit; font-size:inherit; font-weight:inherit; margin:0; }
+.st-key-pb_view [data-testid="stButtonGroup"] button:hover { color:#fff; background-color:rgba(255,255,255,.06); }
+.st-key-pb_view [data-testid="stButtonGroup"] button [data-testid="stIconMaterial"] { color:#79B8F4; }
+.st-key-pb_view [data-testid="stButtonGroup"] button[kind="segmented_controlActive"], .st-key-pb_view [data-testid="stButtonGroup"] button[aria-checked="true"]
+  { color:#fff; font-weight:700; background:linear-gradient(135deg, #3B8BEB, #7B45F0); box-shadow:0 8px 20px -8px rgba(91,124,242,.8), inset 0 1px 0 rgba(255,255,255,.25); }
+.st-key-pb_view [data-testid="stButtonGroup"] button[kind="segmented_controlActive"] [data-testid="stIconMaterial"] { color:#fff; }
+.pbmine { display:grid; grid-template-columns:auto 1fr; gap:16px 18px; align-items:center; padding:20px 22px; border-radius:20px; margin:10px 0 6px;
+  background:linear-gradient(130deg, rgba(59,139,235,.16), rgba(123,69,240,.14) 55%, rgba(26,22,36,.9)); border:1px solid rgba(167,139,250,.35); }
+.pbmine .ic { width:58px; height:58px; border-radius:18px; display:grid; place-items:center; color:#fff;
+  background:linear-gradient(140deg,#3B8BEB,#7B45F0 70%,#A855F7); box-shadow:0 14px 30px -14px rgba(123,69,240,.9); }
+.pbmine .ic .ms { font-size:1.9rem; }
+.pbmine b { display:block; color:#fff; font-size:1.2rem; margin-bottom:4px; }
+.pbmine p { margin:0; color:#CFC8DA; font-size:.9rem; line-height:1.7; }
+.pbsteps { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:10px; margin:8px 0 12px; }
+@media (max-width: 760px) { .pbsteps { grid-template-columns:1fr; } .pbmine { grid-template-columns:1fr; } }
+.pbsteps div { padding:12px 14px; border-radius:14px; background:rgba(255,255,255,.03); border:1px solid rgba(157,151,165,.16); color:#B9B3C4; font-size:.84rem; line-height:1.6; }
+.pbsteps div b { display:flex; align-items:center; gap:6px; color:#fff; margin-bottom:4px; }
+.pbsteps div b .ms { color:#A78BFA; }
+.pbcta { display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:12px 16px; border-radius:16px; margin:8px 0 4px;
+  border:1px dashed rgba(167,139,250,.4); background:rgba(123,69,240,.06); color:#D8D3E2; font-size:.9rem; }
+.pbcta .ms { color:#A78BFA; }
+</style>"""
+
+
+def _view_switch(n_mine, n_site):
+    """My bots / the site's bots."""
+    names = {"mine": f":material/person: {L('My bots', 'بوتاتي')} · {n_mine}/{PB.MAX_MINE}",
+             "site": f":material/public: {L('The site’s bots', 'بوتات الموقع')} · {n_site}"}
+    st.segmented_control(L("Whose bots", "بوتات مين"), list(names), key="pb_view", format_func=names.get, label_visibility="collapsed",
+                         on_change=_view_changed)
+
+
+def _view_changed():
+    """The switch moved (a callback: before the page runs). Pressing the chosen one again keeps it; the selection starts afresh."""
+    if ss.get("pb_view") not in VIEWS:
+        ss["pb_view"] = ss.get("pb_view_last") if ss.get("pb_view_last") in VIEWS else "site"
+    ss["pb_view_last"] = ss["pb_view"]
+    ss.pop("pb_selected", None)
+    ss.pop("pb_open", None)
+
+
+def _mine_empty():
+    """The visitor's own list before their first bot: what a bot is, three steps, and the button that starts one."""
+    ui.html(f'<div class="pbmine"><span class="ic">{T.icon("smart_toy")}</span><span><b>{T.esc(L("Build your first bot", "ابنِ أول بوت لك"))}</b>'
+            f'<p>{T.esc(L(f"A bot of your own that trades virtual money on real prices of the {MK.name(_mk())} by the rules you pick, every session, while you are away. Up to {PB.MAX_MINE} bots, kept for you on this browser.", f"بوت خاص فيك يتداول بفلوس وهمية على أسعار حقيقية في {MK.name(_mk(), True)} بالقواعد اللي تختارها، كل جلسة، وأنت مو موجود. لين {PB.MAX_MINE} بوتات، تنحفظ لك على هالمتصفح."))}</p></span></div>'
+            '<div class="pbsteps">'
+            f'<div><b>{T.icon("ads_click")}{T.esc(L("1 · What it trades", "1 · وش يتداول"))}</b>{T.esc(L("One company, a sector or the whole market.", "شركة وحدة، أو قطاع، أو السوق كامل."))}</div>'
+            f'<div><b>{T.icon("rule")}{T.esc(L("2 · Its rules", "2 · قواعده"))}</b>{T.esc(L("Pick its strategies and its risk: careful, in between or bold.", "اختر استراتيجياته ومخاطرته: حذر، وسط، أو جريء."))}</div>'
+            f'<div><b>{T.icon("monitoring")}{T.esc(L("3 · Watch it", "3 · تابعه"))}</b>{T.esc(L("It trades after every session; its results are yours to follow here.", "يتداول بعد كل جلسة، ونتائجه تتابعها هنا."))}</div>'
+            '</div>')
+    st.button(L("Build your bot", "ابنِ بوتك"), type="primary", icon=":material/smart_toy:", key="pb_mine_build", on_click=_open, args=("add",))
+
+
 def page_paper_bots():
-    ui.html(PAGE_CSS + HEAT_CSS + (PAGE_RTL_CSS if is_ar() else ""))
+    ui.html(PAGE_CSS + HEAT_CSS + VIEW_CSS + (PAGE_RTL_CSS if is_ar() else ""))
     _market_changed()
     mk = _mk()
+    build = ss.pop("pb_build", False)              # "Build your bot" (the home page): the visitor's own list, the form open
+    if build or ss.pop("pb_goto_mine", False):      # (or a ready / AI bot just added to the visitor's own list)
+        ss["pb_view"] = "mine"
+    tag = _my_tag()
     try:
-        bots, err = PB.list_bots(mk), None       # this market's bots only (each market has its own MAX_BOTS)
+        allb = PB.list_bots(mk)
+        mine = [b for b in allb if b.get("owner") == tag]
+        site = [b for b in allb if not b.get("owner")]
+        err = None
     except PB.StoreError as e:
-        bots, err = [], e
+        allb, mine, site, err = [], [], [], e
+    if ss.get("pb_view") not in VIEWS:              # a visitor with bots of their own opens on them
+        ss["pb_view"] = "mine" if mine else "site"
+    ss["pb_view_last"] = ss["pb_view"]
+    bots = mine if _view() == "mine" else site
+    if _view() == "mine" and not ss.get("pb_seen_today"):
+        ss["pb_seen_today"] = True
+        for b in mine:                              # the visitor opened their bots: the nightly record keeps them
+            try:
+                PB.touch(b)
+            except Exception:
+                pass
+    if build and err is None and len(mine) < PB.MAX_MINE and "pb_open" not in ss:
+        _open("add")
 
     sims, spy, stale = [], None, 0
     if bots:
@@ -4366,20 +4547,28 @@ def page_paper_bots():
         ss["pb_phase"] = "live" if _saved_sessions(sims) else "sim"
     shown = phase_sims(sims, phase())
     ui.html(hero_html(shown, len(bots)))
+    _view_switch(len(mine), len(site))
     storage_notice(err)
+    if _view() == "site" and err is None:
+        ui.html(f'<div class="pbcta">{T.icon("person_add")}<span>{T.esc(L("These are the site’s own bots, to watch and learn from. Want one of your own?", "هذي بوتات الموقع، تتابعها وتتعلم منها. تبي بوت خاص فيك؟"))}</span></div>')
+        st.button(L("Build your bot", "ابنِ بوتك"), type="primary", icon=":material/smart_toy:", key="pb_site_build", on_click=_build_now)
     if stale >= PB.FRESH:
         st.caption(L(f"Showing the results from {int(stale // 60)} minutes ago. A newer update is being prepared in the background; reopen the page "
                      "in a minute to see it.",
                      f"المعروض نتائج قبل {int(stale // 60)} دقيقة. فيه تحديث أحدث يتجهز بالخلفية، افتح الصفحة بعد دقيقة وتشوفه."))
     if sims:
         ui.safe(phase_switch, sims)
-    sel = ui.safe(leaderboard, shown, len(bots), err is None and len(bots) < PB.MAX_BOTS) or []
+    sel = []
+    if bots or _view() == "site":                  # the visitor's empty list shows its first-bot card below instead
+        sel = ui.safe(leaderboard, shown, len(bots), err is None and len(bots) < _cap()) or []
 
     op = ss.pop("pb_open", None)
     if op and err is None:
         open_dialog(op, bots)
 
-    if not bots and err is None and mk == MK.SA:
+    if not bots and err is None and _view() == "mine":
+        _mine_empty()
+    elif not bots and err is None and mk == MK.SA:
         ui.html(f'<div class="card" style="line-height:1.9;margin-top:14px">{T.ico("smart_toy", "acc")} ' + L(
             "No Saudi bots yet. Press <b>Add Bot</b>, choose what the bot trades (a Saudi company, a sector, an industry group or the whole "
             "main market) and its strategies. From then on it checks its strategies after every close of the Saudi market (3 pm Riyadh) "
@@ -4407,8 +4596,9 @@ def page_paper_bots():
             ui.safe(portfolio, chosen, spy, shown)
 
     if mk == MK.US:                                # the ready and AI bots were built and tested on US stocks
-        ui.safe(ready_section, bots, err is None and len(bots) < PB.MAX_BOTS)
-        ui.safe(ai_section, bots, err is None and len(bots) < PB.MAX_BOTS)
+        tb, tc = (mine, PB.MAX_MINE) if _personal() else (site, PB.MAX_BOTS)     # a visitor adds a ready bot to their own list
+        ui.safe(ready_section, tb, err is None and len(tb) < tc)
+        ui.safe(ai_section, tb, err is None and len(tb) < tc)
     ui.safe(test_section)
     ui.safe(compare_section, sims)
     if mk == MK.SA:
@@ -4438,4 +4628,4 @@ def page_paper_bots():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.8.1"
+BUILD = "23.0"

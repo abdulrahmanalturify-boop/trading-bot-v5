@@ -26,6 +26,12 @@ def main():
         return 0
     t0 = time.time()
     n = 0
+    try:                                   # the visitors' bots nobody has opened for a long time
+        gone = PB.prune_visitors()
+        if gone:
+            print(f"removed {gone} visitor bots nobody opened for {PB.VISITOR_DAYS} days")
+    except Exception as e:
+        print("prune:", e)
     for market in MK.CODES:
         bots = PB.list_bots(market)
         if not bots:

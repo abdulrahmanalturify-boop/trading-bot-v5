@@ -41,6 +41,7 @@ import copy
 import hashlib
 import hmac
 import json
+import re
 import os
 import tempfile
 import threading
@@ -65,7 +66,10 @@ import tasi
 import universe as U
 from autotrader import bs_call, strike_for
 
-MAX_BOTS = 10
+MAX_BOTS = 10                 # the site's own bots in each market (the owner's, behind BOTS_PASSWORD)
+MAX_MINE = 3                  # a visitor's own bots in each market (no password: they are theirs, on their browser's code)
+MAX_VISITOR_BOTS = 300        # every visitor's bots together (the nightly record runs them all)
+VISITOR_DAYS = 60             # a visitor's bot no one has opened for this many days is removed by the nightly record
 MAX_POS_LIMIT = 20
 TABLE = "paper_bots"
 KINDS = ("company", "sector", "industry", "all")
@@ -424,13 +428,30 @@ def _norm(r):
                 else int(bool(_num(params.get("ext"), 1))) if isinstance(params, dict) else 1,
                 "fwd": params.get("fwd") if isinstance(params, dict) and isinstance(params.get("fwd"), dict) else None,
                 "fwd_prev": list(params.get("fwd_prev") or []) if isinstance(params, dict) else [],
-                **({"brain": BR.clean(params.get("brain"))} if isinstance(params, dict) and BR.clean(params.get("brain")) else {})}
+                **({"brain": BR.clean(params.get("brain"))} if isinstance(params, dict) and BR.clean(params.get("brain")) else {}),
+                "owner": _owner_of(params), "seen": str(params.get("seen") or "")[:10] if isinstance(params, dict) else ""}
     except Exception:
         return None
 
 
+def owner_tag(code):
+    """A visitor's tag on their own bots: a fingerprint of their browser's code (the code itself is never stored with the bots)."""
+    if not code:
+        return None
+    return hashlib.sha256(("tura-bot-owner-v1:" + str(code)).encode()).hexdigest()[:24]
+
+
+_TAG = re.compile(r"^[0-9a-f]{24}$")
+
+
+def _owner_of(params):
+    o = params.get("owner") if isinstance(params, dict) else None
+    return o if isinstance(o, str) and _TAG.match(o) else None
+
+
 def make_record(name, kind, value, strategies, max_pos, capital, fee, stop_pct, atr_mult, tp_pct, trail_pct, start_date, combine=None,
-                instrument="stock", options=None, risk_pct=0.0, regime=0, trend_filter=0, ml=None, brain=None, ext=1, market=MK.US):
+                instrument="stock", options=None, risk_pct=0.0, regime=0, trend_filter=0, ml=None, brain=None, ext=1, market=MK.US,
+                owner=None):
     """Settings from the form -> a row for the table (FIELDS).
     market: us / sa (markets.py); a Saudi bot keeps 'market': 'sa' in its params (a US one keeps nothing, as before).
     ext: 1 = the bot also trades in the pre-market and the after-hours session (see simulate); always 0 for the Opening Range
@@ -464,6 +485,7 @@ def make_record(name, kind, value, strategies, max_pos, capital, fee, stop_pct, 
                       **({"ml": str(ml)[:40]} if ml else {}),
                       **({"brain": BR.clean(brain)} if BR.clean(brain) else {}),
                       **({"market": MK.SA} if market == MK.SA else {}),
+                      **({"owner": owner} if owner and _TAG.match(str(owner)) else {}),
                       "ext": 0 if PB.ORB in strategies or instrument == "options" or market == MK.SA else int(bool(ext))},
            "capital": float(capital), "fee": float(fee), "stop_pct": float(stop_pct), "atr_mult": float(atr_mult),
            "tp_pct": float(tp_pct), "trail_pct": float(trail_pct), "start_date": str(start_date)[:10]}
@@ -471,17 +493,33 @@ def make_record(name, kind, value, strategies, max_pos, capital, fee, stop_pct, 
     return rec
 
 
-def list_bots(market=None):
-    """Saved bots, oldest first (market: only that market's; None: all). Raises StoreError when Supabase is set up but can't be
-    used."""
+def list_bots(market=None, whose="all"):
+    """Saved bots, oldest first (market: only that market's; None: all). whose: "all" (every bot: the nightly record), "site" (the
+    site's own bots, no owner), or a visitor's tag (their own bots). Raises StoreError when Supabase is set up but can't be used."""
     bots = [b for b in (_norm(r) for r in _list_raw(backend()) if not str(r.get("strategy") or "").startswith("__portfolio__")) if b]   # not a paper portfolio
-    return bots if market is None else [b for b in bots if market_of(b) == market]
+    if market is not None:
+        bots = [b for b in bots if market_of(b) == market]
+    if whose == "site":
+        return [b for b in bots if not b.get("owner")]
+    if whose != "all":
+        return [b for b in bots if b.get("owner") == whose]
+    return bots
 
 
 def create_bot(rec):
-    """Save a new bot (a row from make_record). Raises StoreError('full') at MAX_BOTS (each market has its own)."""
+    """Save a new bot (a row from make_record). The site's own: StoreError('full') at MAX_BOTS in its market. A visitor's (an owner
+    in its params): 'full' at MAX_MINE of theirs in that market, 'crowded' when every visitor's bots together reach
+    MAX_VISITOR_BOTS. Returns the new bot's id (or None)."""
     _list_raw.clear()
-    if len(list_bots(MK.norm((rec.get("params") or {}).get("market")))) >= MAX_BOTS:
+    market = MK.norm((rec.get("params") or {}).get("market"))
+    owner = _owner_of(rec.get("params") or {})
+    if owner:
+        if len(list_bots(market, owner)) >= MAX_MINE:
+            raise StoreError("full")
+        if sum(1 for b in list_bots() if b.get("owner")) >= MAX_VISITOR_BOTS:
+            raise StoreError("crowded")
+        rec = {**rec, "params": {**rec["params"], "seen": _today_iso()}}
+    elif len(list_bots(market, "site")) >= MAX_BOTS:
         raise StoreError("full")
     rec = json.loads(json.dumps({k: rec[k] for k in FIELDS}, default=float))
     if backend() == "supabase":
@@ -496,6 +534,50 @@ def create_bot(rec):
             rows.append(rec)
             _local_write(rows)
     _list_raw.clear()
+    mine = [b for b in list_bots(market, owner or "site") if b["name"] == rec["name"]]
+    return max((b["id"] for b in mine), default=None)
+
+
+def _today_iso():
+    return pd.Timestamp.now(tz="UTC").strftime("%Y-%m-%d")
+
+
+def touch(bot):
+    """A visitor opened their bot today: its row says so (once a day), so the nightly record keeps it."""
+    if not bot.get("owner") or bot.get("seen") == _today_iso():
+        return
+    if backend() == "supabase":
+        url, h = _sb()
+        r = _request("GET", url, headers=h, params={"select": "params", "id": f"eq.{int(bot['id'])}"})
+        _check(r)
+        rows = r.json() or []
+        if not rows:
+            return
+        p = rows[0].get("params") or {}
+        p = json.loads(p) if isinstance(p, str) else p
+        p["seen"] = _today_iso()
+        r = _request("PATCH", url, headers={**h, "Prefer": "return=minimal"}, params={"id": f"eq.{int(bot['id'])}"},
+                     data=json.dumps({"params": p}, default=float))
+        _check(r)
+    else:
+        with _LOCK:
+            rows = _local_read()
+            for x in rows:
+                if str(x.get("id")) == str(bot["id"]) and isinstance(x.get("params"), dict):
+                    x["params"]["seen"] = _today_iso()
+            _local_write(rows)
+    _list_raw.clear()
+
+
+def prune_visitors(now=None):
+    """Removes the visitors' bots nobody has opened for VISITOR_DAYS days (the nightly record calls it). Returns how many."""
+    cut = ((now or pd.Timestamp.now(tz="UTC")) - pd.Timedelta(days=VISITOR_DAYS)).strftime("%Y-%m-%d")
+    gone = 0
+    for b in list_bots():
+        if b.get("owner") and (b.get("seen") or b.get("created_at", "")[:10] or "9999") < cut:
+            delete_bot(b["id"])
+            gone += 1
+    return gone
 
 
 def update_bot(bot_id, rec, old=None):
@@ -503,6 +585,9 @@ def update_bot(bot_id, rec, old=None):
     old: the bot as it was. When the trading settings didn't change (a new name, a new start date), its forward-test record
     goes on; otherwise a new forward test starts and the old record is kept in 'fwd_prev' (the last 3)."""
     rec = json.loads(json.dumps({k: rec[k] for k in FIELDS}, default=float))
+    if (old or {}).get("owner"):                  # a visitor's bot stays theirs whatever the form sent
+        rec["params"]["owner"] = old["owner"]
+        rec["params"]["seen"] = _today_iso()
     old_fwd = (old or {}).get("fwd")
     if old_fwd and old_fwd.get("hash") == rec["params"]["fwd"]["hash"]:
         rec["params"]["fwd"] = old_fwd
@@ -1850,7 +1935,7 @@ def remember(bots, sims, spy):
     """Keep this replay as the last one of these bots (copies, so no page can change it)."""
     try:
         _LAST[_bots_key(bots)] = (time.time(), copy.deepcopy(sims), copy.deepcopy(spy))
-        while len(_LAST) > 6:
+        while len(_LAST) > 16:                     # the site's two lists and the visitors' own
             _LAST.pop(min(_LAST, key=lambda k: _LAST[k][0]), None)
     except Exception:
         pass
@@ -1867,7 +1952,7 @@ def _replay_later(bots=None, delay=0):
             if delay:
                 time.sleep(delay)                 # the page that is opening gets the network first
             # the saved bots: each market's list on its own (the page asks for the last replay of one market's bots)
-            groups = [snapshot] if snapshot is not None else [list_bots(m) for m in MK.CODES]
+            groups = [snapshot] if snapshot is not None else [list_bots(m, "site") for m in MK.CODES]
             for bs in groups:
                 if bs:
                     sims, spy = run_all(bs)
@@ -1924,4 +2009,4 @@ def journal(sim):
                          "Days": tr["Bars"], "Exit Reason": tr["Exit Reason"]})
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.8.1"
+BUILD = "23.0"

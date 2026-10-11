@@ -450,7 +450,7 @@ def _wait():
     st.markdown('<style>@keyframes pfspin{to{transform:rotate(360deg)}}</style><div style="display:flex;align-items:center;gap:12px;'
                 'padding:22px 4px;opacity:.85"><span style="width:18px;height:18px;border-radius:50%;border:2.5px solid rgba(123,69,240,.3);'
                 'border-top-color:#7B45F0;animation:pfspin .8s linear infinite;flex:none"></span>'
-                + T.esc(L("Opening your portfolio…", "نفتح محفظتك…")) + "</div>", unsafe_allow_html=True)
+                + T.esc(ss.get("pf_wait_msg") or L("Opening your portfolio…", "نفتح محفظتك…")) + "</div>", unsafe_allow_html=True)
     try:
         @st.fragment(run_every=2)
         def _tick():
@@ -2123,4 +2123,4 @@ def page_history():
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.8.1"
+BUILD = "23.0"

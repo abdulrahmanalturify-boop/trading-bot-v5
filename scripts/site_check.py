@@ -25,7 +25,7 @@ PAGES = [  # 22.4: the Discover pages (trending, news, the news engine) and a st
          ("newsintel", "news-intelligence", "us", '[class*="st-key-nie_cb_"] button'),
          ("sentiment", "sentiment", "us"), ("seasonality", "seasonality", "us"), ("stock", "stock?symbol=NVDA", "us"),
          ("sa_trending", "trending", "sa"), ("sa_news", "news", "sa", '[class*="st-key-nwa_"] button')]
-QUICK_PAGES = [("stock_sa", "stock?symbol=2381.SR", "sa"), ("stock_us", "stock?symbol=AAPL", "us")]
+QUICK_PAGES = [("bots", "paper-bots", "us"), ("bots_sa", "paper-bots", "sa")]
 FIN_PILL = {"en": "Net margin", "ar": "صافي الهامش"}
 NAV_BROWSERS = False  # the top bar's menus in WebKit and Firefox too (a quick run)
 
@@ -329,7 +329,7 @@ def shoot(pg, name):
     pg.screenshot(path=os.path.join(OUT, f"{name}.jpg"), type="jpeg", quality=72, full_page=True)
 
 
-QUICK = False         # a quick run: the top bar's menus and two pages, no news/photo/chart labs
+QUICK = True          # a quick run: the top bar's menus and two pages, no news/photo/chart labs
 
 
 XB_SEED = ""            # the X bots' photos: "sample" (clearly-marked sample posts) · "resting" (the key in, before the market's day) · "" (no key)
@@ -514,6 +514,21 @@ def main():
                                 report.setdefault("notes", []).append(f"{lang} send: {e}"[:300])
                         shoot(pg, f"{lang}_{name}")
                         report["pages"][f"{lang}_{name}"] = {"seconds": took, "problems": problems(pg)}
+                        if path == "paper-bots":    # "Build your bot": the visitor's own list with the form open
+                            try:
+                                pg.set_viewport_size({"width": 1440, "height": 900})
+                                pg.locator('[class*="st-key-pb_site_build"] button').first.click(timeout=15000)
+                                time.sleep(2)
+                                settle(pg, 120)
+                                time.sleep(2)
+                                pg.screenshot(path=os.path.join(OUT, f"{lang}_{name}_build.jpg"), type="jpeg", quality=80)
+                                pg.keyboard.press("Escape")
+                                time.sleep(1.5)
+                                settle(pg, 60)
+                                shoot(pg, f"{lang}_{name}_mine")
+                                report["pages"][f"{lang}_{name}_build"] = {"problems": problems(pg)}
+                            except Exception as e:
+                                report.setdefault("notes", []).append(f"{lang} {name} build: {e}"[:300])
                         if path.startswith("stock?"):  # the stock's financials: quarterly net margin and the cash flow charts
                             try:
                                 pg.locator('[data-testid="stTabs"] [role="tab"]').nth(3).click(timeout=15000)

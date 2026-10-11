@@ -12,7 +12,7 @@ import theme as T
 import ui
 from i18n import L, is_ar
 
-BUILD = "22.8.1"
+BUILD = "23.0"
 
 _LINE = "rgba(150,140,250,"
 CSS = f"""
@@ -434,6 +434,8 @@ def hero(chips_html=""):
         ui.html(CSS + top_html(chips_html))
         with st.container(key="czcta"):                  # the two calls to action under the logo, as on n8n's home page
             if st.button(L("Build a bot", "ابنِ بوتك"), type="primary", icon=":material/smart_toy:", key="czcta_bot"):
+                st.session_state["pb_view"] = "mine"         # the visitor's own bots, the new bot's form open (p_paper)
+                st.session_state["pb_build"] = True
                 ui.goto("paper")
             if st.button(L("Today's opportunities", "فرص اليوم"), icon=":material/radar:", key="czcta_hunt"):
                 ui.goto("scanner")
