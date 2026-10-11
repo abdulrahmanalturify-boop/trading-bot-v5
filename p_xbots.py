@@ -102,6 +102,23 @@ CSS = """<style>
 .xrules { padding:14px 16px; border-radius:14px; border:1px dashed rgba(167,139,250,.35); background:rgba(123,69,240,.06); color:#D8D3E2;
   font-size:.88rem; line-height:1.75; }
 .xrules b { color:#fff; }
+/* the bot picker in the site's tab look: a frosted track, the chosen bot a lit blue-violet pill, the others light up under the pointer */
+[class*="st-key-xb_pick_"] [data-testid="stButtonGroup"] { display:flex; flex-wrap:wrap; gap:6px; padding:6px; border-radius:16px; width:fit-content; max-width:100%;
+  background:linear-gradient(180deg, rgba(30,24,46,.80), rgba(16,12,28,.80)); border:1px solid rgba(157,151,165,.20);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.05), 0 10px 26px -16px rgba(0,0,0,.8); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); }
+[class*="st-key-xb_pick_"] [data-testid="stButtonGroup"] button { height:44px; padding:0 18px; border-radius:12px !important; border:none !important; background:transparent;
+  color:#C2BCCD; font-weight:600; font-size:.98rem; box-shadow:none; transition:color .2s, background-color .2s, transform .2s, box-shadow .2s; }
+[class*="st-key-xb_pick_"] [data-testid="stButtonGroup"] button:active { transform:scale(.97); }
+[class*="st-key-xb_pick_"] [data-testid="stButtonGroup"] button p { color:inherit; font-size:inherit; font-weight:inherit; margin:0; }
+[class*="st-key-xb_pick_"] [data-testid="stButtonGroup"] button [data-testid="stIconMaterial"], [class*="st-key-xb_pick_"] [data-testid="stButtonGroup"] button [role="img"]
+  { color:#79B8F4; font-size:1.15em; margin-inline-end:3px; transition:transform .25s cubic-bezier(.3,1.6,.5,1), color .2s; }
+[class*="st-key-xb_pick_"] [data-testid="stButtonGroup"] button:hover { color:#fff; background-color:rgba(255,255,255,.06); }
+[class*="st-key-xb_pick_"] [data-testid="stButtonGroup"] button:hover [data-testid="stIconMaterial"] { transform:translateY(-1px) scale(1.12); }
+[class*="st-key-xb_pick_"] [data-testid="stButtonGroup"] button[kind="segmented_controlActive"], [class*="st-key-xb_pick_"] [data-testid="stButtonGroup"] button[aria-checked="true"]
+  { color:#fff; font-weight:700; background:linear-gradient(135deg, #3B8BEB, #7B45F0); box-shadow:0 8px 20px -8px rgba(91,124,242,.8), inset 0 1px 0 rgba(255,255,255,.25); }
+[class*="st-key-xb_pick_"] [data-testid="stButtonGroup"] button[kind="segmented_controlActive"] [data-testid="stIconMaterial"],
+[class*="st-key-xb_pick_"] [data-testid="stButtonGroup"] button[aria-checked="true"] [data-testid="stIconMaterial"] { color:#fff; }
+[class*="st-key-xb_pick_"] [data-testid="stButtonGroup"] button:focus-visible { box-shadow:0 0 0 2px rgba(121,184,244,.75); }
 .xwait { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:10px; margin-top:8px; }
 @media (max-width: 760px) { .xwait { grid-template-columns:1fr; } }
 .xwait div { padding:12px 14px; border-radius:14px; background:rgba(255,255,255,.03); border:1px solid rgba(157,151,165,.16); font-size:.82rem; color:#B9B3C4; line-height:1.55; }
@@ -462,4 +479,4 @@ def page_xbots():
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.6.2"
+BUILD = "22.6.3"
