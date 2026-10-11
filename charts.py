@@ -1060,7 +1060,10 @@ def cash_waterfall(items, title="Where the cash went (latest year)", pre="$", ba
         connector=dict(line=dict(color="rgba(157,151,165,.45)", width=1, dash="dot"))))
     style(fig, 380, title, legend=False)
     _money_axis(fig, low / div, peak / div, unit, pre)
-    fig.update_xaxes(type="category")
+    # step names flat, a long one on two lines (a narrow column tilted them)
+    names = [i[0] for i in items]
+    two = [n_.replace(" ", "<br>", 1) if len(n_) > 9 and " " in n_ else n_ for n_ in names]
+    fig.update_xaxes(type="category", tickangle=0, tickmode="array", tickvals=names, ticktext=two, automargin=True)
     fig.update_layout(hovermode="closest", waterfallgap=0.42)
     return fig
 
@@ -1528,4 +1531,4 @@ def signal_bars(labels, values, counts, title=None, height=300, unit=("readings"
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.8"
+BUILD = "22.8.1"

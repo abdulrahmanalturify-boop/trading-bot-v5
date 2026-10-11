@@ -328,7 +328,7 @@ def shoot(pg, name):
     pg.screenshot(path=os.path.join(OUT, f"{name}.jpg"), type="jpeg", quality=72, full_page=True)
 
 
-QUICK = True          # a quick run: the top bar's menus and two pages, no news/photo/chart labs
+QUICK = False         # a quick run: the top bar's menus and two pages, no news/photo/chart labs
 
 
 XB_SEED = ""            # the X bots' photos: "sample" (clearly-marked sample posts) · "resting" (the key in, before the market's day) · "" (no key)
