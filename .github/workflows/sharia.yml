@@ -1,0 +1,50 @@
+# The Saudi market's Sharia lists (scripts/build_sharia.py): Argaam's side-by-side page of the Sharia boards' lists and the
+# Almaqased Center's yearly study with the purification amount per share. Weekly, on a push of the reader, or by hand.
+# Commits what it read to "research".
+name: sharia lists
+on:
+  push:
+    branches: [research]
+    paths: ["scripts/build_sharia.py", ".github/workflows/sharia.yml"]
+  schedule:
+    - cron: "17 5 * * 0"
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: sharia
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: research
+          fetch-depth: 0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - run: pip install requests beautifulsoup4 lxml pdfplumber
+      - name: Read the lists
+        run: |
+          set -o pipefail
+          python scripts/build_sharia.py 2>&1 | tee sharia_log.txt
+      - name: Save
+        if: always()
+        run: |
+          git config user.name "research-lab"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          rm -rf /tmp/sh && mkdir -p /tmp/sh && cp -r research/sharia_raw /tmp/sh/ 2>/dev/null || true
+          cp sharia_log.txt /tmp/sh/ 2>/dev/null || true
+          [ -f sharia_lists.json ] && cp sharia_lists.json /tmp/sh/
+          git stash -q -u || true
+          git fetch -q origin research
+          git checkout -q -B upd origin/research
+          mkdir -p research/results research/sharia_raw
+          [ -d /tmp/sh/sharia_raw ] && cp -r /tmp/sh/sharia_raw/. research/sharia_raw/ && git add research/sharia_raw
+          [ -f /tmp/sh/sharia_log.txt ] && cp /tmp/sh/sharia_log.txt research/results/sharia_log.txt && git add research/results/sharia_log.txt
+          [ -f /tmp/sh/sharia_lists.json ] && cp /tmp/sh/sharia_lists.json sharia_lists.json && git add sharia_lists.json
+          git commit -q -m "Sharia lists [skip ci]" || exit 0
+          git push -q origin upd:research
