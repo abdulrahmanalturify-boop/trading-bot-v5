@@ -5,6 +5,7 @@ p_xbots.py - The X Bots page of the current market: its five bots that read X (T
 The page only shows what the bots stored on their last run (scripts/xbots_run.py, every hour of their market's day): it never
 reads X itself, so opening it costs nothing.
 """
+import hashlib
 import math
 
 import pandas as pd
@@ -190,10 +191,12 @@ def _spark(curve, color, w=110, h=34):
         return (f'<svg viewBox="0 0 {w} {h}" preserveAspectRatio="none" aria-hidden="true"><line x1="2" y1="{h / 2:.0f}" x2="{w - 2}" y2="{h / 2:.0f}" vector-effect="non-scaling-stroke" '
                 f'stroke="rgba(255,255,255,.18)" stroke-width="2" stroke-dasharray="3 4" stroke-linecap="round"/></svg>')
     lo, hi = min(ys), max(ys)
-    span = (hi - lo) or 1.0
-    pts = [(2 + i * (w - 4) / (len(ys) - 1), 3 + (h - 6) * (1 - (y - lo) / span)) for i, y in enumerate(ys)]
+    if hi - lo < max(1.0, abs(hi) * 1e-5):                  # no move yet: a level line across the middle
+        pts = [(2 + i * (w - 4) / (len(ys) - 1), h / 2) for i in range(len(ys))]
+    else:
+        pts = [(2 + i * (w - 4) / (len(ys) - 1), 3 + (h - 6) * (1 - (y - lo) / (hi - lo))) for i, y in enumerate(ys)]
     d = " ".join(f"{x:.1f},{y:.1f}" for x, y in pts)
-    gid = f"g{abs(hash(d)) % 10 ** 8}"
+    gid = "g" + hashlib.md5((color + d).encode()).hexdigest()[:10]
     return (f'<svg viewBox="0 0 {w} {h}" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="{gid}" x1="0" x2="0" y1="0" y2="1">'
             f'<stop offset="0" stop-color="{color}" stop-opacity=".35"/><stop offset="1" stop-color="{color}" stop-opacity="0"/></linearGradient></defs>'
             f'<polygon points="{pts[0][0]:.1f},{h} {d} {pts[-1][0]:.1f},{h}" fill="url(#{gid})"/>'
@@ -223,6 +226,13 @@ def _ring(frac, size=34, color="#A78BFA"):
             f'<circle cx="{size / 2}" cy="{size / 2}" r="{r}" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="4"/>'
             f'<circle cx="{size / 2}" cy="{size / 2}" r="{r}" fill="none" stroke="{color}" stroke-width="4" stroke-linecap="round" '
             f'stroke-dasharray="{c * frac:.1f} {c:.1f}"/></svg>')
+
+
+def _last(led):
+    """(value, % return) of an account at its last run's prices (the last point of its curve); before any run, its cash."""
+    curve = led.get("curve") or []
+    eq = float(curve[-1]["eq"]) if curve and curve[-1].get("eq") is not None else XB.equity(led, {s: p["px"] for s, p in led["pos"].items()})
+    return eq, (eq / led["start"] - 1) * 100
 
 
 def _cur(bot):
@@ -256,9 +266,10 @@ def _card(bot, state, rank, sel):
     m = read.get("mood6") if read.get("mood6") is not None else read.get("mood24")
     word, col = _mood_word(m)
     st_ = XB.stats(led, {s: p["px"] for s, p in led["pos"].items()})
+    st_["equity"], st_["ret"] = _last(led)
     cls, words = _status(state)
     slots = "".join(f'<i class="{"on" if i < st_["open"] else ""}"></i>' for i in range(bot["slots"]))
-    rk = f'<span class="rk {"top" if rank == 1 else ""}" title="{T.esc(L("Rank by return", "الترتيب حسب العائد"))}">#{rank}</span>'
+    rk = (f'<span class="rk {"top" if rank == 1 else ""}" title="{T.esc(L("Rank by return", "الترتيب حسب العائد"))}">#{rank}</span>' if rank else "")
     return (f'<div class="xbc {"sel" if sel else ""}" style="--xc:{bot["color"]}">'
             f'<div class="hd"><span class="ic">{T.icon(bot["icon"])}</span><span class="nm"><b>{T.esc(L(*bot["name"]))}</b>'
             f'<small>{rk}{T.esc(L("Paper account", "حساب وهمي"))}</small></span></div>'
@@ -417,11 +428,24 @@ def _hero(cur, bots, states, meta):
         facts = (f'<span class="f">{_ring(reads / cap)}<span><b>{reads:,} / {cap:,}</b>{T.esc(L("posts read today (all ten bots)", "تغريدة مقروءة اليوم (البوتات العشرة)"))}</span></span>'
                  f'<span class="f"><span><b>${reads * COST:,.2f}</b>{T.esc(L("reading cost today", "تكلفة القراءة اليوم"))}</span></span>{mk}')
     else:
-        cls, head = "", L("Ready: waiting for the X connection", "جاهزة: تنتظر ربط X")
-        sub = L("Nothing is read or traded until the site is connected to X.", "ما تقرأ ولا تتداول شي لين يتربط الموقع بـ X.")
+        stat = {(s or {}).get("status") for s in mine.values()} | {(s or {}).get("error") for s in mine.values()}
+        if "auth" in stat:
+            cls, head = "err", L("X refused the key", "X رفض المفتاح")
+            sub = L("The X key in the site's secrets is wrong or was replaced: it needs the current Bearer Token.",
+                    "مفتاح X في أسرار الموقع غلط أو تغيّر: يحتاج الـ Bearer Token الحالي.")
+        elif "credits" in stat:
+            cls, head = "err", L("No credit left on X", "خلص الرصيد في X")
+            sub = L("The bots read again once the X developer account has credit.", "البوتات ترجع تقرأ أول ما ينشحن رصيد حساب مطوري X.")
+        elif stat & {"resting", "cap", "error"}:
+            cls, head = "on", L("Connected to X: the first read is in the market's next hour", "متصلة بـ X: أول قراءة في أول ساعة من يوم السوق الجاي")
+            sub = L("The bots read every hour of the market's day (from an hour before the open to an hour after the close).",
+                    "البوتات تقرأ كل ساعة من يوم السوق (من ساعة قبل الافتتاح لين ساعة بعد الإغلاق).")
+        else:
+            cls, head = "", L("Ready: waiting for the X connection", "جاهزة: تنتظر ربط X")
+            sub = L("Nothing is read or traded until the site is connected to X.", "ما تقرأ ولا تتداول شي لين يتربط الموقع بـ X.")
         facts = mk
     ui.html(f'<div class="xbhero"><div class="st {cls}"><i></i><span>{T.esc(head)}<small>{T.esc(sub)}</small></span></div><div class="facts">{facts}</div></div>')
-    if not read_at:
+    if not read_at and cls == "":
         ui.html('<div class="xwait">'
                 f'<div><b>{T.icon("key")}{T.esc(L("1 · The key", "1 · المفتاح"))}</b>{T.esc(L("The site owner adds the X API key to the secrets of the site; the key is never shown here.", "صاحب الموقع يضيف مفتاح X API في أسرار الموقع، والمفتاح ما يظهر هنا أبداً."))}</div>'
                 f'<div><b>{T.icon("schedule")}{T.esc(L("2 · Every hour", "2 · كل ساعة"))}</b>{T.esc(L("From then on each bot reads the new posts of its beat every hour of the day of its market, within a daily ceiling.", "بعدها كل بوت يقرأ تغريدات مجاله الجديدة كل ساعة من يوم سوقه، ضمن سقف يومي."))}</div>'
@@ -450,12 +474,16 @@ def page_xbots():
     bots = XB.bots_of(cur)
     _hero(cur, bots, states, meta)
 
-    def ret_of(b):
-        led = (states.get(b["id"]) or {}).get("ledger") or XB.new_ledger(cur)
-        return XB.stats(led, {s: p["px"] for s, p in led["pos"].items()})["ret"]
-    rank = {b["id"]: i + 1 for i, b in enumerate(sorted(bots, key=lambda b: -ret_of(b)))}
+    rets = {b["id"]: _last((states.get(b["id"]) or {}).get("ledger") or XB.new_ledger(cur))[1] for b in bots}
+    # a rank only once the accounts differ (before the first trade they are all level: no "#1")
+    rank = ({b["id"]: i + 1 for i, b in enumerate(sorted(bots, key=lambda b: -rets[b["id"]]))}
+            if max(rets.values()) - min(rets.values()) > 0.005 else {b["id"]: 0 for b in bots})
     key = f"xb_pick_{cur}"
-    pick = ss.get(key) if ss.get(key) in {b["id"] for b in bots} else bots[0]["id"]
+    ids = {b["id"] for b in bots}
+    # the chosen bot: the picker's value, or (when its chosen entry is pressed again and cleared) the last one chosen
+    if ss.get(key) in ids:
+        ss[key + "_last"] = ss[key]
+    pick = ss.get(key) if ss.get(key) in ids else ss.get(key + "_last") if ss.get(key + "_last") in ids else bots[0]["id"]
     ui.html('<div class="xbg">' + "".join(_card(b, states.get(b["id"]), rank[b["id"]], b["id"] == pick) for b in bots) + "</div>")
     # the race of the five accounts (once at least one has two days)
     race = {}
@@ -469,7 +497,7 @@ def page_xbots():
                                     colors={b["id"]: b["color"] for b in bots}, names={b["id"]: L(*b["name"]) for b in bots}), key=f"xb_race_{cur}")
     names = {b["id"]: f":material/{b['icon']}: {L(*b['name'])}" for b in bots}
     chosen = st.segmented_control(L("Bot", "البوت"), list(names), default=pick, key=key, format_func=names.get, label_visibility="collapsed")
-    bot = XB.BY_ID.get(chosen or pick, bots[0])
+    bot = XB.BY_ID.get(chosen if chosen in ids else pick, bots[0])
     ui.safe(_bot_view, bot, states.get(bot["id"]))
     st.caption(L("The posts are shown as written on X, with a link to each. The bots' trades are on paper at the latest prices (long only, "
                  "a 0.1% fee each way): an experiment in reading the crowd, not advice.",
@@ -479,4 +507,4 @@ def page_xbots():
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.6.3"
+BUILD = "22.6.4"

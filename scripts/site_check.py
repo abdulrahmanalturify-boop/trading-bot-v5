@@ -296,12 +296,28 @@ def shoot(pg, name):
     pg.screenshot(path=os.path.join(OUT, f"{name}.jpg"), type="jpeg", quality=72, full_page=True)
 
 
-QUICK = False         # a quick run: the top bar's menus and two pages, no news/photo/chart labs
+QUICK = True          # a quick run: the top bar's menus and two pages, no news/photo/chart labs
+
+
+XB_SEED = "resting"     # the X bots' photos: "sample" (clearly-marked sample posts) · "resting" (the key in, before the market's day) · "" (no key)
+
+
+def seed_resting():
+    """The state right after the X key is added, before the market's first hour: every bot ran once and rests."""
+    import pandas as pd
+    import xbots as XB
+    meta = {}
+    for bot in XB.BOTS:
+        st_ = XB.run(bot, "KEY", meta, now=pd.Timestamp("2026-10-11 03:00", tz="UTC"), get=lambda *a, **k: None, quotes_fn=lambda syms: {})
+        XB.save_state(bot, st_)
+    XB.save(XB.META, meta)
 
 
 def main():
-    if QUICK:
+    if QUICK and XB_SEED == "sample":
         seed_xbots()
+    elif QUICK and XB_SEED == "resting":
+        seed_resting()
     if not QUICK:
         news_lab()
     seed_bots()
