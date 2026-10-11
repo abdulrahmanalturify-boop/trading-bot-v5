@@ -316,6 +316,7 @@ def _post(p):
             f'<a class="go" href="{T.esc(link)}" target="_blank" rel="noopener">{T.esc(L("Open on X", "افتح في X"))} ↗</a></div></div>')
 
 
+AR_MONTHS = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"]
 VERDICT = {"truthful": ("Truthful signals", "إشاراته صادقة"), "noise": ("Noise", "ضوضاء"),
            "reversed": ("Reversed: the price goes the other way", "عكسية: السعر يمشي عكس كلامه"),
            "collecting": ("Collecting data", "يجمع البيانات")}
@@ -334,7 +335,9 @@ def _log_mark(state):
     lm = (state or {}).get("log_meta")
     if not lm or not lm.get("since"):
         return (f'<span class="xlog off"><i></i>{T.esc(L("Its log starts with its first run", "سجله يبدأ مع أول تشغيل"))}</span>')
-    since = pd.Timestamp(lm["since"]).tz_convert(MK.tz((state or {}).get("market"))).strftime("%d %b")
+    t_ = pd.Timestamp(lm["since"])
+    t_ = (t_.tz_localize("UTC") if t_.tzinfo is None else t_).tz_convert(MK.tz((state or {}).get("market")))
+    since = f"{t_.day} {AR_MONTHS[t_.month - 1]}" if is_ar() else t_.strftime("%d %b")
     days = int(lm.get("days") or 0)
     words = L(f"Log kept since {since} · {days} trading days", f"السجل محفوظ منذ {since} · {days} يوم تداول")
     return f'<span class="xlog"><i></i>{T.esc(words)}</span>'
@@ -686,4 +689,4 @@ def page_xbots():
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.7"
+BUILD = "22.7.1"

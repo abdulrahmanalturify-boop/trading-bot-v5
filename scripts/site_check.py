@@ -451,6 +451,16 @@ def main():
                                 report.setdefault("notes", []).append(f"{lang} send: {e}"[:300])
                         shoot(pg, f"{lang}_{name}")
                         report["pages"][f"{lang}_{name}"] = {"seconds": took, "problems": problems(pg)}
+                        if path == "x-bots":         # the bot's evaluation tab ("Is it truthful?")
+                            try:
+                                pg.locator('[data-testid="stTabs"] [role="tab"]').nth(2).click(timeout=15000)
+                                time.sleep(2)
+                                settle(pg, 120)
+                                time.sleep(2)
+                                shoot(pg, f"{lang}_{name}_score")
+                                report["pages"][f"{lang}_{name}_score"] = {"problems": problems(pg)}
+                            except Exception as e:
+                                report.setdefault("notes", []).append(f"{lang} {name} score: {e}"[:300])
                         if click:                    # open the first story's analysis window and photograph it
                             try:
                                 pg.set_viewport_size({"width": 1440, "height": 2400})
