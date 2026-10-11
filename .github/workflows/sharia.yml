@@ -1,6 +1,7 @@
-# The Saudi market's Sharia lists (scripts/build_sharia.py): Argaam's side-by-side page of the Sharia boards' lists and the
-# Almaqased Center's yearly study with the purification amount per share. Weekly, on a push of the reader, or by hand.
-# Commits what it read to "research".
+# The Saudi market's Sharia lists (scripts/build_sharia.py -> sharia_lists.json): Al Rajhi Capital's and Albilad Capital's
+# lists of permitted shares as Argaam puts them side by side, and the Almaqased Center's yearly study with the purification
+# amount per share. Weekly, on a push of the reader, or by hand. Commits sharia_lists.json to "research" and moves "main" and
+# "redesign" to the same commit when they were at research's previous one. The sources themselves are not kept in the repository.
 name: sharia lists
 on:
   push:
@@ -26,7 +27,8 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
-      - run: pip install requests beautifulsoup4 lxml pdfplumber
+      - run: sudo apt-get install -y -q poppler-utils > /dev/null
+      - run: pip install requests beautifulsoup4 lxml
       - name: Read the lists
         run: |
           set -o pipefail
@@ -36,15 +38,17 @@ jobs:
         run: |
           git config user.name "research-lab"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          rm -rf /tmp/sh && mkdir -p /tmp/sh && cp -r research/sharia_raw /tmp/sh/ 2>/dev/null || true
-          cp sharia_log.txt /tmp/sh/ 2>/dev/null || true
-          [ -f sharia_lists.json ] && cp sharia_lists.json /tmp/sh/
-          git stash -q -u || true
-          git fetch -q origin research
-          git checkout -q -B upd origin/research
-          mkdir -p research/results research/sharia_raw
-          [ -d /tmp/sh/sharia_raw ] && cp -r /tmp/sh/sharia_raw/. research/sharia_raw/ && git add research/sharia_raw
-          [ -f /tmp/sh/sharia_log.txt ] && cp /tmp/sh/sharia_log.txt research/results/sharia_log.txt && git add research/results/sharia_log.txt
-          [ -f /tmp/sh/sharia_lists.json ] && cp /tmp/sh/sharia_lists.json sharia_lists.json && git add sharia_lists.json
+          cp sharia_log.txt /tmp/sharia_log.txt 2>/dev/null || true
+          [ -f sharia_lists.json ] && cp sharia_lists.json /tmp/sharia_lists.json
+          rm -rf research/sharia_raw
+          git fetch -q origin research main redesign
+          git checkout -q -f -B upd origin/research
+          old=$(git rev-parse HEAD)
+          mkdir -p research/results
+          [ -f /tmp/sharia_log.txt ] && cp /tmp/sharia_log.txt research/results/sharia_log.txt && git add research/results/sharia_log.txt
+          [ -f /tmp/sharia_lists.json ] && cp /tmp/sharia_lists.json sharia_lists.json && git add sharia_lists.json
           git commit -q -m "Sharia lists [skip ci]" || exit 0
           git push -q origin upd:research
+          for b in main redesign; do
+            if [ "$(git rev-parse origin/$b)" = "$old" ]; then git push -q origin upd:$b; else echo "$b is not at research's commit: left as it is"; fi
+          done

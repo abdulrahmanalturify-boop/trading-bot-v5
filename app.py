@@ -11,17 +11,35 @@ import streamlit as st
 # ---------------------------------------------------------------- always run the newest code
 # Streamlit Cloud re-reads app.py after every GitHub upload but can keep the other modules (theme, data, ...) from the
 # previous version in memory. Every module carries BUILD; if one in memory is older, all of them are reloaded in order.
-BUILD = "23.1.3"
+BUILD = "23.2"
 _ORDER = ["terms", "lightmode", "i18n", "ai_assistant", "flags", "mcal", "mcal_sa", "markets", "tasi", "universe", "sp500", "taxonomy", "ta", "academy_visuals", "academy", "insight", "heatmap", "newsiq", "newspics", "theme", "data",
           "caldata", "newsbot", "newsintel", "charts", "engine", "playbooks", "autotrader", "ui", "fairvalue", "segments", "holders", "sharia", "lab", "tdash", "mlbots", "brain", "account", "paperbots", "smartbots", "portfolio", "robobot", "robo", "pfinsight", "p_markets", "p_newsintel", "p_research", "p_insight",
           "p_academy", "p_paper", "p_portfolio", "p_robo", "p_calendar", "hunter", "p_scanner", "xbots", "p_xbots", "home"]
-if any(m in sys.modules and getattr(sys.modules[m], "BUILD", None) != BUILD for m in _ORDER):
-    for _m in _ORDER:
-        if _m in sys.modules:
-            try:
-                importlib.reload(sys.modules[_m])
-            except Exception:
-                sys.modules.pop(_m, None)       # imported fresh below
+# Every visitor's run executes this file at the same time, in its own thread. A module another run is still importing (its
+# BUILD, at the end of the file, not set yet) is not old: it is left alone, since taking it out of sys.modules under that import
+# crashed the server (KeyError: 'ui' in importlib, after the 23.1 upload). One run reloads at a time; the others wait for it,
+# then find every module current.
+_RELOAD_LOCK = sys.__dict__.setdefault("_tura_reload_lock", __import__("threading").RLock())   # one per server process
+
+
+def _stale(name):
+    mod = sys.modules.get(name)
+    if mod is None or getattr(getattr(mod, "__spec__", None), "_initializing", False):
+        return False
+    return getattr(mod, "BUILD", None) != BUILD
+
+
+if any(_stale(m) for m in _ORDER):
+    with _RELOAD_LOCK:
+        if any(_stale(m) for m in _ORDER):        # not done meanwhile by the run that held the lock
+            for _m in _ORDER:
+                _mod = sys.modules.get(_m)
+                if _mod is None or getattr(getattr(_mod, "__spec__", None), "_initializing", False):
+                    continue
+                try:
+                    importlib.reload(_mod)
+                except Exception:
+                    sys.modules.pop(_m, None)       # imported fresh below
 
 import lightmode as LM
 
@@ -32,10 +50,15 @@ import ai_assistant
 import data
 import newsbot
 # Reload the academy revision once for already-running sessions.
-if "academy" in sys.modules and getattr(sys.modules["academy"], "ACADEMY_REVISION", None) != "2026-09-27.6":
-    for _ac in ("academy_extra", "academy_visuals", "academy_labs", "academy", "p_academy"):
-        if _ac in sys.modules:
-            importlib.reload(sys.modules[_ac])
+_ac_mod = sys.modules.get("academy")
+if (_ac_mod is not None and not getattr(getattr(_ac_mod, "__spec__", None), "_initializing", False)
+        and getattr(_ac_mod, "ACADEMY_REVISION", None) != "2026-09-27.6"):
+    with _RELOAD_LOCK:
+        if getattr(sys.modules.get("academy"), "ACADEMY_REVISION", None) != "2026-09-27.6":
+            for _ac in ("academy_extra", "academy_visuals", "academy_labs", "academy", "p_academy"):
+                _mod = sys.modules.get(_ac)
+                if _mod is not None and not getattr(getattr(_mod, "__spec__", None), "_initializing", False):
+                    importlib.reload(_mod)
 
 import p_academy
 import p_calendar

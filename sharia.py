@@ -18,7 +18,16 @@ The Saudi market is read by its own rules, not by Yahoo's English industry name 
   - finance companies must finance in a way that does not conflict with Sharia (Finance Companies Control Law, Article 3), under
     their own Sharia committees: "check a Sharia list" as well.
   - there are no casinos in the kingdom: "Resorts & Casinos" there is tourism.
+
+A Saudi company on the Sharia boards' lists (sharia_lists.json, read weekly by scripts/build_sharia.py) is judged by those
+lists first: Al Rajhi Capital's and Albilad Capital's lists of permitted shares, and the Almaqased Center's yearly study (Dr.
+Mohammed Al-Osaimi) with its class (pure, mixed, not compliant) and its purification amount per share. The site's own screen
+stays under them as the detail. Any other company gets the site's own estimate of the purification amount: its interest income
+over its shares.
 """
+import json
+import os
+
 import numpy as np
 import pandas as pd
 import streamlit as st
@@ -28,7 +37,7 @@ import theme as T
 import ui
 from i18n import L, industry_name, is_ar
 
-BUILD = "23.1.3"
+BUILD = "23.2"
 
 REV_MAX, RATIO_MAX = 5.0, 30.0
 HALAL, DOUBT, HARAM = "#4ADE80", "#F5B94A", "#F87171"
@@ -132,6 +141,11 @@ def _screen(sym):
     if out["mcap"]:
         out["sec"] = None if cash is None else cash / out["mcap"] * 100
         out["debt"] = None if debt is None else debt / out["mcap"] * 100
+    # the purification estimate: the year's interest income over the shares (the whole income that is not halal, as the
+    # Almaqased study purifies it), in the company's reporting currency
+    if shares and intr and intr > 0:
+        out["purify"] = float(intr) / float(shares)
+        out["cur"] = inf.get("financialCurrency") or inf.get("currency")
     return out
 
 
@@ -159,6 +173,67 @@ def verdict(r):
     if None in checks.values() or "doubt" in checks.values() or "unknown" in checks.values():
         return "doubt", checks
     return "pass", checks
+
+
+# ---------------------------------------------------------------- the Saudi market's Sharia lists (sharia_lists.json)
+LISTS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "sharia_lists.json")
+_LISTS = {"mtime": None, "doc": {}}
+BOARD_ORDER = ("rajhi", "bilad", "osaimi")
+BOARD_NAMES = {"rajhi": ("Al Rajhi Capital's Sharia board", "الهيئة الشرعية في الراجحي المالية"),
+               "bilad": ("Albilad Capital's Sharia board", "الهيئة الشرعية في البلاد المالية"),
+               "osaimi": ("Almaqased · Dr. Mohammed Al-Osaimi", "المقاصد · د. محمد بن سعود العصيمي")}
+# Almaqased's classes -> the state they count as (a mixed company is allowed by the scholars who allow mixed companies, with
+# purification: it counts as neither)
+OSAIMI_STATE = {"pure": "pass", "public": "pass", "mixed": "mixed", "not": "fail", "activity": "fail"}
+MONTHS_AR = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"]
+MONTHS_EN = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
+
+def lists():
+    """The lists' file ({} when missing), read again when it changes."""
+    try:
+        m = os.path.getmtime(LISTS_FILE)
+    except OSError:
+        return {}
+    if _LISTS["mtime"] != m:
+        try:
+            with open(LISTS_FILE, encoding="utf-8") as f:
+                doc = json.load(f)
+        except (OSError, ValueError):
+            return _LISTS["doc"]
+        _LISTS["doc"], _LISTS["mtime"] = doc, m
+    return _LISTS["doc"]
+
+
+def boards(sym):
+    """{"states": {board: pass / fail / mixed / none}, "osaimi": class or None, "purify": riyals per share a year or None,
+    "verdict": pass / fail / doubt, "yes": boards that pass it, "known": boards with a verdict}, or None when the company isn't
+    in the lists (any non-Saudi symbol, a Saudi one listed after them)."""
+    s = str(sym or "").strip().upper()
+    if not s.endswith(".SR"):
+        return None
+    it = (lists().get("items") or {}).get(s)
+    if not it:
+        return None
+    states = {"rajhi": None if it.get("rajhi") is None else ("pass" if it["rajhi"] else "fail"),
+              "bilad": None if it.get("bilad") is None else ("pass" if it["bilad"] else "fail"),
+              "osaimi": OSAIMI_STATE.get(it.get("osaimi"))}
+    known = [b for b in BOARD_ORDER if states[b]]
+    if not known:
+        return None
+    yes = [b for b in known if states[b] == "pass"]
+    v = "pass" if len(yes) == len(known) else ("fail" if all(states[b] == "fail" for b in known) else "doubt")
+    return {"states": states, "osaimi": it.get("osaimi"), "purify": it.get("purify"), "verdict": v, "yes": yes, "known": known}
+
+
+def _date(iso, month_only=False):
+    """'2026-03-31' -> 31 Mar 2026 / 31 مارس 2026 (month_only: Mar 2026)."""
+    try:
+        y, m, d = (int(x) for x in str(iso)[:10].split("-"))
+    except (TypeError, ValueError):
+        return "—"
+    mon = MONTHS_AR[m - 1] if is_ar() else MONTHS_EN[m - 1]
+    return f"{mon} {y}" if month_only else f"{d} {mon} {y}"
 
 
 # ---------------------------------------------------------------- the look
@@ -206,6 +281,19 @@ CSS = f"""<style>
 .shleg .it b {{ display:block; font-size:1.35rem; color:#fff; direction:ltr; text-align:start; font-variant-numeric:tabular-nums; }}
 .shnote {{ color:#B1ABBF; font-size:.76rem; line-height:1.6; margin-top:10px; }}
 .ar .shleg .it span {{ letter-spacing:0; font-size:.8rem; }}
+.shgrid.three {{ grid-template-columns:repeat(3,minmax(0,1fr)); margin-bottom:12px; }}
+@media (max-width: 900px) {{ .shgrid.three {{ grid-template-columns:minmax(0,1fr); }} }}
+.shc .dt {{ color:#9791AD; font-size:.74rem; margin-top:auto; padding-top:4px; }}
+.shc .dt a {{ color:#79B8F4; text-decoration:none; }}
+.shpur {{ margin-bottom:10px; }}
+.shpur .big {{ margin-top:2px; }}
+.shpur .big small {{ direction:rtl; }}
+.shres {{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; flex-wrap:wrap; background:{T.POS_BG};
+  border:1px solid {T.UP_EDGE}; border-radius:14px; padding:12px 16px; margin:2px 0 6px; }}
+.shres span {{ color:#CCC7D8; font-size:.84rem; }}
+.shres b {{ color:{T.POS_FG}; font-size:1.35rem; font-weight:600; direction:ltr; font-variant-numeric:tabular-nums; }}
+.shsub {{ display:flex; align-items:center; gap:8px; color:#DFDAE8; font-size:.98rem; font-weight:600; margin:20px 0 8px; }}
+.shsub .ms {{ color:#A78BFA; font-size:1.15rem; }}
 </style>"""
 
 _TILE = ("M30 6 L36 24 L54 30 L36 36 L30 54 L24 36 L6 30 L24 24 Z "
@@ -306,20 +394,186 @@ def _special(kind):
               "ما ينطبق كاختبار هنا: التمويل والاقتراض اللي وراه هو عمل شركة التمويل، وصيغته هي اللي تفحصها القوائم الشرعية."))
 
 
+def _banner(state, head, sub):
+    edge = {"pass": T.UP_EDGE, "fail": T.DN_EDGE}.get(state, T.GOLD)
+    line = {"pass": "linear-gradient(90deg,#16A34A,#4ADE80)", "fail": "linear-gradient(90deg,#DC2626,#F87171)"}.get(
+        state, f"linear-gradient(90deg,#D97706,{T.GOLD})")
+    glow = {"pass": "rgba(34,197,94,.16)", "fail": "rgba(239,68,68,.16)"}.get(state, "rgba(245,185,74,.14)")
+    pat = {"pass": "#22C55E", "fail": "#EF4444"}.get(state, T.GOLD)
+    ar = " ar" if is_ar() else ""
+    return (f'<div class="shbn{ar}" style="--edge:{edge};--line:{line};--glow:{glow}">{_pattern(pat, f"shpat_{state}")}{_icon(state)}'
+            f'<div class="v">{head}</div><div class="s">{sub}</div></div>')
+
+
+SHORT = {"rajhi": ("Al Rajhi Capital", "الراجحي المالية"), "bilad": ("Albilad Capital", "البلاد المالية"), "osaimi": ("Almaqased", "المقاصد")}
+
+
+def _and(names):
+    names = list(names)
+    if len(names) <= 1:
+        return "".join(names)
+    return ("، ".join(names[:-1]) + " و" + names[-1]) if is_ar() else (", ".join(names[:-1]) + " and " + names[-1])
+
+
+def _lists_banner(bd):
+    v, yes, known = bd["verdict"], bd["yes"], bd["known"]
+    n, k = len(known), len(yes)
+    if v == "pass":
+        return _banner("pass", L("Sharia compliant", "متوافقة شرعياً"),
+                       L(f"Permitted on every Sharia list below ({n} of {n}).", f"متوافقة في كل القوائم الشرعية تحت ({n} من {n})."))
+    if v == "fail":
+        return _banner("fail", L("Not Sharia compliant", "غير متوافقة شرعياً"),
+                       L("None of the Sharia lists below permits it.", "ما تجيزها أي قائمة من القوائم الشرعية تحت."))
+    sub = (L(f"Permitted on {k} of {n} lists: {_and(L(*SHORT[b]) for b in yes)}.",
+             f"متوافقة في {k} من {n} قوائم: {_and(L(*SHORT[b]) for b in yes)}.") if k else
+           L("No list below permits it outright.", "ما تجيزها أي قائمة تحت إجازة صريحة."))
+    if bd["osaimi"] == "mixed":
+        sub += L(" Almaqased classes it as mixed.", " والمقاصد يصنّفها مختلطة.")
+    return _banner("doubt", L("The Sharia lists differ", "القوائم الشرعية تختلف فيها"), sub)
+
+
+def _bank_or_insurer(sym, industry):
+    """A bank or an insurer: by the exchange's own industry group, else by Yahoo's industry."""
+    import tasi
+    if tasi.known(sym):
+        return tasi.group_of(sym) in ("banks", "insurance")
+    ind = str(industry or "").lower()
+    return str(sym).upper() in SA_ISLAMIC_BANKS or "bank" in ind or "insurance" in ind
+
+
+def _board_card(b, bd, src, sym, industry):
+    stt = bd["states"][b]
+    if b == "osaimi":
+        c = bd["osaimi"]
+        chip = {"pure": ("pass", L("PURE", "نقية")), "public": ("pass", L("PUBLIC SECTOR", "قطاع عام")),
+                "mixed": ("doubt", L("MIXED", "مختلطة")), "not": ("fail", L("NOT COMPLIANT", "غير متوافقة")),
+                "activity": ("fail", L("NOT PERMISSIBLE", "محرمة النشاط"))}.get(c, ("na", L("NOT STUDIED", "لم تُدرس")))
+        rule = {"pure": L("Pure: a permissible business with no forbidden investments or financing (a small slip may still need "
+                          "purifying).", "نقية: نشاطها مباح، وما عندها استثمارات ولا تمويلات محرمة (وقد يكون فيها شيء يسير يُطهَّر)."),
+                "public": L("The public sector: mostly owned by the state, so it is permitted without these tests; what needs purifying is "
+                            "still purified (the methodology, paragraph 17).",
+                            "قطاع عام: أغلب ملكيتها للدولة، فيجوز تملكها بدون تطبيق هذه الضوابط، مع تطهير ما يجب تطهيره (المنهجية، فقرة 17)."),
+                "mixed": L("Mixed: a permissible business, but with non-Sharia financing or investments of no more than a third of its "
+                           "assets and forbidden income under 5% of its revenue. Permitted by the scholars who allow mixed companies, "
+                           "with purification.",
+                           "مختلطة: نشاطها مباح، لكن عندها تمويل أو استثمار غير شرعي ما يتجاوز ثلث موجوداتها، ودخل محرم أقل من 5% من "
+                           "إيراداتها. يجيزها من يجيز الشركات المختلطة، مع التطهير."),
+                "not": L("Not compliant: a permissible business, but its forbidden financing or investments pass a third of its assets, "
+                         "or its forbidden income passes 5% of its revenue.",
+                         "غير متوافقة: نشاطها مباح، لكن تمويلها أو استثمارها المحرم تجاوز ثلث موجوداتها، أو دخلها المحرم تجاوز 5% من إيراداتها."),
+                "activity": L("Its business itself is not permissible.", "نشاطها نفسه غير مباح.")}.get(c)
+        if rule is None:
+            rule = (L("The study leaves out the commercial banks and the insurers: their own Sharia boards study them.",
+                      "الدراسة ما تشمل البنوك التجارية وشركات التأمين، لأن لها هيئاتها الشرعية اللي تدرسها.")
+                    if _bank_or_insurer(sym, industry) else
+                    L(f"Not in the study of {src.get('year') or ''}: most likely listed after it.",
+                      f"ما شملتها دراسة {src.get('year') or ''}: غالباً أُدرجت بعدها."))
+        when = L(f"Study of {src.get('year')} · published {_date(src.get('date'), True)}",
+                 f"دراسة عام {src.get('year')} · نُشرت {_date(src.get('date'), True)}")
+    else:
+        chip = (("pass", L("PERMITTED", "مجازة")) if stt == "pass" else ("fail", L("NOT ON THE LIST", "غير مدرجة")))
+        rule = (L("On the board's list of permitted shares.", "موجودة في قائمة الأسهم المجازة عند الهيئة.") if stt == "pass" else
+                L("Not on the board's list of permitted shares.", "مو موجودة في قائمة الأسهم المجازة عند الهيئة."))
+        when = L(f"List of {_date(src.get('date'))}", f"قائمة {_date(src.get('date'))}")
+    url = src.get("url")
+    link = f' · <a href="{T.esc(url)}" target="_blank">{L("Source", "المصدر")}</a>' if url else ""
+    return (f'<div class="shc"><div class="hd">{_chip(chip[0], chip[1])}</div><div class="t">{L(*BOARD_NAMES[b])}</div>'
+            f'<div class="rule">{rule}</div><div class="dt">{when}{link}</div></div>')
+
+
+def _money(v, cur):
+    if cur in ("SAR", None):
+        return f"{v:,.2f} ر.س" if is_ar() else f"SAR {v:,.2f}"
+    if cur == "USD":
+        return f"${v:,.2f}" if v >= 0.01 or v == 0 else f"${v:,.4f}"
+    return f"{cur} {v:,.2f}"
+
+
+def _purify(sym, amount, cur, title, rule):
+    """The purification amount per share for a year, and a calculator: shares x amount x days held / 365."""
+    big = (f'<div class="big">{_money(amount, cur)} <small>{L("per share, for a year", "للسهم عن سنة")}</small></div>' if amount > 0 else
+           f'<div class="big" style="font-size:1.1rem">{L("No purification needed", "ما يحتاج تطهير")} '
+           f'<small>({_money(0, cur)})</small></div>')
+    ui.html(f'<div class="shc shpur"><div class="hd">{T.icon("volunteer_activism")}<div class="t">{title}</div></div>{big}'
+            f'<div class="rule">{rule}</div></div>')
+    if amount <= 0:
+        return
+    c1, c2 = st.columns(2)
+    n = c1.number_input(L("Shares you hold", "عدد أسهمك"), min_value=0, value=100, step=10, key=f"shp_n_{sym}")
+    d = c2.number_input(L("Days you held them (in the year)", "أيام التملك (خلال السنة)"), min_value=1, max_value=365, value=365,
+                        step=1, key=f"shp_d_{sym}")
+    total = float(n) * float(amount) * float(d) / 365
+    ui.html(f'<div class="shres"><span>{L(f"Purify for {int(n):,} shares over {int(d)} days", f"تطهّر عن {int(n):,} سهم لمدة {int(d)} يوم")}'
+            f'</span><b>{_money(total, cur)}</b></div>')
+
+
 def section(sym, industry=None):
-    """The Sharia compliance block of one company."""
+    """The Sharia compliance block of one company: the Sharia boards' lists first (a Saudi company on them), then the site's own
+    screen, and the purification amount."""
     ui.sec("mosque", "Sharia compliance", "التوافق مع الشريعة")
+    bd = boards(sym)
     r = screen(sym)
     if r is None and business(industry, sym) in SPECIAL:     # the Saudi rules need no statements
         r = {"kind": "EQUITY", "industry": industry, "business": business(industry, sym)}
+    if r is not None and r.get("kind") != "EQUITY":
+        st.caption(L("The Sharia screen is for company shares (not funds, indices or crypto).",
+                     "فحص التوافق الشرعي للأسهم فقط (ما يشمل الصناديق والمؤشرات والعملات الرقمية)."))
+        return
+    ar = " ar" if is_ar() else ""
+    if bd:
+        src = lists().get("sources") or {}
+        ui.ai_note("Sharia lists", f"{bd['verdict']} - " + ", ".join(f"{b}: {bd['states'][b] or 'not studied'}" for b in BOARD_ORDER)
+                   + (f"; purification {bd['purify']:.2f} SAR per share a year (Almaqased)" if bd.get("purify") is not None else ""))
+        ui.html(CSS + f'<div class="{ar.strip()}">{_lists_banner(bd)}<div class="shgrid three">'
+                + "".join(_board_card(b, bd, src.get(b) or {}, sym, industry or (r or {}).get("industry")) for b in BOARD_ORDER)
+                + "</div></div>")
+        if bd.get("purify") is not None:
+            o = src.get("osaimi") or {}
+            _purify(sym, float(bd["purify"]), "SAR", L("Purification amount", "مبلغ التطهير"),
+                    L(f"From the Almaqased study of {o.get('year')}: the income it judged not halal, over the number of shares. Purify "
+                      "shares x amount x days held / 365. It is given away to charity to be rid of it; it is not zakat or sadaqa.",
+                      f"من دراسة المقاصد لعام {o.get('year')}: الدخل اللي حكمت إنه غير حلال مقسوم على عدد الأسهم. تطهّر: عدد الأسهم × "
+                      "مبلغ التطهير × أيام التملك ÷ 365. ويُخرج بنية التخلص منه في أوجه البر، وما يعتبر زكاة ولا صدقة."))
+        if r is None:
+            _lists_note(src)
+            return
+        ui.html(f'<div class="shsub">{T.icon("query_stats")}{L("The site&#39;s financial screen (educational)", "فحص الموقع المالي (تعليمي)")}</div>')
+        _screen_block(sym, industry, r, banner=False)
+        _lists_note(src)
+        return
     if r is None:
         st.caption(L("Yahoo Finance sent no financial statements for this company right now; the screen is tried again on the next view.",
                      "ياهو فاينانس ما أرسل القوائم المالية لهذه الشركة الحين، والفحص ينعاد مع الفتح القادم."))
         return
-    if r.get("kind") != "EQUITY":
-        st.caption(L("The Sharia screen is for company shares (not funds, indices or crypto).",
-                     "فحص التوافق الشرعي للأسهم فقط (ما يشمل الصناديق والمؤشرات والعملات الرقمية)."))
-        return
+    _screen_block(sym, industry, r, banner=True)
+    state, _ = verdict(r)
+    if r.get("purify") is not None and r.get("business") not in SPECIAL and state != "fail":
+        _purify(sym, float(r["purify"]), r.get("cur") or ("SAR" if str(sym).upper().endswith(".SR") else "USD"),
+                L("Purification amount (the site's estimate)", "مبلغ التطهير (تقدير الموقع)"),
+                L("An estimate from the latest annual statements: the interest income over the number of shares. Sharia lists work it "
+                  "out in more detail (they also purify a part of other income whose source isn't disclosed). Purify shares x amount x "
+                  "days held / 365, given away to charity to be rid of it (not zakat or sadaqa).",
+                  "تقدير من آخر قوائم سنوية: إيرادات الفوائد مقسومة على عدد الأسهم. القوائم الشرعية تحسبه بتفصيل أكثر (تطهّر مثلاً جزءاً من "
+                  "الإيرادات الأخرى اللي مصدرها غير معلن). تطهّر: عدد الأسهم × مبلغ التطهير × أيام التملك ÷ 365، ويُخرج بنية التخلص منه "
+                  "في أوجه البر (مو زكاة ولا صدقة)."))
+
+
+def _lists_note(src):
+    o = src.get("osaimi") or {}
+    ui.html('<div class="shnote">' + L(
+        f"The Sharia boards' verdicts as they published them, not a ruling by this site: Al Rajhi Capital's and Albilad Capital's lists "
+        f"of permitted shares as Argaam puts them side by side (lists of {_date((src.get('rajhi') or {}).get('date'))}), and the "
+        f"Almaqased Center's study of the Saudi companies for {o.get('year')} (Dr. Mohammed bin Saud Al-Osaimi, published "
+        f"{_date(o.get('date'), True)}; its results are the center's). The lists are read again every week. A company listed after a "
+        "list's date may not be on it yet.",
+        f"أحكام الهيئات الشرعية كما نشرتها، وليست فتوى من الموقع: قائمتا الأسهم المجازة عند الراجحي المالية والبلاد المالية كما يجمعها "
+        f"موقع أرقام (قوائم {_date((src.get('rajhi') or {}).get('date'))})، ودراسة مركز المقاصد للشركات السعودية لعام {o.get('year')} "
+        f"(د. محمد بن سعود العصيمي، نُشرت {_date(o.get('date'), True)}، ونتائجها حق للمركز). القوائم تنقرأ من مصادرها كل أسبوع، "
+        "والشركة اللي أُدرجت بعد تاريخ القائمة ممكن ما تكون فيها للحين.") + "</div>")
+
+
+def _screen_block(sym, industry, r, banner=True):
+    """The site's own screen: the banner (when the lists don't judge the company), the revenue, the business and the two ratios."""
     state, checks = verdict(r)
     kind = r.get("business")
     sp = _special(kind) if kind in SPECIAL else None
@@ -330,14 +584,8 @@ def section(sym, industry=None):
                       "فيه فحص ما اكتمل أو نشاط الشركة يحتاج نظرة أدق.")}[state]
     if sp:
         head, sub = sp[0], sp[1]
-    edge = {"pass": T.UP_EDGE, "fail": T.DN_EDGE}.get(state, T.GOLD)
-    line = {"pass": "linear-gradient(90deg,#16A34A,#4ADE80)", "fail": "linear-gradient(90deg,#DC2626,#F87171)"}.get(
-        state, f"linear-gradient(90deg,#D97706,{T.GOLD})")
-    glow = {"pass": "rgba(34,197,94,.16)", "fail": "rgba(239,68,68,.16)"}.get(state, "rgba(245,185,74,.14)")
-    pat = {"pass": "#22C55E", "fail": "#EF4444"}.get(state, T.GOLD)
     ar = " ar" if is_ar() else ""
-    banner = (f'<div class="shbn{ar}" style="--edge:{edge};--line:{line};--glow:{glow}">{_pattern(pat, f"shpat_{state}")}{_icon(state)}'
-              f'<div class="v">{head}</div><div class="s">{sub}</div></div>')
+    top = _banner(state, head, sub) if banner else ""
     # revenue breakdown
     if sp:
         rev = f'<div class="rule">{sp[3]}</div>'
@@ -390,5 +638,5 @@ def section(sym, industry=None):
         note += L(" In the Saudi market, Islamic banks, cooperative insurers and finance companies are read by the market's own rules, "
                   "not by Yahoo's industry name.",
                   " وفي السوق السعودي تنقرأ البنوك الإسلامية وشركات التأمين التعاوني وشركات التمويل حسب أنظمة السوق نفسه، مو حسب تصنيف ياهو.")
-    ui.html(CSS + f'<div class="{ar.strip()}">{banner}<div class="shgrid">{rev_card}{biz}</div><div class="shgrid two">{sec_card}{debt_card}</div>'
+    ui.html(CSS + f'<div class="{ar.strip()}">{top}<div class="shgrid">{rev_card}{biz}</div><div class="shgrid two">{sec_card}{debt_card}</div>'
             f'<div class="shnote">{note}</div></div>')

@@ -347,6 +347,51 @@ def seed_resting():
     XB.save(XB.META, meta)
 
 
+SHARIA = True         # a quick run: the Sharia section of a few companies (the Company tab), Arabic and English, desktop and phone
+SHARIA_SYMS = ["2222.SR", "2010.SR", "1180.SR", "8210.SR", "AAPL"]
+
+
+def sharia_check(b, report):
+    """The stock page's Company tab, cut to its Sharia section (from its title to its last note)."""
+    js_box = """() => { const h = [...document.querySelectorAll('.sec')].find(e => e.textContent.includes('mosque'));
+        if (!h) return null; const notes = [...document.querySelectorAll('.shnote, .shres, .shpur')];
+        const end = notes.length ? notes[notes.length - 1] : h; const a = h.getBoundingClientRect(), z = end.getBoundingClientRect();
+        return {y: a.top + window.scrollY - 12, h: z.bottom - a.top + 40}; }"""
+    for lang in ("ar", "en"):
+        for kind in ("desk", "phone", "light"):
+            if kind != "desk" and lang == "en":
+                continue
+            vp = {"width": 390, "height": 844} if kind == "phone" else {"width": 1440, "height": 900}
+            ctx = b.new_context(viewport=vp, locale="ar-SA" if lang == "ar" else "en-US", color_scheme="light" if kind == "light" else "dark",
+                                is_mobile=kind == "phone", has_touch=kind == "phone")
+            pg = ctx.new_page()
+            for sym in SHARIA_SYMS if kind == "desk" else SHARIA_SYMS[:2]:
+                name = f"sh_{lang}_{kind}_{sym.replace('.SR', '')}"
+                try:
+                    mk = "sa" if sym.endswith(".SR") else "us"
+                    pg.goto(f"{URL}/stock?symbol={sym}&m={mk}&lang={lang}", wait_until="domcontentloaded", timeout=90000)
+                    settle(pg, 180)
+                    pg.locator('[data-testid="stTabs"] [role="tab"]').nth(1).click(timeout=20000)
+                    time.sleep(2)
+                    settle(pg, 150)
+                    time.sleep(3)
+                    box = pg.evaluate(js_box)
+                    if box:
+                        h = pg.evaluate("() => document.documentElement.scrollHeight")
+                        pg.set_viewport_size({"width": vp["width"], "height": min(max(int(h), vp["height"]), 9000)})
+                        time.sleep(1.5)
+                        box = pg.evaluate(js_box) or box
+                        pg.screenshot(path=os.path.join(OUT, f"{name}.jpg"), type="jpeg", quality=80, full_page=True,
+                                      clip={"x": 0, "y": max(0, box["y"]), "width": vp["width"], "height": max(200, box["h"])})
+                        pg.set_viewport_size(vp)
+                    else:
+                        shoot(pg, name)
+                    report["pages"][name] = {"problems": problems(pg), "found": bool(box)}
+                except Exception as e:
+                    report["pages"][name] = {"error": str(e)[:400]}
+            ctx.close()
+
+
 TOUR = False          # the whole site in Arabic: every page, US and (where it has one) Saudi, on a desktop and on a phone
 TOUR_PAGES = [("overview", 1), ("futures", 0), ("options", 0), ("economy", 0), ("trending", 1), ("news", 1), ("news-intelligence", 1),
               ("stock?symbol=NVDA", 0), ("stock?symbol=2222.SR", 2), ("screener", 1), ("brief", 1), ("articles", 1), ("sentiment", 1),
@@ -406,7 +451,7 @@ def main():
         seed_xbots()
     elif QUICK and XB_SEED == "resting":
         seed_resting()
-    if not QUICK:
+    if not QUICK and not SHARIA:
         news_lab()
     seed_bots()
     if QUICK and AUTH_DEMO:                     # made-up sign-in settings on the test server only: the Sign in button shows
@@ -437,6 +482,13 @@ def main():
         from playwright.sync_api import sync_playwright
         with sync_playwright() as p:
             b = p.chromium.launch()
+            if SHARIA:
+                try:
+                    sharia_check(b, report)
+                finally:
+                    json.dump(report, open(os.path.join(OUT, "report.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+                b.close()
+                return 0
             if TOUR:
                 try:
                     tour(b, report)

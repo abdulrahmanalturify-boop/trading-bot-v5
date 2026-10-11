@@ -2,3 +2,4 @@ __pycache__/
 *.pyc
 research/.cache/
 .streamlit/secrets.toml
+research/sharia_raw/
