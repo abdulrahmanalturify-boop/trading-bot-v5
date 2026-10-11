@@ -1184,6 +1184,9 @@ html[data-menu-closed] [class*="st-key-navdd_"], html[data-menu-closed] .st-key-
 @container topnav (max-width: 1400px) {{ .navbtn {{ padding:0 8px; gap:5px; font-size:.85rem; }} .navbtn .ms {{ font-size:1.05rem; }}
   .st-key-navright .status b {{ display:none; }} .st-key-navright .status {{ padding: 0 12px; }} }}
 @container topnav (max-width: 1030px) {{ .navbtn > span:not(.ms) {{ display:none; }} .navbtn {{ padding:0 10px; }} .navbtn .ms {{ font-size:1.18rem; }} }}
+/* a laptop's bar (about 1100 px beside the sidebar): the menus by their names alone, so the search, the market, the language and the
+   account all keep their place on the line (with the icons the end of the line went off the screen) */
+@container topnav (min-width: 1031px) and (max-width: 1240px) {{ .navbtn > .ms:not(.chev) {{ display:none; }} .navbtn {{ padding:0 9px; }} }}
 @container topnav (max-width: 760px) {{ .st-key-navright .status {{ display:none; }} .langbtn .chev {{ display:none; }} }}
 @container topnav (max-width: 1250px) {{ [class*="st-key-mkt_"] button p {{ position:absolute !important; width:1px; height:1px; overflow:hidden;
   clip:rect(0 0 0 0); clip-path:inset(50%); white-space:nowrap; margin:0 !important; }} [class*="st-key-mkt_"] button {{ padding:0 7px !important; }} }}
@@ -3022,4 +3025,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.1.1"
+BUILD = "23.1.2"
