@@ -29,6 +29,12 @@ PAGES = {
     "argaam_article": "https://www.argaam.com/ar/article/articledetail/id/1836781",
     "almaqased_home": "https://almaqased.net/",
     "almaqased_lists": "https://almaqased.net/cleansing-calculator/",
+    # the side-by-side table of each market (3 TASI, 14 Nomu) and each board's own list with its purification amounts
+    # (1 Al Rajhi Capital, 2 Dr. Mohammed Al-Osaimi, 6 Albilad Capital)
+    "argaam_side_3": "https://www.argaam.com/ar/company/shariahcompanies/1/3/3",
+    "argaam_side_14": "https://www.argaam.com/ar/company/shariahcompanies/1/3/14",
+    **{f"argaam_inst_{i}_{m}": f"https://www.argaam.com/ar/company/shariahcompaniesbyinstitution/{i}?marketid={m}"
+       for i in (1, 2, 6) for m in (3, 14)},
 }
 PDFS = {
     "almaqased_2024_argaam": "https://argaamplus.s3.amazonaws.com/20dcbdb7-9c01-4763-a876-1904c998590f.pdf",
