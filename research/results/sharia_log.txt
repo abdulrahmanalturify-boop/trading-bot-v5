@@ -1,0 +1,8 @@
+https://www.argaam.com/ar/company/shariahcompanies/3/14/3 200 766891 text/html; charset=utf-8
+https://www.argaam.com/en/company/shariahcompanies/3/14/3 200 711565 text/html; charset=utf-8
+https://www.argaam.com/ar/article/articledetail/id/1836781 200 580925 text/html; charset=utf-8
+https://almaqased.net/ 200 73627 text/html; charset=UTF-8
+https://almaqased.net/cleansing-calculator/ 200 67952 text/html; charset=UTF-8
+https://argaamplus.s3.amazonaws.com/20dcbdb7-9c01-4763-a876-1904c998590f.pdf 200 195761 application/pdf
+https://almaqased.net/wp-content/uploads/2025/08/تقرير-عام-2024-المقاصد.pdf 200 195761 application/pdf
+saved ['almaqased_2024.pdf', 'almaqased_2024_argaam.pdf', 'almaqased_home.html', 'almaqased_lists.html', 'argaam_ar.html', 'argaam_article.html', 'argaam_en.html', 'links.json']
