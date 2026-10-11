@@ -294,6 +294,28 @@ def _period_labels(idx, freq):
     return out
 
 
+def _continuous(idx, vals, freq):
+    """(labels, values) from the first period to the last with none left out: a quarter (or year) with no figure stays on the
+    axis as "no data" instead of vanishing (Q2 next to Q4 read as two quarters apart)."""
+    have = {}
+    for d, v in zip(idx, vals):
+        if pd.notna(d):
+            have[pd.Timestamp(d).to_period("Q" if freq == "q" else "Y")] = v
+    if not have:
+        return _period_labels(idx, freq), list(vals)
+    rng = pd.period_range(min(have), max(have), freq="Q" if freq == "q" else "Y")
+    if len(rng) > 3 * max(1, len(have)):                    # odd dates: keep what came
+        return _period_labels(idx, freq), list(vals)
+    return ([f"Q{p_.quarter} {p_.year}" if freq == "q" else f"FY{p_.year}" for p_ in rng], [have.get(p_, np.nan) for p_ in rng])
+
+
+def _chart_money(sym, kind="money"):
+    """(currency before the numbers, note for the title): "$" for a US company; a Saudi one says SAR once, in the title."""
+    if MK.of_symbol(sym) == MK.SA:
+        return "", (L(" · SAR", " · ر.س") if kind in ("money", "eps") else "")
+    return "$", ""
+
+
 def _fmt_metric(v, kind):
     if v is None or pd.isna(v):
         return "—"
@@ -403,8 +425,9 @@ def financials_tab(sym, inf, price=None):
                        format_func=lambda k: L(FIN_METRICS[k][0], FIN_METRICS[k][1])) or avail[0]
         s_ = series[pick]
         en, ar, kind = FIN_METRICS[pick]
-        labels_ = _period_labels(s_.index, freq)
-        vals = [float(v) if pd.notna(v) else np.nan for v in s_.values]
+        labels_, vals = _continuous(s_.index, [float(v) if pd.notna(v) else np.nan for v in s_.values], freq)
+        pre_, cur_note = _chart_money(sym, kind)
+        cw = (L("vs previous", "مقابل السابقة"), L("vs a year earlier", "مقابل قبل سنة"))
         note = L(" (annualized)", " (سنوي)") if pick in ("roe", "roa") and freq == "q" else ""
         peers = _peers(sym)
         cmp = ui.multiselect_free(L("Compare with other companies (up to 4)", "قارن مع شركات أخرى (حتى 4)"), peers, "fin_cmp",
@@ -422,7 +445,8 @@ def financials_tab(sym, inf, price=None):
             by = {n_: dict(zip(_period_labels(sr.index, freq), [float(v) if pd.notna(v) else None for v in sr.values])) for n_, sr in comp.items()}
             all_labels = sorted({l_ for m_ in by.values() for l_ in m_}, key=_label_key)[-8:]
             ui.chart(charts.compare_bars(all_labels, {T.sym_label(n_): [m_.get(l_) for l_ in all_labels] for n_, m_ in by.items()},
-                                         L(en, ar) + note + L(" · comparison", " · مقارنة"), kind), key="fin_cmp_chart")
+                                         L(en, ar) + note + L(" · comparison", " · مقارنة") + cur_note, kind, pre=pre_,
+                                         missing_text=L("no data", "لا بيانات"), change_words=cw), key="fin_cmp_chart")
             lg = data.logos(list(comp))
             cards = []
             for i_, (n_, sr) in enumerate(comp.items()):
@@ -440,7 +464,8 @@ def financials_tab(sym, inf, price=None):
                 st.caption(L("No data for: ", "لا توجد بيانات لـ: ") + "، ".join(T.sym_label(m_) for m_ in missing))
         else:
             # same design as the comparison chart (value on every bar, $ axis, company legend), even for one company
-            ui.chart(charts.compare_bars(labels_, {T.sym_label(sym): vals}, L(en, ar) + note, kind), key="fin_chart")
+            ui.chart(charts.compare_bars(labels_, {T.sym_label(sym): vals}, L(en, ar) + note + cur_note, kind, pre=pre_,
+                                         missing_text=L("no data", "لا بيانات"), change_words=cw), key="fin_chart")
             last_v = vals[-1]
             prev_v = vals[-2] if len(vals) > 1 else np.nan
             yoy_v = vals[-5] if freq == "q" and len(vals) > 4 else (prev_v if freq == "a" else np.nan)
@@ -486,17 +511,21 @@ def financials_tab(sym, inf, price=None):
         k[3].markdown(T.kpi("sell", L("FCF yield", "عائد التدفق الحر"), f"{fy:.2f}%" if pd.notna(fy) else "—", L("FCF / market cap", "التدفق / القيمة السوقية"),
                             T.cls(fy) if pd.notna(fy) else None), unsafe_allow_html=True)
         cc = o_last / ni_last if pd.notna(ni_last) and ni_last > 0 and pd.notna(o_last) else np.nan
+        cc_sub = (L("operating cash / net income", "النقد التشغيلي / صافي الدخل") if pd.notna(cc) else
+                  L("not measured: a net loss this year", "ما ينحسب: صافي خسارة هالسنة") if pd.notna(ni_last) and ni_last <= 0 else
+                  L("not measured: no net income figure", "ما ينحسب: ما فيه رقم لصافي الدخل"))
         k[4].markdown(T.kpi("sync_alt", L("Cash conversion", "جودة الأرباح النقدية"), f"{cc:.2f}×" if pd.notna(cc) else "—",
-                            L("operating cash / net income", "النقد التشغيلي / صافي الدخل"), ("pos" if cc >= 1 else "neg") if pd.notna(cc) else None),
+                            cc_sub, ("pos" if cc >= 1 else "neg") if pd.notna(cc) else None),
                       unsafe_allow_html=True)
+        pre_cf, note_cf = _chart_money(sym)
         left, right = st.columns([1.25, 1])
         with left:
             per = _period_labels(idx, "a")
             margin = [get(fcf, d) / get(rev, d) * 100 if rev is not None and get(rev, d) else None for d in idx] if fcf is not None else None
             ui.chart(charts.cash_trend(per, [get(ocf, d) for d in idx], [get(capex, d) for d in idx], [get(fcf, d) for d in idx], margin,
-                                       L("Cash flow trend", "اتجاه التدفقات النقدية"),
+                                       L("Cash flow trend", "اتجاه التدفقات النقدية") + note_cf,
                                        (L("Operating cash flow", "التدفق التشغيلي"), L("Capital expenditure", "الإنفاق الرأسمالي"),
-                                        L("Free cash flow", "التدفق النقدي الحر"), L("FCF margin", "هامش التدفق الحر"))), key="cf_trend")
+                                        L("Free cash flow", "التدفق النقدي الحر"), L("FCF margin", "هامش التدفق الحر")), pre=pre_cf), key="cf_trend")
         with right:
             items = []
             if pd.notna(o_last):
@@ -511,7 +540,8 @@ def financials_tab(sym, inf, price=None):
                     items.append((L(en_, ar_), v, "relative"))
             items.append((L("Left over", "المتبقي"), 0, "total"))
             if len(items) > 2:
-                ui.chart(charts.cash_waterfall(items, L(f"Where the cash went · FY{last_d.year}", f"أين ذهب النقد · {last_d.year}")), key="cf_wf")
+                ui.chart(charts.cash_waterfall(items, L(f"Where the cash went · FY{last_d.year}", f"أين ذهب النقد · {last_d.year}") + note_cf,
+                                               pre=pre_cf, base_label=L("of the operating cash", "من النقد التشغيلي")), key="cf_wf")
     with st.expander(L("Full financial statements", "القوائم المالية الكاملة"), icon=":material/table_view:"):
         f2 = st.segmented_control(L("Period ", "الفترة "), ["a", "q"], default="a", key="fin_freq2",
                                   format_func=lambda k: L("Annual", "سنوي") if k == "a" else L("Quarterly", "ربعي")) or "a"
@@ -2011,4 +2041,4 @@ def page_screener():
 # SCANNER
 # =====================================================================
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.7.1"
+BUILD = "22.8"

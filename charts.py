@@ -946,6 +946,57 @@ def pc_bars(symbols, ratios, title="Put/Call volume ratio"):
     return _bars(style(fig, 300, title, legend=False))
 
 
+# ---- money on the financial charts (22.8): the unit picked from the numbers (T / B / M / K, so a company with millions doesn't
+# read "0.1B"), the market's currency ("$" before the number for US companies; a Saudi chart says "SAR" once, in its title), a
+# real minus sign before the currency ("−$0.7B", never "$-0.7B"), and tick labels written out the same way.
+MINUS = "\u2212"
+
+
+def money_unit(values):
+    """(divisor, suffix) that suits the biggest of the values."""
+    m = max([abs(float(v)) for v in values if v is not None and np.isfinite(v)] + [0.0])
+    for d, u in ((1e12, "T"), (1e9, "B"), (1e6, "M"), (1e3, "K")):
+        if m >= d:
+            return d, u
+    return 1.0, ""
+
+
+def money_text(v, div=1.0, unit="", pre="$", dec=None):
+    if v is None or not np.isfinite(v):
+        return ""
+    x = abs(float(v)) / div
+    d = dec if dec is not None else (2 if x < 10 else 1 if x < 100 else 0)
+    t = f"{x:,.{d}f}"
+    if d and dec is None:
+        t = t.rstrip("0").rstrip(".")
+    return (MINUS if v < 0 else "") + pre + t + unit
+
+
+def _nice_ticks(lo, hi, n=5):  # noqa: D401
+    """Round tick values between lo and hi (about n of them), zero included when it is in range."""
+    lo, hi = float(min(lo, 0.0)), float(max(hi, 0.0))
+    span = (hi - lo) or abs(hi) or 1.0
+    raw = span / max(1, n)
+    mag = 10 ** np.floor(np.log10(raw))
+    step = next(k * mag for k in (1, 2, 2.5, 5, 10) if k * mag >= raw)
+    a, b = np.floor(lo / step) * step, np.ceil(hi / step) * step
+    return [round(float(x), 10) for x in np.arange(a, b + step / 2, step)]
+
+
+def _money_axis(fig, lo, hi, unit="", pre="$", row=None, col=None, pad=0.18, suffix="", n=5):
+    """A y axis written out by hand: round values, "−$1B" / "1.5B" / "−4%" with a real minus sign; the range is the data's with
+    a little room (for the labels on the bars), and only the round values inside it are written."""
+    lo, hi = min(lo, 0.0), max(hi, 0.0)
+    span = (hi - lo) or abs(hi) or 1.0
+    lo2, hi2 = (lo - span * pad if lo < 0 else 0.0), (hi + span * pad if hi > 0 else 0.0)
+    if lo2 == hi2:
+        hi2 = 1.0
+    ticks = [t for t in _nice_ticks(lo2, hi2, n) if lo2 - 1e-9 <= t <= hi2 + 1e-9]
+    txt = [(MINUS if t < 0 else "") + pre + f"{abs(t):,.10g}" + unit + suffix for t in ticks]
+    kw = dict(row=row, col=col) if row else {}
+    fig.update_yaxes(tickmode="array", tickvals=ticks, ticktext=txt, range=[lo2, hi2], side="left", **kw)
+
+
 # =====================================================================
 # Financials
 # =====================================================================
@@ -982,52 +1033,67 @@ def metric_bars(labels, values, title=None, kind="money", height=340):
     return _bars(fig)
 
 
-def cash_waterfall(items, title="Where the cash went (latest year)"):
-    """items: [(label, value, 'relative'|'total')]"""
-    run, text, peak = 0.0, [], 0.0
+def cash_waterfall(items, title="Where the cash went (latest year)", pre="$", base_label=None):
+    """items: [(label, value, 'relative'|'total')]. The year's cash step by step: what came in (green), what went out (red), what
+    was left (blue totals); each step's share of the operating cash in the hover. pre: the currency before the numbers ("" for a
+    Saudi company: its title says SAR)."""
+    run, ys, peak, low = 0.0, [], 0.0, 0.0
     for _, v, m in items:
         if m == "total":
             v = run
         else:
             run += v
-        peak = max(peak, run, v)
-        text.append(("-" if v < 0 else "") + f"${abs(v) / 1e9:.1f}B")
+        ys.append(v)
+        peak, low = max(peak, run, run - v if m != "total" else run), min(low, run, run - v if m != "total" else run)
+    div, unit = money_unit(ys)
+    base = next((v for (_, v, m) in items if m == "relative" and v > 0), None)
+    share = [("" if not base else f"{abs(v) / base * 100:.0f}% " + (base_label or "of operating cash")) for v in ys]
+    text = [money_text(v, div, unit, pre) for v in ys]
     fig = go.Figure(go.Waterfall(
-        x=[i[0] for i in items], y=[i[1] for i in items], measure=[i[2] for i in items],
-        text=text, textposition="outside",
-        textfont=dict(color="#E7E3EB", size=12),
-        increasing=dict(marker=dict(color=POS_BG, line=dict(color=POS_BD, width=1.5))),
-        decreasing=dict(marker=dict(color=NEG_BG, line=dict(color=NEG_BD, width=1.5))),
-        totals=dict(marker=dict(color=ACC_FILL, line=dict(color=ACC_LINE, width=1.5))),
-        connector=dict(line=dict(color="#3A3545", width=1, dash="dot"))))
-    style(fig, 360, title, legend=False)
-    fig.update_yaxes(side="left", tickprefix="$", showgrid=True, range=[min(0, run) * 1.15, peak * 1.16 if peak > 0 else None])
-    fig.update_layout(hovermode="closest")
+        x=[i[0] for i in items], y=[i[1] / div for i in items], measure=[i[2] for i in items],
+        text=text, textposition="outside", cliponaxis=False, textfont=dict(color=TEXT, size=12.5),
+        customdata=[[t, sh] for t, sh in zip(text, share)],
+        hovertemplate="<b>%{x}</b><br>%{customdata[0]}<br><span style='color:#B9B3C4'>%{customdata[1]}</span><extra></extra>",
+        increasing=dict(marker=dict(color=BAR_UP, line=dict(width=0))),
+        decreasing=dict(marker=dict(color=BAR_DOWN, line=dict(width=0))),
+        totals=dict(marker=dict(color=PALETTE[0], line=dict(width=0))),
+        connector=dict(line=dict(color="rgba(157,151,165,.45)", width=1, dash="dot"))))
+    style(fig, 380, title, legend=False)
+    _money_axis(fig, low / div, peak / div, unit, pre)
+    fig.update_xaxes(type="category")
+    fig.update_layout(hovermode="closest", waterfallgap=0.42)
     return fig
 
 
-def cash_trend(periods, ocf, capex, fcf, margin=None, title="Cash flow trend", names=("Operating cash flow", "Capital expenditure", "Free cash flow", "FCF margin")):
-    """The cash in billions on top; the free-cash-flow margin in its own panel under it (one axis per panel, never two
-    scales on one plot)."""
-    two = margin is not None
-    fig = make_subplots(rows=2 if two else 1, cols=1, shared_xaxes=True, vertical_spacing=0.08, row_heights=[0.72, 0.28] if two else [1])
-    b = lambda v: [x / 1e9 if x is not None and not np.isnan(x) else None for x in v]
-    hv = "%{x} · %{fullData.name}: $%{y:,.1f}B<extra></extra>"
-    fig.add_trace(go.Bar(x=periods, y=b(ocf), name=names[0], marker=dict(color=ACC_LINE, line=dict(width=0)), hovertemplate=hv), 1, 1)
-    fig.add_trace(go.Bar(x=periods, y=b(capex), name=names[1], marker=dict(color=NEG_BD, line=dict(width=0)), hovertemplate=hv), 1, 1)
-    fig.add_trace(go.Bar(x=periods, y=b(fcf), name=names[2], marker=dict(color=POS_BD, line=dict(width=0)), hovertemplate=hv), 1, 1)
+def cash_trend(periods, ocf, capex, fcf, margin=None, title="Cash flow trend", names=("Operating cash flow", "Capital expenditure", "Free cash flow", "FCF margin"),
+               pre="$"):
+    """The cash on top (operating cash, the investment spent, what was left: the free cash flow), the free-cash-flow margin in its
+    own panel under it (one axis per panel, never two scales on one plot). Values written out with their unit and currency."""
+    two = margin is not None and any(m is not None and np.isfinite(m) for m in margin)
+    fig = make_subplots(rows=2 if two else 1, cols=1, shared_xaxes=True, vertical_spacing=0.1, row_heights=[0.7, 0.3] if two else [1])
+    allv = [x for x in list(ocf) + list(capex) + list(fcf) if x is not None and np.isfinite(x)]
+    div, unit = money_unit(allv)
+    sc = lambda v: [x / div if x is not None and np.isfinite(x) else None for x in v]
+    for vals, nm, col in ((ocf, names[0], PALETTE[0]), (capex, names[1], BAR_DOWN), (fcf, names[2], BAR_UP)):
+        fig.add_trace(go.Bar(x=periods, y=sc(vals), name=nm, marker=dict(color=col, line=dict(width=0)),
+                             customdata=[money_text(v, div, unit, pre) for v in vals],
+                             hovertemplate=f"{nm}: %{{customdata}}<extra></extra>"), 1, 1)
+    fig.add_hline(y=0, line=dict(color="rgba(231,227,235,.35)", width=1), row=1, col=1)
     if two:
-        fig.add_trace(go.Scatter(x=periods, y=margin, name=names[3], mode="lines+markers+text", line=dict(color=GOLD, width=2),
-                                 marker=dict(size=9, color=GOLD, line=dict(color=BG, width=2)),
-                                 text=[f"{m:.0f}%" if m is not None and not np.isnan(m) else "" for m in margin], textposition="top center",
-                                 textfont=dict(size=10.5, color="#E7E3EB"), hovertemplate="%{x} · %{fullData.name}: %{y:.1f}%<extra></extra>"), 2, 1)
-    style(fig, 400 if two else 340, title)
-    fig.update_layout(barmode="group", bargap=0.32, bargroupgap=0.12, hovermode="x unified")
-    fig.update_yaxes(tickprefix="$", ticksuffix="B", side="left", row=1, col=1)
+        mv = [m if m is not None and np.isfinite(m) else None for m in margin]
+        fig.add_trace(go.Scatter(x=periods, y=mv, name=names[3], mode="lines+markers+text", line=dict(color=GOLD, width=2),
+                                 marker=dict(size=8, color=GOLD, line=dict(color=BG, width=2)),
+                                 text=["" if m is None else (MINUS if m < 0 else "") + f"{abs(m):.0f}%" for m in mv], textposition="top center",
+                                 textfont=dict(size=11, color=TEXT), cliponaxis=False,
+                                 hovertemplate=f"{names[3]}: %{{y:.1f}}%<extra></extra>"), 2, 1)
+        fig.add_hline(y=0, line=dict(color="rgba(231,227,235,.25)", width=1, dash="dot"), row=2, col=1)
+    style(fig, 430 if two else 350, title)
     if two:
-        lo_, hi_ = min([m for m in margin if m is not None and not np.isnan(m)] or [0]), max([m for m in margin if m is not None and not np.isnan(m)] or [1])
-        pad_ = (hi_ - lo_) * 0.35 or 5
-        fig.update_yaxes(ticksuffix="%", side="left", showgrid=True, gridcolor=GRID, nticks=3, range=[lo_ - pad_, hi_ + pad_ * 1.9], row=2, col=1)
+        ok_ = [m for m in mv if m is not None]
+        _money_axis(fig, min(ok_ + [0.0]), max(ok_ + [0.0]), "", "", row=2, col=1, pad=0.5, suffix="%", n=3)
+    fig.update_layout(barmode="group", bargap=0.34, bargroupgap=0.1, hovermode="x unified",
+                      legend=dict(orientation="h", y=1.02, x=0, yanchor="bottom"))
+    _money_axis(fig, min(allv + [0.0]) / div, max(allv + [0.0]) / div, unit, pre, row=1, col=1, pad=0.12)
     fig.update_xaxes(type="category")
     return _bars(fig)
 
@@ -1175,24 +1241,67 @@ def fed_path(df, title=None, names=("Fed target range", "Effective fed funds rat
     return fig
 
 
-def compare_bars(labels, series_map, title=None, kind="money", height=380):
-    """Grouped bars, one color per company, for the financial metric explorer."""
+def compare_bars(labels, series_map, title=None, kind="money", height=380, pre="$", missing_text="no data", change_words=("vs previous", "vs a year earlier")):
+    """The financial metric explorer: one company's history, or several side by side (one colour each). Alone, a loss or a
+    negative margin is red and a period with no figure says so; every bar carries its value; the hover gives the value and how
+    it moved against the period before and the year before. pre: the currency before money / EPS ("" for a Saudi company)."""
     fig = go.Figure()
-    scale = 1e9 if kind == "money" else 1.0
+    one = len(series_map) == 1
+    allv = [v for vals in series_map.values() for v in vals if v is not None and np.isfinite(v)]
+    div, unit = money_unit(allv) if kind == "money" else (1.0, "")
+    yearly = all(str(l_).startswith("FY") for l_ in labels)
+    back = 1 if yearly else 4
+
+    def txt(v):
+        if v is None or not np.isfinite(v):
+            return ""
+        if kind == "money":
+            return money_text(v, div, unit, pre)
+        if kind == "pct":
+            return (MINUS if v < 0 else "") + f"{abs(v):.1f}%"
+        if kind == "eps":
+            return money_text(v, 1.0, "", pre, dec=2)
+        return (MINUS if v < 0 else "") + f"{abs(v):.2f}"
+
+    def move(a_, b_):
+        if a_ is None or b_ is None or not np.isfinite(a_) or not np.isfinite(b_):
+            return "—"
+        if kind in ("pct", "ratio"):
+            d_ = b_ - a_
+            return (MINUS if d_ < 0 else "+") + f"{abs(d_):.1f}" + (" pts" if kind == "pct" else "")
+        if a_ == 0:
+            return "—"
+        g = (b_ / abs(a_) - 1) * 100 if a_ > 0 else (b_ - a_) / abs(a_) * 100
+        return (MINUS if g < 0 else "+") + f"{abs(g):.0f}%"
     many = len(series_map) > 2
     for i, (name, vals) in enumerate(series_map.items()):
         col = PALETTE[i % len(PALETTE)]
-        ys = [v / scale if v is not None and np.isfinite(v) else None for v in vals]
-        txt = ["" if y is None else (f"${y:,.1f}B" if kind == "money" else (f"{y:.1f}%" if kind == "pct" else
-               (f"${y:.2f}" if kind == "eps" else f"{y:.2f}"))) for y in ys]
-        fig.add_trace(go.Bar(x=labels, y=ys, name=name, marker=dict(color=rgba(col, 0.88), line=dict(color=col, width=1)),
-                             text=None if many else txt, textposition="outside", textfont=dict(size=10, color=MUTED),
-                             customdata=txt, hovertemplate=f"<b>{name}</b> · %{{x}}: %{{customdata}}<extra></extra>"))
-    style(fig, height, title)
-    fig.update_layout(barmode="group", bargap=0.24 if len(series_map) > 1 else 0.42, bargroupgap=0.06, hovermode="x unified")
+        vv = [v if v is not None and np.isfinite(v) else None for v in vals]
+        ys = [v / div if v is not None else None for v in vv]
+        cols = ([col if (v or 0) >= 0 else BAR_DOWN for v in vv] if one and kind in ("money", "pct", "eps") else col)
+        cd = [[txt(v), move(vv[j - 1] if j >= 1 else None, v), move(vv[j - back] if j >= back else None, v)] for j, v in enumerate(vv)]
+        fig.add_trace(go.Bar(x=labels, y=ys, name=name, marker=dict(color=cols, line=dict(width=0)),
+                             text=None if many else [c_[0] for c_ in cd], textposition="outside", cliponaxis=False,
+                             textfont=dict(size=12.5 if one else 11, color=TEXT), customdata=cd,
+                             hovertemplate=(f"<b>{name}</b>: %{{customdata[0]}}" + (f"<br><span style='color:#B9B3C4'>{change_words[0]} %{{customdata[1]}}"
+                                            f" · {change_words[1]} %{{customdata[2]}}</span>" if one else "") + "<extra></extra>")))
+        if one:
+            for j, v in enumerate(vv):
+                if v is None:
+                    fig.add_annotation(x=j, y=0, text=missing_text, showarrow=False, yshift=12, font=dict(size=11, color=MUTED))
+    style(fig, height, title, legend=not one)
+    fig.update_layout(barmode="group", bargap=0.5 if one else 0.26, bargroupgap=0.08, hovermode="x unified")
     fig.update_xaxes(type="category")
-    fig.update_yaxes(side="left", zeroline=True, zerolinecolor="#3A3545",
-                     tickprefix="$" if kind in ("money", "eps") else "", ticksuffix="B" if kind == "money" else ("%" if kind == "pct" else ""))
+    fig.add_hline(y=0, line=dict(color="rgba(231,227,235,.35)", width=1))
+    ys_all = [v / div for v in allv] or [0.0]
+    if kind == "money":
+        _money_axis(fig, min(ys_all + [0.0]), max(ys_all + [0.0]), unit, pre, pad=0.16)
+    elif kind == "pct":
+        _money_axis(fig, min(ys_all + [0.0]), max(ys_all + [0.0]), "", "", pad=0.16, suffix="%")
+    elif kind == "eps":
+        _money_axis(fig, min(ys_all + [0.0]), max(ys_all + [0.0]), "", pre, pad=0.16)
+    else:
+        _money_axis(fig, min(ys_all + [0.0]), max(ys_all + [0.0]), "", "", pad=0.16)
     return _bars(fig)
 
 
@@ -1419,4 +1528,4 @@ def signal_bars(labels, values, counts, title=None, height=300, unit=("readings"
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "22.7.1"
+BUILD = "22.8"
