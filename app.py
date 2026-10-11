@@ -11,9 +11,9 @@ import streamlit as st
 # ---------------------------------------------------------------- always run the newest code
 # Streamlit Cloud re-reads app.py after every GitHub upload but can keep the other modules (theme, data, ...) from the
 # previous version in memory. Every module carries BUILD; if one in memory is older, all of them are reloaded in order.
-BUILD = "23.0"
+BUILD = "23.1"
 _ORDER = ["terms", "lightmode", "i18n", "ai_assistant", "flags", "mcal", "mcal_sa", "markets", "tasi", "universe", "sp500", "taxonomy", "ta", "academy_visuals", "academy", "insight", "heatmap", "newsiq", "newspics", "theme", "data",
-          "caldata", "newsbot", "newsintel", "charts", "engine", "playbooks", "autotrader", "ui", "fairvalue", "segments", "holders", "sharia", "lab", "tdash", "mlbots", "brain", "paperbots", "smartbots", "portfolio", "robobot", "robo", "pfinsight", "p_markets", "p_newsintel", "p_research", "p_insight",
+          "caldata", "newsbot", "newsintel", "charts", "engine", "playbooks", "autotrader", "ui", "fairvalue", "segments", "holders", "sharia", "lab", "tdash", "mlbots", "brain", "account", "paperbots", "smartbots", "portfolio", "robobot", "robo", "pfinsight", "p_markets", "p_newsintel", "p_research", "p_insight",
           "p_academy", "p_paper", "p_portfolio", "p_robo", "p_calendar", "hunter", "p_scanner", "xbots", "p_xbots", "home"]
 if any(m in sys.modules and getattr(sys.modules[m], "BUILD", None) != BUILD for m in _ORDER):
     for _m in _ORDER:
@@ -27,6 +27,7 @@ import lightmode as LM
 
 LM.install()                           # the light look: the site's own colours follow Streamlit's theme (⋮ → System / Light / Dark)
 
+import account
 import ai_assistant
 import data
 import newsbot
@@ -397,6 +398,7 @@ def nav_bar():
             st.markdown(T.market_status(ss.lang == "ar", MK.choice() or MK.US), unsafe_allow_html=True)
             market_switch()
             lang_menu()
+            account.menu(L)                       # sign in (Google, Apple or an email) / the account's menu: only once [auth] is in Secrets
 
 
 def nav_fallback():
@@ -416,6 +418,12 @@ def nav_fallback():
     d.button(L("US market", "السوق الأمريكي"), key="fb_us", on_click=_set_market, args=(MK.US,), width="stretch")
     e.button(L("Saudi market", "السوق السعودي"), key="fb_sa", on_click=_set_market, args=(MK.SA,), width="stretch")
 
+
+try:
+    if account.is_admin():                        # signed in with one of the owner's emails (ADMIN_EMAILS): the site's bots open
+        ss["pb_admin"] = True
+except Exception:
+    pass
 
 try:
     nav_bar()

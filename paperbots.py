@@ -546,25 +546,36 @@ def touch(bot):
     """A visitor opened their bot today: its row says so (once a day), so the nightly record keeps it."""
     if not bot.get("owner") or bot.get("seen") == _today_iso():
         return
+    _patch_params(bot["id"], {"seen": _today_iso()})
+
+
+def set_owner(bot_id, tag):
+    """A bot moves to another owner (a guest's bots into their account on their first sign-in)."""
+    if tag and _TAG.match(str(tag)):
+        _patch_params(bot_id, {"owner": tag, "seen": _today_iso()})
+
+
+def _patch_params(bot_id, changes):
+    """Changes a few keys of a bot's params (read, changed, written back)."""
     if backend() == "supabase":
         url, h = _sb()
-        r = _request("GET", url, headers=h, params={"select": "params", "id": f"eq.{int(bot['id'])}"})
+        r = _request("GET", url, headers=h, params={"select": "params", "id": f"eq.{int(bot_id)}"})
         _check(r)
         rows = r.json() or []
         if not rows:
             return
         p = rows[0].get("params") or {}
         p = json.loads(p) if isinstance(p, str) else p
-        p["seen"] = _today_iso()
-        r = _request("PATCH", url, headers={**h, "Prefer": "return=minimal"}, params={"id": f"eq.{int(bot['id'])}"},
+        p.update(changes)
+        r = _request("PATCH", url, headers={**h, "Prefer": "return=minimal"}, params={"id": f"eq.{int(bot_id)}"},
                      data=json.dumps({"params": p}, default=float))
         _check(r)
     else:
         with _LOCK:
             rows = _local_read()
             for x in rows:
-                if str(x.get("id")) == str(bot["id"]) and isinstance(x.get("params"), dict):
-                    x["params"]["seen"] = _today_iso()
+                if str(x.get("id")) == str(bot_id) and isinstance(x.get("params"), dict):
+                    x["params"].update(changes)
             _local_write(rows)
     _list_raw.clear()
 
@@ -2009,4 +2020,4 @@ def journal(sim):
                          "Days": tr["Bars"], "Exit Reason": tr["Exit Reason"]})
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.0"
+BUILD = "23.1"

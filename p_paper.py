@@ -32,6 +32,7 @@ import data
 import engine
 import markets as MK
 import mcal
+import account as AC
 import p_portfolio as PP
 import paperbots as PB
 import playbooks as PBK
@@ -2693,14 +2694,11 @@ VIEWS = ("mine", "site")
 
 
 def _my_tag():
-    """This visitor's tag on their own bots (from the code their browser keeps for their portfolio: one code, both theirs)."""
-    t = ss.get("pb_owner")
-    if isinstance(t, str) and t:
-        return t
-    ss["pf_wait_msg"] = L("Opening your bots…", "نفتح بوتاتك…")
-    code, _ = PP.ident()
-    ss.pop("pf_wait_msg", None)
-    ss["pb_owner"] = PB.owner_tag(code)
+    """This visitor's tag on their own bots: from their account when signed in, else from the code their browser keeps for their
+    portfolio (one code, both theirs)."""
+    code = PP.current_code()
+    if ss.get("pb_owner_for") != code:
+        ss["pb_owner_for"], ss["pb_owner"] = code, PB.owner_tag(code)
     return ss["pb_owner"]
 
 
@@ -4510,6 +4508,9 @@ def page_paper_bots():
     build = ss.pop("pb_build", False)              # "Build your bot" (the home page): the visitor's own list, the form open
     if build or ss.pop("pb_goto_mine", False):      # (or a ready / AI bot just added to the visitor's own list)
         ss["pb_view"] = "mine"
+    ss["pf_wait_msg"] = L("Opening your bots…", "نفتح بوتاتك…")
+    PP.ident()                                     # this visit's code (the account's, or the one this browser keeps)
+    ss.pop("pf_wait_msg", None)
     tag = _my_tag()
     try:
         allb = PB.list_bots(mk)
@@ -4548,6 +4549,8 @@ def page_paper_bots():
     shown = phase_sims(sims, phase())
     ui.html(hero_html(shown, len(bots)))
     _view_switch(len(mine), len(site))
+    if _view() == "mine":
+        AC.nudge(L)                                # a guest: sign in to keep their bots on any device
     storage_notice(err)
     if _view() == "site" and err is None:
         ui.html(f'<div class="pbcta">{T.icon("person_add")}<span>{T.esc(L("These are the site’s own bots, to watch and learn from. Want one of your own?", "هذي بوتات الموقع، تتابعها وتتعلم منها. تبي بوت خاص فيك؟"))}</span></div>')
@@ -4628,4 +4631,4 @@ def page_paper_bots():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.0"
+BUILD = "23.1"

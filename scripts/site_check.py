@@ -25,7 +25,8 @@ PAGES = [  # 22.4: the Discover pages (trending, news, the news engine) and a st
          ("newsintel", "news-intelligence", "us", '[class*="st-key-nie_cb_"] button'),
          ("sentiment", "sentiment", "us"), ("seasonality", "seasonality", "us"), ("stock", "stock?symbol=NVDA", "us"),
          ("sa_trending", "trending", "sa"), ("sa_news", "news", "sa", '[class*="st-key-nwa_"] button')]
-QUICK_PAGES = [("bots", "paper-bots", "us"), ("bots_sa", "paper-bots", "sa")]
+QUICK_PAGES = [("bots_sa", "paper-bots", "sa")]
+AUTH_DEMO = True      # a quick run: made-up sign-in settings, so the top line's Sign in button can be seen
 FIN_PILL = {"en": "Net margin", "ar": "صافي الهامش"}
 NAV_BROWSERS = False  # the top bar's menus in WebKit and Firefox too (a quick run)
 
@@ -329,7 +330,7 @@ def shoot(pg, name):
     pg.screenshot(path=os.path.join(OUT, f"{name}.jpg"), type="jpeg", quality=72, full_page=True)
 
 
-QUICK = False         # a quick run: the top bar's menus and two pages, no news/photo/chart labs
+QUICK = True          # a quick run: the top bar's menus and two pages, no news/photo/chart labs
 
 
 XB_SEED = ""            # the X bots' photos: "sample" (clearly-marked sample posts) · "resting" (the key in, before the market's day) · "" (no key)
@@ -408,6 +409,12 @@ def main():
     if not QUICK:
         news_lab()
     seed_bots()
+    if QUICK and AUTH_DEMO:                     # made-up sign-in settings on the test server only: the Sign in button shows
+        os.makedirs(os.path.join(ROOT, ".streamlit"), exist_ok=True)
+        with open(os.path.join(ROOT, ".streamlit", "secrets.toml"), "w", encoding="utf-8") as f:
+            f.write('[auth]\nredirect_uri = "http://localhost:8599/oauth2callback"\ncookie_secret = "site-check-only"\n'
+                    '[auth.auth0]\nclient_id = "demo"\nclient_secret = "demo"\n'
+                    'server_metadata_url = "https://example.invalid/.well-known/openid-configuration"\n')
     env = dict(os.environ, PYTHONUNBUFFERED="1")
     srv = subprocess.Popen([sys.executable, "-m", "streamlit", "run", "app.py", "--server.headless", "true", "--server.port", str(PORT),
                             "--browser.gatherUsageStats", "false"], cwd=ROOT, env=env, stdout=open(os.path.join(OUT, "server.log"), "w"),

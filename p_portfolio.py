@@ -24,6 +24,7 @@ from plotly.subplots import make_subplots
 
 import charts as C
 import data
+import account as AC
 import markets as MK
 import paperbots as PB
 import portfolio as PF
@@ -359,7 +360,7 @@ def _from_link():
     except Exception:
         pass
     v = str(v).strip()
-    if not _CODE.match(v):
+    if not _CODE.match(v) or AC.is_account(v):      # an account opens only by signing in, never by a link
         return None
     try:
         _, row = PF.load(key_of(v))
@@ -466,9 +467,48 @@ def _wait():
     st.stop()
 
 
+def _guest_code():
+    """The code this browser keeps for its guest portfolio (None when it keeps none, False while the browser hasn't answered)."""
+    v = _cookie(COOKIE)
+    if isinstance(v, str) and _CODE.match(v) and not AC.is_account(v):
+        return v
+    got = browser()
+    if got is None:
+        return False
+    v = got.get(COOKIE)
+    return v if isinstance(v, str) and _CODE.match(v) and not AC.is_account(v) else None
+
+
+def _account_vid(acct):
+    """Signed in: the account's own code (the site owner's portfolio for the owner's emails). On the first sign-in on a browser,
+    what its guest made (portfolio, Robo Advisor, bots) moves into the account."""
+    if AC.is_admin() and PF.owner_code():
+        ss["pf_vid"] = PF.owner_code()
+        return ss["pf_vid"]
+    flag = "acct_adopted_" + acct[-12:]
+    if not ss.get(flag):
+        guest = ss.get("pf_vid") if isinstance(ss.get("pf_vid"), str) and not AC.is_account(ss.get("pf_vid")) else _guest_code()
+        if guest is not False:                       # the browser answered (or a guest code is already open)
+            ss[flag] = True
+            if guest:
+                try:
+                    moved = AC.adopt(guest, acct)
+                    if moved:
+                        ss["pf_flash"] = L("What you made before signing in is now in your account", "اللي سويته قبل الدخول صار في حسابك")
+                except Exception:
+                    pass
+    ss["pf_vid"] = acct
+    return acct
+
+
 def _vid():
-    """This visitor's portfolio code: from a ?pf= link, else the one already open, else the one their browser keeps, else a new
-    random one (a new portfolio)."""
+    """This visitor's portfolio code: signed in, their account's; else from a ?pf= link, else the one already open, else the one
+    their browser keeps, else a new random one (a new portfolio)."""
+    acct = AC.code()
+    if acct:
+        return _account_vid(acct)
+    if AC.is_account(ss.get("pf_vid")):              # signed out: back to this browser's own
+        ss.pop("pf_vid", None)
     v = _from_link()
     if v:
         ss["pf_vid"] = v
@@ -497,8 +537,15 @@ def ident():
     if ss.get("pb_admin") and PF.owner_code() and not is_owner(ss.get("pf_vid")):
         ss["pf_vid"] = PF.owner_code()       # the owner unlocked the Paper Bots on this device: it opens the owner's portfolio from now on
     code = _vid()
-    keep({COOKIE: code}, soft=ss.get("pf_soft") == code)
+    if not AC.is_account(code):                     # an account's code never goes into the browser (a shared computer)
+        keep({COOKIE: code}, soft=ss.get("pf_soft") == code)
     return code, key_of(code)
+
+
+def current_code():
+    """The code of this visit's portfolio as already worked out (ident() first), without writing anything into the browser."""
+    v = ss.get("pf_vid")
+    return v if isinstance(v, str) and _CODE.match(v) else ident()[0]
 
 
 def ctx():
@@ -2123,4 +2170,4 @@ def page_history():
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.0"
+BUILD = "23.1"
