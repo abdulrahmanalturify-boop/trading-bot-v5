@@ -347,7 +347,7 @@ def seed_resting():
     XB.save(XB.META, meta)
 
 
-SHARIA = True         # a quick run: the Sharia section of a few companies (the Company tab), Arabic and English, desktop and phone
+SHARIA = False        # a quick run: the Sharia section of a few companies (the Company tab), Arabic and English, desktop and phone
 SHARIA_SYMS = ["2222.SR", "2010.SR", "AAPL"]
 
 

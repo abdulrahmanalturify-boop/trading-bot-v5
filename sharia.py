@@ -290,7 +290,7 @@ CSS = f"""<style>
 .shpur .big[dir="rtl"] {{ direction:rtl; text-align:start; }}
 .shres {{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; flex-wrap:wrap; background:{T.POS_BG};
   border:1px solid {T.UP_EDGE}; border-radius:14px; padding:12px 16px; margin:2px 0 6px; }}
-.shres span {{ color:#CCC7D8; font-size:.84rem; }}
+.shres > span {{ color:#CCC7D8; font-size:.84rem; }}
 .shres b {{ color:{T.POS_FG}; font-size:1.35rem; font-weight:600; font-variant-numeric:tabular-nums; }}
 .shsub {{ display:flex; align-items:center; gap:8px; color:#DFDAE8; font-size:.98rem; font-weight:600; margin:20px 0 8px; }}
 .shsub .ms {{ color:#A78BFA; font-size:1.15rem; }}
