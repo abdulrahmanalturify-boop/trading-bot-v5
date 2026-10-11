@@ -26,7 +26,7 @@ PAGES = [  # 22.4: the Discover pages (trending, news, the news engine) and a st
          ("sentiment", "sentiment", "us"), ("seasonality", "seasonality", "us"), ("stock", "stock?symbol=NVDA", "us"),
          ("sa_trending", "trending", "sa"), ("sa_news", "news", "sa", '[class*="st-key-nwa_"] button')]
 QUICK_PAGES = [("bots_sa", "paper-bots", "sa")]
-AUTH_DEMO = True      # a quick run: made-up sign-in settings, so the top line's Sign in button can be seen
+AUTH_DEMO = False     # a quick run: made-up sign-in settings, so the top line's Sign in button can be seen
 FIN_PILL = {"en": "Net margin", "ar": "صافي الهامش"}
 NAV_BROWSERS = False  # the top bar's menus in WebKit and Firefox too (a quick run)
 
@@ -330,7 +330,7 @@ def shoot(pg, name):
     pg.screenshot(path=os.path.join(OUT, f"{name}.jpg"), type="jpeg", quality=72, full_page=True)
 
 
-QUICK = True          # a quick run: the top bar's menus and two pages, no news/photo/chart labs
+QUICK = False         # a quick run: the top bar's menus and two pages, no news/photo/chart labs
 
 
 XB_SEED = ""            # the X bots' photos: "sample" (clearly-marked sample posts) · "resting" (the key in, before the market's day) · "" (no key)
