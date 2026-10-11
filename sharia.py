@@ -2,12 +2,22 @@
 sharia.py - Sharia compliance of a company share, in the site's style (stock page, Company tab).
 
 An educational screen with the usual AAOIFI-style thresholds, computed from Yahoo Finance data:
-  1. Business activity: the main business must be permissible (no conventional banking, insurance, alcohol, tobacco, gambling ...).
+  1. Business activity: the main business must be permissible (no conventional banking, commercial insurance, alcohol, tobacco,
+     gambling ...).
   2. Revenue: income that is not halal (interest income) plus doubtful income (other non-operating income whose source is not
      disclosed) must stay under 5% of total revenue.
   3. Interest-bearing securities & assets (cash and short-term investments) under 30% of the 36-month average market cap.
   4. Interest-bearing debt under 30% of the 36-month average market cap.
 It is not a religious ruling; screening providers and scholars can differ.
+
+The Saudi market is read by its own rules, not by Yahoo's English industry name (which puts every bank and insurer in one box):
+  - Islamic banks (Al Rajhi, Albilad, Alinma, AlJazira): all their business under their own Sharia boards, so they pass; the
+    ratio tests don't apply to a bank's deposits and financing (Yahoo even calls their financing profit "interest income").
+  - insurance is cooperative by law, and cooperative insurance is permitted in principle (the Council of Senior Scholars), but
+    Sharia lists accept some insurers and not others by how each one works and invests: "check a Sharia list", never "not halal".
+  - finance companies must finance in a way that does not conflict with Sharia (Finance Companies Control Law, Article 3), under
+    their own Sharia committees: "check a Sharia list" as well.
+  - there are no casinos in the kingdom: "Resorts & Casinos" there is tourism.
 """
 import numpy as np
 import pandas as pd
@@ -18,7 +28,7 @@ import theme as T
 import ui
 from i18n import L, industry_name, is_ar
 
-BUILD = "23.1.2"
+BUILD = "23.1.3"
 
 REV_MAX, RATIO_MAX = 5.0, 30.0
 HALAL, DOUBT, HARAM = "#4ADE80", "#F5B94A", "#F87171"
@@ -26,6 +36,13 @@ HALAL, DOUBT, HARAM = "#4ADE80", "#F5B94A", "#F87171"
 # industries whose main business is not permissible, and ones that need a closer look (Yahoo's industry names, lower case)
 NOT_OK = ("bank", "insurance", "credit services", "mortgage finance", "brewers", "winer", "distill", "tobacco", "gambling", "casino")
 DOUBTFUL = ("capital markets", "asset management", "financial conglomerates", "reit - mortgage", "shell companies")
+
+# the Saudi market (see the top of the file): the Islamic banks by their codes, the rest by their industry
+SA_ISLAMIC_BANKS = {"1120.SR": "Al Rajhi Bank", "1140.SR": "Bank Albilad", "1150.SR": "Alinma Bank", "1020.SR": "Bank AlJazira"}
+SA_INSURANCE = ("insurance",)                                 # insurers, reinsurers and insurance brokers
+SA_FINANCE = ("credit services", "mortgage finance")
+SA_TOURISM = ("resorts & casinos", "resorts and casinos")
+SPECIAL = ("islamic", "coop", "finance")                     # read by the Saudi rules: the ratio tests don't apply
 
 
 def _row(df, *names):
@@ -43,10 +60,22 @@ def _row(df, *names):
     return None
 
 
-def business(industry):
+def business(industry, sym=""):
+    """'pass', 'fail', 'doubt' or 'unknown'; in the Saudi market also 'islamic' (an Islamic bank), 'coop' (cooperative insurance)
+    and 'finance' (a finance company)."""
     ind = str(industry or "").lower().replace("—", " - ").replace("–", " - ")
+    s = str(sym or "").strip().upper()
+    if s in SA_ISLAMIC_BANKS:
+        return "islamic"
     if not ind:
         return "unknown"
+    if s.endswith(".SR"):
+        if any(k in ind for k in SA_INSURANCE):
+            return "coop"
+        if any(k in ind for k in SA_FINANCE):
+            return "finance"
+        if any(k in ind for k in SA_TOURISM):
+            return "pass"
     if any(k in ind for k in NOT_OK):
         return "fail"
     if any(k in ind for k in DOUBTFUL):
@@ -65,7 +94,7 @@ def _screen(sym):
     inc, bal = stm.get("inc_a"), stm.get("bal_a")
     if (not isinstance(inc, pd.DataFrame) or inc.empty) and (not isinstance(bal, pd.DataFrame) or bal.empty):
         raise LookupError("no statements yet")               # not kept: tried again next time
-    out = {"kind": "EQUITY", "industry": p.get("industry"), "sector": p.get("sector"), "business": business(p.get("industry"))}
+    out = {"kind": "EQUITY", "industry": p.get("industry"), "sector": p.get("sector"), "business": business(p.get("industry"), sym)}
     # revenue breakdown (latest fiscal year)
     rev = _row(inc, "Total Revenue", "Operating Revenue")
     intr = _row(inc, "Interest Income", "Interest Income Non Operating") or 0.0
@@ -114,8 +143,14 @@ def screen(sym):
 
 
 def verdict(r):
-    """'pass' (halal), 'fail' (not halal) or 'doubt' (a doubtful business or missing data) with the four checks."""
-    checks = {"business": r.get("business", "unknown"),
+    """'pass' (halal), 'fail' (not halal) or 'doubt' (a doubtful business or missing data) with the four checks.
+    The Saudi market's Islamic banks pass, its cooperative insurers and finance companies are 'doubt' ("check a Sharia list"),
+    and their three ratio checks are 'na' (they don't apply)."""
+    biz = r.get("business", "unknown")
+    if biz in SPECIAL:
+        checks = {"business": "pass" if biz in ("islamic", "finance") else "doubt", "revenue": "na", "sec": "na", "debt": "na"}
+        return ("pass" if biz == "islamic" else "doubt"), checks
+    checks = {"business": biz,
               "revenue": None if r.get("rev") is None else ("pass" if r["haram"] + r["doubt"] < REV_MAX else "fail"),
               "sec": None if r.get("sec") is None else ("pass" if r["sec"] < RATIO_MAX else "fail"),
               "debt": None if r.get("debt") is None else ("pass" if r["debt"] < RATIO_MAX else "fail")}
@@ -137,7 +172,10 @@ CSS = f"""<style>
 .shbn .patw svg {{ width:100%; height:100%; display:block; }}
 .shbn .fade {{ position:absolute; inset:0; pointer-events:none; background:radial-gradient(34% 90% at 50% 50%, {T.CARD} 0%, rgba(26,22,36,.92) 45%, transparent 100%); }}
 .shbn .ic {{ position:relative; width:54px; height:54px; }}
-.shbn .v {{ position:relative; font-size:1.55rem; font-weight:600; color:#fff; letter-spacing:-.01em; }}
+.shbn .v {{ position:relative; font-size:1.55rem; font-weight:600; color:#fff; letter-spacing:-.01em; line-height:1.45; text-align:center;
+  padding:0 12px; }}
+.shbn {{ padding:12px 0; }}
+@media (max-width: 560px) {{ .shbn .v {{ font-size:1.3rem; }} }}
 .shbn .s {{ position:relative; font-size:.8rem; color:#CCC7D8; text-align:center; max-width:520px; padding:0 12px; }}
 .shgrid {{ display:grid; grid-template-columns:minmax(0,2fr) minmax(0,1fr); gap:12px; }}
 .shgrid.two {{ grid-template-columns:repeat(2,minmax(0,1fr)); margin-top:12px; }}
@@ -152,6 +190,7 @@ CSS = f"""<style>
 .shchip {{ display:inline-flex; align-items:center; gap:4px; font-size:.72rem; font-weight:600; letter-spacing:.04em; padding:3px 10px; border-radius:8px; }}
 .shchip.pass {{ background:{T.POS_BG}; color:{T.POS_FG}; }} .shchip.fail {{ background:{T.NEG_BG}; color:{T.NEG_FG}; }}
 .shchip.doubt, .shchip.none {{ background:{T.YEL_BG}; color:{T.YEL_FG}; }}
+.shchip.na {{ background:rgba(157,151,165,.18); color:#CFCADB; }}
 .shbar {{ position:relative; height:10px; border-radius:6px; background:rgba(157,151,165,.2); direction:ltr; margin-top:4px; }}
 .shbar i {{ position:absolute; left:0; top:0; bottom:0; border-radius:6px; }}
 .shbar b {{ position:absolute; top:-4px; bottom:-4px; width:2px; background:#fff; border-radius:2px; }}
@@ -192,9 +231,9 @@ def _icon(state):
             f'<circle cx="42" cy="44" r="10" fill="{col}"/>{mark}</svg>')
 
 
-def _chip(state):
-    txt = {"pass": L("PASS", "مطابق"), "fail": L("FAIL", "غير مطابق"), "doubt": L("CHECK", "مشكوك"), None: L("NO DATA", "بيانات ناقصة"),
-           "unknown": L("NO DATA", "بيانات ناقصة")}[state]
+def _chip(state, txt=None):
+    txt = txt or {"pass": L("PASS", "مطابق"), "fail": L("FAIL", "غير مطابق"), "doubt": L("CHECK", "مشكوك"), None: L("NO DATA", "بيانات ناقصة"),
+                  "unknown": L("NO DATA", "بيانات ناقصة"), "na": L("N/A", "لا ينطبق")}[state]
     return f'<span class="shchip {state or "none"}">{txt}</span>'
 
 
@@ -212,8 +251,10 @@ def _donut(halal, doubt, haram):
             f'stroke-width="20"/>{"".join(parts)}</svg>')
 
 
-def _ratio_card(title, rule, value, state):
-    if value is None:
+def _ratio_card(title, rule, value, state, why=""):
+    if state == "na":                           # a test that doesn't apply: why, in place of the figure
+        body = f'<div class="rule" style="color:#DFDAE8">{why}</div>'
+    elif value is None:
         body = f'<div class="big">—</div>'
     else:
         top = RATIO_MAX * 2
@@ -226,10 +267,51 @@ def _ratio_card(title, rule, value, state):
     return f'<div class="shc"><div class="hd">{_chip(state)}</div><div class="t">{title}</div><div class="rule">{rule}</div>{body}</div>'
 
 
+def _special(kind):
+    """The words for a Saudi Islamic bank, cooperative insurer or finance company: head, sub, business, revenue, ratios."""
+    if kind == "islamic":
+        return (L("Halal", "حلال"),
+                L("An Islamic bank: all of its business runs under its own Sharia board.", "بنك إسلامي: كل أعماله تحت إشراف هيئته الشرعية."),
+                L("An Islamic bank: deposits and financing in Sharia forms (murabaha, ijara and others), under its own Sharia board.",
+                  "بنك إسلامي: الودائع والتمويل بصيغ شرعية (مرابحة وإجارة وغيرها)، تحت إشراف هيئته الشرعية."),
+                L("Doesn't apply: Yahoo Finance calls an Islamic bank's financing profit “interest income”, but it is profit from Sharia financing.",
+                  "ما ينطبق: ياهو فاينانس يسمّي أرباح تمويل البنك الإسلامي «إيرادات فوائد»، وهي أرباح تمويل بصيغ شرعية."),
+                L("Doesn't apply to a bank: its cash, deposits and financing are its business itself, in Sharia forms.",
+                  "ما ينطبق على البنك: النقد والودائع والتمويل هي عمله نفسه، وتكون بصيغ شرعية."))
+    if kind == "coop":
+        return (L("Check a Sharia list", "راجع قائمة شرعية"),
+                L("Cooperative insurance is permitted in principle, but Sharia lists differ on each insurer.",
+                  "التأمين التعاوني جائز من حيث الأصل، لكن القوائم الشرعية تختلف في الحكم على كل شركة."),
+                L("Insurance, or a business built on it: insurance in Saudi Arabia is cooperative by law, and the Council of Senior Scholars "
+                  "permitted cooperative insurance. Sharia lists still accept some insurers and not others, by how each one works and invests.",
+                  "تأمين أو نشاط مرتبط فيه: التأمين في السعودية تعاوني بحكم النظام، وهيئة كبار العلماء أجازت التأمين التعاوني. ومع ذلك "
+                  "القوائم الشرعية تقبل شركات وترفض شركات، حسب طريقة عمل كل شركة واستثماراتها."),
+                L("Doesn't apply as a test here: an insurer's income from its deposits and investments is part of its work, and its form is "
+                  "what the Sharia lists check.",
+                  "ما ينطبق كاختبار هنا: دخل شركة التأمين من ودائعها واستثماراتها جزء من عملها، وصيغته هي اللي تفحصها القوائم الشرعية."),
+                L("Doesn't apply as a test here: an insurer holds large cash and investments by the nature of its work, and whether they "
+                  "are in Sharia forms is what the Sharia lists check.",
+                  "ما ينطبق كاختبار هنا: شركة التأمين تحتفظ بنقد واستثمارات كبيرة بحكم عملها، وهل هي بصيغ شرعية هذا اللي تفحصه القوائم الشرعية."))
+    return (L("Check a Sharia list", "راجع قائمة شرعية"),
+            L("A finance company: the law requires its financing to agree with Sharia, and Sharia lists judge each company.",
+              "شركة تمويل: النظام يلزمها بتمويل ما يتعارض مع الشريعة، والحكم على كل شركة للقوائم الشرعية."),
+            L("A finance company: the Finance Companies Control Law (Article 3) requires its financing not to conflict with Sharia, "
+              "under its own Sharia committee.",
+              "شركة تمويل: نظام مراقبة شركات التمويل (المادة الثالثة) يلزمها إن تمويلها ما يتعارض مع أحكام الشريعة، تحت إشراف لجنتها الشرعية."),
+            L("Doesn't apply as a test here: a finance company's income is the profit on its financing, and its form is what the "
+              "Sharia lists check.",
+              "ما ينطبق كاختبار هنا: دخل شركة التمويل هو ربح تمويلها، وصيغته هي اللي تفحصها القوائم الشرعية."),
+            L("Doesn't apply as a test here: lending, and the funding behind it, is a finance company's business; its form is what "
+              "the Sharia lists check.",
+              "ما ينطبق كاختبار هنا: التمويل والاقتراض اللي وراه هو عمل شركة التمويل، وصيغته هي اللي تفحصها القوائم الشرعية."))
+
+
 def section(sym, industry=None):
     """The Sharia compliance block of one company."""
     ui.sec("mosque", "Sharia compliance", "التوافق مع الشريعة")
     r = screen(sym)
+    if r is None and business(industry, sym) in SPECIAL:     # the Saudi rules need no statements
+        r = {"kind": "EQUITY", "industry": industry, "business": business(industry, sym)}
     if r is None:
         st.caption(L("Yahoo Finance sent no financial statements for this company right now; the screen is tried again on the next view.",
                      "ياهو فاينانس ما أرسل القوائم المالية لهذه الشركة الحين، والفحص ينعاد مع الفتح القادم."))
@@ -239,11 +321,15 @@ def section(sym, industry=None):
                      "فحص التوافق الشرعي للأسهم فقط (ما يشمل الصناديق والمؤشرات والعملات الرقمية)."))
         return
     state, checks = verdict(r)
+    kind = r.get("business")
+    sp = _special(kind) if kind in SPECIAL else None
     head = {"pass": L("Halal", "حلال"), "fail": L("Not halal", "غير حلال"), "doubt": L("Doubtful", "مشكوك فيه")}[state]
     sub = {"pass": L("Passes all four checks below.", "يجتاز الفحوص الأربعة تحت."),
            "fail": L("Fails at least one of the checks below.", "ما يجتاز فحصاً واحداً على الأقل من الفحوص تحت."),
            "doubt": L("A check could not be completed or the business needs a closer look.",
                       "فيه فحص ما اكتمل أو نشاط الشركة يحتاج نظرة أدق.")}[state]
+    if sp:
+        head, sub = sp[0], sp[1]
     edge = {"pass": T.UP_EDGE, "fail": T.DN_EDGE}.get(state, T.GOLD)
     line = {"pass": "linear-gradient(90deg,#16A34A,#4ADE80)", "fail": "linear-gradient(90deg,#DC2626,#F87171)"}.get(
         state, f"linear-gradient(90deg,#D97706,{T.GOLD})")
@@ -253,7 +339,9 @@ def section(sym, industry=None):
     banner = (f'<div class="shbn{ar}" style="--edge:{edge};--line:{line};--glow:{glow}">{_pattern(pat, f"shpat_{state}")}{_icon(state)}'
               f'<div class="v">{head}</div><div class="s">{sub}</div></div>')
     # revenue breakdown
-    if r.get("rev") is not None:
+    if sp:
+        rev = f'<div class="rule">{sp[3]}</div>'
+    elif r.get("rev") is not None:
         rev = (f'<div class="shrev">{_donut(r["halal"], r["doubt"], r["haram"])}<div class="shleg">'
                + "".join(f'<div class="it"><i style="background:{col}"></i><div><span>{lab}</span><b>{v:.2f}%</b></div></div>'
                          for lab, v, col in ((L("Halal", "حلال"), r["halal"], HALAL), (L("Doubtful", "مشكوك فيه"), r["doubt"], DOUBT),
@@ -265,26 +353,42 @@ def section(sym, industry=None):
                 f'<div class="rule">{L(f"Income that is not halal plus doubtful income must stay under {REV_MAX:.0f}% of total revenue.", f"الإيرادات غير الحلال والمشكوك فيها لازم تكون أقل من {REV_MAX:.0f}% من إجمالي الإيرادات.")}</div>{rev}</div>')
     ind = industry or r.get("industry")
     biz_txt = {"pass": L("The main business is permissible.", "النشاط الرئيسي مباح."),
-               "fail": L("The main business is not permissible (such as conventional banking, insurance, alcohol, tobacco or gambling).",
-                         "النشاط الرئيسي غير مباح (مثل البنوك التقليدية أو التأمين أو الكحول أو التبغ أو القمار)."),
+               "fail": L("The main business is not permissible (such as conventional banking, commercial insurance, alcohol, tobacco or "
+                         "gambling).",
+                         "النشاط الرئيسي غير مباح (مثل البنوك التقليدية أو التأمين التجاري أو الكحول أو التبغ أو القمار)."),
                "doubt": L("A financial business: it needs a closer look.", "نشاط مالي يحتاج نظرة أدق."),
                "unknown": L("Yahoo Finance gives no industry for this company.", "ياهو فاينانس ما يعطي صناعة لهذه الشركة.")}[checks["business"]]
-    biz = (f'<div class="shc"><div class="hd">{_chip(checks["business"])}</div><div class="t">{L("Business activity", "نشاط الشركة")}</div>'
-           f'<div class="rule">{biz_txt}</div><div class="big" style="font-size:1.05rem">{T.esc(industry_name(ind) if ind else "—")}</div></div>')
+    if sp:
+        biz_txt = sp[2]
+    biz_chip = _chip(checks["business"], L("CHECK", "راجع") if kind == "coop" else None)
+    if kind == "islamic" and not ind:
+        ind = "Banks - Regional"
+    ind_txt = industry_name(ind) if ind else "—"
+    if str(sym or "").upper().endswith(".SR") and any(k in str(ind or "").lower() for k in SA_TOURISM):
+        ind_txt = L("Tourism & resorts", "السياحة والمنتجعات")             # Yahoo's "Resorts & Casinos": no casinos in the kingdom
+        biz_txt = L("The main business is permissible: tourism and resorts (there are no casinos in Saudi Arabia).",
+                    "النشاط الرئيسي مباح: سياحة ومنتجعات (ما فيه كازينوهات في السعودية).")
+    biz = (f'<div class="shc"><div class="hd">{biz_chip}</div><div class="t">{L("Business activity", "نشاط الشركة")}</div>'
+           f'<div class="rule">{biz_txt}</div><div class="big" style="font-size:1.05rem">{T.esc(ind_txt)}</div></div>')
     months = r.get("months") or 0
     base = (L(f"of the {months}-month average market cap", f"من متوسط القيمة السوقية لآخر {months} شهر") if months
             else L("of today's market cap", "من القيمة السوقية الحالية"))
     sec_card = _ratio_card(L("Interest-bearing securities &amp; assets", "الأوراق والأصول بفائدة"),
                            L(f"Cash and short-term investments must be under {RATIO_MAX:.0f}% {base}.",
-                             f"النقد والاستثمارات قصيرة الأجل لازم تكون أقل من {RATIO_MAX:.0f}% {base}."), r.get("sec"), checks["sec"])
+                             f"النقد والاستثمارات قصيرة الأجل لازم تكون أقل من {RATIO_MAX:.0f}% {base}."), r.get("sec"), checks["sec"],
+                           sp[4] if sp else "")
     debt_card = _ratio_card(L("Interest-bearing debt", "الديون بفائدة"),
                             L(f"Total debt must be under {RATIO_MAX:.0f}% {base}.", f"إجمالي الديون لازم يكون أقل من {RATIO_MAX:.0f}% {base}."),
-                            r.get("debt"), checks["debt"])
+                            r.get("debt"), checks["debt"], sp[4] if sp else "")
     note = L("An educational screen with AAOIFI-style thresholds on Yahoo Finance's latest annual statements, not a religious ruling (fatwa); "
              "screening providers and scholars can differ. Not halal = interest income; doubtful = other non-operating income whose source "
              "isn't disclosed. The average market cap uses today's share count.",
              "فحص تعليمي بحدود مشابهة لمعايير هيئة المحاسبة والمراجعة للمؤسسات المالية الإسلامية (AAOIFI) على آخر قوائم سنوية من ياهو فاينانس، "
              "وليس فتوى؛ وقد تختلف جهات الفحص والعلماء. غير الحلال = إيرادات الفوائد، والمشكوك فيه = إيرادات أخرى من خارج النشاط "
              "مصدرها غير معلن. متوسط القيمة السوقية محسوب بعدد الأسهم الحالي.")
+    if str(sym or "").upper().endswith(".SR"):
+        note += L(" In the Saudi market, Islamic banks, cooperative insurers and finance companies are read by the market's own rules, "
+                  "not by Yahoo's industry name.",
+                  " وفي السوق السعودي تنقرأ البنوك الإسلامية وشركات التأمين التعاوني وشركات التمويل حسب أنظمة السوق نفسه، مو حسب تصنيف ياهو.")
     ui.html(CSS + f'<div class="{ar.strip()}">{banner}<div class="shgrid">{rev_card}{biz}</div><div class="shgrid two">{sec_card}{debt_card}</div>'
             f'<div class="shnote">{note}</div></div>')
