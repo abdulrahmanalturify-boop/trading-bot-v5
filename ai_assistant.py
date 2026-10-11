@@ -4,7 +4,7 @@ import os
 import requests
 import streamlit as st
 
-BUILD = "23.1"
+BUILD = "23.1.1"
 API_URL = "https://api.openai.com/v1/responses"
 MAX_Q = 1200
 SESSION_LIMIT = 40          # questions per visit

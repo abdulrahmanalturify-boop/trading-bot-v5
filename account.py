@@ -199,7 +199,7 @@ def adopt(guest, acct):
 # ---------------------------------------------------------------- the top line: sign in / the account's menu
 CSS = """<style>
 .st-key-acctsec { position:relative; gap:0 !important; }
-.acctbtn { display:flex; align-items:center; gap:8px; height:38px; box-sizing:border-box; padding:0 10px 0 6px; border-radius:11px;
+.acctbtn { display:flex; align-items:center; gap:4px; height:38px; box-sizing:border-box; padding:0 6px 0 6px; border-radius:11px;
   border:1px solid #3E3A46; background:rgba(255,255,255,.03); color:#fff; font-size:.86rem; font-weight:600; cursor:pointer; white-space:nowrap; }
 .acctbtn .av { width:26px; height:26px; border-radius:50%; display:grid; place-items:center; font-weight:800; font-size:.8rem; color:#fff; overflow:hidden;
   background:linear-gradient(140deg,#3B8BEB,#7B45F0); }
@@ -215,7 +215,15 @@ CSS = """<style>
 .accthd { padding:4px 6px 10px; border-bottom:1px solid rgba(255,255,255,.08); margin-bottom:8px; }
 .accthd b { display:block; color:#fff; font-size:.95rem; } .accthd small { color:#9D97A5; font-size:.76rem; overflow-wrap:anywhere; }
 .accthd .tag { display:inline-block; margin-top:6px; padding:2px 8px; border-radius:99px; font-size:.7rem; color:#C4B5FD; background:rgba(167,139,250,.12); }
-.st-key-acct_in button { height:38px; border-radius:11px !important; font-weight:700; }
+.acctbtn.guest { padding:0; width:38px; justify-content:center; }
+.acctbtn.guest .ms { font-size:1.35rem; color:#C4B5FD; }
+.st-key-acct_in { position:relative; gap:0 !important; }
+.st-key-acct_in [data-testid="stElementContainer"] { position:static !important; margin:0 !important; }
+.st-key-acct_in .stButton { position:absolute !important; inset:0; z-index:4; margin:0 !important; }
+.st-key-acct_in .stButton button { width:100% !important; height:100% !important; min-height:0 !important; opacity:0; cursor:pointer; }
+.st-key-acct_in:hover .acctbtn { border-color:rgba(90,160,240,.55); background:linear-gradient(135deg, rgba(59,139,235,.22), rgba(123,69,240,.18)); }
+/* the top line is full: room for the account's round button (the search box gives a little) */
+[data-testid="stLayoutWrapper"]:has(> .st-key-navsearch), .st-key-topnav > .st-key-navsearch { min-width:150px !important; }
 </style>"""
 
 
@@ -232,17 +240,18 @@ def menu(L):
     import theme as T
     st.markdown(CSS, unsafe_allow_html=True)
     u = user()
-    if not u:
+    if not u:                                       # a round button like the language one (the top line has little room)
+        tip = L("Sign in or create an account: Google, Apple or your email", "سجّل دخول أو أنشئ حساب: Google أو Apple أو إيميلك")
         with st.container(key="acct_in", width="content"):
-            if st.button(L("Sign in", "دخول"), icon=":material/account_circle:", key="acct_login", type="primary",
-                         help=L("Sign in or create an account: Google, Apple or your email", "سجّل دخول أو أنشئ حساب: Google أو Apple أو إيميلك")):
+            st.markdown(f'<div class="acctbtn guest" title="{T.esc(tip)}"><span class="ms">account_circle</span></div>', unsafe_allow_html=True)
+            if st.button(L("Sign in", "دخول"), key="acct_login", help=tip):
                 sign_in()
         return
     pic = u.get("picture")
     av = f'<img src="{T.esc(pic)}" alt="" referrerpolicy="no-referrer">' if isinstance(pic, str) and pic.startswith("https://") else T.esc(_initial(u))
     first = (u.get("name") or "").split(" ")[0][:16] or L("Account", "حسابي")
     with st.container(key="acctsec", width="content"):
-        st.markdown(f'<div class="acctbtn" tabindex="0"><span class="av">{av}</span><span>{T.esc(first)}</span>'
+        st.markdown(f'<div class="acctbtn" tabindex="0" title="{T.esc(u.get("name") or first)}"><span class="av">{av}</span>'
                     f'<span class="ms chev">expand_more</span></div>', unsafe_allow_html=True)
         with st.container(key="acctdd"):
             tag = f'<span class="tag">{T.esc(L("Site owner", "صاحب الموقع"))}</span>' if is_admin(u) else ""
@@ -268,4 +277,4 @@ def nudge(L, what_en="your bots", what_ar="بوتاتك"):
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.1"
+BUILD = "23.1.1"
