@@ -265,6 +265,14 @@ def build():
                                   "year": None if newer else (meta or {}).get("year"),
                                   "url": PAGE if newer else (meta or {}).get("url") or PAGE, "argaam_date": osa_date}},
            "items": items}
+    try:
+        with open(OUT, encoding="utf-8") as f:
+            prev = json.load(f)
+        if {k: v for k, v in prev.items() if k != "built"} == {k: v for k, v in doc.items() if k != "built"}:
+            print("the lists haven't changed:", len(items), "companies")
+            return 0
+    except (OSError, ValueError):
+        pass
     with open(OUT, "w", encoding="utf-8") as f:
         json.dump(doc, f, ensure_ascii=False, separators=(",", ":"))
     print("wrote", OUT, len(items), "companies")

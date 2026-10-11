@@ -356,7 +356,7 @@ def sharia_check(b, report):
     js_box = """() => { const h = [...document.querySelectorAll('.sec')].find(e => e.textContent.includes('mosque'));
         if (!h) return null; const notes = [...document.querySelectorAll('.shnote, .shres, .shpur')];
         const end = notes.length ? notes[notes.length - 1] : h; const a = h.getBoundingClientRect(), z = end.getBoundingClientRect();
-        return {y: a.top + window.scrollY - 12, h: z.bottom - a.top + 40}; }"""
+        return {y: a.top - 12, h: z.bottom - a.top + 40}; }"""
     for lang in ("ar", "en"):
         for kind in ("desk", "phone", "light"):
             if kind != "desk" and lang == "en":
@@ -376,13 +376,16 @@ def sharia_check(b, report):
                     settle(pg, 150)
                     time.sleep(3)
                     box = pg.evaluate(js_box)
-                    if box:
-                        h = pg.evaluate("() => document.documentElement.scrollHeight")
-                        pg.set_viewport_size({"width": vp["width"], "height": min(max(int(h), vp["height"]), 9000)})
-                        time.sleep(1.5)
+                    if box:                  # the page as tall as its content (the content scrolls inside Streamlit's own box)
+                        h = pg.evaluate("() => { const m = document.querySelector('[data-testid=\"stMainBlockContainer\"]'); "
+                                        "return m ? m.scrollHeight + 160 : 900; }")
+                        vh = min(max(int(h), vp["height"]), 12000)
+                        pg.set_viewport_size({"width": vp["width"], "height": vh})
+                        time.sleep(2)
                         box = pg.evaluate(js_box) or box
-                        pg.screenshot(path=os.path.join(OUT, f"{name}.jpg"), type="jpeg", quality=80, full_page=True,
-                                      clip={"x": 0, "y": max(0, box["y"]), "width": vp["width"], "height": max(200, box["h"])})
+                        y = max(0, min(box["y"], vh - 200))
+                        pg.screenshot(path=os.path.join(OUT, f"{name}.jpg"), type="jpeg", quality=80,
+                                      clip={"x": 0, "y": y, "width": vp["width"], "height": max(200, min(box["h"], vh - y))})
                         pg.set_viewport_size(vp)
                     else:
                         shoot(pg, name)
