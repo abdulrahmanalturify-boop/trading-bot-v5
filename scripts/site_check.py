@@ -6,6 +6,7 @@ screenshot of each page and a report of what went wrong (a page that raised an e
 OUT (default site_check/).
 """
 import json
+import re
 import os
 import subprocess
 import sys
@@ -345,6 +346,60 @@ def seed_resting():
     XB.save(XB.META, meta)
 
 
+TOUR = True           # the whole site in Arabic: every page, US and (where it has one) Saudi, on a desktop and on a phone
+TOUR_PAGES = [("overview", 1), ("futures", 0), ("options", 0), ("economy", 0), ("trending", 1), ("news", 1), ("news-intelligence", 1),
+              ("stock?symbol=NVDA", 0), ("stock?symbol=2222.SR", 2), ("screener", 1), ("brief", 1), ("articles", 1), ("sentiment", 1),
+              ("seasonality", 1), ("earnings-calendar", 1), ("earnings-results", 1), ("economic-calendar", 1), ("market-holidays", 1),
+              ("dividend-calendar", 1), ("stock-splits", 1), ("ipo-calendar", 0), ("academy", 1), ("glossary", 1), ("portfolio", 1),
+              ("portfolio-trade", 1), ("portfolio-analytics", 1), ("portfolio-history", 1), ("robo-advisor", 1), ("paper-bots", 1),
+              ("scanner", 1), ("x-bots", 1)]
+
+
+def tour(b, report):
+    """Every page in Arabic: (US, and Saudi where the page has a Saudi version; 2 = Saudi only) a full-page photo on a 1440 px
+    screen and the first screen on a phone (390 x 844), with the seconds each took to finish and any error on it."""
+    report["tour"] = {}
+    desk = b.new_context(viewport={"width": 1440, "height": 900}, locale="ar-SA", color_scheme="dark")
+    phone = b.new_context(viewport={"width": 390, "height": 844}, locale="ar-SA", color_scheme="dark", is_mobile=True, has_touch=True,
+                          device_scale_factor=2)
+    pd_, pp = desk.new_page(), phone.new_page()
+    t0 = time.time()
+    pd_.goto(f"{URL}/?lang=ar", wait_until="domcontentloaded", timeout=90000)
+    report["tour"]["cold_start"] = {"seconds": settle(pd_, 180), "wall": time.time() - t0}
+    for path, sa in TOUR_PAGES:
+        for mk in (("us",) if sa == 0 else ("sa",) if sa == 2 else ("us", "sa")):
+            name = re.sub(r"[^a-z0-9]+", "_", f"{path}_{mk}").strip("_")
+            sep = "&" if "?" in path else "?"
+            url = f"{URL}/{path}{sep}m={mk}&lang=ar"
+            row = {}
+            try:
+                pd_.set_viewport_size({"width": 1440, "height": 900})
+                t1 = time.time()
+                pd_.goto(url, wait_until="domcontentloaded", timeout=90000)
+                row["desk_s"] = settle(pd_, 150)
+                row["desk_wall"] = round(time.time() - t1, 1)
+                row["problems"] = problems(pd_)
+                h = pd_.evaluate("() => { const m = document.querySelector('[data-testid=\"stMainBlockContainer\"]'); return m ? m.scrollHeight + 160 : 900; }")
+                row["height"] = int(h)
+                pd_.set_viewport_size({"width": 1440, "height": min(max(int(h), 900), 7000)})
+                time.sleep(1.2)
+                pd_.screenshot(path=os.path.join(OUT, f"t_{name}.jpg"), type="jpeg", quality=55, full_page=True)
+            except Exception as e:
+                row["desk_error"] = str(e)[:300]
+            try:
+                t1 = time.time()
+                pp.goto(url, wait_until="domcontentloaded", timeout=90000)
+                row["phone_s"] = settle(pp, 150)
+                row["phone_overflow"] = pp.evaluate("() => document.documentElement.scrollWidth - window.innerWidth")
+                pp.screenshot(path=os.path.join(OUT, f"m_{name}.jpg"), type="jpeg", quality=60)
+            except Exception as e:
+                row["phone_error"] = str(e)[:300]
+            report["tour"][name] = row
+            log("tour", name, json.dumps(row, ensure_ascii=False)[:300])
+    desk.close()
+    phone.close()
+
+
 def main():
     if QUICK and XB_SEED == "sample":
         seed_xbots()
@@ -375,6 +430,13 @@ def main():
         from playwright.sync_api import sync_playwright
         with sync_playwright() as p:
             b = p.chromium.launch()
+            if TOUR:
+                try:
+                    tour(b, report)
+                finally:
+                    json.dump(report, open(os.path.join(OUT, "report.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+                b.close()
+                return 0
             if not QUICK:
                 chart_lab(b, report)
             for lang in ("ar", "en"):
