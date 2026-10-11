@@ -1,7 +1,7 @@
 """
 scripts/build_sharia.py - The Saudi market's Sharia lists, read on a GitHub server (run by .github/workflows/sharia.yml).
 
-Step one: the sources are fetched and kept as they are in research/sharia_raw/ (the pages and the PDF), so the reader that
+Step one: the sources are fetched (on a GitHub server; this one has no way to reach them) and kept as they are in research/sharia_raw/ (the pages and the PDF), so the reader that
 turns them into sharia_lists.json can be written against the real files:
   - Argaam's page that puts the Sharia boards' lists side by side (Al Rajhi Capital, Dr. Mohammed Al-Osaimi, Albilad Capital),
     in Arabic and in English;
