@@ -645,12 +645,19 @@ def live_probe():
     return 0
 
 
-MENU_CHECK = False    # the top menus: hovered and clicked on a computer, tapped on a phone, in Chrome's engine and in Safari's (WebKit)
+MENU_CHECK = True     # the top menus: hovered and clicked on a computer, tapped on a phone, in Chrome's engine and in Safari's (WebKit)
 MENU_VIS = """(sel) => { const dd = document.querySelector(sel); if (!dd) return null; const cs = getComputedStyle(dd), r = dd.getBoundingClientRect();
   const sec = dd.parentElement && dd.parentElement.closest('[class*="st-key-navsec_"], .st-key-langsec, .st-key-acctsec');
   return {shown: cs.visibility === 'visible' && +cs.opacity > .5, op: cs.opacity, vis: cs.visibility, x: Math.round(r.left), y: Math.round(r.top),
           w: Math.round(r.width), h: Math.round(r.height), open: !!(sec && sec.classList.contains('open')),
           hoverNone: matchMedia('(hover: none)').matches, js: document.documentElement.classList.contains('ix-js')}; }"""
+
+
+PORTAL_VIS = """() => { const p = document.querySelector('.navportal'); if (!p) return {shown: false, none: true};
+  const r = p.getBoundingClientRect(), cs = getComputedStyle(p), top = document.elementFromPoint(r.left + r.width / 2, r.top + Math.min(40, r.height / 2));
+  return {shown: cs.visibility === 'visible' && +cs.opacity > .5 && r.height > 20, topmost: !!(top && p.contains(top)), x: Math.round(r.left),
+          y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height), text: p.innerText.replace(/\s+/g, ' ').slice(0, 70),
+          real: (() => { const d = document.querySelector('.st-key-topnav [class*="st-key-navdd_"]'); return d ? getComputedStyle(d).display : null; })()}; }"""
 
 
 def menu_check(p, report):
@@ -706,26 +713,26 @@ def menu_check(p, report):
             pg.evaluate("() => { document.documentElement.classList.add('ix-js'); document.querySelectorAll('.open').forEach(e => e.classList.remove('open')); }")
             pg.locator('.st-key-navsec_1 .navbtn').first.tap()
             time.sleep(0.8)
-            res["phone_tap"] = pg.evaluate(MENU_VIS, '.st-key-navdd_1')
+            res["phone_tap"] = pg.evaluate(PORTAL_VIS)
             pg.screenshot(path=os.path.join(OUT, f"menu_{eng}_phone_tap.jpg"), type="jpeg", quality=60)
             pg.locator('.st-key-navsec_2 .navbtn').first.tap()
             time.sleep(0.8)
-            res["phone_other"] = [pg.evaluate(MENU_VIS, '.st-key-navdd_2'), pg.evaluate(MENU_VIS, '.st-key-navdd_1')]
+            res["phone_other"] = [pg.evaluate(PORTAL_VIS), pg.evaluate("() => document.querySelectorAll('.navportal').length")]
             pg.locator('.st-key-navsec_2 .navbtn').first.tap()
             time.sleep(0.8)
-            res["phone_again"] = pg.evaluate(MENU_VIS, '.st-key-navdd_2')
+            res["phone_again"] = pg.evaluate(PORTAL_VIS)
             pg.locator('.st-key-navsec_1 .navbtn').first.tap()
             time.sleep(0.6)
             pg.touchscreen.tap(195, 640)
             time.sleep(0.8)
-            res["phone_away"] = pg.evaluate(MENU_VIS, '.st-key-navdd_1')
+            res["phone_away"] = pg.evaluate(PORTAL_VIS)
             card = "() => { const r = document.querySelector('.st-key-topnav').getBoundingClientRect(); return [Math.round(r.left), Math.round(r.bottom), Math.round(r.right)]; }"
             # the strip slid to its far end, then its last menu tapped
             pg.evaluate("() => { const s = document.querySelector('.st-key-navleft'); s.scrollLeft = -9999; s.scrollLeft = 9999 * (getComputedStyle(s).direction === 'rtl' ? -1 : 1); }")
             time.sleep(0.6)
             pg.locator('.st-key-navsec_7 .navbtn').first.tap()
             time.sleep(0.8)
-            res["strip_end_tap"] = [pg.evaluate(MENU_VIS, '.st-key-navdd_7'), pg.evaluate(card)]
+            res["strip_end_tap"] = [pg.evaluate(PORTAL_VIS), pg.evaluate(card)]
             pg.screenshot(path=os.path.join(OUT, f"menu_{eng}_phone_end.jpg"), type="jpeg", quality=60)
             pg.touchscreen.tap(195, 760)
             time.sleep(0.6)
@@ -734,7 +741,7 @@ def menu_check(p, report):
             time.sleep(1)
             pg.locator('.st-key-navsec_0 .navbtn').first.tap()
             time.sleep(0.8)
-            res["scrolled_tap"] = [pg.evaluate(MENU_VIS, '.st-key-navdd_0'), pg.evaluate(card)]
+            res["scrolled_tap"] = [pg.evaluate(PORTAL_VIS), pg.evaluate(card)]
             pg.screenshot(path=os.path.join(OUT, f"menu_{eng}_phone_scrolled.jpg"), type="jpeg", quality=60)
             pg.touchscreen.tap(195, 780)
             time.sleep(0.6)
@@ -742,18 +749,31 @@ def menu_check(p, report):
             time.sleep(0.8)
             pg.locator('.langbtn').first.tap()
             time.sleep(0.8)
-            res["phone_lang"] = pg.evaluate(MENU_VIS, '.st-key-langdd')
+            res["phone_lang"] = pg.evaluate(PORTAL_VIS)
             pg.screenshot(path=os.path.join(OUT, f"menu_{eng}_phone_lang.jpg"), type="jpeg", quality=60)
+            try:
+                pg.locator('.navportal [class*="st-key-langopt_en"] button').first.tap(timeout=5000)
+                time.sleep(3)
+                settle(pg, 60)
+                res["lang_switch"] = pg.evaluate("() => (document.querySelector('.navbtn span:not(.ms)') || {}).innerText || ''")
+                pg.locator('.langbtn').first.tap()
+                time.sleep(0.8)
+                pg.locator('.navportal [class*="st-key-langopt_ar"] button').first.tap(timeout=5000)
+                time.sleep(3)
+                settle(pg, 60)
+                res["lang_back"] = pg.evaluate("() => (document.querySelector('.navbtn span:not(.ms)') || {}).innerText || ''")
+            except Exception as e:
+                res["lang_error"] = str(e)[:200]
             pg.touchscreen.tap(195, 700)
             time.sleep(0.6)
             pg.locator('.st-key-navsec_3 .navbtn').first.tap()
             time.sleep(0.8)
             pg.screenshot(path=os.path.join(OUT, f"menu_{eng}_phone_cal.jpg"), type="jpeg", quality=60)
-            pg.locator('.st-key-navdd_3 [data-testid="stPageLink"] a').nth(1).tap()
+            pg.locator('.navportal [data-testid="stPageLink"] a').nth(1).tap()
             time.sleep(3)
             settle(pg, 90)
             time.sleep(2)
-            res["phone_after_link"] = {"url": pg.url[-40:], "dd": pg.evaluate(MENU_VIS, '.st-key-navdd_3'),
+            res["phone_after_link"] = {"url": pg.url[-40:], "dd": pg.evaluate(PORTAL_VIS),
                                        "h1": pg.evaluate("() => (document.querySelector('h1') || {}).innerText || ''")[:60]}
             pg.screenshot(path=os.path.join(OUT, f"menu_{eng}_phone_after.jpg"), type="jpeg", quality=60)
             pg.goto(f"{URL}/?lang=ar&m=sa", wait_until="domcontentloaded", timeout=90000)

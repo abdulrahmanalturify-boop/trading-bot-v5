@@ -1259,12 +1259,18 @@ html[data-menu-closed] [class*="st-key-navdd_"], html[data-menu-closed] .st-key-
   /* the card solid instead of frosted (an iPhone cuts off what opens out of a frosted box; the page showed through in Safari) */
   .stApp:not(:has(.ixp)) .st-key-topnav {{ backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
     background: #120D1E !important; }}
-  /* the menus on the screen itself, under the card (the page script sets --ddtop / --ddl / --ddr from where the card is) */
-  html.ix-js .st-key-topnav [class*="st-key-navdd_"], html.ix-js .st-key-topnav .st-key-langdd, html.ix-js .st-key-topnav .st-key-acctdd {{
-    position: fixed !important; top: var(--ddtop, 130px) !important; left: var(--ddl, 16px) !important; right: var(--ddr, 16px) !important;
-    width: auto !important; min-width: 0 !important; max-width: none !important; max-height: calc(100vh - var(--ddtop, 130px) - 12px);
-    overflow-y: auto !important; overscroll-behavior: contain; background: #1A1624 !important; backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important; }}
+  /* the menus: the page script draws the open one as a copy straight on the page, right under the card (.navportal; it sets
+     --ddtop / --ddl / --ddr from where the card is); the real ones inside the card stay hidden */
+  .navportal {{ position: fixed !important; z-index: 1000060 !important; top: var(--ddtop, 130px) !important; left: var(--ddl, 16px) !important;
+    right: var(--ddr, 16px) !important; width: auto !important; min-width: 0 !important; max-width: none !important; margin: 0 !important;
+    max-height: calc(100vh - var(--ddtop, 130px) - 12px); overflow-y: auto !important; overscroll-behavior: contain;
+    opacity: 1 !important; visibility: visible !important; pointer-events: auto !important; transform: none !important; animation: none !important;
+    display: flex !important; flex-direction: column; gap: 2px; box-sizing: border-box; padding: 10px 8px 8px !important;
+    background: #1A1624 !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; border: 1px solid #3E3A46 !important;
+    border-radius: 16px !important; box-shadow: 0 24px 50px rgba(0,0,0,.6) !important; font-family: inherit; }}
+  .navportal::before {{ display: none !important; }}
+  .navportal [data-testid="stPageLink"] a {{ display: flex; align-items: center; gap: 10px; text-decoration: none; color: #E7E3EB; }}
+  .navportal [data-testid="stElementContainer"], .navportal .stElementContainer {{ width: 100% !important; }}
   [data-testid="stLayoutWrapper"]:has(> .st-key-navsearch), .st-key-topnav > .st-key-navsearch {{ flex: 1 1 0 !important; min-width: 0 !important;
     width: auto !important; order: 2; }}
   [data-testid="stLayoutWrapper"]:has(> .st-key-navright), .st-key-topnav > .st-key-navright {{ flex: none !important; order: 3; }}
@@ -1289,6 +1295,11 @@ html[data-menu-closed] [class*="st-key-navdd_"], html[data-menu-closed] .st-key-
   /* the "?" after a term: a little bigger, and a finger-sized area around it */
   html .gq {{ width: 18px; height: 18px; font-size: 11px !important; }}
   html .gq::after {{ content: ""; position: absolute; inset: -9px; border-radius: 50%; }}
+}}
+/* (a touch phone only: a computer's narrow window still opens the real menus on hover) */
+@media (max-width: 640px) and (hover: none) {{
+  html.nav-portal .st-key-topnav [class*="st-key-navdd_"], html.nav-portal .st-key-topnav .st-key-langdd,
+  html.nav-portal .st-key-topnav .st-key-acctdd {{ display: none !important; }}
 }}
 /* ---------- sidebar: market pulse + watchlist ---------- */
 [data-testid="stSidebar"] [data-testid="stVerticalBlock"] {{ gap: .45rem; }}
@@ -2003,22 +2014,58 @@ FX_JS = """<script>
     de.style.setProperty('--ddl', Math.round(r.left + 6) + 'px');
     de.style.setProperty('--ddr', Math.round(w.innerWidth - r.right + 6) + 'px');
   }
+  // phones: the open menu is a copy drawn straight on the page (html.nav-portal hides the real one). Inside the card's sliding
+  // strip an iPhone did not draw it until the strip was moved; the copy has nothing around it to hold it back. A tap in the
+  // copy presses the same link or button in the real menu, so the page changes exactly as before.
+  var portal = null;
+  de.classList.add('nav-portal');
+  offs.push(function () { de.classList.remove('nav-portal'); if (portal) portal.remove(); portal = null; });
+  function unport() { if (portal) { portal.remove(); portal = null; } }
+  function port(sec) {
+    unport();
+    var dd = sec.querySelector('[class*="st-key-navdd_"], .st-key-langdd, .st-key-acctdd');
+    var nav = d.querySelector('.st-key-topnav');
+    if (!dd || !nav) return;
+    place();
+    portal = d.createElement('div');
+    portal.className = dd.className + ' navportal';
+    portal.setAttribute('role', 'menu');
+    portal.style.direction = w.getComputedStyle(nav).direction;
+    portal.innerHTML = dd.innerHTML;
+    portal.addEventListener('click', function (e) {
+      var hit = e.target && e.target.closest ? e.target.closest('a, button') : null;
+      if (!hit) return;
+      e.preventDefault();
+      e.stopPropagation();
+      var real = dd.querySelectorAll('a, button')[Array.prototype.indexOf.call(portal.querySelectorAll('a, button'), hit)];
+      unport();
+      shut(null);
+      if (real) { de.setAttribute('data-menu-closed', '1'); real.click(); }
+    });
+    d.body.appendChild(portal);
+  }
   on(d, 'click', function (e) {
     if (!TOUCH || !TOUCH.matches) return;
     var t = e.target;
     if (!t || !t.closest) return;
+    if (portal && portal.contains(t)) return;                 // the copy handles its own taps
     var btn = t.closest('.navbtn, .langbtn, .acctbtn');
     if (btn) {
       var sec = btn.closest(SECS);
       if (!sec) return;
-      shut(sec);
-      place();
-      sec.classList.toggle('open');
-      if (!sec.classList.contains('open') && btn.blur) btn.blur();
+      var was = sec.classList.contains('open');
+      shut(null);
+      unport();
+      if (!was) {
+        place();
+        sec.classList.add('open');
+        if (phone()) port(sec);
+      } else if (btn.blur) btn.blur();
       return;
     }
-    if (t.closest('[class*="st-key-navdd_"], .st-key-langdd, .st-key-acctdd')) { w.setTimeout(function () { shut(null); }, 60); return; }
+    if (t.closest('[class*="st-key-navdd_"], .st-key-langdd, .st-key-acctdd')) { w.setTimeout(function () { shut(null); unport(); }, 60); return; }
     shut(null);
+    unport();
   }, true);
   var PHONE = 640, navY = null;
   function phone() { return w.innerWidth <= PHONE; }
@@ -2029,8 +2076,8 @@ FX_JS = """<script>
   }
   on(d, 'scroll', function (e) {
     var t = e.target, nav = d.querySelector('.st-key-topnav');
-    if (t && t.classList && t.classList.contains('st-key-navleft')) { stripEnd(t); if (d.querySelector('.st-key-topnav .open')) place(); return; }
-    if (d.querySelector('.st-key-topnav .open')) place();                     // an open menu follows the card
+    if (t && t.classList && t.classList.contains('st-key-navleft')) { stripEnd(t); if (portal || d.querySelector('.st-key-topnav .open')) place(); return; }
+    if (portal || d.querySelector('.st-key-topnav .open')) place();           // an open menu follows the card
     if (!phone() || !nav) { if (de.classList.contains('nav-tuck')) de.classList.remove('nav-tuck'); navY = null; return; }
     if (t !== d && t !== de && !(t.contains && t.contains(nav))) return;     // a table or a strip moving sideways, not the page
     var y = (t === d || t === de) ? (w.scrollY || 0) : (t.scrollTop || 0);
@@ -2049,7 +2096,8 @@ FX_JS = """<script>
       var fs = parseFloat(w.getComputedStyle(tt[i]).fontSize) || 13;
       if (fs > 10) tt[i].style.setProperty('font-size', Math.max(10, Math.floor(fs * (sw - 16) / tw)) + 'px', 'important');
     }
-    if (d.querySelector('.st-key-topnav .open')) place();
+    if (portal || d.querySelector('.st-key-topnav .open')) place();
+    if (portal && !d.querySelector('.st-key-topnav .open')) unport();     // the page changed under it
     var s = d.querySelector('.st-key-navleft');
     if (!s) return;
     stripEnd(s);
