@@ -434,7 +434,7 @@ PHONE_AUDIT = """() => {
   return out; }"""
 
 
-PHONE_QUICK = [("overview", 2), ("news", 2), ("seasonality", 2), ("sentiment", 2), ("stock?symbol=2222.SR", 2)]
+PHONE_QUICK = [("seasonality", 1), ("sentiment", 2), ("news", 2)]
 #              a short phone tour while the phone's look is being worked on ([] = every page); with it, how the top bar is built,
 #              the AI button's insides, and photos of the bar at work (scrolled down, back up, a menu opened, the menus slid)
 DOM_OUTLINE = """(sel) => { const root = document.querySelector(sel); if (!root) return null;

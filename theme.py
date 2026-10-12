@@ -1984,6 +1984,14 @@ FX_JS = """<script>
   every(function () {
     if (!phone()) { if (de.classList.contains('nav-tuck')) de.classList.remove('nav-tuck'); return; }
     if (de.classList.contains('nav-tuck') && pageTop() < 140) de.classList.remove('nav-tuck');   // a new page opens at its top
+    // a chart's title longer than the phone is wide: smaller until it fits (it ran past the edge; never under 10 px)
+    var tt = d.querySelectorAll('.js-plotly-plot .gtitle');
+    for (var i = 0; i < tt.length; i++) {
+      var svg = tt[i].ownerSVGElement, sw = svg ? svg.getBoundingClientRect().width : 0, tw = tt[i].getBoundingClientRect().width;
+      if (!sw || !tw || tw <= sw - 16) continue;
+      var fs = parseFloat(w.getComputedStyle(tt[i]).fontSize) || 13;
+      if (fs > 10) tt[i].style.setProperty('font-size', Math.max(10, Math.floor(fs * (sw - 16) / tw)) + 'px', 'important');
+    }
     var s = d.querySelector('.st-key-navleft');
     if (!s) return;
     stripEnd(s);
@@ -3105,4 +3113,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.2.1"
+BUILD = "23.2.2"

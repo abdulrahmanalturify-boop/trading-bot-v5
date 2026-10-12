@@ -1531,4 +1531,4 @@ def signal_bars(labels, values, counts, title=None, height=300, unit=("readings"
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.2.1"
+BUILD = "23.2.2"
