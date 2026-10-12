@@ -1842,26 +1842,73 @@ FX_CSS = f"""<style>
   height:0 !important; overflow:hidden !important; margin:0 !important; padding:0 !important; }}
 @media (prefers-reduced-motion: reduce) {{ :is({_lift}).fx-on {{ transform:none; }} }}
 @media (hover: none) {{ {_ring}::after, {_glow}::before {{ display:none; }} }}
-/* the box signature (the AI button's look on every box): an edge of the site's blue, violet and cyan that is always faintly
-   there, a glass sheen across the top, and over a box a ring that turns, a light that follows the pointer and a coloured glow.
-   On a phone the edge and sheen stay and a tap lights the box for a moment (FX_JS). */
+/* the box styles on trial (one class on <html> picks one; the test server tries each, the visitor gets the chosen one):
+   bx-a aurora - a faint edge of blue, violet and cyan, over a box a turning ring, a light that follows the pointer and a glow
+   bx-b glass  - a frosted top-lit edge and sheen; over a box a streak of light sweeps across it
+   bx-c neon   - a dim edge in the box's own direction (green up, red down, violet otherwise); over it the edge burns and glows
+   bx-d quiet  - no edge: a short line of the three colours along the top that runs to both corners and glows over the box
+   bx-e beam   - a faint violet edge; over a box a bright beam runs round it
+   On a phone the resting look stays and a tap lights the box for a moment (FX_JS). */
 @property --fxa {{ syntax:'<angle>'; inherits:false; initial-value:0deg; }}
 @keyframes fxspin {{ to {{ --fxa:360deg; }} }}
-html.boxv2 {_ring}::after {{ opacity:1; padding:1px;
+@keyframes fxsweep {{ from {{ background-position: 135% 0, 0 0, 0 0; }} to {{ background-position: -35% 0, 0 0, 0 0; }} }}
+/* a: aurora */
+html.bx-a {_ring}::after {{ opacity:1; padding:1px;
   background: linear-gradient(135deg, rgba(59,130,246,.9), rgba(124,58,237,.55) 32%, rgba(124,58,237,.2) 58%, rgba(34,211,238,.75)); }}
-html.boxv2 {_ring}.fx-on::after {{ padding:1.5px; animation: fxspin 3.6s linear infinite;
+html.bx-a {_ring}.fx-on::after {{ padding:1.5px; animation: fxspin 3.6s linear infinite;
   background: radial-gradient(200px circle at var(--mx,50%) var(--my,50%), rgba(255,255,255,.95), rgba(196,181,253,.55) 32%, transparent 62%),
     conic-gradient(from var(--fxa) at 50% 50%, #3B82F6, #7C3AED, #22D3EE, #A855F7, #3B82F6); }}
-html.boxv2 {_glow}::before {{ opacity:1;
-  background: linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,0) 42%); }}
-html.boxv2 {_glow}.fx-on::before {{
+html.bx-a {_glow}::before {{ opacity:1; background: linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,0) 42%); }}
+html.bx-a {_glow}.fx-on::before {{
   background: radial-gradient(420px circle at var(--mx,50%) var(--my,50%), rgba(124,58,237,.22), rgba(34,211,238,.07) 42%, transparent 66%),
     linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,0) 42%); }}
-html.boxv2 :is({_fx}).fx-on {{ border-color: rgba(167,139,250,.30) !important;
+html.bx-a :is({_fx}).fx-on {{ border-color: rgba(167,139,250,.30) !important;
   box-shadow: 0 18px 40px -18px rgba(88,56,220,.65), 0 0 26px -8px rgba(34,211,238,.28) !important; }}
-html.boxv2 :is({_lift}).fx-on {{ box-shadow: 0 20px 42px -16px rgba(88,56,220,.7), 0 0 28px -8px rgba(34,211,238,.3) !important; }}
-@media (hover: none) {{ html.boxv2 {_ring}::after, html.boxv2 {_glow}::before {{ display:block; }} }}
-@media (prefers-reduced-motion: reduce) {{ html.boxv2 {_ring}.fx-on::after {{ animation:none; }} }}
+/* b: glass */
+html.bx-b {_ring}::after {{ opacity:1; padding:1px;
+  background: linear-gradient(180deg, rgba(255,255,255,.34), rgba(255,255,255,.08) 34%, rgba(255,255,255,.03) 66%, rgba(196,181,253,.20)); }}
+html.bx-b {_ring}.fx-on::after {{
+  background: linear-gradient(180deg, rgba(255,255,255,.62), rgba(255,255,255,.14) 40%, rgba(196,181,253,.42)); }}
+html.bx-b {_glow}::before {{ opacity:1;
+  background: linear-gradient(165deg, rgba(255,255,255,.085), rgba(255,255,255,.02) 38%, rgba(255,255,255,0) 60%); }}
+html.bx-b {_glow}.fx-on::before {{ animation: fxsweep 1.15s cubic-bezier(.3,.7,.3,1) both;
+  background: linear-gradient(108deg, transparent 38%, rgba(255,255,255,.20) 48%, rgba(255,255,255,.05) 54%, transparent 62%) 135% 0 / 260% 100% no-repeat,
+    radial-gradient(380px circle at var(--mx,50%) var(--my,50%), rgba(255,255,255,.07), transparent 60%),
+    linear-gradient(165deg, rgba(255,255,255,.11), rgba(255,255,255,.02) 38%, rgba(255,255,255,0) 60%); }}
+html.bx-b :is({_fx}).fx-on {{ border-color: rgba(255,255,255,.16) !important;
+  box-shadow: 0 26px 48px -24px rgba(0,0,0,.9), 0 0 0 1px rgba(255,255,255,.04) !important; }}
+/* c: neon, in the box's own direction */
+html.bx-c :is({_fx}) {{ --n1: 168,85,247; --n2: 34,211,238; }}
+html.bx-c :is({_fx}):is(.pos, .up) {{ --n1: 52,211,153; --n2: 45,212,191; }}
+html.bx-c :is({_fx}):is(.neg, .down) {{ --n1: 248,113,113; --n2: 251,146,60; }}
+html.bx-c :is({_fx}) {{ box-shadow: 0 0 18px -8px rgba(var(--n1),.45); }}
+html.bx-c {_ring}::after {{ opacity:1; padding:1px;
+  background: linear-gradient(135deg, rgba(var(--n1),.55), rgba(var(--n1),.12) 50%, rgba(var(--n2),.40)); }}
+html.bx-c {_ring}.fx-on::after {{ padding:1.5px; background: linear-gradient(135deg, rgb(var(--n1)), rgba(var(--n1),.6) 50%, rgb(var(--n2))); }}
+html.bx-c {_glow}.fx-on::before {{
+  background: radial-gradient(380px circle at var(--mx,50%) var(--my,50%), rgba(var(--n1),.20), rgba(var(--n2),.06) 45%, transparent 66%); }}
+html.bx-c :is({_fx}).fx-on {{ border-color: rgba(var(--n1),.5) !important;
+  box-shadow: 0 0 0 1px rgba(var(--n1),.30), 0 0 24px rgba(var(--n1),.45), 0 0 52px -8px rgba(var(--n2),.35) !important; }}
+/* d: quiet, a line along the top */
+html.bx-d {_ring}::after {{ opacity:.6; padding:0; inset: 0 22px auto 22px; height:2px; border-radius:0 0 2px 2px;
+  -webkit-mask:none; mask:none; background: linear-gradient(90deg, transparent, #7C3AED 22%, #3B82F6 55%, #22D3EE 80%, transparent);
+  transition: opacity .3s ease, left .4s cubic-bezier(.2,.8,.2,1), right .4s cubic-bezier(.2,.8,.2,1), box-shadow .3s ease; }}
+html.bx-d {_ring}.fx-on::after {{ left:0; right:0; box-shadow: 0 0 14px 1px rgba(124,58,237,.8), 0 0 4px rgba(34,211,238,.9); }}
+html.bx-d {_glow}.fx-on::before {{
+  background: radial-gradient(520px circle at var(--mx,50%) 0, rgba(124,58,237,.14), transparent 60%); }}
+html.bx-d :is({_fx}).fx-on {{ border-color: rgba(255,255,255,.13) !important;
+  box-shadow: 0 30px 52px -30px rgba(0,0,0,.95), 0 0 0 1px rgba(255,255,255,.05) !important; }}
+/* e: beam */
+html.bx-e {_ring}::after {{ opacity:1; padding:1px; background: linear-gradient(rgba(167,139,250,.20), rgba(167,139,250,.20)); }}
+html.bx-e {_ring}.fx-on::after {{ padding:1.5px; animation: fxspin 2.4s linear infinite;
+  background: conic-gradient(from var(--fxa) at 50% 50%, transparent 0deg, transparent 240deg, rgba(59,130,246,.9) 290deg, #A855F7 325deg,
+    #FFFFFF 350deg, transparent 360deg), linear-gradient(rgba(167,139,250,.28), rgba(167,139,250,.28)); }}
+html.bx-e {_glow}.fx-on::before {{
+  background: radial-gradient(400px circle at var(--mx,50%) var(--my,50%), rgba(124,58,237,.16), transparent 62%); }}
+html.bx-e :is({_fx}).fx-on {{ border-color: rgba(167,139,250,.25) !important;
+  box-shadow: 0 18px 40px -20px rgba(0,0,0,.85), 0 0 30px -10px rgba(124,58,237,.6) !important; }}
+@media (hover: none) {{ html[class*="bx-"] {_ring}::after, html[class*="bx-"] {_glow}::before {{ display:block; }} }}
+@media (prefers-reduced-motion: reduce) {{ html[class*="bx-"] {_ring}.fx-on::after, html[class*="bx-"] {_glow}.fx-on::before {{ animation:none; }} }}
 </style>"""
 FX_JS = """<script>
 (function () {

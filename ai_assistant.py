@@ -34,6 +34,42 @@ div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"] span[data-testid="st
 div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]>div>div:first-child{display:flex;align-items:center}
 div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]>div>div:first-child::after{content:"__ASK__";display:inline-block;max-width:0;overflow:hidden;white-space:nowrap;opacity:0;font-size:13px;font-weight:600;color:#E9E4FF;transition:max-width .38s cubic-bezier(.2,.8,.2,1),opacity .25s ease,margin .38s ease}
 @media(hover:hover){div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]:hover>div>div:first-child::after{max-width:190px;opacity:1;margin-inline-start:8px;margin-inline-end:4px}}
+/* the AI button's other looks on trial (a class on <html>; without one: the turning ring above)
+   fab2 a gradient pill that says what it does, a gloss and a streak of light now and then
+   fab3 a frosted square of glass with a gradient icon; over it the edge takes the three colours and the icon turns
+   fab4 a glowing violet sphere with a ring rippling out of it */
+@keyframes aishine{0%,62%{background-position:135% 0}100%{background-position:-35% 0}}
+@keyframes aiping{0%{transform:scale(1);opacity:.8}75%,100%{transform:scale(1.7);opacity:0}}
+html.fab2 div.st-key-alturaifi_ai_fab::before{display:none}
+html.fab2 div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]{height:52px!important;min-height:52px!important;padding:0 18px 0 15px!important;background:linear-gradient(135deg,#3B82F6,#6D4AF0 55%,#A855F7)!important;box-shadow:0 14px 30px -10px rgba(109,74,240,.85),inset 0 1px 0 rgba(255,255,255,.35)!important}
+html.fab2 div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]::before{inset:0!important;border-radius:999px;background:linear-gradient(108deg,transparent 36%,rgba(255,255,255,.5) 50%,transparent 64%) 135% 0/260% 100% no-repeat!important;animation:aishine 5s ease-in-out infinite!important;z-index:-1!important}
+html.fab2 div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]::after{inset:0!important;background:linear-gradient(180deg,rgba(255,255,255,.24),rgba(255,255,255,0) 55%)!important}
+html.fab2 div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]:hover{transform:translateY(-2px)!important;box-shadow:0 20px 40px -12px rgba(109,74,240,.95),0 0 0 5px rgba(124,58,237,.18),inset 0 1px 0 rgba(255,255,255,.35)!important}
+html.fab2 div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]:hover::before{animation-duration:1.3s!important}
+html.fab2 div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"] p{display:none!important}
+html.fab2 div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]>div>div:first-child::after{max-width:190px!important;opacity:1!important;margin-inline-start:8px!important;color:#fff!important;font-weight:700!important}
+html.fab2 div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"] span[data-testid="stIconMaterial"]{color:#fff!important;filter:drop-shadow(0 0 5px rgba(255,255,255,.6))!important;transition:transform .4s cubic-bezier(.2,.8,.2,1)}
+html.fab2 div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]:hover span[data-testid="stIconMaterial"]{transform:rotate(20deg) scale(1.12)}
+html.fab2 div.st-key-alturaifi_ai_fab::after{top:-2px;right:-1px}
+html.fab3 div.st-key-alturaifi_ai_fab::before{inset:-4px;border-radius:24px;background:radial-gradient(closest-side,rgba(124,58,237,.38),transparent);animation:none;filter:blur(12px)}
+html.fab3 div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]{border-radius:19px!important;background:rgba(32,26,56,.55)!important;backdrop-filter:blur(16px) saturate(1.5);-webkit-backdrop-filter:blur(16px) saturate(1.5);box-shadow:inset 0 1px 0 rgba(255,255,255,.16),0 18px 36px -14px rgba(0,0,0,.75)!important}
+html.fab3 div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]::before{display:none!important}
+html.fab3 div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]::after{inset:0!important;border-radius:19px!important;padding:1px;background:linear-gradient(140deg,rgba(255,255,255,.42),rgba(255,255,255,.05) 42%,rgba(167,139,250,.38))!important;-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0)}
+html.fab3 div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"] span[data-testid="stIconMaterial"]{font-size:26px!important;background:linear-gradient(135deg,#60A5FA,#A78BFA 50%,#22D3EE);-webkit-background-clip:text;background-clip:text;color:transparent!important;filter:none!important;transition:transform .45s cubic-bezier(.2,.8,.2,1)}
+html.fab3 div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"] p{color:#E9E4FF!important}
+html.fab3 div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]:hover{transform:translateY(-3px)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 22px 44px -14px rgba(88,56,220,.85),0 0 0 4px rgba(124,58,237,.14)!important}
+html.fab3 div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]:hover::after{padding:1.5px;background:linear-gradient(140deg,#3B82F6,#A855F7 50%,#22D3EE)!important}
+html.fab3 div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]:hover span[data-testid="stIconMaterial"]{transform:rotate(-16deg) scale(1.15)}
+html.fab3 div.st-key-alturaifi_ai_fab::after{top:-4px;right:-4px}
+html.fab4 div.st-key-alturaifi_ai_fab::before{inset:0;border-radius:999px;background:none;border:2px solid rgba(167,139,250,.75);filter:none;animation:aiping 2.6s cubic-bezier(.2,.6,.3,1) infinite}
+html.fab4 div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]{height:60px!important;min-height:60px!important;min-width:60px!important;background:radial-gradient(circle at 32% 24%,#EDE4FF 0,#B69CFF 14%,#7C3AED 44%,#3B1C8C 76%,#1E0F4D 100%)!important;box-shadow:0 14px 34px -10px rgba(124,58,237,.95),inset 0 -7px 14px rgba(15,8,40,.55),inset 0 3px 8px rgba(255,255,255,.3)!important}
+html.fab4 div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]::before,html.fab4 div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]::after{display:none!important}
+html.fab4 div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"] span[data-testid="stIconMaterial"]{color:#fff!important;filter:drop-shadow(0 1px 4px rgba(30,10,80,.8))!important}
+html.fab4 div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"] p{text-shadow:0 1px 4px rgba(30,10,80,.8)}
+html.fab4 div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]:hover{transform:translateY(-3px) scale(1.04)!important;box-shadow:0 20px 44px -10px rgba(124,58,237,1),0 0 0 6px rgba(167,139,250,.16),inset 0 -7px 14px rgba(15,8,40,.55),inset 0 3px 8px rgba(255,255,255,.3)!important}
+html.fab4 div.st-key-alturaifi_ai_fab::after{top:2px;right:2px}
+@media(max-width:640px){html.fab2 div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]>div>div:first-child::after{max-width:0!important;opacity:0!important;margin:0!important}html.fab2 div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"] p{display:block!important}html.fab2 div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]{padding:0 12px!important}}
+@media(prefers-reduced-motion:reduce){html.fab2 div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]::before,html.fab4 div.st-key-alturaifi_ai_fab::before{animation:none!important}}
 @media(prefers-reduced-motion:reduce){div.st-key-alturaifi_ai_fab::before,div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]::before{animation:none}}
 </style>
 """

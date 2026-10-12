@@ -859,7 +859,7 @@ def menu_check(p, report):
     report["menus"] = out
 
 
-BOXV2 = True          # a quick run: the new box signature (html.boxv2, added here only) and the AI button, before and after
+BOXV2 = False         # a quick run: the new box signature (html.boxv2, added here only) and the AI button, before and after
 BOX_PAGES = [("", "sa"), ("stock?symbol=2222.SR", "sa"), ("paper-bots", "sa"), ("news", "sa")]
 BOX_PICK = """(skip) => { const S = '.kpi, .mcard, .card, .tile, .stat, .news, .story, .pbph, .lc, .tdc, .fgc, .czn, .shc, [data-testid="stMetric"]';
   const vh = innerHeight; const all = [...document.querySelectorAll(S)].filter(e => { const r = e.getBoundingClientRect();
@@ -993,6 +993,112 @@ def box_check(b, report):
     report["box"] = out
 
 
+STYLE_PICK = True     # a quick run: every box style and AI button on trial, filmed frame by frame on the overview (and still on the news)
+BX = ["bx-a", "bx-b", "bx-c", "bx-d", "bx-e"]
+FABS = ["", "fab2", "fab3", "fab4"]
+SET_CLS = """([pre, v]) => { const h = document.documentElement; [...h.classList].filter(c => c.startsWith(pre)).forEach(c => h.classList.remove(c));
+  if (v) h.classList.add(v); }"""
+ROW = """() => { const t = [...document.querySelectorAll('.tile')].map(e => e.getBoundingClientRect()).filter(r => r.top > 80 && r.bottom < innerHeight - 40);
+  const rows = {}; t.forEach(r => { const k = Math.round(r.top / 8); (rows[k] = rows[k] || []).push(r); });
+  const best = Object.values(rows).filter(r => r.length >= 3).sort((a, b) => a[0].top - b[0].top)[0] || null;
+  return best ? best.map(r => ({x: r.left, y: r.top, w: r.width, h: r.height})).sort((a, b) => b.x - a.x) : null; }"""
+
+
+def film(pg, folder, clip, pts):
+    os.makedirs(os.path.join(OUT, folder), exist_ok=True)
+    t0, times = time.time(), []
+    for i, pt in enumerate(pts):
+        if pt:
+            pg.mouse.move(pt[0], pt[1])
+        pg.screenshot(path=os.path.join(OUT, folder, f"{i:03d}.jpg"), type="jpeg", quality=78, clip=clip)
+        times.append(round(time.time() - t0, 3))
+    return times
+
+
+def glide(a, b, n):
+    return [(a[0] + (b[0] - a[0]) * k / n, a[1] + (b[1] - a[1]) * k / n) for k in range(1, n + 1)]
+
+
+def style_pick(b, report):
+    out = {"films": {}}
+    ctx = b.new_context(viewport={"width": 1440, "height": 900}, locale="ar-SA", color_scheme="dark")
+    pg = ctx.new_page()
+    try:
+        pg.goto(f"{URL}/?m=sa&lang=ar", wait_until="domcontentloaded", timeout=90000)
+        settle(pg, 150)
+        time.sleep(2)
+        if pg.evaluate("() => !!document.querySelector('[class*=\"st-key-introgo_sa\"] button')"):
+            pg.evaluate("() => document.querySelector('[class*=\"st-key-introgo_sa\"] button').click()")
+            time.sleep(2)
+            settle(pg, 150)
+            time.sleep(2)
+        pg.evaluate("""() => { const t = [...document.querySelectorAll('.tile')][2]; if (t) { t.scrollIntoView({block: 'center'});
+            const m = document.querySelector('[data-testid="stMain"]'); if (m) m.scrollBy(0, -60); window.scrollBy(0, -60); } }""")
+        time.sleep(1.5)
+        row = pg.evaluate(ROW)
+        out["row"] = row
+        if row:
+            x0 = max(0, min(r["x"] for r in row) - 28); x1 = min(1440, max(r["x"] + r["w"] for r in row) + 28)
+            y0 = max(0, row[0]["y"] - 34); y1 = min(900, row[0]["y"] + row[0]["h"] + 120)
+            clip = {"x": x0, "y": y0, "width": x1 - x0, "height": y1 - y0}
+            out["clip"] = clip
+            away = (x1 + 6 if x1 < 1430 else 1435, y0 - 30)
+            for v in BX:
+                pg.evaluate(SET_CLS, ["bx-", v])
+                pg.mouse.move(*away)
+                time.sleep(0.6)
+                pts = [None] * 3
+                cur = away
+                for r in row[:3]:
+                    a = (r["x"] + r["w"] * .78, r["y"] + r["h"] * .3)
+                    pts += glide(cur, a, 4)
+                    pts += glide(a, (r["x"] + r["w"] * .3, r["y"] + r["h"] * .62), 7)
+                    cur = pts[-1]
+                pts += glide(cur, (cur[0], y0 - 30), 3) + [None] * 3
+                out["films"][v] = film(pg, f"film_{v}", clip, pts)
+                log("film", v, len(pts))
+        pg.evaluate(SET_CLS, ["bx-", "bx-a"])
+        f = pg.evaluate(FAB_INFO)["fab"]
+        out["fab_rect"] = f
+        clip = {"x": max(0, f[0] - 26), "y": f[1] - 44, "width": 300, "height": min(900 - (f[1] - 44), f[3] + 66)}
+        out["fab_clip"] = clip
+        c = (f[0] + f[2] / 2, f[1] + f[3] / 2)
+        for v in FABS:
+            pg.evaluate(SET_CLS, ["fab", v])
+            pg.mouse.move(c[0] + 420, c[1] - 260)
+            time.sleep(0.8)
+            pts = [None] * 8 + glide((c[0] + 140, c[1] - 90), c, 3) + [(c[0] + (k % 3) - 1, c[1]) for k in range(16)] + \
+                glide(c, (c[0] + 200, c[1] - 160), 3) + [None] * 6
+            out["films"][v or "fab1"] = film(pg, f"film_{v or 'fab1'}", clip, pts)
+            log("film", v or "fab1", len(pts))
+        pg.evaluate(SET_CLS, ["fab", ""])
+        # the news page: a news card and a number box, resting and under the pointer, in each style
+        pg.goto(f"{URL}/news?m=sa&lang=ar", wait_until="domcontentloaded", timeout=90000)
+        settle(pg, 150)
+        time.sleep(2.5)
+        pg.evaluate("""() => { const e = document.querySelector('.news'); if (e) { e.scrollIntoView({block: 'center'}); } }""")
+        time.sleep(1.2)
+        r = pg.evaluate("() => { const e = document.querySelector('.news'); if (!e) return null; const r = e.getBoundingClientRect(); return {x: r.left, y: r.top, w: r.width, h: r.height}; }")
+        out["news_card"] = r
+        if r:
+            clip = {"x": max(0, r["x"] - 30), "y": max(0, r["y"] - 30), "width": min(1440 - max(0, r["x"] - 30), r["w"] + 60), "height": min(900, r["h"] + 60)}
+            for v in BX:
+                pg.evaluate(SET_CLS, ["bx-", v])
+                pg.mouse.move(5, 5)
+                time.sleep(0.6)
+                pg.screenshot(path=os.path.join(OUT, f"news_{v}_rest.jpg"), type="jpeg", quality=80, clip=clip)
+                pg.mouse.move(r["x"] + r["w"] * .62, r["y"] + r["h"] * .3)
+                time.sleep(0.25)
+                pg.mouse.move(r["x"] + r["w"] * .6, r["y"] + r["h"] * .35)
+                time.sleep(0.45)
+                pg.screenshot(path=os.path.join(OUT, f"news_{v}_hover.jpg"), type="jpeg", quality=80, clip=clip)
+        out["problems"] = problems(pg)
+    except Exception as e:
+        out["error"] = str(e)[:600]
+    ctx.close()
+    report["style_pick"] = out
+
+
 def main():
     if LIVE:
         return live_probe()
@@ -1000,7 +1106,7 @@ def main():
         seed_xbots()
     elif QUICK and XB_SEED == "resting":
         seed_resting()
-    if not QUICK and not SHARIA and not MENU_CHECK and not BOXV2:
+    if not QUICK and not SHARIA and not MENU_CHECK and not BOXV2 and not STYLE_PICK:
         news_lab()
     seed_bots()
     if QUICK and AUTH_DEMO:                     # made-up sign-in settings on the test server only: the Sign in button shows
@@ -1041,6 +1147,13 @@ def main():
             if MENU_CHECK:
                 try:
                     menu_check(p, report)
+                finally:
+                    json.dump(report, open(os.path.join(OUT, "report.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+                b.close()
+                return 0
+            if STYLE_PICK:
+                try:
+                    style_pick(b, report)
                 finally:
                     json.dump(report, open(os.path.join(OUT, "report.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
                 b.close()
