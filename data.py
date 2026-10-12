@@ -1457,9 +1457,31 @@ def market_quotes(symbols):
     return df, "history"
 
 
+def _two_rows(prev, last):
+    day = pd.Timestamp.now().normalize()
+    return pd.DataFrame({"Open": [prev, prev], "High": [prev, last], "Low": [prev, last], "Close": [prev, last], "Volume": [0.0, 0.0]},
+                        index=[day - pd.Timedelta(days=1), day])
+
+
+@st.cache_data(ttl=120, show_spinner=False)
+def _hourly_quote(sym):
+    """(last price, previous session's close) from the hourly chart of the last days: for an index Yahoo keeps no daily history
+    for (TASI, Nomu) when its quote service does not answer (it refuses some servers, the site's among them)."""
+    h = yf.Ticker(sym).history(period="5d", interval="1h")
+    c = pd.to_numeric(h["Close"], errors="coerce").dropna() if h is not None and not h.empty else pd.Series(dtype=float)
+    if len(c) < 2:
+        raise Empty(sym)
+    day = c.index.normalize()
+    before = c[day < day[-1]]
+    if before.empty:
+        raise Empty(sym)
+    return float(c.iloc[-1]), float(before.iloc[-1])
+
+
 def with_quotes(px, symbols):
     """px ({symbol: daily OHLC}) with the symbols Yahoo keeps no history for (the TASI index) filled from live quotes: two rows,
-    the previous close and the last price, so tiles show the level and the day's change."""
+    the previous close and the last price, so tiles show the level and the day's change. When the quote service does not answer,
+    the last price and the previous session's close come from the hourly chart."""
     miss = [s_ for s_ in symbols if s_ not in px or px[s_] is None or len(px[s_].dropna(subset=["Close"])) < 2]
     if not miss:
         return px
@@ -1468,10 +1490,15 @@ def with_quotes(px, symbols):
     for _, r in (q.iterrows() if not q.empty else []):
         p, c = r.get("Price"), r.get("Chg %")
         if pd.notna(p) and pd.notna(c):
-            prev = float(p) / (1 + float(c) / 100)
-            day = pd.Timestamp.now().normalize()
-            out[r["Symbol"]] = pd.DataFrame({"Open": [prev, prev], "High": [prev, float(p)], "Low": [prev, float(p)], "Close": [prev, float(p)],
-                                          "Volume": [0.0, 0.0]}, index=[day - pd.Timedelta(days=1), day])
+            out[r["Symbol"]] = _two_rows(float(p) / (1 + float(c) / 100), float(p))
+    for s_ in miss:
+        if s_ in out and out[s_] is not None and len(out[s_].dropna(subset=["Close"])) >= 2:
+            continue
+        try:
+            last, prev = _hourly_quote(s_)
+            out[s_] = _two_rows(prev, last)
+        except Exception:
+            pass
     return out
 
 
@@ -1827,4 +1854,4 @@ def revenues(symbols, limit=100):
     return out
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.3.2"
+BUILD = "23.3.3"

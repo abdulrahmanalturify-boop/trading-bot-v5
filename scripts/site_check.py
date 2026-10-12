@@ -596,9 +596,9 @@ def tour(b, report):
     phone.close()
 
 
-LIVE = False          # look at the live site from GitHub's server (what a visitor sees there right now), nothing else
+LIVE = True           # look at the live site from GitHub's server (what a visitor sees there right now), nothing else
 LIVE_URL = "https://abdulrahman.streamlit.app"
-LIVE_PATH = "news?m=sa&lang=ar"   # a page of the live site to look at ("": the home page, on a phone and a computer)
+LIVE_PATH = "news?m=sa&lang=en"   # a page of the live site to look at ("": the home page, on a phone and a computer)
 
 
 def live_probe():
@@ -629,6 +629,7 @@ def live_probe():
                     try:
                         frames.append([fr.url[:90], fr.evaluate("() => ({text: (document.body ? document.body.innerText : '').slice(0, 500), "
                                                                 "aibar: [...document.querySelectorAll('.aibar')].map(e => e.innerText).join(' | '), "
+                                                                "pulse: (document.querySelector('.pulse') || {}).innerText || '', "
                                                                 "why: document.querySelectorAll('.nwhy').length, rel: document.querySelectorAll('.nrel').length, "
                                                                 "cards: [...document.querySelectorAll('.news .nb a.t')].slice(0, 25).map(a => a.innerText.slice(0, 90)), "
                                                                 "bar: !!document.querySelector('.st-key-topnav'), "
