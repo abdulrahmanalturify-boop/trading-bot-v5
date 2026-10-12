@@ -596,8 +596,9 @@ def tour(b, report):
     phone.close()
 
 
-LIVE = False          # look at the live site from GitHub's server (what a visitor sees there right now), nothing else
+LIVE = True           # look at the live site from GitHub's server (what a visitor sees there right now), nothing else
 LIVE_URL = "https://abdulrahman.streamlit.app"
+LIVE_PATH = "news?m=sa&lang=ar"   # a page of the live site to look at ("": the home page, on a phone and a computer)
 
 
 def live_probe():
@@ -607,8 +608,9 @@ def live_probe():
     report = {"live": {}, "started": time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime())}
     with sync_playwright() as p:
         b = p.chromium.launch()
-        for kind, args in (("phone", dict(viewport={"width": 390, "height": 844}, is_mobile=True, has_touch=True, device_scale_factor=2)),
-                           ("desk", dict(viewport={"width": 1440, "height": 900}))):
+        for kind, args in ((("phone", dict(viewport={"width": 390, "height": 844}, is_mobile=True, has_touch=True, device_scale_factor=2)),
+                            ("desk", dict(viewport={"width": 1440, "height": 900}))) if not LIVE_PATH else
+                           (("desk", dict(viewport={"width": 1440, "height": 900})),)):
             ctx = b.new_context(locale="ar-SA", color_scheme="dark", **args)
             pg = ctx.new_page()
             errs = []
@@ -616,16 +618,19 @@ def live_probe():
             pg.on("pageerror", lambda e, errs=errs: errs.append("pageerror: " + str(e)[:240]))
             row, t0 = {}, time.time()
             try:
-                pg.goto(LIVE_URL + "/?lang=ar", wait_until="domcontentloaded", timeout=120000)
+                pg.goto(LIVE_URL + "/" + (LIVE_PATH or "?lang=ar"), wait_until="domcontentloaded", timeout=120000)
                 row["goto_s"] = round(time.time() - t0, 1)
             except Exception as e:
                 row["goto_error"] = str(e)[:300]
-            for at in (15, 45, 90, 150):
+            for at in ((30, 90, 180) if LIVE_PATH else (15, 45, 90, 150)):
                 time.sleep(max(0.0, at - (time.time() - t0)))
                 frames = []
                 for fr in pg.frames:
                     try:
                         frames.append([fr.url[:90], fr.evaluate("() => ({text: (document.body ? document.body.innerText : '').slice(0, 500), "
+                                                                "aibar: [...document.querySelectorAll('.aibar')].map(e => e.innerText).join(' | '), "
+                                                                "why: document.querySelectorAll('.nwhy').length, rel: document.querySelectorAll('.nrel').length, "
+                                                                "cards: [...document.querySelectorAll('.news .nb a.t')].slice(0, 25).map(a => a.innerText.slice(0, 90)), "
                                                                 "bar: !!document.querySelector('.st-key-topnav'), "
                                                                 "running: !!document.querySelector('[data-testid=\"stStatusWidget\"]'), "
                                                                 "ver: (document.querySelector('.css-anchor') ? 'app' : '')})")])
