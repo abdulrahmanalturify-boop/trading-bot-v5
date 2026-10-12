@@ -236,6 +236,15 @@ PAGE_CSS = f"""<style>
 .pbph .nm b {{ font-weight:600; font-size:.95rem; }}
 .pbph .nm span {{ font-size:.72rem; font-weight:600; opacity:.8; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
 .pbph .phg {{ margin-inline-start:auto; }}
+/* phones: the two tiles side by side are narrow - the icon and the tag on top, the name under them on its own line (it was
+   squeezed between them a letter at a time) */
+@media (max-width: 640px) {{
+  .pbph {{ height:auto; min-height:78px; flex-wrap:wrap; align-content:center; gap:6px 8px; padding:9px 11px; }}
+  .pbph .i .ms {{ font-size:1.05rem; padding:5px; }}
+  .pbph .nm {{ order:3; flex:1 1 100%; }}
+  .pbph .nm b {{ font-size:.86rem; overflow-wrap:normal; word-break:keep-all; }}
+  .pbph .nm span {{ display:none; }}
+}}
 .pbrec {{ display:flex; flex-wrap:wrap; gap:7px; margin:2px 0 10px; }}
 .pbrec .c {{ display:inline-flex; align-items:center; gap:6px; background:rgba(157,151,165,.10); border:1px solid {_BD}; border-radius:999px;
   padding:4px 12px; font-size:.75rem; font-weight:600; color:#B1ABBA; white-space:nowrap; }}

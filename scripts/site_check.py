@@ -511,6 +511,9 @@ def tour_phone(b, report):
                 row["s"] = settle(pp, 150)
                 row["audit"] = pp.evaluate(PHONE_AUDIT)
                 row["problems"] = problems(pp)
+                if PHONE_QUICK:                   # how the page's first switch row is built (segmented controls on phones)
+                    row["seg"] = pp.evaluate(DOM_OUTLINE, '[data-testid="stButtonGroup"]')
+                    row["tabs"] = pp.evaluate(DOM_OUTLINE, '[data-testid="stTabs"] [role="tablist"]')
                 pp.screenshot(path=os.path.join(OUT, f"q_{name}.jpg"), type="jpeg", quality=62)       # the first screen, as a phone shows it
                 h = pp.evaluate(MAIN_H)
                 row["height"] = int(h)

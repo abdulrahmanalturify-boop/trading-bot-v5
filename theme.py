@@ -1228,11 +1228,14 @@ html[data-menu-closed] [class*="st-key-navdd_"], html[data-menu-closed] .st-key-
   .st-key-topnav {{ padding: 6px !important; gap: 6px !important; border-radius: 14px !important; }}
   [data-testid="stLayoutWrapper"]:has(> .st-key-navleft), .st-key-topnav > .st-key-navleft {{ flex: 1 1 100% !important; width: 100% !important;
     max-width: 100% !important; min-width: 0 !important; order: 1; }}
-  .st-key-topnav .st-key-navleft {{ flex-wrap: nowrap !important; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain;
-    scrollbar-width: none; gap: 4px !important; width: 100% !important; max-width: 100% !important; min-width: 0 !important;
-    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); }}
+  .st-key-topnav .st-key-navleft {{ flex-wrap: nowrap !important; overflow-x: auto !important; overflow-y: hidden !important;
+    overscroll-behavior-x: contain; scrollbar-width: none; gap: 4px !important; width: 100% !important; max-width: 100% !important;
+    min-width: 0 !important; }}
   .st-key-topnav .st-key-navleft::-webkit-scrollbar {{ display: none; }}
-  .st-key-topnav .st-key-navleft.at-end {{ -webkit-mask-image: none; mask-image: none; }}
+  /* the strip fades at its far edge while more menus wait there (a veil over it, not a mask: a mask would hide the open menu too) */
+  .st-key-topnav::after {{ content: ""; position: absolute; top: 6px; height: 36px; inset-inline-end: 6px; width: 34px; z-index: 2; pointer-events: none;
+    border-radius: 0 11px 11px 0; background: linear-gradient(to left, rgba(18,13,30,.97), rgba(18,13,30,0)); transition: opacity .2s; }}
+  .st-key-topnav:has(.st-key-navleft.at-end)::after {{ opacity: 0; }}
   .st-key-navleft [class*="st-key-navsec_"] {{ flex: none !important; position: static !important; }}
   .st-key-navleft .navbtn {{ height: 36px; padding: 0 11px !important; gap: 6px !important; font-size: .84rem; border-color: rgba(255,255,255,.07); }}
   .st-key-navleft .navbtn > span:not(.ms) {{ display: inline !important; }}
@@ -1712,8 +1715,7 @@ h1 {{ font-weight: 400 !important; letter-spacing: 0; line-height:1.35 !importan
 [class*="st-key-navon_"] [data-testid="stPageLink"] a {{ box-shadow: inset -3px 0 0 {ACCENT}; }}
 [class*="st-key-navdd_"] [data-testid="stPageLink"] a:hover {{ transform: translateX(-2px); }}
 .st-key-langdd {{ right:auto; left:0; transform-origin: top left; }}
-@media (max-width: 640px) {{ .st-key-topnav .st-key-navleft {{ -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 28px), transparent);
-  mask-image: linear-gradient(to left, #000 calc(100% - 28px), transparent); }} }}
+@media (max-width: 640px) {{ .st-key-topnav::after {{ border-radius: 11px 0 0 11px; background: linear-gradient(to right, rgba(18,13,30,.97), rgba(18,13,30,0)); }} }}
 .nth.fb em::after {{ content:attr(data-ar); }} .nth.fb em {{ letter-spacing:0; font-size:.72rem; }}
 .xtbl th {{ letter-spacing:0; font-size:.7rem; }}
 .sgth {{ letter-spacing:0; font-size:.7rem; }}
