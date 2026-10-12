@@ -1435,7 +1435,20 @@ def bot_panel(items_24h):
                 f'<span>{L("sources working", "مصادر تعمل")}: <b>{live}/{len(health) or len(newsbot.SA_OUTLETS if MK.is_sa() else newsbot.OUTLETS)}</b></span>'
                 f'<span>{L("updated", "آخر تحديث")} {_ago(updated)} · {L("every 3 minutes", "كل 3 دقائق")}</span></div>', unsafe_allow_html=True)
     c2.button(L("Refresh", "تحديث"), icon=":material/refresh:", key="nw_refresh", on_click=_refresh_bot, width="stretch")
-    ai_panel(items_24h)
+    ui.safe(ai_panel, items_24h)
+    if health:
+        with st.expander(L(f"News sources ({live} working now)", f"مصادر الأخبار ({live} تعمل الآن)"), icon=":material/rss_feed:"):
+            cards = []
+            for h in health:
+                cls = "" if h["ok"] else ("wait" if not h["err"] else "bad")
+                right = (f'{h["items"]} · {h["ms"] / 1000:.1f}s' if h["ok"] and h["ms"] is not None else
+                         (T.esc(h["err"]) if h["err"] else L("waiting", "بالانتظار")))
+                cards.append(f'<div class="srcc {cls}"><i class="d"></i><b>{T.esc(h["outlet"])}</b><span>{right}</span></div>')
+            st.markdown('<div class="srcgrid">' + "".join(cards) + "</div>", unsafe_allow_html=True)
+            st.caption(L("The bot reads every source every 3 minutes and merges the same story told by several outlets (+N next to the source). "
+                         "A source in red is blocked or down right now and is retried automatically.",
+                         "البوت يقرأ كل المصادر كل 3 دقائق ويدمج الخبر نفسه إذا نشرته عدة مصادر (+N بجانب المصدر). "
+                         "المصدر الأحمر محجوب أو متوقف حالياً وتتم إعادة المحاولة تلقائياً."))
 
 
 def ai_panel(items_24h):
@@ -1462,19 +1475,6 @@ def ai_panel(items_24h):
                 f'{L(f"every headline read in its context for {mk}", f"كل خبر يُقرأ بسياقه لـ{mk}")}</span>'
                 f'<span><b>{read:,}</b>/{len(items_24h):,} {L("read", "مقروء")}</span>'
                 f'<span><b>{hid:,}</b> {L("left out: unrelated", "مستبعد: ما له علاقة")}</span>{tail}</div>', unsafe_allow_html=True)
-    if health:
-        with st.expander(L(f"News sources ({live} working now)", f"مصادر الأخبار ({live} تعمل الآن)"), icon=":material/rss_feed:"):
-            cards = []
-            for h in health:
-                cls = "" if h["ok"] else ("wait" if not h["err"] else "bad")
-                right = (f'{h["items"]} · {h["ms"] / 1000:.1f}s' if h["ok"] and h["ms"] is not None else
-                         (T.esc(h["err"]) if h["err"] else L("waiting", "بالانتظار")))
-                cards.append(f'<div class="srcc {cls}"><i class="d"></i><b>{T.esc(h["outlet"])}</b><span>{right}</span></div>')
-            st.markdown('<div class="srcgrid">' + "".join(cards) + "</div>", unsafe_allow_html=True)
-            st.caption(L("The bot reads every source every 3 minutes and merges the same story told by several outlets (+N next to the source). "
-                         "A source in red is blocked or down right now and is retried automatically.",
-                         "البوت يقرأ كل المصادر كل 3 دقائق ويدمج الخبر نفسه إذا نشرته عدة مصادر (+N بجانب المصدر). "
-                         "المصدر الأحمر محجوب أو متوقف حالياً وتتم إعادة المحاولة تلقائياً."))
 
 
 def page_news():
@@ -1581,4 +1581,4 @@ def page_news():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.3.5"
+BUILD = "23.3.6"
