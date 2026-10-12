@@ -408,6 +408,7 @@ TOUR_PHONE = True     # the tour on a phone only: three screens of every page, a
 #                     or tap, and desktop photos of a few pages (to compare: the phone's fixes must not move the desktop)
 DESK_CHECK = [("overview", "sa"), ("news", "sa"), ("stock?symbol=2222.SR", "sa"), ("paper-bots", "sa"), ("scanner", "sa"), ("x-bots", "sa"),
               ("portfolio", "sa"), ("trending", "us")]
+MAIN_H = """() => { const m = document.querySelector('[data-testid="stMainBlockContainer"]'); return m ? m.scrollHeight + 160 : 900; }"""
 PHONE_AUDIT = """() => {
   const W = window.innerWidth, out = {wide: [], small_text: 0, small_tap: [], fixed: []};
   const seen = new Set();
@@ -433,6 +434,57 @@ PHONE_AUDIT = """() => {
   return out; }"""
 
 
+PHONE_QUICK = [("overview", 1), ("news", 2), ("stock?symbol=2222.SR", 2), ("paper-bots", 2), ("x-bots", 2), ("portfolio", 2)]
+#              a short phone tour while the phone's look is being worked on ([] = every page); with it, how the top bar is built,
+#              the AI button's insides, and photos of the bar at work (scrolled down, back up, a menu opened, the menus slid)
+DOM_OUTLINE = """(sel) => { const root = document.querySelector(sel); if (!root) return null;
+  const walk = (e, dep) => { const cs = getComputedStyle(e), r = e.getBoundingClientRect();
+    const me = [e.tagName.toLowerCase(), e.getAttribute('data-testid') || '', String(e.className && e.className.baseVal === undefined ? e.className : '').split(' ').filter(c => !c.startsWith('st-emotion') && !/^e[a-z0-9]{5,}$/.test(c)).join('.'),
+      cs.position, cs.overflowX, Math.round(r.left), Math.round(r.top), Math.round(r.width), Math.round(r.height), (e.children.length ? '' : (e.textContent || '').trim().slice(0, 20))];
+    return dep > 0 && e.children.length ? [me, [...e.children].slice(0, 12).map(c => walk(c, dep - 1))] : [me]; };
+  return walk(root, 7); }"""
+
+
+def phone_bar(pp, report):
+    """The top bar on a phone at work, and how it and the AI button are built."""
+    out = {}
+    for sel in ('[data-testid="stLayoutWrapper"]:has(> .st-key-topnav)', '.st-key-alturaifi_ai_fab'):
+        try:
+            out[sel] = pp.evaluate(DOM_OUTLINE, sel)
+        except Exception as e:
+            out[sel] = str(e)[:200]
+    try:
+        out["scroller"] = pp.evaluate("""() => [...document.querySelectorAll('*')].filter(e => e.scrollHeight > e.clientHeight + 50 &&
+            /auto|scroll/.test(getComputedStyle(e).overflowY)).map(e => (e.getAttribute('data-testid') || e.tagName) + ':' + e.scrollHeight).slice(0, 5)""")
+        out["html_class"] = pp.evaluate("() => document.documentElement.className")
+        go = """(dy) => { const m = document.querySelector('[data-testid="stMain"]') || document.querySelector('section.stMain'); if (m) m.scrollBy(0, dy); window.scrollBy(0, dy); }"""
+        for i, dy in enumerate((260, 260, 260)):
+            pp.evaluate(go, dy)
+            time.sleep(0.25)
+        time.sleep(0.8)
+        out["after_down"] = pp.evaluate("() => document.documentElement.className")
+        pp.screenshot(path=os.path.join(OUT, "bar_1_down.jpg"), type="jpeg", quality=62)
+        pp.evaluate(go, -60)
+        time.sleep(0.25)
+        pp.evaluate(go, -60)
+        time.sleep(0.8)
+        out["after_up"] = pp.evaluate("() => document.documentElement.className")
+        pp.screenshot(path=os.path.join(OUT, "bar_2_up.jpg"), type="jpeg", quality=62)
+        pp.evaluate(go, -5000)
+        time.sleep(0.8)
+        nb = pp.locator('.st-key-navsec_3 .navbtn').first
+        nb.tap(timeout=5000)
+        time.sleep(0.8)
+        pp.screenshot(path=os.path.join(OUT, "bar_3_menu.jpg"), type="jpeg", quality=62)
+        pp.locator('.langbtn').first.tap(timeout=5000)
+        time.sleep(0.8)
+        pp.screenshot(path=os.path.join(OUT, "bar_4_lang.jpg"), type="jpeg", quality=62)
+    except Exception as e:
+        out["error"] = str(e)[:300]
+    report["phone_bar"] = out
+    log("phone bar", json.dumps(out, ensure_ascii=False)[:3000])
+
+
 def tour_phone(b, report):
     """Every page in Arabic on a phone (390 x 844): its first three screens, and what is wider than the screen, too small to
     read (under 11 px) or too small to tap (under 30 px); then a few pages on a desktop screen, for comparison."""
@@ -442,19 +494,29 @@ def tour_phone(b, report):
     pp = phone.new_page()
     pp.goto(f"{URL}/?lang=ar", wait_until="domcontentloaded", timeout=90000)
     settle(pp, 180)
-    for path, sa in TOUR_PAGES:
+    for path, sa in (PHONE_QUICK or TOUR_PAGES):
         for mk in (("us",) if sa == 0 else ("sa",) if sa == 2 else ("us", "sa")):
             name = re.sub(r"[^a-z0-9]+", "_", f"{path}_{mk}").strip("_")
             sep = "&" if "?" in path else "?"
             row = {}
             try:
-                pp.goto(f"{URL}/{path}{sep}m={mk}&lang=ar", wait_until="domcontentloaded", timeout=90000)
+                if PHONE_QUICK and path == "news":
+                    pp.set_viewport_size({"width": 390, "height": 844})
+                    pp.goto(f"{URL}/{path}{sep}m={mk}&lang=ar", wait_until="domcontentloaded", timeout=90000)
+                    settle(pp, 150)
+                    time.sleep(1.5)
+                    phone_bar(pp, report)
+                pp.set_viewport_size({"width": 390, "height": 844})
+                pp.goto(f"{URL}/{'' if path == 'overview' else path}{sep}m={mk}&lang=ar", wait_until="domcontentloaded", timeout=90000)
                 row["s"] = settle(pp, 150)
                 row["audit"] = pp.evaluate(PHONE_AUDIT)
-                row["height"] = pp.evaluate("() => document.documentElement.scrollHeight")
                 row["problems"] = problems(pp)
-                pp.screenshot(path=os.path.join(OUT, f"p_{name}.jpg"), type="jpeg", quality=62, full_page=True,
-                              clip={"x": 0, "y": 0, "width": 390, "height": min(3 * 844, int(row["height"]))})
+                pp.screenshot(path=os.path.join(OUT, f"q_{name}.jpg"), type="jpeg", quality=62)       # the first screen, as a phone shows it
+                h = pp.evaluate(MAIN_H)
+                row["height"] = int(h)
+                pp.set_viewport_size({"width": 390, "height": min(max(int(h), 844), 3 * 844)})
+                time.sleep(1.2)
+                pp.screenshot(path=os.path.join(OUT, f"p_{name}.jpg"), type="jpeg", quality=62)
             except Exception as e:
                 row["error"] = str(e)[:300]
             report["tour"][name] = row
@@ -466,11 +528,21 @@ def tour_phone(b, report):
         name = re.sub(r"[^a-z0-9]+", "_", f"{path}_{mk}").strip("_")
         sep = "&" if "?" in path else "?"
         try:
-            pd_.goto(f"{URL}/{path}{sep}m={mk}&lang=ar", wait_until="domcontentloaded", timeout=90000)
+            pd_.set_viewport_size({"width": 1440, "height": 900})
+            pd_.goto(f"{URL}/{'' if path == 'overview' else path}{sep}m={mk}&lang=ar", wait_until="domcontentloaded", timeout=90000)
             settle(pd_, 150)
             time.sleep(1.5)
-            report["tour"]["desk_" + name] = {"height": pd_.evaluate("() => document.documentElement.scrollHeight")}
-            pd_.screenshot(path=os.path.join(OUT, f"d_{name}.jpg"), type="jpeg", quality=70)
+            h = int(pd_.evaluate(MAIN_H))
+            report["tour"]["desk_" + name] = {"height": h}
+            if path == "news":                    # the top bar's every box on a computer (1440 and a laptop's 1100): to compare
+                for vw in (1440, 1100, 800):
+                    pd_.set_viewport_size({"width": vw, "height": 900})
+                    time.sleep(1.2)
+                    report["desk_bar_%d" % vw] = pd_.evaluate(DOM_OUTLINE, '[data-testid="stLayoutWrapper"]:has(> .st-key-topnav)')
+                    report["desk_fab_%d" % vw] = pd_.evaluate(DOM_OUTLINE, '.st-key-alturaifi_ai_fab')
+            pd_.set_viewport_size({"width": 1440, "height": min(max(h, 900), 2700)})
+            time.sleep(1.2)
+            pd_.screenshot(path=os.path.join(OUT, f"d_{name}.jpg"), type="jpeg", quality=60)
         except Exception as e:
             report["tour"]["desk_" + name] = {"error": str(e)[:300]}
     desk.close()
