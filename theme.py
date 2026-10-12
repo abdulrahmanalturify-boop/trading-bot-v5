@@ -1221,6 +1221,41 @@ html[data-menu-closed] [class*="st-key-navdd_"], html[data-menu-closed] .st-key-
     backdrop-filter: blur(16px) saturate(140%); -webkit-backdrop-filter: blur(16px) saturate(140%);
     box-shadow: 0 10px 28px -12px rgba(0,0,0,.7); }}
 }}
+/* phones (up to 640 px; tablets and computers keep the card above): two lines instead of three - the menus with their names in
+   one strip that slides sideways, then the search with the market and the language beside it - and the card slides out of the
+   way while the page is read downwards, back on the first move up (FX_JS sets html.nav-tuck) */
+@media (max-width: 640px) {{
+  .st-key-topnav {{ padding: 6px !important; gap: 6px !important; border-radius: 14px !important; }}
+  [data-testid="stLayoutWrapper"]:has(> .st-key-navleft), .st-key-topnav > .st-key-navleft {{ flex: 1 1 100% !important; width: 100% !important;
+    max-width: 100% !important; min-width: 0 !important; order: 1; }}
+  .st-key-topnav .st-key-navleft {{ flex-wrap: nowrap !important; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain;
+    scrollbar-width: none; gap: 4px !important; width: 100% !important; max-width: 100% !important; min-width: 0 !important;
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); }}
+  .st-key-topnav .st-key-navleft::-webkit-scrollbar {{ display: none; }}
+  .st-key-topnav .st-key-navleft.at-end {{ -webkit-mask-image: none; mask-image: none; }}
+  .st-key-navleft [class*="st-key-navsec_"] {{ flex: none !important; position: static !important; }}
+  .st-key-navleft .navbtn {{ height: 36px; padding: 0 11px !important; gap: 6px !important; font-size: .84rem; border-color: rgba(255,255,255,.07); }}
+  .st-key-navleft .navbtn > span:not(.ms) {{ display: inline !important; }}
+  .st-key-navleft .navbtn .ms:not(.chev) {{ font-size: 1.08rem !important; }}
+  [data-testid="stLayoutWrapper"]:has(> .st-key-navsearch), .st-key-topnav > .st-key-navsearch {{ flex: 1 1 0 !important; min-width: 0 !important;
+    width: auto !important; order: 2; }}
+  [data-testid="stLayoutWrapper"]:has(> .st-key-navright), .st-key-topnav > .st-key-navright {{ flex: none !important; order: 3; }}
+  .st-key-navright {{ gap: 6px !important; }}
+  .st-key-navsearch [role="group"], .st-key-navsearch [data-baseweb="select"] > div, .st-key-navsearch [data-baseweb="input"] {{ height: 40px !important;
+    min-height: 40px !important; }}
+  /* the language and account menus open across the card, like the others (beside the edge they went off the screen) */
+  .st-key-langsec, .st-key-acctsec {{ position: static !important; }}
+  .st-key-topnav .st-key-langdd, .st-key-topnav .st-key-acctdd {{ left: 8px !important; right: 8px !important; width: auto !important; min-width: 0 !important;
+    top: calc(100% + 4px) !important; }}
+  .stApp:not(:has(.ixp)) .st-key-topnav {{ transition: transform .24s ease, opacity .2s ease; }}
+  html.nav-tuck .stApp:not(:has(.ixp)) .st-key-topnav:not(:focus-within) {{ transform: translateY(calc(-100% - 4.5rem)); opacity: 0; pointer-events: none; }}
+  /* a box of 16 px or more: iPhones zoom the whole page into any smaller box when it is tapped (the id-less :not() only lifts the
+     rule above the pages' own sizes) */
+  :is(input, textarea):not(#_) {{ font-size: 16px !important; }}
+  /* the "?" after a term: a little bigger, and a finger-sized area around it */
+  html .gq {{ width: 18px; height: 18px; font-size: 11px !important; }}
+  html .gq::after {{ content: ""; position: absolute; inset: -9px; border-radius: 50%; }}
+}}
 /* ---------- sidebar: market pulse + watchlist ---------- */
 [data-testid="stSidebar"] [data-testid="stVerticalBlock"] {{ gap: .45rem; }}
 .pulse {{ background:{TOP}, linear-gradient(160deg, rgba(59,139,235,.16), rgba(123,69,240,.08) 55%, {CARD}); border:1px solid {BORDER};
@@ -1677,6 +1712,8 @@ h1 {{ font-weight: 400 !important; letter-spacing: 0; line-height:1.35 !importan
 [class*="st-key-navon_"] [data-testid="stPageLink"] a {{ box-shadow: inset -3px 0 0 {ACCENT}; }}
 [class*="st-key-navdd_"] [data-testid="stPageLink"] a:hover {{ transform: translateX(-2px); }}
 .st-key-langdd {{ right:auto; left:0; transform-origin: top left; }}
+@media (max-width: 640px) {{ .st-key-topnav .st-key-navleft {{ -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 28px), transparent);
+  mask-image: linear-gradient(to left, #000 calc(100% - 28px), transparent); }} }}
 .nth.fb em::after {{ content:attr(data-ar); }} .nth.fb em {{ letter-spacing:0; font-size:.72rem; }}
 .xtbl th {{ letter-spacing:0; font-size:.7rem; }}
 .sgth {{ letter-spacing:0; font-size:.7rem; }}
@@ -1914,6 +1951,39 @@ FX_JS = """<script>
       if (nv && nv.dataset.ixmt) { nv.style.removeProperty('margin-top'); delete nv.dataset.ixmt; }
     }
   }, 180);
+  // phones (up to 640 px wide; tablets and computers are left as they are): the menu card slides out of the way while the page
+  // is read downwards and is back on the first move up (html.nav-tuck, the AI button with it), and its strip of menus shows
+  // the open page's menu, fading at the edge while more menus wait to the side
+  var PHONE = 640, navY = null;
+  function phone() { return w.innerWidth <= PHONE; }
+  function stripEnd(s) { s.classList.toggle('at-end', Math.abs(s.scrollLeft) + s.clientWidth >= s.scrollWidth - 2); }
+  function pageTop() {
+    var mm = d.querySelector('[data-testid="stMain"]') || d.querySelector('section.stMain');
+    return Math.max((mm && mm.scrollTop) || 0, w.scrollY || 0);
+  }
+  on(d, 'scroll', function (e) {
+    var t = e.target, nav = d.querySelector('.st-key-topnav');
+    if (t && t.classList && t.classList.contains('st-key-navleft')) { stripEnd(t); return; }
+    if (!phone() || !nav) { if (de.classList.contains('nav-tuck')) de.classList.remove('nav-tuck'); navY = null; return; }
+    if (t !== d && t !== de && !(t.contains && t.contains(nav))) return;     // a table or a strip moving sideways, not the page
+    var y = (t === d || t === de) ? (w.scrollY || 0) : (t.scrollTop || 0);
+    if (navY === null || y < 140) { navY = y; de.classList.remove('nav-tuck'); return; }
+    if (y - navY > 10) { if (!nav.contains(d.activeElement)) de.classList.add('nav-tuck'); navY = y; }   // an open menu stays
+    else if (navY - y > 10) { de.classList.remove('nav-tuck'); navY = y; }
+  }, {passive: true, capture: true});
+  every(function () {
+    if (!phone()) { if (de.classList.contains('nav-tuck')) de.classList.remove('nav-tuck'); return; }
+    if (de.classList.contains('nav-tuck') && pageTop() < 140) de.classList.remove('nav-tuck');   // a new page opens at its top
+    var s = d.querySelector('.st-key-navleft');
+    if (!s) return;
+    stripEnd(s);
+    var cur = s.querySelector('.navbtn.on'), at = w.location.pathname;
+    if (cur && s.dataset.al !== at) {                    // once per page: its menu into view, in the middle of the strip
+      s.dataset.al = at;
+      var sr = s.getBoundingClientRect(), r = cur.getBoundingClientRect();
+      if (r.left < sr.left + 24 || r.right > sr.right - 24) s.scrollLeft += (r.left + r.width / 2) - (sr.left + sr.width / 2);
+    }
+  }, 500);
 })();
 (function () {                                   // the landing's sculpture: a cut amethyst, drawn with WebGL
   var w = window.parent, d = w.document;
