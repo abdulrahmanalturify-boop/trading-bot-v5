@@ -1152,7 +1152,7 @@ def orb_check(b, report):
     report["orb"] = out
 
 
-LOOK_LANG = True      # a quick run: a first visit opens in the light look and in the phone's language; a language picked is kept
+LOOK_LANG = False     # a quick run: a first visit opens in the light look and in the phone's language; a language picked is kept
 
 
 def _follow_look():
@@ -1230,7 +1230,48 @@ def look_lang(b, report):
     report["look_lang"] = out
 
 
+LIVE_LOOK = True      # the live site, as a first-time visitor on an Arabic and on an English phone in dark mode sees it
+
+
+def live_look():
+    from playwright.sync_api import sync_playwright
+    report = {"live_look": {}}
+    phone = dict(viewport={"width": 390, "height": 844}, has_touch=True, is_mobile=True, device_scale_factor=2)
+    with sync_playwright() as p:
+        b = p.chromium.launch()
+        for loc, tag in (("ar-SA", "ar"), ("en-US", "en")):
+            res = {}
+            try:
+                ctx = b.new_context(locale=loc, color_scheme="dark", follow_look=False, **phone)
+                pg = ctx.new_page()
+                pg.goto(f"{LIVE_URL}/news?m=sa", wait_until="domcontentloaded", timeout=120000)
+                for k in range(24):                  # the app inside Streamlit Cloud's page: until it has drawn its title
+                    time.sleep(5)
+                    fr = [f for f in pg.frames if "/~/+/" in f.url] or [pg.main_frame]
+                    try:
+                        info = fr[0].evaluate(LOOK_INFO)
+                    except Exception:
+                        continue
+                    if info.get("h1"):
+                        break
+                time.sleep(10)
+                fr = [f for f in pg.frames if "/~/+/" in f.url] or [pg.main_frame]
+                res = fr[0].evaluate(LOOK_INFO)
+                res["store"] = {k: v for k, v in res.get("store", {}).items() if k.startswith("tura")}
+                pg.screenshot(path=os.path.join(OUT, f"live_look_{tag}.jpg"), type="jpeg", quality=72)
+                ctx.close()
+            except Exception as e:
+                res["error"] = str(e)[:300]
+            report["live_look"][tag] = res
+            log("live_look", tag, json.dumps(res, ensure_ascii=False)[:600])
+        b.close()
+    json.dump(report, open(os.path.join(OUT, "report.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+    return 0
+
+
 def main():
+    if LIVE_LOOK:
+        return live_look()
     if LIVE:
         return live_probe()
     if QUICK and XB_SEED == "sample":
