@@ -1230,7 +1230,7 @@ def look_lang(b, report):
     report["look_lang"] = out
 
 
-LIVE_LOOK = True      # the live site, as a first-time visitor on an Arabic and on an English phone in dark mode sees it
+LIVE_LOOK = False     # the live site, as a first-time visitor on an Arabic and on an English phone in dark mode sees it
 
 
 def live_look():
@@ -1269,6 +1269,53 @@ def live_look():
     return 0
 
 
+NEWS_FILTER = True    # a quick run: the News page with its closed Filter panel, opened, and its Category list (categories and keywords)
+
+
+def news_filter(b, report):
+    out = {}
+    for tag, lang, vp in (("en_desk", "en", {"width": 1440, "height": 900}), ("ar_desk", "ar", {"width": 1440, "height": 900}),
+                          ("ar_phone", "ar", {"width": 390, "height": 844})):
+        res = {}
+        kw = dict(viewport=vp, locale="ar-SA" if lang == "ar" else "en-US", color_scheme="light")
+        if vp["width"] < 500:
+            kw.update(has_touch=True, is_mobile=True, device_scale_factor=2)
+        try:
+            ctx = b.new_context(**kw)
+            pg = ctx.new_page()
+            pg.goto(f"{URL}/news?m=sa&lang={lang}", wait_until="domcontentloaded", timeout=90000)
+            settle(pg, 150)
+            time.sleep(3)
+            res["problems"] = problems(pg)
+            res["expanders"] = pg.evaluate("() => [...document.querySelectorAll('[data-testid=\"stExpander\"] summary')].map(s => s.innerText.trim().slice(0, 40))")
+            pg.screenshot(path=os.path.join(OUT, f"nf_{tag}_1_closed.jpg"), type="jpeg", quality=72)
+            fl = pg.locator('[data-testid="stExpander"] summary', has_text="فلتر" if lang == "ar" else "Filter").first
+            fl.click()
+            time.sleep(1.5)
+            pg.screenshot(path=os.path.join(OUT, f"nf_{tag}_2_open.jpg"), type="jpeg", quality=72)
+            ms = pg.locator('[data-testid="stMultiSelect"]', has_text="التصنيف" if lang == "ar" else "Category").first
+            ms.locator('input').first.click()
+            time.sleep(1.2)
+            res["options"] = pg.evaluate("() => [...document.querySelectorAll('[role=\"option\"]')].map(o => o.innerText.trim()).slice(0, 30)")
+            pg.screenshot(path=os.path.join(OUT, f"nf_{tag}_3_list.jpg"), type="jpeg", quality=72)
+            opt = pg.locator('[role="option"]', has_text="·").first
+            res["picked"] = opt.inner_text().strip()
+            opt.click()
+            time.sleep(2)
+            settle(pg, 90)
+            pg.keyboard.press("Escape")
+            time.sleep(1)
+            res["after_pick"] = {"problems": problems(pg), "open": pg.evaluate("() => [...document.querySelectorAll('[data-testid=\"stExpander\"] details')].map(d => d.open)"),
+                                 "cards": pg.evaluate("() => document.querySelectorAll('.news').length")}
+            pg.screenshot(path=os.path.join(OUT, f"nf_{tag}_4_picked.jpg"), type="jpeg", quality=72)
+            ctx.close()
+        except Exception as e:
+            res["error"] = str(e)[:400]
+        out[tag] = res
+        log("newsfilter", tag, json.dumps(res, ensure_ascii=False)[:900])
+    report["news_filter"] = out
+
+
 def main():
     if LIVE_LOOK:
         return live_look()
@@ -1278,7 +1325,7 @@ def main():
         seed_xbots()
     elif QUICK and XB_SEED == "resting":
         seed_resting()
-    if not QUICK and not SHARIA and not MENU_CHECK and not BOXV2 and not STYLE_PICK and not ORB_CHECK and not LOOK_LANG:
+    if not QUICK and not SHARIA and not MENU_CHECK and not BOXV2 and not STYLE_PICK and not ORB_CHECK and not LOOK_LANG and not NEWS_FILTER:
         news_lab()
     seed_bots()
     if QUICK and AUTH_DEMO:                     # made-up sign-in settings on the test server only: the Sign in button shows
@@ -1319,6 +1366,13 @@ def main():
             if MENU_CHECK:
                 try:
                     menu_check(p, report)
+                finally:
+                    json.dump(report, open(os.path.join(OUT, "report.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+                b.close()
+                return 0
+            if NEWS_FILTER:
+                try:
+                    news_filter(b, report)
                 finally:
                     json.dump(report, open(os.path.join(OUT, "report.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
                 b.close()

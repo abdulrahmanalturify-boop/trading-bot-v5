@@ -1420,24 +1420,18 @@ def _refresh_bot():
 
 
 def bot_panel(items_24h):
-    """Live strip: how many headlines the bot has, from how many outlets, when it last updated; plus the status of every source."""
+    """The news sources (closed until pressed): the status of every source and of the smart reading; the Refresh button beside it."""
     try:
         b = _news_bot()
-        health, updated = b.health(), b.updated
+        health = b.health()
     except Exception:
-        health, updated = [], None
+        health = []
     live = sum(1 for h in health if h["ok"])
-    outlets = len({n.get("source") for n in items_24h})
-    c1, c2 = st.columns([5, 1], vertical_alignment="center")
-    c1.markdown(f'<div class="botbar"><span class="live"><i></i>{L("News bot · live", "بوت الأخبار · مباشر")}</span>'
-                f'<span><b>{len(items_24h):,}</b> {L("headlines in the last 24 hours", "خبراً خلال آخر 24 ساعة")}</span>'
-                f'<span><b>{outlets}</b> {L("outlets", "مصدراً")}</span>'
-                f'<span>{L("sources working", "مصادر تعمل")}: <b>{live}/{len(health) or len(newsbot.SA_OUTLETS if MK.is_sa() else newsbot.OUTLETS)}</b></span>'
-                f'<span>{L("updated", "آخر تحديث")} {_ago(updated)} · {L("every 3 minutes", "كل 3 دقائق")}</span></div>', unsafe_allow_html=True)
+    c1, c2 = st.columns([5, 1], vertical_alignment="top")
     c2.button(L("Refresh", "تحديث"), icon=":material/refresh:", key="nw_refresh", on_click=_refresh_bot, width="stretch")
-    ui.safe(ai_panel, items_24h)
-    if health:
-        with st.expander(L(f"News sources ({live} working now)", f"مصادر الأخبار ({live} تعمل الآن)"), icon=":material/rss_feed:"):
+    with c1.expander(L(f"News sources ({live} working now)", f"مصادر الأخبار ({live} تعمل الآن)"), icon=":material/rss_feed:"):
+        ui.safe(ai_panel, items_24h)
+        if health:
             cards = []
             for h in health:
                 cls = "" if h["ok"] else ("wait" if not h["err"] else "bad")
@@ -1445,10 +1439,10 @@ def bot_panel(items_24h):
                          (T.esc(h["err"]) if h["err"] else L("waiting", "بالانتظار")))
                 cards.append(f'<div class="srcc {cls}"><i class="d"></i><b>{T.esc(h["outlet"])}</b><span>{right}</span></div>')
             st.markdown('<div class="srcgrid">' + "".join(cards) + "</div>", unsafe_allow_html=True)
-            st.caption(L("The bot reads every source every 3 minutes and merges the same story told by several outlets (+N next to the source). "
-                         "A source in red is blocked or down right now and is retried automatically.",
-                         "البوت يقرأ كل المصادر كل 3 دقائق ويدمج الخبر نفسه إذا نشرته عدة مصادر (+N بجانب المصدر). "
-                         "المصدر الأحمر محجوب أو متوقف حالياً وتتم إعادة المحاولة تلقائياً."))
+        st.caption(L("The bot reads every source every 3 minutes and merges the same story told by several outlets (+N next to the source). "
+                     "A source in red is blocked or down right now and is retried automatically.",
+                     "البوت يقرأ كل المصادر كل 3 دقائق ويدمج الخبر نفسه إذا نشرته عدة مصادر (+N بجانب المصدر). "
+                     "المصدر الأحمر محجوب أو متوقف حالياً وتتم إعادة المحاولة تلقائياً."))
 
 
 def ai_panel(items_24h):
@@ -1491,47 +1485,42 @@ def page_news():
                   "an importance score from 1 to 10 and the companies affected by each story.",
                   "أخبار مباشرة يجمعها بوت الأخبار من رويترز وبلومبرغ ووول ستريت جورنال وفايننشال تايمز وCNBC وبنزينغا وأكثر من 20 مصدراً آخر، "
                   "مع الكلمات المفتاحية ودرجة أهمية من 1 إلى 10 والشركات المتأثرة بكل خبر.")
-    # the bot's live strip first, then every filter in one panel: what to read (company, time, kind, outlets) and how to list it
+    # the news sources, then every filter in one closed panel ("Filter"): what to read (company, time, category or keyword, outlets)
+    # and how to list it. The category list also holds the day's top keywords; it is filled once the stories are read.
     with st.spinner(L("The news bot is collecting headlines from 35 feeds (only the first time)...",
                       "بوت الأخبار يجمع العناوين من 35 مصدراً (أول مرة فقط)...")):
         everything = data.market_news(96)
     now = pd.Timestamp.now(tz="UTC")
     bot_panel([n for n in everything if pd.notna(n.get("time")) and n["time"] >= now - pd.Timedelta(hours=24)])
-    with st.container(key="nwfilt"):
-        c1, c2, c3, c4 = st.columns([1.7, 1.25, 1.35, 0.75], vertical_alignment="bottom")
-        if sa:
-            sym = ui.sa_company(L("Company", "الشركة"), "nw_sym_sa2", container=c1, none_label=L("All the market", "السوق كله")) or ""
-        else:
-            sym = c1.text_input(L("Company", "الشركة"), "", key="nw_sym",
-                                placeholder=L("Symbol, e.g. NVDA · empty = all the market", "رمز السهم مثل NVDA · فاضي = السوق كله")).strip().upper()
-        sort = c2.segmented_control(L("Order", "الترتيب"), ["imp", "new"], default="new" if sa else "imp", key="nw_sort_sa" if sa else "nw_sort",
-                                    format_func=lambda k: L("Important", "الأهم") if k == "imp" else L("Latest", "الأحدث")) or "imp"
-        lvl = c3.segmented_control(L("Importance", "الأهمية"), [1, 5, 7, 9], default=1, key="nw_min",
-                                   format_func=lambda v: L("All", "الكل") if v == 1 else f"{v}+") or 1
-        count = c4.selectbox(L("Stories", "عدد الأخبار"), [10, 20, 30, 50, 100], index=1, key="nw_count")
-        items = data.symbol_news(sym) if sym else everything
-        pick_c, pick_s, hrs = [], [], 96
-        if not sym:
-            d1, d2, d3, d4 = st.columns([1.35, 2.2, 1.45, 0.75], vertical_alignment="bottom")
-            hrs = d1.segmented_control(L("Time", "الوقت"), [1, 6, 24, 96], default=24, key="nw_hrs",
-                                       format_func=lambda h: {1: L("1h", "ساعة"), 6: L("6h", "6 ساعات"), 24: L("24h", "24 ساعة"),
-                                                              96: L("4 days", "4 أيام")}[h]) or 24
-            cats = [c for c in newsbot.CATS if any(n.get("cat") == c for n in items)]
-            if isinstance(ss.get("nw_cat"), list):
-                ss["nw_cat"] = [c for c in ss["nw_cat"] if c in cats]
-            pick_c = d2.pills(L("Category", "التصنيف"), cats, selection_mode="multi", key="nw_cat",
-                              format_func=lambda c: L(newsbot.CATS[c][0], newsbot.CATS[c][1])) or []
-            outs = sorted({n.get("source") for n in items if n.get("source")}, key=lambda o: (newsbot.RANK.get(o, 99), o))
-            ui.valid_multi("nw_src", outs)
-            pick_s = d3.multiselect(L("Sources", "المصادر"), outs, key="nw_src", placeholder=L("All sources", "كل المصادر"))
+    with st.expander(L("Filter", "فلتر"), icon=":material/filter_alt:"):
+        with st.container(key="nwfilt"):
+            c1, c2, c3, c4 = st.columns([1.7, 1.25, 1.35, 0.75], vertical_alignment="bottom")
+            if sa:
+                sym = ui.sa_company(L("Company", "الشركة"), "nw_sym_sa2", container=c1, none_label=L("All the market", "السوق كله")) or ""
+            else:
+                sym = c1.text_input(L("Company", "الشركة"), "", key="nw_sym",
+                                    placeholder=L("Symbol, e.g. NVDA · empty = all the market", "رمز السهم مثل NVDA · فاضي = السوق كله")).strip().upper()
+            sort = c2.segmented_control(L("Order", "الترتيب"), ["imp", "new"], default="new" if sa else "imp", key="nw_sort_sa" if sa else "nw_sort",
+                                        format_func=lambda k: L("Important", "الأهم") if k == "imp" else L("Latest", "الأحدث")) or "imp"
+            lvl = c3.segmented_control(L("Importance", "الأهمية"), [1, 5, 7, 9], default=1, key="nw_min",
+                                       format_func=lambda v: L("All", "الكل") if v == 1 else f"{v}+") or 1
+            count = c4.selectbox(L("Stories", "عدد الأخبار"), [10, 20, 30, 50, 100], index=1, key="nw_count")
+            items = data.symbol_news(sym) if sym else everything
+            pick_s, hrs = [], 96
+            if not sym:
+                d1, d2, d3, d4 = st.columns([1.35, 2.2, 1.45, 0.75], vertical_alignment="bottom")
+                hrs = d1.segmented_control(L("Time", "الوقت"), [1, 6, 24, 96], default=24, key="nw_hrs",
+                                           format_func=lambda h: {1: L("1h", "ساعة"), 6: L("6h", "6 ساعات"), 24: L("24h", "24 ساعة"),
+                                                                  96: L("4 days", "4 أيام")}[h]) or 24
+                outs = sorted({n.get("source") for n in items if n.get("source")}, key=lambda o: (newsbot.RANK.get(o, 99), o))
+                ui.valid_multi("nw_src", outs)
+                pick_s = d3.multiselect(L("Sources", "المصادر"), outs, key="nw_src", placeholder=L("All sources", "كل المصادر"))
+            else:
+                d2, d4 = st.columns([4, 0.75], vertical_alignment="bottom")
             translate = d4.toggle(L("Arabic", "ترجمة"), value=is_ar(), key="nw_tr", help=L("Translate the headlines to Arabic", "ترجم العناوين للعربي"))
-        else:
-            translate = c4.toggle(L("Arabic", "ترجمة"), value=is_ar(), key="nw_tr", help=L("Translate the headlines to Arabic", "ترجم العناوين للعربي"))
     items = [n for n in items if pd.notna(n.get("time")) and n["time"] >= now - pd.Timedelta(hours=hrs)] if not sym else items
     # the same event told by several outlets becomes one story with its full coverage (newsbot.cluster)
     items = newsbot.cluster(items[:1500])
-    if pick_c:
-        items = [n for n in items if n.get("cat") in pick_c]
     if pick_s:
         items = [n for n in items if n.get("source") in pick_s or any(a in pick_s for a in n.get("also") or [])]
     items = items[:1200]
@@ -1539,6 +1528,27 @@ def page_news():
     tick = sorted({s_ for n in recent for s_ in n.get("tickers", [])})
     chg = data.quick_changes(tick) if tick else {}
     newsiq.enrich(items, chg)
+    # the category list: the bot's categories, then the top keywords of these stories (with how many stories carry each)
+    cats = [c for c in newsbot.CATS if any(n.get("cat") == c for n in items)]
+    top = newsiq.top_keywords(items, 14) if items else []
+    kw_en = {kw[1]: kw for kw, _ in top}
+    kw_n = {kw[1]: c for kw, c in top}
+    opts = [f"c:{c}" for c in cats] + [f"k:{kw[1]}" for kw, _ in top]
+
+    def _opt(o):
+        if o.startswith("c:"):
+            c = o[2:]
+            return L(newsbot.CATS[c][0], newsbot.CATS[c][1]) if c in newsbot.CATS else c
+        kw = kw_en.get(o[2:])
+        return f"{(kw[2] if is_ar() else kw[1]) if kw else o[2:]} · {kw_n.get(o[2:], 0)}"
+    ui.valid_multi("nw_cat2", opts)
+    pick = d2.multiselect(L("Category", "التصنيف"), opts, key="nw_cat2", format_func=_opt, placeholder=L("All", "الكل"))
+    pick_c = [o[2:] for o in pick if o.startswith("c:")]
+    pick_k = [o[2:] for o in pick if o.startswith("k:")]
+    if pick_c:
+        items = [n for n in items if n.get("cat") in pick_c]
+    if pick_k:
+        items = [n for n in items if any(kw[1] in pick_k for kw in n["iq"]["keywords"])]
     if items:
         scores = [n["iq"]["score"] for n in items]
         vi, im = sum(1 for x in scores if x >= 9), sum(1 for x in scores if 7 <= x < 9)
@@ -1555,20 +1565,6 @@ def page_news():
         lv = newsiq.level(round(avg))
         k[3].markdown(T.kpi("speed", L("Average importance", "متوسط الأهمية"), f"{avg:.1f}/10", T.esc(L(*lv)),
                             "neg" if avg >= 7 else ("pos" if avg < 4 else None)), unsafe_allow_html=True)
-        top = newsiq.top_keywords(items, 14)
-        if top:
-            opts = [kw[1] for kw, _ in top]
-            cnt = {kw[1]: c for kw, c in top}
-            ar_of = {kw[1]: kw[2] for kw, _ in top}
-            if isinstance(ss.get("nw_kw"), list):
-                ss["nw_kw"] = [v for v in ss["nw_kw"] if v in opts]
-            pick = st.pills(L("Top keywords (click to filter)", "أبرز الكلمات المفتاحية (اضغط للفلترة)"), opts, selection_mode="multi", key="nw_kw",
-                            format_func=lambda en: f"{ar_of.get(en, en) if is_ar() else en} · {cnt.get(en, 0)}") or []
-            if pick:
-                items = [n for n in items if any(kw[1] in pick for kw in n["iq"]["keywords"])]
-        ui.html(f'<div class="card" style="padding:10px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">'
-                f'<b style="font-size:.85rem">{L("Importance score", "درجة الأهمية")}</b>{T.iq_legend(is_ar())}'
-                f'<span class="muted" style="font-size:.74rem">{L("Hover a score to see why it was given.", "مرّر الماوس على الدرجة لتعرف سببها.")}</span></div>')
     items = [n for n in items if n["iq"]["score"] >= lvl]
     if sort == "imp":
         items = newsiq.rank(items)
