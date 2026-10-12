@@ -1261,14 +1261,15 @@ html[data-menu-closed] [class*="st-key-navdd_"], html[data-menu-closed] .st-key-
     background: #120D1E !important; }}
   /* the menus: the page script draws the open one as a copy straight on the page, right under the card (.navportal; it sets
      --ddtop / --ddl / --ddr from where the card is); the real ones inside the card stay hidden */
-  .navportal {{ position: fixed !important; z-index: 1000060 !important; top: var(--ddtop, 130px) !important; left: var(--ddl, 16px) !important;
+  html body .navportal {{ position: fixed !important; z-index: 1000060 !important; top: var(--ddtop, 130px) !important; left: var(--ddl, 16px) !important;
     right: var(--ddr, 16px) !important; width: auto !important; min-width: 0 !important; max-width: none !important; margin: 0 !important;
     max-height: calc(100vh - var(--ddtop, 130px) - 12px); overflow-y: auto !important; overscroll-behavior: contain;
     opacity: 1 !important; visibility: visible !important; pointer-events: auto !important; transform: none !important; animation: none !important;
-    display: flex !important; flex-direction: column; gap: 2px; box-sizing: border-box; padding: 10px 8px 8px !important;
-    background: #1A1624 !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; border: 1px solid #3E3A46 !important;
+    display: flex !important; flex-direction: column; gap: 4px; box-sizing: border-box; padding: 10px 8px 8px !important;
+    background: #1A1624 !important; background-image: none !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; border: 1px solid #3E3A46 !important;
     border-radius: 16px !important; box-shadow: 0 24px 50px rgba(0,0,0,.6) !important; font-family: inherit; }}
-  .navportal::before {{ display: none !important; }}
+  html body .navportal::before {{ display: none !important; }}
+  html body .navportal .navhd {{ margin-bottom: 4px; }}
   .navportal [data-testid="stPageLink"] a {{ display: flex; align-items: center; gap: 10px; text-decoration: none; color: #E7E3EB; }}
   .navportal [data-testid="stElementContainer"], .navportal .stElementContainer {{ width: 100% !important; }}
   [data-testid="stLayoutWrapper"]:has(> .st-key-navsearch), .st-key-topnav > .st-key-navsearch {{ flex: 1 1 0 !important; min-width: 0 !important;
