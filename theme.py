@@ -1262,6 +1262,7 @@ html[data-menu-closed] [class*="st-key-navdd_"], html[data-menu-closed] .st-key-
   [data-testid="stButtonGroup"] > div > button {{ padding-inline: 9px !important; min-width: 0 !important; }}
   /* the charts' tool row (zoom, pan, download …): on a phone it sat on the chart's title and legend; a finger zooms and pans anyway */
   [data-testid="stPlotlyChart"] .modebar-container {{ display: none !important; }}
+  .js-plotly-plot .gtitle {{ font-size: 13px !important; }}      /* a long chart title ran past the phone's edge */
   /* the "?" after a term: a little bigger, and a finger-sized area around it */
   html .gq {{ width: 18px; height: 18px; font-size: 11px !important; }}
   html .gq::after {{ content: ""; position: absolute; inset: -9px; border-radius: 50%; }}
@@ -3104,4 +3105,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.2"
+BUILD = "23.2.1"
