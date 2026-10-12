@@ -1,0 +1,69 @@
+# By hand (or a push of deploy/ on "research"): deploy/oracle-setup.sh run on a fresh Arm Ubuntu 24.04 server, as it runs on the
+# Oracle Cloud server when that is first started; then the site is opened through Caddy on port 80. The report and a picture go to
+# the branch "oracle-test" (replaced on every run).
+name: oracle setup test
+on:
+  push:
+    branches: [research]
+    paths: ["deploy/**", ".github/workflows/oracletest.yml"]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: oracle-test
+  cancel-in-progress: true
+jobs:
+  test:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: research
+      - name: the setup script, as on the Oracle server (test secrets only)
+        run: |
+          mkdir -p /tmp/ot
+          printf 'SITE_TEST_ONLY = "1"\n' | sudo tee /opt/tura-secrets.toml > /dev/null
+          ( time sudo TURA_BRANCH=research bash deploy/oracle-setup.sh ) > /tmp/ot/setup_log.txt 2>&1 || (tail -80 /tmp/ot/setup_log.txt; exit 1)
+          tail -5 /tmp/ot/setup_log.txt
+      - name: the site answers on port 80
+        run: |
+          ok=""
+          for i in $(seq 1 80); do if curl -fsS http://localhost/_stcore/health > /dev/null 2>&1; then ok=1; break; fi; sleep 3; done
+          { echo "health: ${ok:-NO}"; curl -s -o /dev/null -w 'home page: %{http_code}\n' http://localhost/;
+            systemctl is-active tura caddy tura-update.timer; sudo ls -la /home/tura/.streamlit; sudo cat /etc/caddy/Caddyfile;
+            sudo /opt/tura/update.sh && echo "update script: ok"; uname -m; /opt/tura/venv/bin/python --version; } | tee /tmp/ot/report.txt
+          sudo journalctl -u tura --no-pager | tail -60 > /tmp/ot/tura_log.txt
+          [ -n "$ok" ]
+      - name: a picture of the site through the server's port 80
+        if: always()
+        run: |
+          python3 -m venv /tmp/pw && /tmp/pw/bin/pip install -q playwright && /tmp/pw/bin/python -m playwright install --with-deps chromium > /dev/null
+          /tmp/pw/bin/python - <<'EOF'
+          import time
+          from playwright.sync_api import sync_playwright
+          with sync_playwright() as p:
+              b = p.chromium.launch()
+              for name, kw in (("desk", dict(viewport={"width": 1440, "height": 900})),
+                               ("phone", dict(viewport={"width": 390, "height": 844}, is_mobile=True, has_touch=True, device_scale_factor=2))):
+                  pg = b.new_page(locale="ar-SA", **kw)
+                  t0 = time.time()
+                  pg.goto("http://localhost/news?m=sa", wait_until="domcontentloaded", timeout=120000)
+                  for _ in range(90):
+                      if pg.evaluate("() => !!document.querySelector('h1')") and not pg.evaluate("() => !!document.querySelector('[data-testid=\"stStatusWidget\"]')"):
+                          break
+                      time.sleep(1)
+                  print(name, "drawn in", round(time.time() - t0, 1), "s")
+                  time.sleep(4)
+                  pg.screenshot(path=f"/tmp/ot/{name}.jpg", type="jpeg", quality=70)
+              b.close()
+          EOF
+      - if: always()
+        run: |
+          cd /tmp/ot
+          git init -q -b oracle-test
+          git config user.name "oracle-test"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "oracle setup test $(date -u +%Y-%m-%dT%H:%MZ) [skip ci]"
+          git push -q -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" oracle-test:oracle-test
