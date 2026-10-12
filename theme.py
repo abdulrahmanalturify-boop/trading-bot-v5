@@ -93,8 +93,9 @@ def _blobs(p, layers, k0, scale=1.0):
     return defs, els
 
 
-def logo_parts(p="lg", light=True, shadow=.45, glow=1.0, aura=.85, spread=1.0):
-    """The mark's drawing (ids prefixed with p). light: the deep light of the owner's picture behind it (for dark surfaces);
+def logo_parts(p="lg", light=True, shadow=.45, glow=1.0, aura=.85, spread=1.0, lightk=1.0):
+    """The mark's drawing (ids prefixed with p). light: the deep light of the owner's picture behind it (for dark surfaces),
+    lightk how strong it is (1: as in the picture);
     aura: how strong the coloured halo round the mark is; glow: how strong the neon round the tubes is; spread: how far the
     neon reaches; shadow: how dark the shadow under the tubes is (0: none). The light and the halo fade out inside LOGO_GLOW_BOX."""
     defs = [_lin(p + "a", _T_LINE, _T_IN), _lin(p + "b", _T_LINE, _T_RIM), _lin(p + "c", _P_LINE, _P_IN), _lin(p + "d", _P_LINE, _P_RIM)]
@@ -103,7 +104,7 @@ def logo_parts(p="lg", light=True, shadow=.45, glow=1.0, aura=.85, spread=1.0):
         x0, y0, w, h = LOGO_GLOW_BOX
         glows = []
         if light:
-            d_, e_ = _blobs(p, _LIGHT, 0)
+            d_, e_ = _blobs(p, _LIGHT, 0, lightk)
             defs += d_
             glows += e_
         if aura:
@@ -137,9 +138,10 @@ def logo_parts(p="lg", light=True, shadow=.45, glow=1.0, aura=.85, spread=1.0):
 
 # the light look: no deep light behind it (it would read as a dark smudge on a pale page), the coloured halo and the neon
 # stronger, the shadow faint
-LIGHT_LOOK = dict(light=False, shadow=.12, glow=1.25, aura=.75)
-# the dark look: the owner's picture as it is (its deep light behind the mark and its shadow; no added neon or halo)
-DARK_LOOK = dict(light=True, shadow=.62, glow=0, aura=0)
+# (both made softer at the owner's word: the glow round the logo was too strong)
+LIGHT_LOOK = dict(light=False, shadow=.12, glow=.7, aura=.35)
+# the dark look: the owner's picture (its deep light behind the mark, at 40 %, and its shadow; no added neon or halo)
+DARK_LOOK = dict(light=True, shadow=.62, glow=0, aura=0, lightk=.4)
 
 
 def logo_mark(p="lg", cls="", light=True):
@@ -158,7 +160,7 @@ _LOGO_SEL = 'img[data-testid="stLogo"], img.stLogo, [data-testid="stSidebarHeade
 def logo_glow_css(light_look=False):
     if not light_look:
         return ""
-    f = "drop-shadow(0 0 2px rgba(56,189,248,.5)) drop-shadow(0 0 8px rgba(124,92,255,.45)) drop-shadow(0 0 16px rgba(176,76,255,.2))"
+    f = "drop-shadow(0 0 2px rgba(56,189,248,.3)) drop-shadow(0 0 6px rgba(124,92,255,.22))"
     return f'<style data-lm="keep">{_LOGO_SEL} {{ filter:{f}; }}</style>'
 
 
@@ -3111,4 +3113,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.2.3"
+BUILD = "23.2.4"
