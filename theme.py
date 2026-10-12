@@ -1222,8 +1222,8 @@ html[data-menu-closed] [class*="st-key-navdd_"], html[data-menu-closed] .st-key-
     box-shadow: 0 10px 28px -12px rgba(0,0,0,.7); }}
 }}
 /* phones (up to 640 px; tablets and computers keep the card above): two lines instead of three - the menus with their names in
-   one strip that slides sideways, then the search with the market and the language beside it - and the card slides out of the
-   way while the page is read downwards, back on the first move up (FX_JS sets html.nav-tuck) */
+   one strip that slides sideways, then the search with the market and the language beside it - and the card stays frozen at the
+   top of the screen while the page scrolls (the owner's choice: it no longer slides away while reading) */
 @media (max-width: 640px) {{
   .st-key-topnav {{ padding: 6px !important; gap: 6px !important; border-radius: 14px !important; }}
   [data-testid="stLayoutWrapper"]:has(> .st-key-navleft), .st-key-topnav > .st-key-navleft {{ flex: 1 1 100% !important; width: 100% !important;
@@ -1252,8 +1252,6 @@ html[data-menu-closed] [class*="st-key-navdd_"], html[data-menu-closed] .st-key-
     top: calc(100% + 4px) !important; }}
   /* the landing gives the card a margin on both sides on top of the full width: it ran past the screen's left edge */
   .stApp:has(.ixp) .st-key-topnav {{ width: calc(100% - 16px) !important; max-width: calc(100% - 16px) !important; }}
-  .stApp:not(:has(.ixp)) .st-key-topnav {{ transition: transform .24s ease, opacity .2s ease; }}
-  html.nav-tuck .stApp:not(:has(.ixp)) .st-key-topnav:not(:focus-within) {{ transform: translateY(calc(-100% - 4.5rem)); opacity: 0; pointer-events: none; }}
   /* a box of 16 px or more: iPhones zoom the whole page into any smaller box when it is tapped (the id-less :not() only lifts the
      rule above the pages' own sizes) */
   :is(input, textarea):not(#_) {{ font-size: 16px !important; }}
@@ -1961,9 +1959,9 @@ FX_JS = """<script>
       if (nv && nv.dataset.ixmt) { nv.style.removeProperty('margin-top'); delete nv.dataset.ixmt; }
     }
   }, 180);
-  // phones (up to 640 px wide; tablets and computers are left as they are): the menu card slides out of the way while the page
-  // is read downwards and is back on the first move up (html.nav-tuck, the AI button with it), and its strip of menus shows
-  // the open page's menu, fading at the edge while more menus wait to the side
+  // phones (up to 640 px wide; tablets and computers are left as they are): the AI button steps aside while the page is read
+  // downwards and is back on the first move up (html.nav-tuck; the menu card stays frozen at the top), and the card's strip of
+  // menus shows the open page's menu, fading at the edge while more menus wait to the side
   var PHONE = 640, navY = null;
   function phone() { return w.innerWidth <= PHONE; }
   function stripEnd(s) { s.classList.toggle('at-end', Math.abs(s.scrollLeft) + s.clientWidth >= s.scrollWidth - 2); }
@@ -3113,4 +3111,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.2.2"
+BUILD = "23.2.3"

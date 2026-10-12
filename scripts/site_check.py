@@ -395,7 +395,7 @@ def sharia_check(b, report):
             ctx.close()
 
 
-TOUR = False          # the whole site in Arabic: every page, US and (where it has one) Saudi, on a desktop and on a phone
+TOUR = True           # the whole site in Arabic: every page, US and (where it has one) Saudi, on a desktop and on a phone
 TOUR_PAGES = [("overview", 1), ("futures", 0), ("options", 0), ("economy", 0), ("trending", 1), ("news", 1), ("news-intelligence", 1),
               ("stock?symbol=NVDA", 0), ("stock?symbol=2222.SR", 2), ("screener", 1), ("brief", 1), ("articles", 1), ("sentiment", 1),
               ("seasonality", 1), ("earnings-calendar", 1), ("earnings-results", 1), ("economic-calendar", 1), ("market-holidays", 1),
@@ -404,7 +404,7 @@ TOUR_PAGES = [("overview", 1), ("futures", 0), ("options", 0), ("economy", 0), (
               ("scanner", 1), ("x-bots", 1)]
 
 
-TOUR_PHONE = False    # the tour on a phone only: three screens of every page, a check of what overflows or is too small to read
+TOUR_PHONE = True     # the tour on a phone only: three screens of every page, a check of what overflows or is too small to read
 #                     or tap, and desktop photos of a few pages (to compare: the phone's fixes must not move the desktop)
 DESK_CHECK = [("overview", "sa"), ("news", "sa"), ("stock?symbol=2222.SR", "sa"), ("paper-bots", "sa"), ("scanner", "sa"), ("x-bots", "sa"),
               ("portfolio", "sa"), ("trending", "us")]
@@ -434,7 +434,7 @@ PHONE_AUDIT = """() => {
   return out; }"""
 
 
-PHONE_QUICK = []
+PHONE_QUICK = [("news", 2), ("stock?symbol=2222.SR", 2)]
 #              a short phone tour while the phone's look is being worked on ([] = every page); with it, how the top bar is built,
 #              the AI button's insides, and photos of the bar at work (scrolled down, back up, a menu opened, the menus slid)
 DOM_OUTLINE = """(sel) => { const root = document.querySelector(sel); if (!root) return null;
