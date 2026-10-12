@@ -596,9 +596,9 @@ def tour(b, report):
     phone.close()
 
 
-LIVE = False          # look at the live site from GitHub's server (what a visitor sees there right now), nothing else
+LIVE = True           # look at the live site from GitHub's server (what a visitor sees there right now), nothing else
 LIVE_URL = "https://abdulrahman.streamlit.app"
-LIVE_PATH = "news?m=sa&lang=ar"   # a page of the live site to look at ("": the home page, on a phone and a computer)
+LIVE_PATH = "stock?symbol=2222.SR&m=sa&lang=ar"   # a page of the live site to look at ("": the home page, on a phone and a computer)
 
 
 def live_probe():
@@ -1099,7 +1099,7 @@ def style_pick(b, report):
     report["style_pick"] = out
 
 
-ORB_CHECK = True      # a quick run: the AI button's sphere filmed resting and hovered (dark and light), its chat window, and on a phone
+ORB_CHECK = False     # a quick run: the AI button's sphere filmed resting and hovered (dark and light), its chat window, and on a phone
 
 
 def orb_check(b, report):
