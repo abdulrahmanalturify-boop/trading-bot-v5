@@ -596,7 +596,7 @@ def tour(b, report):
     phone.close()
 
 
-LIVE = False          # look at the live site from GitHub's server (what a visitor sees there right now), nothing else
+LIVE = True           # look at the live site from GitHub's server (what a visitor sees there right now), nothing else
 LIVE_URL = "https://abdulrahman.streamlit.app"
 LIVE_PATH = "news?m=sa&lang=ar"   # a page of the live site to look at ("": the home page, on a phone and a computer)
 
@@ -661,6 +661,17 @@ def live_probe():
                                 break
                         except Exception as e:
                             row["version_error"] = str(e)[:200]
+                if LIVE_PATH and at == 420:             # a card with the bot's reading, scrolled into view
+                    for fr in pg.frames:
+                        try:
+                            if fr.locator('.nwhy').count():
+                                fr.locator('.nwhy').first.scroll_into_view_if_needed(timeout=8000)
+                                fr.evaluate("() => { const m = document.querySelector('[data-testid=\"stMain\"]'); if (m) m.scrollBy(0, -180); }")
+                                time.sleep(1.5)
+                                pg.screenshot(path=os.path.join(OUT, f"live_{kind}_why.jpg"), type="jpeg", quality=70)
+                                break
+                        except Exception as e:
+                            row["why_error"] = str(e)[:200]
                 try:
                     pg.screenshot(path=os.path.join(OUT, f"live_{kind}_{at}.jpg"), type="jpeg", quality=60)
                 except Exception as e:
