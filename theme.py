@@ -1250,6 +1250,8 @@ html[data-menu-closed] [class*="st-key-navdd_"], html[data-menu-closed] .st-key-
   .st-key-langsec, .st-key-acctsec {{ position: static !important; }}
   .st-key-topnav .st-key-langdd, .st-key-topnav .st-key-acctdd {{ left: 8px !important; right: 8px !important; width: auto !important; min-width: 0 !important;
     top: calc(100% + 4px) !important; }}
+  /* the landing gives the card a margin on both sides on top of the full width: it ran past the screen's left edge */
+  .stApp:has(.ixp) .st-key-topnav {{ width: calc(100% - 16px) !important; max-width: calc(100% - 16px) !important; }}
   .stApp:not(:has(.ixp)) .st-key-topnav {{ transition: transform .24s ease, opacity .2s ease; }}
   html.nav-tuck .stApp:not(:has(.ixp)) .st-key-topnav:not(:focus-within) {{ transform: translateY(calc(-100% - 4.5rem)); opacity: 0; pointer-events: none; }}
   /* a box of 16 px or more: iPhones zoom the whole page into any smaller box when it is tapped (the id-less :not() only lifts the
@@ -1258,6 +1260,8 @@ html[data-menu-closed] [class*="st-key-navdd_"], html[data-menu-closed] .st-key-
   /* a row of switches (the stock chart's 1D … MAX): narrower buttons so the row fits, and a second line rather than buttons cut off */
   [data-testid="stButtonGroup"] > div:has(> button) {{ flex-wrap: wrap !important; row-gap: 6px; }}
   [data-testid="stButtonGroup"] > div > button {{ padding-inline: 9px !important; min-width: 0 !important; }}
+  /* the charts' tool row (zoom, pan, download …): on a phone it sat on the chart's title and legend; a finger zooms and pans anyway */
+  [data-testid="stPlotlyChart"] .modebar-container {{ display: none !important; }}
   /* the "?" after a term: a little bigger, and a finger-sized area around it */
   html .gq {{ width: 18px; height: 18px; font-size: 11px !important; }}
   html .gq::after {{ content: ""; position: absolute; inset: -9px; border-radius: 50%; }}
