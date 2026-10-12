@@ -596,7 +596,58 @@ def tour(b, report):
     phone.close()
 
 
+LIVE = True           # look at the live site from GitHub's server (what a visitor sees there right now), nothing else
+LIVE_URL = "https://abdulrahman.streamlit.app"
+
+
+def live_probe():
+    """The live site on a phone and on a computer: photos after 15, 45, 90 and 150 seconds, the text every frame shows (the app,
+    or Streamlit Cloud's own notice: waking up, updating, an error) and the browser's errors."""
+    from playwright.sync_api import sync_playwright
+    report = {"live": {}, "started": time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime())}
+    with sync_playwright() as p:
+        b = p.chromium.launch()
+        for kind, args in (("phone", dict(viewport={"width": 390, "height": 844}, is_mobile=True, has_touch=True, device_scale_factor=2)),
+                           ("desk", dict(viewport={"width": 1440, "height": 900}))):
+            ctx = b.new_context(locale="ar-SA", color_scheme="dark", **args)
+            pg = ctx.new_page()
+            errs = []
+            pg.on("console", lambda m, errs=errs: errs.append(m.text[:240]) if m.type == "error" else None)
+            pg.on("pageerror", lambda e, errs=errs: errs.append("pageerror: " + str(e)[:240]))
+            row, t0 = {}, time.time()
+            try:
+                pg.goto(LIVE_URL + "/?lang=ar", wait_until="domcontentloaded", timeout=120000)
+                row["goto_s"] = round(time.time() - t0, 1)
+            except Exception as e:
+                row["goto_error"] = str(e)[:300]
+            for at in (15, 45, 90, 150):
+                time.sleep(max(0.0, at - (time.time() - t0)))
+                frames = []
+                for fr in pg.frames:
+                    try:
+                        frames.append([fr.url[:90], fr.evaluate("() => ({text: (document.body ? document.body.innerText : '').slice(0, 500), "
+                                                                "bar: !!document.querySelector('.st-key-topnav'), "
+                                                                "running: !!document.querySelector('[data-testid=\"stStatusWidget\"]'), "
+                                                                "ver: (document.querySelector('.css-anchor') ? 'app' : '')})")])
+                    except Exception as e:
+                        frames.append([fr.url[:90], "ERR " + str(e)[:120]])
+                row[f"t{at}"] = {"url": pg.url[:120], "frames": frames}
+                try:
+                    pg.screenshot(path=os.path.join(OUT, f"live_{kind}_{at}.jpg"), type="jpeg", quality=60)
+                except Exception as e:
+                    row[f"shot{at}"] = str(e)[:200]
+                log("live", kind, at, json.dumps(row[f"t{at}"], ensure_ascii=False)[:1500])
+            row["errors"] = errs[:25]
+            report["live"][kind] = row
+            ctx.close()
+        b.close()
+    json.dump(report, open(os.path.join(OUT, "report.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+    return 0
+
+
 def main():
+    if LIVE:
+        return live_probe()
     if QUICK and XB_SEED == "sample":
         seed_xbots()
     elif QUICK and XB_SEED == "resting":
