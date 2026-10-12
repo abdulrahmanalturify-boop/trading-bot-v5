@@ -12,7 +12,7 @@ import theme as T
 import ui
 from i18n import L, is_ar
 
-BUILD = "23.3.10"
+BUILD = "23.3.11"
 
 _LINE = "rgba(150,140,250,"
 CSS = f"""
@@ -77,7 +77,7 @@ CSS = f"""
 .czcard .czt {{ margin:0 0 6px; text-align:center; font-size:1.9rem; font-weight:500; letter-spacing:-.01em; line-height:1.14; color:#fff; }}
 .czcard .czem {{ font-family:'Instrument Serif',Georgia,serif; font-style:italic; font-weight:400; font-size:1.2em; letter-spacing:0; }}
 .czcard.ar .czt {{ font-weight:600; letter-spacing:0; line-height:1.4; }}
-.czcard.ar .czem {{ font-family:'Readex Pro',sans-serif; font-style:normal; font-weight:600; font-size:1em;
+.czcard.ar .czem {{ font-family:'Almarai',sans-serif; font-style:normal; font-weight:600; font-size:1em;
   background:linear-gradient(90deg,#8FB0FF,#B9A6FF 60%,#67E8F9); -webkit-background-clip:text; background-clip:text; color:transparent; }}
 .czcard .czp {{ padding:12px 16px; border-radius:12px; border:1px solid {_LINE}.24);
   background:linear-gradient(90deg,rgba(40,60,170,.18),rgba(96,74,230,.32)); text-align:center; font-size:.88rem; line-height:1.55; color:#C6C0E4;
@@ -512,7 +512,7 @@ html.ix-scrolled header[data-testid="stHeader"] { background: rgba(14,9,24,.32) 
 .block-container, [data-testid="stMainBlockContainer"], [data-testid="stMainBlockContainer"]:has(.st-key-topnav) { max-width: none !important;
   padding: 0 !important; }
 @media (max-width: 1023.98px) { .st-key-topnav { margin: 22px 8px 8px !important; } }   /* phones: a little under the top line (the page's script sets the exact gap) */
-.ixp { margin-top: -1rem; color: #F5F5F7; font-family: 'DM Sans', 'Readex Pro', system-ui, sans-serif; overflow: hidden; isolation: isolate;
+.ixp { margin-top: -1rem; color: #F5F5F7; font-family: 'DM Sans', 'Almarai', system-ui, sans-serif; overflow: hidden; isolation: isolate;
   background: linear-gradient(180deg, #14101A 0%, #14101A 12%, #150F22 22%, #160E28 36%, #130D24 52%, #170F2C 68%, #110B21 84%, #0E0918 100%); }
 .ixs::before { content: ""; position: absolute; z-index: -1; pointer-events: none; top: -10%; width: 80vw; height: 120%; left: -40vw;
   background: radial-gradient(closest-side, rgba(74,20,140,.20), rgba(74,20,140,.06) 55%, transparent 80%); }
@@ -520,7 +520,7 @@ html.ix-scrolled header[data-testid="stHeader"] { background: rgba(14,9,24,.32) 
 .ixend::before { content: ""; position: absolute; z-index: -1; left: 50%; bottom: 0; width: 110vw; height: 90%; margin-left: -55vw; pointer-events: none;
   background: radial-gradient(closest-side, rgba(74,20,140,.35), transparent 78%); }
 .ixend { position: relative; }
-.ixp.ar { font-family: 'Readex Pro', 'DM Sans', sans-serif; }
+.ixp.ar { font-family: 'Almarai', 'DM Sans', sans-serif; }
 /* ---------- the first screen: a violet-lit void, a slowly turning iridescent sculpture, two lines of words ---------- */
 .ix { position: relative; min-height: 100vh; overflow: hidden; background: #180B2C; }
 /* the first screen melts into the page under it: no hard line between the two */
@@ -572,7 +572,7 @@ html.ix-scrolled header[data-testid="stHeader"] { background: rgba(14,9,24,.32) 
   line-height: 1.08; letter-spacing: .02em; color: #FFFFFF; text-shadow: 0 12px 50px rgba(16,13,23,.55); }
 .ix-h em, .ixh em { font-style: italic; background: linear-gradient(90deg, #D1C9FF, #9DCBF7 55%, #FFFFFF); -webkit-background-clip: text;
   background-clip: text; color: transparent; padding-inline-end: .06em; }
-.ixp.ar .ix-h { font-family: 'Readex Pro', sans-serif; font-weight: 500; font-size: clamp(42px, 6vw, 92px); line-height: 1.25; letter-spacing: 0; }
+.ixp.ar .ix-h { font-family: 'Almarai', sans-serif; font-weight: 500; font-size: clamp(42px, 6vw, 92px); line-height: 1.25; letter-spacing: 0; }
 .ixp.ar .ix-h em, .ixp.ar .ixh em { font-style: normal; font-weight: 400; }
 .ix-sub { margin: 0 auto; max-width: 640px; font-size: clamp(16px, 1.35vw, 19px); line-height: 1.55; font-weight: 400; color: rgba(255,255,255,.84);
   text-shadow: 0 2px 18px rgba(20,6,40,.35); }
@@ -587,7 +587,7 @@ html.ix-scrolled header[data-testid="stHeader"] { background: rgba(14,9,24,.32) 
   opacity: 0; animation: ixin 1.6s cubic-bezier(.455,.03,.515,.955) 1.8s forwards; }
 .ix-scroll:hover { color: #fff; background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.55); }
 .ix-scroll:hover i { border-color: #fff; }
-.ixp.ar .ix-scroll { font-family: 'Readex Pro', sans-serif; letter-spacing: 0; font-size: 12px; }
+.ixp.ar .ix-scroll { font-family: 'Almarai', sans-serif; letter-spacing: 0; font-size: 12px; }
 .ix-scroll i { width: 24px; height: 38px; border: 1.5px solid rgba(245,245,247,.75); border-radius: 13px; position: relative; transition: border-color .2s ease; }
 .ix-scroll i::after { content: ""; position: absolute; left: 50%; top: 7px; width: 3px; height: 7px; margin-left: -1.5px; border-radius: 2px; background: #fff;
   animation: ixwheel 1.8s ease-in-out infinite; }
@@ -602,10 +602,10 @@ html.ix-scrolled header[data-testid="stHeader"] { background: rgba(14,9,24,.32) 
 .ixl { font-family: 'Roboto Mono', monospace; font-size: 12px; letter-spacing: .18em; text-transform: uppercase; color: #D1C9FF;
   display: inline-flex; align-items: center; gap: 10px; }
 .ixl::before { content: ""; width: 26px; height: 1px; background: currentColor; opacity: .6; }
-.ixp.ar .ixl { font-family: 'Readex Pro', sans-serif; letter-spacing: 0; font-size: 13.5px; text-transform: none; }
+.ixp.ar .ixl { font-family: 'Almarai', sans-serif; letter-spacing: 0; font-size: 13.5px; text-transform: none; }
 .ixh { margin: 18px 0 16px; font-family: 'Instrument Serif', 'DM Serif Display', Georgia, serif; font-weight: 400; font-size: clamp(38px, 5vw, 72px);
   line-height: .98; letter-spacing: -.02em; color: #F5F5F7; }
-.ixp.ar .ixh { font-family: 'Readex Pro', sans-serif; font-weight: 300; font-size: clamp(32px, 3.8vw, 56px); line-height: 1.3; letter-spacing: 0; }
+.ixp.ar .ixh { font-family: 'Almarai', sans-serif; font-weight: 300; font-size: clamp(32px, 3.8vw, 56px); line-height: 1.3; letter-spacing: 0; }
 .ixt { font-size: 17px; line-height: 1.7; font-weight: 300; color: rgba(245,245,247,.62); max-width: 560px; }
 .ixp.ar .ixt { font-size: 17.5px; line-height: 1.95; }
 .ix-state { text-align: center; }
@@ -625,8 +625,8 @@ html.ix-scrolled header[data-testid="stHeader"] { background: rgba(14,9,24,.32) 
 .ixc .n .ms { font-size: 1.6rem; opacity: 1; }
 .ixc .h3 { margin: auto 0 10px !important; padding: 0 !important; font-family: 'Instrument Serif', 'DM Serif Display', Georgia, serif !important;
   font-weight: 400 !important; font-size: 38px !important; line-height: 1 !important; letter-spacing: -.01em !important; color: inherit !important; }
-.ixp.ar .ixc .h3 { font-family: 'Readex Pro', sans-serif !important; font-weight: 400 !important; font-size: 28px !important; line-height: 1.35 !important; }
-.ixp.ar .ixc .n { font-family: 'Readex Pro', sans-serif; letter-spacing: 0; text-transform: none; font-size: 13px; }
+.ixp.ar .ixc .h3 { font-family: 'Almarai', sans-serif !important; font-weight: 400 !important; font-size: 28px !important; line-height: 1.35 !important; }
+.ixp.ar .ixc .n { font-family: 'Almarai', sans-serif; letter-spacing: 0; text-transform: none; font-size: 13px; }
 .ixc p { margin: 0; font-size: 15.5px; line-height: 1.55; opacity: .92; }
 .ixc.k1 { background: #847DFF; } .ixc.k2 { background: #00B3DD; color: #04121A; } .ixc.k3 { background: #90B8F0; color: #0B1630; }
 .ixc.k4 { background: #4B49AA; } .ixc.k5 { background: #DD90D8; color: #2A0B28; } .ixc.k6 { background: #D1C9FF; color: #1A1440; }
@@ -643,7 +643,7 @@ html.ix-scrolled header[data-testid="stHeader"] { background: rgba(14,9,24,.32) 
   radial-gradient(500px circle at 0% 100%, rgba(7,122,199,.2), transparent 60%); pointer-events: none; }
 .ixm .ex { position: absolute; top: 16px; inset-inline-end: 16px; font-family: 'Roboto Mono', monospace; font-size: 10px; letter-spacing: .18em;
   padding: 4px 10px; border-radius: 9999px; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.3); color: #fff; z-index: 2; }
-.ixp.ar .ixm .ex { font-family: 'Readex Pro', sans-serif; letter-spacing: 0; font-size: 11px; }
+.ixp.ar .ixm .ex { font-family: 'Almarai', sans-serif; letter-spacing: 0; font-size: 11px; }
 .ixm > :not(.ex) { position: relative; }
 /* example: a bot card */
 .mbot { border-radius: 18px; background: rgba(14,9,24,.78); border: 1px solid rgba(255,255,255,.1); padding: 20px; box-shadow: 0 30px 60px -24px rgba(0,0,0,.8); }
@@ -690,13 +690,13 @@ html.ix-scrolled header[data-testid="stHeader"] { background: rgba(14,9,24,.32) 
 .mcrs .bar { height: 4px; border-radius: 3px; background: rgba(255,255,255,.1); margin-top: 8px; overflow: hidden; }
 .mcrs .bar i { display: block; height: 100%; border-radius: 3px; background: linear-gradient(90deg, #847DFF, #2DB6EB); }
 .mcrs .lv { font-family: 'Roboto Mono', monospace; font-size: 10.5px; letter-spacing: .12em; padding: 4px 8px; border-radius: 6px; background: rgba(255,255,255,.08); }
-.ixp.ar .mcrs .lv { font-family: 'Readex Pro', sans-serif; letter-spacing: 0; font-size: 11.5px; }
+.ixp.ar .mcrs .lv { font-family: 'Almarai', sans-serif; letter-spacing: 0; font-size: 11.5px; }
 /* the numbers: a light card that breaks the dark */
 .ixn { border-radius: 30px; background: #CACACA; color: #000; padding: clamp(32px, 5vw, 64px); display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px; }
 .ixn .v { font-family: 'Instrument Serif', 'DM Serif Display', Georgia, serif; font-size: clamp(56px, 7vw, 96px); line-height: .9; letter-spacing: -.03em; direction: ltr; }
 .ixn .l { margin-top: 14px; font-size: 15px; line-height: 1.5; color: #1C1C1E; max-width: 220px; }
 .ixn .k { font-family: 'Roboto Mono', monospace; font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: #3F4041; margin-bottom: 18px; }
-.ixp.ar .ixn .k { font-family: 'Readex Pro', sans-serif; letter-spacing: 0; font-size: 12.5px; }
+.ixp.ar .ixn .k { font-family: 'Almarai', sans-serif; letter-spacing: 0; font-size: 12.5px; }
 /* how it works */
 .ixw { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin-top: 44px; counter-reset: st; }
 .ixw .s { position: relative; border-radius: 22px; padding: 30px 28px; background: #1B1728; border: 1px solid rgba(255,255,255,.07); overflow: hidden;
@@ -705,7 +705,7 @@ html.ix-scrolled header[data-testid="stHeader"] { background: rgba(14,9,24,.32) 
 .ixw .s .no { font-family: 'Roboto Mono', monospace; font-size: 12px; letter-spacing: .16em; color: #D1C9FF; }
 .ixw .s .h4 { margin: 40px 0 10px !important; padding: 0 !important; font-family: 'Instrument Serif', Georgia, serif !important; font-weight: 400 !important;
   font-size: 30px !important; line-height: 1.05 !important; color: #fff !important; }
-.ixp.ar .ixw .s .h4 { font-family: 'Readex Pro', sans-serif !important; font-size: 22px !important; line-height: 1.4 !important; }
+.ixp.ar .ixw .s .h4 { font-family: 'Almarai', sans-serif !important; font-size: 22px !important; line-height: 1.4 !important; }
 .ixw .s p { margin: 0; color: rgba(245,245,247,.6); font-size: 15px; line-height: 1.65; }
 .ixw .s::after { content: ""; position: absolute; right: -40px; top: -40px; width: 140px; height: 140px; border-radius: 50%;
   background: radial-gradient(circle, rgba(132,125,255,.35), transparent 70%); }
@@ -717,7 +717,7 @@ html.ix-scrolled header[data-testid="stHeader"] { background: rgba(14,9,24,.32) 
 .ixend .ixt { margin: 0 auto; text-align: center; }
 .ixfoot { border-top: 1px solid rgba(255,255,255,.08); max-width: 1200px; margin: 0 auto; padding: 28px 24px 150px; display: flex; justify-content: space-between;
   gap: 16px; flex-wrap: wrap; font-family: 'Roboto Mono', monospace; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: rgba(245,245,247,.45); }
-.ixp.ar .ixfoot { font-family: 'Readex Pro', sans-serif; letter-spacing: 0; font-size: 12.5px; text-transform: none; }
+.ixp.ar .ixfoot { font-family: 'Almarai', sans-serif; letter-spacing: 0; font-size: 12.5px; text-transform: none; }
 /* reveals as the page scrolls (only when the page script runs: without it everything simply shows) */
 html.ix-js .rv { opacity: 0; translate: 0 34px; transition: opacity 1.1s cubic-bezier(.455,.03,.515,.955), translate 1.1s cubic-bezier(.455,.03,.515,.955),
   transform .35s cubic-bezier(.2,.8,.2,1), box-shadow .35s ease; }

@@ -14,7 +14,7 @@ import ta
 from theme import (ACCENT, BG, BORDER, CYAN, DOWN, GOLD, MUTED, NEG_BD, NEG_BG, NEG_FG, ORANGE, POS_BD, POS_BG, POS_FG,
                    PURPLE, TEXT, UP, VIOLET)
 
-FONT_FAMILY = "DM Sans, Readex Pro, system-ui, sans-serif"
+FONT_FAMILY = "DM Sans, Almarai, system-ui, sans-serif"
 # chart fills on the dark night: mid-tone green / red boxes with bright edges and light text (the page's own dark tints
 # would disappear into a chart's background)
 POS_BG, POS_BD, POS_FG = "#1C5E3B", "#34D27A", "#E8FBF0"
@@ -1531,4 +1531,4 @@ def signal_bars(labels, values, counts, title=None, height=300, unit=("readings"
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.3.10"
+BUILD = "23.3.11"

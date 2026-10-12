@@ -1316,7 +1316,7 @@ def news_filter(b, report):
     report["news_filter"] = out
 
 
-FONT_PICK = True      # a quick run: the Arabic pages in each Arabic typeface on trial (the font swapped on the test page only)
+FONT_PICK = False     # a quick run: the Arabic pages in each Arabic typeface on trial (the font swapped on the test page only)
 FONTS = [("readex", "Readex Pro", ""),
          ("plex", "IBM Plex Sans Arabic", "IBM+Plex+Sans+Arabic:wght@300;400;500;600;700"),
          ("almarai", "Almarai", "Almarai:wght@300;400;700;800"),

@@ -4,7 +4,7 @@ lighter each (page -> card -> panel, no drop shadows), light restrained headings
 behind the page. Two changes from n8n for a trading site: the call-to-action buttons use the logo's blue -> cyan (never red),
 and green / red are kept for gains and losses only.
 Rule used everywhere: positive = dark-green box + bright-green text, negative = dark-red box + bright-red text.
-Fonts: DM Sans (Latin) + Readex Pro (Arabic). Material Symbols icons. No emoji.
+Fonts: DM Sans (Latin) + Almarai (Arabic). Material Symbols icons. No emoji.
 """
 import base64
 import hashlib
@@ -34,7 +34,7 @@ VIO_BG, VIO_FG = "#231842", "#C4B5FD"
 YEL_BG, YEL_FG = "#302410", "#FCD34D"
 ORG_BG, ORG_FG = "#341C0F", "#FDBA74"
 NEU_BG, NEU_FG = "#26212F", "#C9C3D1"
-FONT = "DM Sans, Readex Pro, system-ui, sans-serif"
+FONT = "DM Sans, Almarai, system-ui, sans-serif"
 # n8n's own tokens
 PANEL, SMOKE, SHELL = "#1B1728", "#3E3A46", "#2C2834"          # deep panel, nav/container borders, ghost-button fill
 FIELD, FIELD_EDGE = "#0F0B1A", "rgba(157,151,165,.42)"         # every input box: a darker well with a visible edge
@@ -283,7 +283,7 @@ def logo_wordmark(light_look=False):
 
 LOGO_WORDMARK = logo_wordmark()
 
-FONT_LATIN, FONT_AR = "'DM Sans'", "'Readex Pro'"
+FONT_LATIN, FONT_AR = "'DM Sans'", "'Almarai'"
 FLAG_US, FLAG_SA = flags.US, flags.SA
 
 
@@ -333,7 +333,7 @@ DN_TINT = "linear-gradient(180deg, rgba(239,68,68,.16), rgba(239,68,68,.06))"
 
 CSS = f"""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=Readex+Pro:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=Almarai:wght@300;400;700;800&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,300..600,0..1,0&display=block');
 html, body, .stApp, .stMarkdown, button, input, textarea, select, label, [data-testid="stMetricValue"], [data-baseweb] {{
   font-family: {FONT_LATIN}, {FONT_AR}, system-ui, sans-serif; }}
@@ -3556,4 +3556,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.3.10"
+BUILD = "23.3.11"

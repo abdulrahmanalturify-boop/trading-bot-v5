@@ -1114,7 +1114,7 @@ def ips_file(prof, ans, amount, monthly, created=None):
     title = L("Investment Policy Statement", "بيان سياسة الاستثمار")
     return (f"<!doctype html><html lang='{'ar' if ar else 'en'}' dir='{'rtl' if ar else 'ltr'}'><head><meta charset='utf-8'>"
             f"<meta name='viewport' content='width=device-width,initial-scale=1'><title>{e(title)} · TURA</title><style>"
-            "body{font-family:'DM Sans','Readex Pro',system-ui,sans-serif;max-width:820px;margin:32px auto;padding:0 20px;color:#1E1830;background:#fff;line-height:1.55}"
+            "body{font-family:'DM Sans','Almarai',system-ui,sans-serif;max-width:820px;margin:32px auto;padding:0 20px;color:#1E1830;background:#fff;line-height:1.55}"
             "header{border-bottom:3px solid #7B45F0;padding-bottom:12px;margin-bottom:8px}h1{margin:0;font-size:26px}header p{margin:4px 0 0;color:#6B6478}"
             "h2{font-size:16px;color:#5B32C8;margin:22px 0 8px;text-transform:uppercase;letter-spacing:.04em}"
             "table{width:100%;border-collapse:collapse;font-size:14px}th,td{padding:7px 8px;border-bottom:1px solid #E7E3EF;text-align:start;vertical-align:top}"
@@ -2127,4 +2127,4 @@ def page_robo():
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.3.10"
+BUILD = "23.3.11"

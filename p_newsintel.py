@@ -59,7 +59,7 @@ CSS = """<style>
 .nie-score .r { display:grid; grid-template-columns: 1fr auto; gap:12px; font-size:.86rem; color:#DDD8E6; padding:3px 0; }
 .nie-score .r b.p { color:#4ADE80; } .nie-score .r b.n { color:#F87171; } .nie-score .r b.z { color:#9D97A5; }
 .nie-score .t { border-top:1px dashed rgba(157,151,165,.35); margin-top:6px; padding-top:7px; font-weight:700; color:#fff; }
-.nie-score .lab { margin-top:9px; font-family:'DM Sans','Readex Pro',sans-serif; font-size:1rem; font-weight:800; }
+.nie-score .lab { margin-top:9px; font-family:'DM Sans','Almarai',sans-serif; font-size:1rem; font-weight:800; }
 .nie-note { color:#9D97A5; font-size:.76rem; line-height:1.55; margin-top:8px; }
 .nie-li { margin:0; padding-inline-start:18px; color:#DDD8E6; font-size:.88rem; line-height:1.7; }
 @media (max-width: 700px) { .nie-card { flex-direction:column; } .nie-card .nth.big { width:100%; height:150px; }
@@ -1625,4 +1625,4 @@ def page_news_intel():
             _show_story(a, chg, px, titles_ar)
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.3.10"
+BUILD = "23.3.11"
