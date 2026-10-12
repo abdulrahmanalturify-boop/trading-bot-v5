@@ -727,9 +727,18 @@ def menu_check(p, report):
             time.sleep(0.6)
             pg.locator('.st-key-navsec_3 .navbtn').first.tap()
             time.sleep(0.8)
+            pg.screenshot(path=os.path.join(OUT, f"menu_{eng}_phone_cal.jpg"), type="jpeg", quality=60)
             pg.locator('.st-key-navdd_3 [data-testid="stPageLink"] a').nth(1).tap()
-            time.sleep(4)
-            res["phone_after_link"] = {"url": pg.url[-40:], "dd": pg.evaluate(MENU_VIS, '.st-key-navdd_3')}
+            time.sleep(3)
+            settle(pg, 90)
+            time.sleep(2)
+            res["phone_after_link"] = {"url": pg.url[-40:], "dd": pg.evaluate(MENU_VIS, '.st-key-navdd_3'),
+                                       "h1": pg.evaluate("() => (document.querySelector('h1') || {}).innerText || ''")[:60]}
+            pg.screenshot(path=os.path.join(OUT, f"menu_{eng}_phone_after.jpg"), type="jpeg", quality=60)
+            pg.goto(f"{URL}/?lang=ar&m=sa", wait_until="domcontentloaded", timeout=90000)
+            settle(pg, 120)
+            time.sleep(2)
+            pg.screenshot(path=os.path.join(OUT, f"menu_{eng}_phone_landing.jpg"), type="jpeg", quality=60)
             ctx.close()
         except Exception as e:
             res["phone_error"] = str(e)[:300]

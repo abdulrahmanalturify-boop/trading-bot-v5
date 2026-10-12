@@ -1236,25 +1236,22 @@ html[data-menu-closed] [class*="st-key-navdd_"], html[data-menu-closed] .st-key-
     backdrop-filter: blur(16px) saturate(140%); -webkit-backdrop-filter: blur(16px) saturate(140%);
     box-shadow: 0 10px 28px -12px rgba(0,0,0,.7); }}
 }}
-/* phones (up to 640 px; tablets and computers keep the card above): two lines instead of three - the menus with their names in
-   one strip that slides sideways, then the search with the market and the language beside it - and the card stays frozen at the
-   top of the screen while the page scrolls (the owner's choice: it no longer slides away while reading) */
+/* phones (up to 640 px; tablets and computers keep the card above): the eight menus by their names in two rows of four, then
+   the search with the market and the language beside it; the card stays frozen at the top of the screen while the page scrolls
+   (the owner's choice). The rows do not scroll sideways: on an iPhone a strip that scrolls hid the menus that open from it. */
 @media (max-width: 640px) {{
   .st-key-topnav {{ padding: 6px !important; gap: 6px !important; border-radius: 14px !important; }}
   [data-testid="stLayoutWrapper"]:has(> .st-key-navleft), .st-key-topnav > .st-key-navleft {{ flex: 1 1 100% !important; width: 100% !important;
     max-width: 100% !important; min-width: 0 !important; order: 1; }}
-  .st-key-topnav .st-key-navleft {{ flex-wrap: nowrap !important; overflow-x: auto !important; overflow-y: hidden !important;
-    overscroll-behavior-x: contain; scrollbar-width: none; gap: 4px !important; width: 100% !important; max-width: 100% !important;
-    min-width: 0 !important; }}
-  .st-key-topnav .st-key-navleft::-webkit-scrollbar {{ display: none; }}
-  /* the strip fades at its far edge while more menus wait there (a veil over it, not a mask: a mask would hide the open menu too) */
-  .st-key-topnav::after {{ content: ""; position: absolute; top: 6px; height: 36px; inset-inline-end: 6px; width: 34px; z-index: 2; pointer-events: none;
-    border-radius: 0 11px 11px 0; background: linear-gradient(to left, rgba(18,13,30,.97), rgba(18,13,30,0)); transition: opacity .2s; }}
-  .st-key-topnav:has(.st-key-navleft.at-end)::after {{ opacity: 0; }}
-  .st-key-navleft [class*="st-key-navsec_"] {{ flex: none !important; position: static !important; }}
-  .st-key-navleft .navbtn {{ height: 36px; padding: 0 11px !important; gap: 6px !important; font-size: .84rem; border-color: rgba(255,255,255,.07); }}
-  .st-key-navleft .navbtn > span:not(.ms) {{ display: inline !important; }}
-  .st-key-navleft .navbtn .ms:not(.chev) {{ font-size: 1.08rem !important; }}
+  .st-key-topnav .st-key-navleft {{ display: grid !important; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px !important;
+    width: 100% !important; max-width: 100% !important; min-width: 0 !important; overflow: visible !important; }}
+  .st-key-navleft > * {{ width: 100% !important; min-width: 0 !important; max-width: none !important; }}
+  .st-key-navleft [class*="st-key-navsec_"] {{ flex: none !important; position: static !important; width: 100% !important; min-width: 0 !important; }}
+  .st-key-navleft [class*="st-key-navsec_"] [data-testid="stElementContainer"] {{ width: 100% !important; }}
+  .st-key-navleft .navbtn {{ width: 100%; height: 34px; padding: 0 4px !important; gap: 0 !important; justify-content: center; font-size: .8rem;
+    border-color: rgba(255,255,255,.08); }}
+  .st-key-navleft .navbtn > span:not(.ms) {{ display: inline !important; min-width: 0; overflow: hidden; text-overflow: ellipsis; }}
+  .st-key-navleft .navbtn .ms {{ display: none !important; }}
   [data-testid="stLayoutWrapper"]:has(> .st-key-navsearch), .st-key-topnav > .st-key-navsearch {{ flex: 1 1 0 !important; min-width: 0 !important;
     width: auto !important; order: 2; }}
   [data-testid="stLayoutWrapper"]:has(> .st-key-navright), .st-key-topnav > .st-key-navright {{ flex: none !important; order: 3; }}
@@ -1736,7 +1733,6 @@ h1 {{ font-weight: 400 !important; letter-spacing: 0; line-height:1.35 !importan
 [class*="st-key-navon_"] [data-testid="stPageLink"] a {{ box-shadow: inset -3px 0 0 {ACCENT}; }}
 [class*="st-key-navdd_"] [data-testid="stPageLink"] a:hover {{ transform: translateX(-2px); }}
 .st-key-langdd {{ right:auto; left:0; transform-origin: top left; }}
-@media (max-width: 640px) {{ .st-key-topnav::after {{ border-radius: 11px 0 0 11px; background: linear-gradient(to right, rgba(18,13,30,.97), rgba(18,13,30,0)); }} }}
 .nth.fb em::after {{ content:attr(data-ar); }} .nth.fb em {{ letter-spacing:0; font-size:.72rem; }}
 .xtbl th {{ letter-spacing:0; font-size:.7rem; }}
 .sgth {{ letter-spacing:0; font-size:.7rem; }}
@@ -1975,8 +1971,7 @@ FX_JS = """<script>
     }
   }, 180);
   // phones (up to 640 px wide; tablets and computers are left as they are): the AI button steps aside while the page is read
-  // downwards and is back on the first move up (html.nav-tuck; the menu card stays frozen at the top), and the card's strip of
-  // menus shows the open page's menu, fading at the edge while more menus wait to the side
+  // downwards and is back on the first move up (html.nav-tuck; the menu card stays frozen at the top)
   // touch screens (phones and tablets): a tap on a menu's button opens that menu and closes any other; a second tap, a tap
   // anywhere else or choosing a page closes it (CSS shows a menu there by .open)
   var TOUCH = w.matchMedia ? w.matchMedia('(hover: none)') : null, SECS = '[class*="st-key-navsec_"], .st-key-langsec, .st-key-acctsec';
@@ -2002,14 +1997,12 @@ FX_JS = """<script>
   }, true);
   var PHONE = 640, navY = null;
   function phone() { return w.innerWidth <= PHONE; }
-  function stripEnd(s) { s.classList.toggle('at-end', Math.abs(s.scrollLeft) + s.clientWidth >= s.scrollWidth - 2); }
   function pageTop() {
     var mm = d.querySelector('[data-testid="stMain"]') || d.querySelector('section.stMain');
     return Math.max((mm && mm.scrollTop) || 0, w.scrollY || 0);
   }
   on(d, 'scroll', function (e) {
     var t = e.target, nav = d.querySelector('.st-key-topnav');
-    if (t && t.classList && t.classList.contains('st-key-navleft')) { stripEnd(t); return; }
     if (!phone() || !nav) { if (de.classList.contains('nav-tuck')) de.classList.remove('nav-tuck'); navY = null; return; }
     if (t !== d && t !== de && !(t.contains && t.contains(nav))) return;     // a table or a strip moving sideways, not the page
     var y = (t === d || t === de) ? (w.scrollY || 0) : (t.scrollTop || 0);
@@ -2027,15 +2020,6 @@ FX_JS = """<script>
       if (!sw || !tw || tw <= sw - 16) continue;
       var fs = parseFloat(w.getComputedStyle(tt[i]).fontSize) || 13;
       if (fs > 10) tt[i].style.setProperty('font-size', Math.max(10, Math.floor(fs * (sw - 16) / tw)) + 'px', 'important');
-    }
-    var s = d.querySelector('.st-key-navleft');
-    if (!s) return;
-    stripEnd(s);
-    var cur = s.querySelector('.navbtn.on'), at = w.location.pathname;
-    if (cur && s.dataset.al !== at) {                    // once per page: its menu into view, in the middle of the strip
-      s.dataset.al = at;
-      var sr = s.getBoundingClientRect(), r = cur.getBoundingClientRect();
-      if (r.left < sr.left + 24 || r.right > sr.right - 24) s.scrollLeft += (r.left + r.width / 2) - (sr.left + sr.width / 2);
     }
   }, 500);
 })();
