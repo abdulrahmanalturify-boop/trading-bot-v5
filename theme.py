@@ -1279,9 +1279,19 @@ html[data-menu-closed] [class*="st-key-navdd_"], html[data-menu-closed] .st-key-
     background: #1A1624 !important; background-image: none !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; border: 1px solid #3E3A46 !important;
     border-radius: 16px !important; box-shadow: 0 24px 50px rgba(0,0,0,.6) !important; font-family: inherit; }}
   html body .navportal::before {{ display: none !important; }}
-  html body .navportal .navhd {{ margin-bottom: 4px; }}
-  .navportal [data-testid="stPageLink"] a {{ display: flex; align-items: center; gap: 10px; text-decoration: none; color: #E7E3EB; }}
-  .navportal [data-testid="stElementContainer"], .navportal .stElementContainer {{ width: 100% !important; }}
+  /* the copy sits outside the card, so the card's own resets are repeated here: Streamlit pulls every markdown block 1rem up and
+     the site pulls page links 6px together - inside the copy that put the title on the first item and the items on each other */
+  html body .navportal [data-testid="stMarkdownContainer"], html body .navportal [data-testid="stMarkdownContainer"] p {{ margin: 0 !important; }}
+  html body .navportal [data-testid="stElementContainer"], html body .navportal .stElementContainer,
+  html body .navportal [data-testid="stLayoutWrapper"], html body .navportal [data-testid="stVerticalBlock"] {{ margin: 0 !important;
+    width: 100% !important; min-height: 0 !important; height: auto !important; flex: none !important; }}
+  html body .navportal .navhd {{ margin: 0 0 6px !important; padding: 2px 12px 9px !important; font-size: .7rem; }}
+  html body .navportal [data-testid="stPageLink"] a {{ display: flex !important; align-items: center; gap: 12px !important; min-height: 46px !important;
+    padding: 10px 12px !important; border-radius: 12px !important; text-decoration: none; color: #E7E3EB; }}
+  html body .navportal [data-testid="stPageLink"] a .ms, html body .navportal [data-testid="stPageLink"] a [data-testid="stIconMaterial"] {{
+    font-size: 1.15rem !important; width: 20px; }}
+  html body .navportal [data-testid="stPageLink"] a p {{ font-size: .95rem !important; }}
+  html body .navportal [data-testid="stPageLink"] a:active {{ background: rgba(59,139,235,.16); }}
   [data-testid="stLayoutWrapper"]:has(> .st-key-navsearch), .st-key-topnav > .st-key-navsearch {{ flex: 1 1 0 !important; min-width: 0 !important;
     width: auto !important; order: 2; }}
   [data-testid="stLayoutWrapper"]:has(> .st-key-navright), .st-key-topnav > .st-key-navright {{ flex: none !important; order: 3; }}
