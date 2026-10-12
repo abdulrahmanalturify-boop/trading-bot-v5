@@ -860,7 +860,7 @@ def menu_check(p, report):
 
 
 BOXV2 = True          # a quick run: the new box signature (html.boxv2, added here only) and the AI button, before and after
-BOX_PAGES = [("overview", "sa"), ("stock?symbol=2222.SR", "sa"), ("paper-bots", "sa"), ("news", "sa")]
+BOX_PAGES = [("", "sa"), ("stock?symbol=2222.SR", "sa"), ("paper-bots", "sa"), ("news", "sa")]
 BOX_PICK = """(skip) => { const S = '.kpi, .mcard, .card, .tile, .stat, .news, .story, .pbph, .lc, .tdc, .fgc, .czn, .shc, [data-testid="stMetric"]';
   const vh = innerHeight; const all = [...document.querySelectorAll(S)].filter(e => { const r = e.getBoundingClientRect();
     return r.width > 140 && r.height > 50 && r.top > 90 && r.bottom < vh - 20; });
@@ -897,13 +897,18 @@ def box_check(b, report):
         ctx = b.new_context(viewport={"width": 1440, "height": 900}, locale="ar-SA", color_scheme=look)
         pg = ctx.new_page()
         for path, mkt in (BOX_PAGES if look == "dark" else BOX_PAGES[:2]):
-            tag = f"{look}_{path.split('?')[0]}"
+            tag = f"{look}_{path.split('?')[0] or 'overview'}"
             res = {}
             try:
                 sep = "&" if "?" in path else "?"
                 pg.goto(f"{URL}/{path}{sep}m={mkt}&lang=ar", wait_until="domcontentloaded", timeout=90000)
                 settle(pg, 150)
                 time.sleep(2.5)
+                if pg.evaluate("() => !!document.querySelector('[class*=\"st-key-introgo_sa\"] button')"):   # the landing: the market picked
+                    pg.evaluate("() => document.querySelector('[class*=\"st-key-introgo_sa\"] button').click()")
+                    time.sleep(2)
+                    settle(pg, 150)
+                    time.sleep(2)
                 scroll_cards(pg)
                 pg.mouse.move(5, 895)
                 pg.evaluate("() => document.documentElement.classList.remove('boxv2')")
@@ -915,7 +920,7 @@ def box_check(b, report):
                 res["card"] = hover_shot(pg, f"box_{tag}_hover")
                 res["card2"] = hover_shot(pg, f"box_{tag}_hover2", 2)
                 res["problems"] = problems(pg)
-                if path == "overview":
+                if path.startswith("stock"):
                     pg.mouse.move(700, 500)
                     time.sleep(0.5)
                     res["fab"] = pg.evaluate(FAB_INFO)
@@ -923,12 +928,16 @@ def box_check(b, report):
                     pg.screenshot(path=os.path.join(OUT, f"fab_{look}_rest.jpg"), type="jpeg", quality=85,
                                   clip={"x": 0, "y": h - 200, "width": 620, "height": 200})
                     fb = pg.locator('.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]').first
-                    fb.hover()
+                    res["fab_hit"] = pg.evaluate("""() => { const b = document.querySelector('.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]');
+                        const r = b.getBoundingClientRect(), e = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+                        return e ? (b.contains(e) ? 'button' : (e.tagName + '.' + e.className.toString().slice(0, 80))) : null; }""")
+                    fr = res["fab"]["fab"]
+                    pg.mouse.move(fr[0] + fr[2] / 2, fr[1] + fr[3] / 2)
                     time.sleep(1.2)
                     res["fab_hover"] = pg.evaluate(FAB_INFO)
                     pg.screenshot(path=os.path.join(OUT, f"fab_{look}_hover.jpg"), type="jpeg", quality=85,
                                   clip={"x": 0, "y": h - 200, "width": 620, "height": 200})
-                    fb.click()
+                    fb.click(timeout=8000, force=True)
                     time.sleep(2)
                     pg.mouse.move(1300, 300)
                     time.sleep(0.6)
@@ -944,11 +953,11 @@ def box_check(b, report):
     ctx = b.new_context(viewport={"width": 390, "height": 844}, has_touch=True, is_mobile=True, device_scale_factor=2,
                         locale="ar-SA", color_scheme="dark")
     pg = ctx.new_page()
-    for path, mkt in (BOX_PAGES[0], BOX_PAGES[3], BOX_PAGES[2]):
+    for path, mkt in (BOX_PAGES[1], BOX_PAGES[3], BOX_PAGES[2]):
         tag = f"phone_{path.split('?')[0]}"
         res = {}
         try:
-            pg.goto(f"{URL}/{path}?m={mkt}&lang=ar", wait_until="domcontentloaded", timeout=90000)
+            pg.goto(f"{URL}/{path}{'&' if '?' in path else '?'}m={mkt}&lang=ar", wait_until="domcontentloaded", timeout=90000)
             settle(pg, 150)
             time.sleep(2.5)
             scroll_cards(pg)

@@ -1848,7 +1848,7 @@ FX_CSS = f"""<style>
 @property --fxa {{ syntax:'<angle>'; inherits:false; initial-value:0deg; }}
 @keyframes fxspin {{ to {{ --fxa:360deg; }} }}
 html.boxv2 {_ring}::after {{ opacity:1; padding:1px;
-  background: linear-gradient(135deg, rgba(59,130,246,.62), rgba(124,58,237,.34) 34%, rgba(124,58,237,.10) 58%, rgba(34,211,238,.48)); }}
+  background: linear-gradient(135deg, rgba(59,130,246,.9), rgba(124,58,237,.55) 32%, rgba(124,58,237,.2) 58%, rgba(34,211,238,.75)); }}
 html.boxv2 {_ring}.fx-on::after {{ padding:1.5px; animation: fxspin 3.6s linear infinite;
   background: radial-gradient(200px circle at var(--mx,50%) var(--my,50%), rgba(255,255,255,.95), rgba(196,181,253,.55) 32%, transparent 62%),
     conic-gradient(from var(--fxa) at 50% 50%, #3B82F6, #7C3AED, #22D3EE, #A855F7, #3B82F6); }}
