@@ -719,6 +719,16 @@ a.tkt .bar {{ position:absolute; inset-inline-start:0; bottom:0; height:3px; bor
 .kwc .ms {{ font-size:.95rem; color:#79B8F4; }}
 .kwc.ent {{ background:rgba(123,69,240,.1); color:#D9CCFC; border-color:rgba(123,69,240,.3); }} .kwc.ent .ms {{ color:#A78BFA; }}
 .kwc.op {{ background:rgba(157,151,165,.12); color:#BBB5C3; border-color:rgba(157,151,165,.26); }} .kwc.op .ms {{ color:#9D97A5; }}
+/* the AI reader's strip on the News page */
+.aibar {{ display:flex; flex-wrap:wrap; align-items:center; gap:6px 16px; margin:4px 0 10px; padding:8px 14px; border-radius:12px; font-size:.82rem;
+  color:#DCD3F7; background:rgba(123,69,240,.08); border:1px solid rgba(123,69,240,.24); }}
+.aibar .ms {{ color:#A78BFA; font-size:1.1rem; }} .aibar b {{ color:#fff; }} .aibar .err {{ color:#FCA5A5; }}
+.aibar.off {{ color:#BBB5C3; background:rgba(157,151,165,.08); border-color:rgba(157,151,165,.22); }} .aibar.off .ms {{ color:#9D97A5; }}
+/* the AI reader's line on a story, and the drawer of stories it linked to the same event */
+.nwhy {{ display:flex; align-items:flex-start; gap:6px; margin-top:9px; padding:7px 10px; border-radius:10px; font-size:.8rem; line-height:1.55;
+  color:#DCD3F7; background:rgba(123,69,240,.09); border:1px solid rgba(123,69,240,.22); }}
+.nwhy .ms {{ font-size:1rem; color:#A78BFA; margin-top:1px; flex:none; }} .nwhy b {{ color:#C4B5FD; font-weight:600; white-space:nowrap; }}
+.ncov.nrel summary .ms:first-child {{ color:#A78BFA; }}
 .iqleg {{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; font-size:.78rem; font-weight:600; }}
 .iqleg .sc {{ display:flex; gap:3px; direction:ltr; }}
 .iqleg .sc span {{ width:30px; height:24px; border-radius:6px; display:inline-flex; align-items:center; justify-content:center; font-size:.74rem; font-weight:600; }}
@@ -2841,7 +2851,7 @@ def kw_chips(iq, ar=False, limit=6):
     import newsiq
     out = []
     for key, en, a in iq.get("keywords", [])[:limit]:
-        k = " op" if key == "opinion" else (" ent" if key == "entity" else "")
+        k = " op" if key in ("opinion", "statement", "analysis", "promo") else (" ent" if key == "entity" else "")
         out.append(f'<span class="kwc{k}">{icon(newsiq.TOPIC_ICON.get(key, "label"))}{esc(a if ar else en)}</span>')
     return '<div class="kw">' + "".join(out) + "</div>" if out else ""
 
@@ -2926,9 +2936,34 @@ def coverage(n, ui_ar=False, titles=None):
             f'<ul>{rows}</ul></details>')
 
 
-def news_card(n, title, summary, chips="", aff_label="", ar=False, tag=None, iq=None, ui_ar=None, cov_titles=None, foot=False):
-    """News card. iq = newsiq.analyze(...) adds the importance box, a colored edge and keyword chips. The other outlets'
-    stories of the same event open in a drawer at its foot; foot=True leaves room there for the "analyse" button."""
+def related_drawer(rel, ui_ar=False, titles=None):
+    """Other stories the AI reader tied to the same event or theme (its thread label): a drawer like the coverage one."""
+    rel = [m for m in (rel or []) if m.get("title")]
+    if not rel:
+        return ""
+    tr = titles or {}
+    rows = "".join(f'<li><a class="nogq" href="{esc(m.get("link") or "#")}" target="_blank" dir="auto">{esc(tr.get(m["title"]) or m["title"])}</a>'
+                   f'<span>{esc(m.get("source") or "")} · {time_ago(m.get("time"), ui_ar)}</span></li>' for m in rel[:6])
+    k = len(rel)
+    lab = (f"مرتبط بهذا الحدث · {k} {'خبر' if k == 1 else 'أخبار'}" if ui_ar else f"Linked to this event · {k} {'story' if k == 1 else 'stories'}")
+    return (f'<details class="ncov nrel"><summary>{icon("hub")}<span>{esc(lab)}</span>{icon("expand_more")}</summary>'
+            f'<ul>{rows}</ul></details>')
+
+
+def ai_line(iq, ui_ar=False):
+    """The AI reader's one line on the story (why it matters for the market, or why not)."""
+    why = (iq or {}).get("why") or ("", "")
+    txt = why[1] if ui_ar else why[0]
+    if not txt:
+        return ""
+    lab = "قراءة البوت" if ui_ar else "Bot's reading"
+    return f'<div class="nwhy" dir="auto">{icon("auto_awesome")}<b>{lab}:</b> <span>{esc(txt)}</span></div>'
+
+
+def news_card(n, title, summary, chips="", aff_label="", ar=False, tag=None, iq=None, ui_ar=None, cov_titles=None, foot=False, related=None):
+    """News card. iq = newsiq.analyze(...) adds the importance box, a colored edge and keyword chips (and, read by the AI reader,
+    its one line on the story). The other outlets' stories of the same event open in a drawer at its foot, the stories the AI
+    reader linked to the same event (related) in another; foot=True leaves room there for the "analyse" button."""
     import newsiq
     ui_ar = ar if ui_ar is None else ui_ar
     summary = summary or ""
@@ -2939,12 +2974,12 @@ def news_card(n, title, summary, chips="", aff_label="", ar=False, tag=None, iq=
     head = (f'<div class="nb">{tag_html}<a class="t nogq" href="{esc(n["link"])}" target="_blank">{esc(title)}</a>'
             f'<div class="meta">{icon("schedule")} <bdi>{esc(n["source"])}</bdi>{also_badge(n.get("also"), ui_ar)} · {time_ago(n["time"], ui_ar)}</div></div>')
     pic = news_thumb(n)
-    cov = coverage(n, ui_ar, cov_titles)
+    cov = coverage(n, ui_ar, cov_titles) + related_drawer(related, ui_ar, cov_titles)
     ft = " hasft" if foot else ""
     if iq:
         edge = newsiq.colors(iq["score"])[2]
         return (f'<div class="news hasiq{rtl}{ft}" style="--iqd:{edge}"><div class="nwrap">{pic}<div class="nbody"><div class="nh">{head}{iq_badge(iq, ui_ar)}</div>'
-                + (f'<div class="sum">{short}</div>' if short else "") + kw_chips(iq, ui_ar) + aff + "</div></div>" + cov + "</div>")
+                + (f'<div class="sum">{short}</div>' if short else "") + ai_line(iq, ui_ar) + kw_chips(iq, ui_ar) + aff + "</div></div>" + cov + "</div>")
     return (f'<div class="news{rtl}{ft}"><div class="nwrap">{pic}<div class="nbody"><div class="nh">{head}</div>'
             + (f'<div class="sum">{short}</div>' if short else "") + aff + "</div></div>" + cov + "</div>")
 
@@ -3220,4 +3255,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.2.7"
+BUILD = "23.3"

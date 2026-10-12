@@ -30,7 +30,8 @@ except Exception:                       # pragma: no cover
 # key, english, arabic, icon, time horizon, pattern (the first that matches the headline wins; then the summary)
 EVENTS = [
     ("distress", "Bankruptcy risk", "خطر إفلاس", "warning", "long",
-     r"\b(bankrupt\w*|chapter 11|defaults? on|defaulted|insolven\w*|going concern|delist\w*)\b"),
+     r"\b((?<!moral )(?<!morally )(?<!political )(?<!politically )(?<!intellectual )(?<!ethical )bankrupt\w*(?! of (?:ideas|values|leadership))|"
+     r"chapter 11|defaults? on|defaulted|insolven\w*|going concern|delist\w*)\b"),
     ("mna", "Merger & Acquisition (M&A)", "استحواذ واندماج", "handshake", "long",
      r"\b(mergers?|acquisitions?|acquires?|acquired|buyout|takeover|deal to buy|agrees? to (?:buy|acquire)|to acquire|bid for|spin-?offs?|"
      r"merge with|combine with)\b"),
@@ -76,7 +77,7 @@ _EV = [(k, en, ar, ic, hz, re.compile(p, re.I)) for k, en, ar, ic, hz, p in EVEN
 # Arabic glues "و", "ب", "ل" and "ال" to the word, so these match inside words (no \b); the order decides (a dividend before earnings:
 # "توزيع أرباح" is a payout, not results).
 EVENTS_AR = [
-    ("distress", r"إفلاس|تعثر(?:ها)? عن السداد|تصفية|خسائر(?:ها)? المتراكمة|خسائر متراكمة|شطب (?:السهم|الإدراج)|إلغاء إدراج"),
+    ("distress", r"إفلاس(?!(?:ها|هم|ه)?\s*(?:ال)?(?:أخلاقي|سياسي|فكري|إنساني|حضاري|قيمي|معنوي|دبلوماسي|إعلامي|ثقافي))|تعثر(?:ها)? عن السداد|تصفية|خسائر(?:ها)? المتراكمة|خسائر متراكمة|شطب (?:السهم|الإدراج)|إلغاء إدراج"),
     ("mna", r"استحواذ|يستحوذ|تستحوذ|اندماج|الاندماج|صفقة (?:شراء|بيع) حصة|عرض (?:شراء|استحواذ)"),
     ("payout", r"توزيع(?:ات)? (?:ال)?أرباح|توزيعات نقدية|توزيع نقدي|أسهم منحة|منحة أسهم|شراء (?:ال)?أسهم(?:ها)?|إعادة شراء"),
     ("offering", r"زيادة رأس ?(?:ال)?مال|حقوق (?:ال)?أولوية|طرح (?:أسهم|صكوك|سندات)|إصدار (?:صكوك|سندات)|اكتتاب|الطرح العام"),
@@ -620,4 +621,4 @@ def word_sign(w):
     return 1 if (_POS.fullmatch(w or "") or _POS_AR.fullmatch(w or "")) else -1
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.2.7"
+BUILD = "23.3"

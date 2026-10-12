@@ -9,6 +9,12 @@ from collections import Counter
 
 import pandas as pd
 
+# a figure of speech is not an event: "moral bankruptcy" / "إفلاس أخلاقي" (a politician's or a militia's) is not a company going bust
+BANKRUPT_EN = (r"(?<!moral )(?<!morally )(?<!political )(?<!politically )(?<!intellectual )(?<!intellectually )(?<!spiritual )"
+               r"(?<!spiritually )(?<!ethical )(?<!ethically )bankrupt\w*(?! of (?:ideas|values|leadership|principles))")
+BANKRUPT_AR = (r"إفلاس(?!(?:ها|هم|ه)?\s*(?:ال)?(?:أخلاقي|سياسي|فكري|إنساني|حضاري|قيمي|معنوي|دبلوماسي|إعلامي|ثقافي|عقائدي|روحي|"
+               r"أيديولوجي|إيديولوجي))")
+
 # (key, english, arabic, weight, pattern)
 TOPICS = [
     ("fed", "Fed & rates", "الفيدرالي والفائدة", 3.0,
@@ -37,7 +43,7 @@ TOPICS = [
      r"\b(sec|lawsuit|sued|sues|probe|investigation|antitrust|doj|ftc|faa|fined|settlement|charged|fraud|regulators?|recalls?|recalled)\b"),
     ("health", "FDA & health", "الدواء والصحة", 2.0, r"\b(fda|clinical trial|phase [123]|drug approval|approves|vaccine)\b"),
     ("distress", "Bankruptcy risk", "خطر الإفلاس", 3.0,
-     r"\b(bankrupt\w*|chapter 11|defaults?|defaulted|insolven\w*|delist\w*|going concern)\b"),
+     r"\b(" + BANKRUPT_EN + r"|chapter 11|defaults?|defaulted|insolven\w*|delist\w*|going concern)\b"),
     ("layoffs", "Layoffs", "تسريح موظفين", 1.6, r"\b(layoffs?|job cuts|cuts? [\d,]+ jobs|restructuring)\b"),
     ("product", "Products & launches", "منتجات وإطلاقات", 1.2,
      r"\b(unveils?|unveiled|launch(?:es|ed)?(?! (?:an? |the |its |new )?(?:probe|investigation|inquiry|review|committee|bid|attack|strikes?|"
@@ -71,7 +77,7 @@ TOPICS_AR = {
     "mna": r"استحواذ|اندماج|يستحوذ|تستحوذ",
     "ipo": r"اكتتاب|(?:ال)?طرح العام|طرح أولي|(?:ال)?إدراج|السوق الموازية",
     "legal": r"هيئة السوق (?:ال)?مالية|غرامة|مخالفة|عقوبة|دعوى|(?:ال)?محكمة|(?:ال)?نيابة",
-    "distress": r"إفلاس|تصفية|خسائر(?:ها)? المتراكمة|خسائر متراكمة|تعليق (?:ال)?تداول|إلغاء إدراج",
+    "distress": BANKRUPT_AR + r"|تصفية|خسائر(?:ها)? المتراكمة|خسائر متراكمة|تعليق (?:ال)?تداول|إلغاء إدراج",
     "layoffs": r"تسريح|إعادة هيكلة|إعادة الهيكلة",
     "product": r"إطلاق|تدشين|افتتاح",
     "payout": r"توزيع(?:ات)? (?:ال)?أرباح|توزيعات نقدية|أسهم منحة|منحة أسهم|إعادة شراء|شراء أسهم(?:ها)?",
@@ -90,7 +96,8 @@ TOPIC_ICON = {"fed": "account_balance", "inflation": "trending_up", "jobs": "wor
               "trade": "local_shipping", "geo": "travel_explore", "policy": "gavel", "earnings": "request_quote", "guidance": "insights",
               "mna": "handshake", "ipo": "rocket_launch", "legal": "balance", "health": "medication", "distress": "warning",
               "layoffs": "person_remove", "payout": "payments", "analyst": "thumbs_up_down", "ai": "memory", "crypto": "currency_bitcoin",
-              "oil": "oil_barrel", "product": "new_releases", "metals": "diamond", "fx": "currency_exchange", "move": "bolt", "street": "show_chart", "opinion": "chat"}
+              "oil": "oil_barrel", "product": "new_releases", "metals": "diamond", "fx": "currency_exchange", "move": "bolt", "street": "show_chart", "opinion": "chat",
+              "statement": "campaign", "analysis": "query_stats", "promo": "sell"}
 
 # names worth showing as keywords (people, countries, institutions)
 ENTITIES = [("Powell", "باول", r"\bpowell\b"), ("Trump", "ترامب", r"\btrump\b"), ("China", "الصين", r"\b(china|chinese|beijing)\b"),
@@ -131,13 +138,33 @@ _SA_HOME = re.compile(r"(saudi\w*|riyadh|\bsama\b|tadawul|\btasi\b|aramco|\bgcc\
 _ARABIC = re.compile(r"[\u0600-\u06FF]")
 # rate decisions, data releases and deals in Arabic headlines
 EVENTS_AR = re.compile(r"((?:تثبيت|تثبت|يثبت|تبقي على|يبقي على) (?:أسعار )?(?:ال)?فائدة|(?:خفض|رفع|يخفض|يرفع|تخفيض) (?:أسعار )?(?:ال)?فائدة|أوبك\+? (?:تقرر|تخفض|تمدد|ترفع|تتفق)|"
-                       r"(?:يستحوذ|تستحوذ|استحواذ) على|توزيع(?:ات)? (?:ال)?أرباح|ترسية|إفلاس|تعليق (?:ال)?تداول|زيادة رأس ?(?:ال)?مال)")
+                       r"(?:يستحوذ|تستحوذ|استحواذ) على|توزيع(?:ات)? (?:ال)?أرباح|ترسية|" + BANKRUPT_AR + r"|تعليق (?:ال)?تداول|زيادة رأس ?(?:ال)?مال)")
 # the rate decisions and data releases among the market-moving events (a deal or a bankruptcy abroad keeps its weight)
 MACRO_EVENT = re.compile(
     r"(\b(?:cuts?|hikes?|raises?|holds?|keeps?|leaves?|lowers?) (?:its |key |benchmark |policy )*(?:interest |lending |policy )?rates?\b|"
     r"\brates? (?:unchanged|steady|decision)\b|"
     r"\b(?:cpi|inflation|pce|payrolls|jobs report|gdp|unemployment|jobless claims)\b.{0,50}\b(?:rose|rises|fell|falls|jumped|jumps|cooled|"
     r"cools|heated|hotter|cooler|beat|beats|missed|misses|came in|accelerat\w*|slow\w*|surged|slid|unexpectedly)\b)", re.I)
+
+
+# the Saudi feed: political statements, condemnations, protocol, sport and society news that say nothing about the market, the
+# economy or a company (Al Maal and Argaam publish them too) - off the Saudi market's news unless a company or an economic word is in it
+POLITICS_AR = re.compile(r"ميليشيا|مليشيا|يدين|تدين|ندين|إدانة|الإدانة|استنكار|يستنكر|تستنكر|يندد|تندد|إرهاب|أخلاقي|يائس|ضيوف الرحمن|"
+                         r"يستقبل|تستقبل|يهنئ|تهنئ|تهنئة|برقية|يعزي|تعزية|العزاء|يلتقي|تلتقي|يبحث مع|تبحث مع|وزير الخارجية|"
+                         r"الأمم المتحدة|مجلس الأمن|الدوري|المنتخب|مباراة|كأس|حفل|مهرجان|الطقس|الأمطار|الحج|المعتمرين|العمرة")
+_ECON_AR = re.compile("|".join(f"(?:{TOPICS_AR[k]})" for k in ("fed", "inflation", "jobs", "economy", "bonds", "trade", "earnings",
+                                                                  "guidance", "mna", "ipo", "legal", "distress", "layoffs", "payout",
+                                                                  "analyst", "ai", "crypto", "oil", "metals", "fx")) +
+                      r"|تاسي|تداول|(?:ال)?سوق (?:ال)?مالية|(?:ال)?أسهم|سهم|شرك[ةا]|بنك|مصرف|استثمار|صندوق|مليار|مليون|ريال")
+
+
+def off_market(title, summary=""):
+    """True for a Saudi-feed headline that is politics, protocol, sport or society with no word about the market, the economy or
+    a company (the caller also checks that no listed company was found in it)."""
+    t = str(title or "")
+    if not POLITICS_AR.search(t):
+        return False
+    return not (_ECON_AR.search(t) or _ECON_AR.search(str(summary or "")[:240]))
 
 
 def scope_sa(title, summary=""):
@@ -213,8 +240,82 @@ def _source_weight(src):
     return 0.0
 
 
+_BYKEY = {k: (en, ar, w) for k, en, ar, w, _ in TOPICS}
+KIND = {"statement": ("Statement", "بيان"), "opinion": ("Opinion", "رأي"), "analysis": ("Analysis", "تحليل"), "promo": ("Promotion", "ترويج")}
+
+
+def _extras(n, chg, now):
+    """What the rules add to any reading: today's move of the companies named, a mega-cap, several companies, how many outlets
+    carried it, how fresh it is. -> ({kind: weight}, max move, [(en, ar, weight, kind)])"""
+    tickers = [t for t in (n.get("tickers") or []) if t]
+    out, w, mx = [], {}, 0.0
+    if chg and tickers:
+        moves = [abs(chg[s][1]) for s in tickers if s in chg and chg[s][1] is not None and pd.notna(chg[s][1])]
+        mx = max(moves) if moves else 0.0
+        w["impact"] = 2.2 if mx >= 8 else 1.8 if mx >= 5 else 1.2 if mx >= 3 else 0.6 if mx >= 1.5 else 0.0
+        if w["impact"]:
+            out.append((f"Stock moved {mx:.1f}% today", f"السهم تحرك {mx:.1f}% اليوم", w["impact"], "impact"))
+    w["mega"] = 0.8 if any(s in MEGA for s in tickers) else 0.0
+    if w["mega"]:
+        out.append(("Mega-cap company", "شركة عملاقة", w["mega"], "mega"))
+    k = len(n.get("also") or [])
+    w["wide"] = min(1.5, 0.5 * k)
+    if w["wide"]:
+        out.append((f"Covered by {k + 1} outlets", f"نشرته {k + 1} مصادر إخبارية", w["wide"], "wide"))
+    w["rec"] = 0.0
+    ts = n.get("time")
+    if ts is not None and pd.notna(ts):
+        now = now or pd.Timestamp.now(tz="UTC")
+        try:
+            age = (now - ts).total_seconds() / 3600
+        except (TypeError, ValueError):
+            age = None
+        if age is not None:
+            w["rec"] = 0.6 if age < 2 else 0.3 if age < 6 else 0.0 if age < 24 else -0.6 if age < 72 else -1.5
+            if w["rec"]:
+                out.append(("Fresh news", "خبر حديث", w["rec"], "rec") if w["rec"] > 0 else ("Older story", "خبر قديم", w["rec"], "rec"))
+    return w, mx, out
+
+
+# how much of each fact the AI path adds on top of the reader's importance
+_AI_SHARE = {"impact": 0.5, "mega": 0.3, "wide": 0.3, "rec": 0.6}
+
+
+def _analyze_ai(n, ai, chg, now):
+    """The score from the AI reader's reading (newsai): its importance for the market, then the rules' facts on top - today's move
+    of the companies, a mega-cap, how many outlets carried it, how fresh it is (a part of each). A statement, an opinion or a
+    promotion stays at 5 or less."""
+    title = str(n.get("title") or "")
+    w, mx, facts = _extras(n, chg, now)
+    imp = float(ai.get("imp") or 1)
+    raw = imp + sum(_AI_SHARE[k] * v for k, v in w.items() if k in _AI_SHARE)
+    kind = ai.get("kind") or "news"
+    if kind in ("statement", "opinion", "promo"):
+        raw = min(raw, 5.0)
+    score = int(max(1, min(10, round(raw))))
+    keys = [k for k in (ai.get("topics") or []) if k in _BYKEY][:4]
+    why_en, why_ar = str(ai.get("why_en") or ""), str(ai.get("why_ar") or "")
+    reasons = [("AI reading" + (f": {why_en}" if why_en else ""), "قراءة البوت" + (f": {why_ar}" if why_ar else ""), round(imp, 1))]
+    reasons += [(a, b, round(v * _AI_SHARE[k], 1)) for a, b, v, k in facts if round(v * _AI_SHARE[k], 1)]
+    kws = [(k, _BYKEY[k][0], _BYKEY[k][1]) for k in keys]
+    for en, ar, pat in _ENT:
+        if len(kws) >= 5:
+            break
+        if pat.search(title) and not any(en == k[1] for k in kws):
+            kws.append(("entity", en, ar))
+    if kind in KIND:
+        kws.append(("opinion" if kind == "opinion" else kind, *KIND[kind]))
+    return {"score": score, "raw": raw, "keywords": kws, "reasons": reasons, "topics": keys, "move": mx,
+            "pic": keys[0] if keys else "street", "why": (why_en, why_ar), "thread": ai.get("thread") or "", "kind": kind,
+            "tone": int(ai.get("tone") or 0), "rel": int(ai.get("rel") or 0), "ai": True}
+
+
 def analyze(n, chg=None, now=None):
-    """-> {"score": 1..10, "raw": float, "keywords": [(key, en, ar)], "reasons": [(en, ar, +w)], "topics": [key]}"""
+    """-> {"score": 1..10, "raw": float, "keywords": [(key, en, ar)], "reasons": [(en, ar, +w)], "topics": [key]}
+    With the AI reader's reading of the story (n["ai"], newsai) the score and the topics come from it; else from the rules."""
+    ai = n.get("ai") if isinstance(n.get("ai"), dict) else None
+    if ai and ai.get("imp"):
+        return _analyze_ai(n, ai, chg, now)
     title = str(n.get("title") or "")
     summ = str(n.get("summary") or "")[:500]
     tickers = [t for t in (n.get("tickers") or []) if t]
@@ -329,4 +430,4 @@ def rank(items):
     return sorted(items, key=lambda n: ((n.get("iq") or {}).get("raw", 0), n["time"] if pd.notna(n.get("time")) else zero), reverse=True)
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.2.7"
+BUILD = "23.3"

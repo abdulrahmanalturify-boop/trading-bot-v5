@@ -223,14 +223,28 @@ def _open_story(link):
 def news_list(items, limit=20, translate=None, tag_key=None, iq=True, analyze=False):
     """News cards: importance score (1-10), keywords and 'affected companies' chips (logo + today's move, click to open).
     analyze: each card gets a button that opens the story's analysis (the news engine's AI analysis, stocks and why it matters)."""
+    pool = items
     items = items[:limit]
     if not items:
         st.info(L("No news available right now.", "لا توجد أخبار متاحة حالياً."))
         return
+    # the stories the AI reader tied to the same event (its thread label), among everything this list was given
+    threads = {}
+    for n in pool:
+        th = (n.get("ai") or {}).get("thread")
+        if th and (n.get("ai") or {}).get("rel", 0) >= 2:
+            threads.setdefault(th, []).append(n)
+    related = []
+    for n in items:
+        th = (n.get("ai") or {}).get("thread")
+        own = {n.get("link")} | {m.get("link") for m in n.get("more") or []}
+        related.append([{"title": m["title"], "source": m.get("source"), "link": m.get("link"), "time": m.get("time")}
+                        for m in threads.get(th, []) if m is not n and m.get("link") not in own][:6] if th else [])
     translate = is_ar() if translate is None else translate
     titles = [n["title"] for n in items]
     sums = [(n.get("summary") or "")[:320] for n in items]
-    more = list(dict.fromkeys(m["title"] for n in items for m in (n.get("more") or [])[:8] if m.get("title")))
+    more = list(dict.fromkeys([m["title"] for n in items for m in (n.get("more") or [])[:8] if m.get("title")] +
+                              [m["title"] for r in related for m in r]))
     translated_ok, cov_tr = True, {}
     if translate:
         with st.spinner(L("Translating...", "جاري الترجمة للعربية...")):
@@ -245,10 +259,10 @@ def news_list(items, limit=20, translate=None, tag_key=None, iq=True, analyze=Fa
     if iq:
         newsiq.enrich(items, chg)
     out = []
-    for n, t, s in zip(items, titles, sums):
+    for n, t, s, rel in zip(items, titles, sums, related):
         out.append(T.news_card(n, t, s, chips(n.get("tickers", []), chg, lg), L("Affected companies", "الشركات المتأثرة"),
                                ar=translate and translated_ok, tag=n.get(tag_key) if tag_key else None,
-                               iq=n.get("iq") if iq else None, ui_ar=is_ar(), cov_titles=cov_tr, foot=analyze))
+                               iq=n.get("iq") if iq else None, ui_ar=is_ar(), cov_titles=cov_tr, foot=analyze, related=rel))
     if translate and not translated_ok:
         st.caption(L("Translation service is busy right now; showing the original English. It will retry automatically.",
                      "خدمة الترجمة مشغولة حالياً؛ نعرض النص الإنجليزي الأصلي وستتم إعادة المحاولة تلقائياً."))
@@ -374,4 +388,4 @@ def multiselect_free(label, options, key, placeholder="", max_n=4, format_func=N
         return st.multiselect(label, options, key=key, max_selections=max_n, placeholder=placeholder, format_func=fmt)
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.2.7"
+BUILD = "23.3"

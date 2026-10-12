@@ -1435,6 +1435,33 @@ def bot_panel(items_24h):
                 f'<span>{L("sources working", "مصادر تعمل")}: <b>{live}/{len(health) or len(newsbot.SA_OUTLETS if MK.is_sa() else newsbot.OUTLETS)}</b></span>'
                 f'<span>{L("updated", "آخر تحديث")} {_ago(updated)} · {L("every 3 minutes", "كل 3 دقائق")}</span></div>', unsafe_allow_html=True)
     c2.button(L("Refresh", "تحديث"), icon=":material/refresh:", key="nw_refresh", on_click=_refresh_bot, width="stretch")
+    ai_panel(items_24h)
+
+
+def ai_panel(items_24h):
+    """The AI reader (newsai): on or off, how many of the day's headlines it has read, how many it left out as unrelated."""
+    try:
+        import newsai
+        s_ = newsai.status()
+    except Exception:
+        return
+    mk = L("the Saudi market", "السوق السعودي") if MK.is_sa() else L("the US market", "السوق الأمريكي")
+    if not s_["on"]:
+        st.markdown(f'<div class="aibar off">{T.icon("auto_awesome")}<span><b>{L("Smart reading: off", "القراءة الذكية: غير مفعّلة")}</b> · '
+                    f'{L("headlines are scored by the rules only. Add OPENAI_API_KEY in the Secrets and the bot reads every headline in its context.", "الأخبار تُقيَّم بالقواعد فقط. أضف OPENAI_API_KEY في الـ Secrets ويصير البوت يقرأ كل خبر بسياقه.")}</span></div>',
+                    unsafe_allow_html=True)
+        return
+    read = sum(1 for n in items_24h if n.get("ai"))
+    try:
+        hid = _news_bot().hidden(24)
+    except Exception:
+        hid = 0
+    err = s_["err"]
+    tail = (f' · <span class="err">{L("paused", "متوقفة مؤقتاً")}: {T.esc(err)}</span>' if err else "")
+    st.markdown(f'<div class="aibar">{T.icon("auto_awesome")}<span><b>{L("Smart reading", "القراءة الذكية")}</b> · '
+                f'{L(f"every headline read in its context for {mk}", f"كل خبر يُقرأ بسياقه لـ{mk}")}</span>'
+                f'<span><b>{read:,}</b>/{len(items_24h):,} {L("read", "مقروء")}</span>'
+                f'<span><b>{hid:,}</b> {L("left out: unrelated", "مستبعد: ما له علاقة")}</span>{tail}</div>', unsafe_allow_html=True)
     if health:
         with st.expander(L(f"News sources ({live} working now)", f"مصادر الأخبار ({live} تعمل الآن)"), icon=":material/rss_feed:"):
             cards = []
@@ -1554,4 +1581,4 @@ def page_news():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.2.7"
+BUILD = "23.3"

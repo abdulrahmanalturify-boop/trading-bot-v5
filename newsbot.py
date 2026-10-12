@@ -531,6 +531,10 @@ def _cluster(items, hours=30, rank=None):
             lead["tickers"] = list(dict.fromkeys(list(top.get("tickers") or []) + [t for m in rest for t in m.get("tickers") or []]))[:6]
             if not lead.get("img"):
                 lead["img"] = next((m["img"] for m in rest if m.get("img")), "")
+            if not lead.get("ai"):                # the AI reader's reading of another outlet's story of the same event
+                lead["ai"] = next((m["ai"] for m in rest if m.get("ai")), None)
+                if lead["ai"] is None:
+                    lead.pop("ai")
             lead.pop("iq", None)                  # its importance is read again with its full coverage
         out.append(lead)
     return out
@@ -538,8 +542,10 @@ def _cluster(items, hours=30, rank=None):
 
 # ---------------------------------------------------------------- the bot
 class NewsBot:
-    def __init__(self, feeds=FEEDS, finder=None):
-        """finder(text, tickers) -> the companies a headline is about (default: the US market's tickers_in)."""
+    def __init__(self, feeds=FEEDS, finder=None, market="us"):
+        """finder(text, tickers) -> the companies a headline is about (default: the US market's tickers_in). market: 'us' or 'sa'
+        (the market the bot reads for: the Saudi bot leaves out politics and society headlines with nothing about the market)."""
+        self.market = market
         self.feeds = list(feeds)
         self.finder = finder or tickers_in
         self.lock = threading.RLock()
@@ -608,6 +614,13 @@ class NewsBot:
         text = it.pop("_text", it["title"])
         if hit is None:
             it["tickers"] = self.finder(text, it["tickers"])
+            if self.market == "sa" and not it["tickers"]:
+                try:
+                    import newsiq
+                    if newsiq.off_market(it["title"], it.get("summary") or ""):
+                        return False           # a statement, a visit, sport...: nothing about the market, the economy or a company
+                except Exception:
+                    pass
             it["_tk"] = tokens(it["title"])
             it["_key"] = k
             self.store[k] = it
@@ -706,6 +719,7 @@ class NewsBot:
             return
         def run():
             self._warm()
+            self._judge()
             self._pics()
         self._side_t = threading.Thread(target=run, daemon=True, name="news-side")
         self._side_t.start()
@@ -737,6 +751,48 @@ class NewsBot:
         except Exception:
             pass
 
+    def _judge(self, budget=70):
+        """The AI reader (newsai): each new headline of the last day is read in its context - how much it has to do with this
+        bot's market, its real subject, how much it matters, the event it belongs to - about 20 per request, newest first. A
+        headline already read gets its reading back from newsai's memory (after a restart too). Off without OPENAI_API_KEY."""
+        try:
+            import newsai
+        except Exception:
+            return
+        if not newsai.enabled():
+            return
+        t0 = time.time()
+        cut = pd.Timestamp.now(tz="UTC") - pd.Timedelta(hours=24)
+        with self.lock:
+            fresh = sorted((v for v in self.store.values() if v["time"] >= cut), key=lambda v: v["time"], reverse=True)
+            todo = []
+            for v in fresh:
+                if "ai" in v:
+                    continue
+                got = newsai.cached(v.get("_key"))
+                if got:
+                    v["ai"] = got
+                else:
+                    todo.append(v)
+        for i in range(0, len(todo), newsai.BATCH):
+            if time.time() - t0 > budget or not newsai.can_ask():
+                break
+            batch = todo[i:i + newsai.BATCH]
+            got = newsai.judge([{"key": v.get("_key"), "title": v.get("title"), "summary": v.get("summary") or "",
+                                 "source": v.get("source") or ""} for v in batch], self.market)
+            if not got:
+                break
+            with self.lock:
+                for v in batch:
+                    if v.get("_key") in got:
+                        v["ai"] = got[v["_key"]]
+
+    def hidden(self, hours=48):
+        """Headlines the AI reader found unrelated to this bot's market (left out of items())."""
+        cut = pd.Timestamp.now(tz="UTC") - pd.Timedelta(hours=hours)
+        with self.lock:
+            return sum(1 for v in self.store.values() if v["time"] >= cut and (v.get("ai") or {}).get("rel", 3) <= 1)
+
     def _warm(self):
         """While visitors use the site in Arabic: the headlines of the last day are translated here, in the background, a few at a
         time, so the Arabic pages show them at once (each headline is translated once; data.translate keeps the answers)."""
@@ -760,9 +816,9 @@ class NewsBot:
 
     # ---- reading
     def items(self, hours=None):
-        """Copies of the stored headlines, newest first."""
+        """Copies of the stored headlines, newest first (without those the AI reader found unrelated to this bot's market)."""
         with self.lock:
-            vals = list(self.store.values())
+            vals = [v for v in self.store.values() if (v.get("ai") or {}).get("rel", 3) >= 2]
         if hours:
             cut = pd.Timestamp.now(tz="UTC") - pd.Timedelta(hours=hours)
             vals = [v for v in vals if v["time"] >= cut]
@@ -850,7 +906,7 @@ def sa_tickers_in(text, extra=()):
 
 @st.cache_resource(show_spinner=False)
 def _shared_sa_bot():
-    b = NewsBot(SA_FEEDS, finder=sa_tickers_in)
+    b = NewsBot(SA_FEEDS, finder=sa_tickers_in, market="sa")
     b.start()
     return b
 
@@ -878,4 +934,4 @@ def sa_headlines(hours=48):
         return []
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.2.7"
+BUILD = "23.3"
