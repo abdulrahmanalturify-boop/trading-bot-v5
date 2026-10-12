@@ -993,7 +993,7 @@ def box_check(b, report):
     report["box"] = out
 
 
-STYLE_PICK = True     # a quick run: every box style and AI button on trial, filmed frame by frame on the overview (and still on the news)
+STYLE_PICK = False    # a quick run: every box style and AI button on trial, filmed frame by frame on the overview (and still on the news)
 BX = ["bx-a", "bx-b", "bx-c", "bx-d", "bx-e"]
 FABS = ["", "fab2", "fab3", "fab4"]
 SET_CLS = """([pre, v]) => { const h = document.documentElement; [...h.classList].filter(c => c.startsWith(pre)).forEach(c => h.classList.remove(c));
@@ -1099,6 +1099,59 @@ def style_pick(b, report):
     report["style_pick"] = out
 
 
+ORB_CHECK = True      # a quick run: the AI button's sphere filmed resting and hovered (dark and light), its chat window, and on a phone
+
+
+def orb_check(b, report):
+    out = {}
+    for look in ("dark", "light"):
+        ctx = b.new_context(viewport={"width": 1440, "height": 900}, locale="ar-SA", color_scheme=look, device_scale_factor=2)
+        pg = ctx.new_page()
+        try:
+            pg.goto(f"{URL}/stock?symbol=2222.SR&m=sa&lang=ar", wait_until="domcontentloaded", timeout=90000)
+            settle(pg, 150)
+            time.sleep(3)
+            f = pg.evaluate(FAB_INFO)["fab"]
+            out[f"{look}_fab"] = f
+            out[f"{look}_canvas"] = pg.evaluate("""() => { const c = document.querySelector('canvas.ai-neural'); if (!c) return null; const r = c.getBoundingClientRect();
+                return {r: [Math.round(r.left), Math.round(r.top), Math.round(r.width)], op: c.style.opacity, w: c.width}; }""")
+            clip = {"x": max(0, f[0] - 30), "y": f[1] - 40, "width": 300, "height": min(900 - (f[1] - 40), f[3] + 70)}
+            c = (f[0] + f[2] / 2, f[1] + f[3] / 2)
+            pg.mouse.move(c[0] + 500, c[1] - 300)
+            time.sleep(0.5)
+            pts = [None] * 16 + [c] * 26 + [(c[0] + 500, c[1] - 300)] + [None] * 8
+            out["films"] = out.get("films", {})
+            out["films"][f"orb_{look}"] = film(pg, f"film_orb_{look}", clip, pts)
+            pg.mouse.move(c[0] + 500, c[1] - 300)
+            pg.locator('.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]').first.click(timeout=8000, force=True)
+            time.sleep(2.5)
+            pg.mouse.move(1300, 300)
+            time.sleep(0.5)
+            pg.screenshot(path=os.path.join(OUT, f"orb_{look}_open.jpg"), type="jpeg", quality=80)
+            out[f"{look}_head"] = pg.evaluate("() => !!document.querySelector('.ai-orb canvas.ai-neural')")
+            out[f"{look}_problems"] = problems(pg)
+        except Exception as e:
+            out[f"{look}_error"] = str(e)[:400]
+        ctx.close()
+    ctx = b.new_context(viewport={"width": 390, "height": 844}, has_touch=True, is_mobile=True, device_scale_factor=3, locale="ar-SA", color_scheme="dark")
+    pg = ctx.new_page()
+    try:
+        pg.goto(f"{URL}/news?m=sa&lang=ar", wait_until="domcontentloaded", timeout=90000)
+        settle(pg, 150)
+        time.sleep(3)
+        f = pg.evaluate(FAB_INFO)["fab"]
+        out["phone_fab"] = f
+        pg.screenshot(path=os.path.join(OUT, "orb_phone.jpg"), type="jpeg", quality=78)
+        out["films"]["orb_phone"] = film(pg, "film_orb_phone", {"x": 0, "y": f[1] - 30, "width": 200, "height": 844 - (f[1] - 30)}, [None] * 18)
+        pg.locator('.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]').first.tap()
+        time.sleep(2.5)
+        pg.screenshot(path=os.path.join(OUT, "orb_phone_open.jpg"), type="jpeg", quality=78)
+    except Exception as e:
+        out["phone_error"] = str(e)[:400]
+    ctx.close()
+    report["orb"] = out
+
+
 def main():
     if LIVE:
         return live_probe()
@@ -1106,7 +1159,7 @@ def main():
         seed_xbots()
     elif QUICK and XB_SEED == "resting":
         seed_resting()
-    if not QUICK and not SHARIA and not MENU_CHECK and not BOXV2 and not STYLE_PICK:
+    if not QUICK and not SHARIA and not MENU_CHECK and not BOXV2 and not STYLE_PICK and not ORB_CHECK:
         news_lab()
     seed_bots()
     if QUICK and AUTH_DEMO:                     # made-up sign-in settings on the test server only: the Sign in button shows
@@ -1147,6 +1200,13 @@ def main():
             if MENU_CHECK:
                 try:
                     menu_check(p, report)
+                finally:
+                    json.dump(report, open(os.path.join(OUT, "report.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+                b.close()
+                return 0
+            if ORB_CHECK:
+                try:
+                    orb_check(b, report)
                 finally:
                     json.dump(report, open(os.path.join(OUT, "report.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
                 b.close()
