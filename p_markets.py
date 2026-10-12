@@ -1456,7 +1456,7 @@ def ai_panel(items_24h):
         hid = _news_bot().hidden(24)
     except Exception:
         hid = 0
-    err = s_["err"]
+    err = newsai.problem(is_ar()) if s_["err"] else ""
     tail = (f' · <span class="err">{L("paused", "متوقفة مؤقتاً")}: {T.esc(err)}</span>' if err else "")
     st.markdown(f'<div class="aibar">{T.icon("auto_awesome")}<span><b>{L("Smart reading", "القراءة الذكية")}</b> · '
                 f'{L(f"every headline read in its context for {mk}", f"كل خبر يُقرأ بسياقه لـ{mk}")}</span>'
@@ -1581,4 +1581,4 @@ def page_news():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.3.4"
+BUILD = "23.3.5"

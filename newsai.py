@@ -177,15 +177,48 @@ def cached(key):
     return _S["cache"].get(key)
 
 
+def _fingerprint():
+    """The key (only a hash of it) and the site's version: a new key or a new version tries again at once after a refusal."""
+    import hashlib
+    return hashlib.sha256((_key() + "|" + str(globals().get("BUILD", ""))).encode()).hexdigest()[:16]
+
+
 def can_ask():
     """A request may go out now (switched on, under the day's ceiling, not resting after an error)."""
-    if not enabled() or time.time() < _S["pause"]:
+    if not enabled():
+        return False
+    if _S["pause"] and _S.get("pause_for") != _fingerprint():
+        _S["pause"], _S["err"] = 0.0, ""
+    if time.time() < _S["pause"]:
         return False
     day = time.strftime("%Y-%m-%d", time.gmtime())
     with _S["lock"]:
         if _S["day"] != day:
             _S["day"], _S["used"] = day, 0
         return _S["used"] < _cap()
+
+
+def problem(ar=False):
+    """The last refusal in plain words for the News page (no part of the key), or ''."""
+    e = str(_S.get("err") or "")
+    if not e:
+        return ""
+    for k, en, a in (("missing_scope", "OpenAI refuses the key: it is restricted - create one with the permission All",
+                      "OpenAI رفض المفتاح: صلاحياته محدودة - سوّ مفتاح جديد بصلاحية All"),
+                     ("invalid_api_key", "OpenAI refuses the key: it is not a valid key - copy it again, whole",
+                      "OpenAI رفض المفتاح: المفتاح غير صحيح - انسخه مرة ثانية كامل"),
+                     ("insufficient_quota", "no credit left in the OpenAI account - add credit under Billing",
+                      "ما فيه رصيد في حساب OpenAI - اشحن من صفحة Billing"),
+                     ("org_not_verified", "OpenAI asks to verify the organization for this model",
+                      "OpenAI يطلب توثيق الحساب لهذا النموذج"),
+                     ("HTTP 401", "OpenAI refuses the key (401) - check it is copied whole, or create a new one",
+                      "OpenAI رفض المفتاح (401) - تأكد إنه منسوخ كامل أو سوّ مفتاح جديد"),
+                     ("HTTP 429", "OpenAI is busy or the account's limit is reached - tried again in 10 minutes",
+                      "OpenAI مشغول أو وصل حد الحساب - يعيد المحاولة بعد 10 دقائق"),
+                     ("no model", "no model available to this key", "ما فيه نموذج متاح لهالمفتاح")):
+        if k in e:
+            return (a if ar else en) + f" ({e})"
+    return e
 
 
 def status():
@@ -204,6 +237,22 @@ def _text_of(js):
                 if isinstance(c, dict) and c.get("type") == "output_text" and c.get("text"):
                     out.append(str(c["text"]))
     return "".join(out).strip() or str(js.get("output_text") or "")
+
+
+def _reason(r):
+    """A short, key-free reason for a refusal: the error's code from OpenAI's answer (never its message, which can show part of
+    the key), or what the message says when there is no code (a key without the permission for this API)."""
+    try:
+        e = (r.json() or {}).get("error") or {}
+    except Exception:
+        e = {}
+    msg = str(e.get("message") or "").lower()
+    if "missing scopes" in msg or "insufficient permissions" in msg:
+        return "missing_scope"
+    if "verify" in msg and "organization" in msg:
+        return "org_not_verified"
+    code = str(e.get("code") or e.get("type") or "").strip()
+    return re.sub(r"[^a-z0-9_]", "", code.lower())[:40]
 
 
 def _post(key, body):
@@ -229,9 +278,11 @@ def _ask(text, market):
         if r.status_code in (400, 404) and "model" in r.text.lower():
             continue                                   # this model is not available to the key: the next one
         if r.status_code >= 400:
-            _S["err"] = f"HTTP {r.status_code}"
+            why = _reason(r)
+            _S["err"] = f"HTTP {r.status_code}" + (f" {why}" if why else "")
             if r.status_code in (401, 403, 429) or r.status_code >= 500:
                 _S["pause"] = time.time() + (PAUSE * (6 if r.status_code in (401, 403) else 1))
+                _S["pause_for"] = _fingerprint()
             return None
         try:
             items = json.loads(_text_of(r.json())).get("items")
@@ -242,6 +293,7 @@ def _ask(text, market):
         return items if isinstance(items, list) else None
     _S["err"] = "no model available"
     _S["pause"] = time.time() + PAUSE * 6
+    _S["pause_for"] = _fingerprint()
     return None
 
 
@@ -317,4 +369,4 @@ def judge(stories, market="us"):
     return out
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.3.4"
+BUILD = "23.3.5"
