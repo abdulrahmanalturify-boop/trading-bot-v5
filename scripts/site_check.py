@@ -645,6 +645,100 @@ def live_probe():
     return 0
 
 
+MENU_CHECK = True     # the top menus: hovered and clicked on a computer, tapped on a phone, in Chrome's engine and in Safari's (WebKit)
+MENU_VIS = """(sel) => { const dd = document.querySelector(sel); if (!dd) return null; const cs = getComputedStyle(dd), r = dd.getBoundingClientRect();
+  const sec = dd.parentElement && dd.parentElement.closest('[class*="st-key-navsec_"], .st-key-langsec, .st-key-acctsec');
+  return {shown: cs.visibility === 'visible' && +cs.opacity > .5, op: cs.opacity, vis: cs.visibility, x: Math.round(r.left), y: Math.round(r.top),
+          w: Math.round(r.width), h: Math.round(r.height), open: !!(sec && sec.classList.contains('open')),
+          hoverNone: matchMedia('(hover: none)').matches, js: document.documentElement.classList.contains('ix-js')}; }"""
+
+
+def menu_check(p, report):
+    out = {}
+    for eng in ("chromium", "webkit"):
+        try:
+            b = getattr(p, eng).launch()
+        except Exception as e:
+            out[eng] = {"error": str(e)[:200]}
+            continue
+        res = {}
+        try:
+            ctx = b.new_context(viewport={"width": 1440, "height": 900}, locale="ar-SA", color_scheme="dark")
+            pg = ctx.new_page()
+            pg.goto(f"{URL}/news?m=sa&lang=ar", wait_until="domcontentloaded", timeout=90000)
+            settle(pg, 150)
+            time.sleep(2)
+            btn = pg.locator('.st-key-navsec_1 .navbtn').first
+            btn.hover()
+            time.sleep(0.7)
+            res["desk_hover"] = pg.evaluate(MENU_VIS, '.st-key-navdd_1')
+            pg.screenshot(path=os.path.join(OUT, f"menu_{eng}_desk_hover.jpg"), type="jpeg", quality=60)
+            btn.click()
+            time.sleep(0.7)
+            res["desk_click"] = pg.evaluate(MENU_VIS, '.st-key-navdd_1')
+            pg.mouse.move(700, 700)
+            time.sleep(0.7)
+            res["desk_away"] = pg.evaluate(MENU_VIS, '.st-key-navdd_1')
+            ctx.close()
+        except Exception as e:
+            res["desk_error"] = str(e)[:300]
+        try:
+            args = dict(viewport={"width": 390, "height": 844}, has_touch=True, device_scale_factor=2)
+            if eng == "chromium":
+                args["is_mobile"] = True
+            else:
+                args["user_agent"] = ("Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) "
+                                      "Version/18.0 Mobile/15E148 Safari/604.1")
+                args["is_mobile"] = True
+            ctx = b.new_context(locale="ar-SA", color_scheme="dark", **args)
+            pg = ctx.new_page()
+            pg.goto(f"{URL}/news?m=sa&lang=ar", wait_until="domcontentloaded", timeout=90000)
+            settle(pg, 150)
+            time.sleep(2)
+            # first as it was before the taps were handled (the page script's flag off: focus and hover decide)
+            pg.evaluate("() => document.documentElement.classList.remove('ix-js')")
+            pg.locator('.st-key-navsec_1 .navbtn').first.tap()
+            time.sleep(0.8)
+            res["old_phone_tap"] = pg.evaluate(MENU_VIS, '.st-key-navdd_1')
+            pg.screenshot(path=os.path.join(OUT, f"menu_{eng}_old_tap.jpg"), type="jpeg", quality=60)
+            pg.touchscreen.tap(195, 700)
+            time.sleep(0.6)
+            pg.evaluate("() => { document.documentElement.classList.add('ix-js'); document.querySelectorAll('.open').forEach(e => e.classList.remove('open')); }")
+            pg.locator('.st-key-navsec_1 .navbtn').first.tap()
+            time.sleep(0.8)
+            res["phone_tap"] = pg.evaluate(MENU_VIS, '.st-key-navdd_1')
+            pg.screenshot(path=os.path.join(OUT, f"menu_{eng}_phone_tap.jpg"), type="jpeg", quality=60)
+            pg.locator('.st-key-navsec_2 .navbtn').first.tap()
+            time.sleep(0.8)
+            res["phone_other"] = [pg.evaluate(MENU_VIS, '.st-key-navdd_2'), pg.evaluate(MENU_VIS, '.st-key-navdd_1')]
+            pg.locator('.st-key-navsec_2 .navbtn').first.tap()
+            time.sleep(0.8)
+            res["phone_again"] = pg.evaluate(MENU_VIS, '.st-key-navdd_2')
+            pg.locator('.st-key-navsec_1 .navbtn').first.tap()
+            time.sleep(0.6)
+            pg.touchscreen.tap(195, 640)
+            time.sleep(0.8)
+            res["phone_away"] = pg.evaluate(MENU_VIS, '.st-key-navdd_1')
+            pg.locator('.langbtn').first.tap()
+            time.sleep(0.8)
+            res["phone_lang"] = pg.evaluate(MENU_VIS, '.st-key-langdd')
+            pg.screenshot(path=os.path.join(OUT, f"menu_{eng}_phone_lang.jpg"), type="jpeg", quality=60)
+            pg.touchscreen.tap(195, 700)
+            time.sleep(0.6)
+            pg.locator('.st-key-navsec_3 .navbtn').first.tap()
+            time.sleep(0.8)
+            pg.locator('.st-key-navdd_3 [data-testid="stPageLink"] a').nth(1).tap()
+            time.sleep(4)
+            res["phone_after_link"] = {"url": pg.url[-40:], "dd": pg.evaluate(MENU_VIS, '.st-key-navdd_3')}
+            ctx.close()
+        except Exception as e:
+            res["phone_error"] = str(e)[:300]
+        b.close()
+        out[eng] = res
+        log("menus", eng, json.dumps(res, ensure_ascii=False)[:2500])
+    report["menus"] = out
+
+
 def main():
     if LIVE:
         return live_probe()
@@ -652,7 +746,7 @@ def main():
         seed_xbots()
     elif QUICK and XB_SEED == "resting":
         seed_resting()
-    if not QUICK and not SHARIA:
+    if not QUICK and not SHARIA and not MENU_CHECK:
         news_lab()
     seed_bots()
     if QUICK and AUTH_DEMO:                     # made-up sign-in settings on the test server only: the Sign in button shows
@@ -686,6 +780,13 @@ def main():
             if SHARIA:
                 try:
                     sharia_check(b, report)
+                finally:
+                    json.dump(report, open(os.path.join(OUT, "report.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+                b.close()
+                return 0
+            if MENU_CHECK:
+                try:
+                    menu_check(p, report)
                 finally:
                     json.dump(report, open(os.path.join(OUT, "report.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
                 b.close()

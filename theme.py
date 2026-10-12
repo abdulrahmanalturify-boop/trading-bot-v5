@@ -1098,6 +1098,19 @@ a.mst:hover .mh .go {{ opacity:1; transform:none; color:{VIO_FG}; }}
 @media (hover: none) {{  /* touch screens: a tap opens the menu */
   [class*="st-key-navsec_"]:focus-within [class*="st-key-navdd_"], .st-key-langsec:focus-within .st-key-langdd {{ opacity: 1; visibility: visible; transform: none;
     pointer-events: auto; }} }}
+/* touch screens with the page script running (html.ix-js): a tap on a menu's button opens it and the script keeps it open
+   (.open) - a second tap, a tap anywhere else or choosing a page closes it. A phone's focus and hover are not dependable (an
+   iPhone neither focuses the button nor keeps its hover), so they no longer decide there; without the script the rule above does */
+@media (hover: none) {{
+  html.ix-js [class*="st-key-navsec_"]:not(.open) [class*="st-key-navdd_"], html.ix-js .st-key-langsec:not(.open) .st-key-langdd,
+  html.ix-js .st-key-acctsec:not(.open) .st-key-acctdd {{ opacity: 0 !important; visibility: hidden !important; pointer-events: none !important; }}
+  html.ix-js [class*="st-key-navsec_"].open [class*="st-key-navdd_"], html.ix-js .st-key-langsec.open .st-key-langdd,
+  html.ix-js .st-key-acctsec.open .st-key-acctdd {{ opacity: 1 !important; visibility: visible !important; transform: none !important;
+    pointer-events: auto !important; animation: none !important; }}
+  html.ix-js [class*="st-key-navsec_"].open .navbtn {{ color: #fff; background: linear-gradient(135deg, rgba(59,139,235,.24), rgba(123,69,240,.2));
+    border-color: rgba(90,160,240,.45); }}
+  html.ix-js [class*="st-key-navsec_"].open .navbtn .ms {{ color: #fff; }}
+}}
 /* a link/option was just chosen in a menu (FX_JS sets the flag on <html>): the menu closes at once, whatever hover or focus says,
    and opens again when a menu button is pressed or hovered */
 /* held shut by an animation, not for good: if the flag is ever left behind (the script that clears it was stopped), the menus open
@@ -1964,6 +1977,29 @@ FX_JS = """<script>
   // phones (up to 640 px wide; tablets and computers are left as they are): the AI button steps aside while the page is read
   // downwards and is back on the first move up (html.nav-tuck; the menu card stays frozen at the top), and the card's strip of
   // menus shows the open page's menu, fading at the edge while more menus wait to the side
+  // touch screens (phones and tablets): a tap on a menu's button opens that menu and closes any other; a second tap, a tap
+  // anywhere else or choosing a page closes it (CSS shows a menu there by .open)
+  var TOUCH = w.matchMedia ? w.matchMedia('(hover: none)') : null, SECS = '[class*="st-key-navsec_"], .st-key-langsec, .st-key-acctsec';
+  function shut(but) {
+    var o = d.querySelectorAll('[class*="st-key-navsec_"].open, .st-key-langsec.open, .st-key-acctsec.open');
+    for (var i = 0; i < o.length; i++) if (o[i] !== but) o[i].classList.remove('open');
+  }
+  on(d, 'click', function (e) {
+    if (!TOUCH || !TOUCH.matches) return;
+    var t = e.target;
+    if (!t || !t.closest) return;
+    var btn = t.closest('.navbtn, .langbtn, .acctbtn');
+    if (btn) {
+      var sec = btn.closest(SECS);
+      if (!sec) return;
+      shut(sec);
+      sec.classList.toggle('open');
+      if (!sec.classList.contains('open') && btn.blur) btn.blur();
+      return;
+    }
+    if (t.closest('[class*="st-key-navdd_"], .st-key-langdd, .st-key-acctdd')) { w.setTimeout(function () { shut(null); }, 60); return; }
+    shut(null);
+  }, true);
   var PHONE = 640, navY = null;
   function phone() { return w.innerWidth <= PHONE; }
   function stripEnd(s) { s.classList.toggle('at-end', Math.abs(s.scrollLeft) + s.clientWidth >= s.scrollWidth - 2); }
