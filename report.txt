@@ -1,0 +1,16 @@
+health: 1
+home page: 200
+active
+active
+active
+total 12
+drwx------+  2 tura tura 4096 Oct 12 22:26 .
+drwxr-x---+ 10 tura tura 4096 Oct 12 22:26 ..
+-rw-------+  1 tura tura   21 Oct 12 22:26 secrets.toml
+:80 {
+	encode gzip zstd
+	reverse_proxy 127.0.0.1:8501
+}
+update script: ok
+aarch64
+Python 3.12.3

@@ -1,0 +1,311 @@
++ REPO=https://github.com/abdulrahmanalturify-boop/trading-bot-v5.git
++ BRANCH=research
++ ROOT=/opt/tura
++ APP=/opt/tura/app
++ VENV=/opt/tura/venv
++ RUNAS=tura
++ export DEBIAN_FRONTEND=noninteractive
++ DEBIAN_FRONTEND=noninteractive
++ apt-get update -y
+Get:1 https://packages.microsoft.com/ubuntu/24.04/prod noble InRelease [3600 B]
+Get:2 https://packages.microsoft.com/ubuntu/24.04/prod noble/main all Packages [640 B]
+Get:3 https://packages.microsoft.com/ubuntu/24.04/prod noble/main amd64 Packages [566 kB]
+Get:4 https://packages.microsoft.com/ubuntu/24.04/prod noble/main arm64 Packages [508 kB]
+Get:5 https://packages.microsoft.com/ubuntu/24.04/prod noble/main armhf Packages [12.3 kB]
+Hit:6 http://ports.ubuntu.com/ubuntu-ports noble InRelease
+Get:7 http://ports.ubuntu.com/ubuntu-ports noble-updates InRelease [126 kB]
+Get:8 http://ports.ubuntu.com/ubuntu-ports noble-backports InRelease [126 kB]
+Get:9 http://ports.ubuntu.com/ubuntu-ports noble-security InRelease [126 kB]
+Get:10 http://ports.ubuntu.com/ubuntu-ports noble-updates/main arm64 Packages [1431 kB]
+Get:11 http://ports.ubuntu.com/ubuntu-ports noble-updates/main Translation-en [306 kB]
+Get:12 http://ports.ubuntu.com/ubuntu-ports noble-updates/universe arm64 Packages [1745 kB]
+Get:13 http://ports.ubuntu.com/ubuntu-ports noble-updates/universe Translation-en [342 kB]
+Get:14 http://ports.ubuntu.com/ubuntu-ports noble-updates/restricted arm64 Packages [2628 kB]
+Get:15 http://ports.ubuntu.com/ubuntu-ports noble-updates/restricted Translation-en [402 kB]
+Get:16 http://ports.ubuntu.com/ubuntu-ports noble-updates/multiverse arm64 Packages [86.2 kB]
+Get:17 http://ports.ubuntu.com/ubuntu-ports noble-updates/multiverse Translation-en [14.0 kB]
+Get:18 http://ports.ubuntu.com/ubuntu-ports noble-backports/multiverse arm64 Packages [748 B]
+Get:19 http://ports.ubuntu.com/ubuntu-ports noble-security/main arm64 Packages [1183 kB]
+Get:20 http://ports.ubuntu.com/ubuntu-ports noble-security/main Translation-en [228 kB]
+Get:21 http://ports.ubuntu.com/ubuntu-ports noble-security/universe arm64 Packages [1296 kB]
+Get:22 http://ports.ubuntu.com/ubuntu-ports noble-security/universe Translation-en [245 kB]
+Get:23 http://ports.ubuntu.com/ubuntu-ports noble-security/restricted arm64 Packages [2523 kB]
+Get:24 http://ports.ubuntu.com/ubuntu-ports noble-security/restricted Translation-en [383 kB]
+Get:25 http://ports.ubuntu.com/ubuntu-ports noble-security/multiverse arm64 Packages [82.2 kB]
+Get:26 http://ports.ubuntu.com/ubuntu-ports noble-security/multiverse Translation-en [12.1 kB]
+Fetched 14.4 MB in 4s (3758 kB/s)
+Reading package lists...
++ apt-get install -y python3 python3-venv python3-pip git curl caddy
+Reading package lists...
+Building dependency tree...
+Reading state information...
+python3 is already the newest version (3.12.3-0ubuntu2.1).
+python3-venv is already the newest version (3.12.3-0ubuntu2.1).
+python3-pip is already the newest version (24.0+dfsg-1ubuntu1.3).
+git is already the newest version (1:2.55.0-0ppa1~ubuntu24.04.2).
+git set to manually installed.
+curl is already the newest version (8.5.0-2ubuntu10.15).
+The following NEW packages will be installed:
+  caddy
+0 upgraded, 1 newly installed, 0 to remove and 29 not upgraded.
+Need to get 9457 kB of archives.
+After this operation, 37.5 MB of additional disk space will be used.
+Get:1 http://ports.ubuntu.com/ubuntu-ports noble-updates/universe arm64 caddy arm64 2.6.2-6ubuntu0.24.04.3 [9457 kB]
+Fetched 9457 kB in 2s (5230 kB/s)
+Selecting previously unselected package caddy.
+(Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 202909 files and directories currently installed.)
+Preparing to unpack .../caddy_2.6.2-6ubuntu0.24.04.3_arm64.deb ...
+Unpacking caddy (2.6.2-6ubuntu0.24.04.3) ...
+Setting up caddy (2.6.2-6ubuntu0.24.04.3) ...
+Created symlink /etc/systemd/system/multi-user.target.wants/caddy.service → /usr/lib/systemd/system/caddy.service.
+Processing triggers for man-db (2.12.0-4build2) ...
+Not building database; man-db/auto-update is not 'true'.
+
+Running kernel seems to be up-to-date.
+
+No services need to be restarted.
+
+No containers need to be restarted.
+
+No user sessions are running outdated binaries.
+
+No VM guests are running outdated hypervisor (qemu) binaries on this host.
++ id -u tura
++ useradd --system --create-home --home-dir /home/tura --shell /usr/sbin/nologin tura
++ mkdir -p /opt/tura
++ chown tura:tura /opt/tura
++ '[' '!' -d /opt/tura/app/.git ']'
++ runuser -u tura -- git clone --branch research https://github.com/abdulrahmanalturify-boop/trading-bot-v5.git /opt/tura/app
+Cloning into '/opt/tura/app'...
+warning: unable to access '/home/runner/.config/git/ignore': Permission denied
+warning: unable to access '/home/runner/.config/git/attributes': Permission denied
++ echo research
++ '[' -d /opt/tura/venv ']'
++ runuser -u tura -- python3 -m venv /opt/tura/venv
++ runuser -u tura -- /opt/tura/venv/bin/pip install --upgrade pip
+Requirement already satisfied: pip in /opt/tura/venv/lib/python3.12/site-packages (24.0)
+Collecting pip
+  Downloading pip-26.2.1-py3-none-any.whl.metadata (4.6 kB)
+Downloading pip-26.2.1-py3-none-any.whl (1.8 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.8/1.8 MB 69.9 MB/s eta 0:00:00
+Installing collected packages: pip
+  Attempting uninstall: pip
+    Found existing installation: pip 24.0
+    Uninstalling pip-24.0:
+      Successfully uninstalled pip-24.0
+Successfully installed pip-26.2.1
++ runuser -u tura -- /opt/tura/venv/bin/pip install -r /opt/tura/app/requirements.txt
+Collecting streamlit>=1.50 (from -r /opt/tura/app/requirements.txt (line 1))
+  Downloading streamlit-1.65.0-py3-none-any.whl.metadata (10 kB)
+Collecting yfinance>=1.0 (from -r /opt/tura/app/requirements.txt (line 2))
+  Downloading yfinance-1.7.0-py3-none-any.whl.metadata (6.7 kB)
+Collecting pandas>=2.2 (from -r /opt/tura/app/requirements.txt (line 3))
+  Downloading pandas-3.0.6-cp312-cp312-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl.metadata (79 kB)
+Collecting numpy (from -r /opt/tura/app/requirements.txt (line 4))
+  Downloading numpy-2.5.4-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl.metadata (6.6 kB)
+Collecting plotly>=5.20 (from -r /opt/tura/app/requirements.txt (line 5))
+  Downloading plotly-7.1.0-py3-none-any.whl.metadata (8.8 kB)
+Collecting requests (from -r /opt/tura/app/requirements.txt (line 6))
+  Downloading requests-2.34.2-py3-none-any.whl.metadata (4.8 kB)
+Collecting deep-translator>=1.11 (from -r /opt/tura/app/requirements.txt (line 7))
+  Downloading deep_translator-1.11.4-py3-none-any.whl.metadata (30 kB)
+Collecting tzdata (from -r /opt/tura/app/requirements.txt (line 8))
+  Downloading tzdata-2026.5-py2.py3-none-any.whl.metadata (1.4 kB)
+Collecting Authlib>=1.3.2 (from -r /opt/tura/app/requirements.txt (line 9))
+  Downloading authlib-1.8.0-py2.py3-none-any.whl.metadata (10 kB)
+Collecting altair!=5.4.0,!=5.4.1,<7,>=5.0.0 (from streamlit>=1.50->-r /opt/tura/app/requirements.txt (line 1))
+  Downloading altair-6.3.0-py3-none-any.whl.metadata (11 kB)
+Collecting click<9,>=7.0 (from streamlit>=1.50->-r /opt/tura/app/requirements.txt (line 1))
+  Downloading click-8.5.0-py3-none-any.whl.metadata (2.6 kB)
+Collecting packaging>=20 (from streamlit>=1.50->-r /opt/tura/app/requirements.txt (line 1))
+  Downloading packaging-26.3-py3-none-any.whl.metadata (3.5 kB)
+Collecting pillow<13,>=7.1.0 (from streamlit>=1.50->-r /opt/tura/app/requirements.txt (line 1))
+  Downloading pillow-12.3.0-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl.metadata (9.1 kB)
+Collecting pydeck<1,>=0.8.0b4 (from streamlit>=1.50->-r /opt/tura/app/requirements.txt (line 1))
+  Downloading pydeck-0.9.3-py2.py3-none-any.whl.metadata (4.2 kB)
+Collecting protobuf<8,>=5.26.1 (from streamlit>=1.50->-r /opt/tura/app/requirements.txt (line 1))
+  Downloading protobuf-7.36.2-cp310-abi3-manylinux2014_aarch64.whl.metadata (595 bytes)
+Collecting pyarrow!=25.0.0,<26,>=7.0 (from streamlit>=1.50->-r /opt/tura/app/requirements.txt (line 1))
+  Downloading pyarrow-25.0.1-cp312-cp312-manylinux_2_28_aarch64.whl.metadata (3.0 kB)
+Collecting toml<2,>=0.10.1 (from streamlit>=1.50->-r /opt/tura/app/requirements.txt (line 1))
+  Downloading toml-0.10.2-py2.py3-none-any.whl.metadata (7.1 kB)
+Collecting typing-extensions<5,>=4.10.0 (from streamlit>=1.50->-r /opt/tura/app/requirements.txt (line 1))
+  Downloading typing_extensions-4.16.0-py3-none-any.whl.metadata (3.3 kB)
+Collecting starlette<2,>=0.46.0 (from streamlit>=1.50->-r /opt/tura/app/requirements.txt (line 1))
+  Downloading starlette-1.7.0-py3-none-any.whl.metadata (6.6 kB)
+Collecting uvicorn<1,>=0.30.0 (from streamlit>=1.50->-r /opt/tura/app/requirements.txt (line 1))
+  Downloading uvicorn-0.54.0-py3-none-any.whl.metadata (6.6 kB)
+Collecting httptools<1,>=0.6.3 (from streamlit>=1.50->-r /opt/tura/app/requirements.txt (line 1))
+  Downloading httptools-0.9.0-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl.metadata (3.5 kB)
+Collecting anyio<5,>=4.0.0 (from streamlit>=1.50->-r /opt/tura/app/requirements.txt (line 1))
+  Downloading anyio-4.15.1-py3-none-any.whl.metadata (4.7 kB)
+Collecting python-multipart<1,>=0.0.10 (from streamlit>=1.50->-r /opt/tura/app/requirements.txt (line 1))
+  Downloading python_multipart-0.0.32-py3-none-any.whl.metadata (2.1 kB)
+Collecting websockets<18,>=12.0.0 (from streamlit>=1.50->-r /opt/tura/app/requirements.txt (line 1))
+  Downloading websockets-17.2-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl.metadata (6.3 kB)
+Collecting itsdangerous<3,>=2.1.2 (from streamlit>=1.50->-r /opt/tura/app/requirements.txt (line 1))
+  Downloading itsdangerous-2.2.0-py3-none-any.whl.metadata (1.9 kB)
+Collecting watchdog<7,>=2.1.5 (from streamlit>=1.50->-r /opt/tura/app/requirements.txt (line 1))
+  Downloading watchdog-6.0.0-py3-none-manylinux2014_aarch64.whl.metadata (44 kB)
+Collecting python-dateutil>=2.8.2 (from pandas>=2.2->-r /opt/tura/app/requirements.txt (line 3))
+  Downloading python_dateutil-2.9.0.post0-py2.py3-none-any.whl.metadata (8.4 kB)
+Collecting charset_normalizer<4,>=2 (from requests->-r /opt/tura/app/requirements.txt (line 6))
+  Downloading charset_normalizer-3.5.2-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl.metadata (46 kB)
+Collecting idna<4,>=2.5 (from requests->-r /opt/tura/app/requirements.txt (line 6))
+  Downloading idna-3.20-py3-none-any.whl.metadata (7.2 kB)
+Collecting urllib3<3,>=1.26 (from requests->-r /opt/tura/app/requirements.txt (line 6))
+  Downloading urllib3-2.8.0-py3-none-any.whl.metadata (7.4 kB)
+Collecting certifi>=2023.5.7 (from requests->-r /opt/tura/app/requirements.txt (line 6))
+  Downloading certifi-2026.7.22-py3-none-any.whl.metadata (2.5 kB)
+Collecting jinja2 (from altair!=5.4.0,!=5.4.1,<7,>=5.0.0->streamlit>=1.50->-r /opt/tura/app/requirements.txt (line 1))
+  Downloading jinja2-3.1.6-py3-none-any.whl.metadata (2.9 kB)
+Collecting jsonschema>=3.0 (from altair!=5.4.0,!=5.4.1,<7,>=5.0.0->streamlit>=1.50->-r /opt/tura/app/requirements.txt (line 1))
+  Downloading jsonschema-4.26.0-py3-none-any.whl.metadata (7.6 kB)
+Collecting narwhals>=2.4.0 (from altair!=5.4.0,!=5.4.1,<7,>=5.0.0->streamlit>=1.50->-r /opt/tura/app/requirements.txt (line 1))
+  Downloading narwhals-2.27.1-py3-none-any.whl.metadata (15 kB)
+Collecting h11>=0.8 (from uvicorn<1,>=0.30.0->streamlit>=1.50->-r /opt/tura/app/requirements.txt (line 1))
+  Downloading h11-0.16.0-py3-none-any.whl.metadata (8.3 kB)
+Collecting beautifulsoup4>=4.11.1 (from yfinance>=1.0->-r /opt/tura/app/requirements.txt (line 2))
+  Downloading beautifulsoup4-4.15.0-py3-none-any.whl.metadata (3.8 kB)
+Collecting curl_cffi>=0.15 (from yfinance>=1.0->-r /opt/tura/app/requirements.txt (line 2))
+  Downloading curl_cffi-0.16.3-cp310-abi3-manylinux2014_aarch64.manylinux_2_17_aarch64.whl.metadata (17 kB)
+Collecting lxml>=4.9.0 (from yfinance>=1.0->-r /opt/tura/app/requirements.txt (line 2))
+  Downloading lxml-6.1.3-cp312-cp312-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl.metadata (3.3 kB)
+Collecting multitasking>=0.0.7 (from yfinance>=1.0->-r /opt/tura/app/requirements.txt (line 2))
+  Downloading multitasking-0.0.13-py3-none-any.whl.metadata (16 kB)
+Collecting peewee>=3.16.2 (from yfinance>=1.0->-r /opt/tura/app/requirements.txt (line 2))
+  Downloading peewee-4.5.3-py3-none-any.whl.metadata (10 kB)
+Collecting platformdirs>=2.0.0 (from yfinance>=1.0->-r /opt/tura/app/requirements.txt (line 2))
+  Downloading platformdirs-4.13.0-py3-none-any.whl.metadata (5.5 kB)
+Collecting pytz>=2022.5 (from yfinance>=1.0->-r /opt/tura/app/requirements.txt (line 2))
+  Downloading pytz-2026.5-py2.py3-none-any.whl.metadata (22 kB)
+Collecting soupsieve>=1.6.1 (from beautifulsoup4>=4.11.1->yfinance>=1.0->-r /opt/tura/app/requirements.txt (line 2))
+  Downloading soupsieve-3.0.3-py3-none-any.whl.metadata (4.4 kB)
+Collecting cryptography>=45.0.1 (from Authlib>=1.3.2->-r /opt/tura/app/requirements.txt (line 9))
+  Downloading cryptography-50.0.2-cp311-abi3-manylinux_2_34_aarch64.whl.metadata (4.4 kB)
+Collecting joserfc>=1.6.1 (from Authlib>=1.3.2->-r /opt/tura/app/requirements.txt (line 9))
+  Downloading joserfc-1.7.5-py3-none-any.whl.metadata (3.1 kB)
+Collecting cffi>=2.0.0 (from cryptography>=45.0.1->Authlib>=1.3.2->-r /opt/tura/app/requirements.txt (line 9))
+  Downloading cffi-2.1.1-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.whl.metadata (2.5 kB)
+Collecting pycparser (from cffi>=2.0.0->cryptography>=45.0.1->Authlib>=1.3.2->-r /opt/tura/app/requirements.txt (line 9))
+  Downloading pycparser-3.11-py3-none-any.whl.metadata (8.2 kB)
+Collecting MarkupSafe>=2.0 (from jinja2->altair!=5.4.0,!=5.4.1,<7,>=5.0.0->streamlit>=1.50->-r /opt/tura/app/requirements.txt (line 1))
+  Downloading markupsafe-3.0.4-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl.metadata (2.7 kB)
+Collecting attrs>=22.2.0 (from jsonschema>=3.0->altair!=5.4.0,!=5.4.1,<7,>=5.0.0->streamlit>=1.50->-r /opt/tura/app/requirements.txt (line 1))
+  Downloading attrs-26.1.0-py3-none-any.whl.metadata (8.8 kB)
+Collecting jsonschema-specifications>=2023.03.6 (from jsonschema>=3.0->altair!=5.4.0,!=5.4.1,<7,>=5.0.0->streamlit>=1.50->-r /opt/tura/app/requirements.txt (line 1))
+  Downloading jsonschema_specifications-2025.9.1-py3-none-any.whl.metadata (2.9 kB)
+Collecting referencing>=0.28.4 (from jsonschema>=3.0->altair!=5.4.0,!=5.4.1,<7,>=5.0.0->streamlit>=1.50->-r /opt/tura/app/requirements.txt (line 1))
+  Downloading referencing-0.37.0-py3-none-any.whl.metadata (2.8 kB)
+Collecting rpds-py>=0.25.0 (from jsonschema>=3.0->altair!=5.4.0,!=5.4.1,<7,>=5.0.0->streamlit>=1.50->-r /opt/tura/app/requirements.txt (line 1))
+  Downloading rpds_py-2026.9.1-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl.metadata (4.1 kB)
+Collecting six>=1.5 (from python-dateutil>=2.8.2->pandas>=2.2->-r /opt/tura/app/requirements.txt (line 3))
+  Downloading six-1.17.0-py2.py3-none-any.whl.metadata (1.7 kB)
+Downloading streamlit-1.65.0-py3-none-any.whl (10.3 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 10.3/10.3 MB 136.5 MB/s  0:00:00
+Downloading pandas-3.0.6-cp312-cp312-manylinux_2_24_aarch64.manylinux_2_28_aarch64.whl (10.3 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 10.3/10.3 MB 110.9 MB/s  0:00:00
+Downloading numpy-2.5.4-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl (15.7 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 15.7/15.7 MB 123.8 MB/s  0:00:00
+Downloading requests-2.34.2-py3-none-any.whl (73 kB)
+Downloading altair-6.3.0-py3-none-any.whl (797 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 797.2/797.2 kB 207.5 MB/s  0:00:00
+Downloading anyio-4.15.1-py3-none-any.whl (132 kB)
+Downloading charset_normalizer-3.5.2-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl (246 kB)
+Downloading click-8.5.0-py3-none-any.whl (125 kB)
+Downloading httptools-0.9.0-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl (549 kB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 549.2/549.2 kB 72.6 MB/s  0:00:00
+Downloading idna-3.20-py3-none-any.whl (69 kB)
+Downloading itsdangerous-2.2.0-py3-none-any.whl (16 kB)
+Downloading pillow-12.3.0-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl (6.3 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 6.3/6.3 MB 84.9 MB/s  0:00:00
+Downloading protobuf-7.36.2-cp310-abi3-manylinux2014_aarch64.whl (344 kB)
+Downloading pyarrow-25.0.1-cp312-cp312-manylinux_2_28_aarch64.whl (46.8 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 46.8/46.8 MB 47.1 MB/s  0:00:00
+Downloading pydeck-0.9.3-py2.py3-none-any.whl (11.4 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 11.4/11.4 MB 146.7 MB/s  0:00:00
+Downloading python_multipart-0.0.32-py3-none-any.whl (30 kB)
+Downloading starlette-1.7.0-py3-none-any.whl (78 kB)
+Downloading toml-0.10.2-py2.py3-none-any.whl (16 kB)
+Downloading typing_extensions-4.16.0-py3-none-any.whl (45 kB)
+Downloading urllib3-2.8.0-py3-none-any.whl (135 kB)
+Downloading uvicorn-0.54.0-py3-none-any.whl (87 kB)
+Downloading watchdog-6.0.0-py3-none-manylinux2014_aarch64.whl (79 kB)
+Downloading websockets-17.2-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl (226 kB)
+Downloading yfinance-1.7.0-py3-none-any.whl (149 kB)
+Downloading plotly-7.1.0-py3-none-any.whl (9.7 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 9.7/9.7 MB 137.9 MB/s  0:00:00
+Downloading deep_translator-1.11.4-py3-none-any.whl (42 kB)
+Downloading beautifulsoup4-4.15.0-py3-none-any.whl (109 kB)
+Downloading tzdata-2026.5-py2.py3-none-any.whl (347 kB)
+Downloading authlib-1.8.0-py2.py3-none-any.whl (260 kB)
+Downloading certifi-2026.7.22-py3-none-any.whl (136 kB)
+Downloading cryptography-50.0.2-cp311-abi3-manylinux_2_34_aarch64.whl (4.7 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 4.7/4.7 MB 168.7 MB/s  0:00:00
+Downloading cffi-2.1.1-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.whl (222 kB)
+Downloading curl_cffi-0.16.3-cp310-abi3-manylinux2014_aarch64.manylinux_2_17_aarch64.whl (12.8 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 12.8/12.8 MB 109.7 MB/s  0:00:00
+Downloading h11-0.16.0-py3-none-any.whl (37 kB)
+Downloading jinja2-3.1.6-py3-none-any.whl (134 kB)
+Downloading joserfc-1.7.5-py3-none-any.whl (71 kB)
+Downloading jsonschema-4.26.0-py3-none-any.whl (90 kB)
+Downloading attrs-26.1.0-py3-none-any.whl (67 kB)
+Downloading jsonschema_specifications-2025.9.1-py3-none-any.whl (18 kB)
+Downloading lxml-6.1.3-cp312-cp312-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl (5.0 MB)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 5.0/5.0 MB 64.6 MB/s  0:00:00
+Downloading markupsafe-3.0.4-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl (24 kB)
+Downloading multitasking-0.0.13-py3-none-any.whl (16 kB)
+Downloading narwhals-2.27.1-py3-none-any.whl (483 kB)
+Downloading packaging-26.3-py3-none-any.whl (129 kB)
+Downloading peewee-4.5.3-py3-none-any.whl (194 kB)
+Downloading platformdirs-4.13.0-py3-none-any.whl (32 kB)
+Downloading python_dateutil-2.9.0.post0-py2.py3-none-any.whl (229 kB)
+Downloading pytz-2026.5-py2.py3-none-any.whl (506 kB)
+Downloading referencing-0.37.0-py3-none-any.whl (26 kB)
+Downloading rpds_py-2026.9.1-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl (373 kB)
+Downloading six-1.17.0-py2.py3-none-any.whl (11 kB)
+Downloading soupsieve-3.0.3-py3-none-any.whl (41 kB)
+Downloading pycparser-3.11-py3-none-any.whl (51 kB)
+Installing collected packages: pytz, multitasking, websockets, watchdog, urllib3, tzdata, typing-extensions, toml, soupsieve, six, rpds-py, python-multipart, pycparser, pyarrow, protobuf, platformdirs, pillow, peewee, packaging, numpy, narwhals, MarkupSafe, lxml, itsdangerous, idna, httptools, h11, click, charset_normalizer, certifi, attrs, uvicorn, requests, referencing, python-dateutil, plotly, jinja2, cffi, beautifulsoup4, anyio, starlette, pydeck, pandas, jsonschema-specifications, deep-translator, curl_cffi, cryptography, yfinance, jsonschema, joserfc, Authlib, altair, streamlit
+
+Successfully installed Authlib-1.8.0 MarkupSafe-3.0.4 altair-6.3.0 anyio-4.15.1 attrs-26.1.0 beautifulsoup4-4.15.0 certifi-2026.7.22 cffi-2.1.1 charset_normalizer-3.5.2 click-8.5.0 cryptography-50.0.2 curl_cffi-0.16.3 deep-translator-1.11.4 h11-0.16.0 httptools-0.9.0 idna-3.20 itsdangerous-2.2.0 jinja2-3.1.6 joserfc-1.7.5 jsonschema-4.26.0 jsonschema-specifications-2025.9.1 lxml-6.1.3 multitasking-0.0.13 narwhals-2.27.1 numpy-2.5.4 packaging-26.3 pandas-3.0.6 peewee-4.5.3 pillow-12.3.0 platformdirs-4.13.0 plotly-7.1.0 protobuf-7.36.2 pyarrow-25.0.1 pycparser-3.11 pydeck-0.9.3 python-dateutil-2.9.0.post0 python-multipart-0.0.32 pytz-2026.5 referencing-0.37.0 requests-2.34.2 rpds-py-2026.9.1 six-1.17.0 soupsieve-3.0.3 starlette-1.7.0 streamlit-1.65.0 toml-0.10.2 typing-extensions-4.16.0 tzdata-2026.5 urllib3-2.8.0 uvicorn-0.54.0 watchdog-6.0.0 websockets-17.2 yfinance-1.7.0
++ mkdir -p /home/tura/.streamlit
++ '[' -s /opt/tura-secrets.toml ']'
++ mv /opt/tura-secrets.toml /home/tura/.streamlit/secrets.toml
++ touch /home/tura/.streamlit/secrets.toml
++ chown -R tura:tura /home/tura/.streamlit
++ chmod 700 /home/tura/.streamlit
++ chmod 600 /home/tura/.streamlit/secrets.toml
++ cat
++ write_caddy
++ local site=:80
++ '[' -s /opt/tura/domain ']'
++ cat
++ cat
++ chmod 755 /opt/tura/update.sh
++ cat
++ cat
++ command -v iptables
++ for p in 80 443
++ iptables -C INPUT -p tcp --dport 80 -m state --state NEW -j ACCEPT
++ iptables -I INPUT 5 -p tcp --dport 80 -m state --state NEW -j ACCEPT
++ iptables -I INPUT -p tcp --dport 80 -m state --state NEW -j ACCEPT
++ for p in 80 443
++ iptables -C INPUT -p tcp --dport 443 -m state --state NEW -j ACCEPT
++ iptables -I INPUT 5 -p tcp --dport 443 -m state --state NEW -j ACCEPT
++ iptables -I INPUT -p tcp --dport 443 -m state --state NEW -j ACCEPT
++ command -v netfilter-persistent
++ systemctl daemon-reload
++ systemctl enable --now tura
+Created symlink /etc/systemd/system/multi-user.target.wants/tura.service → /etc/systemd/system/tura.service.
++ systemctl enable --now tura-update.timer
+Created symlink /etc/systemd/system/timers.target.wants/tura-update.timer → /etc/systemd/system/tura-update.timer.
++ systemctl enable caddy
++ systemctl restart caddy
+++ curl -s -4 --max-time 5 ifconfig.me
++ echo 'TURA Pro is running: http://52.152.218.145'
+TURA Pro is running: http://52.152.218.145
+
+real	1m12.219s
+user	0m24.323s
+sys	0m3.468s

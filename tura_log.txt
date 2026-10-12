@@ -1,0 +1,4 @@
+Oct 12 22:26:36 runnervmy3dvn systemd[1]: Started tura.service - TURA Pro (Streamlit).
+Oct 12 22:26:37 runnervmy3dvn streamlit[3063]: 2026-10-12 22:26:37.481 Uvicorn server started on 127.0.0.1:8501
+Oct 12 22:26:37 runnervmy3dvn streamlit[3063]:   You can now view your Streamlit app in your browser.
+Oct 12 22:26:37 runnervmy3dvn streamlit[3063]:   URL: http://127.0.0.1:8501
