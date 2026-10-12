@@ -1255,6 +1255,9 @@ html[data-menu-closed] [class*="st-key-navdd_"], html[data-menu-closed] .st-key-
   /* a box of 16 px or more: iPhones zoom the whole page into any smaller box when it is tapped (the id-less :not() only lifts the
      rule above the pages' own sizes) */
   :is(input, textarea):not(#_) {{ font-size: 16px !important; }}
+  /* a row of switches (the stock chart's 1D … MAX): narrower buttons so the row fits, and a second line rather than buttons cut off */
+  [data-testid="stButtonGroup"] > div:has(> button) {{ flex-wrap: wrap !important; row-gap: 6px; }}
+  [data-testid="stButtonGroup"] > div > button {{ padding-inline: 9px !important; min-width: 0 !important; }}
   /* the "?" after a term: a little bigger, and a finger-sized area around it */
   html .gq {{ width: 18px; height: 18px; font-size: 11px !important; }}
   html .gq::after {{ content: ""; position: absolute; inset: -9px; border-radius: 50%; }}
