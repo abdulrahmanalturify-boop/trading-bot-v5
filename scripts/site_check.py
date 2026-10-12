@@ -1269,7 +1269,7 @@ def live_look():
     return 0
 
 
-NEWS_FILTER = True    # a quick run: the News page with its closed Filter panel, opened, and its Category list (categories and keywords)
+NEWS_FILTER = False   # a quick run: the News page with its closed Filter panel, opened, and its Category list (categories and keywords)
 
 
 def news_filter(b, report):
