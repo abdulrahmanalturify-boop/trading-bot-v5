@@ -411,7 +411,7 @@ def financials_tab(sym, inf, price=None):
 
     # ---- interactive explorer: click a metric, see its history
     ui.sec("insights", "Interactive metric explorer", "مستكشف المؤشرات التفاعلي")
-    a, b = st.columns([5, 1.2], vertical_alignment="bottom")
+    a, b, _ = st.columns([2.4, 1.3, 2.3], vertical_alignment="bottom")
     freq = b.segmented_control(L("Period", "الفترة"), ["a", "q"], default="a", key="fin_freq",
                                format_func=lambda k: L("Annual", "سنوي") if k == "a" else L("Quarterly", "ربعي")) or "a"
     series = fin_series(stm, freq)
@@ -421,8 +421,8 @@ def financials_tab(sym, inf, price=None):
     else:
         if ss.get("fin_metric") not in avail:
             ss["fin_metric"] = "rev" if "rev" in avail else avail[0]
-        pick = a.pills(L("Choose a metric", "اختر المؤشر"), avail, key="fin_metric", selection_mode="single",
-                       format_func=lambda k: L(FIN_METRICS[k][0], FIN_METRICS[k][1])) or avail[0]
+        pick = a.selectbox(L("Choose a metric", "اختر المؤشر"), avail, key="fin_metric",           # a list that opens (20 metrics)
+                           format_func=lambda k: L(FIN_METRICS[k][0], FIN_METRICS[k][1])) or avail[0]
         s_ = series[pick]
         en, ar, kind = FIN_METRICS[pick]
         labels_, vals = _continuous(s_.index, [float(v) if pd.notna(v) else np.nan for v in s_.values], freq)
