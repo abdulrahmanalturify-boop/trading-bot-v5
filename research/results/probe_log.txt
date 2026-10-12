@@ -1,19 +1,31 @@
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: ^TASI"}}}
+$^TASI: No data found, symbol may be delisted
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: TASI.SR"}}}
+$TASI.SR: No data found, symbol may be delisted
 yfinance 1.7.0
-META info: ok 1.0s -> 182
+META info: ok 0.6s -> 182
 META info keys: ok 0.0s -> ['forwardPE', 'longBusinessSummary', 'marketCap', 'profitMargins', 'trailingPE']
-META fast_info: ok 1.0s -> {'market_cap': 1845438916037.7761, 'shares': 2547506225, 'last_price': 724.4099731445312, 'three_month_average_volume': 19224720}
-META income_stmt: ok 0.1s -> (46, 6)
-META major_holders: ok 0.2s -> (4, 1)
+META fast_info: ok 0.5s -> {'market_cap': 1865869965718.257, 'shares': 2547506225, 'last_price': 732.4299926757812, 'three_month_average_volume': 18965436}
+META income_stmt: ok 0.2s -> (46, 6)
+META major_holders: ok 0.1s -> (4, 1)
 META history: ok 0.1s -> 5
 NKE info: ok 0.3s -> 182
 NKE info keys: ok 0.0s -> ['forwardPE', 'longBusinessSummary', 'marketCap', 'profitMargins', 'trailingPE']
-NKE fast_info: ok 0.3s -> {'market_cap': 50344690754.96716, 'shares': 1485308829, 'last_price': 33.89509963989258, 'three_month_average_volume': 30512426}
+NKE fast_info: ok 0.4s -> {'market_cap': 51614481807.75, 'shares': 1485308829, 'last_price': 34.75, 'three_month_average_volume': 31287332}
 NKE income_stmt: ok 0.1s -> (37, 5)
 NKE major_holders: ok 0.1s -> (4, 1)
 NKE history: ok 0.1s -> 5
 AAPL info: ok 0.3s -> 183
 AAPL info keys: ok 0.0s -> ['forwardPE', 'longBusinessSummary', 'marketCap', 'profitMargins', 'trailingPE']
-AAPL fast_info: ok 0.3s -> {'market_cap': 4910212039151.611, 'shares': 14594180000, 'last_price': 336.45001220703125, 'three_month_average_volume': 45475027}
-AAPL income_stmt: ok 0.1s -> (33, 5)
+AAPL fast_info: ok 0.7s -> {'market_cap': 4986320634406.128, 'shares': 14594180000, 'last_price': 341.6650085449219, 'three_month_average_volume': 45096883}
+AAPL income_stmt: ok 0.2s -> (33, 5)
 AAPL major_holders: ok 0.1s -> (4, 1)
 AAPL history: ok 0.1s -> 5
+--- Saudi indices
+v7 quote: ok 0.0s -> [('^TASI.SR', 10283.96, -0.7410694, 1791807599), ('^NOMUC.SR', 21949.88, 1.1451886, 1791807527), ('2222.SR', 25.76, 0.23346093, 1791807479)]
+download 1mo: ok 0.0s -> {'^TASI.SR': 1, '^NOMUC.SR': 1, '2222.SR': 20}
+history 1mo: ok 0.0s -> {'^TASI.SR': 1, '^NOMUC.SR': 1}
+history 5d 1h: ok 0.0s -> {'^TASI.SR': 25, '^NOMUC.SR': 25}
+fast_info: ok 0.0s -> {'^TASI.SR': (10283.9599609375, 10358.0302734375), '^NOMUC.SR': (21949.880859375, 21718.359375)}
+chart v8: ok 0.0s -> [('^TASI.SR', (10283.96, 10360.74, 1)), ('^NOMUC.SR', (21949.88, 21701.36, 1))]
+tasi alt symbols: ok 0.0s -> {'^TASI': 0, 'TASI.SR': 0, '^TASI.SR': 1}
