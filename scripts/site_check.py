@@ -1316,6 +1316,69 @@ def news_filter(b, report):
     report["news_filter"] = out
 
 
+FONT_PICK = True      # a quick run: the Arabic pages in each Arabic typeface on trial (the font swapped on the test page only)
+FONTS = [("readex", "Readex Pro", ""),
+         ("plex", "IBM Plex Sans Arabic", "IBM+Plex+Sans+Arabic:wght@300;400;500;600;700"),
+         ("almarai", "Almarai", "Almarai:wght@300;400;700;800"),
+         ("tajawal", "Tajawal", "Tajawal:wght@300;400;500;700;800")]
+SET_FONT = """([fam, q]) => new Promise(res => {
+  let st = document.getElementById('fontpick'); if (!st) { st = document.createElement('style'); st.id = 'fontpick'; document.head.appendChild(st); }
+  if (q && !document.getElementById('fl_' + q.slice(0, 8))) { const l = document.createElement('link'); l.id = 'fl_' + q.slice(0, 8); l.rel = 'stylesheet';
+    l.href = 'https://fonts.googleapis.com/css2?family=' + q + '&display=swap'; document.head.appendChild(l); }
+  st.textContent = fam === 'Readex Pro' ? '' : `body *:not(.ms):not(.material-symbols-rounded):not([data-testid="stIconMaterial"]):not([class*="material-symbols"]):not(.lic):not(.chev) {
+    font-family: '${fam}', 'DM Sans', system-ui, sans-serif !important; }`;
+  const t0 = Date.now();
+  const wait = () => { document.fonts.load(`500 16px "${fam}"`, 'عربي').then(() => document.fonts.ready).then(() => {
+    if (document.fonts.check(`16px "${fam}"`, 'عربي') || Date.now() - t0 > 8000) setTimeout(() => res(document.fonts.check(`16px "${fam}"`, 'عربي')), 600);
+    else setTimeout(wait, 300); }).catch(() => setTimeout(wait, 300)); };
+  wait(); })"""
+
+
+def font_pick(b, report):
+    out = {}
+    pages = [("overview", "?m=sa&lang=ar", (300, 60, 1440, 620)), ("news", "news?m=sa&lang=ar", (300, 360, 1440, 900)),
+             ("stock", "stock?symbol=2222.SR&m=sa&lang=ar", (300, 60, 1440, 620))]
+    ctx = b.new_context(viewport={"width": 1440, "height": 900}, locale="ar-SA", color_scheme="light", device_scale_factor=1.5)
+    pg = ctx.new_page()
+    for name, path, box in pages:
+        res = {}
+        try:
+            pg.goto(f"{URL}/{path}", wait_until="domcontentloaded", timeout=90000)
+            settle(pg, 150)
+            time.sleep(3)
+            if name == "news":
+                pg.evaluate("() => { const e = document.querySelector('.news'); if (e) { e.scrollIntoView({block: 'start'}); const m = document.querySelector('[data-testid=\"stMain\"]'); if (m) m.scrollBy(0, -260); window.scrollBy(0, -260); } }")
+                time.sleep(1)
+            for key, fam, q in FONTS:
+                res[key] = pg.evaluate(SET_FONT, [fam, q])
+                pg.mouse.move(5, 895)
+                time.sleep(0.8)
+                pg.screenshot(path=os.path.join(OUT, f"font_{name}_{key}.jpg"), type="jpeg", quality=86,
+                              clip={"x": box[0], "y": box[1], "width": box[2] - box[0], "height": box[3] - box[1]})
+            pg.evaluate(SET_FONT, ["Readex Pro", ""])
+        except Exception as e:
+            res["error"] = str(e)[:300]
+        out[name] = res
+        log("font", name, json.dumps(res))
+    ctx.close()
+    ctx = b.new_context(viewport={"width": 390, "height": 844}, has_touch=True, is_mobile=True, device_scale_factor=2, locale="ar-SA", color_scheme="light")
+    pg = ctx.new_page()
+    try:
+        pg.goto(f"{URL}/news?m=sa&lang=ar", wait_until="domcontentloaded", timeout=90000)
+        settle(pg, 150)
+        time.sleep(3)
+        pg.evaluate("() => { const e = document.querySelector('.news'); if (e) { e.scrollIntoView({block: 'start'}); const m = document.querySelector('[data-testid=\"stMain\"]'); if (m) m.scrollBy(0, -120); window.scrollBy(0, -120); } }")
+        time.sleep(1)
+        for key, fam, q in FONTS:
+            pg.evaluate(SET_FONT, [fam, q])
+            time.sleep(0.8)
+            pg.screenshot(path=os.path.join(OUT, f"font_phone_{key}.jpg"), type="jpeg", quality=80)
+    except Exception as e:
+        out["phone_error"] = str(e)[:300]
+    ctx.close()
+    report["font_pick"] = out
+
+
 def main():
     if LIVE_LOOK:
         return live_look()
@@ -1325,7 +1388,7 @@ def main():
         seed_xbots()
     elif QUICK and XB_SEED == "resting":
         seed_resting()
-    if not QUICK and not SHARIA and not MENU_CHECK and not BOXV2 and not STYLE_PICK and not ORB_CHECK and not LOOK_LANG and not NEWS_FILTER:
+    if not QUICK and not SHARIA and not MENU_CHECK and not BOXV2 and not STYLE_PICK and not ORB_CHECK and not LOOK_LANG and not NEWS_FILTER and not FONT_PICK:
         news_lab()
     seed_bots()
     if QUICK and AUTH_DEMO:                     # made-up sign-in settings on the test server only: the Sign in button shows
@@ -1366,6 +1429,13 @@ def main():
             if MENU_CHECK:
                 try:
                     menu_check(p, report)
+                finally:
+                    json.dump(report, open(os.path.join(OUT, "report.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+                b.close()
+                return 0
+            if FONT_PICK:
+                try:
+                    font_pick(b, report)
                 finally:
                     json.dump(report, open(os.path.join(OUT, "report.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
                 b.close()
