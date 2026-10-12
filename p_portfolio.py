@@ -378,7 +378,8 @@ def _from_link():
 # The portfolio code (one per browser: that visitor's own paper portfolio and Robo Advisor) and the robo questionnaire in progress.
 # Streamlit Community Cloud drops the site's cookies before they reach the app (st.context.cookies is empty there), so they are
 # kept in the browser's localStorage (and a cookie) and read back by a small frame of the page (webstore/index.html).
-STORE = (COOKIE, "alt_rb", "tura_mk", "tura_ac")      # tura_mk: the market the visitor picked (us / sa), see app.py;
+STORE = (COOKIE, "alt_rb", "tura_mk", "tura_ac", "tura_lang")   # tura_mk: the market the visitor picked (us / sa), see app.py;
+#                                                      tura_lang: the language the visitor picked (en / ar), see app.py;
 #                                                      tura_ac: the Academy's progress (p_academy._progress_sync)
 _STORE_VAL = re.compile(r"^[A-Za-z0-9_-]{1,4000}$")
 _WEBSTORE = []                                       # the frame, declared once per process

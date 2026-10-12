@@ -2370,11 +2370,65 @@ FX_JS = """<script>
   // Streamlit paints the page body in the active theme's background; the server marks the theme it drew the page for.
   // When the two differ (the visitor just picked another look, or the first run could not know it yet), the hidden button
   // reruns the page once, so the server draws it again in the right look.
+  // The light look is the default. Streamlit keeps the look chosen in its ⋮ menu in this browser, one entry per page address
+  // the visit started from ("System", the phone's own look, until the visitor picks one). A visitor who has never picked a look
+  // gets the light one: it is written under every page's address, and a page drawn dark for that reason is opened again once,
+  // behind a light veil (not while the landing shows: it keeps its night in both looks). A look picked in the ⋮ menu is
+  // carried to every page's address the same way (tura_look keeps it).
+  var LS = null;
+  try { LS = w.localStorage; LS.setItem('tura_t', '1'); LS.removeItem('tura_t'); } catch (e) { LS = null; }
+  var PATHS = __PATHS__, LOOKS = {Light: 1, Dark: 1, System: 1};
+  function keyOf(p) { return 'stActiveTheme-' + p + '-v2'; }
+  function readK(k) { try { var v = JSON.parse(LS.getItem(k) || 'null'); return LOOKS[v] ? v : null; } catch (e) { return null; } }
+  var first = w.location.pathname;
+  try { first = new URL(w.performance.getEntriesByType('navigation')[0].name).pathname; } catch (e) {}
+  var base = first;                                // the site's root (Streamlit Cloud serves it under /~/+/)
+  PATHS.forEach(function (p) { if (p && base.length > p.length && base.slice(-p.length - 1) === '/' + p) base = base.slice(0, -p.length); });
+  if (base.slice(-1) !== '/') base += '/';
+  function writeAll(v) {
+    var ks = [keyOf(first), keyOf(base), keyOf(base.length > 1 ? base.slice(0, -1) : base)];
+    PATHS.forEach(function (p) { if (p) ks.push(keyOf(base + p)); });
+    ks.forEach(function (k) { try { LS.setItem(k, JSON.stringify(v)); } catch (e) {} });
+  }
+  function lookOf(v) { return v === 'Dark' ? 'dark' : v === 'Light' ? 'light' : (w.matchMedia && w.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'); }
+  var K = keyOf(first), seenK = null, pending = false;
+  if (LS) {
+    var cur0 = readK(K), pref = LS.getItem('tura_look');
+    if (!LOOKS[pref]) pref = (cur0 === 'Dark' || cur0 === 'Light') ? cur0 : 'Light';   // a look picked before this: kept
+    try { LS.setItem('tura_look', pref); } catch (e) {}
+    writeAll(pref);
+    seenK = pref;
+    pending = cur0 !== pref;
+  }
+  var reopened = false;
+  try { reopened = w.sessionStorage.getItem('tura_look_reopen') === '1'; } catch (e) {}
+  function reopen(look) {
+    if (reopened) return;
+    reopened = true;
+    try { w.sessionStorage.setItem('tura_look_reopen', '1'); } catch (e) { return; }   // never twice in a row
+    var v = d.createElement('div');
+    v.style.cssText = 'position:fixed;inset:0;z-index:2147483647;opacity:0;transition:opacity .2s ease;background:' + (look === 'light' ? '#F6F4FB' : '#0E0918');
+    d.body.appendChild(v);
+    w.requestAnimationFrame(function () { v.style.opacity = '1'; });
+    w.setTimeout(function () { w.location.reload(); }, 220);
+  }
   var seen = '', tries = 0, last = 0;
   function check() {
     var m = (w.getComputedStyle(d.body).backgroundColor || '').match(/[\d.]+/g);
     if (!m || m.length < 3) return;
     var want = (0.2126 * m[0] + 0.7152 * m[1] + 0.0722 * m[2]) / 255 > 0.5 ? 'light' : 'dark';
+    if (LS) {
+      var kv = readK(K);
+      if (kv && kv !== seenK) {                    // the visitor picked a look in the ⋮ menu: every page's address keeps it
+        seenK = kv; pending = false;
+        try { LS.setItem('tura_look', kv); } catch (e) {}
+        writeAll(kv);
+      }
+      if (pending) {
+        if (want === lookOf(seenK)) pending = false;
+        else if (!d.querySelector('.ixp')) { pending = false; reopen(lookOf(seenK)); return; }
+      }
+    }
     if (want !== seen) { seen = want; tries = 0; }
     var a = d.querySelector('.css-anchor[data-th]');
     if (!a || a.getAttribute('data-th') === want || tries >= 3 || Date.now() - last < 2500) return;

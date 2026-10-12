@@ -596,7 +596,7 @@ def tour(b, report):
     phone.close()
 
 
-LIVE = True           # look at the live site from GitHub's server (what a visitor sees there right now), nothing else
+LIVE = False          # look at the live site from GitHub's server (what a visitor sees there right now), nothing else
 LIVE_URL = "https://abdulrahman.streamlit.app"
 LIVE_PATH = "stock?symbol=2222.SR&m=sa&lang=ar"   # a page of the live site to look at ("": the home page, on a phone and a computer)
 
@@ -1152,6 +1152,84 @@ def orb_check(b, report):
     report["orb"] = out
 
 
+LOOK_LANG = True      # a quick run: a first visit opens in the light look and in the phone's language; a language picked is kept
+
+
+def _follow_look():
+    """Every test browser follows its own colour scheme (as the site did before the light look became the default), unless asked."""
+    try:
+        from playwright.sync_api import Browser
+    except Exception:
+        return
+    if getattr(Browser, "_tura_follow", False):
+        return
+    orig = Browser.new_context
+
+    def new_context(self, *a, follow_look=True, **k):
+        c = orig(self, *a, **k)
+        if follow_look:
+            c.add_init_script("try{if(!localStorage.getItem('tura_look'))localStorage.setItem('tura_look','System')}catch(e){}")
+        return c
+    Browser.new_context = new_context
+    Browser._tura_follow = True
+
+
+_follow_look()
+
+LOOK_INFO = """() => { const m = (getComputedStyle(document.body).backgroundColor || '').match(/[\\d.]+/g) || [0, 0, 0];
+  const keys = Object.keys(localStorage).filter(k => k.startsWith('stActiveTheme') || k.startsWith('tura_'));
+  return {look: (0.2126 * m[0] + 0.7152 * m[1] + 0.0722 * m[2]) / 255 > .5 ? 'light' : 'dark', url: location.href.slice(-60),
+          rtl: !!document.querySelector('.block-container[dir], [data-testid="stMainBlockContainer"]') && getComputedStyle(document.querySelector('[data-testid="stMainBlockContainer"]') || document.body).direction,
+          h1: ((document.querySelector('h1') || {}).innerText || '').slice(0, 40), store: Object.fromEntries(keys.map(k => [k.slice(0, 40), localStorage.getItem(k)]))}; }"""
+
+
+def look_lang(b, report):
+    out = {}
+    phone = dict(viewport={"width": 390, "height": 844}, has_touch=True, is_mobile=True, device_scale_factor=2)
+    # 1) a first visit from an Arabic phone in dark mode, straight to a page: light and Arabic
+    for tag, loc, scheme, path in (("ar_dark_news", "ar-SA", "dark", "news?m=sa"), ("en_dark_news", "en-US", "dark", "news?m=us"),
+                                   ("ar_light_home", "ar-SA", "light", "")):
+        res = {}
+        try:
+            ctx = b.new_context(locale=loc, color_scheme=scheme, follow_look=False, **phone)
+            pg = ctx.new_page()
+            pg.goto(f"{URL}/{path}", wait_until="domcontentloaded", timeout=90000)
+            settle(pg, 150)
+            time.sleep(3)
+            res["first"] = pg.evaluate(LOOK_INFO)
+            pg.screenshot(path=os.path.join(OUT, f"ll_{tag}_1.jpg"), type="jpeg", quality=70)
+            if not path:                             # the landing: a market picked, then the page after it
+                pg.evaluate("() => { const b = document.querySelector('[class*=\"st-key-introgo_sa\"] button'); if (b) b.click(); }")
+                time.sleep(3)
+                settle(pg, 150)
+            time.sleep(4)
+            settle(pg, 120)
+            time.sleep(2)
+            res["after"] = pg.evaluate(LOOK_INFO)
+            pg.screenshot(path=os.path.join(OUT, f"ll_{tag}_2.jpg"), type="jpeg", quality=70)
+            if tag == "ar_dark_news":
+                # the visitor picks English; a new visit without ?lang= opens in English
+                pg.locator('.langbtn').first.tap()
+                time.sleep(0.8)
+                pg.locator('.navportal [class*="st-key-langopt_en"] button').first.tap(timeout=5000)
+                time.sleep(3)
+                settle(pg, 60)
+                time.sleep(2)
+                res["picked_en"] = pg.evaluate(LOOK_INFO)
+                pg.goto(f"{URL}/stock?m=sa", wait_until="domcontentloaded", timeout=90000)
+                settle(pg, 150)
+                time.sleep(4)
+                settle(pg, 60)
+                res["revisit"] = pg.evaluate(LOOK_INFO)
+                pg.screenshot(path=os.path.join(OUT, f"ll_{tag}_3.jpg"), type="jpeg", quality=70)
+            ctx.close()
+        except Exception as e:
+            res["error"] = str(e)[:400]
+        out[tag] = res
+        log("looklang", tag, json.dumps(res, ensure_ascii=False)[:900])
+    report["look_lang"] = out
+
+
 def main():
     if LIVE:
         return live_probe()
@@ -1159,7 +1237,7 @@ def main():
         seed_xbots()
     elif QUICK and XB_SEED == "resting":
         seed_resting()
-    if not QUICK and not SHARIA and not MENU_CHECK and not BOXV2 and not STYLE_PICK and not ORB_CHECK:
+    if not QUICK and not SHARIA and not MENU_CHECK and not BOXV2 and not STYLE_PICK and not ORB_CHECK and not LOOK_LANG:
         news_lab()
     seed_bots()
     if QUICK and AUTH_DEMO:                     # made-up sign-in settings on the test server only: the Sign in button shows
@@ -1200,6 +1278,13 @@ def main():
             if MENU_CHECK:
                 try:
                     menu_check(p, report)
+                finally:
+                    json.dump(report, open(os.path.join(OUT, "report.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+                b.close()
+                return 0
+            if LOOK_LANG:
+                try:
+                    look_lang(b, report)
                 finally:
                     json.dump(report, open(os.path.join(OUT, "report.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
                 b.close()

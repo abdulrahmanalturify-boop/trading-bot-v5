@@ -6,6 +6,7 @@ import importlib
 import re
 import sys
 
+import json
 import streamlit as st
 
 # ---------------------------------------------------------------- always run the newest code
@@ -83,13 +84,45 @@ st.set_page_config(page_title=f"{SITE_NAME} · Markets", page_icon=":material/ca
                    menu_items={"About": f"**{SITE_NAME}** · version {BUILD}"})      # the ⋮ menu → About: which version is running
 
 ss = st.session_state
-# language: remembered in the session, starts from ?lang= (kept by links and by the address bar) or English
+
+
+def _phone_lang():
+    """The language the visitor's phone (or browser) is set to: Arabic when it reads Arabic, else English."""
+    loc = ""
+    try:
+        loc = st.context.locale or ""
+    except Exception:
+        pass
+    if not loc:
+        try:
+            loc = st.context.headers.get("Accept-Language") or ""
+        except Exception:
+            loc = ""
+    return "ar" if loc.strip().lower().startswith("ar") else "en"
+
+
+# language: remembered in the session. A new visit starts from ?lang= (a link that says it), else from the language the visitor
+# picked on an earlier visit (kept in this browser, read a moment after the page opens), else the language of their phone.
 if ss.get("lang") not in ("en", "ar"):
-    ss.lang = "ar" if st.query_params.get("lang") == "ar" else "en"
-try:
-    if ss.lang == "ar" and st.query_params.get("lang") != "ar":
-        st.query_params["lang"] = "ar"
-    elif ss.lang == "en" and "lang" in st.query_params:
+    _ql = st.query_params.get("lang")
+    if _ql in ("en", "ar"):
+        ss.lang, ss["_lang_src"] = _ql, "link"
+    else:
+        ss.lang, ss["_lang_src"] = _phone_lang(), "phone"
+if ss.get("_lang_src") == "phone":
+    try:
+        _gl = p_portfolio.browser()                  # None until the browser answers (the first moment of a visit)
+    except Exception:
+        _gl = {}
+    if _gl is not None:
+        if _gl.get("tura_lang") in ("en", "ar"):
+            ss.lang = _gl["tura_lang"]
+        ss["_lang_src"] = "kept"
+try:                                     # the address bar names the language only when it isn't the phone's own
+    if ss.lang != _phone_lang():
+        if st.query_params.get("lang") != ss.lang:
+            st.query_params["lang"] = ss.lang
+    elif "lang" in st.query_params:
         del st.query_params["lang"]
 except Exception:
     pass
@@ -119,6 +152,8 @@ except Exception:
     pass
 if ss.get("_mk_keep") in MK.CODES:               # a choice made on the last run: kept in the browser for the next visit
     p_portfolio.keep({"tura_mk": ss.pop("_mk_keep")})
+if ss.get("_lang_keep") in ("en", "ar"):         # the language picked on the last run, the same way
+    p_portfolio.keep({"tura_lang": ss.pop("_lang_keep")})
 
 # links like  stock?symbol=NVDA  (heatmap tiles, company chips, tables) open that company
 _qs = st.query_params.get("symbol")
@@ -345,7 +380,8 @@ st.logo(T.logo_wordmark(_light), icon_image=T.LOGO_ICON_LIGHT if _light else T.L
 try:                                   # interactive cards: the light follows the pointer (a script run once per browser tab)
     import streamlit.components.v1 as _components
     st.markdown('<span class="css-anchor"></span>\n' + T.FX_CSS, unsafe_allow_html=True)   # the style on its own line (else Markdown eats it)
-    _components.html(T.FX_JS, height=0)
+    _paths = sorted({str(getattr(_p, "url_path", "") or "") for _p in P.values()})   # every page's address (the light look by default)
+    _components.html(T.FX_JS.replace("__PATHS__", json.dumps(_paths)), height=0)
 except Exception:
     pass
 with st.container(key="lmsync"):          # hidden; theme.FX_JS presses it when the page was drawn for the other look
@@ -358,6 +394,8 @@ LANGS = [("en", "us", "English", "الإنجليزية"), ("ar", "sa", "العر
 
 def _set_lang(code):
     ss.lang = code
+    ss["_lang_src"] = "picked"
+    ss["_lang_keep"] = code                     # kept in this browser on the next run: the next visit opens in this language
 
 
 def _set_market(code):
