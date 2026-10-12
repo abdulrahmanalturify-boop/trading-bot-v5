@@ -248,6 +248,7 @@ def _source_weight(src):
 
 
 _BYKEY = {k: (en, ar, w) for k, en, ar, w, _ in TOPICS}
+STREET_SA = ("Saudi market", "السوق السعودي")     # the "street" topic on a Saudi story (not Wall Street)
 KIND = {"statement": ("Statement", "بيان"), "opinion": ("Opinion", "رأي"), "analysis": ("Analysis", "تحليل"), "promo": ("Promotion", "ترويج")}
 
 
@@ -297,14 +298,17 @@ def _analyze_ai(n, ai, chg, now):
     imp = float(ai.get("imp") or 1)
     raw = imp + sum(_AI_SHARE[k] * v for k, v in w.items() if k in _AI_SHARE)
     kind = ai.get("kind") or "news"
-    if kind in ("statement", "opinion", "promo"):
+    if kind in ("opinion", "promo"):
         raw = min(raw, 5.0)
+    elif kind == "statement":                   # an official's words: a CEO's warning can matter, a condemnation less
+        raw = min(raw, 6.0)
     score = int(max(1, min(10, round(raw))))
     keys = [k for k in (ai.get("topics") or []) if k in _BYKEY][:4]
-    why_en, why_ar = str(ai.get("why_en") or ""), str(ai.get("why_ar") or "")
+    why_en, why_ar = (re.sub(r"\\+.?$|\\", "", str(ai.get(k) or "")).strip() for k in ("why_en", "why_ar"))
     reasons = [("AI reading" + (f": {why_en}" if why_en else ""), "قراءة البوت" + (f": {why_ar}" if why_ar else ""), round(imp, 1))]
     reasons += [(a, b, round(v * _AI_SHARE[k], 1)) for a, b, v, k in facts if round(v * _AI_SHARE[k], 1)]
-    kws = [(k, _BYKEY[k][0], _BYKEY[k][1]) for k in keys]
+    sa = n.get("mkt") == "sa" or any(str(t).endswith(".SR") for t in (n.get("tickers") or []))
+    kws = [(k, *(STREET_SA if (k == "street" and sa) else _BYKEY[k][:2])) for k in keys]
     for en, ar, pat in _ENT:
         if len(kws) >= 5:
             break
@@ -399,7 +403,7 @@ def analyze(n, chg=None, now=None):
                 reasons.append(("Older story", "خبر قديم", rec))
     raw = 2.0 + topic + event + opinion + src + impact + mega + breadth + wide + rec
     score = int(max(1, min(10, round(raw))))
-    kws = [(key, en, ar) for _, key, en, ar in hits[:4] if key != "street" or len(hits) == 1]
+    kws = [(key, *(STREET_SA if (key == "street" and home_sa) else (en, ar))) for _, key, en, ar in hits[:4] if key != "street" or len(hits) == 1]
     for en, ar, pat in _ENT:
         if len(kws) >= 6:
             break
@@ -437,4 +441,4 @@ def rank(items):
     return sorted(items, key=lambda n: ((n.get("iq") or {}).get("raw", 0), n["time"] if pd.notna(n.get("time")) else zero), reverse=True)
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.3.6"
+BUILD = "23.3.7"

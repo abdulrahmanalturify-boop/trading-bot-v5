@@ -316,7 +316,8 @@ def _clean(v):
     kind = v.get("kind") if v.get("kind") in KINDS else "news"
     thread = _SLUG.sub("-", str(v.get("thread") or "").lower()).strip("-")[:60]
     return {"rel": rel, "imp": imp, "topics": topics, "kind": kind, "tone": tone, "thread": thread,
-            "why_ar": str(v.get("why_ar") or "").strip()[:160], "why_en": str(v.get("why_en") or "").strip()[:160]}
+            "why_ar": str(v.get("why_ar") or "").replace("\\", "").strip()[:160],
+            "why_en": str(v.get("why_en") or "").replace("\\", "").strip()[:160]}
 
 
 def judge(stories, market="us"):
@@ -369,4 +370,4 @@ def judge(stories, market="us"):
     return out
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.3.6"
+BUILD = "23.3.7"

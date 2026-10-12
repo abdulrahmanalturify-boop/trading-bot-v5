@@ -147,7 +147,7 @@ JUNK = re.compile(r"(مقابل USD\s*$|\|\s*TADAWUL\s*\|\s*TASI|TADAWUL:\d{4}\s
                   r"^test data\b|معلومات وتحديثات|مناقشات السوق|عيار 2[14]|سعر الريال السعودي اليوم|سعر الذهب في السعودية|[\u0980-\u09ff]|"
                   r"^\W*\w+\W+\w+\W*$|^middle east economy$|"
                   # an author's page, and a sentence cut out of an article ("ويتداول سهم معادن بسعر ...", "وبلغ سعر سهم ...")
-                  r"^\s*مقالات الكاتب|^\s*و(?:يتداول|تتداول|بلغ|بلغت|ارتفع|ارتفعت|انخفض|انخفضت|قال|قالت|أضاف|أضافت|أشار|أشارت|كان|كانت|تراجع|تراجعت)\s)", re.I)
+                  r"^\s*مقالات الكاتب|^\s*سعر سهم .{2,60} اليوم\s*$|^\s*و(?:يتداول|تتداول|بلغ|بلغت|ارتفع|ارتفعت|انخفض|انخفضت|قال|قالت|أضاف|أضافت|أشار|أشارت|كان|كانت|تراجع|تراجعت)\s)", re.I)
 BLOCKED = {"vietnam.vn", "sky sports", "yahoo sports", "ladies european tour", "www.golfpost.com", "golfpost", "스타뉴스", "espn",
            "golf channel", "golf digest"}
 _TAG = re.compile(r"<[^>]+>")
@@ -936,4 +936,4 @@ def sa_headlines(hours=48):
         return []
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.3.6"
+BUILD = "23.3.7"
