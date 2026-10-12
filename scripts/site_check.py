@@ -645,7 +645,7 @@ def live_probe():
     return 0
 
 
-MENU_CHECK = False    # the top menus: hovered and clicked on a computer, tapped on a phone, in Chrome's engine and in Safari's (WebKit)
+MENU_CHECK = True     # the top menus: hovered and clicked on a computer, tapped on a phone, in Chrome's engine and in Safari's (WebKit)
 MENU_VIS = """(sel) => { const dd = document.querySelector(sel); if (!dd) return null; const cs = getComputedStyle(dd), r = dd.getBoundingClientRect();
   const sec = dd.parentElement && dd.parentElement.closest('[class*="st-key-navsec_"], .st-key-langsec, .st-key-acctsec');
   return {shown: cs.visibility === 'visible' && +cs.opacity > .5, op: cs.opacity, vis: cs.visibility, x: Math.round(r.left), y: Math.round(r.top),
@@ -719,6 +719,27 @@ def menu_check(p, report):
             pg.touchscreen.tap(195, 640)
             time.sleep(0.8)
             res["phone_away"] = pg.evaluate(MENU_VIS, '.st-key-navdd_1')
+            card = "() => { const r = document.querySelector('.st-key-topnav').getBoundingClientRect(); return [Math.round(r.left), Math.round(r.bottom), Math.round(r.right)]; }"
+            # the strip slid to its far end, then its last menu tapped
+            pg.evaluate("() => { const s = document.querySelector('.st-key-navleft'); s.scrollLeft = -9999; s.scrollLeft = 9999 * (getComputedStyle(s).direction === 'rtl' ? -1 : 1); }")
+            time.sleep(0.6)
+            pg.locator('.st-key-navsec_7 .navbtn').first.tap()
+            time.sleep(0.8)
+            res["strip_end_tap"] = [pg.evaluate(MENU_VIS, '.st-key-navdd_7'), pg.evaluate(card)]
+            pg.screenshot(path=os.path.join(OUT, f"menu_{eng}_phone_end.jpg"), type="jpeg", quality=60)
+            pg.touchscreen.tap(195, 760)
+            time.sleep(0.6)
+            # the page read down (the card frozen at the top), then a menu tapped
+            pg.evaluate("() => { const m = document.querySelector('[data-testid=\"stMain\"]'); if (m) m.scrollBy(0, 900); window.scrollBy(0, 900); }")
+            time.sleep(1)
+            pg.locator('.st-key-navsec_0 .navbtn').first.tap()
+            time.sleep(0.8)
+            res["scrolled_tap"] = [pg.evaluate(MENU_VIS, '.st-key-navdd_0'), pg.evaluate(card)]
+            pg.screenshot(path=os.path.join(OUT, f"menu_{eng}_phone_scrolled.jpg"), type="jpeg", quality=60)
+            pg.touchscreen.tap(195, 780)
+            time.sleep(0.6)
+            pg.evaluate("() => { const m = document.querySelector('[data-testid=\"stMain\"]'); if (m) m.scrollTo(0, 0); window.scrollTo(0, 0); }")
+            time.sleep(0.8)
             pg.locator('.langbtn').first.tap()
             time.sleep(0.8)
             res["phone_lang"] = pg.evaluate(MENU_VIS, '.st-key-langdd')
