@@ -650,7 +650,7 @@ def live_probe():
     return 0
 
 
-MENU_CHECK = False    # the top menus: hovered and clicked on a computer, tapped on a phone, in Chrome's engine and in Safari's (WebKit)
+MENU_CHECK = True     # the top menus: hovered and clicked on a computer, tapped on a phone, in Chrome's engine and in Safari's (WebKit)
 MENU_VIS = """(sel) => { const dd = document.querySelector(sel); if (!dd) return null; const cs = getComputedStyle(dd), r = dd.getBoundingClientRect();
   const sec = dd.parentElement && dd.parentElement.closest('[class*="st-key-navsec_"], .st-key-langsec, .st-key-acctsec');
   return {shown: cs.visibility === 'visible' && +cs.opacity > .5, op: cs.opacity, vis: cs.visibility, x: Math.round(r.left), y: Math.round(r.top),
@@ -663,6 +663,15 @@ PORTAL_VIS = """() => { const p = document.querySelector('.navportal'); if (!p) 
   return {shown: cs.visibility === 'visible' && +cs.opacity > .5 && r.height > 20, topmost: !!(top && p.contains(top)), x: Math.round(r.left),
           y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height), text: p.innerText.replace(/\s+/g, ' ').slice(0, 70),
           real: (() => { const d = document.querySelector('.st-key-topnav [class*="st-key-navdd_"]'); return d ? getComputedStyle(d).display : null; })()}; }"""
+
+
+BOX_DUMP = """(sel) => { const root = document.querySelector(sel); if (!root) return null;
+  const walk = (e, dep) => { const cs = getComputedStyle(e), r = e.getBoundingClientRect();
+    const me = [e.tagName.toLowerCase(), e.getAttribute('data-testid') || '', String(e.className || '').split(' ').filter(c => c && !c.startsWith('st-emotion') && !/^e[a-z0-9]{5,}$/.test(c)).join('.'),
+      cs.display, 'y' + Math.round(r.top), 'h' + Math.round(r.height), 'w' + Math.round(r.width), 'm:' + cs.margin, 'p:' + cs.padding, 'gap:' + cs.gap,
+      (e.children.length ? '' : (e.textContent || '').trim().slice(0, 24))];
+    return dep > 0 && e.children.length ? [me, [...e.children].slice(0, 10).map(c => walk(c, dep - 1))] : [me]; };
+  return walk(root, 9); }"""
 
 
 def menu_check(p, report):
@@ -684,6 +693,7 @@ def menu_check(p, report):
             btn.hover()
             time.sleep(0.7)
             res["desk_hover"] = pg.evaluate(MENU_VIS, '.st-key-navdd_1')
+            res["desk_dom"] = pg.evaluate(BOX_DUMP, '.st-key-navdd_1')
             pg.screenshot(path=os.path.join(OUT, f"menu_{eng}_desk_hover.jpg"), type="jpeg", quality=60)
             btn.click()
             time.sleep(0.7)
@@ -719,6 +729,7 @@ def menu_check(p, report):
             pg.locator('.st-key-navsec_1 .navbtn').first.tap()
             time.sleep(0.8)
             res["phone_tap"] = pg.evaluate(PORTAL_VIS)
+            res["portal_dom"] = pg.evaluate(BOX_DUMP, '.navportal')
             pg.screenshot(path=os.path.join(OUT, f"menu_{eng}_phone_tap.jpg"), type="jpeg", quality=60)
             pg.locator('.st-key-navsec_2 .navbtn').first.tap()
             time.sleep(0.8)
@@ -788,6 +799,25 @@ def menu_check(p, report):
             ctx.close()
         except Exception as e:
             res["phone_error"] = str(e)[:300]
+        try:
+            ctx = b.new_context(locale="ar-SA", color_scheme="light", viewport={"width": 390, "height": 844}, has_touch=True,
+                                is_mobile=True, device_scale_factor=2)
+            pg = ctx.new_page()
+            pg.goto(f"{URL}/stock?symbol=AAPL&m=us&lang=ar", wait_until="domcontentloaded", timeout=90000)
+            settle(pg, 150)
+            time.sleep(3)
+            pg.locator('.st-key-navsec_1 .navbtn').first.tap()
+            time.sleep(0.8)
+            pg.screenshot(path=os.path.join(OUT, f"menu_{eng}_light_tap.jpg"), type="jpeg", quality=70)
+            pg.locator('.st-key-navsec_1 .navbtn').first.tap()
+            time.sleep(0.5)
+            pg.locator('.st-key-navsec_3 .navbtn').first.tap()
+            time.sleep(0.8)
+            pg.screenshot(path=os.path.join(OUT, f"menu_{eng}_light_cal.jpg"), type="jpeg", quality=70)
+            res["light_dom"] = pg.evaluate(BOX_DUMP, '.navportal')
+            ctx.close()
+        except Exception as e:
+            res["light_error"] = str(e)[:300]
         b.close()
         out[eng] = res
         log("menus", eng, json.dumps(res, ensure_ascii=False)[:2500])
