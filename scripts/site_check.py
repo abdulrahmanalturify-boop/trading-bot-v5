@@ -859,6 +859,131 @@ def menu_check(p, report):
     report["menus"] = out
 
 
+BOXV2 = True          # a quick run: the new box signature (html.boxv2, added here only) and the AI button, before and after
+BOX_PAGES = [("overview", "sa"), ("stock?symbol=2222.SR", "sa"), ("paper-bots", "sa"), ("news", "sa")]
+BOX_PICK = """(skip) => { const S = '.kpi, .mcard, .card, .tile, .stat, .news, .story, .pbph, .lc, .tdc, .fgc, .czn, .shc, [data-testid="stMetric"]';
+  const vh = innerHeight; const all = [...document.querySelectorAll(S)].filter(e => { const r = e.getBoundingClientRect();
+    return r.width > 140 && r.height > 50 && r.top > 90 && r.bottom < vh - 20; });
+  const e = all[skip] || all[0]; if (!e) return null; const r = e.getBoundingClientRect();
+  return {x: r.left, y: r.top, w: r.width, h: r.height, cls: e.className.toString().slice(0, 60), n: all.length}; }"""
+FAB_INFO = """() => { const f = document.querySelector('.st-key-alturaifi_ai_fab'), b = f && f.querySelector('[data-testid="stPopoverButton"]');
+  const sb = document.querySelector('[data-testid="stSidebar"]'); const R = e => { if (!e) return null; const r = e.getBoundingClientRect();
+    return [Math.round(r.left), Math.round(r.top), Math.round(r.width), Math.round(r.height)]; };
+  return {fab: R(b), sidebar: R(sb), sb_open: sb && sb.getAttribute('aria-expanded'),
+          sbw: getComputedStyle(document.documentElement).getPropertyValue('--sbw'), html: document.documentElement.className}; }"""
+
+
+def box_check(b, report):
+    out = {}
+    def scroll_cards(pg):
+        pg.evaluate("""() => { const e = document.querySelector('.kpi, .mcard, .card, .tile, .pbph, .news, .story, [data-testid="stMetric"]');
+            if (e) { e.scrollIntoView({block: 'start'}); const m = document.querySelector('[data-testid="stMain"]'); if (m) m.scrollBy(0, -130); window.scrollBy(0, -130); } }""")
+        time.sleep(1)
+    def hover_shot(pg, name, skip=0):
+        c = pg.evaluate(BOX_PICK, skip)
+        if not c:
+            return None
+        pg.mouse.move(c["x"] + c["w"] * .3, c["y"] + c["h"] * .35)
+        time.sleep(0.25)
+        pg.mouse.move(c["x"] + c["w"] * .32, c["y"] + c["h"] * .4)
+        time.sleep(0.9)
+        vw = pg.viewport_size["width"]
+        pad = 40
+        x0, y0 = max(0, c["x"] - pad), max(0, c["y"] - pad)
+        pg.screenshot(path=os.path.join(OUT, f"{name}.jpg"), type="jpeg", quality=82,
+                      clip={"x": x0, "y": y0, "width": min(vw - x0, c["w"] + 2 * pad), "height": c["h"] + 2 * pad})
+        return c
+    for look in ("dark", "light"):
+        ctx = b.new_context(viewport={"width": 1440, "height": 900}, locale="ar-SA", color_scheme=look)
+        pg = ctx.new_page()
+        for path, mkt in (BOX_PAGES if look == "dark" else BOX_PAGES[:2]):
+            tag = f"{look}_{path.split('?')[0]}"
+            res = {}
+            try:
+                sep = "&" if "?" in path else "?"
+                pg.goto(f"{URL}/{path}{sep}m={mkt}&lang=ar", wait_until="domcontentloaded", timeout=90000)
+                settle(pg, 150)
+                time.sleep(2.5)
+                scroll_cards(pg)
+                pg.mouse.move(5, 895)
+                pg.evaluate("() => document.documentElement.classList.remove('boxv2')")
+                time.sleep(0.5)
+                pg.screenshot(path=os.path.join(OUT, f"box_{tag}_before.jpg"), type="jpeg", quality=72)
+                pg.evaluate("() => document.documentElement.classList.add('boxv2')")
+                time.sleep(0.6)
+                pg.screenshot(path=os.path.join(OUT, f"box_{tag}_after.jpg"), type="jpeg", quality=72)
+                res["card"] = hover_shot(pg, f"box_{tag}_hover")
+                res["card2"] = hover_shot(pg, f"box_{tag}_hover2", 2)
+                res["problems"] = problems(pg)
+                if path == "overview":
+                    pg.mouse.move(700, 500)
+                    time.sleep(0.5)
+                    res["fab"] = pg.evaluate(FAB_INFO)
+                    h = pg.viewport_size["height"]
+                    pg.screenshot(path=os.path.join(OUT, f"fab_{look}_rest.jpg"), type="jpeg", quality=85,
+                                  clip={"x": 0, "y": h - 200, "width": 620, "height": 200})
+                    fb = pg.locator('.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]').first
+                    fb.hover()
+                    time.sleep(1.2)
+                    res["fab_hover"] = pg.evaluate(FAB_INFO)
+                    pg.screenshot(path=os.path.join(OUT, f"fab_{look}_hover.jpg"), type="jpeg", quality=85,
+                                  clip={"x": 0, "y": h - 200, "width": 620, "height": 200})
+                    fb.click()
+                    time.sleep(2)
+                    pg.mouse.move(1300, 300)
+                    time.sleep(0.6)
+                    pg.screenshot(path=os.path.join(OUT, f"fab_{look}_open.jpg"), type="jpeg", quality=78)
+                    pg.keyboard.press("Escape")
+                    time.sleep(0.6)
+            except Exception as e:
+                res["error"] = str(e)[:300]
+            out[tag] = res
+            log("box", tag, json.dumps(res, ensure_ascii=False)[:600])
+        ctx.close()
+    # a phone: the edge and sheen at rest, then a tap lighting a box; the AI button
+    ctx = b.new_context(viewport={"width": 390, "height": 844}, has_touch=True, is_mobile=True, device_scale_factor=2,
+                        locale="ar-SA", color_scheme="dark")
+    pg = ctx.new_page()
+    for path, mkt in (BOX_PAGES[0], BOX_PAGES[3], BOX_PAGES[2]):
+        tag = f"phone_{path.split('?')[0]}"
+        res = {}
+        try:
+            pg.goto(f"{URL}/{path}?m={mkt}&lang=ar", wait_until="domcontentloaded", timeout=90000)
+            settle(pg, 150)
+            time.sleep(2.5)
+            scroll_cards(pg)
+            pg.evaluate("() => document.documentElement.classList.remove('boxv2')")
+            time.sleep(0.4)
+            pg.screenshot(path=os.path.join(OUT, f"box_{tag}_before.jpg"), type="jpeg", quality=70)
+            pg.evaluate("() => document.documentElement.classList.add('boxv2')")
+            time.sleep(0.6)
+            pg.screenshot(path=os.path.join(OUT, f"box_{tag}_after.jpg"), type="jpeg", quality=70)
+            c = pg.evaluate(BOX_PICK, 1)
+            res["card"] = c
+            if c:
+                pg.evaluate("""([x, y]) => { const ev = (t, o) => document.elementFromPoint(x, y).dispatchEvent(new PointerEvent(t, Object.assign({bubbles: true,
+                    clientX: x, clientY: y, pointerType: 'touch'}, o || {}))); ev('pointerdown'); ev('pointerup');
+                    document.elementFromPoint(x, y).dispatchEvent(new MouseEvent('click', {bubbles: true, clientX: x, clientY: y})); }""",
+                            [c["x"] + c["w"] * .5, c["y"] + c["h"] * .5])
+                time.sleep(0.35)
+                res["lit"] = pg.evaluate("() => (document.querySelector('.fx-on') || {className: ''}).className.toString().slice(0, 60)")
+                pg.screenshot(path=os.path.join(OUT, f"box_{tag}_tap.jpg"), type="jpeg", quality=70)
+            res["fab"] = pg.evaluate(FAB_INFO)
+            res["problems"] = problems(pg)
+        except Exception as e:
+            res["error"] = str(e)[:300]
+        out[tag] = res
+        log("box", tag, json.dumps(res, ensure_ascii=False)[:600])
+    try:
+        pg.locator('.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]').first.tap()
+        time.sleep(2)
+        pg.screenshot(path=os.path.join(OUT, "fab_phone_open.jpg"), type="jpeg", quality=72)
+    except Exception as e:
+        out["phone_fab_error"] = str(e)[:300]
+    ctx.close()
+    report["box"] = out
+
+
 def main():
     if LIVE:
         return live_probe()
@@ -866,7 +991,7 @@ def main():
         seed_xbots()
     elif QUICK and XB_SEED == "resting":
         seed_resting()
-    if not QUICK and not SHARIA and not MENU_CHECK:
+    if not QUICK and not SHARIA and not MENU_CHECK and not BOXV2:
         news_lab()
     seed_bots()
     if QUICK and AUTH_DEMO:                     # made-up sign-in settings on the test server only: the Sign in button shows
@@ -907,6 +1032,13 @@ def main():
             if MENU_CHECK:
                 try:
                     menu_check(p, report)
+                finally:
+                    json.dump(report, open(os.path.join(OUT, "report.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+                b.close()
+                return 0
+            if BOXV2:
+                try:
+                    box_check(b, report)
                 finally:
                     json.dump(report, open(os.path.join(OUT, "report.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
                 b.close()

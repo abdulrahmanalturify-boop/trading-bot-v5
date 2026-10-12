@@ -1842,6 +1842,26 @@ FX_CSS = f"""<style>
   height:0 !important; overflow:hidden !important; margin:0 !important; padding:0 !important; }}
 @media (prefers-reduced-motion: reduce) {{ :is({_lift}).fx-on {{ transform:none; }} }}
 @media (hover: none) {{ {_ring}::after, {_glow}::before {{ display:none; }} }}
+/* the box signature (the AI button's look on every box): an edge of the site's blue, violet and cyan that is always faintly
+   there, a glass sheen across the top, and over a box a ring that turns, a light that follows the pointer and a coloured glow.
+   On a phone the edge and sheen stay and a tap lights the box for a moment (FX_JS). */
+@property --fxa {{ syntax:'<angle>'; inherits:false; initial-value:0deg; }}
+@keyframes fxspin {{ to {{ --fxa:360deg; }} }}
+html.boxv2 {_ring}::after {{ opacity:1; padding:1px;
+  background: linear-gradient(135deg, rgba(59,130,246,.62), rgba(124,58,237,.34) 34%, rgba(124,58,237,.10) 58%, rgba(34,211,238,.48)); }}
+html.boxv2 {_ring}.fx-on::after {{ padding:1.5px; animation: fxspin 3.6s linear infinite;
+  background: radial-gradient(200px circle at var(--mx,50%) var(--my,50%), rgba(255,255,255,.95), rgba(196,181,253,.55) 32%, transparent 62%),
+    conic-gradient(from var(--fxa) at 50% 50%, #3B82F6, #7C3AED, #22D3EE, #A855F7, #3B82F6); }}
+html.boxv2 {_glow}::before {{ opacity:1;
+  background: linear-gradient(180deg, rgba(255,255,255,.045), rgba(255,255,255,0) 42%); }}
+html.boxv2 {_glow}.fx-on::before {{
+  background: radial-gradient(420px circle at var(--mx,50%) var(--my,50%), rgba(124,58,237,.22), rgba(34,211,238,.07) 42%, transparent 66%),
+    linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,0) 42%); }}
+html.boxv2 :is({_fx}).fx-on {{ border-color: rgba(167,139,250,.30) !important;
+  box-shadow: 0 18px 40px -18px rgba(88,56,220,.65), 0 0 26px -8px rgba(34,211,238,.28) !important; }}
+html.boxv2 :is({_lift}).fx-on {{ box-shadow: 0 20px 42px -16px rgba(88,56,220,.7), 0 0 28px -8px rgba(34,211,238,.3) !important; }}
+@media (hover: none) {{ html.boxv2 {_ring}::after, html.boxv2 {_glow}::before {{ display:block; }} }}
+@media (prefers-reduced-motion: reduce) {{ html.boxv2 {_ring}.fx-on::after {{ animation:none; }} }}
 </style>"""
 FX_JS = """<script>
 (function () {
@@ -1881,6 +1901,14 @@ FX_JS = """<script>
     if (!raf) raf = w.requestAnimationFrame(pick);
   }, {passive: true});
   on(d.documentElement, 'mouseleave', function () { set(null); });
+  // a tap on a phone lights the box for a moment (a scroll does not: it ends in no click)
+  var touch = false, tt = 0;
+  on(d, 'pointerdown', function (e) { touch = !!(e.pointerType && e.pointerType !== 'mouse'); if (touch) { x = e.clientX; y = e.clientY; } },
+     {passive: true, capture: true});
+  on(d, 'click', function () {
+    if (!touch) return;
+    pick(); w.clearTimeout(tt); tt = w.setTimeout(function () { set(null); }, 700);
+  }, true);
   on(w, 'scroll', function () { if (cur && !raf) raf = w.requestAnimationFrame(pick); }, {passive: true, capture: true});
   // top menus: choosing a page (or a language) closes the menu at once. Hover and keyboard focus would keep it open over the
   // page that is loading, so the flag on <html> forces it shut until a menu button is hovered or pressed again.
@@ -2107,6 +2135,12 @@ FX_JS = """<script>
     else if (navY - y > 10) { de.classList.remove('nav-tuck'); navY = y; }
   }, {passive: true, capture: true});
   every(function () {
+    // the AI button sits right of an open side panel (it was hidden under it on wide screens)
+    var sb = d.querySelector('[data-testid="stSidebar"]'), sbw = 0;
+    if (sb && w.innerWidth >= 1024 && sb.getAttribute('aria-expanded') !== 'false') {
+      var sr0 = sb.getBoundingClientRect(); if (sr0.right > 40 && sr0.width > 40) sbw = Math.round(sr0.right);
+    }
+    if (de.style.getPropertyValue('--sbw') !== sbw + 'px') de.style.setProperty('--sbw', sbw + 'px');
     if (!phone()) { if (de.classList.contains('nav-tuck')) de.classList.remove('nav-tuck'); return; }
     if (de.classList.contains('nav-tuck') && pageTop() < 140) de.classList.remove('nav-tuck');   // a new page opens at its top
     // a chart's title longer than the phone is wide: smaller until it fits (it ran past the edge; never under 10 px)
