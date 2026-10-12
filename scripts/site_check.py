@@ -395,13 +395,85 @@ def sharia_check(b, report):
             ctx.close()
 
 
-TOUR = False          # the whole site in Arabic: every page, US and (where it has one) Saudi, on a desktop and on a phone
+TOUR = True           # the whole site in Arabic: every page, US and (where it has one) Saudi, on a desktop and on a phone
 TOUR_PAGES = [("overview", 1), ("futures", 0), ("options", 0), ("economy", 0), ("trending", 1), ("news", 1), ("news-intelligence", 1),
               ("stock?symbol=NVDA", 0), ("stock?symbol=2222.SR", 2), ("screener", 1), ("brief", 1), ("articles", 1), ("sentiment", 1),
               ("seasonality", 1), ("earnings-calendar", 1), ("earnings-results", 1), ("economic-calendar", 1), ("market-holidays", 1),
               ("dividend-calendar", 1), ("stock-splits", 1), ("ipo-calendar", 0), ("academy", 1), ("glossary", 1), ("portfolio", 1),
               ("portfolio-trade", 1), ("portfolio-analytics", 1), ("portfolio-history", 1), ("robo-advisor", 1), ("paper-bots", 1),
               ("scanner", 1), ("x-bots", 1)]
+
+
+TOUR_PHONE = True     # the tour on a phone only: three screens of every page, a check of what overflows or is too small to read
+#                     or tap, and desktop photos of a few pages (to compare: the phone's fixes must not move the desktop)
+DESK_CHECK = [("overview", "sa"), ("news", "sa"), ("stock?symbol=2222.SR", "sa"), ("paper-bots", "sa"), ("scanner", "sa"), ("x-bots", "sa"),
+              ("portfolio", "sa"), ("trending", "us")]
+PHONE_AUDIT = """() => {
+  const W = window.innerWidth, out = {wide: [], small_text: 0, small_tap: [], fixed: []};
+  const seen = new Set();
+  document.querySelectorAll('body *').forEach(e => {
+    const r = e.getBoundingClientRect();
+    if (!r.width || !r.height) return;
+    const cs = getComputedStyle(e);
+    if (cs.visibility === 'hidden' || cs.display === 'none' || +cs.opacity === 0) return;
+    let p = e.parentElement, clipped = false;
+    while (p && p !== document.body) { const o = getComputedStyle(p).overflowX; if (o === 'auto' || o === 'scroll' || o === 'hidden') { clipped = true; break; } p = p.parentElement; }
+    if (!clipped && (r.right > W + 2 || r.left < -2) && r.width < 3000) {
+      const k = (e.className && e.className.baseVal === undefined ? String(e.className) : e.tagName).slice(0, 60);
+      if (!seen.has(k)) { seen.add(k); out.wide.push([k, Math.round(r.left), Math.round(r.right)]); }
+    }
+    if (e.childNodes.length && [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim().length > 1) && parseFloat(cs.fontSize) < 11) out.small_text++;
+    if ((e.tagName === 'BUTTON' || e.tagName === 'A' || e.getAttribute('role') === 'button') && r.height < 30 && r.width > 0) {
+      const t = (e.innerText || e.getAttribute('aria-label') || '').trim().slice(0, 30);
+      if (out.small_tap.length < 12) out.small_tap.push([t, Math.round(r.width), Math.round(r.height)]);
+    }
+    if ((cs.position === 'fixed' || cs.position === 'sticky') && r.height > 40 && out.fixed.length < 8) out.fixed.push([String(e.className).slice(0, 50), Math.round(r.top), Math.round(r.height)]);
+  });
+  out.wide = out.wide.slice(0, 15);
+  return out; }"""
+
+
+def tour_phone(b, report):
+    """Every page in Arabic on a phone (390 x 844): its first three screens, and what is wider than the screen, too small to
+    read (under 11 px) or too small to tap (under 30 px); then a few pages on a desktop screen, for comparison."""
+    report["tour"] = {}
+    phone = b.new_context(viewport={"width": 390, "height": 844}, locale="ar-SA", color_scheme="dark", is_mobile=True, has_touch=True,
+                          device_scale_factor=2)
+    pp = phone.new_page()
+    pp.goto(f"{URL}/?lang=ar", wait_until="domcontentloaded", timeout=90000)
+    settle(pp, 180)
+    for path, sa in TOUR_PAGES:
+        for mk in (("us",) if sa == 0 else ("sa",) if sa == 2 else ("us", "sa")):
+            name = re.sub(r"[^a-z0-9]+", "_", f"{path}_{mk}").strip("_")
+            sep = "&" if "?" in path else "?"
+            row = {}
+            try:
+                pp.goto(f"{URL}/{path}{sep}m={mk}&lang=ar", wait_until="domcontentloaded", timeout=90000)
+                row["s"] = settle(pp, 150)
+                row["audit"] = pp.evaluate(PHONE_AUDIT)
+                row["height"] = pp.evaluate("() => document.documentElement.scrollHeight")
+                row["problems"] = problems(pp)
+                pp.screenshot(path=os.path.join(OUT, f"p_{name}.jpg"), type="jpeg", quality=62, full_page=True,
+                              clip={"x": 0, "y": 0, "width": 390, "height": min(3 * 844, int(row["height"]))})
+            except Exception as e:
+                row["error"] = str(e)[:300]
+            report["tour"][name] = row
+            log("phone", name, json.dumps(row, ensure_ascii=False)[:400])
+    phone.close()
+    desk = b.new_context(viewport={"width": 1440, "height": 900}, locale="ar-SA", color_scheme="dark")
+    pd_ = desk.new_page()
+    for path, mk in DESK_CHECK:
+        name = re.sub(r"[^a-z0-9]+", "_", f"{path}_{mk}").strip("_")
+        sep = "&" if "?" in path else "?"
+        try:
+            pd_.goto(f"{URL}/{path}{sep}m={mk}&lang=ar", wait_until="domcontentloaded", timeout=90000)
+            settle(pd_, 150)
+            time.sleep(1.5)
+            report["tour"]["desk_" + name] = {"height": pd_.evaluate("() => document.documentElement.scrollHeight")}
+            pd_.screenshot(path=os.path.join(OUT, f"d_{name}.jpg"), type="jpeg", quality=70)
+        except Exception as e:
+            report["tour"]["desk_" + name] = {"error": str(e)[:300]}
+    desk.close()
 
 
 def tour(b, report):
@@ -494,7 +566,7 @@ def main():
                 return 0
             if TOUR:
                 try:
-                    tour(b, report)
+                    (tour_phone if TOUR_PHONE else tour)(b, report)
                 finally:
                     json.dump(report, open(os.path.join(OUT, "report.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
                 b.close()
