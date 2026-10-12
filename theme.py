@@ -1256,14 +1256,15 @@ html[data-menu-closed] [class*="st-key-navdd_"], html[data-menu-closed] .st-key-
   .st-key-navleft .navbtn {{ height: 36px; padding: 0 11px !important; gap: 6px !important; font-size: .84rem; border-color: rgba(255,255,255,.07); }}
   .st-key-navleft .navbtn > span:not(.ms) {{ display: inline !important; }}
   .st-key-navleft .navbtn .ms:not(.chev) {{ font-size: 1.08rem !important; }}
-  /* the card nearly solid instead of frosted (an iPhone cuts off what opens out of a frosted box) */
+  /* the card solid instead of frosted (an iPhone cuts off what opens out of a frosted box; the page showed through in Safari) */
   .stApp:not(:has(.ixp)) .st-key-topnav {{ backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
-    background: rgba(18,13,30,.97) !important; }}
+    background: #120D1E !important; }}
   /* the menus on the screen itself, under the card (the page script sets --ddtop / --ddl / --ddr from where the card is) */
   html.ix-js .st-key-topnav [class*="st-key-navdd_"], html.ix-js .st-key-topnav .st-key-langdd, html.ix-js .st-key-topnav .st-key-acctdd {{
     position: fixed !important; top: var(--ddtop, 130px) !important; left: var(--ddl, 16px) !important; right: var(--ddr, 16px) !important;
     width: auto !important; min-width: 0 !important; max-width: none !important; max-height: calc(100vh - var(--ddtop, 130px) - 12px);
-    overflow-y: auto !important; overscroll-behavior: contain; }}
+    overflow-y: auto !important; overscroll-behavior: contain; background: #1A1624 !important; backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important; }}
   [data-testid="stLayoutWrapper"]:has(> .st-key-navsearch), .st-key-topnav > .st-key-navsearch {{ flex: 1 1 0 !important; min-width: 0 !important;
     width: auto !important; order: 2; }}
   [data-testid="stLayoutWrapper"]:has(> .st-key-navright), .st-key-topnav > .st-key-navright {{ flex: none !important; order: 3; }}
@@ -3170,4 +3171,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.2.5"
+BUILD = "23.2.6"
