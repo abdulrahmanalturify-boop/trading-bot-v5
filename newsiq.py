@@ -158,10 +158,17 @@ _ECON_AR = re.compile("|".join(f"(?:{TOPICS_AR[k]})" for k in ("fed", "inflation
                       r"|تاسي|تداول|(?:ال)?سوق (?:ال)?مالية|(?:ال)?أسهم|سهم|شرك[ةا]|بنك|مصرف|استثمار|صندوق|مليار|مليون|ريال")
 
 
+# sport (a club's finances, a stadium, a tournament) is off the market's news unless a share or the market is named
+SPORT_AR = re.compile(r"نادي|ملعب|لاعب|كرة القدم|الدوري|المنتخب|مباراة|كأس|بطولة|الفورمولا|سباق|الأولمبي")
+MARKET_AR = re.compile(r"تاسي|تداول|سهم|أسهم|(?:ال)?سوق (?:ال)?مالية|(?:ال)?سوق الرئيسية|مدرجة|(?:ال)?اكتتاب|(?:ال)?طرح العام")
+
+
 def off_market(title, summary=""):
     """True for a Saudi-feed headline that is politics, protocol, sport or society with no word about the market, the economy or
     a company (the caller also checks that no listed company was found in it)."""
     t = str(title or "")
+    if SPORT_AR.search(t) and not MARKET_AR.search(t):
+        return True
     if not POLITICS_AR.search(t):
         return False
     return not (_ECON_AR.search(t) or _ECON_AR.search(str(summary or "")[:240]))
@@ -430,4 +437,4 @@ def rank(items):
     return sorted(items, key=lambda n: ((n.get("iq") or {}).get("raw", 0), n["time"] if pd.notna(n.get("time")) else zero), reverse=True)
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.3"
+BUILD = "23.3.1"

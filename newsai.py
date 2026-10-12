@@ -317,4 +317,4 @@ def judge(stories, market="us"):
     return out
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.3"
+BUILD = "23.3.1"

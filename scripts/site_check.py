@@ -596,7 +596,7 @@ def tour(b, report):
     phone.close()
 
 
-LIVE = True           # look at the live site from GitHub's server (what a visitor sees there right now), nothing else
+LIVE = False          # look at the live site from GitHub's server (what a visitor sees there right now), nothing else
 LIVE_URL = "https://abdulrahman.streamlit.app"
 LIVE_PATH = "news?m=sa&lang=ar"   # a page of the live site to look at ("": the home page, on a phone and a computer)
 
