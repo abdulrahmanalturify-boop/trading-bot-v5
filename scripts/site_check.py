@@ -648,6 +648,19 @@ def live_probe():
                     except Exception as e:
                         frames.append([fr.url[:90], "ERR " + str(e)[:120]])
                 row[f"t{at}"] = {"url": pg.url[:120], "frames": frames}
+                if at == 60 and LIVE_PATH:              # which version is running: the ⋮ menu's About
+                    for fr in pg.frames:
+                        try:
+                            if fr.locator('[data-testid="stMainMenu"]').count():
+                                fr.locator('[data-testid="stMainMenu"]').first.click(timeout=8000)
+                                time.sleep(1)
+                                fr.get_by_text("About").first.click(timeout=8000)
+                                time.sleep(1.5)
+                                row["version"] = fr.evaluate("() => (document.querySelector('[role=\"dialog\"]') || {}).innerText || ''")[:200]
+                                fr.keyboard.press("Escape") if hasattr(fr, "keyboard") else pg.keyboard.press("Escape")
+                                break
+                        except Exception as e:
+                            row["version_error"] = str(e)[:200]
                 try:
                     pg.screenshot(path=os.path.join(OUT, f"live_{kind}_{at}.jpg"), type="jpeg", quality=60)
                 except Exception as e:
