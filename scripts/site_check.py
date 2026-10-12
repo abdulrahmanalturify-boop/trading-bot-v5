@@ -984,6 +984,10 @@ def main():
                                 pg.locator('[class*="st-key-fin_freq"] button').nth(1).click(timeout=15000)
                                 time.sleep(2)
                                 settle(pg, 120)
+                                report["pages"][f"{lang}_{name}_fin_dom"] = pg.evaluate("""() => ({key: document.querySelectorAll('[class*="st-key-fin_metric"]').length,
+                                    sel: document.querySelectorAll('[class*="st-key-fin_metric"] [data-baseweb="select"]').length,
+                                    boxes: [...document.querySelectorAll('[data-testid="stSelectbox"]')].map(e => (e.closest('[class*="st-key-"]') || {}).className || '').map(c => String(c).split(' ').filter(x => x.startsWith('st-key-')).join(',')).slice(0, 12)})""")
+                                shoot(pg, f"{lang}_{name}_fintab")
                                 pg.locator('[class*="st-key-fin_metric"] [data-baseweb="select"]').first.click(timeout=15000)
                                 time.sleep(0.8)
                                 shoot(pg, f"{lang}_{name}_finpick")
