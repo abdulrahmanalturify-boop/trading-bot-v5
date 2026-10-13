@@ -1577,8 +1577,8 @@ def live_ai():
     return 0
 
 
-LIVE_BUILD = "23.4.1"   # a quick run: how soon the Oracle server shows this version (its page's data-build), from PUSHED_AT
-PUSHED_AT = "2026-10-13T07:06:29Z"
+LIVE_BUILD = "23.4.2"   # a quick run: how soon the Oracle server shows this version (its page's data-build), from PUSHED_AT
+PUSHED_AT = "2026-10-13T07:13:11Z"
 
 
 def live_build():
