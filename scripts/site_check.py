@@ -1644,7 +1644,7 @@ def live_build():
     return 0
 
 
-CLOUD_PROBE = True   # a quick run: which version Streamlit Cloud serves (waking it up when it sleeps), with pictures
+CLOUD_PROBE = False  # a quick run: which version Streamlit Cloud serves (waking it up when it sleeps), with pictures
 
 
 def cloud_probe():
