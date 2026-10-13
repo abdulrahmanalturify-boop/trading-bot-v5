@@ -1169,12 +1169,38 @@ def orb_check(b, report):
             time.sleep(0.5)
             pg.screenshot(path=os.path.join(OUT, f"orb_{look}_open.jpg"), type="jpeg", quality=80)
             out[f"{look}_z_open"] = pg.evaluate(Z_INFO)
+            pb = pg.evaluate("() => { const e = document.querySelector('[data-testid=\"stPopoverBody\"]'); if (!e) return null; const r = e.getBoundingClientRect(); return [r.left, r.top, r.width, r.height]; }")
+            out[f"{look}_panel"] = pb
+            if pb:
+                win = {"x": max(0, pb[0] - 12), "y": max(0, pb[1] - 12), "width": min(1440 - max(0, pb[0] - 12), pb[2] + 24), "height": min(900 - max(0, pb[1] - 12), pb[3] + 24)}
+                pg.screenshot(path=os.path.join(OUT, f"win_{look}_empty.png"), clip=win)
+                pg.mouse.move(pb[0] + 60, pb[1] + pb[3] * .55)        # a suggested question hovered
+                time.sleep(.6)
+                pg.screenshot(path=os.path.join(OUT, f"win_{look}_hover.png"), clip=win)
+                if look == "dark":
+                    out["fab_html"] = pg.evaluate("() => { const b = document.querySelector('.st-key-alturaifi_ai_fab [data-testid=\"stPopoverButton\"]'); return b ? b.outerHTML.replace(/\\s+/g, ' ').slice(0, 2500) : null; }")
+                    inp = pg.locator('div.st-key-alturaifi_ai_prompt input').first
+                    inp.click(timeout=8000)
+                    inp.fill("ما هو مؤشر القوة النسبية؟")
+                    pg.screenshot(path=os.path.join(OUT, "win_dark_typing.png"), clip=win)
+                    inp.press("Enter")
+                    time.sleep(.35)
+                    pg.screenshot(path=os.path.join(OUT, "win_dark_sending.png"), type="jpeg", quality=82)
+                    out["typing_shown"] = pg.evaluate("() => !!document.querySelector('.ai-typing')")
+                    time.sleep(4)
+                    pb2 = pg.evaluate("() => { const e = document.querySelector('[data-testid=\"stPopoverBody\"]'); if (!e) return null; const r = e.getBoundingClientRect(); return [r.left, r.top, r.width, r.height]; }")
+                    out["dark_panel_chat"] = pb2
+                    out["typing_after"] = pg.evaluate("() => !!document.querySelector('.ai-typing')")
+                    if pb2:
+                        pg.screenshot(path=os.path.join(OUT, "win_dark_chat.png"), clip={"x": max(0, pb2[0] - 12), "y": max(0, pb2[1] - 12),
+                                      "width": min(1440 - max(0, pb2[0] - 12), pb2[2] + 24), "height": min(900 - max(0, pb2[1] - 12), pb2[3] + 24)})
             out[f"{look}_head"] = pg.evaluate("() => !!document.querySelector('.ai-orb canvas.ai-neural')")
             out[f"{look}_problems"] = problems(pg)
             if look == "dark":
                 pg.keyboard.press("Escape")
                 time.sleep(1)
-                out["desk_rerun"] = sample_fab(pg, lambda: pg.get_by_role("button", name="5Y").first.click(timeout=8000))
+                out["desk_page_switch"] = sample_fab(pg, lambda: pg.evaluate(
+                    "() => { const a = [...document.querySelectorAll('a[href]')].find(x => /\\/news|\\/overview|\\/brief/.test(x.getAttribute('href') || '')); if (a) a.click(); return !!a; }"))
         except Exception as e:
             out[f"{look}_error"] = str(e)[:400]
         ctx.close()

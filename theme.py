@@ -2876,6 +2876,7 @@ FX_JS = """<script>
         var z = cs ? (parseInt(cs.zIndex, 10) || 999992) + 1 : 999993;
         if (big.style.zIndex !== z + '') big.style.zIndex = z + '';
       }
+      if (Math.abs(r.width - r.height) > 3) { big.style.opacity = '0'; return; }   // not its round self (its styles not in yet): no sphere
       var S0 = Math.round(Math.min(r.width, r.height)), pad = Math.round(S0 * .1);
       big.style.left = (r.left + r.width / 2 - S0 / 2 - pad) + 'px'; big.style.top = (r.top + r.height / 2 - S0 / 2 - pad) + 'px';
       big.style.opacity = (r.width ? op : 0) + '';
@@ -2898,6 +2899,51 @@ FX_JS = """<script>
     }
   }
   w.requestAnimationFrame(frame);
+  // while an answer is on its way (sent with Enter, the send button or a suggested question): "TURA AI is writing" and three
+  // dots just above the box, until the answer is drawn, the window closes, or 45 s. It floats on the page (not inside
+  // Streamlit's own elements, which redraw themselves).
+  var typing = null, tWhen = 0, tSig = '';
+  function sig() {
+    var a = d.querySelectorAll('[class*="st-key-alturaifi_ai_asst_"]'), f = d.querySelector('div.st-key-alturaifi_ai_panel [data-testid="stAlert"]');
+    return a.length + '|' + (a.length ? a[a.length - 1].textContent.length : 0) + '|' + (f ? 1 : 0);
+  }
+  function hideTyping() { if (typing) { typing.remove(); typing = null; } }
+  function showTyping() {
+    var box = d.querySelector('div.st-key-alturaifi_ai_composer'), head = d.querySelector('.ai-head[data-typing]');
+    if (!box || !head) return;
+    hideTyping();
+    typing = d.createElement('div'); typing.className = 'ai-typing';
+    typing.innerHTML = '<span></span><i></i><i></i><i></i>';
+    typing.firstChild.textContent = head.getAttribute('data-typing');
+    d.body.appendChild(typing);
+    tWhen = Date.now(); tSig = sig();
+    place();
+  }
+  function place() {
+    var box = d.querySelector('div.st-key-alturaifi_ai_composer');
+    if (!typing) return;
+    if (!box || !box.getBoundingClientRect().width || Date.now() - tWhen > 45000 || (Date.now() - tWhen > 400 && sig() !== tSig)) { hideTyping(); return; }
+    var r = box.getBoundingClientRect(), rtl = w.getComputedStyle(box).direction === 'rtl';
+    typing.style.top = (r.top - 40) + 'px';
+    if (rtl) { typing.style.right = (w.innerWidth - r.right + 4) + 'px'; typing.style.left = 'auto'; }
+    else { typing.style.left = (r.left + 4) + 'px'; typing.style.right = 'auto'; }
+  }
+  function onClick(e) {
+    var t = e.target && e.target.closest && e.target.closest('div.st-key-alturaifi_ai_send button, div.st-key-alturaifi_ai_chips button');
+    if (!t) return;
+    if (t.closest('div.st-key-alturaifi_ai_send')) {
+      var inp = d.querySelector('div.st-key-alturaifi_ai_prompt input');
+      if (!inp || !inp.value.trim()) return;
+    }
+    showTyping();
+  }
+  function onKey(e) {
+    if (e.key !== 'Enter' || !e.target || !e.target.closest || !e.target.closest('div.st-key-alturaifi_ai_prompt')) return;
+    if (e.target.value && e.target.value.trim()) showTyping();
+  }
+  d.addEventListener('click', onClick, true); d.addEventListener('keydown', onKey, true);
+  var tIv = w.setInterval(place, 150);
+  offs.push(function () { d.removeEventListener('click', onClick, true); d.removeEventListener('keydown', onKey, true); w.clearInterval(tIv); hideTyping(); });
 })();
 </script>""".replace("__SEL__", json.dumps(_fx)).replace("__GLOSS__", json.dumps(GL.client(), ensure_ascii=False))
 FX_JS = FX_JS.replace("__VER__", hashlib.md5(FX_JS.encode()).hexdigest()[:10])   # a new script replaces the old one in open tabs

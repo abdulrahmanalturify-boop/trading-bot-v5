@@ -410,6 +410,10 @@ try:                                   # interactive cards: the light follows th
     _components.html(T.FX_JS.replace("__PATHS__", json.dumps(_paths)), height=0)
 except Exception:
     pass
+try:                                   # the AI button's styles here at the top, every run (the button itself is drawn at the end)
+    st.markdown('<span class="css-anchor"></span>\n' + ai_assistant.styles(ss.get("lang", "en"), light=_light), unsafe_allow_html=True)
+except Exception:
+    pass
 with st.container(key="lmsync"):          # hidden; theme.FX_JS presses it when the page was drawn for the other look
     st.button("theme", key="lm_sync_btn")
 
