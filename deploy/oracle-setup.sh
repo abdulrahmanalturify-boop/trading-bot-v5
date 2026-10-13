@@ -76,30 +76,8 @@ EOF
 write_caddy
 
 # ---------------------------------------------------------------- updates: every 3 minutes, the newest version from GitHub
-cat > $ROOT/update.sh <<'EOF'
-#!/bin/bash
-# Takes the site's newest version from GitHub when there is one, then restarts it. Also applies a domain written in /opt/tura/domain.
-set -uo pipefail
-ROOT=/opt/tura; APP=$ROOT/app; VENV=$ROOT/venv; RUNAS=tura
-BRANCH="$(cat $ROOT/branch 2>/dev/null || echo main)"
-cd $APP || exit 0
-old="$(runuser -u $RUNAS -- git rev-parse HEAD)"
-runuser -u $RUNAS -- git fetch -q origin "$BRANCH" || exit 0
-new="$(runuser -u $RUNAS -- git rev-parse "origin/$BRANCH")"
-if [ "$old" != "$new" ]; then
-  reqs_changed="$(runuser -u $RUNAS -- git diff --name-only "$old" "$new" -- requirements.txt)"
-  runuser -u $RUNAS -- git reset -q --hard "origin/$BRANCH"
-  if [ -n "$reqs_changed" ]; then runuser -u $RUNAS -- $VENV/bin/pip install -q -r requirements.txt; fi
-  systemctl restart tura
-  echo "updated $old -> $new"
-fi
-want=":80"; [ -s $ROOT/domain ] && want="$(tr -d ' \n' < $ROOT/domain)"
-if ! head -1 /etc/caddy/Caddyfile | grep -qF "$want {"; then
-  printf '%s {\n\tencode gzip zstd\n\treverse_proxy 127.0.0.1:8501\n}\n' "$want" > /etc/caddy/Caddyfile
-  systemctl reload caddy || systemctl restart caddy
-fi
-EOF
-chmod 755 $ROOT/update.sh
+# (deploy/update.sh, copied root-owned: the site's own user cannot change what root runs)
+install -o root -g root -m 755 $APP/deploy/update.sh $ROOT/update.sh
 
 cat > /etc/systemd/system/tura-update.service <<EOF
 [Unit]

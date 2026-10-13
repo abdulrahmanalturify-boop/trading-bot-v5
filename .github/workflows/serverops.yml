@@ -1,0 +1,66 @@
+# By hand: work on the site's own server (Oracle Cloud) over SSH, with the key kept in the repository's Actions secrets
+# (ORACLE_SSH_KEY). Nothing secret is printed.
+#   status          how the server and the site are: services, memory, disk, the version running, the site's last log lines
+#   restart         restart the site
+#   update-scripts  install the newest deploy/update.sh (root-owned) on the server
+#   push-secrets    write the site's secrets (STREAMLIT_SECRETS, the same text as Streamlit's Secrets) and restart the site
+name: server ops
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "what to do"
+        type: choice
+        options: [status, restart, update-scripts, push-secrets]
+        default: status
+      host:
+        description: "the server's IP"
+        default: "84.13.143.157"
+permissions:
+  contents: read
+concurrency:
+  group: server-ops
+  cancel-in-progress: false
+jobs:
+  ops:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - name: connect
+        env:
+          KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          [ -n "$KEY" ] || { echo "ORACLE_SSH_KEY is missing in the repository's Actions secrets"; exit 1; }
+          umask 077; mkdir -p ~/.ssh
+          printf '%s\n' "$KEY" | tr -d '\r' > ~/.ssh/oracle
+          chmod 600 ~/.ssh/oracle
+          ssh -i ~/.ssh/oracle -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 ubuntu@${{ github.event.inputs.host }} 'echo "connected to $(hostname) as $(whoami)"'
+      - name: ${{ github.event.inputs.action }}
+        env:
+          SECRETS: ${{ secrets.STREAMLIT_SECRETS }}
+          ACTION: ${{ github.event.inputs.action }}
+          HOST: ${{ github.event.inputs.host }}
+        run: |
+          set -euo pipefail
+          SSH="ssh -i $HOME/.ssh/oracle -o ConnectTimeout=20 ubuntu@$HOST"
+          case "$ACTION" in
+            restart)
+              $SSH 'sudo systemctl restart tura && echo "site restarted"' ;;
+            update-scripts)
+              scp -i ~/.ssh/oracle -q deploy/update.sh ubuntu@$HOST:/tmp/update.sh
+              $SSH 'sudo install -o root -g root -m 755 /tmp/update.sh /opt/tura/update.sh && rm -f /tmp/update.sh && echo "update.sh installed" && sudo /opt/tura/update.sh; echo "update run done"' ;;
+            push-secrets)
+              [ -n "$SECRETS" ] || { echo "STREAMLIT_SECRETS is missing in the repository's Actions secrets"; exit 1; }
+              printf '%s\n' "$SECRETS" | tr -d '\r' | $SSH 'sudo tee /home/tura/.streamlit/secrets.toml > /dev/null && sudo chown tura:tura /home/tura/.streamlit/secrets.toml && sudo chmod 600 /home/tura/.streamlit/secrets.toml && sudo systemctl restart tura && echo "secrets written ($(sudo grep -c "=" /home/tura/.streamlit/secrets.toml) settings), site restarted"' ;;
+          esac
+          sleep 5
+          $SSH 'echo "--- status"; uptime; free -m | head -2; df -h / | tail -1; systemctl is-active tura caddy tura-update.timer | paste -sd " ";
+                echo "version: $(git -C /opt/tura/app log -1 --format="%h %s" | cut -c1-90)";
+                echo "domain: $(cat /opt/tura/domain 2>/dev/null || echo none)";
+                curl -s -o /dev/null -w "site health: %{http_code} in %{time_total}s\n" http://127.0.0.1:8501/_stcore/health;
+                echo "--- last updates"; sudo journalctl -u tura-update --no-pager -n 6 -o cat | grep -v "^$" | tail -6 || true;
+                echo "--- site log"; sudo journalctl -u tura --no-pager -n 25 -o cat | grep -viE "secret|key|token|password|bearer" | tail -25 || true'
+      - if: always()
+        run: rm -f ~/.ssh/oracle
