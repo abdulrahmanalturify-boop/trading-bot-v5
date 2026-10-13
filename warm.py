@@ -2,16 +2,54 @@
 warm.py - Data kept ready in the background, so a visitor never waits for it (the home page's news reading, stories, movers,
 mood, indicators and heat map). Each piece is computed once for every visitor and kept in this server process; when it gets
 old, the next visitor still gets it at once while a fresh one is made in the background. A piece nobody has asked for yet is
-started at once and waited for; several pieces asked for together are made side by side.
+started at once and waited for; several pieces asked for together are made side by side. While visitors come (a piece asked
+for in the last two hours), a quiet thread keeps every such piece fresh, so even the first visitor after a quiet spell gets
+fresh data at once.
 """
 import sys
 import threading
 import time
 
-BUILD = "23.4.6"
+BUILD = "23.4.7"
 
 # kept on sys, so a reload of this module (a new version of the site) keeps what is ready
 _STATE = sys.__dict__.setdefault("_tura_warm", {"store": {}, "busy": {}, "lock": threading.Lock(), "events": {}})
+_STATE.setdefault("jobs", {})                    # key -> [fn, ttl, last time a visitor wanted it]
+_STATE.setdefault("failed", {})                  # key -> when making it last failed (not tried again for its ttl)
+KEEP = 2 * 3600                                  # a piece nobody has wanted for this long is no longer kept fresh
+
+
+def _want(key, fn, ttl, now=None):
+    with _STATE["lock"]:
+        _STATE["jobs"][key] = [fn, ttl, now or time.time()]
+    _loop_start()
+
+
+def _loop_start():
+    if _STATE.get("loop"):
+        return
+    _STATE["loop"] = True
+
+    def loop():
+        while True:
+            time.sleep(45)
+            now = time.time()
+            with _STATE["lock"]:
+                jobs = [(k, j[0], j[1]) for k, j in _STATE["jobs"].items() if now - j[2] < KEEP]
+                store, busy = dict(_STATE["store"]), set(_STATE["busy"])
+            for k, fn, ttl in jobs:
+                e = store.get(k)
+                if _failed_lately(k, ttl, now):
+                    continue
+                if k not in busy and (e is None or now - e["t"] > ttl):
+                    _start(k, fn)
+                    time.sleep(2)                 # one after another, not all at once
+    threading.Thread(target=loop, daemon=True, name="warm-keeper").start()
+
+
+def _failed_lately(key, ttl, now=None):
+    t = _STATE["failed"].get(key)
+    return t is not None and (now or time.time()) - t < max(ttl, 120)
 
 
 def _run(key, fn):
@@ -24,8 +62,11 @@ def _run(key, fn):
     with _STATE["lock"]:
         if val is not None:
             _STATE["store"][key] = {"t": time.time(), "v": val, "took": round(time.time() - t0, 2)}
-        elif key in _STATE["store"]:
-            _STATE["store"][key]["err"] = err
+            _STATE["failed"].pop(key, None)
+        else:
+            _STATE["failed"][key] = time.time()
+            if key in _STATE["store"]:
+                _STATE["store"][key]["err"] = err
         _STATE["busy"].pop(key, None)
         ev = _STATE["events"].pop(key, None)
     if ev:
@@ -48,6 +89,7 @@ def _start(key, fn):
 def get(key, fn, ttl, wait=150):
     """The piece key (made by fn, fresh for ttl seconds). Ready: returned at once (made again in the background when old).
     Not ready yet: started (if it isn't already) and waited for, up to wait seconds (None if it isn't done by then)."""
+    _want(key, fn, ttl)
     with _STATE["lock"]:
         e = _STATE["store"].get(key)
         busy = key in _STATE["busy"]
@@ -55,6 +97,8 @@ def get(key, fn, ttl, wait=150):
         if time.time() - e["t"] > ttl and not busy:
             _start(key, fn)
         return e["v"]
+    if _failed_lately(key, ttl):                     # it failed a moment ago: not asked again yet
+        return None
     ev = _start(key, fn)
     ev.wait(wait)
     with _STATE["lock"]:
@@ -62,14 +106,17 @@ def get(key, fn, ttl, wait=150):
     return e["v"] if e else None
 
 
-def prefetch(jobs):
-    """Start every piece of jobs ({key: (fn, ttl)}) that isn't ready or is old, side by side, without waiting."""
+def prefetch(jobs, want=True):
+    """Start every piece of jobs ({key: (fn, ttl)}) that isn't ready or is old, side by side, without waiting. want: a visitor
+    wants them (they are kept fresh while visitors come); False: made once ahead of time (another market's pieces)."""
     now = time.time()
     for key, (fn, ttl) in jobs.items():
+        if want:
+            _want(key, fn, ttl, now)
         with _STATE["lock"]:
             e = _STATE["store"].get(key)
             busy = key in _STATE["busy"]
-        if not busy and (e is None or now - e["t"] > ttl):
+        if not busy and (e is None or now - e["t"] > ttl) and not _failed_lately(key, ttl, now):
             _start(key, fn)
 
 

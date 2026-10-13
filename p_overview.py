@@ -618,6 +618,7 @@ def page_overview():
     ui.html('<span class="css-anchor"></span>\n' + home.CSS)
     t0 = time.time()
     warm.prefetch(_jobs(sa))                         # every piece the page needs, side by side, in the background
+    warm.prefetch(_jobs(not sa), want=False)         # and the other market's, once, so a switch to it opens at once
     px = _get(sa, "tiles") or {}
     PM.ticker_tape(px)
     ui.html(home.top_html(_chips(px, sa)))
@@ -649,4 +650,4 @@ def page_overview():
         print(f"[prof] page {'sa' if sa else 'us'} total {time.time() - t0:.2f}s", flush=True)
 
 
-BUILD = "23.4.6"
+BUILD = "23.4.7"
