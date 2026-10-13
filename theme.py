@@ -228,13 +228,29 @@ def _word(text, x, scale=1.0, y=0.0):
 NAME = "TURA"                # the site's name, drawn by brand() and written in titles as "TURA Pro"
 
 
-def brand(height="1em", p="bm", dot=False, pro="sup", color="#FFFFFF", cls="brand", label="TURA Pro"):
+# the mark's tubes (their outer edges), for setting it in the name as its T
+_TUBE = (1099.1 - _LW / 2, 563.5 - _LW / 2, 1582.0 + _LW / 2 - (1099.1 - _LW / 2), 1010.0 + _LW / 2 - (563.5 - _LW / 2))
+_MARK_GAP = 24                # between the mark's bar and the U, in grid units (the letters keep 26 between them)
+
+
+def brand(height="1em", p="bm", dot=False, pro="sup", color="#FFFFFF", cls="brand", label="TURA Pro", mark=None):
     """The site's name as line art. pro: 'sup' (small, raised, blue to cyan), 'inline' (same size, blue) or None.
     dot is kept for the callers that asked for the old leading 'A.' (the name is TURA now: nothing is added).
+    mark: 'dark' or 'light' sets the logo in the name as its T (the owner's word: no plain T beside the mark), the tubes exactly
+    as tall as the letters with their line, in that look's light; None: the name in letters only.
     height is any CSS length; the width follows."""
     x = _SW / 2
     first = ""
-    main, x = _word(NAME, x)
+    name = NAME
+    if mark:
+        tx, ty, tw, th = _TUBE
+        k = (100 + _SW) / th                                 # the tubes from the top of the letters' line to its foot
+        gx, gy, gw, gh = LOGO_GLOW_BOX
+        first = (f'<svg x="{(gx - tx) * k:.2f}" y="{-_SW / 2 + (gy - ty) * k:.2f}" width="{gw * k:.2f}" height="{gh * k:.2f}" '
+                 f'viewBox="{gx} {gy} {gw} {gh}" overflow="visible">{logo_parts(p + "k", **(DARK_LOOK if mark == "dark" else LIGHT_LOOK))}</svg>')
+        x = tw * k + _MARK_GAP
+        name = NAME[1:]
+    main, x = _word(name, x)
     tail = defs = ""
     if pro:
         x += 46 if pro == "sup" else 64
@@ -246,10 +262,12 @@ def brand(height="1em", p="bm", dot=False, pro="sup", color="#FFFFFF", cls="bran
                 f'</linearGradient></defs>')
         tail = f'<g stroke="url(#{p}g)">{tail}</g>'
     w, h = x + _SW / 2, 100 + _SW
-    st_ = f' style="height:{height};width:auto"' if height else ""
+    st_ = f'height:{height};width:auto;' if height else ""
+    st_ += "overflow:visible;" if mark else ""
+    st_ = f' style="{st_}"' if st_ else ""
     return (f'<svg class="{cls}" viewBox="0 {-_SW / 2:.0f} {w:.0f} {h:.0f}"{st_} role="img" '
             f'aria-label="{label}" fill="none" stroke-width="{_SW}" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="10">'
-            f'{defs}<g stroke="{color}">{first}{main}</g>{tail}</svg>')
+            f'{defs}{first}<g stroke="{color}">{main}</g>{tail}</svg>')
 
 
 def brand_box(p="bw"):
@@ -265,19 +283,22 @@ _MARK = f'<svg x="0" y="0" width="64" height="64" viewBox="{_GB}">{logo_parts("m
 LOGO_ICON = f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">{_MARK}</svg>'
 LOGO_ICON_LIGHT = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">'
                    f'<svg x="0" y="0" width="64" height="64" viewBox="{_GB}">{logo_parts("il", **LIGHT_LOOK)}</svg></svg>')
-_bw, _bh, _bs = brand_box("lw")
-_BH = 26                                     # height of the name inside the 64-high logo
-_BX = 66                                     # where the name starts (the tubes end at about 56)
+_BH = 30                                     # the letters' height inside the 64-high picture at the top of the side panel
+_BPAD = 17                                   # room on the left for the mark's light
 
 
 def logo_wordmark(light_look=False):
-    """The mark with its light and the name, for the top of the page. The light look: the mark with its neon and halo but without
-    the deep light behind it, a fainter shadow, and the name in dark ink."""
-    mark = (f'<svg x="0" y="0" width="64" height="64" viewBox="{_GB}">{logo_parts("ml", **LIGHT_LOOK)}</svg>' if light_look else _MARK)
-    name = LM.convert(_bs) if light_look else _bs
-    w = _BX + _bw * _BH / _bh + 6
-    return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w:.0f} 64" width="{w:.0f}" height="64">{mark}'
-            + name.replace('<svg class="brand"', f'<svg x="{_BX}" y="{32 - _BH / 2 + 1:.0f}" width="{_bw * _BH / _bh:.0f}" height="{_BH}"', 1)
+    """The name with the mark as its T, for the top of the side panel (a picture 64 high, the letters 30 high in the middle, the
+    mark's light kept inside). The light look: the mark with its neon and halo but without the deep light behind it, a fainter
+    shadow, and the name in dark ink."""
+    s = brand(None, "lw", mark="light" if light_look else "dark")
+    vb = s.split('viewBox="', 1)[1].split('"', 1)[0].split()
+    bw, bh = float(vb[2]), float(vb[3])
+    w = _BPAD + bw * _BH / bh + 8
+    name = LM.convert(s) if light_look else s
+    return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w:.0f} 64" width="{w:.0f}" height="64">'
+            + name.replace('<svg class="brand"', f'<svg x="{_BPAD}" y="{32 - _BH / 2:.0f}" width="{bw * _BH / bh:.0f}" height="{_BH}"', 1)
+            .replace(' style="overflow:visible;"', ' overflow="visible"', 1)
             + "</svg>")
 
 

@@ -44,7 +44,7 @@ CSS = f"""
 .cztop .czlogo {{ position:relative; display:flex; justify-content:center; align-items:center; gap:clamp(14px,1.8vw,28px); direction:ltr;
   margin-top:clamp(18px,3.4vw,58px); }}
 .cztop .czlogo svg.czmark {{ flex:none; width:clamp(62px,6.4vw,104px); height:auto; overflow:visible; }}   /* the mark brings its own light and shadow */
-.cztop .czlogo .brand {{ height:clamp(30px,4.4vw,64px); width:auto; max-width:66vw; filter:drop-shadow(0 0 16px rgba(91,140,255,.35)); }}
+.cztop .czlogo .brand {{ height:clamp(40px,5.4vw,82px); width:auto; max-width:78vw; overflow:visible; }}   /* the mark is the name's T */
 .cztop .cztag {{ position:relative; margin-top:18px; font-size:.8rem; font-weight:600; letter-spacing:.26em; text-transform:uppercase; color:#A69ED0; }}
 .cztop.ar .cztag {{ letter-spacing:0; font-size:.95rem; }}
 .cztop .czchips {{ position:relative; display:flex; justify-content:center; gap:10px; flex-wrap:wrap; margin-top:18px; direction:ltr; }}
@@ -303,7 +303,7 @@ def top_html(chips_html=""):
     chips = f'<div class="czchips">{chips_html}</div>' if chips_html else ""
     return (f'<div class="cztop{" ar" if ar else ""}"><div class="czline"></div>{_GLINT}'
             f'<div class="czghost" aria-hidden="true">{T.brand(None, "czgh", pro=None, color="rgba(150,170,255,.09)", label="")}</div>'
-            f'<div class="czlogo">{T.logo_mark("czlg", "czmark")}{T.brand(None, "czbr")}</div>'
+            f'<div class="czlogo">{T.brand(None, "czbr", mark="dark")}</div>'
             f'<div class="cztag">{tag}</div>{chips}{_ARC}</div>')
 
 
