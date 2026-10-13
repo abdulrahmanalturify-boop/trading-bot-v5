@@ -1457,7 +1457,46 @@ def font_pick(b, report):
     report["font_pick"] = out
 
 
+LIVE_AI = True       # a quick run: the AI chat window on the live sites (Streamlit Cloud and the Oracle server), as a visitor opens it
+
+
+def live_ai():
+    from playwright.sync_api import sync_playwright
+    report = {"live_ai": {}, "started": time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime())}
+    with sync_playwright() as p:
+        b = p.chromium.launch()
+        for name, base in (("cloud", LIVE_URL), ("oracle", "http://84.13.143.157")):
+            row = {}
+            ctx = b.new_context(viewport={"width": 1440, "height": 900}, locale="en-US", color_scheme="light", device_scale_factor=2)
+            pg = ctx.new_page()
+            t0 = time.time()
+            try:
+                pg.goto(base + "/stock?symbol=AAPL&lang=en", wait_until="domcontentloaded", timeout=150000)
+                pg.wait_for_selector('.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]', timeout=180000)
+                row["fab_s"] = round(time.time() - t0, 1)
+                time.sleep(4)
+                pg.locator('.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]').first.click(timeout=10000, force=True)
+                time.sleep(3)
+                row["new_window"] = pg.evaluate("() => !!document.querySelector('.ai-hello, div.st-key-alturaifi_ai_composer')")
+                row["old_window"] = pg.evaluate("() => !!document.querySelector('.ai-empty')")
+                row["build"] = pg.evaluate("() => { const t = document.body.innerText.match(/23\\.\\d+(\\.\\d+)?/); return t ? t[0] : null; }")
+                pg.screenshot(path=os.path.join(OUT, f"live_ai_{name}.jpg"), type="jpeg", quality=80)
+            except Exception as e:
+                row["error"] = str(e)[:300]
+                try:
+                    pg.screenshot(path=os.path.join(OUT, f"live_ai_{name}_error.jpg"), type="jpeg", quality=70)
+                except Exception:
+                    pass
+            report["live_ai"][name] = row
+            ctx.close()
+        b.close()
+    json.dump(report, open(os.path.join(OUT, "report.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+    return 0
+
+
 def main():
+    if LIVE_AI:
+        return live_ai()
     if LIVE_LOOK:
         return live_look()
     if LIVE:
