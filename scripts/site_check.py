@@ -1725,6 +1725,27 @@ def speed_probe():
         b = p.chromium.launch()
         for site, base in (("oracle", "http://84.13.143.157"), ("cloud", LIVE_URL)):
             out = report["speed"][site] = {}
+            ctx = b.new_context(viewport={"width": 1280, "height": 900})
+            pg = ctx.new_page()
+            try:                                          # the server's own report (diag.py)
+                pg.goto(base + "/?diag=1", wait_until="domcontentloaded", timeout=120000)
+                txt = None
+                for _ in range(150):
+                    for f in pg.frames:
+                        try:
+                            c = f.query_selector('[data-testid="stCode"] code, pre code')
+                            if c:
+                                txt = c.inner_text()
+                                break
+                        except Exception:
+                            pass
+                    if txt:
+                        break
+                    time.sleep(1)
+                out["diag"] = json.loads(txt) if txt else None
+            except Exception as e:
+                out["diag"] = {"error": str(e)[:200]}
+            ctx.close()
             for path, label in (("/?lang=en&m=us", "home_cold"), ("/?lang=en&m=us", "home_warm"), ("/stock?symbol=AAPL&lang=en", "stock"),
                                 ("/news?lang=en", "news"), ("/scanner?lang=en", "scanner"), ("/?lang=ar&m=sa", "home_sa")):
                 ctx = b.new_context(viewport={"width": 1440, "height": 900})
