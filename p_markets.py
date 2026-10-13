@@ -1179,7 +1179,7 @@ def summary_html_sa(px, mv, lists, lg):
     return f'<div class="msum{" rtl" if is_ar() else ""}">{top}<div class="msg">{"".join(tiles)}</div></div>'
 
 
-def stories_html(stories, lg, sa=False):
+def stories_html(stories, lg, sa=False, chg=None):
     """The top stories as cards, ranked by size (the first is the biggest): its photo, rank, headline, source and time, the
     importance score and its tags, the companies it moves with their change, and its full coverage. Shared by What's
     Trending and the home page."""
@@ -1189,7 +1189,8 @@ def stories_html(stories, lg, sa=False):
     titles = [n["title"] for n in stories]
     if is_ar():
         titles = data.translate(titles)
-    chg = (data.quick_changes(tick) if sa else data.changes(tick)) if tick else {}
+    if chg is None:
+        chg = (data.quick_changes(tick) if sa else data.changes(tick)) if tick else {}
     cards = []
     for i, (n, t) in enumerate(zip(stories, titles)):
         ch = ui.chips(n["tickers"], chg, lg) or f'<span class="muted">{L("Broad market", "السوق بشكل عام")}</span>'
@@ -1570,4 +1571,4 @@ def page_news():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.4.7"
+BUILD = "23.4.8"

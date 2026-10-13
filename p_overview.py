@@ -440,17 +440,33 @@ def _compute_heat(sa):
     return {(ukey, period, sizing): (df, source)}
 
 
+def _compute_stories(m, sa):
+    items = PM.top_stories(3, market=m)
+    tick = sorted({s_ for n in items for s_ in n["tickers"]})
+    chg = (data.quick_changes(tick) if sa else data.changes(tick)) if tick else {}
+    return {"items": items, "chg": chg}
+
+
+def _compute_summary():
+    px = PM._tile_prices()
+    mv, lists = warm.get("lists:us", lambda: _compute_lists(False), 300) or (pd.DataFrame(), {})
+    if not lists:
+        return None
+    return PM.summary_data(px, mv, lists)
+
+
 def _jobs(sa):
     """Everything the page needs, with how long each stays fresh (seconds)."""
     m = MK.SA if sa else MK.US
     jobs = {"tiles": (PM._tile_prices, 120),
             f"snap:{m}": (lambda: PNI.compute_snapshot(m, 24), 240),
-            f"stories:{m}": (lambda: PM.top_stories(3, market=m), 240),
+            f"stories:{m}": (lambda: _compute_stories(m, sa), 240),
             f"lists:{m}": (lambda: _compute_lists(sa), 300),
             f"fg:{m}": (lambda: PI.fg_now(m), 1800),
             f"heat:{m}": (lambda: _compute_heat(sa), 180)}
     if not sa:
         jobs["macro"] = (data.macro, 3600)
+        jobs["summary"] = (_compute_summary, 300)
     return jobs
 
 
@@ -485,8 +501,18 @@ class _Day:
             (pd.DataFrame(), {k: (pd.DataFrame(), True) for k in PM.LISTS})
         return self._one("lists", empty)
 
+    def _st(self):
+        v = self._one("stories", {})
+        return v if isinstance(v, dict) else {"items": v or [], "chg": None}      # (kept by an older version: the list alone)
+
     def stories(self):
-        return self._one("stories", [])
+        return self._st().get("items") or []
+
+    def story_chg(self):
+        return self._st().get("chg")
+
+    def summary(self):
+        return None if self.sa else self._one("summary", None)
 
     def fg(self):
         return self._one("fg", None)
@@ -528,7 +554,7 @@ def _top(d):
     ui.sec("newspaper", "Top 3 trending stories", "أهم 3 أخبار رائجة")
     stories = d.stories()
     if stories:
-        ui.html(PM.stories_html(stories, d.lg(), sa=d.sa))
+        ui.html(PM.stories_html(stories, d.lg(), sa=d.sa, chg=d.story_chg()))
     else:
         st.caption(L("No trending stories right now.", "لا توجد أخبار رائجة حالياً."))
 
@@ -550,7 +576,7 @@ def _news_and_summary(d):
     if d.sa:
         ui.html(PM.summary_html_sa(d.px, mv, lists, d.lg()))
     else:
-        ui.html(PM.summary_html(PM.summary_data(d.px, mv, lists), d.lg()))
+        ui.html(PM.summary_html(d.summary() or PM.summary_data(d.px, mv, lists), d.lg()))
 
 
 def _movers(d):
@@ -650,4 +676,4 @@ def page_overview():
         print(f"[prof] page {'sa' if sa else 'us'} total {time.time() - t0:.2f}s", flush=True)
 
 
-BUILD = "23.4.7"
+BUILD = "23.4.8"
