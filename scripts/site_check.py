@@ -1186,12 +1186,29 @@ def ov_check(b, report):
                     const at = document.elementFromPoint(r1.left + r1.width / 2, r1.top + r1.height / 2);
                     return {card: [r1.left, r1.top, r1.width, r1.height].map(Math.round), btn: [r2.left, r2.top, r2.width, r2.height].map(Math.round),
                             hit: at ? (at.tagName + '.' + (at.className || '').toString().slice(0, 40)) : null}; }""")
-                pg.locator('div.st-key-ovad_hunt button').first.click(timeout=8000, force=True)
+                card = pg.locator('div.st-key-ovad_hunt').first
+                card.scroll_into_view_if_needed(timeout=8000)
+                time.sleep(1)
+                bb = card.bounding_box()
+                row["hunt_box"] = bb
+                at = pg.evaluate(f"() => {{ const e = document.elementFromPoint({bb['x'] + bb['width'] / 2}, {bb['y'] + bb['height'] / 2}); return e ? e.tagName + '|' + (e.getAttribute('data-testid') || '') + '|' + (e.className || '').toString().slice(0, 50) : null; }}")
+                row["hunt_hit"] = at
+                pg.mouse.click(bb["x"] + bb["width"] / 2, bb["y"] + bb["height"] / 2)
                 for _ in range(20):
                     time.sleep(1)
                     if "scanner" in pg.url:
                         break
                 row["hunt_ad_goes"] = pg.url
+                pg.screenshot(path=os.path.join(OUT, "ov_after_hunt.jpg"), type="jpeg", quality=70)
+                if "scanner" not in pg.url:                 # an ordinary button on the page, for comparison
+                    b2 = pg.locator('div.st-key-ovmore button').first
+                    b2.scroll_into_view_if_needed(timeout=8000)
+                    b2.click(timeout=8000)
+                    for _ in range(20):
+                        time.sleep(1)
+                        if "trending" in pg.url:
+                            break
+                    row["trend_btn_goes"] = pg.url
         except Exception as e:
             row["error"] = str(e)[:400]
         row["js_errors"] = errs[:6]
