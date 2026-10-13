@@ -5,6 +5,9 @@ news, the market summary and the movers), the market's mood (fear and greed, the
 The site's tools are cards placed between the parts, like adverts in a magazine (one on the right, two on the left, ...).
 Replaces the landing ("Beyond investment") and the old overview.
 """
+import os
+import time
+
 import streamlit as st
 
 import data
@@ -20,6 +23,16 @@ import universe as U
 from i18n import L, is_ar
 
 ss = st.session_state
+_PROF = os.environ.get("TURA_PROFILE") == "1"       # the site check's speed run: how long each part of the page takes
+
+
+def _timed(label, fn, *a):
+    t0 = time.time()
+    try:
+        return fn(*a)
+    finally:
+        if _PROF:
+            print(f"[prof] {label} {time.time() - t0:.2f}s", flush=True)
 
 # ---------------------------------------------------------------- the tools, as adverts placed between the page's sections
 # (key, page, icon, tone, kicker, title, pitch, call to action). "ai" opens the chat window instead of a page.
@@ -346,7 +359,7 @@ def _available(key, sa):
 def _card(key, f, sa, wide=False):
     if key == "earn":                               # the next session's earnings (a card of the earnings calendar)
         with st.container(key="ovearn"):
-            got = ui.safe(PC.next_session_html, 8)
+            got = _timed("earnings", ui.safe, PC.next_session_html, 8)
             if got:
                 ui.html(f'<div class="ovearnh">{T.icon("event_upcoming")}{T.esc(L("Earnings next session", "أرباح الجلسة الجاية"))}</div>' + got)
                 st.button(L("Earnings calendar", "مواعيد الأرباح"), key="ovgo_earn", icon=":material/event_upcoming:", width="stretch",
@@ -529,26 +542,31 @@ def _markets(px, sa):
                 items.append(T.tile(name, val, chg, pct, px[sym]["Close"].tail(22).values, invert=(sym == "^VIX")))
             ui.html(T.tiles(items))
     if not sa:
-        ui.safe(PM.indicators_section, True)
+        _timed("indicators", ui.safe, PM.indicators_section, True)
 
 
 def page_overview():
     sa = MK.is_sa()
     ui.html('<span class="css-anchor"></span>\n' + CSS + PNI.CSS + PNI.CSS2)
     ui.html('<span class="css-anchor"></span>\n' + home.CSS)
-    px = PM._tile_prices()
+    t0 = time.time()
+    px = _timed("prices", PM._tile_prices)
     PM.ticker_tape(px)
     ui.html(home.top_html(_chips(px, sa)))
-    f = _facts()
+    f = _timed("facts", _facts)
     d = _Day(px, sa)
+    if _PROF:
+        for lab, fn in (("snapshot", d.snap), ("lists", d.lists), ("stories", d.stories), ("logos", d.lg)):
+            _timed(lab, fn)
     # the page as a magazine: the news across the page, then each part with tool cards beside it - one on the right, then
     # two on the left, one on the right, two on the left - and the last two side by side at the foot
     with st.container(key="ovpage"):
-        ui.safe(_top, d)
-        _with_ads("a", "right", ["ai"], f, sa, lambda: ui.safe(_news_and_summary, d))
-        _with_ads("b", "left", ["hunt", "bots"], f, sa, lambda: ui.safe(_movers, d))
-        _with_ads("c", "right", ["pf", "earn"], f, sa, lambda: (ui.safe(_mood, d.snap()), ui.safe(PM.heatmap_section)))
-        _with_ads("d", "left", ["robo", "academy"], f, sa, lambda: ui.safe(_markets, px, sa))
+        _timed("top", ui.safe, _top, d)
+        _timed("part a", _with_ads, "a", "right", ["ai"], f, sa, lambda: ui.safe(_news_and_summary, d))
+        _timed("part b", _with_ads, "b", "left", ["hunt", "bots"], f, sa, lambda: ui.safe(_movers, d))
+        _timed("part c", _with_ads, "c", "right", ["pf", "earn"], f, sa,
+               lambda: (_timed("mood", ui.safe, _mood, d.snap()), _timed("heatmap", ui.safe, PM.heatmap_section)))
+        _timed("part d", _with_ads, "d", "left", ["robo", "academy"], f, sa, lambda: ui.safe(_markets, px, sa))
         last = [k for k in ("xbots", "screener") if _available(k, sa)]
         if last:
             with st.container(key="ovfoot"):
@@ -562,6 +580,8 @@ def page_overview():
         st.caption(L("Prices from Yahoo Finance (may be delayed). The Saudi market trades Sunday to Thursday, 10 am to 3 pm Riyadh time.",
                      "الأسعار من Yahoo Finance (قد تكون متأخرة). السوق السعودي يتداول من الأحد للخميس، من 10 الصبح لين 3 العصر بتوقيت الرياض."))
     ui.foot()
+    if _PROF:
+        print(f"[prof] page {'sa' if sa else 'us'} total {time.time() - t0:.2f}s", flush=True)
 
 
 BUILD = "23.4.5"

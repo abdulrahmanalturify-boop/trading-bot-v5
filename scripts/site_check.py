@@ -1710,7 +1710,7 @@ def cloud_probe():
     return 0
 
 
-SPEED = True         # a quick run: how fast the live sites (Oracle and Streamlit Cloud) open, page by page, cold and warm
+SPEED = False        # a quick run: how fast the live sites (Oracle and Streamlit Cloud) open, page by page, cold and warm
 
 
 def speed_probe():
@@ -1790,7 +1790,29 @@ def speed_probe():
     return 0
 
 
+PROFILE_RUN = True   # a quick run: the home page on the test server, timed part by part (cold, warm, warm again, Saudi)
+
+
+def profile_run(b, report):
+    out = {}
+    for label, path in (("us_cold", "/?lang=en&m=us"), ("us_warm", "/?lang=en&m=us"), ("us_warm2", "/?lang=en&m=us"), ("sa_cold", "/?lang=ar&m=sa"),
+                        ("sa_warm", "/?lang=ar&m=sa")):
+        ctx = b.new_context(viewport={"width": 1440, "height": 900})
+        pg = ctx.new_page()
+        t0 = time.time()
+        try:
+            pg.goto(URL + path, wait_until="domcontentloaded", timeout=120000)
+            out[label] = {"settle_s": settle(pg, 300), "total_s": round(time.time() - t0, 1)}
+        except Exception as e:
+            out[label] = {"error": str(e)[:200]}
+        ctx.close()
+        time.sleep(2)
+    report["profile"] = out
+
+
 def main():
+    if PROFILE_RUN:
+        os.environ["TURA_PROFILE"] = "1"
     if SPEED:
         return speed_probe()
     if CLOUD_PROBE:
@@ -1807,7 +1829,7 @@ def main():
         seed_xbots()
     elif QUICK and XB_SEED == "resting":
         seed_resting()
-    if not QUICK and not SHARIA and not MENU_CHECK and not BOXV2 and not STYLE_PICK and not ORB_CHECK and not LOOK_LANG and not NEWS_FILTER and not FONT_PICK and not OV_CHECK and not LOGO_CHECK:
+    if not QUICK and not SHARIA and not MENU_CHECK and not BOXV2 and not STYLE_PICK and not ORB_CHECK and not LOOK_LANG and not NEWS_FILTER and not FONT_PICK and not OV_CHECK and not LOGO_CHECK and not PROFILE_RUN:
         news_lab()
     seed_bots()
     if QUICK and AUTH_DEMO:                     # made-up sign-in settings on the test server only: the Sign in button shows
@@ -1869,6 +1891,13 @@ def main():
             if LOOK_LANG:
                 try:
                     look_lang(b, report)
+                finally:
+                    json.dump(report, open(os.path.join(OUT, "report.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+                b.close()
+                return 0
+            if PROFILE_RUN:
+                try:
+                    profile_run(b, report)
                 finally:
                     json.dump(report, open(os.path.join(OUT, "report.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
                 b.close()
