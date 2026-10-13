@@ -1710,7 +1710,7 @@ def cloud_probe():
     return 0
 
 
-SPEED = True         # a quick run: how fast the live sites (Oracle and Streamlit Cloud) open, page by page, cold and warm
+SPEED = False        # a quick run: how fast the live sites (Oracle and Streamlit Cloud) open, page by page, cold and warm
 
 
 def speed_probe():
