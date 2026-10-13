@@ -1099,7 +1099,16 @@ def style_pick(b, report):
     report["style_pick"] = out
 
 
-ORB_CHECK = False     # a quick run: the AI button's sphere filmed resting and hovered (dark and light), its chat window, and on a phone
+ORB_CHECK = True      # a quick run: the AI button's sphere filmed resting and hovered (dark and light), its chat window, and on a phone
+
+
+Z_INFO = """() => { const zi = e => { for (; e && e !== document.body; e = e.parentElement) { const z = getComputedStyle(e).zIndex;
+    if (z !== 'auto') return z; } return 'auto'; };
+  const q = s => document.querySelector(s); const pb = q('[data-testid="stPopoverBody"]');
+  const all = [...document.querySelectorAll('.st-key-alturaifi_ai_fab *')].filter(e => { const r = e.getBoundingClientRect(); return r.width > 70 || r.height > 70; })
+    .map(e => (e.getAttribute('data-testid') || e.tagName) + ':' + Math.round(e.getBoundingClientRect().width) + 'x' + Math.round(e.getBoundingClientRect().height));
+  return {sidebar: zi(q('[data-testid="stSidebar"]')), fab: zi(q('.st-key-alturaifi_ai_fab')), canvas: (q('canvas.ai-neural') || {style: {}}).style.zIndex,
+          popover: pb ? zi(pb) : null, wide_inside_fab: all.slice(0, 8)}; }"""
 
 
 def orb_check(b, report):
@@ -1113,6 +1122,9 @@ def orb_check(b, report):
             time.sleep(3)
             f = pg.evaluate(FAB_INFO)["fab"]
             out[f"{look}_fab"] = f
+            out[f"{look}_z"] = pg.evaluate(Z_INFO)
+            pg.screenshot(path=os.path.join(OUT, f"orb_{look}_rest.jpg"), type="jpeg", quality=82)
+            pg.screenshot(path=os.path.join(OUT, f"orb_{look}_corner.png"), clip={"x": 0, "y": 900 - 240, "width": 420, "height": 240})
             out[f"{look}_canvas"] = pg.evaluate("""() => { const c = document.querySelector('canvas.ai-neural'); if (!c) return null; const r = c.getBoundingClientRect();
                 return {r: [Math.round(r.left), Math.round(r.top), Math.round(r.width)], op: c.style.opacity, w: c.width}; }""")
             clip = {"x": max(0, f[0] - 30), "y": f[1] - 40, "width": 300, "height": min(900 - (f[1] - 40), f[3] + 70)}
@@ -1128,6 +1140,7 @@ def orb_check(b, report):
             pg.mouse.move(1300, 300)
             time.sleep(0.5)
             pg.screenshot(path=os.path.join(OUT, f"orb_{look}_open.jpg"), type="jpeg", quality=80)
+            out[f"{look}_z_open"] = pg.evaluate(Z_INFO)
             out[f"{look}_head"] = pg.evaluate("() => !!document.querySelector('.ai-orb canvas.ai-neural')")
             out[f"{look}_problems"] = problems(pg)
         except Exception as e:

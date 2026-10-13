@@ -2182,12 +2182,6 @@ FX_JS = """<script>
     else if (navY - y > 10) { de.classList.remove('nav-tuck'); navY = y; }
   }, {passive: true, capture: true});
   every(function () {
-    // the AI button sits right of an open side panel (it was hidden under it on wide screens)
-    var sb = d.querySelector('[data-testid="stSidebar"]'), sbw = 0;
-    if (sb && w.innerWidth >= 1024 && sb.getAttribute('aria-expanded') !== 'false') {
-      var sr0 = sb.getBoundingClientRect(); if (sr0.right > 40 && sr0.width > 40) sbw = Math.round(sr0.right);
-    }
-    if (de.style.getPropertyValue('--sbw') !== sbw + 'px') de.style.setProperty('--sbw', sbw + 'px');
     if (!phone()) { if (de.classList.contains('nav-tuck')) de.classList.remove('nav-tuck'); return; }
     if (de.classList.contains('nav-tuck') && pageTop() < 140) de.classList.remove('nav-tuck');   // a new page opens at its top
     // a chart's title longer than the phone is wide: smaller until it fits (it ran past the edge; never under 10 px)
@@ -2732,7 +2726,7 @@ FX_JS = """<script>
   }
   every(scan, 800); scan();
 })();
-(function () {                                   // the AI button: a sphere of linked nodes, turning, with sparks running along its links
+(function () {                                   // the AI button: a fine wire sphere, turning, a faint current now and then
   var w = window.parent, d = w.document;
   var VER = '__VER__', KEY = '__alturaifiOrb';
   var OLD = w[KEY + 'Frame'];
@@ -2743,11 +2737,12 @@ FX_JS = """<script>
   var offs = [], live = true;
   w[KEY + 'Off'] = function () { live = false; offs.forEach(function (f) { try { f(); } catch (e) {} }); offs = []; };
   var still = w.matchMedia && w.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  // the nodes: evenly over a sphere (a golden spiral); every node linked to its three nearest
-  var N = 20, P = [], E = [], NB = [], seen = {};
+  // the nodes: evenly over a sphere (a golden spiral); every node linked to its three nearest. Only the wires are drawn:
+  // no glowing nodes, no drops, no glow inside the circle, the letters without a glow.
+  var N = 22, P = [], E = [], NB = [], seen = {};
   for (var i = 0; i < N; i++) {
     var y = 1 - 2 * (i + .5) / N, r = Math.sqrt(1 - y * y), a = i * 2.39996;
-    P.push({x: Math.cos(a) * r, y: y, z: Math.sin(a) * r, v: i % 6 === 3});
+    P.push({x: Math.cos(a) * r, y: y, z: Math.sin(a) * r});
     NB.push([]);
   }
   P.forEach(function (p, i) {
@@ -2758,121 +2753,131 @@ FX_JS = """<script>
       if (!seen[k]) { seen[k] = 1; E.push([i, j]); NB[i].push(j); NB[j].push(i); }
     });
   });
-  var DOTS = [];                                  // little drops drifting round the sphere
-  for (i = 0; i < 12; i++) DOTS.push({a: Math.random() * 6.28, s: (.25 + Math.random() * .5) * (i % 2 ? 1 : -1), r: 1.1 + Math.random() * .24,
-                                     t: (Math.random() - .5) * 1.4, z: .6 + Math.random() * 1.2, v: i % 3 === 0});
-  function Orb(cv) { this.cv = cv; this.ctx = cv.getContext('2d'); this.arcs = []; this.next = 0; this.hot = 0; this.S = 0; }
-  Orb.prototype.size = function (S, pad) {        // S: the circle's size; pad: room round it for the glow and the drops
+  // where the pointer is (the sphere leans towards it as it comes near)
+  var PX = -1e4, PY = -1e4;
+  function mv(e) { PX = e.clientX; PY = e.clientY; }
+  function gone() { PX = PY = -1e4; }
+  w.addEventListener('pointermove', mv, {passive: true}); d.addEventListener('pointerleave', gone, {passive: true});
+  offs.push(function () { w.removeEventListener('pointermove', mv); d.removeEventListener('pointerleave', gone); });
+  function Orb(cv) { this.cv = cv; this.ctx = cv.getContext('2d'); this.arcs = []; this.next = 1; this.hot = 0; this.S = 0;
+                     this.ang = Math.random() * 6.28; this.tx = 0; this.ty = 0; this.lt = 0; }
+  Orb.prototype.size = function (S, pad) {        // S: the circle's size; pad: room round it
     var k = Math.min(w.devicePixelRatio || 1, 3), T = S + 2 * pad;
     if (Math.abs(S - this.S) > .5 || this.k !== k || this.pad !== pad) {
       this.S = S; this.k = k; this.pad = pad; this.cv.width = Math.round(T * k); this.cv.height = Math.round(T * k);
       this.cv.style.width = T + 'px'; this.cv.style.height = T + 'px';
     }
   };
-  Orb.prototype.draw = function (t, hot) {
+  // hot: the pointer is on it or the chat is open (0..1); lean: [-1..1, -1..1] towards the pointer
+  Orb.prototype.draw = function (t, hot, lean) {
     var c = this.ctx, S = this.S, k = this.k, T = S + 2 * this.pad;
     if (!S) return;
+    var dt = Math.min(.1, Math.max(0, t - (this.lt || t))); this.lt = t;
     this.hot += ((hot ? 1 : 0) - this.hot) * .08;
-    var h = this.hot, R = S * .39, cx = T / 2, cy = T / 2;
+    var h = this.hot, R = S * .36, cx = T / 2, cy = T / 2;
+    lean = lean || [0, 0];
+    this.tx += (lean[0] - this.tx) * .08; this.ty += (lean[1] - this.ty) * .08;
+    if (!still) this.ang += dt * (.22 + .5 * h);
     c.setTransform(k, 0, 0, k, 0, 0);
     c.clearRect(0, 0, T, T);
-    var g = c.createRadialGradient(cx, cy, 0, cx, cy, T * .5);
-    g.addColorStop(0, 'rgba(34,211,238,' + (.2 + .16 * h) + ')'); g.addColorStop(.45, 'rgba(59,130,246,' + (.1 + .08 * h) + ')');
-    g.addColorStop(1, 'rgba(59,130,246,0)');
-    c.fillStyle = g; c.fillRect(0, 0, T, T);
-    var spin = still ? .6 : t * (.32 + .55 * h), tilt = .38, cs = Math.cos(spin), sn = Math.sin(spin), ct = Math.cos(tilt), st = Math.sin(tilt);
+    var spin = (still ? .6 : this.ang) + this.tx * .55, tilt = .38 + this.ty * .5;
+    var cs = Math.cos(spin), sn = Math.sin(spin), ct = Math.cos(tilt), st = Math.sin(tilt);
     var Q = P.map(function (p) {
       var x = p.x * cs - p.z * sn, z = p.x * sn + p.z * cs, y2 = p.y * ct - z * st, z2 = p.y * st + z * ct;
-      return {x: cx + x * R, y: cy + y2 * R, z: z2, v: p.v};
+      return {x: cx + x * R, y: cy + y2 * R, z: z2};
     });
-    c.lineCap = 'round';
-    c.lineWidth = S > 50 ? 1 : .8;
-    E.forEach(function (e) {
-      var a = Q[e[0]], b = Q[e[1]], f = ((a.z + b.z) / 2 + 1) / 2;
-      c.strokeStyle = 'rgba(56,189,248,' + Math.min(1, (.16 + .5 * f) * (1 + .3 * h)).toFixed(3) + ')';
-      c.beginPath(); c.moveTo(a.x, a.y); c.lineTo(b.x, b.y); c.stroke();
-    });
-    // the letters, between the back of the sphere and its front
+    c.lineCap = 'round'; c.lineJoin = 'round';
+    var lw = S > 50 ? .8 : .7;
+    function wires(front) {                        // the back half fainter than the front half
+      c.lineWidth = lw;
+      E.forEach(function (e) {
+        var a = Q[e[0]], b = Q[e[1]], z = (a.z + b.z) / 2;
+        if ((z >= 0) !== front) return;
+        var al = front ? .2 + .16 * z + .08 * h : .07 + .07 * (z + 1);
+        c.strokeStyle = 'rgba(165,196,240,' + al.toFixed(3) + ')';
+        c.beginPath(); c.moveTo(a.x, a.y); c.lineTo(b.x, b.y); c.stroke();
+      });
+    }
+    wires(false);
+    // the letters: crisp, between the back of the sphere and its front, no glow
     c.save();
-    c.font = '800 ' + Math.round(S * .33) + 'px ' + (w.getComputedStyle(d.body).fontFamily || 'sans-serif');
+    c.font = '700 ' + Math.round(S * .3) + 'px ' + (w.getComputedStyle(d.body).fontFamily || 'sans-serif');
     c.textAlign = 'center'; c.textBaseline = 'middle';
-    var tg = c.createLinearGradient(cx - S * .16, cy - S * .14, cx + S * .16, cy + S * .14);
-    tg.addColorStop(0, '#A5F3FC'); tg.addColorStop(.5, '#3B82F6'); tg.addColorStop(1, '#22D3EE');
-    c.shadowColor = 'rgba(34,211,238,.95)'; c.shadowBlur = 8 + 8 * h;
-    c.globalAlpha = .88;
-    c.fillStyle = tg; c.fillText('AI', cx, cy + S * .01);
+    var tg = c.createLinearGradient(cx, cy - S * .14, cx, cy + S * .14);
+    tg.addColorStop(0, '#FFFFFF'); tg.addColorStop(1, '#BFD7FF');
+    c.fillStyle = tg; c.fillText('AI', cx, cy + S * .012);
     c.restore();
-    // sparks: a few now and then, many while the pointer is on the button
+    wires(true);
+    // the current: one faint pulse now and then running along two or three wires (a few more while hovered), thin, no glow
+    if (h > .5 && this.next - t > .8) this.next = t + .1;   // the pointer just came on it: a current soon
     if (!still && t > this.next) {
-      for (var n = h > .5 ? 2 : 1; n > 0; n--) {
+      if (this.arcs.length < (h > .5 ? 3 : 1)) {
         var path = [Math.floor(Math.random() * N)];
-        for (var s = 0; s < (h > .5 ? 3 : 2) + Math.floor(Math.random() * (h > .5 ? 4 : 3)); s++) {
+        for (var s = 0; s < 2 + Math.floor(Math.random() * 2); s++) {
           var nb = NB[path[path.length - 1]].filter(function (x) { return path.indexOf(x) < 0; });
           if (!nb.length) break;
           path.push(nb[Math.floor(Math.random() * nb.length)]);
         }
-        this.arcs.push({p: path, b: t, l: .45 + Math.random() * .35});
+        if (path.length > 1) this.arcs.push({p: path, b: t, l: .9 + Math.random() * .5});
       }
-      this.next = t + (h > .5 ? .04 + Math.random() * .06 : .32 + Math.random() * .5);
+      this.next = t + (h > .5 ? .35 + Math.random() * .45 : 1.8 + Math.random() * 1.8);
     }
     this.arcs = this.arcs.filter(function (z) { return t - z.b < z.l; });
-    c.save();
-    c.shadowColor = '#22D3EE';
     this.arcs.forEach(function (z) {
-      var life = 1 - (t - z.b) / z.l, pts = [];
-      for (var q = 0; q < z.p.length - 1; q++) {
-        var a = Q[z.p[q]], b = Q[z.p[q + 1]], dx = b.x - a.x, dy = b.y - a.y, L = Math.sqrt(dx * dx + dy * dy) || 1;
-        for (var m = 0; m < 5; m++) {
-          var f = m / 5, j = (m === 0 ? 0 : (Math.random() - .5) * S * .1);
-          pts.push([a.x + dx * f - dy / L * j, a.y + dy * f + dx / L * j]);
+      var pts = [], L = [0];
+      for (var q = 0; q < z.p.length; q++) pts.push(Q[z.p[q]]);
+      for (q = 1; q < pts.length; q++) L.push(L[q - 1] + Math.hypot(pts[q].x - pts[q - 1].x, pts[q].y - pts[q - 1].y));
+      var tot = L[L.length - 1] || 1, u = (t - z.b) / z.l, ease = u * u * (3 - 2 * u);
+      var head = ease * (tot * 1.35), tail = head - tot * .35;
+      function at(D) {                             // the point at distance D along the path
+        D = Math.max(0, Math.min(tot, D));
+        for (var q = 1; q < L.length; q++) if (D <= L[q] || q === L.length - 1) {
+          var f = (D - L[q - 1]) / ((L[q] - L[q - 1]) || 1);
+          return [pts[q - 1].x + (pts[q].x - pts[q - 1].x) * f, pts[q - 1].y + (pts[q].y - pts[q - 1].y) * f];
         }
-        if (q === z.p.length - 2) pts.push([b.x, b.y]);
       }
-      c.beginPath(); pts.forEach(function (p, q) { if (q) c.lineTo(p[0], p[1]); else c.moveTo(p[0], p[1]); });
-      c.shadowBlur = 12; c.lineWidth = S > 50 ? 3.4 : 2.4; c.strokeStyle = 'rgba(56,200,248,' + (.62 * life).toFixed(3) + ')'; c.stroke();
-      c.shadowBlur = 5; c.lineWidth = S > 50 ? 1.4 : 1; c.strokeStyle = 'rgba(240,253,255,' + life.toFixed(3) + ')'; c.stroke();
-    });
-    c.restore();
-    // the nodes, back to front; the ends of a spark flare
-    var lit = {};
-    this.arcs.forEach(function (z) { z.p.forEach(function (q) { lit[q] = 1; }); });
-    Q.map(function (q, i) { return [q, i]; }).sort(function (a, b) { return a[0].z - b[0].z; }).forEach(function (e) {
-      var q = e[0], f = (q.z + 1) / 2, on = lit[e[1]];
-      c.save();
-      c.shadowColor = q.v ? '#C084FC' : '#22D3EE'; c.shadowBlur = on ? 12 : 6 + 4 * h;
-      c.fillStyle = q.v ? 'rgba(200,140,255,' + (.5 + .5 * f).toFixed(3) + ')' : (on ? '#F0FDFF' : 'rgba(103,232,249,' + (.45 + .55 * f).toFixed(3) + ')');
-      c.beginPath(); c.arc(q.x, q.y, S * (.02 + .024 * f) * (on ? 1.3 : 1), 0, 6.283); c.fill();
-      c.restore();
-    });
-    DOTS.forEach(function (o, n) {                 // drops of glass drifting round it: some small beads, some little rings
-      var a = o.a + (still ? 0 : t * o.s), x = Math.cos(a) * R * o.r, y = Math.sin(a) * R * o.r * Math.cos(o.t) * .9, z = Math.sin(a) * Math.sin(o.t);
-      var al = (.35 + .4 * (z + 1) / 2) * (1 + .3 * h), col = o.v ? '200,140,255,' : '125,211,252,';
-      c.beginPath(); c.ellipse(cx + x, cy + y, S * .016 * o.z, S * .009 * o.z, a + 1.2, 0, 6.283);
-      if (n % 3 === 1) { c.lineWidth = .9; c.strokeStyle = 'rgba(' + col + Math.min(1, al).toFixed(3) + ')'; c.stroke(); }
-      else { c.fillStyle = 'rgba(' + col + Math.min(1, al).toFixed(3) + ')'; c.fill(); }
+      var n = 9, fade = Math.sin(Math.PI * Math.min(1, u * 1.15));
+      for (var m = 0; m < n; m++) {                // drawn as short pieces, brighter towards the head, a hair of a flicker
+        var d0 = tail + (head - tail) * m / n, d1 = tail + (head - tail) * (m + 1) / n;
+        if (d1 <= 0 || d0 >= tot) continue;
+        var A = at(d0), B = at(d1), jit = (Math.random() - .5) * S * .004;
+        c.strokeStyle = 'rgba(214,236,255,' + (.85 * fade * Math.pow((m + 1) / n, 1.4)).toFixed(3) + ')';
+        c.lineWidth = lw + .45;
+        c.beginPath(); c.moveTo(A[0], A[1] + jit); c.lineTo(B[0], B[1] - jit); c.stroke();
+      }
     });
   };
   // the button's sphere floats over it (the button belongs to Streamlit); the chat window's small one sits inside its circle
   var big = d.createElement('canvas');
   big.className = 'ai-neural'; big.setAttribute('aria-hidden', 'true');
-  big.style.cssText = 'position:fixed;left:0;top:0;width:0;height:0;pointer-events:none;z-index:99991;opacity:0;transition:opacity .2s ease';
+  big.style.cssText = 'position:fixed;left:0;top:0;width:0;height:0;pointer-events:none;z-index:999993;opacity:0;transition:opacity .2s ease';
   d.body.appendChild(big);
   offs.push(function () { big.remove(); });
   var orbs = [new Orb(big)], small = null, fr = 0, op = 1, last = 0;
   function frame(ms) {
     if (!live) return;
     w.requestAnimationFrame(frame);
-    if (ms - last < 24) return;                    // about 40 frames a second
+    var btn = d.querySelector('.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]');
+    var hot = !!btn && (btn.matches(':hover') || btn.getAttribute('aria-expanded') === 'true');
+    if (ms - last < (hot ? 24 : 32)) return;       // about 40 frames a second while in use, 30 at rest
     last = ms;
-    var t = ms / 1000, btn = d.querySelector('.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]');
+    var t = ms / 1000;
     if (!btn) { big.style.opacity = '0'; } else {
       var r = btn.getBoundingClientRect();
-      if (fr++ % 6 === 0) { var f = d.querySelector('.st-key-alturaifi_ai_fab'); op = f ? parseFloat(w.getComputedStyle(f).opacity) : 1; }
-      var S0 = Math.round(Math.min(r.width, r.height)), pad = Math.round(S0 * .2);
+      if (fr++ % 6 === 0) {
+        var f = d.querySelector('.st-key-alturaifi_ai_fab'), cs = f ? w.getComputedStyle(f) : null;
+        op = cs ? parseFloat(cs.opacity) : 1;
+        var z = cs ? (parseInt(cs.zIndex, 10) || 999992) + 1 : 999993;
+        if (big.style.zIndex !== z + '') big.style.zIndex = z + '';
+      }
+      var S0 = Math.round(Math.min(r.width, r.height)), pad = Math.round(S0 * .1);
       big.style.left = (r.left + r.width / 2 - S0 / 2 - pad) + 'px'; big.style.top = (r.top + r.height / 2 - S0 / 2 - pad) + 'px';
       big.style.opacity = (r.width ? op : 0) + '';
+      // the lean: towards the pointer within about 260 px of the button, strongest close to it
+      var bx = r.left + r.width / 2, by = r.top + r.height / 2, dx = PX - bx, dy = PY - by, dist = Math.hypot(dx, dy);
+      var near = Math.max(0, 1 - dist / 260), lean = dist > 0 ? [dx / dist * near, dy / dist * near] : [0, 0];
       orbs[0].size(S0, pad);
-      orbs[0].draw(t, btn.matches(':hover') || btn.getAttribute('aria-expanded') === 'true');
+      orbs[0].draw(t, hot, lean);
     }
     var head = d.querySelector('.ai-orb');
     if (head) {
@@ -2883,7 +2888,7 @@ FX_JS = """<script>
         head.appendChild(hc); small = new Orb(hc);
       } else if (!small || small.cv !== hc) small = new Orb(hc);
       small.size(head.clientWidth || 44, 0);
-      small.draw(t, true);
+      small.draw(t, false);
     }
   }
   w.requestAnimationFrame(frame);
@@ -3556,4 +3561,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.3.11"
+BUILD = "23.3.12"
