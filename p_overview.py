@@ -277,15 +277,15 @@ def page_overview():
     PM.ticker_tape(px)
     ui.html(home.top_html(_chips(px, sa)))
     main, side = st.columns([2.75, 1], gap="large")
+    with side:                                      # the tools first: they show at once while the page's data comes in
+        with st.container(key="ovrail"):
+            _rail(sa)
     with main:
         with st.container(key="ovmain"):
             snap = ui.safe(_trending, px, sa)
             ui.safe(_mood, snap)
             ui.safe(PM.heatmap_section)
             ui.safe(_markets, px, sa)
-    with side:
-        with st.container(key="ovrail"):
-            _rail(sa)
     if sa:
         st.caption(L("Prices from Yahoo Finance (may be delayed). The Saudi market trades Sunday to Thursday, 10 am to 3 pm Riyadh time.",
                      "الأسعار من Yahoo Finance (قد تكون متأخرة). السوق السعودي يتداول من الأحد للخميس، من 10 الصبح لين 3 العصر بتوقيت الرياض."))
