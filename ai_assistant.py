@@ -122,7 +122,10 @@ div[class*="st-key-alturaifi_ai_asst_"] code{{background:{c['code']}!important;b
 div[class*="st-key-alturaifi_ai_asst_"] strong{{color:{c['text']}}}
 div.st-key-alturaifi_ai_composer{{padding:5px;padding-inline-start:8px;border-radius:17px;background:{c['inp']};border:1px solid {c['line']};transition:border-color .2s ease,box-shadow .25s ease}}
 div.st-key-alturaifi_ai_composer:focus-within{{border-color:{c['acc']};box-shadow:0 0 0 4px {c['accs']}}}
-div.st-key-alturaifi_ai_composer [data-testid="stHorizontalBlock"]{{gap:6px!important;align-items:center}}
+div.st-key-alturaifi_ai_composer [data-testid="stHorizontalBlock"],{P} [data-testid="stHorizontalBlock"]:has(div.st-key-alturaifi_ai_new){{flex-wrap:nowrap!important;gap:6px!important;align-items:center}}
+div.st-key-alturaifi_ai_composer [data-testid="stColumn"]:first-child{{flex:1 1 0!important;min-width:0!important;width:auto!important}}
+div.st-key-alturaifi_ai_composer [data-testid="stColumn"]:last-child{{flex:0 0 auto!important;min-width:40px!important;width:auto!important}}
+{P} [data-testid="stHorizontalBlock"]:has(div.st-key-alturaifi_ai_new) [data-testid="stColumn"]{{min-width:0!important;width:auto!important}}
 div.st-key-alturaifi_ai_prompt [data-testid="stTextInputRootElement"],div.st-key-alturaifi_ai_prompt [data-testid="stTextInputRootElement"]:hover,div.st-key-alturaifi_ai_prompt [data-testid="stTextInputRootElement"]:focus-within,div.st-key-alturaifi_ai_prompt [data-baseweb="input"],div.st-key-alturaifi_ai_prompt [data-baseweb="input"]:hover,div.st-key-alturaifi_ai_prompt [data-baseweb="input"]:focus-within,div.st-key-alturaifi_ai_prompt [data-baseweb="base-input"]{{background:transparent!important;border-color:transparent!important;box-shadow:none!important}}
 div.st-key-alturaifi_ai_prompt [data-testid="InputInstructions"]{{display:none!important}}
 div.st-key-alturaifi_ai_prompt input{{min-height:40px!important;padding-inline:4px!important;background:transparent!important;color:{c['text']}!important;font-size:13.5px!important;caret-color:{c['acc']}}}
@@ -328,7 +331,7 @@ def render(page_path="",page_title="",symbol="",lang="en"):
                         for i,(text,ic) in enumerate(zip(quicks,icons)):
                             st.button(text,key=f"alturaifi_ai_quick_{i}",icon=ic,width="stretch",on_click=submit,args=(text,ctx,lang))
                 else:
-                    with st.container(height=330,border=False,key="alturaifi_ai_hist"):
+                    with st.container(border=False,key="alturaifi_ai_hist"):
                         for i,m in enumerate(msgs[-12:]):
                             with st.container(key=f"alturaifi_ai_{'user' if m.get('role')=='user' else 'asst'}_{i}"): st.markdown(str(m.get("content") or ""))
                 with st.container(key="alturaifi_ai_composer"):
