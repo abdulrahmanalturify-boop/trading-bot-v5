@@ -1710,7 +1710,68 @@ def cloud_probe():
     return 0
 
 
+SPEED = True         # a quick run: how fast the live sites (Oracle and Streamlit Cloud) open, page by page, cold and warm
+
+
+def speed_probe():
+    from playwright.sync_api import sync_playwright
+    report = {"speed": {}, "started": time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime())}
+    MARKS = {"fab": ".st-key-alturaifi_ai_fab", "hero": ".cztop", "breaking": ".nie-brk", "stories": ".stories", "ad": ".ovad",
+             "summary": ".msum", "movers": ".mcard", "mood": ".nie-gauge", "heat": ".js-plotly-plot", "landing": ".ixp"}
+    js = "() => { const r = {}; " + " ".join(f"r['{k}'] = !!document.querySelector('{v}');" for k, v in MARKS.items()) + \
+         " r.build = (document.querySelector('.css-anchor[data-build]') || {getAttribute: () => null}).getAttribute('data-build');" \
+         " r.running = !!document.querySelector('[data-testid=\"stStatusWidget\"]'); r.skel = document.querySelectorAll('[data-testid=\"stSkeleton\"]').length; return r; }"
+    with sync_playwright() as p:
+        b = p.chromium.launch()
+        for site, base in (("oracle", "http://84.13.143.157"), ("cloud", LIVE_URL)):
+            out = report["speed"][site] = {}
+            for path, label in (("/?lang=en&m=us", "home_cold"), ("/?lang=en&m=us", "home_warm"), ("/stock?symbol=AAPL&lang=en", "stock"),
+                                ("/news?lang=en", "news"), ("/scanner?lang=en", "scanner"), ("/?lang=ar&m=sa", "home_sa")):
+                ctx = b.new_context(viewport={"width": 1440, "height": 900})
+                pg = ctx.new_page()
+                row, seen, t0 = {"t": []}, {}, time.time()
+                try:
+                    pg.goto(base + path, wait_until="domcontentloaded", timeout=120000)
+                    row["html_s"] = round(time.time() - t0, 1)
+                    calm = 0
+                    while time.time() - t0 < 240:
+                        fr = None
+                        for f in pg.frames:
+                            try:
+                                if f.query_selector('[data-testid="stAppViewContainer"]'):
+                                    fr = f
+                                    break
+                            except Exception:
+                                pass
+                        if fr:
+                            try:
+                                st_ = fr.evaluate(js)
+                            except Exception:
+                                st_ = {}
+                            for k, v in st_.items():
+                                if v is True and k not in seen and k != "running":
+                                    seen[k] = round(time.time() - t0, 1)
+                            row["build"] = st_.get("build") or row.get("build")
+                            calm = 0 if (st_.get("running") or st_.get("skel")) else calm + 1
+                            if calm >= 4 and time.time() - t0 > 6:
+                                break
+                        time.sleep(1)
+                    row["done_s"] = round(time.time() - t0, 1)
+                    row["seen"] = seen
+                    pg.screenshot(path=os.path.join(OUT, f"speed_{site}_{label}.jpg"), type="jpeg", quality=60)
+                except Exception as e:
+                    row["error"] = str(e)[:200]
+                row.pop("t", None)
+                out[label] = row
+                ctx.close()
+        b.close()
+    json.dump(report, open(os.path.join(OUT, "report.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+    return 0
+
+
 def main():
+    if SPEED:
+        return speed_probe()
     if CLOUD_PROBE:
         return cloud_probe()
     if LIVE_BUILD:
