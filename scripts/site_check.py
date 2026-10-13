@@ -1457,7 +1457,7 @@ def font_pick(b, report):
     report["font_pick"] = out
 
 
-LIVE_AI = True       # a quick run: the AI chat window on the live sites (Streamlit Cloud and the Oracle server), as a visitor opens it
+LIVE_AI = False      # a quick run: the AI chat window on the live sites (Streamlit Cloud and the Oracle server), as a visitor opens it
 
 
 def live_ai():
