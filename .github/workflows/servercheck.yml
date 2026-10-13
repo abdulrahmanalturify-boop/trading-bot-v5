@@ -1,0 +1,74 @@
+# By hand: the site on its own server (Oracle Cloud) opened from GitHub's server, as a visitor sees it: does it answer, how fast,
+# and is the smart reading on (its secrets in place). The report and pictures go to the branch "server-check" (replaced each run).
+name: server check
+on:
+  workflow_dispatch:
+    inputs:
+      address:
+        description: "the server's address"
+        default: "http://84.8.123.74"
+permissions:
+  contents: write
+concurrency:
+  group: server-check
+  cancel-in-progress: true
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: the server answers
+        run: |
+          mkdir -p /tmp/sv
+          A="${{ github.event.inputs.address }}"
+          { echo "address: $A"; for i in 1 2 3; do curl -s -o /dev/null -m 20 -w "health: %{http_code} in %{time_total}s\n" "$A/_stcore/health"; done;
+            curl -s -o /dev/null -m 30 -w "home page: %{http_code} in %{time_total}s\n" "$A/"; } | tee /tmp/sv/report.txt
+      - name: pictures of the site
+        if: always()
+        run: |
+          python3 -m venv /tmp/pw && /tmp/pw/bin/pip install -q playwright && /tmp/pw/bin/python -m playwright install --with-deps chromium > /dev/null
+          A="${{ github.event.inputs.address }}" /tmp/pw/bin/python - <<'EOF'
+          import os, time
+          from playwright.sync_api import sync_playwright
+          A = os.environ["A"].rstrip("/")
+          out = open("/tmp/sv/report.txt", "a")
+          with sync_playwright() as p:
+              b = p.chromium.launch()
+              for name, path, kw in (("desk_news", "/news?m=sa&lang=ar", dict(viewport={"width": 1440, "height": 900})),
+                                     ("phone_home", "/?m=sa&lang=ar", dict(viewport={"width": 390, "height": 844}, is_mobile=True, has_touch=True,
+                                                                        device_scale_factor=2))):
+                  try:
+                      pg = b.new_page(locale="ar-SA", **kw)
+                      t0 = time.time()
+                      pg.goto(A + path, wait_until="domcontentloaded", timeout=90000)
+                      for _ in range(90):
+                          if pg.evaluate("() => !!document.querySelector('h1')") and \
+                             not pg.evaluate("() => !!document.querySelector('[data-testid=\"stStatusWidget\"]')"):
+                              break
+                          time.sleep(1)
+                      out.write(f"{name}: drawn in {time.time() - t0:.1f}s\n")
+                      time.sleep(3)
+                      if name == "desk_news":
+                          try:
+                              pg.locator('[data-testid="stExpander"] summary', has_text="مصادر الأخبار").first.click(timeout=8000)
+                              time.sleep(1.5)
+                              t = pg.evaluate("() => (document.querySelector('.aibar') || {}).innerText || ''")
+                              out.write("smart reading: " + t.replace("\n", " ")[:200] + "\n")
+                          except Exception as e:
+                              out.write(f"smart reading: not found ({str(e)[:80]})\n")
+                      pg.screenshot(path=f"/tmp/sv/{name}.jpg", type="jpeg", quality=70)
+                  except Exception as e:
+                      out.write(f"{name}: error {str(e)[:200]}\n")
+              b.close()
+          out.close()
+          EOF
+          cat /tmp/sv/report.txt
+      - if: always()
+        run: |
+          cd /tmp/sv
+          git init -q -b server-check
+          git config user.name "server-check"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "server check $(date -u +%Y-%m-%dT%H:%MZ) [skip ci]"
+          git push -q -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" server-check:server-check
