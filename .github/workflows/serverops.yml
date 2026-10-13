@@ -17,7 +17,7 @@ on:
         description: "the server's IP"
         default: "84.13.143.157"
 permissions:
-  contents: read
+  contents: write
 concurrency:
   group: server-ops
   cancel-in-progress: false
@@ -36,7 +36,16 @@ jobs:
           umask 077; mkdir -p ~/.ssh
           printf '%s\n' "$KEY" | tr -d '\r' > ~/.ssh/oracle
           chmod 600 ~/.ssh/oracle
-          ssh -i ~/.ssh/oracle -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 ubuntu@${{ github.event.inputs.host }} 'echo "connected to $(hostname) as $(whoami)"'
+          mkdir -p /tmp/ops
+          # what kind of key this is (its first line only; never its content) and how the connection goes
+          { echo "key: $(head -1 ~/.ssh/oracle | cut -c1-40) ... ($(wc -l < ~/.ssh/oracle) lines)";
+            ssh-keygen -y -f ~/.ssh/oracle > /dev/null 2>&1 && echo "key: a valid private key" || echo "key: NOT a usable private key";
+            nc -z -w 10 ${{ github.event.inputs.host }} 22 && echo "port 22: open" || echo "port 22: closed or filtered"; } | tee /tmp/ops/report.txt
+          if ! ssh -v -i ~/.ssh/oracle -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 -o BatchMode=yes ubuntu@${{ github.event.inputs.host }} \
+               'echo "connected to $(hostname) as $(whoami)"' 2> /tmp/ops/ssh.txt | tee -a /tmp/ops/report.txt; then
+            grep -E "Connecting|Connection|Authenticat|Offering|Server accepts|denied|Permission|no mutual|load pubkey|identity file" /tmp/ops/ssh.txt | head -20 | tee -a /tmp/ops/report.txt
+            exit 1
+          fi
       - name: ${{ github.event.inputs.action }}
         env:
           SECRETS: ${{ secrets.STREAMLIT_SECRETS }}
@@ -45,6 +54,7 @@ jobs:
         run: |
           set -euo pipefail
           SSH="ssh -i $HOME/.ssh/oracle -o ConnectTimeout=20 ubuntu@$HOST"
+          exec > >(tee -a /tmp/ops/report.txt) 2>&1
           case "$ACTION" in
             restart)
               $SSH 'sudo systemctl restart tura && echo "site restarted"' ;;
@@ -63,4 +73,12 @@ jobs:
                 echo "--- last updates"; sudo journalctl -u tura-update --no-pager -n 6 -o cat | grep -v "^$" | tail -6 || true;
                 echo "--- site log"; sudo journalctl -u tura --no-pager -n 25 -o cat | grep -viE "secret|key|token|password|bearer" | tail -25 || true'
       - if: always()
-        run: rm -f ~/.ssh/oracle
+        run: |
+          rm -f ~/.ssh/oracle /tmp/ops/ssh.txt
+          cd /tmp/ops 2>/dev/null || exit 0
+          git init -q -b server-ops
+          git config user.name "server-ops"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "server ops ${{ github.event.inputs.action }} $(date -u +%Y-%m-%dT%H:%MZ) [skip ci]"
+          git push -q -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" server-ops:server-ops
