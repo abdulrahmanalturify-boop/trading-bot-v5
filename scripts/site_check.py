@@ -1644,7 +1644,75 @@ def live_build():
     return 0
 
 
+CLOUD_PROBE = True   # a quick run: which version Streamlit Cloud serves (waking it up when it sleeps), with pictures
+
+
+def cloud_probe():
+    from playwright.sync_api import sync_playwright
+    report = {"cloud": {"steps": []}, "started": time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime())}
+    row = report["cloud"]
+    with sync_playwright() as p:
+        b = p.chromium.launch()
+        ctx = b.new_context(viewport={"width": 1280, "height": 860})
+        pg = ctx.new_page()
+        t0 = time.time()
+        try:
+            pg.goto(LIVE_URL + "/?lang=en", wait_until="domcontentloaded", timeout=120000)
+        except Exception as e:
+            row["steps"].append(["goto", str(e)[:120]])
+        build, woke = None, False
+        while time.time() - t0 < 600:
+            time.sleep(6)
+            try:
+                txt = pg.evaluate("() => document.body ? document.body.innerText.slice(0, 400) : ''")
+            except Exception:
+                txt = ""
+            fr = None
+            for f in pg.frames:                        # Streamlit Cloud draws the app inside a frame
+                try:
+                    if f.query_selector(".css-anchor[data-build]") or f.query_selector('[data-testid="stAppViewContainer"]'):
+                        fr = f
+                        break
+                except Exception:
+                    pass
+            if not woke:
+                for f in pg.frames:
+                    try:
+                        btn = f.query_selector("button:has-text('get this app back up'), button:has-text('Yes, get this app back up')")
+                        if btn:
+                            btn.click()
+                            woke = True
+                            row["steps"].append([round(time.time() - t0), "woke it up"])
+                            break
+                    except Exception:
+                        pass
+            if fr:
+                try:
+                    build = fr.evaluate("() => { const a = document.querySelector('.css-anchor[data-build]'); return a ? a.getAttribute('data-build') : null; }")
+                    ver = fr.evaluate("() => { const m = document.body.innerText.match(/version \\d+\\.\\d+(\\.\\d+)?/i); return m ? m[0] : null; }")
+                    new_home = fr.evaluate("() => !!document.querySelector('div.st-key-ovpage, div.st-key-ovrail')")
+                    landing = fr.evaluate("() => !!document.querySelector('.ixp')")
+                except Exception:
+                    build = ver = new_home = landing = None
+                row["steps"].append([round(time.time() - t0), "app", build, ver, new_home, landing])
+                if build or new_home or landing:
+                    break
+            else:
+                row["steps"].append([round(time.time() - t0), "page", txt.replace("\n", " ")[:160]])
+        row["build"] = build
+        try:
+            time.sleep(5)
+            pg.screenshot(path=os.path.join(OUT, "cloud.jpg"), type="jpeg", quality=70)
+        except Exception:
+            pass
+        b.close()
+    json.dump(report, open(os.path.join(OUT, "report.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+    return 0
+
+
 def main():
+    if CLOUD_PROBE:
+        return cloud_probe()
     if LIVE_BUILD:
         return live_build()
     if LIVE_AI:
