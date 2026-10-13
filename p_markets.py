@@ -1177,6 +1177,49 @@ def summary_html_sa(px, mv, lists, lg):
     return f'<div class="msum{" rtl" if is_ar() else ""}">{top}<div class="msg">{"".join(tiles)}</div></div>'
 
 
+def stories_html(stories, lg, sa=False):
+    """The top stories as cards, ranked by size (the first is the biggest): its photo, rank, headline, source and time, the
+    importance score and its tags, the companies it moves with their change, and its full coverage. Shared by What's
+    Trending and the home page."""
+    if not stories:
+        return ""
+    tick = sorted({s_ for n in stories for s_ in n["tickers"]})
+    titles = [n["title"] for n in stories]
+    if is_ar():
+        titles = data.translate(titles)
+    chg = (data.quick_changes(tick) if sa else data.changes(tick)) if tick else {}
+    cards = []
+    for i, (n, t) in enumerate(zip(stories, titles)):
+        ch = ui.chips(n["tickers"], chg, lg) or f'<span class="muted">{L("Broad market", "السوق بشكل عام")}</span>'
+        iq = n.get("iq")
+        score = ""
+        if iq:
+            bg, fg, bd = newsiq.colors(iq["score"])
+            score = f'<span class="iqs" style="background:{bg};color:{fg};border-color:{bd}">{iq["score"]}/10 · {T.esc(L(*newsiq.level(iq["score"])))}</span>'
+        cards.append(f'<div class="story r{i + 1}{" rtl" if is_ar() else ""}">{T.news_thumb(n, big=True)}<div class="rank">0{i + 1}</div>'
+                     f'<a class="t nogq" href="{T.esc(n["link"])}" target="_blank">{T.esc(t)}</a>'
+                     f'<div class="muted" style="font-size:.78rem;margin-top:6px">{T.esc(n["source"])} · {T.time_ago(n["time"], is_ar())}</div>'
+                     f'<div style="margin-top:8px">{score}</div>' + (T.kw_chips(iq, is_ar(), 3) if iq else "") +
+                     f'<div class="aff"><span class="lbl" style="width:100%">{L("Affected companies", "الشركات المتأثرة")}</span>{ch}</div>'
+                     + T.coverage(n, is_ar()) + '</div>')
+    return f'<div class="stories n{len(cards)}">' + "".join(cards) + "</div>"
+
+
+def movers_grid(lists, lg, sa=False):
+    """Movers at a glance: six cards of six companies (gainers, losers, the most traded, ...), in two rows of three."""
+    spec = SA_LISTS if sa else LISTS
+    keys = list(spec)
+    for i, row in enumerate((keys[:3], keys[3:])):
+        with st.container(key=f"mvrow_{i}"):
+            cols = st.columns(3)
+        for col, kind in zip(cols, row):
+            df = lists[kind] if sa else lists[kind][0]
+            en, ar, ic = spec[kind]
+            body = (ui.row_list(df.head(6), lg, show_vol=kind == "volume") if sa else ui.row_list(df.head(6), lg)) if not df.empty \
+                else f'<div class="muted">{L("No data", "لا بيانات")}</div>'
+            col.markdown(f'<div class="mcard"><div class="hd">{T.icon(ic)}<span>{T.esc(L(en, ar))}</span></div>{body}</div>', unsafe_allow_html=True)
+
+
 def page_trending_sa():
     ui.header("local_fire_department", "What's Trending · Saudi Market", "الأكثر رواجاً · السوق السعودي",
               "Today's most important Saudi stories, the biggest movers of the main market, the most traded and the unusual volumes, and a "
@@ -1191,25 +1234,7 @@ def page_trending_sa():
     tick = sorted({s_ for n in stories for s_ in n["tickers"]})
     lg = data.logos(list(dict.fromkeys(all_syms + tick)))
     if stories:
-        titles = [n["title"] for n in stories]
-        if is_ar():
-            titles = data.translate(titles)
-        chg = data.quick_changes(tick) if tick else {}
-        cards = []
-        for i, (n, t) in enumerate(zip(stories, titles)):
-            ch = ui.chips(n["tickers"], chg, lg) or f'<span class="muted">{L("Broad market", "السوق بشكل عام")}</span>'
-            iq = n.get("iq")
-            score = ""
-            if iq:
-                bg, fg, bd = newsiq.colors(iq["score"])
-                score = f'<span class="iqs" style="background:{bg};color:{fg};border-color:{bd}">{iq["score"]}/10 · {T.esc(L(*newsiq.level(iq["score"])))}</span>'
-            cards.append(f'<div class="story r{i + 1}{" rtl" if is_ar() else ""}">{T.news_thumb(n, big=True)}<div class="rank">0{i + 1}</div>'
-                         f'<a class="t nogq" href="{T.esc(n["link"])}" target="_blank">{T.esc(t)}</a>'
-                         f'<div class="muted" style="font-size:.78rem;margin-top:6px">{T.esc(n["source"])} · {T.time_ago(n["time"], is_ar())}</div>'
-                         f'<div style="margin-top:8px">{score}</div>' + (T.kw_chips(iq, is_ar(), 3) if iq else "") +
-                         f'<div class="aff"><span class="lbl" style="width:100%">{L("Affected companies", "الشركات المتأثرة")}</span>{ch}</div>'
-                         + T.coverage(n, is_ar()) + '</div>')
-        ui.html(f'<div class="stories n{len(cards)}">' + "".join(cards) + "</div>")
+        ui.html(stories_html(stories, lg, sa=True))
     else:
         st.caption(L("No trending stories right now.", "لا توجد أخبار رائجة حالياً."))
     _talked_section()
@@ -1220,15 +1245,7 @@ def page_trending_sa():
         ui.foot()
         return
     ui.sec("leaderboard", "Movers at a glance", "الأسهم الأكثر حركة")
-    keys = list(SA_LISTS)
-    for i, row in enumerate((keys[:3], keys[3:])):
-        with st.container(key=f"mvrow_{i}"):
-            cols = st.columns(3)
-        for col, kind in zip(cols, row):
-            df = lists[kind]
-            en, ar, ic = SA_LISTS[kind]
-            body = ui.row_list(df.head(6), lg, show_vol=kind == "volume") if not df.empty else f'<div class="muted">{L("No data", "لا بيانات")}</div>'
-            col.markdown(f'<div class="mcard"><div class="hd">{T.icon(ic)}<span>{T.esc(L(en, ar))}</span></div>{body}</div>', unsafe_allow_html=True)
+    movers_grid(lists, lg, sa=True)
     ui.sec("table_rows", "Full lists", "القوائم الكاملة")
     tabs = st.tabs([f":material/{v[2]}: {L(v[0], v[1])}" for v in SA_LISTS.values()])
     for tab, kind in zip(tabs, SA_LISTS):
@@ -1275,27 +1292,7 @@ def page_trending():
     tick = sorted({s_ for n in stories for s_ in n["tickers"]})
     lg = data.logos(list(dict.fromkeys(all_syms + tick)))
     if stories:
-        titles = [n["title"] for n in stories]
-        if is_ar():
-            titles = data.translate(titles)
-        chg = data.changes(tick) if tick else {}
-        cards = []
-        for i, (n, t) in enumerate(zip(stories, titles)):
-            ch = ui.chips(n["tickers"], chg, lg) or f'<span class="muted">{L("Broad market", "السوق بشكل عام")}</span>'
-            iq = n.get("iq")
-            score = ""
-            if iq:
-                bg, fg, bd = newsiq.colors(iq["score"])
-                lv = newsiq.level(iq["score"])
-                score = (f'<span class="iqs" style="background:{bg};color:{fg};border-color:{bd}">{iq["score"]}/10 · {T.esc(L(*lv))}</span>')
-            cards.append(f'<div class="story r{i + 1}{" rtl" if is_ar() else ""}">{T.news_thumb(n, big=True)}<div class="rank">0{i + 1}</div>'
-                         f'<a class="t nogq" href="{T.esc(n["link"])}" target="_blank">{T.esc(t)}</a>'
-                         f'<div class="muted" style="font-size:.78rem;margin-top:6px">{T.esc(n["source"])} · {T.time_ago(n["time"], is_ar())}</div>'
-                         f'<div style="margin-top:8px">{score}</div>' + (T.kw_chips(iq, is_ar(), 3) if iq else "") +
-                         f'<div class="aff"><span class="lbl" style="width:100%">{L("Affected companies", "الشركات المتأثرة")}</span>{ch}</div>'
-                         + T.coverage(n, is_ar()) + '</div>')
-        # ranked by size: the first story is the biggest card, the second a step smaller, the third smaller again
-        ui.html(f'<div class="stories n{len(cards)}">' + "".join(cards) + "</div>")
+        ui.html(stories_html(stories, lg))
     else:
         st.caption(L("No trending stories right now.", "لا توجد أخبار رائجة حالياً."))
     _talked_section()
@@ -1304,15 +1301,7 @@ def page_trending():
     ui.html(summary_html(summary_data(px, moves, lists), lg))
 
     ui.sec("leaderboard", "Movers at a glance", "الأسهم الأكثر حركة")
-    keys = list(LISTS)
-    for i, row in enumerate((keys[:3], keys[3:])):
-        with st.container(key=f"mvrow_{i}"):
-            cols = st.columns(3)
-        for col, kind in zip(cols, row):
-            df, _ = lists[kind]
-            en, ar, ic = LISTS[kind]
-            body = ui.row_list(df.head(6), lg) if not df.empty else f'<div class="muted">{L("No data", "لا بيانات")}</div>'
-            col.markdown(f'<div class="mcard"><div class="hd">{T.icon(ic)}<span>{T.esc(L(en, ar))}</span></div>{body}</div>', unsafe_allow_html=True)
+    movers_grid(lists, lg)
 
     ui.sec("table_rows", "Full lists", "القوائم الكاملة")
     tabs = st.tabs([f":material/{v[2]}: {L(v[0], v[1])}" for v in LISTS.values()])
@@ -1577,4 +1566,4 @@ def page_news():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.3.14"
+BUILD = "23.4"

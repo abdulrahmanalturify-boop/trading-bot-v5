@@ -1134,6 +1134,64 @@ def sample_fab(pg, press, secs=8.0):
     return seen
 
 
+OV_CHECK = True      # a quick run: the new home page (23.4) - computer (dark and light, English and Arabic, US and Saudi), a tablet and a phone
+
+
+def ov_check(b, report):
+    out = {}
+    runs = [("desk_en_dark", dict(viewport={"width": 1440, "height": 900}, color_scheme="dark", locale="en-US"), "/?lang=en&m=us"),
+            ("desk_ar_light", dict(viewport={"width": 1440, "height": 900}, color_scheme="light", locale="ar-SA"), "/?lang=ar&m=us"),
+            ("desk_sa_ar", dict(viewport={"width": 1440, "height": 900}, color_scheme="dark", locale="ar-SA"), "/?lang=ar&m=sa"),
+            ("tablet_en", dict(viewport={"width": 1024, "height": 1300}, color_scheme="light", locale="en-US"), "/?lang=en&m=us"),
+            ("phone_ar", dict(viewport={"width": 390, "height": 844}, is_mobile=True, has_touch=True, device_scale_factor=3, color_scheme="dark",
+                              locale="ar-SA"), "/?lang=ar&m=us")]
+    for name, args, path in runs:
+        row = {}
+        ctx = b.new_context(**args, **({} if "device_scale_factor" in args else {"device_scale_factor": 1}))
+        pg = ctx.new_page()
+        errs = []
+        pg.on("pageerror", lambda e, errs=errs: errs.append(str(e)[:200]))
+        t0 = time.time()
+        try:
+            pg.goto(URL + path, wait_until="domcontentloaded", timeout=120000)
+            row["settle_s"] = settle(pg, 200)
+            row["total_s"] = round(time.time() - t0, 1)
+            time.sleep(3)
+            row["problems"] = problems(pg)
+            row["landing"] = pg.evaluate("() => !!document.querySelector('.ixp')")
+            row["rail"] = pg.evaluate("""() => { const r = document.querySelector('div.st-key-ovrail'); if (!r) return null; const b = r.getBoundingClientRect();
+                return {x: Math.round(b.left), y: Math.round(b.top), w: Math.round(b.width), h: Math.round(b.height), ads: r.querySelectorAll('.ovad').length,
+                        pos: getComputedStyle(r.closest('[data-testid="stColumn"]')).position}; }""")
+            row["sections"] = pg.evaluate("() => [...document.querySelectorAll('.sec, .ptitle h1, h1')].map(e => e.innerText.trim().slice(0, 40)).filter(Boolean).slice(0, 20)")
+            row["page_h"] = pg.evaluate("() => document.querySelector('[data-testid=\"stMain\"]') ? document.querySelector('[data-testid=\"stMain\"]').scrollHeight : null")
+            pg.screenshot(path=os.path.join(OUT, f"ov_{name}_top.jpg"), type="jpeg", quality=78)
+            # the whole page, shot screen by screen (Streamlit scrolls inside its own box)
+            H = row["page_h"] or 3000
+            vh = args["viewport"]["height"]
+            for k, y in enumerate(range(0, min(H, vh * 9), vh)):
+                pg.evaluate(f"() => {{ const m = document.querySelector('[data-testid=\"stMain\"]'); if (m) m.scrollTo(0, {y}); }}")
+                time.sleep(1.2)
+                pg.screenshot(path=os.path.join(OUT, f"ov_{name}_{k:02d}.jpg"), type="jpeg", quality=70)
+            if name == "desk_en_dark":
+                pg.evaluate("() => { const m = document.querySelector('[data-testid=\"stMain\"]'); if (m) m.scrollTo(0, 0); }")
+                time.sleep(1)
+                ad = pg.locator('.ovad.solo').first
+                ad.click(timeout=8000)
+                time.sleep(2)
+                row["ai_ad_opens"] = pg.evaluate("() => document.querySelector('.st-key-alturaifi_ai_fab [data-testid=\"stPopoverButton\"]').getAttribute('aria-expanded')")
+                pg.keyboard.press("Escape")
+                time.sleep(1)
+                pg.locator('div.st-key-ovad_hunt').first.click(timeout=8000)
+                time.sleep(6)
+                row["hunt_ad_goes"] = pg.url
+        except Exception as e:
+            row["error"] = str(e)[:400]
+        row["js_errors"] = errs[:6]
+        out[name] = row
+        ctx.close()
+    report["ov"] = out
+
+
 def orb_check(b, report):
     out = {}
     for look in ("dark", "light"):
@@ -1505,7 +1563,7 @@ def main():
         seed_xbots()
     elif QUICK and XB_SEED == "resting":
         seed_resting()
-    if not QUICK and not SHARIA and not MENU_CHECK and not BOXV2 and not STYLE_PICK and not ORB_CHECK and not LOOK_LANG and not NEWS_FILTER and not FONT_PICK:
+    if not QUICK and not SHARIA and not MENU_CHECK and not BOXV2 and not STYLE_PICK and not ORB_CHECK and not LOOK_LANG and not NEWS_FILTER and not FONT_PICK and not OV_CHECK:
         news_lab()
     seed_bots()
     if QUICK and AUTH_DEMO:                     # made-up sign-in settings on the test server only: the Sign in button shows
@@ -1567,6 +1625,13 @@ def main():
             if LOOK_LANG:
                 try:
                     look_lang(b, report)
+                finally:
+                    json.dump(report, open(os.path.join(OUT, "report.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+                b.close()
+                return 0
+            if OV_CHECK:
+                try:
+                    ov_check(b, report)
                 finally:
                     json.dump(report, open(os.path.join(OUT, "report.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
                 b.close()

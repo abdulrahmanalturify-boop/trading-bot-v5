@@ -12,10 +12,10 @@ import streamlit as st
 # ---------------------------------------------------------------- always run the newest code
 # Streamlit Cloud re-reads app.py after every GitHub upload but can keep the other modules (theme, data, ...) from the
 # previous version in memory. Every module carries BUILD; if one in memory is older, all of them are reloaded in order.
-BUILD = "23.3.14"
+BUILD = "23.4"
 _ORDER = ["terms", "lightmode", "i18n", "ai_assistant", "flags", "mcal", "mcal_sa", "markets", "tasi", "universe", "sp500", "taxonomy", "ta", "academy_visuals", "academy", "insight", "heatmap", "newsiq", "newspics", "newsai", "theme", "data",
           "caldata", "newsbot", "newsintel", "charts", "engine", "playbooks", "autotrader", "ui", "fairvalue", "segments", "holders", "sharia", "lab", "tdash", "mlbots", "brain", "account", "paperbots", "smartbots", "portfolio", "robobot", "robo", "pfinsight", "p_markets", "p_newsintel", "p_research", "p_insight",
-          "p_academy", "p_paper", "p_portfolio", "p_robo", "p_calendar", "hunter", "p_scanner", "xbots", "p_xbots", "home"]
+          "p_academy", "p_paper", "p_portfolio", "p_robo", "p_calendar", "hunter", "p_scanner", "xbots", "p_xbots", "home", "p_overview"]
 # Every visitor's run executes this file at the same time, in its own thread. A module another run is still importing (its
 # BUILD, at the end of the file, not set yet) is not old: it is left alone, since taking it out of sys.modules under that import
 # crashed the server (KeyError: 'ui' in importlib, after the 23.1 upload). One run reloads at a time; the others wait for it,
@@ -66,6 +66,7 @@ import p_calendar
 import p_insight
 import p_markets
 import p_newsintel
+import p_overview
 import p_paper
 import p_portfolio
 import p_robo
@@ -302,7 +303,7 @@ def search_box():
 # ---------------------------------------------------------------- pages · hover menus (Yahoo / TradingView style)
 P = ui.PAGES
 P.update({
-    "overview": st.Page(p_markets.page_overview, title=L("Overview", "نظرة عامة"), icon=":material/monitoring:", url_path="overview", default=True),
+    "overview": st.Page(p_overview.page_overview, title=L("Overview", "نظرة عامة"), icon=":material/monitoring:", url_path="overview", default=True),
     "futures": st.Page(p_markets.page_futures, title=L("Futures", "العقود الآجلة"), icon=":material/update:", url_path="futures"),
     "options": st.Page(p_markets.page_options, title=L("Options", "الخيارات"), icon=":material/tune:", url_path="options"),
     "economy": st.Page(p_markets.page_economy, title=L("Economy", "الاقتصاد"), icon=":material/account_balance:", url_path="economy"),
@@ -379,11 +380,8 @@ if ss.get("search_miss"):
 
 # arriving at the Academy from another page shows the course catalog (unless a course link was opened)
 _cur = getattr(pg, "url_path", "")
-# Overview opened from another page (the top bar, a link): straight to the home page with the market overview under it.
-# The landing stays the site's first screen (a visit that starts at the address) and what the logo brings back.
-if _cur in ("", "overview"):
-    if not ss.pop("_to_landing", False) and ss.get("_page") not in (None, "", "overview"):
-        ss["intro_done"] = True
+# 23.4: no landing any more - the home page (p_overview) is the site's first screen, and what the logo brings back.
+ss["intro_done"] = True
 if ss.get("_page") != _cur:
     if _cur == "academy" and ss.get("_page") is not None and not st.query_params.get("course"):
         ss.pop("course", None)
@@ -392,8 +390,8 @@ if ss.get("_page") != _cur:
     ss["_page"] = _cur
 
 # ---------------------------------------------------------------- the site's styles, in the visitor's look
-# Light or dark follows the theme picked in Streamlit's ⋮ menu (System / Light / Dark); the landing keeps its night in both.
-_light = LM.start(landing=_cur in ("", "overview") and not ss.get("intro_done"))
+# Light or dark follows the theme picked in Streamlit's ⋮ menu (System / Light / Dark).
+_light = LM.start(landing=False)
 try:
     _static = bool(st.get_option("server.enableStaticServing"))
 except Exception:
@@ -523,9 +521,7 @@ except Exception:
 
 
 def _logo_home():
-    """The logo was clicked: back to the landing (the home page's first screen)."""
-    ss["intro_done"] = False
-    ss["_to_landing"] = True
+    """The logo was clicked: back to the home page."""
     ss["goto"] = "overview"
 
 

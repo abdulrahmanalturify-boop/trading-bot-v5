@@ -2931,7 +2931,12 @@ FX_JS = """<script>
     if (rtl) { typing.style.right = (w.innerWidth - r.right + 4) + 'px'; typing.style.left = 'auto'; }
     else { typing.style.left = (r.left + 4) + 'px'; typing.style.right = 'auto'; }
   }
+  function openChat() {                          // an advert for the assistant on a page (data-open-ai) opens the chat window
+    var fb = d.querySelector('.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]');
+    if (fb && fb.getAttribute('aria-expanded') !== 'true') fb.click();
+  }
   function onClick(e) {
+    if (e.target && e.target.closest && e.target.closest('[data-open-ai]')) { openChat(); return; }
     var t = e.target && e.target.closest && e.target.closest('div.st-key-alturaifi_ai_send button, div.st-key-alturaifi_ai_chips button');
     if (!t) return;
     if (t.closest('div.st-key-alturaifi_ai_send')) {
@@ -2941,6 +2946,7 @@ FX_JS = """<script>
     showTyping();
   }
   function onKey(e) {
+    if ((e.key === 'Enter' || e.key === ' ') && e.target && e.target.closest && e.target.closest('[data-open-ai]')) { e.preventDefault(); openChat(); return; }
     if (e.key !== 'Enter' || !e.target || !e.target.closest || !e.target.closest('div.st-key-alturaifi_ai_prompt')) return;
     if (e.target.value && e.target.value.trim()) showTyping();
   }
@@ -3616,4 +3622,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.3.14"
+BUILD = "23.4"

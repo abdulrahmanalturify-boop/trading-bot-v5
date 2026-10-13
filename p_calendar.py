@@ -166,125 +166,56 @@ def etile(r):
             f'<span class="tk"><bdi>{T.esc(T.sym_label(r.Symbol)[:16])}</bdi></span>{res}</a>')
 
 
+def day_html(df, ipo, d, today, lim=12):
+    """One day of the earnings week: its date, before the open, after the close, time not confirmed, and the IPOs."""
+    day = df[df["Date"] == d] if not df.empty else df
+    cls = " today" if d == today else (" past" if d < today else "")
+    head = (f'<div class="hd"><span class="dw">{dow(d)}</span><span class="dn">{d.day}</span>'
+            f'<span class="mo">{L(MON[d.month - 1][0], MON[d.month - 1][1])}</span>'
+            + (f'<span class="now">{L("Today", "اليوم")}</span>' if d == today else "")
+            + f'<span class="cnt">{len(day)}</span></div>')
+    body = holiday_note(d)
+    for when, sel in (("bmo", ["bmo"]), ("amc", ["amc"]), ("tns", ["dmh", "tns"])):
+        g = day[day["When"].isin(sel)] if not day.empty else day
+        if g.empty:
+            continue
+        ic, en, ar = WHEN[when]
+        rows = list(g.itertuples())
+        tiles = "".join(etile(r) for r in rows[:lim])
+        more = ""
+        if len(rows) > lim:
+            more = (f'<details><summary>+{len(rows) - lim} {L("more", "أخرى")}</summary><div class="tl">'
+                    + "".join(etile(r) for r in rows[lim:lim + 60]) + "</div></details>")
+        body += (f'<div class="grp {when}"><div class="gh">{T.icon(ic)}<span>{L(en, ar)}</span><b>{len(rows)}</b></div>'
+                 f'<div class="tl">{tiles}</div>{more}</div>')
+    if ipo is not None and not ipo.empty:
+        g = ipo[ipo["Date"] == d]
+        if not g.empty:
+            items = "".join(
+                f'<div class="ipr" title="{T.esc(r.Company)}">{T.icon("flag")}<b>{T.esc(r.Symbol)}</b><span>{T.esc(str(r.Company)[:22])}</span>'
+                f'<em>{_ipo_price(r)}</em></div>' for r in g.itertuples())
+            body += f'<div class="grp ipo"><div class="gh">{T.icon("rocket_launch")}<span>{L("IPOs", "اكتتابات")}</span><b>{len(g)}</b></div>{items}</div>'
+    if not body:
+        body = f'<div class="none">{L("No reports", "لا توجد إعلانات")}</div>'
+    return f'<div class="day{cls}">{head}{body}</div>'
+
+
 def hub_grid(df, ipo, mon, lim=12):
     today = _cal().today_et()
-    cols = []
-    for i in range(5):
-        d = mon + timedelta(days=i)
-        day = df[df["Date"] == d] if not df.empty else df
-        cls = " today" if d == today else (" past" if d < today else "")
-        head = (f'<div class="hd"><span class="dw">{dow(d)}</span><span class="dn">{d.day}</span>'
-                f'<span class="mo">{L(MON[d.month - 1][0], MON[d.month - 1][1])}</span>'
-                + (f'<span class="now">{L("Today", "اليوم")}</span>' if d == today else "")
-                + f'<span class="cnt">{len(day)}</span></div>')
-        body = holiday_note(d)
-        for when, sel in (("bmo", ["bmo"]), ("amc", ["amc"]), ("tns", ["dmh", "tns"])):
-            g = day[day["When"].isin(sel)] if not day.empty else day
-            if g.empty:
-                continue
-            ic, en, ar = WHEN[when]
-            rows = list(g.itertuples())
-            tiles = "".join(etile(r) for r in rows[:lim])
-            more = ""
-            if len(rows) > lim:
-                more = (f'<details><summary>+{len(rows) - lim} {L("more", "أخرى")}</summary><div class="tl">'
-                        + "".join(etile(r) for r in rows[lim:lim + 60]) + "</div></details>")
-            body += (f'<div class="grp {when}"><div class="gh">{T.icon(ic)}<span>{L(en, ar)}</span><b>{len(rows)}</b></div>'
-                     f'<div class="tl">{tiles}</div>{more}</div>')
-        if ipo is not None and not ipo.empty:
-            g = ipo[ipo["Date"] == d]
-            if not g.empty:
-                items = "".join(
-                    f'<div class="ipr" title="{T.esc(r.Company)}">{T.icon("flag")}<b>{T.esc(r.Symbol)}</b><span>{T.esc(str(r.Company)[:22])}</span>'
-                    f'<em>{_ipo_price(r)}</em></div>' for r in g.itertuples())
-                body += f'<div class="grp ipo"><div class="gh">{T.icon("rocket_launch")}<span>{L("IPOs", "اكتتابات")}</span><b>{len(g)}</b></div>{items}</div>'
-        if not body:
-            body = f'<div class="none">{L("No reports", "لا توجد إعلانات")}</div>'
-        cols.append(f'<div class="day{cls}">{head}{body}</div>')
-    return f'<div class="ehub">{"".join(cols)}</div>'
+    return f'<div class="ehub">{"".join(day_html(df, ipo, mon + timedelta(days=i), today, lim) for i in range(5))}</div>'
 
 
-def _ipo_price(r):
-    if pd.notna(r.Price):
-        return f"${r.Price:,.2f}"
-    if pd.notna(r.Low) and pd.notna(r.High):
-        return f"${r.Low:,.0f}–{r.High:,.0f}"
-    return ""
-
-
-def day_table(day):
-    rows = []
-    for r in day.itertuples():
-        ic, en, ar = WHEN[r.When]
-        sur = ""
-        if pd.notna(r.Surprise):
-            sur = f'<span class="pill {"pos" if r.Surprise >= 0 else "neg"}">{spct(r.Surprise)}</span>'
-        rows.append(f'<div class="erow"><a class="lnk" href="{ui.href(r.Symbol)}" target="_self">{T.logo_obj(r.Symbol, 34)}'
-                    f'<span class="nm"><b><bdi>{T.esc(T.sym_label(r.Symbol, default=r.Company))}</bdi></b><small>{T.esc(T.name_line(r.Symbol, r.Company))}</small></span></a>'
-                    f'<span class="when {r.When}">{T.icon(ic)}{L(en, ar)}</span>'
-                    f'<span class="q">{T.esc(r.Quarter) if isinstance(r.Quarter, str) else "—"}</span>'
-                    f'<span class="v">{num(r.Est)}</span><span class="v">{num(r.EPS)}</span><span class="v">{sur or "—"}</span>'
-                    f'<span class="v cap">{usd(r.Cap) if pd.notna(r.Cap) else "—"}</span></div>')
-    head = (f'<div class="erow eh"><span>{L("Company", "الشركة")}</span><span>{L("Time", "التوقيت")}</span><span>{L("Quarter", "الربع")}</span>'
-            f'<span class="v">{L("EPS est.", "الربحية المتوقعة")}</span><span class="v">{L("EPS", "الربحية")}</span>'
-            f'<span class="v">{L("Surprise", "المفاجأة")}</span><span class="v cap">{L("Market cap", "القيمة السوقية")}</span></div>')
-    return f'<div class="etab">{head}{"".join(rows)}</div>'
-
-
-def page_earnings_hub_sa():
-    ui.header("event_upcoming", "Earnings Calendar · Saudi Market", "مواعيد إعلانات الأرباح · السوق السعودي",
-              "Which Saudi companies are expected to report this week (Sunday to Thursday). Click a logo to open the company.",
-              "الشركات السعودية المتوقع إعلان نتائجها هذا الأسبوع (من الأحد إلى الخميس). اضغط على الشعار لفتح صفحة الشركة.")
-    sun = week_nav("eh_wk_sa")
-    f1, f2 = st.columns([1.6, 3], vertical_alignment="bottom")
-    q = f1.text_input(L("Find a company", "ابحث عن شركة"), key="eh_q_sa", placeholder=L("e.g. Aramco, Al Rajhi", "مثال: أرامكو، الراجحي")).strip()
-    with st.spinner(L("Loading this week's earnings calendar...", "جاري تحميل مواعيد الأرباح لهذا الأسبوع...")):
-        df = C.earnings_sa(sun, sun + timedelta(days=4))
-    if not df.empty:
-        df = df.assign(Company=[tasi.name_of(s_, is_ar()) or c_ for s_, c_ in zip(df["Symbol"], df["Company"])])
-    if df.empty:
-        empty_box("event_busy", "No Saudi earnings dates found for this week (or the calendar is not reachable right now). Try another week: most "
-                  "Saudi companies report within a month after each quarter ends.",
-                  "لا توجد مواعيد أرباح سعودية لهذا الأسبوع (أو التقويم غير متاح الآن). جرّب أسبوعاً آخر: أغلب الشركات السعودية تعلن خلال شهر "
-                  "من نهاية كل ربع.")
-        ui.foot()
-        return
-    if q:
-        qq = q.upper()
-        hit = df[df["Symbol"].str.startswith(qq) | df["Company"].fillna("").astype(str).str.upper().str.contains(qq, regex=False)]
-        if hit.empty:
-            st.info(L(f"“{q}” is not expected to report this week.", f"«{q}» ما هي متوقعة تعلن نتائجها هذا الأسبوع."), icon=":material/search_off:")
-        else:
-            ui.html('<div class="ehit">' + "".join(
-                f'<a class="lnk chip" href="{ui.href(r.Symbol)}" target="_self">{T.logo_obj(r.Symbol, 26)}<b><bdi>{T.esc(T.sym_label(r.Symbol, default=r.Company))}</bdi></b>'
-                f'<span>{dshort(r.Date)}</span></a>' for r in hit.head(8).itertuples()) + "</div>")
-    rep_ = df[df["EPS"].notna()]
-    beat = int((rep_["Surprise"] > 0).sum()) if not rep_.empty else 0
-    big = [str(c)[:16] for c in df.head(3)["Company"]]
-    kpis([("event_available", L("Reports this week", "إعلانات هذا الأسبوع"), f"{len(df)}", L("Saudi main market", "السوق الرئيسية"), None),
-          ("star", L("Biggest names", "أكبر الشركات"), T.esc(" · ".join(big)) or "—", L("by market value", "حسب القيمة السوقية"), "acc"),
-          ("fact_check", L("Already reported", "أعلنت نتائجها"), f"{len(rep_)}",
-           (L(f"{beat} beat estimates", f"{beat} تجاوزت التوقعات") if len(rep_) else L("results appear here as they come", "تظهر النتائج هنا فور صدورها")),
-           "pos" if len(rep_) and beat >= len(rep_) / 2 else None)])
-    ui.html(hub_grid(df, None, sun))
-    ui.html(f'<div class="elegend"><span>{T.icon("schedule")}{L("Most Saudi companies publish their results on Tadawul outside trading hours; Yahoo rarely gives the hour.", "أغلب الشركات السعودية تنشر نتائجها في تداول خارج ساعات التداول، وياهو نادراً يعطي الساعة.")}</span>'
-            f'<span><i class="rs b"></i>{L("beat", "تجاوزت التوقعات")}</span><span><i class="rs m"></i>{L("missed", "أقل من التوقعات")}</span></div>')
-    ui.sec("view_list", "Day details", "تفاصيل اليوم")
-    days = [sun + timedelta(days=i) for i in range(5)]
-    today = mcal_sa.today()
-    default = today if today in days else days[0]
-    ui.valid("eh_day_sa", days)
-    pick = st.segmented_control(L("Day", "اليوم"), days, default=default, key="eh_day_sa",
-                                format_func=lambda d: f"{dshort(d)} · {int((df['Date'] == d).sum())}") or default
-    day = df[df["Date"] == pick]
-    if day.empty:
-        empty_box("event_busy", "No reports on this day.", "لا توجد إعلانات في هذا اليوم.")
-    else:
-        ui.html(day_table(day.sort_values("Cap", ascending=False).head(80)))
-    st.caption(L("Source: Yahoo Finance earnings calendar (Saudi companies). Dates are estimates until the company announces them on Tadawul. "
-                 "Market values and estimates are in riyals.",
-                 "المصدر: تقويم أرباح ياهو فاينانس (الشركات السعودية). المواعيد تقديرية لين تعلنها الشركة في تداول. القيم السوقية والتقديرات بالريال."))
-    ui.foot()
+def next_session_html(lim=8):
+    """The home page's earnings card (US market): the companies reporting in the next session - today until the close, then
+    the next trading day."""
+    from datetime import datetime
+    today = mcal.today_et()
+    d = today
+    if not mcal.is_trading_day(d) or datetime.now(mcal.ET).hour >= 16:
+        d = mcal.next_trading_day(d)
+    df = C.earnings(d, d, CAPS[2])
+    ipo = ui.safe(C.ipos, d, d)
+    return f'<div class="ehub one">{day_html(df, ipo, d, today, lim)}</div>'
 
 
 def page_earnings_hub():
@@ -959,4 +890,4 @@ def page_ipos():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.3.14"
+BUILD = "23.4"

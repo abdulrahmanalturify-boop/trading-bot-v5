@@ -1081,20 +1081,17 @@ def _mood_bars(rows, hrs, now, nb=12):
     return [100 * x / y if y else None for x, y in zip(num, den)]
 
 
-def _hero(res, hrs, now, n_src):
-    """The command centre: the mood dial, the numbers of the window, the mood through the window."""
+def dial_html(res, hrs=24):
+    """The news mood: the half dial, its word, and the split of bullish, neutral and bearish stories."""
     m = _mood(res)
     word, col = _mood_word(m)
     bull = sum(1 for a in res if a["lab"] == "bull")
     bear = sum(1 for a in res if a["lab"] == "bear")
     neu = len(res) - bull - bear
     tot = max(len(res), 1)
-    high = sum(1 for a in res if a["impact"] >= 70)
-    setups = sum(1 for a in res if a["setup"]["total"] >= 55)
-    top_ev = pd.Series([a["event"] for a in res]).value_counts().index[0] if res else None
     win = {6: L("6 hours", "6 ساعات"), 24: L("24 hours", "24 ساعة"), 96: L("4 days", "4 أيام")}.get(hrs, f"{hrs}h")
     mv = f"{m:+.0f}"
-    dial = (f'<div class="nie-hc" data-nogq><div class="h">{T.icon("speed")}{T.esc(L("News mood", "مزاج الأخبار"))}</div>'
+    return (f'<div class="nie-hc" data-nogq><div class="h">{T.icon("speed")}{T.esc(L("News mood", "مزاج الأخبار"))}</div>'
             f'<div class="nie-gauge">{_gauge_svg(m)}<div class="ends"><span class="b">{T.esc(L("Bearish", "هابط"))}</span>'
             f'<span class="u">{T.esc(L("Bullish", "صاعد"))}</span></div><div class="mv"><bdi>{mv}</bdi></div>'
             f'<div class="ml" style="color:{col}">{T.esc(word)}</div>'
@@ -1103,6 +1100,14 @@ def _hero(res, hrs, now, n_src):
             f'<i style="width:{bear / tot * 100:.1f}%;background:#F87171"></i></div>'
             f'<div class="nie-mixl"><span>▲ <b>{bull}</b> {T.esc(L("bullish", "صاعد"))}</span><span>● <b>{neu}</b> {T.esc(L("neutral", "محايد"))}</span>'
             f'<span>▼ <b>{bear}</b> {T.esc(L("bearish", "هابط"))}</span></div></div>')
+
+
+def _hero(res, hrs, now, n_src):
+    """The command centre: the mood dial, the numbers of the window, the mood through the window."""
+    high = sum(1 for a in res if a["impact"] >= 70)
+    setups = sum(1 for a in res if a["setup"]["total"] >= 55)
+    top_ev = pd.Series([a["event"] for a in res]).value_counts().index[0] if res else None
+    dial = dial_html(res, hrs)
     ev_name = T.esc(L(*NI.EVENT[top_ev][:2])) if top_ev else "—"
     ev_ic = NI.EVENT[top_ev][2] if top_ev else "category"
     stats = [("newspaper", L("Stories read", "أخبار مقروءة"), f"{len(res):,}", L(f"from {n_src} sources", f"من {n_src} مصدر"), ""),
@@ -1455,6 +1460,49 @@ def _show_story(a, chg, px, titles_ar):
     st.dialog(L("Story analysis", "تحليل الخبر"), width="large")(_story_window)(a, chg2, sec_chg, titles_ar, px.get(a["main"]))
 
 
+@st.cache_resource(ttl=240, show_spinner=False, max_entries=4)
+def _snapshot(market, hrs):
+    bench = "KSA" if market == MK.SA else "SPY"
+    items = data.market_news(96)
+    now = pd.Timestamp.now(tz="UTC")
+    items = [n for n in items if pd.notna(n.get("time")) and n["time"] >= now - pd.Timedelta(hours=hrs)][:600]
+    items = newsbot.cluster(items)[:400]
+    tick = sorted({t for n in items[:300] for t in (n.get("tickers") or [])[:2] if t})
+    chg = data.quick_changes(tick) if tick else {}
+    newsiq.enrich(items, chg)
+    items = [n for n in items if not any(k[0] == "opinion" for k in n["iq"].get("keywords", []))]
+    mains = [((n.get("tickers") or [None])[0]) for n in items]
+    syms = (bench,) + tuple(sorted({s_ for s_ in mains if s_ and s_ != bench}))[:79]
+    px = data.history_many(syms, "1y") if syms else {}
+    res = NI.analyze_all(items, px, chg, px.get(bench), now, bench)
+    seen = set()
+    res = [a for a in res if not (_sid(a) in seen or seen.add(_sid(a)))]
+    return {"res": res, "chg": chg, "now": now, "hrs": hrs}
+
+
+def snapshot(hrs=24):
+    """The engine's reading of the last day's news for the page's market (the home page's breaking strip, the companies in the
+    news and the news mood): read once for every visitor, again after four minutes. Never changed by the caller."""
+    return _snapshot(MK.current(), hrs)
+
+
+def breaking_html(snap):
+    res = snap["res"]
+    if not res:
+        return ""
+    titles_ar = _translate(tuple(dict.fromkeys(a["n"]["title"] for a in sorted(res, key=lambda a: -a["impact"])[:10]))) if is_ar() else {}
+    return _breaking(res, titles_ar)
+
+
+def in_the_news(snap, k=6):
+    """The companies in the most stories: (symbol, stories, mood, change today)."""
+    return _tickers(snap["res"], snap["chg"], k)
+
+
+def tk_card(sym, n, net, c):
+    return _tk_card(sym, n, net, c, False)
+
+
 def page_news_intel():
     ui.html(CSS + CSS2)
     sa = MK.is_sa()
@@ -1625,4 +1673,4 @@ def page_news_intel():
             _show_story(a, chg, px, titles_ar)
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.3.14"
+BUILD = "23.4"
