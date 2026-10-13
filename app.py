@@ -80,6 +80,32 @@ import universe as U
 from i18n import L
 
 SITE_NAME = "TURA Pro"
+
+
+def _server_domain(src=None, root="/opt/tura"):
+    """On the site's own server (deploy/oracle-setup.sh): the domain named in deploy/domain is handed to the server, whose
+    3-minute update then serves the site on it with its HTTPS certificate (Caddy). Elsewhere (Streamlit Cloud) nothing happens."""
+    try:
+        import os
+        src = src or os.path.join(os.path.dirname(os.path.abspath(__file__)), "deploy", "domain")
+        if not os.path.isdir(root) or not os.path.exists(src):
+            return None
+        d = open(src, encoding="utf-8").read().strip().lower()
+        if not re.fullmatch(r"(?=.{4,253}$)([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,24}", d):
+            return None
+        dst = os.path.join(root, "domain")
+        cur = open(dst, encoding="utf-8").read().strip() if os.path.exists(dst) else ""
+        if cur != d:
+            with open(dst, "w", encoding="utf-8") as f:
+                f.write(d + "\n")
+        return d
+    except Exception:
+        return None
+
+
+if not sys.__dict__.get("_tura_domain_done"):         # once per server process
+    sys.__dict__["_tura_domain_done"] = True
+    _server_domain()
 st.set_page_config(page_title=f"{SITE_NAME} · Markets", page_icon=":material/candlestick_chart:", layout="wide",
                    menu_items={"About": f"**{SITE_NAME}** · version {BUILD}"})      # the ⋮ menu → About: which version is running
 
