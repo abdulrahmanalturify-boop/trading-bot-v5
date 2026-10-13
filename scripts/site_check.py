@@ -1577,7 +1577,52 @@ def live_ai():
     return 0
 
 
+LIVE_BUILD = "23.4.1"   # a quick run: how soon the Oracle server shows this version (its page's data-build), from PUSHED_AT
+PUSHED_AT = "2026-10-13T07:06:29Z"
+
+
+def live_build():
+    from datetime import datetime, timezone
+    from playwright.sync_api import sync_playwright
+    t_push = datetime.fromisoformat(PUSHED_AT.replace("Z", "+00:00"))
+    report = {"live_build": {"want": LIVE_BUILD, "pushed_at": PUSHED_AT, "seen": []}, "started": time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime())}
+    row = report["live_build"]
+    with sync_playwright() as p:
+        b = p.chromium.launch()
+        t0 = time.time()
+        while time.time() - t0 < 420:
+            ctx = b.new_context(viewport={"width": 1280, "height": 800})
+            pg = ctx.new_page()
+            got = None
+            try:
+                pg.goto("http://84.13.143.157/?lang=en", wait_until="domcontentloaded", timeout=60000)
+                pg.wait_for_selector(".css-anchor[data-build]", state="attached", timeout=60000)
+                got = pg.evaluate("() => document.querySelector('.css-anchor[data-build]').getAttribute('data-build')")
+            except Exception as e:
+                got = "error: " + str(e)[:80]
+            now = datetime.now(timezone.utc)
+            row["seen"].append([now.strftime("%H:%M:%S"), round((now - t_push).total_seconds()), got])
+            if got == LIVE_BUILD:
+                row["arrived_after_s"] = round((now - t_push).total_seconds())
+                try:
+                    pg.wait_for_selector("div.st-key-ovrail", timeout=90000)
+                    time.sleep(4)
+                    pg.screenshot(path=os.path.join(OUT, "live_build.jpg"), type="jpeg", quality=70)
+                    row["home_ok"] = True
+                except Exception as e:
+                    row["home_ok"] = str(e)[:120]
+                ctx.close()
+                break
+            ctx.close()
+            time.sleep(8)
+        b.close()
+    json.dump(report, open(os.path.join(OUT, "report.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+    return 0
+
+
 def main():
+    if LIVE_BUILD:
+        return live_build()
     if LIVE_AI:
         return live_ai()
     if LIVE_LOOK:
