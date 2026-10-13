@@ -1099,7 +1099,7 @@ def style_pick(b, report):
     report["style_pick"] = out
 
 
-ORB_CHECK = False     # a quick run: the AI button's sphere filmed resting and hovered (dark and light), its chat window, and on a phone
+ORB_CHECK = True      # a quick run: the AI button's sphere filmed resting and hovered (dark and light), its chat window, and on a phone
 
 
 Z_INFO = """() => { const zi = e => { for (; e && e !== document.body; e = e.parentElement) { const z = getComputedStyle(e).zIndex;
@@ -1109,6 +1109,29 @@ Z_INFO = """() => { const zi = e => { for (; e && e !== document.body; e = e.par
     .map(e => (e.getAttribute('data-testid') || e.tagName) + ':' + Math.round(e.getBoundingClientRect().width) + 'x' + Math.round(e.getBoundingClientRect().height));
   return {sidebar: zi(q('[data-testid="stSidebar"]')), fab: zi(q('.st-key-alturaifi_ai_fab')), canvas: (q('canvas.ai-neural') || {style: {}}).style.zIndex,
           popover: pb ? zi(pb) : null, wide_inside_fab: all.slice(0, 8)}; }"""
+
+
+FAB_STYLE = """() => { const f = document.querySelector('.st-key-alturaifi_ai_fab'), b = f && f.querySelector('[data-testid="stPopoverButton"]');
+  if (!f || !b) return 'none'; const r = b.getBoundingClientRect();
+  return getComputedStyle(f).position + ' ' + Math.round(r.width) + 'x' + Math.round(r.height); }"""
+
+
+def sample_fab(pg, press, secs=8.0):
+    """While the page is drawn again (after press()), how the AI button looks every 120 ms: fixed and round, or not."""
+    seen = {}
+    try:
+        press()
+    except Exception as e:
+        return {"press_error": str(e)[:200]}
+    t0 = time.time()
+    while time.time() - t0 < secs:
+        try:
+            v = pg.evaluate(FAB_STYLE)
+        except Exception:
+            v = "eval-error"
+        seen[v] = seen.get(v, 0) + 1
+        time.sleep(0.12)
+    return seen
 
 
 def orb_check(b, report):
@@ -1148,6 +1171,10 @@ def orb_check(b, report):
             out[f"{look}_z_open"] = pg.evaluate(Z_INFO)
             out[f"{look}_head"] = pg.evaluate("() => !!document.querySelector('.ai-orb canvas.ai-neural')")
             out[f"{look}_problems"] = problems(pg)
+            if look == "dark":
+                pg.keyboard.press("Escape")
+                time.sleep(1)
+                out["desk_rerun"] = sample_fab(pg, lambda: pg.get_by_role("button", name="5Y").first.click(timeout=8000))
         except Exception as e:
             out[f"{look}_error"] = str(e)[:400]
         ctx.close()
@@ -1164,6 +1191,13 @@ def orb_check(b, report):
         pg.locator('.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]').first.tap()
         time.sleep(2.5)
         pg.screenshot(path=os.path.join(OUT, "orb_phone_open.jpg"), type="jpeg", quality=78)
+        pg.goto(f"{URL}/news?m=sa&lang=ar", wait_until="domcontentloaded", timeout=90000)
+        settle(pg, 150)
+        time.sleep(2)
+        import re as _re
+        out["phone_rerun"] = sample_fab(pg, lambda: pg.get_by_role("button", name=_re.compile("تحديث")).first.tap(timeout=8000))
+        out["phone_page_switch"] = sample_fab(pg, lambda: pg.evaluate(
+            "() => { const a = [...document.querySelectorAll('a[href]')].find(x => /\\/stock|\\/overview|\\/brief/.test(x.getAttribute('href') || '')); if (a) a.click(); return !!a; }"))
     except Exception as e:
         out["phone_error"] = str(e)[:400]
     ctx.close()
