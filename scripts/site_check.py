@@ -1134,7 +1134,7 @@ def sample_fab(pg, press, secs=8.0):
     return seen
 
 
-OV_CHECK = True      # a quick run: the new home page (23.4) - computer (dark and light, English and Arabic, US and Saudi), a tablet and a phone
+OV_CHECK = False     # a quick run: the new home page (23.4) - computer (dark and light, English and Arabic, US and Saudi), a tablet and a phone
 
 
 def ov_check(b, report):

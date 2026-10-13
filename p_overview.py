@@ -54,7 +54,7 @@ CSS = """<style data-lm="keep">
    screen); on a tablet or a phone they slide across above the page */
 [data-testid="stHorizontalBlock"]:has(> [data-testid="stColumn"] div.st-key-ovrail){align-items:flex-start!important}
 [data-testid="stColumn"]:has(div.st-key-ovrail){position:sticky;top:76px;align-self:flex-start}
-div.st-key-ovrail{max-height:calc(100vh - 92px);overflow-y:auto;overflow-x:hidden;scrollbar-width:none;padding:2px 2px 10px;gap:12px!important}
+div.st-key-ovrail{max-height:calc(100vh - 176px);overflow-y:auto;overflow-x:hidden;scrollbar-width:none;padding:2px 2px 10px;gap:12px!important}
 div.st-key-ovrail::-webkit-scrollbar{display:none}
 .ovrh{display:flex;align-items:center;gap:8px;margin:2px 2px 0;font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#8E97AD}
 .ovrh i{flex:1;height:1px;background:linear-gradient(90deg,rgba(142,151,173,.35),transparent)}
