@@ -1099,7 +1099,7 @@ def style_pick(b, report):
     report["style_pick"] = out
 
 
-ORB_CHECK = True      # a quick run: the AI button's sphere filmed resting and hovered (dark and light), its chat window, and on a phone
+ORB_CHECK = False     # a quick run: the AI button's sphere filmed resting and hovered (dark and light), its chat window, and on a phone
 
 
 Z_INFO = """() => { const zi = e => { for (; e && e !== document.body; e = e.parentElement) { const z = getComputedStyle(e).zIndex;
