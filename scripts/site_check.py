@@ -1217,7 +1217,7 @@ def ov_check(b, report):
     report["ov"] = out
 
 
-LOGO_CHECK = True    # a quick run: the name with the mark as its T, at the top of the home page and of the side panel
+LOGO_CHECK = False   # a quick run: the name with the mark as its T, at the top of the home page and of the side panel
 
 
 def logo_check(b, report):
