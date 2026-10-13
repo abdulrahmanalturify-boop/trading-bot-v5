@@ -424,11 +424,13 @@ _HM_DEFAULT = {False: ("sp500", "1D", "cap"), True: ("sa_all", "1D", "cap")}    
 
 
 def _compute_lists(sa):
+    """(the market's moves, its lists); None when the quotes couldn't be read (not kept: asked for again soon)."""
     if sa:
         mv = data.sa_moves()
-        return mv, PM.sa_lists(mv)
+        return (mv, PM.sa_lists(mv)) if not mv.empty else None
     mv = PM._universe_moves()
-    return mv, {k: PM._list(k, mv) for k in PM.LISTS}
+    lists = {k: PM._list(k, mv) for k in PM.LISTS}
+    return (mv, lists) if not mv.empty or any(not df.empty for df, _ in lists.values()) else None
 
 
 def _compute_heat(sa):
@@ -497,9 +499,14 @@ class _Day:
         return self._one("snap", {})
 
     def lists(self):
-        empty = (pd.DataFrame(), {k: pd.DataFrame() for k in PM.SA_LISTS}) if self.sa else \
-            (pd.DataFrame(), {k: (pd.DataFrame(), True) for k in PM.LISTS})
-        return self._one("lists", empty)
+        if "lists" not in self._got:
+            v = _get(self.sa, "lists")
+            if v is None:                            # not ready in the background (the quotes failed there): read here
+                v = _compute_lists(self.sa)
+            empty = (pd.DataFrame(), {k: pd.DataFrame() for k in PM.SA_LISTS}) if self.sa else \
+                (pd.DataFrame(), {k: (pd.DataFrame(), True) for k in PM.LISTS})
+            self._got["lists"] = v if v is not None else empty
+        return self._got["lists"]
 
     def _st(self):
         v = self._one("stories", {})
@@ -644,7 +651,8 @@ def page_overview():
     ui.html('<span class="css-anchor"></span>\n' + home.CSS)
     t0 = time.time()
     warm.prefetch(_jobs(sa))                         # every piece the page needs, side by side, in the background
-    warm.prefetch(_jobs(not sa), want=False)         # and the other market's, once, so a switch to it opens at once
+    import threading                                 # and the other market's, once, a little later, so a switch to it opens at once
+    threading.Timer(20, warm.prefetch, args=(_jobs(not sa),), kwargs={"want": False}).start()
     px = _get(sa, "tiles") or {}
     PM.ticker_tape(px)
     ui.html(home.top_html(_chips(px, sa)))

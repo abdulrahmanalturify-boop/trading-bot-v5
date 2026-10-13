@@ -47,9 +47,12 @@ def _loop_start():
     threading.Thread(target=loop, daemon=True, name="warm-keeper").start()
 
 
+RETRY = 90                                       # a piece that could not be made is asked for again after this long
+
+
 def _failed_lately(key, ttl, now=None):
     t = _STATE["failed"].get(key)
-    return t is not None and (now or time.time()) - t < max(ttl, 120)
+    return t is not None and (now or time.time()) - t < RETRY
 
 
 def _run(key, fn):

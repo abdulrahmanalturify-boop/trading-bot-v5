@@ -1399,15 +1399,19 @@ def econ_releases(days_back=45):
 QUOTE_URL = "https://query1.finance.yahoo.com/v7/finance/quote?"
 
 
+_QLOCK = threading.Lock()      # one batch of quotes at a time: yfinance's shared cookie and crumb broke when several threads asked at once
+
+
 @st.cache_data(ttl=90, show_spinner=False)
 def _quotes(symbols):
     from yfinance.data import YfData
-    yd = YfData()
     out = []
-    for i in range(0, len(symbols), 150):
-        js = yd.get_raw_json(QUOTE_URL, params={"symbols": ",".join(symbols[i:i + 150]), "formatted": "false",
-                                                "lang": "en-US", "region": "US"})
-        out += ((js or {}).get("quoteResponse") or {}).get("result") or []
+    with _QLOCK:
+        yd = YfData()
+        for i in range(0, len(symbols), 150):
+            js = yd.get_raw_json(QUOTE_URL, params={"symbols": ",".join(symbols[i:i + 150]), "formatted": "false",
+                                                    "lang": "en-US", "region": "US"})
+            out += ((js or {}).get("quoteResponse") or {}).get("result") or []
     if not out:
         raise Empty("quotes")
     return out
