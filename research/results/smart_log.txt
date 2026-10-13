@@ -1,95 +1,95 @@
-2026-10-13 04:52:20.942 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
-2026-10-13 04:52:20.943 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
-2026-10-13 04:52:20.943 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
-2026-10-13 04:52:20.944 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
-2026-10-13 04:52:20.944 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
-2026-10-13 04:52:20.944 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
-2026-10-13 04:52:20.945 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
-2026-10-13 04:52:20.945 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
-2026-10-13 04:52:20.945 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
-2026-10-13 04:52:20.946 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
-2026-10-13 04:52:20.946 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
-2026-10-13 04:52:20.946 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
-2026-10-13 04:52:20.947 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
-2026-10-13 04:52:20.947 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
-2026-10-13 04:52:20.947 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
-2026-10-13 04:52:20.948 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
-2026-10-13 04:52:20.948 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
-2026-10-13 04:52:20.948 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
-2026-10-13 04:52:20.949 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
-2026-10-13 04:52:20.949 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
-2026-10-13 04:52:20.950 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
-2026-10-13 04:52:20.950 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
-2026-10-13 04:52:20.951 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
-2026-10-13 04:52:20.951 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
-2026-10-13 04:52:20.952 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
-2026-10-13 04:52:20.952 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
-2026-10-13 04:52:20.952 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
-2026-10-13 04:52:20.954 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
-2026-10-13 04:52:20.954 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
-2026-10-13 04:52:20.954 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
-2026-10-13 04:52:20.990 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
-2026-10-13 04:52:20.991 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-10-13 06:25:05.062 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-10-13 06:25:05.063 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-10-13 06:25:05.063 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-10-13 06:25:05.063 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-10-13 06:25:05.064 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-10-13 06:25:05.064 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-10-13 06:25:05.065 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-10-13 06:25:05.065 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-10-13 06:25:05.065 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-10-13 06:25:05.066 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-10-13 06:25:05.066 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-10-13 06:25:05.066 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-10-13 06:25:05.067 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-10-13 06:25:05.067 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-10-13 06:25:05.067 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-10-13 06:25:05.068 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-10-13 06:25:05.069 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-10-13 06:25:05.069 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-10-13 06:25:05.069 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-10-13 06:25:05.070 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-10-13 06:25:05.070 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-10-13 06:25:05.071 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-10-13 06:25:05.071 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-10-13 06:25:05.072 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-10-13 06:25:05.072 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-10-13 06:25:05.073 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-10-13 06:25:05.073 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-10-13 06:25:05.075 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-10-13 06:25:05.075 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-10-13 06:25:05.076 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-10-13 06:25:05.125 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
+2026-10-13 06:25:05.126 WARNING streamlit.runtime.caching.cache_data_api: No runtime found, using MemoryCacheStorageManager
 prices: 516 of 516 symbols in 0 s
-('strong', 'smart') 21.3 s 
-('strong', 'plain') 14.7 s 
-('strong', 'no_regime') 14.8 s 
-('strong', 'no_score') 22.5 s 
-('strong', 'no_selfcheck') 7.3 s 
-('strong', 'score_m10') 9.6 s 
-('strong', 'score_p10') 8.7 s 
-('strong', 'first_combo') 6.2 s 
-('strong', 'risk_moderate') 10.8 s 
-('strong', 'risk_conservative') 7.5 s 
-('strong', 'combo_back') 8.1 s 
-('strong', 'pos5') 11.0 s 
-('strong', 'pos7') 7.3 s 
-('adaptive', 'smart') 39.5 s 
-('adaptive', 'plain') 22.1 s 
-('adaptive', 'no_regime') 37.0 s 
-('adaptive', 'no_score') 39.4 s 
-('adaptive', 'no_selfcheck') 25.7 s 
-('adaptive', 'score_m10') 17.0 s 
-('adaptive', 'score_p10') 14.3 s 
-('adaptive', 'first_combo') 12.7 s 
-('adaptive', 'risk_moderate') 25.8 s 
-('adaptive', 'risk_conservative') 15.4 s 
-('adaptive', 'pos5') 25.3 s 
-('adaptive', 'pos7') 15.2 s 
-('trend', 'smart') 25.1 s 
-('trend', 'plain') 30.0 s 
-('trend', 'no_regime') 15.8 s 
-('trend', 'no_score') 28.8 s 
-('trend', 'no_selfcheck') 15.3 s 
-('trend', 'score_m10') 26.6 s 
-('trend', 'score_p10') 16.3 s 
-('trend', 'first_combo') 12.0 s 
-('trend', 'risk_moderate') 16.3 s 
-('trend', 'risk_conservative') 18.3 s 
-('trend', 'pos5') 25.6 s 
-('trend', 'pos7') 26.8 s 
-('momentum', 'smart') 15.8 s 
-('momentum', 'plain') 32.8 s 
-('momentum', 'no_regime') 16.8 s 
-('momentum', 'no_score') 29.1 s 
-('momentum', 'no_selfcheck') 18.8 s 
-('momentum', 'score_m10') 23.6 s 
-('momentum', 'score_p10') 23.0 s 
-('momentum', 'first_combo') 9.2 s 
-('momentum', 'risk_moderate') 14.7 s 
-('momentum', 'risk_conservative') 24.3 s 
-('momentum', 'pos5') 25.1 s 
-('momentum', 'pos7') 16.5 s 
-('pullback', 'smart') 26.4 s 
-('pullback', 'plain') 21.2 s 
-('pullback', 'no_regime') 27.4 s 
-('pullback', 'no_score') 18.9 s 
-('pullback', 'no_selfcheck') 27.1 s 
-('pullback', 'score_m10') 27.7 s 
-('pullback', 'score_p10') 14.7 s 
-('pullback', 'first_combo') 12.5 s 
-('pullback', 'risk_moderate') 17.4 s 
-('pullback', 'risk_conservative') 24.9 s 
-('pullback', 'pos5') 23.5 s 
-('pullback', 'pos7') 16.1 s 
-done in 6.8 min
+('strong', 'smart') 25.2 s 
+('strong', 'plain') 19.9 s 
+('strong', 'no_regime') 21.4 s 
+('strong', 'no_score') 30.5 s 
+('strong', 'no_selfcheck') 14.7 s 
+('strong', 'score_m10') 9.5 s 
+('strong', 'score_p10') 9.4 s 
+('strong', 'first_combo') 12.5 s 
+('strong', 'risk_moderate') 9.4 s 
+('strong', 'risk_conservative') 14.3 s 
+('strong', 'combo_back') 12.0 s 
+('strong', 'pos5') 9.2 s 
+('strong', 'pos7') 14.7 s 
+('adaptive', 'smart') 34.6 s 
+('adaptive', 'plain') 45.4 s 
+('adaptive', 'no_regime') 56.6 s 
+('adaptive', 'no_score') 22.7 s 
+('adaptive', 'no_selfcheck') 56.0 s 
+('adaptive', 'score_m10') 21.5 s 
+('adaptive', 'score_p10') 30.6 s 
+('adaptive', 'first_combo') 10.8 s 
+('adaptive', 'risk_moderate') 19.6 s 
+('adaptive', 'risk_conservative') 32.6 s 
+('adaptive', 'pos5') 35.3 s 
+('adaptive', 'pos7') 20.8 s 
+('trend', 'smart') 33.3 s 
+('trend', 'plain') 29.9 s 
+('trend', 'no_regime') 36.0 s 
+('trend', 'no_score') 39.6 s 
+('trend', 'no_selfcheck') 20.8 s 
+('trend', 'score_m10') 37.2 s 
+('trend', 'score_p10') 18.5 s 
+('trend', 'first_combo') 16.8 s 
+('trend', 'risk_moderate') 20.1 s 
+('trend', 'risk_conservative') 32.2 s 
+('trend', 'pos5') 35.0 s 
+('trend', 'pos7') 20.7 s 
+('momentum', 'smart') 33.5 s 
+('momentum', 'plain') 28.3 s 
+('momentum', 'no_regime') 33.5 s 
+('momentum', 'no_score') 23.0 s 
+('momentum', 'no_selfcheck') 34.3 s 
+('momentum', 'score_m10') 36.4 s 
+('momentum', 'score_p10') 18.1 s 
+('momentum', 'first_combo') 16.3 s 
+('momentum', 'risk_moderate') 20.1 s 
+('momentum', 'risk_conservative') 31.4 s 
+('momentum', 'pos5') 34.5 s 
+('momentum', 'pos7') 20.1 s 
+('pullback', 'smart') 21.5 s 
+('pullback', 'plain') 44.9 s 
+('pullback', 'no_regime') 35.8 s 
+('pullback', 'no_score') 22.5 s 
+('pullback', 'no_selfcheck') 35.9 s 
+('pullback', 'score_m10') 22.8 s 
+('pullback', 'score_p10') 33.3 s 
+('pullback', 'first_combo') 10.6 s 
+('pullback', 'risk_moderate') 21.3 s 
+('pullback', 'risk_conservative') 31.7 s 
+('pullback', 'pos5') 33.2 s 
+('pullback', 'pos7') 20.8 s 
+done in 9.0 min
