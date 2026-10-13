@@ -2936,7 +2936,7 @@ FX_JS = """<script>
     if (fb && fb.getAttribute('aria-expanded') !== 'true') fb.click();
   }
   function onClick(e) {
-    if (e.target && e.target.closest && e.target.closest('[data-open-ai]')) { openChat(); return; }
+    if (e.target && e.target.closest && e.target.closest('[data-open-ai]')) { w.setTimeout(openChat, 60); return; }   // after this click (the window closes on a click outside it)
     var t = e.target && e.target.closest && e.target.closest('div.st-key-alturaifi_ai_send button, div.st-key-alturaifi_ai_chips button');
     if (!t) return;
     if (t.closest('div.st-key-alturaifi_ai_send')) {
@@ -2946,7 +2946,7 @@ FX_JS = """<script>
     showTyping();
   }
   function onKey(e) {
-    if ((e.key === 'Enter' || e.key === ' ') && e.target && e.target.closest && e.target.closest('[data-open-ai]')) { e.preventDefault(); openChat(); return; }
+    if ((e.key === 'Enter' || e.key === ' ') && e.target && e.target.closest && e.target.closest('[data-open-ai]')) { e.preventDefault(); w.setTimeout(openChat, 60); return; }
     if (e.key !== 'Enter' || !e.target || !e.target.closest || !e.target.closest('div.st-key-alturaifi_ai_prompt')) return;
     if (e.target.value && e.target.value.trim()) showTyping();
   }

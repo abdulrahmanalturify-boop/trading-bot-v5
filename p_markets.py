@@ -1205,13 +1205,14 @@ def stories_html(stories, lg, sa=False):
     return f'<div class="stories n{len(cards)}">' + "".join(cards) + "</div>"
 
 
-def movers_grid(lists, lg, sa=False):
-    """Movers at a glance: six cards of six companies (gainers, losers, the most traded, ...), in two rows of three."""
+def movers_grid(lists, lg, sa=False, per_row=3):
+    """Movers at a glance: six cards of six companies (gainers, losers, the most traded, ...), in rows of three (two on the
+    home page, whose side holds the tools)."""
     spec = SA_LISTS if sa else LISTS
     keys = list(spec)
-    for i, row in enumerate((keys[:3], keys[3:])):
+    for i, row in enumerate(keys[k:k + per_row] for k in range(0, len(keys), per_row)):
         with st.container(key=f"mvrow_{i}"):
-            cols = st.columns(3)
+            cols = st.columns(per_row)
         for col, kind in zip(cols, row):
             df = lists[kind] if sa else lists[kind][0]
             en, ar, ic = spec[kind]

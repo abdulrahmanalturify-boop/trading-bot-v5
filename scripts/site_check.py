@@ -1181,8 +1181,16 @@ def ov_check(b, report):
                 row["ai_ad_opens"] = pg.evaluate("() => document.querySelector('.st-key-alturaifi_ai_fab [data-testid=\"stPopoverButton\"]').getAttribute('aria-expanded')")
                 pg.keyboard.press("Escape")
                 time.sleep(1)
-                pg.locator('div.st-key-ovad_hunt').first.click(timeout=8000)
-                time.sleep(6)
+                row["hunt_btn"] = pg.evaluate("""() => { const c = document.querySelector('div.st-key-ovad_hunt'), b = c && c.querySelector('button');
+                    if (!c || !b) return null; const r1 = c.getBoundingClientRect(), r2 = b.getBoundingClientRect();
+                    const at = document.elementFromPoint(r1.left + r1.width / 2, r1.top + r1.height / 2);
+                    return {card: [r1.left, r1.top, r1.width, r1.height].map(Math.round), btn: [r2.left, r2.top, r2.width, r2.height].map(Math.round),
+                            hit: at ? (at.tagName + '.' + (at.className || '').toString().slice(0, 40)) : null}; }""")
+                pg.locator('div.st-key-ovad_hunt button').first.click(timeout=8000, force=True)
+                for _ in range(20):
+                    time.sleep(1)
+                    if "scanner" in pg.url:
+                        break
                 row["hunt_ad_goes"] = pg.url
         except Exception as e:
             row["error"] = str(e)[:400]

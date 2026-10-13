@@ -25,7 +25,7 @@ ss = st.session_state
 TOOLS = [
     ("ai", None, "auto_awesome", "ai", ("TURA AI", "TURA AI"),
      ("Ask about any number, chart or term on the page and get it explained in plain words.",
-      "اسأل عن أي رقم أو رسم أو مصطلح بالصفحة، ويشرح لك بكلام بسيط."), ("Ask the AI assistant", "اسأل المساعد الذكي")),
+      "اسأل عن أي رقم أو رسم أو مصطلح بالصفحة، ويشرح لك بكلام بسيط."), ("Start a chat", "ابدأ محادثة")),
     ("hunt", "scanner", "radar", "hunt", ("Opportunity Hunter", "صائد الفرص"),
      ("Today's setups scored out of 100, each with its entry, stop and target.",
       "فرص اليوم بدرجة من 100، ولكل فرصة دخول ووقف وهدف."), ("See today's picks", "شوف فرص اليوم")),
@@ -88,6 +88,9 @@ div[class*="st-key-ovad_"]:hover .ovad .big,.ovad.solo:hover .big{transform:rota
 .ovad.academy{--a1:#B45309;--a2:#C2410C;--sh:rgba(194,65,12,.65)}
 .ovad.x{--a1:#111827;--a2:#334155;--sh:rgba(15,23,42,.75)}
 .ovad.scr{--a1:#1E40AF;--a2:#0284C7;--sh:rgba(30,64,175,.7)}
+/* the market summary in the narrower main column: its tiles two by two */
+div.st-key-ovmain .msg{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+@media (max-width:640px){div.st-key-ovmain .msg{grid-template-columns:minmax(0,1fr)!important}}
 /* the earnings card in the side: one day of the earnings calendar */
 .ehub.one{grid-template-columns:1fr!important;margin:0!important}
 .ehub.one .day{border-radius:18px}
@@ -215,7 +218,7 @@ def _trending(px, sa):
         st.info(L("Saudi quotes are unavailable right now. Try again in a minute.", "أسعار السوق السعودي غير متاحة حالياً. حاول بعد دقيقة."))
         return snap
     ui.sec("leaderboard", "Movers at a glance", "الأسهم الأكثر حركة")
-    PM.movers_grid(lists, lg, sa=sa)
+    PM.movers_grid(lists, lg, sa=sa, per_row=2)
     with st.container(key="ovmore", horizontal=True, gap="small"):
         st.button(L("Everything trending today", "كل اللي رائج اليوم"), key="ovgo_trend", icon=":material/local_fire_department:",
                   on_click=_open_tool, args=("trend", "trending"))
@@ -273,12 +276,13 @@ def page_overview():
     px = PM._tile_prices()
     PM.ticker_tape(px)
     ui.html(home.top_html(_chips(px, sa)))
-    main, side = st.columns([3.15, 1], gap="large")
+    main, side = st.columns([2.75, 1], gap="large")
     with main:
-        snap = ui.safe(_trending, px, sa)
-        ui.safe(_mood, snap)
-        ui.safe(PM.heatmap_section)
-        ui.safe(_markets, px, sa)
+        with st.container(key="ovmain"):
+            snap = ui.safe(_trending, px, sa)
+            ui.safe(_mood, snap)
+            ui.safe(PM.heatmap_section)
+            ui.safe(_markets, px, sa)
     with side:
         with st.container(key="ovrail"):
             _rail(sa)
