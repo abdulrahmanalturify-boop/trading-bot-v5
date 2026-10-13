@@ -1134,7 +1134,7 @@ def sample_fab(pg, press, secs=8.0):
     return seen
 
 
-OV_CHECK = False     # a quick run: the new home page (23.4) - computer (dark and light, English and Arabic, US and Saudi), a tablet and a phone
+OV_CHECK = True      # a quick run: the new home page (23.4) - computer (dark and light, English and Arabic, US and Saudi), a tablet and a phone
 
 
 def ov_check(b, report):
@@ -1159,9 +1159,9 @@ def ov_check(b, report):
             time.sleep(3)
             row["problems"] = problems(pg)
             row["landing"] = pg.evaluate("() => !!document.querySelector('.ixp')")
-            row["rail"] = pg.evaluate("""() => { const r = document.querySelector('div.st-key-ovrail'); if (!r) return null; const b = r.getBoundingClientRect();
-                return {x: Math.round(b.left), y: Math.round(b.top), w: Math.round(b.width), h: Math.round(b.height), ads: r.querySelectorAll('.ovad').length,
-                        pos: getComputedStyle(r.closest('[data-testid="stColumn"]')).position}; }""")
+            row["rail"] = pg.evaluate("""() => [...document.querySelectorAll('div[class*="st-key-ovads_"], div.st-key-ovfoot')].map(r => { const b = r.getBoundingClientRect();
+                const c = r.closest('[data-testid="stColumn"]'); return {k: [...r.classList].find(x => x.startsWith('st-key-')), x: Math.round(b.left), w: Math.round(b.width),
+                ads: r.querySelectorAll('.ovad').length, pos: c ? getComputedStyle(c).position : null}; })""")
             row["sections"] = pg.evaluate("() => [...document.querySelectorAll('.sec, .ptitle h1, h1')].map(e => e.innerText.trim().slice(0, 40)).filter(Boolean).slice(0, 20)")
             row["page_h"] = pg.evaluate("() => document.querySelector('[data-testid=\"stMain\"]') ? document.querySelector('[data-testid=\"stMain\"]').scrollHeight : null")
             pg.screenshot(path=os.path.join(OUT, f"ov_{name}_top.jpg"), type="jpeg", quality=78)
@@ -1176,6 +1176,8 @@ def ov_check(b, report):
                 pg.evaluate("() => { const m = document.querySelector('[data-testid=\"stMain\"]'); if (m) m.scrollTo(0, 0); }")
                 time.sleep(1)
                 ad = pg.locator('.ovad.solo').first
+                ad.scroll_into_view_if_needed(timeout=8000)
+                time.sleep(1)
                 ad.click(timeout=8000)
                 time.sleep(2)
                 row["ai_ad_opens"] = pg.evaluate("() => document.querySelector('.st-key-alturaifi_ai_fab [data-testid=\"stPopoverButton\"]').getAttribute('aria-expanded')")
