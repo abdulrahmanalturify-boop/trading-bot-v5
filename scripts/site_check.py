@@ -1710,7 +1710,7 @@ def cloud_probe():
     return 0
 
 
-SPEED = False        # a quick run: how fast the live sites (Oracle and Streamlit Cloud) open, page by page, cold and warm
+SPEED = True         # a quick run: how fast the live sites (Oracle and Streamlit Cloud) open, page by page, cold and warm
 
 
 def speed_probe():
@@ -1790,7 +1790,7 @@ def speed_probe():
     return 0
 
 
-PROFILE_RUN = True   # a quick run: the home page on the test server, timed part by part (cold, warm, warm again, Saudi)
+PROFILE_RUN = False  # a quick run: the home page on the test server, timed part by part (cold, warm, warm again, Saudi)
 
 
 def profile_run(b, report):

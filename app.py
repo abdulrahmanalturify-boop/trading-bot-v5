@@ -44,13 +44,11 @@ if any(_stale(m) for m in _ORDER):
                     sys.modules.pop(_m, None)       # imported fresh below
 
 # ---------------------------------------------------------------- the site's own server (Oracle): a new version within a minute
-# On the server the site looks at GitHub itself every 30 seconds; when the main branch has a new version that changes what the
-# site runs on, it takes it and stops, and the server's service starts it again on the new version a few seconds later (the
-# server's own updater, every 3 minutes, stays as the safety net and does a change to requirements.txt, the deploy scripts and
-# the domain). Streamlit Cloud updates itself on every upload, so nothing runs there.
-_SKIP = re.compile(r"^(\.github/|research/|scripts/|deploy/|site_check/)|\.md$")
-
-
+# On the server the site looks at GitHub itself every 30 seconds; when the main branch has a new version, it takes its files in
+# place, without a restart: the next visit runs the new app.py, which reloads every module of an older version (above), as
+# Streamlit Cloud does. So the data kept ready for visitors (warm.py, Streamlit's caches) survives an update and nobody waits
+# for the site to start again (a restart emptied them: the next visitor waited for everything). A change to requirements.txt
+# is left to the server's own updater (every 3 minutes), which installs the packages and restarts the site.
 def _self_update():
     import subprocess
     import threading
@@ -75,10 +73,8 @@ def _self_update():
                     old, new = run("rev-parse", "HEAD").stdout.strip(), run("rev-parse", f"origin/{br}").stdout.strip()
                     if old and new and old != new:
                         changed = run("diff", "--name-only", old, new).stdout.split()
-                        if "requirements.txt" not in changed and any(not _SKIP.search(f) for f in changed):
-                            if run("reset", "-q", "--hard", f"origin/{br}").returncode == 0:
-                                print(f"self-update {old[:7]} -> {new[:7]}: restarting", flush=True)
-                                os._exit(0)
+                        if "requirements.txt" not in changed and run("reset", "-q", "--hard", f"origin/{br}").returncode == 0:
+                            print(f"self-update {old[:7]} -> {new[:7]} (in place, {len(changed)} files)", flush=True)
             except Exception:
                 pass
             _t.sleep(30)
