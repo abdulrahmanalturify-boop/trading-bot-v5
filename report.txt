@@ -1,0 +1,11 @@
+key: -----BEGIN RSA PRIVATE KEY----- ... (28 lines)
+key: a valid private key
+port 22: open
+debug1: Connecting to 84.13.143.157 [84.13.143.157] port 22.
+debug1: Connection established.
+debug1: identity file /home/runner/.ssh/oracle type -1
+debug1: identity file /home/runner/.ssh/oracle-cert type -1
+debug1: Authenticating to 84.13.143.157:22 as 'ubuntu'
+debug1: Authentications that can continue: publickey
+debug1: Authentications that can continue: publickey
+ubuntu@84.13.143.157: Permission denied (publickey).
