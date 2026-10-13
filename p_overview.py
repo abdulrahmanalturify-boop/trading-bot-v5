@@ -10,6 +10,8 @@ import time
 
 import streamlit as st
 
+import pandas as pd
+
 import data
 import home
 import markets as MK
@@ -19,8 +21,11 @@ import p_markets as PM
 import p_newsintel as PNI
 import theme as T
 import ui
+import tasi
 import universe as U
+import warm
 from i18n import L, is_ar
+from sp500 import SP500
 
 ss = st.session_state
 _PROF = os.environ.get("TURA_PROFILE") == "1"       # the site check's speed run: how long each part of the page takes
@@ -414,33 +419,92 @@ def _pick_news(sym):
     ss["goto"] = "newsintel"
 
 
+# ---------------------------------------------------------------- the page's data, kept ready in the background (warm.py)
+_HM_DEFAULT = {False: ("sp500", "1D", "cap"), True: ("sa_all", "1D", "cap")}      # the heat map's first choices
+
+
+def _compute_lists(sa):
+    if sa:
+        mv = data.sa_moves()
+        return mv, PM.sa_lists(mv)
+    mv = PM._universe_moves()
+    return mv, {k: PM._list(k, mv) for k in PM.LISTS}
+
+
+def _compute_heat(sa):
+    ukey, period, sizing = _HM_DEFAULT[sa]
+    syms = list(tasi.SYMBOLS) if sa else list(SP500)
+    df, source = PM.heatmap_frame(ukey, period, sizing, syms=syms)
+    if df is None or df.empty:
+        return None                                  # not kept: tried again by the next visitor
+    return {(ukey, period, sizing): (df, source)}
+
+
+def _jobs(sa):
+    """Everything the page needs, with how long each stays fresh (seconds)."""
+    m = MK.SA if sa else MK.US
+    jobs = {"tiles": (PM._tile_prices, 120),
+            f"snap:{m}": (lambda: PNI.compute_snapshot(m, 24), 240),
+            f"stories:{m}": (lambda: PM.top_stories(3, market=m), 240),
+            f"lists:{m}": (lambda: _compute_lists(sa), 300),
+            f"fg:{m}": (lambda: PI.fg_now(m), 1800),
+            f"heat:{m}": (lambda: _compute_heat(sa), 180)}
+    if not sa:
+        jobs["macro"] = (data.macro, 3600)
+    return jobs
+
+
+def _get(sa, key):
+    m = MK.SA if sa else MK.US
+    jobs = _jobs(sa)
+    k = key if key in jobs else f"{key}:{m}"
+    fn, ttl = jobs[k]
+    return _timed(f"get {k}", warm.get, k, fn, ttl)
+
+
 class _Day:
-    """What the page's parts share, read once and only when a part needs it: the news engine's reading, the movers' lists and
-    the companies' logos."""
+    """What the page's parts share, taken from the data kept ready in the background (warm.py): the news engine's reading,
+    the stories, the movers' lists, the mood, the indicators, the heat map, and the companies' logos."""
 
     def __init__(self, px, sa):
         self.px, self.sa = px, sa
-        self._snap = self._lists = self._stories = self._lg = None
+        self._got = {}
+        self._lg = None
+
+    def _one(self, key, empty):
+        if key not in self._got:
+            v = _get(self.sa, key)
+            self._got[key] = v if v is not None else empty
+        return self._got[key]
 
     def snap(self):
-        if self._snap is None:
-            self._snap = ui.safe(PNI.snapshot) or {}
-        return self._snap
+        return self._one("snap", {})
 
     def lists(self):
-        if self._lists is None:
-            if self.sa:
-                mv = data.sa_moves()
-                self._lists = (mv, PM.sa_lists(mv))
-            else:
-                mv = PM._universe_moves()
-                self._lists = (mv, {k: PM._list(k, mv) for k in PM.LISTS})
-        return self._lists
+        empty = (pd.DataFrame(), {k: pd.DataFrame() for k in PM.SA_LISTS}) if self.sa else \
+            (pd.DataFrame(), {k: (pd.DataFrame(), True) for k in PM.LISTS})
+        return self._one("lists", empty)
 
     def stories(self):
-        if self._stories is None:
-            self._stories = ui.safe(PM.top_stories, 3) or []
-        return self._stories
+        return self._one("stories", [])
+
+    def fg(self):
+        return self._one("fg", None)
+
+    def macro(self):
+        return None if self.sa else self._one("macro", None)
+
+    def heat(self):
+        pre = self._one("heat", None)
+        if pre and self.sa and is_ar():              # made in the background in English: the Saudi names in Arabic
+            out = {}
+            for k, (df, src) in pre.items():
+                df = df.copy()
+                m = df["Kind"] == "tadawul"
+                df.loc[m, "Name"] = df.loc[m, "Symbol"].map(lambda s_: tasi.name_of(s_, True))
+                out[k] = (df, src)
+            return out
+        return pre
 
     def lg(self):
         if self._lg is None:
@@ -502,9 +566,8 @@ def _movers(d):
         st.button(L("All the news", "كل الأخبار"), key="ovgo_news", icon=":material/newspaper:", on_click=_open_tool, args=("news", "news"))
 
 
-def _mood(snap):
+def _mood(snap, v):
     ui.sec("speed", "The market's mood", "مزاج السوق")
-    v = PI.fg_now()
     with st.container(key="ovmood"):
         a, b = st.columns(2, gap="medium")
         with a:
@@ -525,7 +588,7 @@ def _mood(snap):
                       on_click=_open_tool, args=("ni", "newsintel"))
 
 
-def _markets(px, sa):
+def _markets(px, sa, macro=None):
     ui.sec("monitoring", "Markets at a glance", "الأسواق بلمحة")
     groups = PM.SA_TILES if sa else U.MARKET_TILES
     tabs = st.tabs([L(gen, gar) for gen, gar in groups])
@@ -542,7 +605,11 @@ def _markets(px, sa):
                 items.append(T.tile(name, val, chg, pct, px[sym]["Close"].tail(22).values, invert=(sym == "^VIX")))
             ui.html(T.tiles(items))
     if not sa:
-        _timed("indicators", ui.safe, PM.indicators_section, True)
+        if macro is not None:
+            _timed("indicators", ui.safe, PM.indicators_section, True, macro)
+        else:
+            ui.sec("query_stats", "Key economic indicators", "أهم المؤشرات الاقتصادية")
+            st.caption(L("The economic indicators are on their way: they show in a moment.", "المؤشرات الاقتصادية في الطريق: تطلع بعد شوي."))
 
 
 def page_overview():
@@ -550,14 +617,12 @@ def page_overview():
     ui.html('<span class="css-anchor"></span>\n' + CSS + PNI.CSS + PNI.CSS2)
     ui.html('<span class="css-anchor"></span>\n' + home.CSS)
     t0 = time.time()
-    px = _timed("prices", PM._tile_prices)
+    warm.prefetch(_jobs(sa))                         # every piece the page needs, side by side, in the background
+    px = _get(sa, "tiles") or {}
     PM.ticker_tape(px)
     ui.html(home.top_html(_chips(px, sa)))
     f = _timed("facts", _facts)
     d = _Day(px, sa)
-    if _PROF:
-        for lab, fn in (("snapshot", d.snap), ("lists", d.lists), ("stories", d.stories), ("logos", d.lg)):
-            _timed(lab, fn)
     # the page as a magazine: the news across the page, then each part with tool cards beside it - one on the right, then
     # two on the left, one on the right, two on the left - and the last two side by side at the foot
     with st.container(key="ovpage"):
@@ -565,8 +630,8 @@ def page_overview():
         _timed("part a", _with_ads, "a", "right", ["ai"], f, sa, lambda: ui.safe(_news_and_summary, d))
         _timed("part b", _with_ads, "b", "left", ["hunt", "bots"], f, sa, lambda: ui.safe(_movers, d))
         _timed("part c", _with_ads, "c", "right", ["pf", "earn"], f, sa,
-               lambda: (_timed("mood", ui.safe, _mood, d.snap()), _timed("heatmap", ui.safe, PM.heatmap_section)))
-        _timed("part d", _with_ads, "d", "left", ["robo", "academy"], f, sa, lambda: ui.safe(_markets, px, sa))
+               lambda: (_timed("mood", ui.safe, _mood, d.snap(), d.fg()), _timed("heatmap", ui.safe, PM.heatmap_section, d.heat())))
+        _timed("part d", _with_ads, "d", "left", ["robo", "academy"], f, sa, lambda: ui.safe(_markets, px, sa, d.macro()))
         last = [k for k in ("xbots", "screener") if _available(k, sa)]
         if last:
             with st.container(key="ovfoot"):
@@ -584,4 +649,4 @@ def page_overview():
         print(f"[prof] page {'sa' if sa else 'us'} total {time.time() - t0:.2f}s", flush=True)
 
 
-BUILD = "23.4.5"
+BUILD = "23.4.6"

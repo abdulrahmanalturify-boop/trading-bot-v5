@@ -7,7 +7,7 @@ import os
 import threading
 import time
 
-BUILD = "23.4.5"
+BUILD = "23.4.6"
 _LOCK = threading.Lock()
 _LAST = {"t": 0.0, "res": None}
 
@@ -84,5 +84,10 @@ def run(force=False):
             res["sources"] = _sources()
         except Exception as e:
             res["sources"] = {"error": str(e)[:200]}
+        try:
+            import warm
+            res["warm"] = warm.status()              # the home page's data kept ready: {piece: (age s, seconds it took)}
+        except Exception:
+            pass
         _LAST.update(t=time.time(), res=res)
         return res

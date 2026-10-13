@@ -153,8 +153,8 @@ def _meta(sym):
     return sym, "Other", "Other", "yahoo"
 
 
-def heatmap_frame(ukey, period, sizing):
-    syms = hm_universes()[ukey][1]
+def heatmap_frame(ukey, period, sizing, syms=None):
+    syms = syms if syms is not None else hm_universes()[ukey][1]
     q, source = data.market_quotes(syms)
     if q.empty:
         return pd.DataFrame(), source
@@ -214,7 +214,8 @@ def _sa_industry(g):
     return tasi.industry_ar(g) if is_ar() else g
 
 
-def heatmap_section():
+def heatmap_section(pre=None):
+    """pre: {(index, colour, size): (frame, source)} made in the background (warm.py): used when the choice matches."""
     sa = MK.is_sa()
     ui.sec("grid_view", "Stock heatmap", "خريطة الأسهم الحرارية")
     unis = hm_universes()
@@ -227,7 +228,8 @@ def heatmap_section():
     period = c[2].selectbox(L("Color", "اللون"), pers, key="hm_per" + sfx, format_func=lambda k: L(*HM_PERIODS[k]))
     theme_uni = ukey.startswith("t:")
     with st.spinner(L("Building the heatmap...", "جاري بناء الخريطة...")):
-        df, source = heatmap_frame(ukey, period, sizing)
+        got = (pre or {}).get((ukey, period, sizing))
+        df, source = got if got is not None else heatmap_frame(ukey, period, sizing)
     if df.empty:
         c[3].selectbox(L("Sector", "القطاع"), ["all"], key="hm_sec_empty", format_func=lambda s: L("All sectors", "كل القطاعات"))
         st.warning(L("Market data is temporarily unavailable.", "بيانات السوق غير متاحة مؤقتاً."))
@@ -721,13 +723,13 @@ RATE_NAMES = {0.25: ("3-month T-bill", "أذونات 3 أشهر"), 2.0: ("2-year
               10.0: ("10-year Treasury", "سندات 10 سنوات"), 30.0: ("30-year Treasury", "سندات 30 سنة")}
 
 
-def indicators_section(compact=False):
+def indicators_section(compact=False, pre=None):
     if compact:
         ui.sec("query_stats", "Key economic indicators", "أهم المؤشرات الاقتصادية")
     else:
         ui.sec("query_stats", "Key indicators", "أهم المؤشرات")
     with st.spinner(L("Loading economic data...", "جاري تحميل البيانات الاقتصادية...")):
-        mac, errors, status = data.macro()
+        mac, errors, status = pre if pre is not None else data.macro()
     if mac:
         items = []
         for sid, m in mac.items():
@@ -1379,9 +1381,10 @@ def _talked_section():
                  "محسوبة من أخبار آخر 24 ساعة: الخبر اللي نشرته عدة مصادر ينحسب مرة لكل مصدر."))
 
 
-def top_stories(k=3):
-    """The most important recent stories that name at least one company (importance score, then freshness)."""
-    items = [n for n in data.market_news(24)[:400]]
+def top_stories(k=3, market=None):
+    """The most important recent stories that name at least one company (importance score, then freshness). market: the
+    page's market by default (given when it runs in the background, warm.py)."""
+    items = [n for n in data.market_news(24, market=market)[:400]]
     fresh = [n for n in items if pd.notna(n.get("time")) and n["time"] >= pd.Timestamp.now(tz="UTC") - pd.Timedelta(hours=14)] or items[:60]
     fresh = newsbot.cluster(fresh)              # three different events, each with its full coverage (not one event three times)
     tick = sorted({s_ for n in fresh for s_ in n.get("tickers", [])})
@@ -1567,4 +1570,4 @@ def page_news():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.4.5"
+BUILD = "23.4.6"

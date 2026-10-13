@@ -13,10 +13,10 @@ import streamlit as st
 # ---------------------------------------------------------------- always run the newest code
 # Streamlit Cloud re-reads app.py after every GitHub upload but can keep the other modules (theme, data, ...) from the
 # previous version in memory. Every module carries BUILD; if one in memory is older, all of them are reloaded in order.
-BUILD = "23.4.5"
+BUILD = "23.4.6"
 _ORDER = ["terms", "lightmode", "i18n", "ai_assistant", "flags", "mcal", "mcal_sa", "markets", "tasi", "universe", "sp500", "taxonomy", "ta", "academy_visuals", "academy", "insight", "heatmap", "newsiq", "newspics", "newsai", "theme", "data",
           "caldata", "newsbot", "newsintel", "charts", "engine", "playbooks", "autotrader", "ui", "fairvalue", "segments", "holders", "sharia", "lab", "tdash", "mlbots", "brain", "account", "paperbots", "smartbots", "portfolio", "robobot", "robo", "pfinsight", "p_markets", "p_newsintel", "p_research", "p_insight",
-          "p_academy", "p_paper", "p_portfolio", "p_robo", "p_calendar", "hunter", "p_scanner", "xbots", "p_xbots", "home", "p_overview", "diag"]
+          "p_academy", "p_paper", "p_portfolio", "p_robo", "p_calendar", "hunter", "p_scanner", "xbots", "p_xbots", "home", "warm", "p_overview", "diag"]
 # Every visitor's run executes this file at the same time, in its own thread. A module another run is still importing (its
 # BUILD, at the end of the file, not set yet) is not old: it is left alone, since taking it out of sys.modules under that import
 # crashed the server (KeyError: 'ui' in importlib, after the 23.1 upload). One run reloads at a time; the others wait for it,

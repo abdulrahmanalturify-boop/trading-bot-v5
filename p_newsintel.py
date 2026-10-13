@@ -1460,10 +1460,10 @@ def _show_story(a, chg, px, titles_ar):
     st.dialog(L("Story analysis", "تحليل الخبر"), width="large")(_story_window)(a, chg2, sec_chg, titles_ar, px.get(a["main"]))
 
 
-@st.cache_resource(ttl=240, show_spinner=False, max_entries=4)
-def _snapshot(market, hrs):
+def compute_snapshot(market, hrs=24):
+    """The engine's reading of the last hrs of news for a market, computed (no cache: warm.py keeps it for the home page)."""
     bench = "KSA" if market == MK.SA else "SPY"
-    items = data.market_news(96)
+    items = data.market_news(96, market=market)
     now = pd.Timestamp.now(tz="UTC")
     items = [n for n in items if pd.notna(n.get("time")) and n["time"] >= now - pd.Timedelta(hours=hrs)][:600]
     items = newsbot.cluster(items)[:400]
@@ -1478,6 +1478,11 @@ def _snapshot(market, hrs):
     seen = set()
     res = [a for a in res if not (_sid(a) in seen or seen.add(_sid(a)))]
     return {"res": res, "chg": chg, "now": now, "hrs": hrs}
+
+
+@st.cache_resource(ttl=240, show_spinner=False, max_entries=4)
+def _snapshot(market, hrs):
+    return compute_snapshot(market, hrs)
 
 
 def snapshot(hrs=24):
@@ -1673,4 +1678,4 @@ def page_news_intel():
             _show_story(a, chg, px, titles_ar)
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.4.5"
+BUILD = "23.4.6"

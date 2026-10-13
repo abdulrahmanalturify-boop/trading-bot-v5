@@ -1803,6 +1803,10 @@ def profile_run(b, report):
         try:
             pg.goto(URL + path, wait_until="domcontentloaded", timeout=120000)
             out[label] = {"settle_s": settle(pg, 300), "total_s": round(time.time() - t0, 1)}
+            time.sleep(2)
+            out[label]["problems"] = problems(pg)
+            out[label]["parts"] = pg.evaluate("() => ({stories: !!document.querySelector('.stories'), breaking: !!document.querySelector('.nie-brk'), movers: document.querySelectorAll('.mcard').length, mood: !!document.querySelector('.nie-gauge'), fg: !!document.querySelector('.ovcard'), heat: !!document.querySelector('.js-plotly-plot'), macro_waiting: document.body.innerText.includes('on their way') || document.body.innerText.includes('في الطريق'), ads: document.querySelectorAll('.ovad').length})")
+            pg.screenshot(path=os.path.join(OUT, f"prof_{label}.jpg"), type="jpeg", quality=60, full_page=False)
         except Exception as e:
             out[label] = {"error": str(e)[:200]}
         ctx.close()
