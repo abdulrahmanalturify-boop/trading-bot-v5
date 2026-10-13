@@ -3,6 +3,7 @@ app.py - TURA Pro · US and Saudi markets platform (entry point).
 Run locally:  streamlit run app.py
 """
 import importlib
+import os
 import re
 import sys
 
@@ -12,7 +13,7 @@ import streamlit as st
 # ---------------------------------------------------------------- always run the newest code
 # Streamlit Cloud re-reads app.py after every GitHub upload but can keep the other modules (theme, data, ...) from the
 # previous version in memory. Every module carries BUILD; if one in memory is older, all of them are reloaded in order.
-BUILD = "23.4"
+BUILD = "23.4.1"
 _ORDER = ["terms", "lightmode", "i18n", "ai_assistant", "flags", "mcal", "mcal_sa", "markets", "tasi", "universe", "sp500", "taxonomy", "ta", "academy_visuals", "academy", "insight", "heatmap", "newsiq", "newspics", "newsai", "theme", "data",
           "caldata", "newsbot", "newsintel", "charts", "engine", "playbooks", "autotrader", "ui", "fairvalue", "segments", "holders", "sharia", "lab", "tdash", "mlbots", "brain", "account", "paperbots", "smartbots", "portfolio", "robobot", "robo", "pfinsight", "p_markets", "p_newsintel", "p_research", "p_insight",
           "p_academy", "p_paper", "p_portfolio", "p_robo", "p_calendar", "hunter", "p_scanner", "xbots", "p_xbots", "home", "p_overview"]
@@ -41,6 +42,54 @@ if any(_stale(m) for m in _ORDER):
                     importlib.reload(_mod)
                 except Exception:
                     sys.modules.pop(_m, None)       # imported fresh below
+
+# ---------------------------------------------------------------- the site's own server (Oracle): a new version within a minute
+# On the server the site looks at GitHub itself every 30 seconds; when the main branch has a new version that changes what the
+# site runs on, it takes it and stops, and the server's service starts it again on the new version a few seconds later (the
+# server's own updater, every 3 minutes, stays as the safety net and does a change to requirements.txt, the deploy scripts and
+# the domain). Streamlit Cloud updates itself on every upload, so nothing runs there.
+_SKIP = re.compile(r"^(\.github/|research/|scripts/|deploy/|site_check/)|\.md$")
+
+
+def _self_update():
+    import subprocess
+    import threading
+    import time as _t
+    here = os.path.dirname(os.path.realpath(__file__))
+    if not here.startswith("/opt/tura/") or getattr(sys, "_tura_self_update", False):
+        return
+    sys._tura_self_update = True                    # one watcher per server process
+
+    def run(*a, timeout=60):
+        return subprocess.run(["git", "-C", here, *a], capture_output=True, text=True, timeout=timeout)
+
+    def loop():
+        _t.sleep(45)
+        while True:
+            try:
+                try:
+                    br = open("/opt/tura/branch").read().strip() or "main"
+                except OSError:
+                    br = "main"
+                if run("fetch", "-q", "origin", br).returncode == 0:
+                    old, new = run("rev-parse", "HEAD").stdout.strip(), run("rev-parse", f"origin/{br}").stdout.strip()
+                    if old and new and old != new:
+                        changed = run("diff", "--name-only", old, new).stdout.split()
+                        if "requirements.txt" not in changed and any(not _SKIP.search(f) for f in changed):
+                            if run("reset", "-q", "--hard", f"origin/{br}").returncode == 0:
+                                print(f"self-update {old[:7]} -> {new[:7]}: restarting", flush=True)
+                                os._exit(0)
+            except Exception:
+                pass
+            _t.sleep(30)
+
+    threading.Thread(target=loop, daemon=True, name="tura-self-update").start()
+
+
+try:
+    _self_update()
+except Exception:
+    pass
 
 import lightmode as LM
 
@@ -398,7 +447,7 @@ except Exception:
     _static = False
 _calm = _cur not in ("", "overview")              # the reading pages: the background picture toned down behind the content
 _bg = LM.background_css(f"app/static/{LM.BG_FILE}" if _static else LM.BG_CDN, _calm) if _light else T.background_css(_static, _calm)
-st.markdown(f'<span class="css-anchor" data-th="{ss.get(LM.THEME_KEY, "dark")}"></span>' + T.CSS + _bg + (T.RTL_CSS if ss.lang == "ar" else "")
+st.markdown(f'<span class="css-anchor" data-th="{ss.get(LM.THEME_KEY, "dark")}" data-build="{BUILD}"></span>' + T.CSS + _bg + (T.RTL_CSS if ss.lang == "ar" else "")
             + LM.landing_css() + T.logo_glow_css(_light), unsafe_allow_html=True)
 st.logo(T.logo_wordmark(_light), icon_image=T.LOGO_ICON_LIGHT if _light else T.LOGO_ICON, size="large")
 try:                                   # interactive cards: the light follows the pointer (a script run once per browser tab)
