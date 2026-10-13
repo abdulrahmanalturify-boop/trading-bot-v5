@@ -1,16 +1,16 @@
 570 symbols, 569 already known
-50/570 · 17s · {'ok': 50, 'none': 0, 'error': 0}
-100/570 · 33s · {'ok': 100, 'none': 0, 'error': 0}
-150/570 · 50s · {'ok': 150, 'none': 0, 'error': 0}
-200/570 · 66s · {'ok': 200, 'none': 0, 'error': 0}
-250/570 · 82s · {'ok': 250, 'none': 0, 'error': 0}
-300/570 · 98s · {'ok': 300, 'none': 0, 'error': 0}
-350/570 · 114s · {'ok': 349, 'none': 1, 'error': 0}
-400/570 · 130s · {'ok': 399, 'none': 1, 'error': 0}
-450/570 · 146s · {'ok': 449, 'none': 1, 'error': 0}
-500/570 · 163s · {'ok': 499, 'none': 1, 'error': 0}
-550/570 · 179s · {'ok': 549, 'none': 1, 'error': 0}
-570/570 · 185s · {'ok': 569, 'none': 1, 'error': 0}
+50/570 · 18s · {'ok': 50, 'none': 0, 'error': 0}
+100/570 · 37s · {'ok': 100, 'none': 0, 'error': 0}
+150/570 · 55s · {'ok': 150, 'none': 0, 'error': 0}
+200/570 · 72s · {'ok': 200, 'none': 0, 'error': 0}
+250/570 · 90s · {'ok': 250, 'none': 0, 'error': 0}
+300/570 · 108s · {'ok': 300, 'none': 0, 'error': 0}
+350/570 · 126s · {'ok': 349, 'none': 1, 'error': 0}
+400/570 · 144s · {'ok': 399, 'none': 1, 'error': 0}
+450/570 · 161s · {'ok': 449, 'none': 1, 'error': 0}
+500/570 · 180s · {'ok': 499, 'none': 1, 'error': 0}
+550/570 · 198s · {'ok': 549, 'none': 1, 'error': 0}
+570/570 · 205s · {'ok': 569, 'none': 1, 'error': 0}
 AAPL: inst 66.325 ins 1.648 instf 67.437 n 7689 rep 2026-06-30 6m {'buys': 12, 'sells': 17, 'net_pct': 0.1} hist 4 · 1M inst None · top: Blackrock Inc. 7.97%, Vanguard Capital Management LLC 6.57%, State Street Corporation 4.21%
 MSFT: inst 75.802 ins 0.079 instf 75.862 n 8113 rep 2026-06-30 6m {'buys': 16, 'sells': 9, 'net_pct': 4.9} hist 4 · 1M inst None · top: Blackrock Inc. 8.18%, Vanguard Capital Management LLC 6.53%, State Street Corporation 4.25%
 NVDA: inst 71.406 ins 4.007 instf 74.387 n 7673 rep 2026-06-30 6m {'buys': 17, 'sells': 9, 'net_pct': -0.4} hist 4 · 1M inst None · top: Blackrock Inc. 8.06%, Vanguard Capital Management LLC 6.39%, FMR, LLC 4.26%
