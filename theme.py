@@ -2919,7 +2919,10 @@ FX_JS = """<script>
     tWhen = Date.now(); tSig = sig();
     place();
   }
+  var histH = 0;
   function place() {
+    var hist = d.querySelector('div.st-key-alturaifi_ai_hist');   // a new message: the history scrolls down to it
+    if (hist) { var hh = hist.scrollHeight; if (hh !== histH) { histH = hh; hist.scrollTop = hh; } } else histH = 0;
     var box = d.querySelector('div.st-key-alturaifi_ai_composer');
     if (!typing) return;
     if (!box || !box.getBoundingClientRect().width || Date.now() - tWhen > 45000 || (Date.now() - tWhen > 400 && sig() !== tSig)) { hideTyping(); return; }

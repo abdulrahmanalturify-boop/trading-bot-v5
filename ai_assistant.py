@@ -82,7 +82,7 @@ def _panel_css(light=False, lang="en"):
 @keyframes aiin{{from{{opacity:0;transform:translateY(6px)}}to{{opacity:1;transform:none}}}}
 @keyframes aipulse{{0%{{box-shadow:0 0 0 0 rgba(52,211,153,.55)}}70%{{box-shadow:0 0 0 6px rgba(52,211,153,0)}}100%{{box-shadow:0 0 0 0 rgba(52,211,153,0)}}}}
 @keyframes aidot{{0%,80%,100%{{opacity:.25;transform:translateY(0)}}40%{{opacity:1;transform:translateY(-3px)}}}}
-[data-testid="stPopoverBody"]:has({P}){{padding:16px 16px 10px!important;border:1px solid transparent!important;border-radius:22px!important;background:{c['bg']} padding-box,linear-gradient(135deg,rgba(59,130,246,.75),rgba(124,58,237,.75) 50%,rgba(34,211,238,.75)) border-box!important;box-shadow:{c['shadow']}!important}}
+[data-testid="stPopoverBody"]:has({P}){{padding:16px 16px 14px!important;border:1px solid transparent!important;border-radius:22px!important;background:{c['bg']} padding-box,linear-gradient(135deg,rgba(59,130,246,.75),rgba(124,58,237,.75) 50%,rgba(34,211,238,.75)) border-box!important;box-shadow:{c['shadow']}!important}}
 {P}{{width:min(400px,calc(100vw - 40px));direction:{'rtl' if rtl else 'ltr'};color:{c['text']}}}
 {P} [data-testid="stVerticalBlock"]{{gap:.55rem}}
 .ai-head{{display:flex;align-items:center;gap:12px;padding:0 2px 14px;border-bottom:1px solid {c['line']}}}
@@ -109,9 +109,11 @@ div.st-key-alturaifi_ai_chips button::after{{content:"{arrow}";position:absolute
 div.st-key-alturaifi_ai_chips button:hover{{background:{c['cardh']}!important;border-color:{c['acc']}!important;transform:translateY(-1px)}}
 div.st-key-alturaifi_ai_chips button:hover::after{{color:{c['acc']};transform:translate({'-4px' if rtl else '4px'},-50%)}}
 div.st-key-alturaifi_ai_chips button:active{{transform:scale(.985)}}
-div.st-key-alturaifi_ai_hist{{padding-inline-end:4px;scrollbar-width:thin;scrollbar-color:{c['line']} transparent}}
-div[class*="st-key-alturaifi_ai_user_"]{{width:fit-content;max-width:84%;margin-inline-start:auto;margin-block:2px 4px;padding:9px 13px;border-radius:16px;border-end-end-radius:6px;background:{c['user']};border:1px solid {c['userb']};animation:aiin .3s ease-out}}
-div[class*="st-key-alturaifi_ai_user_"] p{{color:{c['usert']}!important}}
+div.st-key-alturaifi_ai_hist{{height:auto!important;max-height:min(340px,48vh)!important;overflow-y:auto!important;padding-inline-end:4px;scrollbar-width:thin;scrollbar-color:{c['line']} transparent}}
+div[class*="st-key-alturaifi_ai_user_"]{{align-items:flex-end!important;margin-block:2px 2px}}
+div[class*="st-key-alturaifi_ai_user_"] [data-testid="stElementContainer"]{{width:auto!important;max-width:84%}}
+div[class*="st-key-alturaifi_ai_user_"] [data-testid="stMarkdownContainer"]{{padding:9px 13px;border-radius:16px;border-end-start-radius:16px;border-end-end-radius:6px;background:{c['user']};border:1px solid {c['userb']};animation:aiin .3s ease-out}}
+div[class*="st-key-alturaifi_ai_user_"] p{{color:{c['usert']}!important;margin:0!important}}
 div[class*="st-key-alturaifi_ai_asst_"]{{position:relative;padding-inline-start:34px;margin-block:4px 8px;animation:aiin .35s ease-out}}
 div[class*="st-key-alturaifi_ai_asst_"]::before{{content:"✦";position:absolute;inset-inline-start:0;top:1px;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:11px;color:#fff;background:linear-gradient(135deg,#3B82F6,#7C3AED);box-shadow:0 4px 12px -4px rgba(59,130,246,.6)}}
 div[class*="st-key-alturaifi_ai_user_"] p,div[class*="st-key-alturaifi_ai_asst_"] p,div[class*="st-key-alturaifi_ai_asst_"] li{{font-size:13px!important;line-height:1.65!important}}
@@ -121,7 +123,8 @@ div[class*="st-key-alturaifi_ai_asst_"] strong{{color:{c['text']}}}
 div.st-key-alturaifi_ai_composer{{padding:5px;padding-inline-start:8px;border-radius:17px;background:{c['inp']};border:1px solid {c['line']};transition:border-color .2s ease,box-shadow .25s ease}}
 div.st-key-alturaifi_ai_composer:focus-within{{border-color:{c['acc']};box-shadow:0 0 0 4px {c['accs']}}}
 div.st-key-alturaifi_ai_composer [data-testid="stHorizontalBlock"]{{gap:6px!important;align-items:center}}
-div.st-key-alturaifi_ai_prompt [data-baseweb="input"],div.st-key-alturaifi_ai_prompt [data-baseweb="base-input"]{{background:transparent!important;border:0!important;box-shadow:none!important}}
+div.st-key-alturaifi_ai_prompt [data-testid="stTextInputRootElement"],div.st-key-alturaifi_ai_prompt [data-testid="stTextInputRootElement"]:hover,div.st-key-alturaifi_ai_prompt [data-testid="stTextInputRootElement"]:focus-within,div.st-key-alturaifi_ai_prompt [data-baseweb="input"],div.st-key-alturaifi_ai_prompt [data-baseweb="input"]:hover,div.st-key-alturaifi_ai_prompt [data-baseweb="input"]:focus-within,div.st-key-alturaifi_ai_prompt [data-baseweb="base-input"]{{background:transparent!important;border-color:transparent!important;box-shadow:none!important}}
+div.st-key-alturaifi_ai_prompt [data-testid="InputInstructions"]{{display:none!important}}
 div.st-key-alturaifi_ai_prompt input{{min-height:40px!important;padding-inline:4px!important;background:transparent!important;color:{c['text']}!important;font-size:13.5px!important;caret-color:{c['acc']}}}
 div.st-key-alturaifi_ai_prompt input::placeholder{{color:{c['faint']}!important;opacity:1}}
 div.st-key-alturaifi_ai_send button{{width:40px!important;height:40px!important;min-height:40px!important;padding:0!important;margin-inline-start:auto;border-radius:50%!important;border:0!important;color:#fff!important;background:linear-gradient(135deg,#3B82F6,#6D4AE8)!important;box-shadow:0 8px 18px -8px rgba(79,70,229,.8)!important;transition:transform .2s cubic-bezier(.2,.8,.2,1),box-shadow .2s ease!important}}
@@ -131,7 +134,7 @@ div.st-key-alturaifi_ai_send button [data-testid="stIconMaterial"]{{color:#fff!i
 div.st-key-alturaifi_ai_new button{{min-height:32px!important;padding:0 10px!important;border-radius:999px!important;background:{c['card']}!important;border:1px solid {c['line']}!important;color:{c['muted']}!important;font-size:11.5px!important;transition:color .2s ease,border-color .2s ease!important}}
 div.st-key-alturaifi_ai_new button:hover{{color:{c['acc']}!important;border-color:{c['acc']}!important}}
 div.st-key-alturaifi_ai_new button p{{font-size:11.5px!important}}
-.ai-note{{color:{c['faint']};font-size:10.5px;text-align:center;margin:2px 0 0}}
+.ai-note{{display:block;color:{c['faint']};font-size:10.5px;line-height:1.5;text-align:center;margin:0;padding:2px 0 4px}}
 .ai-typing{{position:fixed;z-index:1000070;display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;font-size:12px;color:{c['muted']};background:{c['card'] if not light else '#FFFFFF'};border:1px solid {c['line']};box-shadow:0 10px 24px -14px rgba(2,6,23,.6);pointer-events:none;animation:aiin .25s ease-out}}
 .ai-typing i{{width:5px;height:5px;border-radius:50%;background:{c['acc']};animation:aidot 1.2s infinite ease-in-out}}
 .ai-typing i:nth-of-type(2){{animation-delay:.15s}}.ai-typing i:nth-of-type(3){{animation-delay:.3s}}
