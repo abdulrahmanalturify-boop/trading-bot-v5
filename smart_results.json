@@ -1,5 +1,5 @@
 {
-"run": "2026-10-13 21:06 UTC",
+"run": "2026-10-13 21:48 UTC",
 "start": "2007-01-03",
 "capital": 100000.0,
 "fee": 0.1,
@@ -805,7 +805,7 @@
 "invested": 0.8345036265796121
 }
 },
-"secs": 35.0,
+"secs": 18.5,
 "trades_total": 2205,
 "by_regime": {
 "bull": {
@@ -1509,7 +1509,7 @@
 "invested": 0.9838273592117938
 }
 },
-"secs": 25.0,
+"secs": 13.9,
 "trades_total": 1575
 },
 "no_regime": {
@@ -1625,7 +1625,7 @@
 "invested": 0.9430487883097255
 }
 },
-"secs": 23.3,
+"secs": 15.1,
 "trades_total": 2253
 },
 "no_score": {
@@ -1741,7 +1741,7 @@
 "invested": 0.8302415063438479
 }
 },
-"secs": 12.0,
+"secs": 20.9,
 "trades_total": 2200
 },
 "no_selfcheck": {
@@ -1857,7 +1857,7 @@
 "invested": 0.835157380325078
 }
 },
-"secs": 35.5,
+"secs": 6.8,
 "trades_total": 2202
 },
 "score_m10": {
@@ -1973,7 +1973,7 @@
 "invested": 0.9169498136265902
 }
 },
-"secs": 18.0,
+"secs": 10.4,
 "trades_total": 2190
 },
 "score_p10": {
@@ -2089,7 +2089,7 @@
 "invested": 0.9162239327569678
 }
 },
-"secs": 11.6,
+"secs": 6.9,
 "trades_total": 2173
 },
 "first_combo": {
@@ -2205,7 +2205,7 @@
 "invested": 0.8181481161848546
 }
 },
-"secs": 10.1,
+"secs": 5.6,
 "trades_total": 2216
 },
 "risk_moderate": {
@@ -2321,7 +2321,7 @@
 "invested": 0.6657814763597686
 }
 },
-"secs": 14.7,
+"secs": 10.2,
 "trades_total": 1902
 },
 "risk_conservative": {
@@ -2437,7 +2437,7 @@
 "invested": 0.5226934764450871
 }
 },
-"secs": 15.2,
+"secs": 7.6,
 "trades_total": 1590
 },
 "combo_back": {
@@ -2553,7 +2553,7 @@
 "invested": 0.6493036237179419
 }
 },
-"secs": 14.8,
+"secs": 8.1,
 "trades_total": 6570
 },
 "pos5": {
@@ -2669,7 +2669,7 @@
 "invested": 0.9086543904191018
 }
 },
-"secs": 15.1,
+"secs": 6.8,
 "trades_total": 1051
 },
 "pos7": {
@@ -2785,7 +2785,7 @@
 "invested": 0.9046446092818367
 }
 },
-"secs": 12.4,
+"secs": 10.0,
 "trades_total": 1519
 }
 },
@@ -2903,7 +2903,7 @@
 "invested": 0.8833093144492888
 }
 },
-"secs": 64.9,
+"secs": 37.0,
 "trades_total": 1713,
 "by_regime": {
 "bull": {
@@ -3792,7 +3792,7 @@
 "invested": 0.9887981132927904
 }
 },
-"secs": 52.3,
+"secs": 19.4,
 "trades_total": 1826
 },
 "no_regime": {
@@ -3908,7 +3908,7 @@
 "invested": 0.9537828364735511
 }
 },
-"secs": 41.2,
+"secs": 37.7,
 "trades_total": 1840
 },
 "no_score": {
@@ -4024,7 +4024,7 @@
 "invested": 0.8837977453012781
 }
 },
-"secs": 28.3,
+"secs": 26.1,
 "trades_total": 1715
 },
 "no_selfcheck": {
@@ -4140,7 +4140,7 @@
 "invested": 0.8849015756540832
 }
 },
-"secs": 65.1,
+"secs": 24.5,
 "trades_total": 1712
 },
 "score_m10": {
@@ -4256,7 +4256,7 @@
 "invested": 0.8837013731990074
 }
 },
-"secs": 43.4,
+"secs": 26.1,
 "trades_total": 1714
 },
 "score_p10": {
@@ -4372,7 +4372,7 @@
 "invested": 0.9288086339097891
 }
 },
-"secs": 20.9,
+"secs": 13.4,
 "trades_total": 1727
 },
 "first_combo": {
@@ -4488,7 +4488,7 @@
 "invested": 0.8958480510314998
 }
 },
-"secs": 14.2,
+"secs": 11.6,
 "trades_total": 2023
 },
 "risk_moderate": {
@@ -4604,7 +4604,7 @@
 "invested": 0.7537784989499607
 }
 },
-"secs": 41.2,
+"secs": 15.3,
 "trades_total": 1609
 },
 "risk_conservative": {
@@ -4720,7 +4720,7 @@
 "invested": 0.5820538410070943
 }
 },
-"secs": 22.3,
+"secs": 22.4,
 "trades_total": 1483
 },
 "pos5": {
@@ -4836,7 +4836,7 @@
 "invested": 0.8658983953228527
 }
 },
-"secs": 41.7,
+"secs": 23.4,
 "trades_total": 861
 },
 "pos7": {
@@ -4952,7 +4952,7 @@
 "invested": 0.9127550300401001
 }
 },
-"secs": 24.2,
+"secs": 14.7,
 "trades_total": 1168
 }
 },
@@ -5070,7 +5070,7 @@
 "invested": 0.8841146386168229
 }
 },
-"secs": 43.0,
+"secs": 15.6,
 "trades_total": 1711,
 "by_regime": {
 "bull": {
@@ -5964,7 +5964,7 @@
 "invested": 0.9887981132927904
 }
 },
-"secs": 34.6,
+"secs": 29.2,
 "trades_total": 1826
 },
 "no_regime": {
@@ -6080,7 +6080,7 @@
 "invested": 0.9408122979541614
 }
 },
-"secs": 43.2,
+"secs": 25.3,
 "trades_total": 1819
 },
 "no_score": {
@@ -6196,7 +6196,7 @@
 "invested": 0.8685155519714196
 }
 },
-"secs": 48.5,
+"secs": 16.6,
 "trades_total": 1745
 },
 "no_selfcheck": {
@@ -6312,7 +6312,7 @@
 "invested": 0.8841146386168229
 }
 },
-"secs": 26.4,
+"secs": 23.6,
 "trades_total": 1711
 },
 "score_m10": {
@@ -6428,7 +6428,7 @@
 "invested": 0.8685155519714196
 }
 },
-"secs": 44.5,
+"secs": 16.5,
 "trades_total": 1745
 },
 "score_p10": {
@@ -6544,7 +6544,7 @@
 "invested": 0.8625170234404695
 }
 },
-"secs": 23.1,
+"secs": 22.2,
 "trades_total": 1750
 },
 "first_combo": {
@@ -6660,7 +6660,7 @@
 "invested": 0.8724248551020446
 }
 },
-"secs": 19.6,
+"secs": 7.1,
 "trades_total": 2059
 },
 "risk_moderate": {
@@ -6776,7 +6776,7 @@
 "invested": 0.6970859774084814
 }
 },
-"secs": 23.6,
+"secs": 24.2,
 "trades_total": 1624
 },
 "risk_conservative": {
@@ -6892,7 +6892,7 @@
 "invested": 0.4853463378629745
 }
 },
-"secs": 36.8,
+"secs": 21.8,
 "trades_total": 1531
 },
 "pos5": {
@@ -7008,7 +7008,7 @@
 "invested": 0.8553108921764077
 }
 },
-"secs": 40.4,
+"secs": 15.8,
 "trades_total": 875
 },
 "pos7": {
@@ -7124,7 +7124,7 @@
 "invested": 0.8543695188727639
 }
 },
-"secs": 23.4,
+"secs": 15.0,
 "trades_total": 1224
 }
 },
@@ -7242,7 +7242,7 @@
 "invested": 0.8374185165515038
 }
 },
-"secs": 38.9,
+"secs": 25.4,
 "trades_total": 1804,
 "by_regime": {
 "bull": {
@@ -8116,7 +8116,7 @@
 "invested": 0.9887981132927904
 }
 },
-"secs": 33.1,
+"secs": 29.9,
 "trades_total": 1826
 },
 "no_regime": {
@@ -8232,7 +8232,7 @@
 "invested": 0.9757759113543003
 }
 },
-"secs": 39.8,
+"secs": 15.7,
 "trades_total": 1764
 },
 "no_score": {
@@ -8348,7 +8348,7 @@
 "invested": 0.8382626825008547
 }
 },
-"secs": 26.0,
+"secs": 27.1,
 "trades_total": 1802
 },
 "no_selfcheck": {
@@ -8464,7 +8464,7 @@
 "invested": 0.8598555667521519
 }
 },
-"secs": 39.4,
+"secs": 15.9,
 "trades_total": 1806
 },
 "score_m10": {
@@ -8580,7 +8580,7 @@
 "invested": 0.8382626825008547
 }
 },
-"secs": 41.8,
+"secs": 25.3,
 "trades_total": 1802
 },
 "score_p10": {
@@ -8696,7 +8696,7 @@
 "invested": 0.8635057291104238
 }
 },
-"secs": 21.4,
+"secs": 13.1,
 "trades_total": 1814
 },
 "first_combo": {
@@ -8812,7 +8812,7 @@
 "invested": 0.867868593204988
 }
 },
-"secs": 18.9,
+"secs": 12.1,
 "trades_total": 2073
 },
 "risk_moderate": {
@@ -8928,7 +8928,7 @@
 "invested": 0.7314116390843576
 }
 },
-"secs": 22.4,
+"secs": 14.5,
 "trades_total": 1521
 },
 "risk_conservative": {
@@ -9044,7 +9044,7 @@
 "invested": 0.518972913777967
 }
 },
-"secs": 36.9,
+"secs": 23.4,
 "trades_total": 1493
 },
 "pos5": {
@@ -9160,7 +9160,7 @@
 "invested": 0.8340887374721299
 }
 },
-"secs": 39.6,
+"secs": 23.5,
 "trades_total": 842
 },
 "pos7": {
@@ -9276,7 +9276,7 @@
 "invested": 0.9278000065127244
 }
 },
-"secs": 24.0,
+"secs": 15.5,
 "trades_total": 1244
 }
 },
@@ -9394,7 +9394,7 @@
 "invested": 0.9218424459935696
 }
 },
-"secs": 24.1,
+"secs": 25.7,
 "trades_total": 3097,
 "by_regime": {
 "bull": {
@@ -10274,7 +10274,7 @@
 "invested": 0.9814482217174296
 }
 },
-"secs": 51.2,
+"secs": 19.3,
 "trades_total": 2695
 },
 "no_regime": {
@@ -10390,7 +10390,7 @@
 "invested": 0.9491022910542649
 }
 },
-"secs": 41.6,
+"secs": 25.6,
 "trades_total": 3009
 },
 "no_score": {
@@ -10506,7 +10506,7 @@
 "invested": 0.8445932079894571
 }
 },
-"secs": 26.0,
+"secs": 17.7,
 "trades_total": 2935
 },
 "no_selfcheck": {
@@ -10738,7 +10738,7 @@
 "invested": 0.8444690936165943
 }
 },
-"secs": 43.3,
+"secs": 26.0,
 "trades_total": 2938
 },
 "score_p10": {
@@ -10854,7 +10854,7 @@
 "invested": 0.9220808143440357
 }
 },
-"secs": 38.8,
+"secs": 14.1,
 "trades_total": 3034
 },
 "first_combo": {
@@ -10970,7 +10970,7 @@
 "invested": 0.8733021674406213
 }
 },
-"secs": 12.0,
+"secs": 12.4,
 "trades_total": 3225
 },
 "risk_moderate": {
@@ -11086,7 +11086,7 @@
 "invested": 0.7045564337353918
 }
 },
-"secs": 24.8,
+"secs": 16.0,
 "trades_total": 2494
 },
 "risk_conservative": {
@@ -11202,7 +11202,7 @@
 "invested": 0.45600007481591126
 }
 },
-"secs": 37.3,
+"secs": 23.1,
 "trades_total": 2419
 },
 "pos5": {
@@ -11318,7 +11318,7 @@
 "invested": 0.8947956327666176
 }
 },
-"secs": 38.3,
+"secs": 22.5,
 "trades_total": 1222
 },
 "pos7": {
@@ -11434,7 +11434,7 @@
 "invested": 0.849458559901111
 }
 },
-"secs": 24.0,
+"secs": 15.1,
 "trades_total": 1738
 }
 }
