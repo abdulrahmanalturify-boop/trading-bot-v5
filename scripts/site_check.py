@@ -1217,6 +1217,28 @@ def ov_check(b, report):
     report["ov"] = out
 
 
+LOGO_CHECK = True    # a quick run: the name with the mark as its T, at the top of the home page and of the side panel
+
+
+def logo_check(b, report):
+    out = {}
+    for name, args in (("dark", dict(viewport={"width": 1440, "height": 900}, color_scheme="dark", device_scale_factor=2)),
+                       ("light", dict(viewport={"width": 1440, "height": 900}, color_scheme="light", device_scale_factor=2)),
+                       ("phone", dict(viewport={"width": 390, "height": 844}, is_mobile=True, has_touch=True, device_scale_factor=3, color_scheme="light"))):
+        ctx = b.new_context(**args)
+        pg = ctx.new_page()
+        try:
+            pg.goto(URL + "/?lang=en&m=us", wait_until="domcontentloaded", timeout=120000)
+            settle(pg, 200)
+            time.sleep(3)
+            out[name] = {"problems": problems(pg), "hero": pg.evaluate("() => { const e = document.querySelector('.czlogo svg.brand'); if (!e) return null; const r = e.getBoundingClientRect(); return [Math.round(r.left), Math.round(r.top), Math.round(r.width), Math.round(r.height)]; }")}
+            pg.screenshot(path=os.path.join(OUT, f"logo_{name}.jpg"), type="jpeg", quality=82)
+        except Exception as e:
+            out[name] = {"error": str(e)[:300]}
+        ctx.close()
+    report["logo"] = out
+
+
 def orb_check(b, report):
     out = {}
     for look in ("dark", "light"):
@@ -1633,7 +1655,7 @@ def main():
         seed_xbots()
     elif QUICK and XB_SEED == "resting":
         seed_resting()
-    if not QUICK and not SHARIA and not MENU_CHECK and not BOXV2 and not STYLE_PICK and not ORB_CHECK and not LOOK_LANG and not NEWS_FILTER and not FONT_PICK and not OV_CHECK:
+    if not QUICK and not SHARIA and not MENU_CHECK and not BOXV2 and not STYLE_PICK and not ORB_CHECK and not LOOK_LANG and not NEWS_FILTER and not FONT_PICK and not OV_CHECK and not LOGO_CHECK:
         news_lab()
     seed_bots()
     if QUICK and AUTH_DEMO:                     # made-up sign-in settings on the test server only: the Sign in button shows
@@ -1695,6 +1717,13 @@ def main():
             if LOOK_LANG:
                 try:
                     look_lang(b, report)
+                finally:
+                    json.dump(report, open(os.path.join(OUT, "report.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+                b.close()
+                return 0
+            if LOGO_CHECK:
+                try:
+                    logo_check(b, report)
                 finally:
                     json.dump(report, open(os.path.join(OUT, "report.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
                 b.close()
