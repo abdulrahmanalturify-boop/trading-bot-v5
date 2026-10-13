@@ -4,7 +4,7 @@ import os
 import requests
 import streamlit as st
 
-BUILD = "23.3.12"
+BUILD = "23.3.13"
 API_URL = "https://api.openai.com/v1/responses"
 MAX_Q = 1200
 SESSION_LIMIT = 40          # questions per visit
@@ -13,15 +13,16 @@ DAILY_LIMIT = 600           # questions per day for the whole site (all visitors
 FAB_CSS = """
 <style data-lm="keep">
 /* (kept as it is in the light look too: a dark sphere on the light page) */
-/* the AI button, in the screen's bottom-left corner on every screen (over the side panel, which keeps room at its bottom for it):
-   a dark glass circle; theme.FX_JS draws over it a fine wire sphere that turns, "AI" inside it, no lights in it, and now and then
+/* the AI button, at the bottom left of the page: just right of an open side panel on a computer (where the owner marked it),
+   in the corner when the panel is closed and on phones. Its label "Ask the AI assistant" stays beside it all the time and
+   opens the chat too. A dark glass circle; theme.FX_JS draws over it a fine wire sphere that turns, "AI" inside it, no lights in it, and now and then
    a faint current running along a wire (a little more often while the pointer is on it). The sphere leans towards the pointer as
    it comes near; a thin ring of the site's three colours turns slowly round the circle and lights up when hovered or open;
-   hovered, it lifts and a label beside it says what it does; pressed, it gives a little and a ring spreads out of it. */
+   hovered, it lifts and its label brightens; pressed, it gives a little and a ring spreads out of it. */
 @property --aiang{syntax:"<angle>";inherits:false;initial-value:0deg}
 @keyframes airing{to{--aiang:360deg}}
 @keyframes aipress{from{opacity:.55;transform:scale(1)}to{opacity:0;transform:scale(1.55)}}
-div.st-key-alturaifi_ai_fab{position:fixed!important;left:20px!important;right:auto!important;bottom:20px;z-index:999992;width:auto!important;transition:transform .24s ease,opacity .2s ease}
+div.st-key-alturaifi_ai_fab{position:fixed!important;left:calc(var(--sbw,0px) + 20px + min(var(--sbw,0px),8px))!important;right:auto!important;bottom:20px;z-index:999992;width:auto!important;transition:left .28s ease,transform .24s ease,opacity .2s ease}
 div.st-key-alturaifi_ai_fab::before{content:"";position:absolute;inset:-3px;border-radius:50%;background:conic-gradient(from var(--aiang),#3B82F6,#7C3AED,#22D3EE,#3B82F6);-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 1.6px),#000 calc(100% - 1.5px));mask:radial-gradient(farthest-side,transparent calc(100% - 1.6px),#000 calc(100% - 1.5px));opacity:.5;animation:airing 9s linear infinite;transition:opacity .3s ease;pointer-events:none;z-index:-1}
 div.st-key-alturaifi_ai_fab::after{content:"";position:absolute;inset:0;border-radius:50%;border:1.5px solid rgba(96,165,250,.7);opacity:0;pointer-events:none}
 div.st-key-alturaifi_ai_fab:has([data-testid="stPopoverButton"]:hover)::before,div.st-key-alturaifi_ai_fab:has([aria-expanded="true"])::before{opacity:1}
@@ -30,16 +31,15 @@ div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]{position:relative!im
 div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]:hover{transform:translateY(-2px)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.09),0 16px 32px -12px rgba(37,99,235,.6)!important}
 div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]:active{transform:scale(.94)!important;transition-duration:.08s!important}
 div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]:focus-visible{outline:2px solid #60A5FA!important;outline-offset:4px}
-[data-testid="stSidebarUserContent"]{padding-bottom:104px!important}
 div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]::before,div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]::after{display:none!important}
 div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]>div{position:static!important;justify-content:center!important}
 div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]>div>div:last-child:not(:first-child){display:none!important}
 div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]>div>div:first-child{position:static!important;display:flex;align-items:center}
 div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"] span[data-testid="stIconMaterial"],div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"] p{opacity:0!important}
-div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]>div>div:first-child::after{content:"__ASK__";position:absolute;left:calc(100% + 14px);top:50%;transform:translate(-6px,-50%);white-space:nowrap;padding:7px 13px;border-radius:10px;font-size:12.5px;font-weight:600;letter-spacing:.1px;color:#E2E8F0;background:rgba(10,15,35,.94);border:1px solid rgba(148,163,184,.22);box-shadow:0 10px 24px -12px rgba(2,6,23,.7);opacity:0;pointer-events:none;transition:opacity .2s ease,transform .3s cubic-bezier(.2,.8,.2,1)}
-@media(hover:hover){div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]:hover:not([aria-expanded="true"])>div>div:first-child::after{opacity:1;transform:translate(0,-50%)}}
-div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]:focus-visible>div>div:first-child::after{opacity:1;transform:translate(0,-50%)}
+div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]>div>div:first-child::after{content:"__ASK__";position:absolute;left:calc(100% + 12px);top:50%;transform:translateY(-50%);white-space:nowrap;padding:8px 14px;border-radius:11px;font-size:12.5px;font-weight:600;letter-spacing:.1px;line-height:1.2;color:#E2E8F0;background:rgba(10,15,35,.92);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border:1px solid rgba(148,163,184,.22);box-shadow:0 10px 24px -12px rgba(2,6,23,.7);cursor:pointer;transition:color .2s ease,border-color .2s ease,box-shadow .25s ease}
+div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]:hover>div>div:first-child::after,div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"][aria-expanded="true"]>div>div:first-child::after{color:#fff;border-color:rgba(96,165,250,.55);box-shadow:0 12px 26px -12px rgba(37,99,235,.55)}
 @media(prefers-reduced-motion:reduce){div.st-key-alturaifi_ai_fab::before,div.st-key-alturaifi_ai_fab::after{animation:none!important}}
+@media(max-width:1023px){div.st-key-alturaifi_ai_fab{z-index:99990}}
 </style>
 """
 
@@ -54,6 +54,7 @@ div.st-key-alturaifi_ai_prompt input{min-height:42px!important;border-radius:13p
 @media(max-width:640px){div.st-key-alturaifi_ai_fab{left:14px!important;right:auto!important;bottom:16px}
 html.nav-tuck .stApp:not(:has(.ixp)) div.st-key-alturaifi_ai_fab{transform:translateY(96px);opacity:0;pointer-events:none}
 div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]{width:56px!important;height:56px!important;min-height:56px!important;min-width:56px!important}
+div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]>div>div:first-child::after{left:calc(100% + 10px);padding:7px 12px;font-size:12px}
 div.st-key-alturaifi_ai_panel{width:min(340px,78vw)}}
 </style>
 """

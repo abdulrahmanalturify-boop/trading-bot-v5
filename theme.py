@@ -2182,6 +2182,12 @@ FX_JS = """<script>
     else if (navY - y > 10) { de.classList.remove('nav-tuck'); navY = y; }
   }, {passive: true, capture: true});
   every(function () {
+    // the AI button sits just right of an open side panel on a computer (in the corner when it is closed)
+    var sb = d.querySelector('[data-testid="stSidebar"]'), sbw = 0;
+    if (sb && w.innerWidth >= 1024 && sb.getAttribute('aria-expanded') !== 'false') {
+      var sr0 = sb.getBoundingClientRect(); if (sr0.right > 40 && sr0.width > 40) sbw = Math.round(sr0.right);
+    }
+    if (de.style.getPropertyValue('--sbw') !== sbw + 'px') de.style.setProperty('--sbw', sbw + 'px');
     if (!phone()) { if (de.classList.contains('nav-tuck')) de.classList.remove('nav-tuck'); return; }
     if (de.classList.contains('nav-tuck') && pageTop() < 140) de.classList.remove('nav-tuck');   // a new page opens at its top
     // a chart's title longer than the phone is wide: smaller until it fits (it ran past the edge; never under 10 px)
@@ -3561,4 +3567,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.3.12"
+BUILD = "23.3.13"

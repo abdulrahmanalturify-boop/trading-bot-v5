@@ -1099,7 +1099,7 @@ def style_pick(b, report):
     report["style_pick"] = out
 
 
-ORB_CHECK = False     # a quick run: the AI button's sphere filmed resting and hovered (dark and light), its chat window, and on a phone
+ORB_CHECK = True      # a quick run: the AI button's sphere filmed resting and hovered (dark and light), its chat window, and on a phone
 
 
 Z_INFO = """() => { const zi = e => { for (; e && e !== document.body; e = e.parentElement) { const z = getComputedStyle(e).zIndex;
@@ -1135,7 +1135,12 @@ def orb_check(b, report):
             out["films"] = out.get("films", {})
             out["films"][f"orb_{look}"] = film(pg, f"film_orb_{look}", clip, pts)
             pg.mouse.move(c[0] + 500, c[1] - 300)
-            pg.locator('.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]').first.click(timeout=8000, force=True)
+            if look == "dark":                    # the label beside the button opens the chat too
+                pg.mouse.click(f[0] + f[2] + 70, c[1])
+                time.sleep(1.5)
+                out["label_opens"] = pg.evaluate("() => document.querySelector('.st-key-alturaifi_ai_fab [data-testid=\"stPopoverButton\"]').getAttribute('aria-expanded')")
+            else:
+                pg.locator('.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]').first.click(timeout=8000, force=True)
             time.sleep(2.5)
             pg.mouse.move(1300, 300)
             time.sleep(0.5)
