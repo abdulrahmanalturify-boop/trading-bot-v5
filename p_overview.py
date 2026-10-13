@@ -173,8 +173,12 @@ div.st-key-ovmood [data-testid="stColumn"]>div{height:100%}
 div.st-key-ovmood .nie-hc{height:100%;box-sizing:border-box}
 div.st-key-ovmore [data-testid="stButton"] button{border-radius:999px!important}
 div.st-key-ovfoot{margin-top:8px}
-/* a narrow screen: the part first, then its cards side by side (sliding across when there are two) */
-@media (max-width:900px){
+div.st-key-ovads_z{flex-direction:row!important;gap:22px!important;padding-top:0}
+div.st-key-ovads_z>*{flex:1 1 0!important;min-width:0!important}
+/* a narrow page (a phone, a tablet, a computer with the side panel open on a small screen - measured on the page itself, not
+   the screen): the part first, then its cards side by side (sliding across when there are two) */
+div.st-key-ovpage{container-type:inline-size;container-name:ovp}
+@container ovp (max-width:820px){
   [data-testid="stHorizontalBlock"]:has(> [data-testid="stColumn"] div[class*="st-key-ovads_"]){flex-direction:column!important;flex-wrap:nowrap!important;gap:10px!important}
   [data-testid="stHorizontalBlock"]:has(> [data-testid="stColumn"] div[class*="st-key-ovads_"])>[data-testid="stColumn"]{width:100%!important;flex:1 1 auto!important;min-width:0!important;max-width:100%!important}
   [data-testid="stColumn"]:has(div[class*="st-key-ovads_"]){position:static;order:2}
@@ -184,7 +188,7 @@ div.st-key-ovfoot{margin-top:8px}
   .ovad.wide .bd{grid-template-columns:1fr}
   div[class*="st-key-ovbody_"] .msg{grid-template-columns:minmax(0,1fr)!important}
 }
-@media (max-width:640px){div[class*="st-key-ovads_"]>*{flex-basis:82%!important;min-width:82%!important}}
+@container ovp (max-width:520px){div[class*="st-key-ovads_"]>*{flex-basis:84%!important;min-width:84%!important}}
 @media (prefers-reduced-motion:reduce){.ovad,.ovad *,.ovad::after{animation:none!important;transition:none!important}}
 </style>"""
 
@@ -539,24 +543,25 @@ def page_overview():
     d = _Day(px, sa)
     # the page as a magazine: the news across the page, then each part with tool cards beside it - one on the right, then
     # two on the left, one on the right, two on the left - and the last two side by side at the foot
-    ui.safe(_top, d)
-    _with_ads("a", "right", ["ai"], f, sa, lambda: ui.safe(_news_and_summary, d))
-    _with_ads("b", "left", ["hunt", "bots"], f, sa, lambda: ui.safe(_movers, d))
-    _with_ads("c", "right", ["pf", "earn"], f, sa, lambda: (ui.safe(_mood, d.snap()), ui.safe(PM.heatmap_section)))
-    _with_ads("d", "left", ["robo", "academy"], f, sa, lambda: ui.safe(_markets, px, sa))
-    last = [k for k in ("xbots", "screener") if _available(k, sa)]
-    if last:
-        with st.container(key="ovfoot"):
-            ui.sec("apps", "More tools to try", "أدوات ثانية تستاهل تجربها")
-            for col, k in zip(st.columns(len(last), gap="large"), last):
-                with col:
-                    with st.container(key=f"ovad_{k}"):
-                        ui.html(_ad_html(k, f, sa, wide=True))
-                        st.button(L(*TOOLS[k][4]), key=f"ovgo_{k}", on_click=_open_tool, args=(k, TOOLS[k][0]), width="stretch")
+    with st.container(key="ovpage"):
+        ui.safe(_top, d)
+        _with_ads("a", "right", ["ai"], f, sa, lambda: ui.safe(_news_and_summary, d))
+        _with_ads("b", "left", ["hunt", "bots"], f, sa, lambda: ui.safe(_movers, d))
+        _with_ads("c", "right", ["pf", "earn"], f, sa, lambda: (ui.safe(_mood, d.snap()), ui.safe(PM.heatmap_section)))
+        _with_ads("d", "left", ["robo", "academy"], f, sa, lambda: ui.safe(_markets, px, sa))
+        last = [k for k in ("xbots", "screener") if _available(k, sa)]
+        if last:
+            with st.container(key="ovfoot"):
+                ui.sec("apps", "More tools to try", "أدوات ثانية تستاهل تجربها")
+                with st.container(key="ovads_z"):
+                    for k in last:
+                        with st.container(key=f"ovad_{k}"):
+                            ui.html(_ad_html(k, f, sa, wide=True))
+                            st.button(L(*TOOLS[k][4]), key=f"ovgo_{k}", on_click=_open_tool, args=(k, TOOLS[k][0]), width="stretch")
     if sa:
         st.caption(L("Prices from Yahoo Finance (may be delayed). The Saudi market trades Sunday to Thursday, 10 am to 3 pm Riyadh time.",
                      "الأسعار من Yahoo Finance (قد تكون متأخرة). السوق السعودي يتداول من الأحد للخميس، من 10 الصبح لين 3 العصر بتوقيت الرياض."))
     ui.foot()
 
 
-BUILD = "23.4.3"
+BUILD = "23.4.4"
