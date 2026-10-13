@@ -6,7 +6,7 @@ on:
     inputs:
       address:
         description: "the server's address"
-        default: "http://84.8.123.74"
+        default: "http://84.13.143.157"
 permissions:
   contents: write
 concurrency:
