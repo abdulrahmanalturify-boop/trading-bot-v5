@@ -1814,7 +1814,7 @@ def profile_run(b, report):
     report["profile"] = out
 
 
-HOME_SHOT = False     # a quick run: the home page (the tools bento first), Arabic and English, desktop and phone, whole page
+HOME_SHOT = True     # a quick run: the home page (the tools bento first), Arabic and English, desktop and phone, whole page
 
 
 def home_shot(b, report):
@@ -1848,7 +1848,28 @@ def home_shot(b, report):
             pg.set_viewport_size(vp)
             time.sleep(1)
             pg.screenshot(path=os.path.join(OUT, f"home_{tag}_top.jpg"), type="jpeg", quality=80)
-            if tag in ("en_us_desk", "ar_sa_desk"):   # the heat map: click a sector's header, picture the comparison under the map
+            if tag in ("en_us_desk", "ar_sa_desk"):   # the watchlist page too: its list, the ideas, a Follow click
+                try:
+                    pg.goto(f"{URL}/watchlist?m={mk}&lang={lang}", wait_until="domcontentloaded", timeout=90000)
+                    settle(pg, 120)
+                    time.sleep(3)
+                    res["wl_err"] = pg.evaluate("() => [...document.querySelectorAll('[data-testid=\"stExpander\"] code, [data-testid=\"stException\"]')].map(e => e.innerText.slice(0, 300))")
+                    res["wl_cards"] = pg.evaluate("() => document.querySelectorAll('.wlp-card').length")
+                    try:
+                        pg.locator('.st-key-wlp_c_CRWV button').first.click(timeout=8000)
+                        settle(pg, 60)
+                        time.sleep(2)
+                        res["wl_after"] = pg.evaluate("() => document.querySelectorAll('.wlp-row').length")
+                    except Exception as e:
+                        res["wl_after"] = f"error {str(e)[:120]}"
+                    h = pg.evaluate(MAIN_H)
+                    pg.set_viewport_size({"width": vp["width"], "height": min(max(int(h), vp["height"]), 9000)})
+                    time.sleep(2)
+                    pg.screenshot(path=os.path.join(OUT, f"watchlist_{tag}.jpg"), type="jpeg", quality=72, full_page=True)
+                    pg.set_viewport_size(vp)
+                except Exception as e:
+                    res["wl_err"] = f"error {str(e)[:200]}"
+            if False and tag in ("en_us_desk", "ar_sa_desk"):   # the heat map: click a sector's header, picture the comparison under the map
                 try:
                     hd = pg.locator(".hm a.ghl").first
                     hd.scroll_into_view_if_needed(timeout=8000)

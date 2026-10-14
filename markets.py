@@ -39,7 +39,9 @@ SA_PAGES = {"overview", "news", "stock", "screener", "scanner", "paper", "pf_das
             "trending", "newsintel", "brief", "articles", "sentiment", "seasonality", "earnings", "results", "econcal", "holidays",
             "dividends", "splits", "pf_robo",
             # 22.5: the X bots (one of them reads the Saudi market)
-            "xbots"}
+            "xbots",
+            # 23.4.31: the watchlist (the Saudi list, with the emerging sectors' ideas)
+            "watchlist"}
 # no Saudi counterpart: not in the Saudi menus (futures and options don't trade on Tadawul's main market, the economy page is the
 # Fed's data, and Yahoo's IPO calendar has no Saudi listings)
 US_ONLY = {"futures", "options", "economy", "ipos"}

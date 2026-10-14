@@ -16,7 +16,7 @@ import streamlit as st
 BUILD = "23.4.30"
 _ORDER = ["terms", "lightmode", "i18n", "ai_assistant", "flags", "mcal", "mcal_sa", "markets", "tasi", "universe", "sp500", "taxonomy", "ta", "academy_visuals", "academy", "insight", "heatmap", "newsiq", "newspics", "newsai", "theme", "data",
           "caldata", "newsbot", "newsintel", "charts", "engine", "playbooks", "autotrader", "ui", "fairvalue", "segments", "holders", "sharia", "lab", "tdash", "mlbots", "brain", "account", "paperbots", "smartbots", "portfolio", "robobot", "robo", "pfinsight", "p_markets", "p_newsintel", "p_research", "p_insight",
-          "p_academy", "p_paper", "p_portfolio", "p_robo", "p_calendar", "hunter", "p_scanner", "xbots", "p_xbots", "home", "warm", "p_heatmap", "p_overview", "diag"]
+          "p_academy", "p_paper", "p_portfolio", "p_robo", "p_calendar", "hunter", "p_scanner", "xbots", "p_xbots", "p_watchlist", "home", "warm", "p_heatmap", "p_overview", "diag"]
 # Every visitor's run executes this file at the same time, in its own thread. A module another run is still importing (its
 # BUILD, at the end of the file, not set yet) is not old: it is left alone, since taking it out of sys.modules under that import
 # crashed the server (KeyError: 'ui' in importlib, after the 23.1 upload). One run reloads at a time; the others wait for it,
@@ -118,6 +118,7 @@ import p_robo
 import p_research
 import p_scanner
 import p_xbots
+import p_watchlist
 import markets as MK
 import tasi
 import theme as T
@@ -392,11 +393,13 @@ P.update({
     "paper": st.Page(p_paper.page_paper_bots, title=L("Paper Bots", "البوتات الافتراضية"), icon=":material/robot_2:", url_path="paper-bots"),
     "scanner": st.Page(p_scanner.page_scanner, title=L("Scanner", "صائد الفرص"), icon=":material/radar:", url_path="scanner"),
     "xbots": st.Page(p_xbots.page_xbots, title=L("X Bots", "بوتات X"), icon=":material/alternate_email:", url_path="x-bots"),
+    "watchlist": st.Page(p_watchlist.page_watchlist, title=L("Watchlist", "قائمة المتابعة"), icon=":material/star:", url_path="watchlist"),
 })
 SECTIONS = [
     (L("Markets", "الأسواق"), "monitoring", ["overview", "futures", "options", "economy"]),
     (L("Discover", "اكتشف"), "explore", ["trending", "news", "newsintel"]),
     (L("Research", "الأبحاث"), "query_stats", ["stock", "screener"]),
+    (L("Watchlist", "المتابعة"), "star", ["watchlist"]),
     (L("Calendar", "التقويم"), "calendar_month", ["earnings", "results", "econcal", "holidays", "dividends", "splits", "ipos"]),
     (L("Insight", "رؤى"), "lightbulb", ["brief", "articles", "sentiment", "seasonality"]),
     (L("Academy", "الأكاديمية"), "school", ["academy", "glossary"]),
