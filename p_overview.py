@@ -79,6 +79,7 @@ CSS = """<style data-lm="keep">
 [data-testid="stColumn"]:has(div[class*="st-key-ovads_"]){position:sticky;top:80px;align-self:flex-start;z-index:2}
 div[class*="st-key-ovads_"]{gap:16px!important;padding-top:18px}
 div[class*="st-key-ovbody_"] .msg{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+div.st-key-ovsum .msg{grid-template-columns:minmax(0,1fr)!important}
 /* ---- the card: a coloured poster with its tool's picture, name, promise, three points and a call to action; the whole card
    opens the tool. Hovered, it lifts, light sweeps across it and the arrow moves on. */
 @keyframes ovshine{from{transform:translateX(-120%) skewX(-18deg)}to{transform:translateX(320%) skewX(-18deg)}}
@@ -187,16 +188,26 @@ div[class*="st-key-ovad_"]:hover .ovad.rtl .go .ms,.ovad.solo.rtl:hover .go .ms{
 .ehub.one .day{border-radius:18px}
 div.st-key-ovearn [data-testid="stButton"] button{min-height:34px!important;border-radius:999px!important;font-size:12.5px!important}
 /* the mood row: the two dials side by side, the same height */
-div.st-key-ovmood [data-testid="stHorizontalBlock"]{align-items:stretch!important}
-div.st-key-ovmood [data-testid="stColumn"]>div{height:100%}
-.ovcard{height:100%;box-sizing:border-box;padding:14px 14px 10px;border-radius:18px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08)}
+.ovcard{box-sizing:border-box;margin-top:4px;padding:14px 14px 10px;border-radius:18px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08)}
 .ovcard .h{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#C9C4D3;margin-bottom:6px}
 .ovcard .h .ms{font-size:18px}
-div.st-key-ovmood .nie-hc{height:100%;box-sizing:border-box}
 div.st-key-ovmore [data-testid="stButton"] button{border-radius:999px!important}
 div.st-key-ovfoot{margin-top:8px}
-div.st-key-ovads_z{flex-direction:row!important;gap:22px!important;padding-top:0}
-div.st-key-ovads_z>*{flex:1 1 0!important;min-width:0!important}
+div[class*="st-key-ovads_z"]{flex-direction:row!important;gap:22px!important;padding-top:0;margin-bottom:22px}
+div[class*="st-key-ovads_z"]>*{flex:1 1 0!important;min-width:0!important}
+.vz.rate{display:grid;grid-template-columns:104px minmax(0,1fr);gap:14px;padding:12px 14px;box-sizing:border-box;height:auto!important;align-items:center}
+.vz.rate .sc{display:flex;flex-direction:column;align-items:center;gap:6px}
+.vz.rate .ring{position:relative;width:88px;height:88px}.vz.rate .ring svg{width:100%;height:100%}
+.vz.rate .num{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
+.vz.rate .num b{font-size:26px;font-weight:800}.vz.rate .num span{font-size:9.5px;opacity:.75;margin-top:2px}
+.vz.rate .gr{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700}
+.vz.rate .gr i{font-style:normal;width:20px;height:20px;border-radius:6px;display:grid;place-items:center;font-size:11px;font-weight:800;background:#A7F3D0;color:#064E3B}
+.vz.rate small{font-size:10px;opacity:.65}
+.vz.rate .fs{display:flex;flex-direction:column;gap:7px;min-width:0}
+.vz.rate .f .t{display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700}
+.vz.rate .f .t .ms{font-size:14px;opacity:.9}.vz.rate .f .t b{margin-inline-start:auto;font-size:11.5px}
+.vz.rate .bar{height:5px;margin-top:3px;border-radius:9px;background:rgba(255,255,255,.16);overflow:hidden}
+.vz.rate .bar i{display:block;height:100%;border-radius:9px}
 /* ---- the banner across the page (the Robo Advisor): words and two calls to action on one side, the picture and the steps on
    the other; the picture floats */
 @keyframes ovfloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
@@ -459,7 +470,24 @@ def _banner_html(key, d, f, sa):
             f'<div class="cta"><span class="go">{T.esc(L(*cta))}{T.icon("arrow_forward")}</span>'
             f'<span class="go ghost">{T.esc(L("Rate my portfolio", "تقييم محفظة"))}</span></div>'
             f'<div class="chips">{ch}</div></div>'
-            f'<div class="pic">{_vz("robo", f)}<div class="steps">{stp}</div></div></div></div>')
+            f'<div class="pic">{_rate_vz()}<div class="steps">{stp}</div></div></div></div>')
+
+
+def _rate_vz():
+    """A portfolio's rating, as the portfolio page shows it (a sample: the score ring, its grade, the five factors with a bar each)."""
+    sc, grade, name = 72, "B", L("Healthy", "جيدة")
+    facs = [("hub", L("Diversification", "التنويع"), 80), ("pie_chart", L("Concentration", "التركيز"), 61), ("shield", L("Protection", "الحماية"), 55),
+            ("speed", L("Risk", "المخاطرة"), 74), ("trending_up", L("Against the market", "مقابل السوق"), 68)]
+    col = lambda v: "#4ADE80" if v >= 75 else "#5EEAD4" if v >= 55 else "#FDE68A"
+    r, circ = 34, 2 * 3.14159 * 34
+    ring = (f'<svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="{r}" fill="none" stroke="rgba(255,255,255,.14)" stroke-width="9"/>'
+            f'<circle cx="50" cy="50" r="{r}" fill="none" stroke="#A7F3D0" stroke-width="9" stroke-linecap="round" '
+            f'stroke-dasharray="{circ * sc / 100:.1f} {circ:.1f}" transform="rotate(-90 50 50)"/></svg>'
+            f'<div class="num"><b>{sc}</b><span>/ 100</span></div>')
+    rows = "".join(f'<div class="f"><div class="t">{T.icon(ic)}<span>{T.esc(n)}</span><b>{v}</b></div>'
+                   f'<div class="bar"><i style="width:{v}%;background:{col(v)}"></i></div></div>' for ic, n, v in facs)
+    return (f'<div class="vz rate"><div class="sc"><div class="ring">{ring}</div><div class="gr"><i>{grade}</i>{T.esc(name)}</div>'
+            f'<small>{T.esc(L("sample", "مثال"))}</small></div><div class="fs">{rows}</div></div>')
 
 
 def _open_tool(key, page):
@@ -562,7 +590,7 @@ def _compute_hunt(sa):
     picks = [{"sym": r["Symbol"], "name": str(r["Name"]), "score": float(r["Score"]), "grade": str(r["Grade"]), "setup": str(r["Setup"]),
               "status": str(r["Status"])} for _, r in top.iterrows()]
     return {"n": int(got["n"]), "opp": int((res["Score"] >= 65).sum()), "a": int((res["Score"] >= 75).sum()),
-            "fresh": int((res["Status"] == "fresh").sum()), "time": got["time"], "picks": picks}
+            "fresh": int((res["Status"] == "fresh").sum()), "time": got["time"], "picks": picks, "reg": got.get("reg")}
 
 
 def _bots_live(mk):
@@ -855,7 +883,7 @@ def _top(d):
         st.caption(L("No trending stories right now.", "لا توجد أخبار رائجة حالياً."))
 
 
-def _news_and_summary(d):
+def _in_news(d):
     snap = d.snap()
     tks = PNI.in_the_news(snap) if snap.get("res") else []
     if tks:
@@ -867,12 +895,35 @@ def _news_and_summary(d):
                     with st.container(key="nie_tk_" + sym):
                         ui.html(PNI.tk_card(sym, n, net, c))
                         st.button(sym, key="nie_tb_" + sym, on_click=_pick_news, args=(sym,), width="stretch")
+
+
+def _regime(d):
+    """The market's mood strip (the hunter's reading: the index's trend, the share of stocks above their averages, highs and lows)."""
+    got = d.hunt()
+    reg = got.get("reg") if got else None
+    if reg:
+        import p_scanner as PS
+        ui.sec("explore", "The market today", "السوق اليوم")
+        ui.html(PS.mood_html(reg))
+
+
+def _summary(d):
     ui.sec("summarize", "Market summary", "ملخص السوق")
     mv, lists = d.lists()
-    if d.sa:
-        ui.html(PM.summary_html_sa(d.px, mv, lists, d.lg()))
-    else:
-        ui.html(PM.summary_html(d.summary() or PM.summary_data(d.px, mv, lists), d.lg()))
+    with st.container(key="ovsum"):
+        if d.sa:
+            ui.html(PM.summary_html_sa(d.px, mv, lists, d.lg()))
+        else:
+            ui.html(PM.summary_html(d.summary() or PM.summary_data(d.px, mv, lists), d.lg()))
+
+
+def _summary_and_mood(d):
+    """The market summary on one side, the news mood and the Fear & Greed dial on the other."""
+    a, b = st.columns([1.55, 1], gap="medium")
+    with a:
+        ui.safe(_summary, d)
+    with b:
+        ui.safe(_mood, d.snap(), d.fg())
 
 
 def _movers(d):
@@ -891,23 +942,20 @@ def _movers(d):
 def _mood(snap, v):
     ui.sec("speed", "The market's mood", "مزاج السوق")
     with st.container(key="ovmood"):
-        a, b = st.columns(2, gap="medium")
-        with a:
-            if v is not None:
-                ui.ai_note("Fear & Greed", f"{v:.0f}/100")
-                ui.html(f'<div class="ovcard" data-nogq><div class="h">{T.icon("speed")}{T.esc(L("Fear & Greed", "الخوف والطمع"))}</div>'
-                        f'{T.fg_gauge(v, is_ar(), L("Seven market signals in one score", "سبع إشارات من السوق في درجة واحدة"))}</div>')
-            else:
-                st.caption(L("The Fear & Greed index is not available right now.", "مؤشر الخوف والطمع غير متاح حالياً."))
-            st.button(L("What drives it", "وش يحرّكه"), key="ovgo_fg", icon=":material/speed:", width="stretch",
-                      on_click=_open_tool, args=("fg", "sentiment"))
-        with b:
-            if snap and snap["res"]:
-                ui.html(PNI.dial_html(snap["res"], snap["hrs"]))
-            else:
-                st.caption(L("The news mood is not available right now.", "مزاج الأخبار غير متاح حالياً."))
-            st.button(L("Read the news like an analyst", "اقرأ الأخبار مثل المحلل"), key="ovgo_ni", icon=":material/neurology:", width="stretch",
-                      on_click=_open_tool, args=("ni", "newsintel"))
+        if snap and snap["res"]:
+            ui.html(PNI.dial_html(snap["res"], snap["hrs"]))
+        else:
+            st.caption(L("The news mood is not available right now.", "مزاج الأخبار غير متاح حالياً."))
+        st.button(L("Read the news like an analyst", "اقرأ الأخبار مثل المحلل"), key="ovgo_ni", icon=":material/neurology:", width="stretch",
+                  on_click=_open_tool, args=("ni", "newsintel"))
+        if v is not None:
+            ui.ai_note("Fear & Greed", f"{v:.0f}/100")
+            ui.html(f'<div class="ovcard" data-nogq><div class="h">{T.icon("speed")}{T.esc(L("Fear & Greed", "الخوف والطمع"))}</div>'
+                    f'{T.fg_gauge(v, is_ar(), L("Seven market signals in one score", "سبع إشارات من السوق في درجة واحدة"))}</div>')
+        else:
+            st.caption(L("The Fear & Greed index is not available right now.", "مؤشر الخوف والطمع غير متاح حالياً."))
+        st.button(L("What drives it", "وش يحرّكه"), key="ovgo_fg", icon=":material/speed:", width="stretch",
+                  on_click=_open_tool, args=("fg", "sentiment"))
 
 
 def _markets(px, sa, macro=None):
@@ -953,20 +1001,21 @@ def page_overview():
     with st.container(key="ovpage"):
         ui.html(TONE_CSS)
         _timed("top", ui.safe, _top, d)
-        _timed("part a", _with_ads, "a", "right", ["ai"], d, f, sa, lambda: ui.safe(_news_and_summary, d))
-        _timed("part b", _with_ads, "b", "left", ["hunt", "bots"], d, f, sa, lambda: ui.safe(_movers, d))
+        _timed("part a", _with_ads, "a", "right", ["ai"], d, f, sa,
+               lambda: (ui.safe(_in_news, d), ui.safe(_markets, px, sa, d.macro())))
+        _timed("regime", ui.safe, _regime, d)
+        _timed("part b", _with_ads, "b", "left", ["hunt", "bots"], d, f, sa,
+               lambda: (ui.safe(_summary_and_mood, d), ui.safe(_movers, d)))
         _timed("banner", ui.safe, _banner, "robo", d, f, sa)
-        _timed("part c", _with_ads, "c", "right", ["pf", "earn"], d, f, sa,
-               lambda: (_timed("mood", ui.safe, _mood, d.snap(), d.fg()),
-                        _timed("heatmap", ui.safe, PM.heatmap_section, d.heat())))
-        _timed("part d", _with_ads, "d", "left", ["academy", "xbots"], d, f, sa, lambda: ui.safe(_markets, px, sa, d.macro()))
-        last = [k for k in ("screener", "news") if _available(k, sa)]
+        _timed("part c", _with_ads, "c", "right", ["pf", "earn"], d, f, sa, lambda: _timed("heatmap", ui.safe, PM.heatmap_section, d.heat()))
+        last = [k for k in ("screener", "news", "academy", "xbots") if _available(k, sa)]
         if last:
             with st.container(key="ovfoot"):
                 ui.sec("apps", "More tools to try", "أدوات ثانية تستاهل تجربها")
-                with st.container(key="ovads_z"):
-                    for k in last:
-                        _card(k, d, f, sa, wide=True)
+                for i in range(0, len(last), 2):
+                    with st.container(key=f"ovads_z{i}"):
+                        for k in last[i:i + 2]:
+                            _card(k, d, f, sa, wide=True)
     if sa:
         st.caption(L("Prices from Yahoo Finance (may be delayed). The Saudi market trades Sunday to Thursday, 10 am to 3 pm Riyadh time.",
                      "الأسعار من Yahoo Finance (قد تكون متأخرة). السوق السعودي يتداول من الأحد للخميس، من 10 الصبح لين 3 العصر بتوقيت الرياض."))
