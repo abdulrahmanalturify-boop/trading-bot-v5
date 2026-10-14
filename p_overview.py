@@ -17,7 +17,6 @@ import data
 import home
 import markets as MK
 import p_calendar as PC
-import p_insight as PI
 import p_markets as PM
 import p_newsintel as PNI
 import theme as T
@@ -574,15 +573,15 @@ def _pick_news(sym):
 
 # ---------------------------------------------------------------- the tools first: the live numbers each tile shows
 def _compute_hunt(sa):
-    """Today's picks (the hunter on the market's whole list), kept ready in the background; None when nothing came back."""
-    import hunter as H
+    """Today's picks: the last hunt made in this server (by a visitor of the Opportunity Hunter, which keeps it 15 minutes) - the
+    home page never runs the hunter itself (hundreds of price histories: too much for the server and for Yahoo); None until then."""
     import p_scanner as PS
     m = MK.SA if sa else MK.US
-    if sa:
-        key, syms = "sa_all", list(tasi.SYMBOLS)
-    else:
-        key, syms = "top", list(U.US_UNIVERSE)
-    got = PS.run_hunt(key, tuple(syms), 0, H.BUILD, m, False)
+    got = None
+    for key in (("sa_all", "sa_top") if sa else ("top", "sp500", "dow")):
+        got = PS.LAST_HUNT.get((key, m))
+        if got:
+            break
     res = got.get("res") if got else None
     if res is None or res.empty:
         return None
@@ -770,16 +769,15 @@ def _jobs(sa):
     m = MK.SA if sa else MK.US
     # in order of importance: the first pieces are made first (two at a time); the heavy ones last, never waited for
     jobs = {"tiles": (PM._tile_prices, 120),
-            f"snap:{m}": (lambda: PNI.compute_snapshot(m, 24), 240),
-            f"stories:{m}": (lambda: _compute_stories(m, sa), 240),
-            f"lists:{m}": (lambda: _compute_lists(sa), 300),
-            f"fg:{m}": (lambda: PI.fg_now(m), 1800)}
+            f"snap:{m}": (lambda: PNI.compute_snapshot(m, 24), 480),
+            f"stories:{m}": (lambda: _compute_stories(m, sa), 480),
+            f"lists:{m}": (lambda: _compute_lists(sa), 300)}
     if not sa:
         jobs["macro"] = (data.macro, 3600)
         jobs["summary"] = (_compute_summary, 300)
     jobs.update({"xb": (lambda: __import__("xbots").load_all()[0], 300),
-                 f"heat:{m}": (lambda: _compute_heat(sa), 300),
-                 f"hunt:{m}": (lambda: _compute_hunt(sa), 3600)})
+                 f"heat:{m}": (lambda: _compute_heat(sa), 600),
+                 f"hunt:{m}": (lambda: _compute_hunt(sa), 600)})
     return jobs
 
 
@@ -836,7 +834,7 @@ class _Day:
         return None if self.sa else self._one("summary", None)
 
     def fg(self):
-        return self._one("fg", None)
+        return None                                  # the Fear & Greed dial left the home page (its own page has it)
 
     def hunt(self):
         return self._one("hunt", None)
@@ -1042,4 +1040,4 @@ def page_overview():
         print(f"[prof] page {'sa' if sa else 'us'} total {time.time() - t0:.2f}s", flush=True)
 
 
-BUILD = "23.4.26"
+BUILD = "23.4.27"

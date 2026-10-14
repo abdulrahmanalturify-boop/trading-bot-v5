@@ -18,6 +18,8 @@ from zoneinfo import ZoneInfo
 
 import numpy as np
 import pandas as pd
+import sys
+
 import streamlit as st
 
 import caldata
@@ -448,8 +450,13 @@ def run_hunt(key, symbols, nonce=0, build=None, market="us", ar=False):
     names, secs = _names_sectors(symbols, ar)
     res, det = H.hunt(px, spy if not spy.empty else None, earn, today, names, secs, thin=10e6 if sa else 20e6)
     last = max((pd.Timestamp(df.index[-1]) for df in px.values() if df is not None and len(df)), default=None)
-    return {"res": res, "det": det, "reg": H.regime(res, spy, vix), "sec": H.sectors(res), "n": len(res), "asked": len(symbols),
-            "time": MK.now(market).strftime("%H:%M"), "last": last, "earn": len(earn) > 0}
+    out = {"res": res, "det": det, "reg": H.regime(res, spy, vix), "sec": H.sectors(res), "n": len(res), "asked": len(symbols),
+           "time": MK.now(market).strftime("%H:%M"), "last": last, "earn": len(earn) > 0}
+    LAST_HUNT[(key, market)] = {k: v for k, v in out.items() if k != "det"}   # the home page's card reads the last hunt made here
+    return out
+
+
+LAST_HUNT = sys.__dict__.setdefault("_tura_last_hunt", {})     # (universe, market) -> the last hunt made in this server process
 
 
 # ---------------------------------------------------------------- small pieces
@@ -1702,4 +1709,4 @@ def page_scanner():
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.4.26"
+BUILD = "23.4.27"
