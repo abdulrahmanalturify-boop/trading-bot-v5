@@ -1814,6 +1814,41 @@ def profile_run(b, report):
     report["profile"] = out
 
 
+HOME_SHOT = True      # a quick run: the home page (the tools bento first), Arabic and English, desktop and phone, whole page
+
+
+def home_shot(b, report):
+    out = {}
+    for tag, lang, mk, vp in (("ar_sa_desk", "ar", "sa", {"width": 1440, "height": 900}), ("en_us_desk", "en", "us", {"width": 1440, "height": 900}),
+                              ("ar_sa_phone", "ar", "sa", {"width": 390, "height": 844})):
+        res = {}
+        kw = dict(viewport=vp, locale="ar-SA" if lang == "ar" else "en-US", color_scheme="dark")
+        if vp["width"] < 500:
+            kw.update(has_touch=True, is_mobile=True, device_scale_factor=2)
+        try:
+            ctx = b.new_context(**kw)
+            pg = ctx.new_page()
+            pg.goto(f"{URL}/?m={mk}&lang={lang}", wait_until="domcontentloaded", timeout=90000)
+            settle(pg, 150)
+            time.sleep(4)
+            res["problems"] = problems(pg)
+            res["tiles"] = pg.evaluate("() => [...document.querySelectorAll('.ovad')].map(e => { const r = e.getBoundingClientRect(); return [e.className.split(' ')[1], Math.round(r.width), Math.round(r.height)]; })")
+            res["live"] = pg.evaluate("() => [...document.querySelectorAll('.ovad .k .lv')].map(e => e.innerText)")
+            h = pg.evaluate(MAIN_H)
+            pg.set_viewport_size({"width": vp["width"], "height": min(max(int(h), vp["height"]), 9000)})
+            time.sleep(2)
+            pg.screenshot(path=os.path.join(OUT, f"home_{tag}.jpg"), type="jpeg", quality=72, full_page=True)
+            pg.set_viewport_size(vp)
+            time.sleep(1)
+            pg.screenshot(path=os.path.join(OUT, f"home_{tag}_top.jpg"), type="jpeg", quality=80)
+            ctx.close()
+        except Exception as e:
+            res["error"] = str(e)[:400]
+        out[tag] = res
+        log("home", tag, json.dumps(res, ensure_ascii=False)[:900])
+    report["home"] = out
+
+
 def main():
     if PROFILE_RUN:
         os.environ["TURA_PROFILE"] = "1"
@@ -1874,6 +1909,13 @@ def main():
             if MENU_CHECK:
                 try:
                     menu_check(p, report)
+                finally:
+                    json.dump(report, open(os.path.join(OUT, "report.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+                b.close()
+                return 0
+            if HOME_SHOT:
+                try:
+                    home_shot(b, report)
                 finally:
                     json.dump(report, open(os.path.join(OUT, "report.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
                 b.close()

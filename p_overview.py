@@ -207,6 +207,68 @@ div.st-key-ovpage{container-type:inline-size;container-name:ovp}
   div[class*="st-key-ovbody_"] .msg{grid-template-columns:minmax(0,1fr)!important}
 }
 @container ovp (max-width:520px){div[class*="st-key-ovads_"]>*{flex-basis:84%!important;min-width:84%!important}}
+
+/* ---- the tools first: a grid of tiles, the biggest for the most useful (the hunter's picks of the day, the portfolio, the bots),
+   then the assistant, the news and the mood, then the rest - each tile a poster that opens its tool, with its live numbers */
+div.st-key-ovbento{margin:6px 0 10px}
+div.st-key-ovbento [data-testid="stHorizontalBlock"]{align-items:stretch!important}
+div.st-key-ovbento [data-testid="stColumn"]>[data-testid="stVerticalBlock"],div.st-key-ovbento [data-testid="stColumn"]>div>div[data-testid="stVerticalBlock"]{height:100%}
+div.st-key-ovbento div[class*="st-key-ovad_"]{height:100%}
+div.st-key-ovbento div[class*="st-key-ovad_"]>[data-testid="stElementContainer"]:first-child,div.st-key-ovbento div[class*="st-key-ovad_"] [data-testid="stMarkdownContainer"],div.st-key-ovbento div[class*="st-key-ovad_"] [data-testid="stMarkdown"]{height:100%}
+div.st-key-ovbento .ovad{height:100%;box-sizing:border-box;display:flex;flex-direction:column;min-height:236px}
+div.st-key-ovbento .ovad .bd{display:flex;flex-direction:column;flex:1}
+div.st-key-ovbento .ovad .tx{display:flex;flex-direction:column;flex:1}
+div.st-key-ovbento .ovad .go{margin-top:auto}
+div.st-key-ovbento .ovad ul{margin-bottom:12px}
+div.st-key-ovbento .ovad.hero{padding:20px 20px 20px;min-height:330px}
+div.st-key-ovbento .ovad.hero .tt{font-size:25px}
+div.st-key-ovbento .ovad.hero p{font-size:14px}
+div.st-key-ovbento .ovad.hero .vz{height:auto;min-height:150px;margin:14px 0 12px}
+div.st-key-ovbento .ovad.mid{min-height:300px}
+div.st-key-ovbento .ovad.mid .tt{font-size:21px}
+div.st-key-ovbento .ovad.sm{padding:14px 14px 15px;min-height:200px}
+div.st-key-ovbento .ovad.sm .tt{font-size:16.5px}
+div.st-key-ovbento .ovad.sm p{margin:4px 0 8px;font-size:12.5px}
+div.st-key-ovbento .ovad.sm .vz{height:74px;margin:10px 0 10px}
+div.st-key-ovbento .ovad.sm ul{display:none}
+div.st-key-ovbento .ovad.sm .go{padding:8px 12px;font-size:12.5px}
+/* the live numbers on a tile: pills in the kicker row and inside the picture */
+.ovad .k .lv{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;background:rgba(5,8,25,.3);border:1px solid rgba(255,255,255,.2);font-size:10.5px;letter-spacing:.04em;text-transform:none;color:#fff}
+.ovad .k .lv i{width:6px;height:6px;border-radius:50%;background:#4ADE80;animation:ovlive 1.8s infinite}
+.vz.picks{display:flex;flex-direction:column;justify-content:center;gap:4px;padding:8px 10px;box-sizing:border-box;height:auto!important}
+.vz.picks .r{display:grid;grid-template-columns:30px minmax(0,1fr) auto auto;gap:9px;align-items:center;padding:5px 6px;border-radius:12px;transition:background .2s}
+.vz.picks .r:hover{background:rgba(255,255,255,.08)}
+.vz.picks .lg{width:30px;height:30px;border-radius:9px;overflow:hidden;background:rgba(255,255,255,.12);display:grid;place-items:center;font-size:11px;font-weight:800}
+.vz.picks .lg img{width:100%;height:100%;object-fit:cover}
+.vz.picks .nm{min-width:0}.vz.picks .nm b{display:block;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vz.picks .nm span{display:block;font-size:11px;color:rgba(255,255,255,.72);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vz.picks .su{font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:999px;background:rgba(255,255,255,.14);white-space:nowrap}
+.vz.picks .sc{display:grid;place-items:center;position:relative;width:38px;height:38px}
+.vz.picks .sc svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
+.vz.picks .sc b{font-size:11.5px;line-height:1}.vz.picks .sc small{font-size:8.5px;opacity:.8;line-height:1}
+.vz.picks .sc .g{display:flex;flex-direction:column;align-items:center}
+.vz.picks .more{text-align:center;font-size:11px;color:rgba(255,255,255,.75);padding:4px 0 2px}
+.vz.stat{display:flex;flex-direction:column;justify-content:center;gap:8px;padding:12px 14px;box-sizing:border-box;height:auto!important;min-height:118px}
+.vz.stat .big{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.vz.stat .big b{font-size:26px;font-weight:800;letter-spacing:-.01em;direction:ltr}
+.vz.stat .big .pill,.vz.stat .pill{font-size:12px}
+.vz.stat .l{font-size:11px;color:rgba(255,255,255,.75)}
+.vz.stat .row{display:flex;justify-content:space-between;gap:10px;font-size:12px;color:rgba(255,255,255,.9);border-top:1px solid rgba(255,255,255,.12);padding-top:7px}
+.vz.stat .row b{font-weight:800}
+.vz.fgm{display:flex;flex-direction:column;justify-content:center;gap:8px;padding:12px 14px;box-sizing:border-box;height:auto!important;min-height:118px}
+.vz.fgm .top{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.vz.fgm .top b{font-size:30px;font-weight:800;line-height:1}
+.vz.fgm .top span{font-size:12.5px;font-weight:700;padding:3px 10px;border-radius:999px;background:rgba(255,255,255,.92);color:#1E1B4B}
+.vz.fgm .bar{position:relative;height:10px;border-radius:999px;background:linear-gradient(90deg,#EF4444,#F59E0B,#FDE68A,#86EFAC,#22C55E)}
+.ovad.rtl .vz.fgm .bar{background:linear-gradient(270deg,#EF4444,#F59E0B,#FDE68A,#86EFAC,#22C55E)}
+.vz.fgm .bar i{position:absolute;top:-4px;width:18px;height:18px;margin-inline-start:-9px;border-radius:50%;background:#fff;border:3px solid #1E1B4B;box-shadow:0 2px 6px rgba(0,0,0,.4)}
+.vz.fgm .zs{display:flex;justify-content:space-between;font-size:9.5px;color:rgba(255,255,255,.7)}
+.vz.story{display:flex;flex-direction:column;justify-content:center;gap:6px;padding:11px 13px;box-sizing:border-box;height:auto!important;min-height:118px}
+.vz.story .t{font-size:13px;font-weight:700;line-height:1.45;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.vz.story .m{display:flex;align-items:center;gap:8px;font-size:11px;color:rgba(255,255,255,.75)}
+.vz.story .m .sc{font-weight:800;padding:2px 7px;border-radius:7px;background:rgba(255,255,255,.92);color:#1E1B4B}
+.vz.story .m .ms{font-size:14px}
+@container ovp (max-width:820px){div.st-key-ovbento .ovad,div.st-key-ovbento .ovad.hero,div.st-key-ovbento .ovad.mid{min-height:0}}
 @media (prefers-reduced-motion:reduce){.ovad,.ovad *,.ovad::after{animation:none!important;transition:none!important}}
 </style>"""
 
@@ -419,6 +481,200 @@ def _pick_news(sym):
     ss["goto"] = "newsintel"
 
 
+
+# ---------------------------------------------------------------- the tools first: the live numbers each tile shows
+def _compute_hunt(sa):
+    """Today's picks (the hunter on the market's whole list), kept ready in the background; None when nothing came back."""
+    import hunter as H
+    import p_scanner as PS
+    m = MK.SA if sa else MK.US
+    if sa:
+        key, syms = "sa_all", list(tasi.SYMBOLS)
+    else:
+        key, syms = "top", list(U.US_UNIVERSE)
+    got = PS.run_hunt(key, tuple(syms), 0, H.BUILD, m, False)
+    res = got.get("res") if got else None
+    if res is None or res.empty:
+        return None
+    top = res.sort_values("Score", ascending=False).head(4)
+    picks = [{"sym": r["Symbol"], "name": str(r["Name"]), "score": float(r["Score"]), "grade": str(r["Grade"]), "setup": str(r["Setup"]),
+              "status": str(r["Status"])} for _, r in top.iterrows()]
+    return {"n": int(got["n"]), "opp": int((res["Score"] >= 65).sum()), "a": int((res["Score"] >= 75).sum()),
+            "fresh": int((res["Status"] == "fresh").sum()), "time": got["time"], "picks": picks}
+
+
+def _bots_live(mk):
+    """The site's bots as last replayed (kept by p_paper): total balance, the best one, open trades; None until a replay exists."""
+    try:
+        import paperbots as PB
+        import p_paper as PP
+        bots = PB.list_bots(mk, "site")
+        if not bots:
+            return None
+        hit = PB.last_all(bots)
+        if not hit:
+            return None
+        sims = hit[0]
+        live = [x for x in sims if x["ok"] and not x["waiting"]]
+        if not live:
+            return {"n": len(bots)}
+        cap = sum(x["bot"]["capital"] for x in live)
+        bal = sum(x["final"] for x in live)
+        best = PP.ranked(sims)[0]
+        return {"n": len(bots), "bal": bal, "ret": (bal / cap - 1) * 100 if cap else 0.0, "open": sum(x["n_open"] for x in live),
+                "best": best["bot"]["name"], "best_ret": best.get("ret") or 0.0}
+    except Exception:
+        return None
+
+
+def _fg_label(v):
+    if v < 25:
+        return L("Extreme fear", "خوف شديد")
+    if v < 45:
+        return L("Fear", "خوف")
+    if v <= 55:
+        return L("Neutral", "محايد")
+    if v <= 75:
+        return L("Greed", "طمع")
+    return L("Extreme greed", "طمع شديد")
+
+
+def _ring_html(score, grade):
+    from p_scanner import GRADE_COLOR, _C
+    col = GRADE_COLOR.get(grade, _C)
+    r, circ = 16, 2 * 3.14159 * 16
+    return (f'<span class="sc"><svg viewBox="0 0 38 38"><circle cx="19" cy="19" r="{r}" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="3.5"/>'
+            f'<circle cx="19" cy="19" r="{r}" fill="none" stroke="{col}" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="{circ * score / 100:.1f} {circ:.1f}"/></svg>'
+            f'<span class="g"><b style="color:{col}">{T.esc(grade)}</b><small>{score:.0f}</small></span></span>')
+
+
+def _live_vz(key, d, f, sa):
+    """The picture of a tile with the day's numbers in it; the drawn picture when the numbers aren't ready yet."""
+    if key == "hunt":
+        got = d.hunt()
+        if got and got.get("picks"):
+            from p_scanner import short_name
+            rows = ""
+            for pk in got["picks"][:3]:
+                lg = T.logo_obj(pk["sym"], 30)
+                rows += (f'<div class="r"><span class="lg">{lg}</span><span class="nm"><b>{T.esc(T.sym_label(pk["sym"]))}</b>'
+                         f'<span>{T.esc(T.name_line(pk["sym"], pk["name"]))}</span></span>'
+                         f'<span class="su">{T.esc(short_name(pk["setup"]))}</span>{_ring_html(pk["score"], pk["grade"])}</div>')
+            more = max(0, got["opp"] - 3)
+            tail = f'<div class="more">{T.esc(L(f"+{more} more opportunities today", f"+{more} فرص ثانية اليوم"))}</div>' if more else ""
+            return f'<div class="vz picks">{rows}{tail}</div>', got
+        return _vz(key, f), None
+    if key == "bots":
+        b = d.bots()
+        if b and "bal" in b:
+            together = L("The site's bots, together", "بوتات الموقع مع بعض")
+            return (f'<div class="vz stat"><div class="l">{T.esc(together)}</div>'
+                    f'<div class="big"><b>{T.esc(MK.money(b["bal"]))}</b>{T.pill(b["ret"])}</div>'
+                    f'<div class="row"><span>{T.icon("emoji_events")} {T.esc(b["best"])}</span>{T.pill(b["best_ret"])}</div>'
+                    f'<div class="row"><span>{T.esc(L("Open trades", "صفقات مفتوحة"))}</span><b>{b["open"]}</b></div></div>'), b
+        return _vz(key, f), b
+    if key == "news":
+        st_ = d.stories()
+        if st_:
+            n = st_[0]
+            sc = ""
+            try:
+                sc = f'<span class="sc">{int(n["iq"]["score"])}/10</span>'
+            except Exception:
+                pass
+            when = T.time_ago(n["time"], is_ar()) if n.get("time") is not None else ""
+            return (f'<div class="vz story"><div class="t" dir="auto">{T.esc(str(n.get("title", "")))}</div>'
+                    f'<div class="m">{sc}{T.icon("schedule")}{T.esc(str(n.get("source", "")))} · {T.esc(when)}</div></div>'), n
+        return (f'<div class="vz story"><div class="t">{T.esc(L("The news bot is collecting the latest headlines from 35 feeds.", "بوت الأخبار يجمع آخر العناوين من 35 مصدراً."))}</div></div>'), None
+    if key == "mood":
+        v = d.fg()
+        if v is not None:
+            v = max(0.0, min(100.0, float(v)))
+            return (f'<div class="vz fgm"><div class="top"><b>{v:.0f}<small style="font-size:12px;opacity:.7">/100</small></b><span>{T.esc(_fg_label(v))}</span></div>'
+                    f'<div class="bar"><i style="inset-inline-start:{v:.0f}%"></i></div>'
+                    f'<div class="zs"><span>{T.esc(L("Fear", "خوف"))}</span><span>{T.esc(L("Neutral", "محايد"))}</span><span>{T.esc(L("Greed", "طمع"))}</span></div></div>'), v
+        return (f'<div class="vz fgm"><div class="top"><b>—</b></div><div class="bar"></div></div>'), None
+    return _vz(key, f), None
+
+
+# the tiles that are not in TOOLS: the news page and the mood page, the calendar
+TILES = {
+    "news": ("news", "newspaper", "news", ("Smart news", "أخبار ذكية"), ("Market news", "أخبار السوق"),
+             ("Every headline read by the bot, scored out of 10, with why it matters to you.",
+              "كل خبر يقراه البوت ويعطيه درجة من 10، ويقول لك ليش يهمك."), ("Read today's news", "اقرأ أخبار اليوم")),
+    "mood": ("sentiment", "speed", "mood", ("Right now", "الحين"), ("Fear & Greed", "الخوف والطمع"),
+             ("Is the market scared or greedy today? Seven signals in one number.",
+              "السوق خايف ولا طمعان اليوم؟ سبع إشارات في رقم واحد."), ("What drives it", "وش يحرّكه")),
+    "cal": ("earnings", "event_upcoming", "cal", ("This week", "هالأسبوع"), ("Calendars", "التقويم"),
+            ("Earnings, economic events, dividends and IPOs, day by day.",
+             "الأرباح والأحداث الاقتصادية والتوزيعات والاكتتابات، يوم بيوم."), ("Open the calendar", "افتح التقويم")),
+}
+TONE_CSS = """<style data-lm="keep">.ovad.news{--a1:#7C2D12;--a2:#B91C1C;--sh:rgba(185,28,28,.7)}.ovad.mood{--a1:#312E81;--a2:#0F766E;--sh:rgba(49,46,129,.75)}
+.ovad.cal{--a1:#1F2937;--a2:#4338CA;--sh:rgba(67,56,202,.7)}</style>"""
+
+
+def _tile_html(key, d, f, sa, size):
+    page, icon, tone, kick, title, pitch, cta = (TOOLS.get(key) or TILES[key])
+    ar = is_ar()
+    vz, live = _live_vz(key, d, f, sa)
+    lv = ""
+    if key == "hunt" and live:
+        n_opp = live["opp"]
+        lv = f'<span class="lv"><i></i>{T.esc(L(f"{n_opp} opportunities today", f"{n_opp} فرصة اليوم"))}</span>'
+    elif key == "bots" and live:
+        n_b = live["n"]
+        lv = f'<span class="lv"><i></i>{T.esc(L(f"{n_b} bots live", f"{n_b} بوتات شغّالة"))}</span>'
+    elif key == "pf":
+        lv = f'<span class="lv">{T.esc(L("Free", "مجاني"))}</span>'
+    else:
+        lv = f'<em>{T.esc(L("Free", "مجاني"))}</em>'
+    solo = key == "ai"
+    attrs = ' data-open-ai="1" role="button" tabindex="0"' if solo else ""
+    pts = "".join(f'<li>{T.icon("check_circle")}<span>{T.esc(x)}</span></li>' for x in (_points(key, f, sa) if key in TOOLS else []))
+    text = (f'<div class="tx"><b class="tt">{T.esc(L(*title))}</b><p>{T.esc(L(*pitch))}</p>{"<ul>" + pts + "</ul>" if pts else ""}'
+            f'<span class="go">{T.esc(L(*cta))}{T.icon("arrow_forward")}</span></div>')
+    return (f'<div class="ovad {tone} {size}{" rtl" if ar else ""}{" solo" if solo else ""}" data-nogq{attrs}>'
+            f'<span class="big" aria-hidden="true">{icon}</span>'
+            f'<div class="k"><span><span class="ic">{T.icon(icon)}</span>{T.esc(L(*kick))}</span>{lv}</div>'
+            f'<div class="bd">{vz}{text}</div></div>')
+
+
+def _tile(key, d, f, sa, size):
+    page = (TOOLS.get(key) or TILES[key])[0]
+    if key == "ai":
+        ui.html(_tile_html(key, d, f, sa, size))
+        return
+    with st.container(key=f"ovad_{key}"):
+        ui.html(_tile_html(key, d, f, sa, size))
+        st.button(L(*(TOOLS.get(key) or TILES[key])[4]), key=f"ovgo_{key}", on_click=_open_tool, args=(key, page), width="stretch")
+
+
+def _bento(d, f, sa):
+    """The site's tools, the most useful first and biggest: the hunter's picks of the day and the portfolio and the bots across
+    the top, then the assistant, the news and the mood, then the rest in a row."""
+    ui.html(TONE_CSS)
+    with st.container(key="ovbento"):
+        a, b, c = st.columns([1.9, 1, 1], gap="medium")
+        with a:
+            _tile("hunt", d, f, sa, "hero")
+        with b:
+            _tile("pf", d, f, sa, "hero")
+        with c:
+            _tile("bots", d, f, sa, "hero")
+        a, b, c = st.columns(3, gap="medium")
+        with a:
+            _tile("ai", d, f, sa, "mid")
+        with b:
+            _tile("news", d, f, sa, "mid")
+        with c:
+            _tile("mood", d, f, sa, "mid")
+        rest = [k for k in ("academy", "robo", "screener", "cal", "xbots") if k in TILES or _available(k, sa)]
+        cols = st.columns(len(rest), gap="small")
+        for col, k in zip(cols, rest):
+            with col:
+                _tile(k, d, f, sa, "sm")
+
+
 # ---------------------------------------------------------------- the page's data, kept ready in the background (warm.py)
 _HM_DEFAULT = {False: ("sp500", "1D", "cap"), True: ("sa_all", "1D", "cap")}      # the heat map's first choices
 
@@ -465,7 +721,8 @@ def _jobs(sa):
             f"stories:{m}": (lambda: _compute_stories(m, sa), 240),
             f"lists:{m}": (lambda: _compute_lists(sa), 300),
             f"fg:{m}": (lambda: PI.fg_now(m), 1800),
-            f"heat:{m}": (lambda: _compute_heat(sa), 180)}
+            f"heat:{m}": (lambda: _compute_heat(sa), 180),
+            f"hunt:{m}": (lambda: _compute_hunt(sa), 900)}
     if not sa:
         jobs["macro"] = (data.macro, 3600)
         jobs["summary"] = (_compute_summary, 300)
@@ -523,6 +780,14 @@ class _Day:
 
     def fg(self):
         return self._one("fg", None)
+
+    def hunt(self):
+        return self._one("hunt", None)
+
+    def bots(self):
+        if "bots" not in self._got:
+            self._got["bots"] = _bots_live(MK.SA if self.sa else MK.US)
+        return self._got["bots"]
 
     def macro(self):
         return None if self.sa else self._one("macro", None)
@@ -661,21 +926,13 @@ def page_overview():
     # the page as a magazine: the news across the page, then each part with tool cards beside it - one on the right, then
     # two on the left, one on the right, two on the left - and the last two side by side at the foot
     with st.container(key="ovpage"):
+        _timed("bento", ui.safe, _bento, d, f, sa)       # the tools first, the most useful biggest, with the day's numbers
         _timed("top", ui.safe, _top, d)
-        _timed("part a", _with_ads, "a", "right", ["ai"], f, sa, lambda: ui.safe(_news_and_summary, d))
-        _timed("part b", _with_ads, "b", "left", ["hunt", "bots"], f, sa, lambda: ui.safe(_movers, d))
-        _timed("part c", _with_ads, "c", "right", ["pf", "earn"], f, sa,
-               lambda: (_timed("mood", ui.safe, _mood, d.snap(), d.fg()), _timed("heatmap", ui.safe, PM.heatmap_section, d.heat())))
-        _timed("part d", _with_ads, "d", "left", ["robo", "academy"], f, sa, lambda: ui.safe(_markets, px, sa, d.macro()))
-        last = [k for k in ("xbots", "screener") if _available(k, sa)]
-        if last:
-            with st.container(key="ovfoot"):
-                ui.sec("apps", "More tools to try", "أدوات ثانية تستاهل تجربها")
-                with st.container(key="ovads_z"):
-                    for k in last:
-                        with st.container(key=f"ovad_{k}"):
-                            ui.html(_ad_html(k, f, sa, wide=True))
-                            st.button(L(*TOOLS[k][4]), key=f"ovgo_{k}", on_click=_open_tool, args=(k, TOOLS[k][0]), width="stretch")
+        _timed("part a", ui.safe, _news_and_summary, d)
+        _timed("part b", ui.safe, _movers, d)
+        _timed("mood", ui.safe, _mood, d.snap(), d.fg())
+        _timed("heatmap", ui.safe, PM.heatmap_section, d.heat())
+        _timed("part d", ui.safe, _markets, px, sa, d.macro())
     if sa:
         st.caption(L("Prices from Yahoo Finance (may be delayed). The Saudi market trades Sunday to Thursday, 10 am to 3 pm Riyadh time.",
                      "الأسعار من Yahoo Finance (قد تكون متأخرة). السوق السعودي يتداول من الأحد للخميس، من 10 الصبح لين 3 العصر بتوقيت الرياض."))
