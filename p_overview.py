@@ -557,6 +557,9 @@ def _available(key, sa):
     return (key in TOOLS or key in TILES) and (page is None or not sa or page in MK.SA_PAGES)
 
 
+PROMO = ("hunt", "bots", "xbots")                 # the cards drawn by promo.py (the Trading Bot menu's pages)
+
+
 def _card(key, d, f, sa, wide=False):
     if key == "earn":                               # the next session's earnings (a card of the earnings calendar)
         with st.container(key="ovearn"):
@@ -571,7 +574,13 @@ def _card(key, d, f, sa, wide=False):
         return
     tool = TOOLS.get(key) or TILES[key]
     with st.container(key=f"ovad_{key}"):
-        ui.html(_ad_html(key, d, f, sa, wide))
+        if key in PROMO:                            # the Trading Bot pages: the interactive cards of promo.py
+            import promo
+            mk = MK.SA if sa else MK.US
+            live = d.hunt() if key == "hunt" else d.bots() if key == "bots" else d.xb()
+            ui.html(promo.CSS + promo.card_html(key, tool, f, live, mk, sa, wide))
+        else:
+            ui.html(_ad_html(key, d, f, sa, wide))
         st.button(L(*tool[4]), key=f"ovgo_t_{key}", on_click=_open_tool, args=(key, tool[0]), width="stretch")
 
 
@@ -641,7 +650,7 @@ def _compute_hunt(sa):
         return None
     top = res.sort_values("Score", ascending=False).head(4)
     picks = [{"sym": r["Symbol"], "name": str(r["Name"]), "score": float(r["Score"]), "grade": str(r["Grade"]), "setup": str(r["Setup"]),
-              "status": str(r["Status"])} for _, r in top.iterrows()]
+              "status": str(r["Status"]), "entry": r.get("Entry"), "stop": r.get("Stop"), "target": r.get("Target")} for _, r in top.iterrows()]
     return {"n": int(got["n"]), "opp": int((res["Score"] >= 65).sum()), "a": int((res["Score"] >= 75).sum()),
             "fresh": int((res["Status"] == "fresh").sum()), "time": got["time"], "picks": picks, "reg": got.get("reg")}
 
