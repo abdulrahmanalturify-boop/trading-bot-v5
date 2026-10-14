@@ -227,7 +227,7 @@ div.st-key-ovbento .ovad.hero{padding:20px 20px 20px;min-height:600px}
 div.st-key-ovbento .ovad.hero .tt{font-size:25px}
 div.st-key-ovbento .ovad.hero p{font-size:14px}
 div.st-key-ovbento .ovad.hero .vz{height:auto;min-height:150px;margin:14px 0 12px}
-div.st-key-ovbento .ovad.mid{min-height:460px}
+div.st-key-ovbento .ovad.mid{min-height:550px}
 div.st-key-ovbento .ovad.mid .tt{font-size:21px}
 div.st-key-ovbento .ovad.sm{padding:14px 14px 15px;min-height:312px}
 div.st-key-ovbento .ovad.sm .tt{font-size:16.5px}
