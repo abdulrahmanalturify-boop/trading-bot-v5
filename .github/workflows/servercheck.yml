@@ -34,7 +34,8 @@ jobs:
           out = open("/tmp/sv/report.txt", "a")
           with sync_playwright() as p:
               b = p.chromium.launch()
-              for name, path, kw in (("desk_news", "/news?m=sa&lang=ar", dict(viewport={"width": 1440, "height": 900})),
+              for name, path, kw in (("desk_home", "/?m=sa&lang=ar", dict(viewport={"width": 1440, "height": 900})),
+                                     ("desk_news", "/news?m=sa&lang=ar", dict(viewport={"width": 1440, "height": 900})),
                                      ("phone_home", "/?m=sa&lang=ar", dict(viewport={"width": 390, "height": 844}, is_mobile=True, has_touch=True,
                                                                         device_scale_factor=2))):
                   try:
@@ -56,6 +57,13 @@ jobs:
                               out.write("smart reading: " + t.replace("\n", " ")[:200] + "\n")
                           except Exception as e:
                               out.write(f"smart reading: not found ({str(e)[:80]})\n")
+                      if name == "desk_home":
+                          h = pg.evaluate("() => document.querySelector('[data-testid=\"stMainBlockContainer\"]').scrollHeight + 120")
+                          pg.set_viewport_size({"width": 1440, "height": min(max(int(h), 900), 9000)})
+                          time.sleep(2)
+                          pg.screenshot(path=f"/tmp/sv/{name}.jpg", type="jpeg", quality=70, full_page=True)
+                          pg.set_viewport_size({"width": 1440, "height": 900})
+                          continue
                       pg.screenshot(path=f"/tmp/sv/{name}.jpg", type="jpeg", quality=70)
                   except Exception as e:
                       out.write(f"{name}: error {str(e)[:200]}\n")
