@@ -153,9 +153,9 @@ div[class*="st-key-ovad_"]:hover .ovad.rtl .go .ms,.ovad.solo.rtl:hover .go .ms{
 .vz.donut{display:flex;align-items:center;gap:12px;padding:10px 12px;box-sizing:border-box}
 .vz.donut svg{flex:none;width:96px;height:96px}
 .vz.donut svg circle{animation:ovin .6s ease-out both}
-.vz.donut .lg{display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;font-size:11.5px}
-.vz.donut .lg span{display:flex;align-items:center;gap:6px}
-.vz.donut .lg i{width:9px;height:9px;border-radius:3px}
+.vz.donut .lgn{display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;font-size:11.5px}
+.vz.donut .lgn span{display:flex;align-items:center;gap:6px}
+.vz.donut .lgn i{width:9px;height:9px;border-radius:3px}
 .vz.crs{display:flex;flex-direction:column;justify-content:center;gap:9px;padding:10px 12px;box-sizing:border-box}
 .vz.crs .r{display:flex;align-items:center;gap:9px}
 .vz.crs .n{flex:none;width:22px;height:22px;border-radius:7px;display:grid;place-items:center;font-size:11px;font-weight:800;background:rgba(255,255,255,.18)}
@@ -179,6 +179,7 @@ div[class*="st-key-ovad_"]:hover .ovad.rtl .go .ms,.ovad.solo.rtl:hover .go .ms{
 /* the wide cards at the foot of the page: the picture beside the words */
 .ovad.wide .bd{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:18px;align-items:center}
 .ovad.wide .vz{margin:12px 0 0;height:100%;min-height:150px}
+.ovad.wide.news .bd{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr)}
 /* the earnings card under an advert */
 .ovearnh{display:flex;align-items:center;gap:8px;margin:2px 4px 8px;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#8E97AD}
 .ovearnh .ms{font-size:17px}
@@ -217,9 +218,9 @@ div[class*="st-key-ovad_"]:hover .ovad.banner .go:not(.ghost){transform:translat
 .ovad.banner .pic{display:flex;flex-direction:column;gap:12px;animation:ovfloat 5s ease-in-out infinite}
 .ovad.banner .pic .vz{margin:0;height:auto;min-height:150px;background:rgba(5,8,25,.3)}
 .ovad.banner .pic .vz.donut svg{width:128px;height:128px}
-.ovad.banner .pic .vz.donut .lg{font-size:13px;gap:8px 14px}
+.ovad.banner .pic .vz.donut .lgn{font-size:13px;gap:8px 14px}
 .ovad.banner .steps{display:flex;align-items:center;justify-content:space-between;gap:6px}
-.ovad.banner .steps .st{flex:1;display:flex;align-items:center;gap:7px;padding:8px 10px;border-radius:12px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.18);font-size:12.5px;font-weight:700;white-space:nowrap}
+.ovad.banner .steps .st{flex:1;display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:13px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.18);font-size:13.5px;font-weight:700;white-space:nowrap}
 .ovad.banner .steps .st b{flex:none;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:11px;background:#fff;color:var(--a2)}
 .ovad.banner .steps .ar .ms{font-size:16px;opacity:.7}
 .ovad.banner.rtl .steps .ar .ms{transform:scaleX(-1)}
@@ -244,12 +245,13 @@ div.st-key-ovpage{container-type:inline-size;container-name:ovp}
 .ovad .k .lv{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;background:rgba(5,8,25,.3);border:1px solid rgba(255,255,255,.2);font-size:10.5px;letter-spacing:.04em;text-transform:none;color:#fff}
 .ovad .k .lv i{width:6px;height:6px;border-radius:50%;background:#4ADE80;animation:ovlive 1.8s infinite}
 .vz.picks{display:flex;flex-direction:column;justify-content:center;gap:4px;padding:8px 10px;box-sizing:border-box;height:auto!important}
-.vz.picks .r{display:grid;grid-template-columns:30px minmax(0,1fr) auto auto;gap:9px;align-items:center;padding:5px 6px;border-radius:12px;transition:background .2s}
+.vz.picks .r{display:grid;grid-template-columns:30px minmax(0,1fr) 38px;gap:9px;align-items:center;padding:5px 6px;border-radius:12px;transition:background .2s}
 .vz.picks .r:hover{background:rgba(255,255,255,.08)}
 .vz.picks .lg{width:30px;height:30px;border-radius:9px;overflow:hidden;background:rgba(255,255,255,.12);display:grid;place-items:center;font-size:11px;font-weight:800}
 .vz.picks .lg img{width:100%;height:100%;object-fit:cover}
 .vz.picks .nm{min-width:0}.vz.picks .nm b{display:block;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .vz.picks .nm span{display:block;font-size:11px;color:rgba(255,255,255,.72);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vz.picks .nm em{font-style:normal;font-weight:700;color:#BAE6FD}
 .vz.picks .su{font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:999px;background:rgba(255,255,255,.14);white-space:nowrap}
 .vz.picks .sc{display:grid;place-items:center;position:relative;width:38px;height:38px}
 .vz.picks .sc svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
@@ -388,7 +390,7 @@ def _vz(key, f):
             off += ln
         names = [L("Stocks", "أسهم"), L("Bonds", "سندات"), L("Gold", "ذهب"), L("Cash", "كاش")]
         leg = "".join(f'<span><i style="background:{c}"></i>{T.esc(n)}</span>' for (c, _), n in zip(segs, names))
-        return f'<div class="vz donut"><svg viewBox="0 0 100 100" aria-hidden="true">{arcs}</svg><div class="lg">{leg}</div></div>'
+        return f'<div class="vz donut"><svg viewBox="0 0 100 100" aria-hidden="true">{arcs}</svg><div class="lgn">{leg}</div></div>'
     if key == "academy":
         rows = f["course_titles"] or [L("How the Stock Market Works", "كيف يعمل سوق الأسهم")]
         return ('<div class="vz crs">' + "".join(
@@ -617,9 +619,9 @@ def _live_vz(key, d, f, sa):
             rows = ""
             for pk in got["picks"][:3]:
                 lg = T.logo_obj(pk["sym"], 30)
-                rows += (f'<div class="r"><span class="lg">{lg}</span><span class="nm"><b>{T.esc(T.sym_label(pk["sym"]))}</b>'
-                         f'<span>{T.esc(T.name_line(pk["sym"], pk["name"]))}</span></span>'
-                         f'<span class="su">{T.esc(short_name(pk["setup"]))}</span>{_ring_html(pk["score"], pk["grade"])}</div>')
+                rows += (f'<div class="r"><span class="lg">{lg}</span><span class="nm"><b>{T.esc(T.name_line(pk["sym"], pk["name"]))}</b>'
+                         f'<span><em>{T.esc(short_name(pk["setup"]))}</em> · {T.esc(T.sym_label(pk["sym"]))}</span></span>'
+                         f'{_ring_html(pk["score"], pk["grade"])}</div>')
             more = max(0, got["opp"] - 3)
             tail = f'<div class="more">{T.esc(L(f"+{more} more opportunities today", f"+{more} فرص ثانية اليوم"))}</div>' if more else ""
             return f'<div class="vz picks">{rows}{tail}</div>', got
