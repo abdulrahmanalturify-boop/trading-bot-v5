@@ -106,8 +106,9 @@ def _fit(text, width, fs):
     return text if len(text) <= max_chars else (text[:max(1, max_chars - 1)] + "…")
 
 
-def render(tiles, groups, logos=None, rng=3.0, lang="en", label=str, tip=None, rtl=False, width=W, height=H, uid="hm"):
-    """logos: symbol -> image URL (verified). label: group key -> display name. tip: tile -> tooltip text."""
+def render(tiles, groups, logos=None, rng=3.0, lang="en", label=str, tip=None, rtl=False, width=W, height=H, uid="hm", group_href=None):
+    """logos: symbol -> image URL (verified). label: group key -> display name. tip: tile -> tooltip text.
+    group_href: group key -> the link its header opens (the group's companies compared under the map), None for no link."""
     logos = logos or {}
     defs, body = [], [f'<rect width="{width}" height="{height}" fill="#100C18"/>']
     for g in groups:
@@ -160,11 +161,16 @@ def render(tiles, groups, logos=None, rng=3.0, lang="en", label=str, tip=None, r
         room = g["w"] - 12 - len(chg) * 7.2
         name = _fit(name, max(room, 20), 12.5)
         if rtl:
-            body.append(f'<text x="{g["x"] + g["w"] - 6:.1f}" y="{g["y"] + 14.5:.1f}" class="gh" text-anchor="end">‹ {_e(name)}</text>'
-                        f'<text x="{g["x"] + 6:.1f}" y="{g["y"] + 14.5:.1f}" class="gc" fill="{cc}" text-anchor="start">{chg}</text>')
+            head = (f'<text x="{g["x"] + g["w"] - 6:.1f}" y="{g["y"] + 14.5:.1f}" class="gh" text-anchor="end">‹ {_e(name)}</text>'
+                    f'<text x="{g["x"] + 6:.1f}" y="{g["y"] + 14.5:.1f}" class="gc" fill="{cc}" text-anchor="start">{chg}</text>')
         else:
-            body.append(f'<text x="{g["x"] + 6:.1f}" y="{g["y"] + 14.5:.1f}" class="gh" text-anchor="start">{_e(name)} ›</text>'
-                        f'<text x="{g["x"] + g["w"] - 6:.1f}" y="{g["y"] + 14.5:.1f}" class="gc" fill="{cc}" text-anchor="end">{chg}</text>')
+            head = (f'<text x="{g["x"] + 6:.1f}" y="{g["y"] + 14.5:.1f}" class="gh" text-anchor="start">{_e(name)} ›</text>'
+                    f'<text x="{g["x"] + g["w"] - 6:.1f}" y="{g["y"] + 14.5:.1f}" class="gc" fill="{cc}" text-anchor="end">{chg}</text>')
+        href = group_href(g["name"]) if group_href else None
+        if href:                                # the whole header strip opens the group's companies compared
+            head = (f'<a href="{_e(href)}" target="_self" class="ghl"><title>{_e(name)}</title>'
+                    f'<rect x="{g["x"]:.1f}" y="{g["y"]:.1f}" width="{g["w"]:.1f}" height="{HEAD}" fill="transparent"/>{head}</a>')
+        body.append(head)
     return (f'<div class="hmwrap"><svg class="hm" viewBox="0 0 {width} {height}" xmlns="http://www.w3.org/2000/svg">'
             f'<defs>{"".join(defs)}</defs>{"".join(body)}</svg></div>')
 

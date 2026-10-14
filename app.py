@@ -231,6 +231,11 @@ if ss.get("_mk_keep") in MK.CODES:               # a choice made on the last run
 if ss.get("_lang_keep") in ("en", "ar"):         # the language picked on the last run, the same way
     p_portfolio.keep({"tura_lang": ss.pop("_lang_keep")})
 
+# a heat map's group header (?hmg=Technology) opens that group's companies compared under the map
+_qg = st.query_params.get("hmg")
+if _qg:
+    ss.hm_group = str(_qg)[:80]
+    del st.query_params["hmg"]
 # links like  stock?symbol=NVDA  (heatmap tiles, company chips, tables) open that company
 _qs = st.query_params.get("symbol")
 if _qs:

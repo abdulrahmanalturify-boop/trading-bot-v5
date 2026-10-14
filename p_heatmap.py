@@ -242,8 +242,9 @@ VIEWS = {
 }
 
 
-def comparison_frame(view):
+def comparison_frame(view, ind_label=None):
     """view: rows of heatmap_frame for one sector/industry. Adds fundamentals, composite score and rank."""
+    ind_label = ind_label or industry_name
     inf = infos(view["Symbol"].tolist())
     rows = []
     for _, r in view.iterrows():
@@ -253,7 +254,7 @@ def comparison_frame(view):
         div = _num(g("trailingAnnualDividendRate")) if pd.notna(_num(g("trailingAnnualDividendRate"))) else _num(g("dividendRate"))
         tgt = _num(g("targetMeanPrice"))
         rows.append({
-            "Symbol": r["Symbol"], "Name": r["Name"], "Industry": industry_name(r["Industry"]), "Price": price,
+            "Symbol": r["Symbol"], "Name": r["Name"], "Industry": ind_label(r["Industry"]), "Price": price,
             "Chg %": r["Chg %"], "Cap": _num(g("marketCap")) if pd.notna(_num(g("marketCap"))) else r["Cap"],
             "P/E": _num(g("trailingPE")), "Fwd P/E": _num(g("forwardPE")), "PEG": _num(g("trailingPegRatio")),
             "P/S": _num(g("priceToSalesTrailing12Months")), "P/B": _num(g("priceToBook")), "EV/EBITDA": _num(g("enterpriseToEbitda")),
@@ -385,7 +386,7 @@ def _style_table(show, cols, raw):
     return sty
 
 
-def company_table(df, with_industry):
+def company_table(df, with_industry, key="hm2"):
     """Comparison tabs for the companies of a sector / industry."""
     best = df.dropna(subset=["Score"]).sort_values("Score", ascending=False)
     k = st.columns(5)
@@ -407,10 +408,10 @@ def company_table(df, with_industry):
         k[4].markdown(T.kpi("workspace_premium", L("Best TURA score", "أعلى تقييم TURA"), f"{b['Symbol']}",
                             f"{b['Score']:.0f}/100 · {b['Name'][:18]}", "gold"), unsafe_allow_html=True)
     tabs = st.tabs([L(en, ar) for en, ar in VIEWS])
-    for tab, (_, cols) in zip(tabs, VIEWS.items()):
+    for ti, (tab, (_, cols)) in enumerate(zip(tabs, VIEWS.items())):
         with tab:
             cols = [c for c in cols if with_industry or c != "Industry"]
-            st.dataframe(_style_table(df, cols, df), hide_index=True, height=min(620, 40 + 36 * len(df)))
+            st.dataframe(_style_table(df, cols, df), hide_index=True, height=min(620, 40 + 36 * len(df)), key=f"{key}_tab_{ti}")
     st.caption(L("Green = better than the group median for that metric, red = worse. TURA score = average percentile across valuation, "
                  "growth, profitability, leverage, analyst upside and performance (100 = best in group).",
                  "الأخضر = أفضل من وسيط المجموعة في هذا المؤشر، والأحمر = أسوأ. تقييم TURA = متوسط الترتيب المئوي عبر التقييم والنمو "
@@ -561,40 +562,55 @@ def _body(pre=None):
                 icon=":material/touch_app:")
         return
     view = df[df["Sector"] == cur_sec] if cur_ind is None else df[(df["Sector"] == cur_sec) & (df["Industry"] == cur_ind)]
-    title_en = f"{sector_name(cur_sec)}" + (f" › {industry_name(cur_ind)}" if cur_ind else "")
-    ui.sec("compare_arrows", f"{title_en}: companies & financial comparison", f"{title_en}: الشركات والمقارنة المالية")
+    title = f"{sector_name(cur_sec)}" + (f" › {industry_name(cur_ind)}" if cur_ind else "")
+    compare_section(view, title, period, sub_label=industry_name if cur_ind is None else None,
+                    file_name=(cur_ind or cur_sec).replace(" ", "_"))
+
+
+def compare_section(view, title, period, sub_label=None, ind_label=None, file_name="group", key="hm2", on_close=None):
+    """The companies of one group (a sector, an industry, a theme) compared side by side: the industries' leaderboard inside a
+    sector (sub_label: the industry's display name, None when the group is one industry), the KPI strip and the tables, a metric
+    across the group, valuation against growth, and a way to open a company. view: Symbol, Name, Industry, Chg %, Price, Cap."""
+    ind_label = ind_label or industry_name
+    head = st.columns([6, 1]) if on_close else [st.container()]
+    with head[0]:
+        ui.sec("compare_arrows", f"{title}: companies & financial comparison", f"{title}: الشركات والمقارنة المالية")
+    if on_close:
+        head[1].button(L("Close", "إغلاق"), key=f"{key}_close", icon=":material/close:", on_click=on_close, width="stretch")
     with st.spinner(L(f"Loading financials for {len(view)} companies...", f"جاري تحميل البيانات المالية لـ {len(view)} شركة...")):
-        comp = comparison_frame(view)
+        comp = comparison_frame(view, ind_label)
     if comp.empty:
         st.warning(L("No companies found.", "لا توجد شركات."))
         return
-    if cur_ind is None:
+    if sub_label is not None and view["Industry"].nunique() > 1:
         # industry leaderboard inside the sector
-        w = view.assign(_w=view["Chg %"] * view["Cap"]).groupby("Industry")[["_w", "Cap"]].sum()
-        ind_perf = (w["_w"] / w["Cap"]).sort_values()
-        fig = go.Figure(go.Bar(x=ind_perf.values, y=[industry_name(i) for i in ind_perf.index], orientation="h",
-                               marker=dict(color=[T.UP if v >= 0 else T.DOWN for v in ind_perf.values]),
-                               text=[f"{v:+.2f}%" for v in ind_perf.values], textposition="outside", textfont=dict(size=11),
-                               hovertemplate="<b>%{y}</b>: %{x:+.2f}%<extra></extra>"))
-        fig.update_layout(title=dict(text=L(f"Industries in {sector_name(cur_sec)} · {period}", f"صناعات {sector_name(cur_sec)} · {period}"),
-                                     font=dict(size=14), x=0, xanchor="left"), xaxis=dict(ticksuffix="%"), bargap=0.3)
-        st.plotly_chart(_layout(fig, max(260, 30 * len(ind_perf) + 90)), config={"displayModeBar": False})
-    company_table(comp, with_industry=cur_ind is None)
+        w = view.assign(_w=view["Chg %"] * view["Cap"].fillna(0)).groupby("Industry")[["_w", "Cap"]].sum()
+        ind_perf = (w["_w"] / w["Cap"].replace(0, np.nan)).dropna().sort_values()
+        if len(ind_perf) > 1:
+            fig = go.Figure(go.Bar(x=ind_perf.values, y=[sub_label(i) for i in ind_perf.index], orientation="h",
+                                   marker=dict(color=[T.UP if v >= 0 else T.DOWN for v in ind_perf.values]),
+                                   text=[f"{v:+.2f}%" for v in ind_perf.values], textposition="outside", textfont=dict(size=11),
+                                   hovertemplate="<b>%{y}</b>: %{x:+.2f}%<extra></extra>"))
+            fig.update_layout(title=dict(text=L(f"Industries in {title} · {period}", f"صناعات {title} · {period}"),
+                                         font=dict(size=14), x=0, xanchor="left"), xaxis=dict(ticksuffix="%"), bargap=0.3)
+            st.plotly_chart(_layout(fig, max(260, 30 * len(ind_perf) + 90)), config={"displayModeBar": False}, key=f"{key}_inds")
+    company_table(comp, with_industry=sub_label is not None, key=key)
 
     # ---- charts: metric comparison + valuation vs growth
     ui.sec("bar_chart", "Compare a metric across the group", "قارن مؤشراً بين شركات المجموعة")
     mcols = [c for c in METRICS if c not in ("Price", "Cap") and comp[c].notna().sum() >= 2]
     left, right = st.columns([1, 1.25])
     with left:
-        metric = st.selectbox(L("Metric", "المؤشر"), mcols, index=mcols.index("P/E") if "P/E" in mcols else 0,
-                              format_func=lambda c: L(*METRICS[c][:2]), key="hm2_metric")
-        bars = metric_bars(comp, metric, L(*METRICS[metric][:2]))
-        if bars is not None:
-            st.plotly_chart(bars, config={"displayModeBar": False})
+        if mcols:
+            metric = st.selectbox(L("Metric", "المؤشر"), mcols, index=mcols.index("P/E") if "P/E" in mcols else 0,
+                                  format_func=lambda c: L(*METRICS[c][:2]), key=f"{key}_metric")
+            bars = metric_bars(comp, metric, L(*METRICS[metric][:2]))
+            if bars is not None:
+                st.plotly_chart(bars, config={"displayModeBar": False}, key=f"{key}_bars")
     with right:
         sc = valuation_scatter(comp)
         if sc is not None:
-            st.plotly_chart(sc, config={"displayModeBar": False})
+            st.plotly_chart(sc, config={"displayModeBar": False}, key=f"{key}_scatter")
         else:
             st.caption(L("Not enough fundamentals for the valuation map.", "لا توجد بيانات كافية لخريطة التقييم."))
 
@@ -602,12 +618,12 @@ def _body(pre=None):
     x, y = st.columns([2.5, 1])
     syms = comp["Symbol"].tolist()
     pick = ss.get("hm2_pick") if ss.get("hm2_pick") in syms else syms[0]
+    names = comp.set_index("Symbol")["Name"]
     s = x.selectbox(L("Open company", "افتح شركة"), syms, index=syms.index(pick),
-                    format_func=lambda t: f"{t} · {comp.set_index('Symbol').loc[t, 'Name']}", key="hm2_open_sel")
-    if y.button(L("Open stock page", "افتح صفحة السهم"), icon=":material/open_in_new:", key="hm2_open", type="primary"):
+                    format_func=lambda t: f"{T.sym_label(t)} · {names.loc[t]}", key=f"{key}_open_sel")
+    if y.button(L("Open stock page", "افتح صفحة السهم"), icon=":material/open_in_new:", key=f"{key}_open", type="primary"):
         ui.open_stock(s)
     st.download_button(L("Export comparison (CSV)", "تصدير المقارنة (CSV)"), comp.to_csv(index=False).encode("utf-8-sig"),
-                       f"tura_{(cur_ind or cur_sec).replace(' ', '_')}.csv", "text/csv", icon=":material/download:")
-
+                       f"tura_{file_name}.csv", "text/csv", icon=":material/download:", key=f"{key}_csv")
 
 BUILD = "23.4.11"

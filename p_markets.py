@@ -280,7 +280,10 @@ def heatmap_section(pre=None):
         return f'{T.sym_label(t["Symbol"])} · {T.name_line(t["Symbol"], t.get("Name", ""))}\n{T.fmt_price(t.get("Price"))} · {chg} · {L("Mkt cap", "القيمة")} {capt}'
     if sa:                                                 # Saudi tiles show the company's name (the code is a number)
         tiles = [dict(t, Label=tasi.name_of(t["Symbol"], is_ar()) or t["Symbol"]) for t in tiles]
-    ui.html(HM.render(tiles, groups, lg, rng, lang(), label, tip, rtl=is_ar()))
+    from urllib.parse import quote
+    mk = MK.SA if sa else MK.US
+    ui.html(HM.render(tiles, groups, lg, rng, lang(), label, tip, rtl=is_ar(),
+                      group_href=lambda g: f"?hmg={quote(str(g))}&m={mk}&lang={lang()}"))
     ui.html(HM.legend(rng))
     up, dn = int((view["Val"] > 0).sum()), int((view["Val"] < 0).sum())
     # the weighted change: only companies whose weight is known (a placeholder size never weighs on it)
@@ -295,7 +298,29 @@ def heatmap_section(pre=None):
                  f"{len(view)} شركة · {up} صاعدة · {dn} نازلة · التغير المرجّح {w:+.2f}% · الحجم = {L(*HM_SIZES[sizing])}{est_ar} · "
                  "اضغط على أي شركة لفتح صفحتها" + ("" if source == "live" else " · بيانات متأخرة")))
     ui.open_picker(view.sort_values("Size", ascending=False)["Symbol"].tolist(), "hm", "Open a company from the map", "افتح شركة من الخريطة")
+    st.caption(L("Click a group's name at the top of its tiles to compare all of its companies' financials under the map.",
+                 "اضغط على اسم القطاع فوق أسهمه لمقارنة بيانات كل شركاته المالية تحت الخريطة."))
+    _hm_compare(view, label, period, sa, sec == "all" and not theme_uni)
     return df if ukey in ("sp500", "sa_all") else None
+
+
+def _hm_close():
+    ss.pop("hm_group", None)
+
+
+def _hm_compare(view, label, period, sa, by_sector):
+    """The companies of the group whose header was clicked (ss.hm_group), compared under the map (p_heatmap)."""
+    g = ss.get("hm_group")
+    if not g or "Group" not in view or not (view["Group"] == g).any():
+        return
+    import p_heatmap as PH
+    part = view[view["Group"] == g].rename(columns={"Val": "Chg %"})
+    part = part[part["Chg %"].notna()] if part["Chg %"].notna().any() else part
+    kind_of = view.groupby("Industry")["Kind"].first().to_dict()
+    ind_label = (lambda i: _sa_industry(i)) if sa else (lambda i: gics_name(i) if kind_of.get(i) == "gics" else industry_name(i))
+    with st.container(key="hm_cmp"):
+        PH.compare_section(part, label(g), period, sub_label=ind_label if by_sector else None, ind_label=ind_label,
+                           file_name=str(g).replace(" ", "_"), key="hmc", on_close=_hm_close)
 
 
 # =====================================================================
