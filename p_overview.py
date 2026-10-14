@@ -72,6 +72,7 @@ TOOLS = {
 
 
 CSS = """<style data-lm="keep">
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&display=swap');
 /* ---- a part of the page with its tool cards beside it: the cards stay in view while that part is read */
 [data-testid="stHorizontalBlock"]:has(> [data-testid="stColumn"] > [data-testid="stVerticalBlock"] > [data-testid="stLayoutWrapper"] > div[class*="st-key-ovads_"]),
 [data-testid="stHorizontalBlock"]:has(> [data-testid="stColumn"] div[class*="st-key-ovads_"]){align-items:flex-start!important}
@@ -207,34 +208,59 @@ div[class*="st-key-ovads_z"]>*{flex:1 1 0!important;min-width:0!important}
 .vz.rate .f .t .ms{font-size:14px;opacity:.9}.vz.rate .f .t b{margin-inline-start:auto;font-size:11.5px}
 .vz.rate .bar{height:5px;margin-top:3px;border-radius:9px;background:rgba(255,255,255,.16);overflow:hidden}
 .vz.rate .bar i{display:block;height:100%;border-radius:9px}
-/* ---- the banner across the page (the Robo Advisor): words and two calls to action on one side, the picture and the steps on
-   the other; the picture floats */
-@keyframes ovfloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+/* ---- the Robo Advisor banner across the page, after the owner's design: the site's own colours (navy, violet, cyan) */
 div.st-key-ovad_robo{margin:10px 0 6px}
-.ovad.banner{padding:26px 30px 24px;border-radius:26px;background:radial-gradient(90% 120% at 100% 0%,rgba(255,255,255,.2),transparent 50%),radial-gradient(60% 80% at 0% 100%,rgba(255,255,255,.1),transparent 60%),linear-gradient(120deg,var(--a1),var(--a2))}
-.ovad.banner .big{font-size:260px;bottom:-90px;inset-inline-end:28%;opacity:.07}
-.ovad.banner .bd{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:26px;align-items:center}
-.ovad.banner .k{justify-content:flex-start;gap:12px;margin-bottom:12px}
-.ovad.banner .tt{font-size:32px;line-height:1.15;letter-spacing:-.02em}
-.ovad.banner p.ld{font-size:16px;font-weight:700;color:#fff;margin:10px 0 4px}
-.ovad.banner p{font-size:14px;max-width:62ch}
-.ovad.banner .cta{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0 12px}
-.ovad.banner .go{width:auto;padding:12px 22px;font-size:15px;border-radius:14px}
-.ovad.banner .go.ghost{background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.4);box-shadow:none}
-div[class*="st-key-ovad_"]:hover .ovad.banner .go:not(.ghost){transform:translateY(-2px)}
-.ovad.banner .chips{display:flex;flex-wrap:wrap;gap:8px 16px;font-size:12.5px;color:rgba(255,255,255,.88)}
-.ovad.banner .chips span{display:inline-flex;align-items:center;gap:4px}
-.ovad.banner .chips .ms{font-size:16px;color:#A7F3D0}
-.ovad.banner .pic{display:flex;flex-direction:column;gap:12px;animation:ovfloat 5s ease-in-out infinite}
-.ovad.banner .pic .vz{margin:0;height:auto;min-height:150px;background:rgba(5,8,25,.3)}
-.ovad.banner .pic .vz.donut svg{width:128px;height:128px}
-.ovad.banner .pic .vz.donut .lgn{font-size:13px;gap:8px 14px}
-.ovad.banner .steps{display:flex;align-items:center;justify-content:space-between;gap:6px}
-.ovad.banner .steps .stp{flex:1;display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:13px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.18);font-size:13.5px;font-weight:700;white-space:nowrap}
-.ovad.banner .steps .stp b{flex:none;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:11px;background:#fff;color:var(--a2)}
-.ovad.banner .steps .ar .ms{font-size:16px;opacity:.7}
-.ovad.banner.rtl .steps .ar .ms{transform:scaleX(-1)}
-.ovad.banner .vz.donut{padding:14px 16px;gap:18px}
+.ovad.banner.rb{padding:28px 30px 26px;border-radius:26px;color:#fff;
+  background:radial-gradient(70% 90% at 0% 0%,rgba(123,69,240,.35),transparent 60%),radial-gradient(60% 80% at 100% 100%,rgba(45,182,235,.22),transparent 60%),linear-gradient(135deg,#17122B,#1A1540 55%,#0F2742);
+  border:1px solid rgba(255,255,255,.12);box-shadow:0 1px 0 rgba(255,255,255,.12) inset,0 24px 50px -30px rgba(59,139,235,.6)}
+.ovad.banner.rb::after{display:none}
+.ovad.banner.rb .bd{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.6fr);gap:28px;align-items:center}
+.rb .kk{display:flex;align-items:center;gap:8px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#2DB6EB}
+.rb .kk b{font-size:17px;letter-spacing:.1em;color:#fff}.rb .kk span{color:rgba(255,255,255,.35)}.rb .kk em{font-style:normal;color:#9FD9F2}
+.rb.rtl .kk{letter-spacing:0}.rb.rtl .kk em{font-size:12px}
+.rb h3{font-family:"Playfair Display",Georgia,"Times New Roman",serif;font-weight:500;font-size:40px;line-height:1.08;letter-spacing:-.015em;margin:14px 0 12px;color:#fff}
+.rb.rtl h3{font-family:Almarai,sans-serif;font-weight:800;font-size:34px;line-height:1.25}
+.rb p{font-size:14.5px;line-height:1.6;color:rgba(255,255,255,.82);margin:0 0 14px;max-width:46ch}
+.rb .chips{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 16px}
+.rb .chips span{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:11px;font-size:12.5px;font-weight:700;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14)}
+.rb .chips .ms{font-size:16px;color:#2DB6EB}
+.rb .cta{display:flex;align-items:center;flex-wrap:wrap;gap:8px 18px;margin:0 0 14px}
+.rb .cta .go{width:auto;padding:12px 20px;font-size:14.5px;border-radius:14px;color:#17122B;background:linear-gradient(135deg,#fff,#DDEBFF)}
+.rb .cta .lnk{display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:700;color:#9FD9F2}
+.rb .cta .lnk .ms{font-size:18px;transition:transform .25s}.rb.rtl .cta .lnk .ms{transform:scaleX(-1)}
+div[class*="st-key-ovad_"]:hover .rb .cta .lnk .ms{transform:translateX(4px)}div[class*="st-key-ovad_"]:hover .rb.rtl .cta .lnk .ms{transform:scaleX(-1) translateX(4px)}
+.rb .facts{font-size:11.5px;letter-spacing:.06em;color:rgba(255,255,255,.6)}
+.rb .pic{display:flex;flex-direction:column;gap:12px;min-width:0}
+.rb .steps{display:grid;grid-template-columns:minmax(0,1.25fr) 18px minmax(0,1fr) 18px minmax(0,1fr);gap:6px;align-items:stretch}
+.rb .arr{align-self:center;color:rgba(255,255,255,.45);width:18px;overflow:hidden;text-align:center}.rb .arr .ms{font-size:18px}.rb.rtl .arr .ms{transform:scaleX(-1)}
+.rb .rbc,.rb .rbs{position:relative;border-radius:18px;padding:14px 14px 12px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);box-shadow:inset 0 1px 0 rgba(255,255,255,.08);min-width:0}
+.rb .rbc small,.rb .rbs .rt small{position:absolute;bottom:8px;inset-inline-end:12px;font-size:9.5px;color:rgba(255,255,255,.45)}
+.rb .rbc .h{display:flex;align-items:flex-start;gap:9px;margin-bottom:10px}
+.rb .rbc .h b{flex:none;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:800;background:linear-gradient(135deg,#2DB6EB,#7B45F0);color:#fff}
+.rb .rbc .n{display:block;font-size:14px;font-weight:800;line-height:1.2}.rb .rbc .s{display:block;font-size:11px;line-height:1.45;color:rgba(255,255,255,.7);margin-top:2px}
+.rb .hs{display:grid;grid-template-columns:78px minmax(0,1fr);gap:10px;align-items:center;padding-bottom:12px}
+.rb .hs .sc{display:flex;flex-direction:column;align-items:center;gap:6px}
+.rb .hs .ring{position:relative;width:78px;height:78px}.rb .hs .ring svg{display:block;width:78px;height:78px}
+.rb .hs .num{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
+.rb .hs .num b{font-size:24px;font-weight:800}.rb .hs .num span{font-size:9.5px;opacity:.7;margin-top:3px}
+.rb .hs .gr{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700}
+.rb .hs .gr i{font-style:normal;width:20px;height:20px;border-radius:6px;display:grid;place-items:center;font-size:11px;font-weight:800;background:#F87171;color:#2A0A0A}
+.rb .hs .fs{display:flex;flex-direction:column;gap:6px;min-width:0}
+.rb .hs .f .t{display:flex;align-items:center;gap:5px;font-size:10.5px;font-weight:700;white-space:nowrap}
+.rb .hs .f .t .ms{display:none}.rb .hs .f .t b{margin-inline-start:auto;font-size:11px}
+.rb .hs .bar{height:4px;margin-top:3px;border-radius:9px;background:rgba(255,255,255,.14);overflow:hidden}.rb .hs .bar i{display:block;height:100%;border-radius:9px}
+.rb .rk{display:block;width:100%;height:auto;margin:6px 0 2px}.rb.rtl .rk{transform:scaleX(-1)}
+.rb .rkl{display:flex;justify-content:space-between;font-size:10.5px;color:rgba(255,255,255,.7);padding-bottom:12px}
+.rb .pl{display:flex;align-items:center;gap:14px;padding:4px 0 12px}
+.rb .pl svg{flex:none;width:84px;height:84px}
+.rb .pl .lg{display:flex;flex-direction:column;gap:7px;font-size:12px;min-width:0}
+.rb .pl .lg span{display:flex;align-items:center;gap:7px}.rb .pl .lg i{width:9px;height:9px;border-radius:3px;flex:none}.rb .pl .lg b{margin-inline-start:auto;font-weight:800}
+.rb .rbs{display:grid;grid-template-columns:minmax(0,1.3fr) repeat(5,minmax(0,1fr));gap:8px;align-items:center;padding:12px 14px}
+.rb .rbs .w .n{display:block;font-size:14px;font-weight:800}.rb .rbs .w .s{display:block;font-size:11px;color:rgba(255,255,255,.7);margin-top:3px;line-height:1.4}
+.rb .rbs .rt{position:relative;display:flex;flex-direction:column;align-items:center;gap:5px;padding-bottom:12px}
+.rb .rbs .rt .l{font-size:10px;font-weight:700;color:rgba(255,255,255,.75);text-align:center;line-height:1.2}
+.rb .rbs .rg{position:relative;width:54px;height:54px;display:grid;place-items:center}.rb .rbs .rg svg{position:absolute;inset:0}.rb .rbs .rg b{font-size:14px;font-weight:800}
+.rb .rbs .rt small{inset-inline-end:auto;left:50%;transform:translateX(-50%);bottom:0}
 /* a narrow page (a phone, a tablet, a computer with the side panel open on a small screen - measured on the page itself, not
    the screen): the part first, then its cards side by side (sliding across when there are two) */
 div.st-key-ovpage{container-type:inline-size;container-name:ovp}
@@ -246,8 +272,8 @@ div.st-key-ovpage{container-type:inline-size;container-name:ovp}
   div[class*="st-key-ovads_"]::-webkit-scrollbar{display:none}
   div[class*="st-key-ovads_"]>*{flex:1 0 300px!important;min-width:300px!important;max-width:420px;scroll-snap-align:start}
   .ovad.wide .bd{grid-template-columns:1fr}
-  .ovad.banner{padding:20px 18px}.ovad.banner .bd{grid-template-columns:1fr;gap:16px}.ovad.banner .tt{font-size:25px}.ovad.banner .big{inset-inline-end:-40px}
-  .ovad.banner .go{flex:1;justify-content:center}.ovad.banner .steps .stp{white-space:normal;font-size:11.5px}
+  .ovad.banner.rb{padding:20px 16px}.ovad.banner.rb .bd{grid-template-columns:1fr;gap:18px}.rb h3{font-size:30px}.rb.rtl h3{font-size:26px}
+  .rb .steps{grid-template-columns:1fr}.rb .arr{display:none}.rb .rbs{grid-template-columns:repeat(3,minmax(0,1fr))}.rb .rbs .w{grid-column:1/-1}
   div[class*="st-key-ovbody_"] .msg{grid-template-columns:minmax(0,1fr)!important}
 }
 @container ovp (max-width:520px){div[class*="st-key-ovads_"]>*{flex-basis:84%!important;min-width:84%!important}}
@@ -447,46 +473,74 @@ def _ad_html(key, d, f, sa, wide=False):
             f'<div class="bd">{vz}{text}</div></div>')
 
 
+def _ring(v, size=54, col="#5EEAD4", width=5, track="rgba(255,255,255,.14)"):
+    r = size / 2 - width
+    circ = 2 * 3.14159 * r
+    return (f'<svg viewBox="0 0 {size} {size}" width="{size}" height="{size}" aria-hidden="true"><circle cx="{size / 2}" cy="{size / 2}" r="{r:.1f}" fill="none" stroke="{track}" stroke-width="{width}"/>'
+            f'<circle cx="{size / 2}" cy="{size / 2}" r="{r:.1f}" fill="none" stroke="{col}" stroke-width="{width}" stroke-linecap="round" '
+            f'stroke-dasharray="{circ * v / 100:.1f} {circ:.1f}" transform="rotate(-90 {size / 2} {size / 2})"/></svg>')
+
+
 def _banner_html(key, d, f, sa):
-    """A tool as a banner across the whole page: the words and the call to action on one side, the picture and the trust
-    chips on the other (the Robo Advisor)."""
-    page, icon, tone, kick, title, pitch, cta = TOOLS[key]
+    """The Robo Advisor as a banner across the page, after the owner's design: on one side the headline, the promise, two chips,
+    the calls to action and the facts; on the other three step cards - the portfolio's health (its score and what makes it), the
+    risk, the plan - and under them a strip of the five ratings. Every number is a sample, marked as one."""
     ar = is_ar()
-    steps = [L("Your goal", "هدفك"), L("Your risk", "مخاطرتك"), L("Your plan", "خطتك")]
-    stp = "".join(f'<span class="stp"><b>{i + 1}</b>{T.esc(x)}</span>' + ('<i class="ar">' + T.icon("arrow_forward") + "</i>" if i < 2 else "")
-                  for i, x in enumerate(steps))
-    nq = f["questions"] or 7
-    chips = [L("Free", "مجاني"), L(f"{nq} short questions", f"{nq} سؤال قصير"), L("No sign-up", "بدون تسجيل"),
-             L("Two minutes", "دقيقتين")]
-    ch = "".join(f'<span>{T.icon("check")}{T.esc(c)}</span>' for c in chips)
-    sub = L("Is your portfolio built for you, or just for the market? Find out in two minutes.",
-            "محفظتك مبنية عليك، أو على السوق بس؟ اعرف في دقيقتين.")
-    return (f'<div class="ovad banner {tone}{" rtl" if ar else ""}" data-nogq>'
-            f'<span class="big" aria-hidden="true">{icon}</span>'
-            f'<div class="bd"><div class="tx">'
-            f'<div class="k"><span><span class="ic">{T.icon(icon)}</span>{T.esc(L(*kick))}</span><em>{T.esc(L("Free", "مجاني"))}</em></div>'
-            f'<b class="tt">{T.esc(L(*title))}</b><p class="ld">{T.esc(sub)}</p><p>{T.esc(L(*pitch))}</p>'
-            f'<div class="cta"><span class="go">{T.esc(L(*cta))}{T.icon("arrow_forward")}</span>'
-            f'<span class="go ghost">{T.esc(L("Rate my portfolio", "تقييم محفظة"))}</span></div>'
-            f'<div class="chips">{ch}</div></div>'
-            f'<div class="pic">{_rate_vz()}<div class="steps">{stp}</div></div></div></div>')
-
-
-def _rate_vz():
-    """A portfolio's rating, as the portfolio page shows it (a sample: the score ring, its grade, the five factors with a bar each)."""
-    sc, grade, name = 72, "B", L("Healthy", "جيدة")
-    facs = [("hub", L("Diversification", "التنويع"), 80), ("pie_chart", L("Concentration", "التركيز"), 61), ("shield", L("Protection", "الحماية"), 55),
-            ("speed", L("Risk", "المخاطرة"), 74), ("trending_up", L("Against the market", "مقابل السوق"), 68)]
-    col = lambda v: "#4ADE80" if v >= 75 else "#5EEAD4" if v >= 55 else "#FDE68A"
-    r, circ = 34, 2 * 3.14159 * 34
-    ring = (f'<svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="{r}" fill="none" stroke="rgba(255,255,255,.14)" stroke-width="9"/>'
-            f'<circle cx="50" cy="50" r="{r}" fill="none" stroke="#A7F3D0" stroke-width="9" stroke-linecap="round" '
-            f'stroke-dasharray="{circ * sc / 100:.1f} {circ:.1f}" transform="rotate(-90 50 50)"/></svg>'
-            f'<div class="num"><b>{sc}</b><span>/ 100</span></div>')
+    nq = f["questions"] or 13
+    smp = T.esc(L("Sample", "مثال"))
+    # 1 · the portfolio's health (the portfolio page's card, in small)
+    facs = [("hub", L("Diversification", "التنويع"), 65, L("3 positions · 2 sectors", "3 مراكز · قطاعان")),
+            ("pie_chart", L("Concentration", "التركيز"), 38, L("Largest: MRNA 53.9%", "الأكبر: MRNA 53.9%")),
+            ("shield", L("Protection", "الحماية"), 20, L("1 of 3 with a stop", "1 من 3 عليه وقف")),
+            ("speed", L("Risk", "المخاطرة"), 0, L("Leverage 1.28× · swings 82%/yr", "رافعة 1.28× · تذبذب 82%/سنة")),
+            ("trending_up", L("Against the market", "مقابل السوق"), 57, L("+1.2% vs S&P 500 −0.6%", "+1.2% مقابل S&P 500 −0.6%"))]
+    col = lambda v: "#4ADE80" if v >= 75 else "#2DB6EB" if v >= 55 else "#F5B94A" if v >= 40 else "#F87171"
     rows = "".join(f'<div class="f"><div class="t">{T.icon(ic)}<span>{T.esc(n)}</span><b>{v}</b></div>'
-                   f'<div class="bar"><i style="width:{v}%;background:{col(v)}"></i></div></div>' for ic, n, v in facs)
-    return (f'<div class="vz rate"><div class="sc"><div class="ring">{ring}</div><div class="gr"><i>{grade}</i>{T.esc(name)}</div>'
-            f'<small>{T.esc(L("sample", "مثال"))}</small></div><div class="fs">{rows}</div></div>')
+                   f'<div class="bar"><i style="width:{max(v, 2)}%;background:{col(v)}"></i></div></div>' for ic, n, v, _ in facs)
+    health = (f'<div class="hs"><div class="sc"><div class="ring">{_ring(36, 78, "#F87171", 6)}<div class="num"><b>36</b><span>/ 100</span></div></div>'
+              f'<div class="gr"><i>E</i>{T.esc(L("At risk", "في خطر"))}</div></div><div class="fs">{rows}</div></div>')
+    c1 = (f'<div class="rbc"><div class="h"><b>1</b><div><span class="n">{T.esc(L("Your portfolio health", "صحة محفظتك"))}</span>'
+          f'<span class="s">{T.esc(L("Your score, and what makes it.", "درجتك، ووش يصنعها."))}</span></div></div>{health}<small>{smp}</small></div>')
+    # 2 · the risk: a curve with the marker on moderate risk
+    curve = ('<svg viewBox="0 0 220 70" aria-hidden="true" class="rk"><defs><linearGradient id="rbg" x1="0" x2="1"><stop offset="0" stop-color="#2DB6EB"/><stop offset="1" stop-color="#7B45F0"/></linearGradient></defs>'
+             '<path d="M6 54 C 50 54, 70 16, 110 16 S 170 54, 214 54" fill="none" stroke="url(#rbg)" stroke-width="3" stroke-linecap="round"/>'
+             '<circle cx="110" cy="16" r="8" fill="#fff" stroke="#7B45F0" stroke-width="3"/><circle cx="6" cy="54" r="3.5" fill="#2DB6EB"/><circle cx="214" cy="54" r="3.5" fill="#7B45F0"/></svg>')
+    c2 = (f'<div class="rbc"><div class="h"><b>2</b><div><span class="n">{T.esc(L("Your risk", "مخاطرتك"))}</span>'
+          f'<span class="s">{T.esc(L("Share your comfort with ups and downs.", "قول لنا قد إيش تتحمل الصعود والهبوط."))}</span></div></div>'
+          f'{curve}<div class="rkl"><span>{T.esc(L("Lower risk", "مخاطرة أقل"))}</span><span>{T.esc(L("Moderate risk", "مخاطرة متوسطة"))}</span><span>{T.esc(L("Higher risk", "مخاطرة أعلى"))}</span></div><small>{smp}</small></div>')
+    # 3 · the plan: a donut and its legend
+    segs = [("#2DB6EB", 60, L("Stocks", "أسهم")), ("#7B45F0", 25, L("Bonds", "سندات")), ("#F5B94A", 10, L("Cash", "كاش")), ("#A78BFA", 5, L("Other", "أخرى"))]
+    circ, off, arcs = 2 * 3.14159 * 34, 0.0, ""
+    for c_, pc, _ in segs:
+        ln = circ * pc / 100
+        arcs += (f'<circle cx="50" cy="50" r="34" fill="none" stroke="{c_}" stroke-width="12" stroke-dasharray="{ln - 2:.1f} {circ - ln + 2:.1f}" '
+                 f'stroke-dashoffset="{-off:.1f}" transform="rotate(-90 50 50)"/>')
+        off += ln
+    leg = "".join(f'<span><i style="background:{c_}"></i>{T.esc(n)}<b>{pc}%</b></span>' for c_, pc, n in segs)
+    c3 = (f'<div class="rbc"><div class="h"><b>3</b><div><span class="n">{T.esc(L("Your plan", "خطتك"))}</span>'
+          f'<span class="s">{T.esc(L("Get a personalized plan you can follow with virtual money.", "خذ خطة مخصصة لك تتابعها بفلوس افتراضية."))}</span></div></div>'
+          f'<div class="pl"><svg viewBox="0 0 100 100" aria-hidden="true">{arcs}</svg><div class="lg">{leg}</div></div><small>{smp}</small></div>')
+    arrow = f'<i class="arr">{T.icon("arrow_forward")}</i>'
+    # the strip of ratings
+    rates = [(L("Diversification", "التنويع"), 78), (L("Concentration", "التركيز"), 42), (L("Protection", "الحماية"), 71), (L("Risk", "المخاطرة"), 56),
+             (L("Against the market", "مقابل السوق"), 69)]
+    rr = "".join(f'<div class="rt"><span class="l">{T.esc(n)}</span><div class="rg">{_ring(v, 54, col(v), 5)}<b>{v}</b></div><small>{smp}</small></div>' for n, v in rates)
+    strip = (f'<div class="rbs"><div class="w"><span class="n">{T.esc(L("Your portfolio rating", "تقييم محفظتك"))}</span>'
+             f'<span class="s">{T.esc(L("See how your portfolio scores across key areas.", "شوف درجات محفظتك في النواحي المهمة."))}</span></div>{rr}</div>')
+    # the words
+    head = L("From your goals to your next move.", "من أهدافك إلى خطوتك الجاية.")
+    sub = L("Rate your portfolio. Build a plan around your goals and risk. Follow it with virtual money.",
+            "قيّم محفظتك. ابنِ خطة حول أهدافك ومخاطرتك. تابعها بفلوس افتراضية.")
+    chips = (f'<span>{T.icon("description")}{T.esc(L("Personalized plan", "خطة مخصصة"))}</span>'
+             f'<span>{T.icon("bar_chart")}{T.esc(L("Virtual portfolio", "محفظة افتراضية"))}</span>')
+    facts = " • ".join(T.esc(x) for x in (L("Free", "مجاني"), L(f"{nq} short questions", f"{nq} سؤال قصير"), L("No sign-up", "بدون تسجيل"), L("Two minutes", "دقيقتين")))
+    return (f'<div class="ovad banner rb{" rtl" if ar else ""}" data-nogq><div class="bd">'
+            f'<div class="tx"><div class="kk"><b>TURA</b><span>|</span><em>{T.esc(L("Portfolio dashboard", "لوحة المحفظة"))}</em></div>'
+            f'<h3>{T.esc(head)}</h3><p>{T.esc(sub)}</p><div class="chips">{chips}</div>'
+            f'<div class="cta"><span class="go">{T.esc(L("Explore my portfolio", "استكشف محفظتي"))}{T.icon("arrow_forward")}</span>'
+            f'<span class="lnk">{T.esc(L("Build my plan", "ابنِ خطتي"))}{T.icon("arrow_forward")}</span></div>'
+            f'<div class="facts">{facts}</div></div>'
+            f'<div class="pic"><div class="steps">{c1}{arrow}{c2}{arrow}{c3}</div>{strip}</div></div></div>')
 
 
 def _open_tool(key, page):
