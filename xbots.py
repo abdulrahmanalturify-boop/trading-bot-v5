@@ -830,12 +830,12 @@ def run(bot, token, meta, now=None, get=None, quotes_fn=None, force=False, close
         state["status"], state["error"] = "no_key", None
     elif not (force or in_hours(bot, now)):
         state["status"] = "resting"
-    elif mk_reads >= mk_cap:                        # the shares add up to the ceiling: each market is held to its own
+    elif meta["reads"] >= cap or mk_reads >= mk_cap:    # the ceiling as a whole, and each market held to its share of it
         state["status"] = "cap"
     elif not (force or turn):
         state["status"] = "paced"                    # not this bot's hour: it reads again in an hour or two, within its share
     else:
-        n = min(PER_RUN, PER_RUN if force else allow, mk_cap - mk_reads)
+        n = min(PER_RUN, PER_RUN if force else allow, cap - meta["reads"], mk_cap - mk_reads)
         try:
             data_, users, newest = fetch(bot["query"], token, state.get("since_id"), max(10, n), get=get)
             meta["reads"] += len(data_)
