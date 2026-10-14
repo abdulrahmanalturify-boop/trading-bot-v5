@@ -748,8 +748,10 @@ RATE_NAMES = {0.25: ("3-month T-bill", "أذونات 3 أشهر"), 2.0: ("2-year
               10.0: ("10-year Treasury", "سندات 10 سنوات"), 30.0: ("30-year Treasury", "سندات 30 سنة")}
 
 
-def indicators_section(compact=False, pre=None):
-    if compact:
+def indicators_section(compact=False, pre=None, head=True):
+    if not head:
+        pass                                         # inside a tab of the home page's markets strip: the tab is the title
+    elif compact:
         ui.sec("query_stats", "Key economic indicators", "أهم المؤشرات الاقتصادية")
     else:
         ui.sec("query_stats", "Key indicators", "أهم المؤشرات")
@@ -1596,4 +1598,4 @@ def page_news():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.4.21"
+BUILD = "23.4.22"

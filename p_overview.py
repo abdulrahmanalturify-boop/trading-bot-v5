@@ -963,7 +963,16 @@ def _mood(snap, v, sa=False, xb=None):
 def _markets(px, sa, macro=None):
     ui.sec("monitoring", "Markets at a glance", "الأسواق بلمحة")
     groups = PM.SA_TILES if sa else U.MARKET_TILES
-    tabs = st.tabs([L(gen, gar) for gen, gar in groups])
+    names = [L(gen, gar) for gen, gar in groups]
+    if not sa:                                       # the economic indicators as the last tab of the strip
+        names.append(L("Key economic indicators", "أهم المؤشرات الاقتصادية"))
+    tabs = st.tabs(names)
+    if not sa:
+        with tabs[-1]:
+            if macro is not None:
+                _timed("indicators", ui.safe, PM.indicators_section, True, macro, False)
+            else:
+                st.caption(L("The economic indicators are on their way: they show in a moment.", "المؤشرات الاقتصادية في الطريق: تطلع بعد شوي."))
     for tab, ((gen, gar), syms) in zip(tabs, groups.items()):
         with tab:
             items = []
@@ -976,12 +985,6 @@ def _markets(px, sa, macro=None):
                 val = f"{p:.3f}%" if gen == "Treasury Yields" else T.fmt_price(p)
                 items.append(T.tile(name, val, chg, pct, px[sym]["Close"].tail(22).values, invert=(sym == "^VIX")))
             ui.html(T.tiles(items))
-    if not sa:
-        if macro is not None:
-            _timed("indicators", ui.safe, PM.indicators_section, True, macro)
-        else:
-            ui.sec("query_stats", "Key economic indicators", "أهم المؤشرات الاقتصادية")
-            st.caption(L("The economic indicators are on their way: they show in a moment.", "المؤشرات الاقتصادية في الطريق: تطلع بعد شوي."))
 
 
 def page_overview():
@@ -1026,4 +1029,4 @@ def page_overview():
         print(f"[prof] page {'sa' if sa else 'us'} total {time.time() - t0:.2f}s", flush=True)
 
 
-BUILD = "23.4.21"
+BUILD = "23.4.22"
