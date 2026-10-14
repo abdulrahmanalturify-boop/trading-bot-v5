@@ -599,24 +599,6 @@ def compare_section(view, title, period, sub_label=None, ind_label=None, file_na
             st.plotly_chart(_layout(fig, max(260, 30 * len(ind_perf) + 90)), config={"displayModeBar": False}, key=f"{key}_inds")
     company_table(comp, with_industry=sub_label is not None, key=key)
 
-    # ---- charts: metric comparison + valuation vs growth
-    ui.sec("bar_chart", "Compare a metric across the group", "قارن مؤشراً بين شركات المجموعة")
-    mcols = [c for c in METRICS if c not in ("Price", "Cap") and comp[c].notna().sum() >= 2]
-    left, right = st.columns([1, 1.25])
-    with left:
-        if mcols:
-            metric = st.selectbox(L("Metric", "المؤشر"), mcols, index=mcols.index("P/E") if "P/E" in mcols else 0,
-                                  format_func=lambda c: L(*METRICS[c][:2]), key=f"{key}_metric")
-            bars = metric_bars(comp, metric, L(*METRICS[metric][:2]))
-            if bars is not None:
-                st.plotly_chart(bars, config={"displayModeBar": False}, key=f"{key}_bars")
-    with right:
-        sc = valuation_scatter(comp)
-        if sc is not None:
-            st.plotly_chart(sc, config={"displayModeBar": False}, key=f"{key}_scatter")
-        else:
-            st.caption(L("Not enough fundamentals for the valuation map.", "لا توجد بيانات كافية لخريطة التقييم."))
-
     # ---- open a company
     x, y = st.columns([2.5, 1])
     syms = comp["Symbol"].tolist()

@@ -8,7 +8,7 @@ import html
 import numpy as np
 
 W, H = 1400, 800
-HEAD = 46          # group header strip height (the group's name, big and clear, opens its comparison)
+HEAD = 58          # group header strip height (the group's name, big and clear, opens its comparison)
 GAP = 3            # space between groups
 
 # diverging scale (TradingView look): red -> dark red -> grey -> dark green -> green
@@ -83,7 +83,7 @@ def layout(df, group_col="Group", size_col="Size", width=W, height=H):
     groups, tiles = [], []
     for (g, _), (gx, gy, gw, gh) in zip(gs.items(), squarify(gs.values, 0, 0, width, height)):
         gx, gy, gw, gh = gx + GAP / 2, gy + GAP / 2, gw - GAP, gh - GAP
-        head = HEAD if gh > HEAD * 1.9 and gw > 70 else 0
+        head = HEAD if gh > HEAD * 1.7 and gw > 90 else 0
         sub = d[d[group_col] == g].sort_values(size_col, ascending=False)
         chg = np.average(sub["Val"].fillna(0), weights=sub[size_col]) if sub[size_col].sum() > 0 else 0.0
         groups.append({"name": g, "x": gx, "y": gy, "w": gw, "h": gh, "head": head, "chg": float(chg), "n": len(sub)})
@@ -159,8 +159,8 @@ def render(tiles, groups, logos=None, rng=3.0, lang="en", label=str, tip=None, r
         cc = "#4ADE80" if c > 0.005 else ("#F87171" if c < -0.005 else "#C9CED8")
         chg = f"{c:+.2f}%"
         gx, gy, gw = g["x"], g["y"], g["w"]
-        cfs = 19 if gw >= 260 else 15
-        fs = 27 if gw >= 340 else (22 if gw >= 200 else 17)
+        cfs = 22 if gw >= 260 else 17
+        fs = 34 if gw >= 340 else (27 if gw >= 200 else 21)
         cw = fs * 0.68                           # the bold name's width per letter
         room = gw - 24 - len(chg) * cfs * 0.66 - 14
         if len(name) * cw > room:                # the name and the change don't both fit: the name alone, the change in the tooltip
