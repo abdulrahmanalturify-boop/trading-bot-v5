@@ -774,7 +774,8 @@ def _jobs(sa):
             f"lists:{m}": (lambda: _compute_lists(sa), 300),
             f"fg:{m}": (lambda: PI.fg_now(m), 1800),
             f"heat:{m}": (lambda: _compute_heat(sa), 180),
-            f"hunt:{m}": (lambda: _compute_hunt(sa), 900)}
+            f"hunt:{m}": (lambda: _compute_hunt(sa), 900),
+            "xb": (lambda: __import__("xbots").load_all()[0], 120)}
     if not sa:
         jobs["macro"] = (data.macro, 3600)
         jobs["summary"] = (_compute_summary, 300)
@@ -835,6 +836,9 @@ class _Day:
 
     def hunt(self):
         return self._one("hunt", None)
+
+    def xb(self):
+        return self._one("xb", {})
 
     def bots(self):
         if "bots" not in self._got:
@@ -924,7 +928,7 @@ def _summary_and_mood(d):
     with a:
         ui.safe(_summary, d)
     with b:
-        ui.safe(_mood, d.snap(), d.fg())
+        ui.safe(_mood, d.snap(), d.fg(), d.sa, d.xb())
 
 
 def _movers(d):
@@ -940,7 +944,7 @@ def _movers(d):
         st.button(L("All the news", "كل الأخبار"), key="ovgo_news", icon=":material/newspaper:", on_click=_open_tool, args=("news", "news"))
 
 
-def _mood(snap, v):
+def _mood(snap, v, sa=False, xb=None):
     ui.sec("speed", "The market's mood", "مزاج السوق")
     with st.container(key="ovmood"):
         if snap and snap["res"]:
@@ -949,14 +953,11 @@ def _mood(snap, v):
             st.caption(L("The news mood is not available right now.", "مزاج الأخبار غير متاح حالياً."))
         st.button(L("Read the news like an analyst", "اقرأ الأخبار مثل المحلل"), key="ovgo_ni", icon=":material/neurology:", width="stretch",
                   on_click=_open_tool, args=("ni", "newsintel"))
-        if v is not None:
-            ui.ai_note("Fear & Greed", f"{v:.0f}/100")
-            ui.html(f'<div class="ovcard" data-nogq><div class="h">{T.icon("speed")}{T.esc(L("Fear & Greed", "الخوف والطمع"))}</div>'
-                    f'{T.fg_gauge(v, is_ar(), L("Seven market signals in one score", "سبع إشارات من السوق في درجة واحدة"))}</div>')
-        else:
-            st.caption(L("The Fear & Greed index is not available right now.", "مؤشر الخوف والطمع غير متاح حالياً."))
-        st.button(L("What drives it", "وش يحرّكه"), key="ovgo_fg", icon=":material/speed:", width="stretch",
-                  on_click=_open_tool, args=("fg", "sentiment"))
+        # the X bots of this market in one card: what X's crowd feels, bot by bot
+        import p_xbots as PX
+        ui.html(PX.summary_html(MK.SA if sa else MK.US, xb))
+        st.button(L("Meet the X bots", "تعرّف على بوتات X"), key="ovgo_xb", icon=":material/alternate_email:", width="stretch",
+                  on_click=_open_tool, args=("xbots", "xbots"))
 
 
 def _markets(px, sa, macro=None):
