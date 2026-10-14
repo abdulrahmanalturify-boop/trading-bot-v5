@@ -268,6 +268,9 @@ def comparison_frame(view, ind_label=None):
     df = pd.DataFrame(rows)
     if df.empty:
         return df
+    for c in METRICS:                                   # numbers as floats (a missing one is NaN, shown as a dash)
+        if c in df and c != "Score":
+            df[c] = pd.to_numeric(df[c], errors="coerce")
     # sanity clips (negative P/E = loss-making: treated as missing for valuation ranking)
     for c in ("P/E", "Fwd P/E", "PEG", "P/B", "P/S", "EV/EBITDA"):
         df.loc[df[c] <= 0, c] = np.nan
@@ -300,7 +303,7 @@ def metric_bars(df, col, title, height=None):
     good = (d[col] >= med) if hib in (True, None) else (d[col] <= med)
     colors = [T.UP if ok else T.DOWN for ok in good] if hib is not None else [T.ACCENT] * len(d)
     suffix = "%" if col in PCT_COLS else ""
-    fig = go.Figure(go.Bar(x=d[col], y=d["Symbol"], orientation="h", marker=dict(color=colors, line=dict(width=0)),
+    fig = go.Figure(go.Bar(x=d[col], y=d["Symbol"].map(T.sym_label), orientation="h", marker=dict(color=colors, line=dict(width=0)),
                            text=[f"{v:,.1f}{suffix}" for v in d[col]], textposition="outside",
                            textfont=dict(color=T.TEXT, size=11), hovertemplate="<b>%{y}</b>: %{x:,.2f}" + suffix + "<extra></extra>"))
     fig.add_vline(x=med, line=dict(color=T.GOLD, width=1.5, dash="dot"),
@@ -322,7 +325,7 @@ def valuation_scatter(df):
         return None
     size = np.sqrt(d["Cap"].fillna(1e9)) / np.sqrt(d["Cap"].max()) * 42 + 10
     fig = go.Figure(go.Scatter(
-        x=d[xcol], y=d["Rev g %"], mode="markers+text", text=d["Symbol"], textposition="top center",
+        x=d[xcol], y=d["Rev g %"], mode="markers+text", text=d["Symbol"].map(T.sym_label), textposition="top center",
         textfont=dict(size=11, color=T.TEXT),
         marker=dict(size=size, color=d["Chg %"], colorscale=COLORSCALE, cmid=0, cmin=-5, cmax=5,
                     line=dict(width=1, color=T.BG), opacity=0.9),
@@ -626,4 +629,4 @@ def compare_section(view, title, period, sub_label=None, ind_label=None, file_na
     st.download_button(L("Export comparison (CSV)", "تصدير المقارنة (CSV)"), comp.to_csv(index=False).encode("utf-8-sig"),
                        f"tura_{file_name}.csv", "text/csv", icon=":material/download:", key=f"{key}_csv")
 
-BUILD = "23.4.11"
+BUILD = "23.4.12"
