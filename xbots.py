@@ -939,4 +939,4 @@ def load_log(bot_id):
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.4.25"
+BUILD = "23.4.26"
