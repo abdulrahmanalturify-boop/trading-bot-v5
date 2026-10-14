@@ -225,20 +225,25 @@ def daily_reads():
 
 # ---------------------------------------------------------------- the ceiling shared between the two markets
 # The Saudi day comes first (7-12 UTC) and used to use up the whole ceiling before the US day began (13-21 UTC), so the US bots
-# never read. Each market now has its own share of the ceiling, in proportion to its reading hours, and each bot spreads its
-# share over the day: when the share is too small for every bot to read every hour (X returns 10 posts at least), a bot reads
+# never read. The ceiling is now split equally between the ten bots (so equally between the two markets), and each bot spreads
+# its share over its day: when the share is too small for every bot to read every hour (X returns 10 posts at least), a bot reads
 # every second or third hour, the bots taking turns so every hour reads something.
+RUNS = {MK.US: 9, MK.SA: 6}       # the hourly runs of .github/workflows/xbots.yml inside each market's day (13-21 UTC, 7-12 UTC)
+
+
 def _runs(code):
-    sp = MK.get(code)
-    return int((sp["close"] + 60 - (sp["open"] - 60)) // 60) + 1          # the hours from an hour before the open to an hour after the close
+    return RUNS.get(code, 8)
+
+
+def bot_cap(cap=None):
+    """Every bot's share of the day's ceiling: the same for each of the ten (the owner's choice)."""
+    cap = cap if cap is not None else daily_reads()
+    return int(cap / max(1, len(BOTS)))
 
 
 def market_cap(code, cap=None):
-    """This market's share of the day's ceiling."""
-    cap = cap if cap is not None else daily_reads()
-    codes = sorted({b["market"] for b in BOTS})
-    tot = sum(_runs(c) for c in codes) or 1
-    return int(cap * _runs(code) / tot)
+    """This market's share of the day's ceiling: its bots' equal shares together."""
+    return bot_cap(cap) * sum(1 for b in BOTS if b["market"] == code)
 
 
 def my_turn(bot, now, cap=None):
@@ -246,7 +251,7 @@ def my_turn(bot, now, cap=None):
     that is under X's minimum of 10 a post, it reads every k-th hour (its turn offset by its place in the list)."""
     code = bot["market"]
     peers = [b for b in BOTS if b["market"] == code]
-    per = market_cap(code, cap) / max(1, len(peers)) / max(1, _runs(code))
+    per = bot_cap(cap) / max(1, _runs(code))
     if per >= 10:
         return True, int(per)
     k = int(math.ceil(10 / max(per, 1e-9)))
@@ -825,21 +830,24 @@ def run(bot, token, meta, now=None, get=None, quotes_fn=None, force=False, close
     cap = daily_reads()
     mk_cap = market_cap(bot["market"], cap)
     mk_reads = int(meta["by"].get(bot["market"]) or 0)
+    b_cap = bot_cap(cap)
+    b_reads = int(meta["by"].get(bot["id"]) or 0)
     turn, allow = my_turn(bot, now, cap)
     if not token:
         state["status"], state["error"] = "no_key", None
     elif not (force or in_hours(bot, now)):
         state["status"] = "resting"
-    elif meta["reads"] >= cap or mk_reads >= mk_cap:    # the ceiling as a whole, and each market held to its share of it
+    elif meta["reads"] >= cap or mk_reads >= mk_cap or b_reads >= b_cap:    # the ceiling as a whole, the market's and the bot's own shares
         state["status"] = "cap"
     elif not (force or turn):
         state["status"] = "paced"                    # not this bot's hour: it reads again in an hour or two, within its share
     else:
-        n = min(PER_RUN, PER_RUN if force else allow, cap - meta["reads"], mk_cap - mk_reads)
+        n = min(PER_RUN, PER_RUN if force else allow, cap - meta["reads"], mk_cap - mk_reads, b_cap - b_reads)
         try:
             data_, users, newest = fetch(bot["query"], token, state.get("since_id"), max(10, n), get=get)
             meta["reads"] += len(data_)
             meta["by"][bot["market"]] = mk_reads + len(data_)
+            meta["by"][bot["id"]] = b_reads + len(data_)
             state["reads"] = int(state.get("reads") or 0) + len(data_)
             fresh = [read_post(p, users, bot["market"]) for p in data_]
             have = {p["id"] for p in state["posts"]}
@@ -931,4 +939,4 @@ def load_log(bot_id):
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.4.23"
+BUILD = "23.4.24"

@@ -186,7 +186,7 @@ def _status(state):
     if s == "resting":
         return "on", L("Resting until its market's next day", "يرتاح لين يوم السوق الجاي")
     if s == "cap":
-        return "", L("Its market's reading ceiling for today is reached", "وصل سقف القراءة لسوقه اليوم")
+        return "", L("Its share of today's reading ceiling is used", "استهلك حصته من سقف القراءة لليوم")
     if s == "paced":
         return "on", L(f"Read X {_when(state.get('read_at'))} · next read in an hour or two (spread within the ceiling)",
                        f"قرأ X {_when(state.get('read_at'))} · القراءة الجاية بعد ساعة أو ساعتين (موزّعة ضمن السقف)") if state.get("read_at") else \
@@ -736,4 +736,4 @@ def page_xbots():
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.4.23"
+BUILD = "23.4.24"
