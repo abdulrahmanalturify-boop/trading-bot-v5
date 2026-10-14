@@ -1814,7 +1814,7 @@ def profile_run(b, report):
     report["profile"] = out
 
 
-HOME_SHOT = True     # a quick run: the home page (the tools bento first), Arabic and English, desktop and phone, whole page
+HOME_SHOT = False     # a quick run: the home page (the tools bento first), Arabic and English, desktop and phone, whole page
 
 
 def home_shot(b, report):

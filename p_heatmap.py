@@ -336,8 +336,8 @@ def valuation_scatter(df):
                        text=L("cheap & growing", "رخيص وينمو"), xanchor="left")
     fig.add_annotation(x=0.98, y=0.02, xref="paper", yref="paper", showarrow=False, font=dict(color=T.DOWN, size=11),
                        text=L("expensive & slow", "غالي وبطيء"), xanchor="right")
-    fig.update_layout(title=dict(text=L(f"Valuation vs growth ({xcol} × revenue growth, bubble = market cap, colour = change)",
-                                        f"التقييم مقابل النمو ({xcol} × نمو الإيرادات، الحجم = القيمة السوقية، اللون = التغير)"),
+    fig.update_layout(title=dict(text=L(f"Valuation vs growth<br><span style='font-size:11px;color:{T.MUTED}'>{xcol} × revenue growth · bubble = market cap · colour = change</span>",
+                                        f"التقييم مقابل النمو<br><span style='font-size:11px;color:{T.MUTED}'>{xcol} × نمو الإيرادات · الحجم = القيمة السوقية · اللون = التغير</span>"),
                                  font=dict(size=14), x=0, xanchor="left"),
                       xaxis=dict(title=xcol), yaxis=dict(title=L("Revenue growth %", "نمو الإيرادات %"), ticksuffix="%"))
     return _layout(fig, 440)
@@ -610,4 +610,4 @@ def _body(pre=None):
                        f"tura_{(cur_ind or cur_sec).replace(' ', '_')}.csv", "text/csv", icon=":material/download:")
 
 
-BUILD = "23.4.10"
+BUILD = "23.4.11"
