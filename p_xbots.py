@@ -15,6 +15,7 @@ import charts
 import data
 import markets as MK
 import theme as T
+import mascot
 import ui
 import xbots as XB
 from i18n import L, is_ar
@@ -26,6 +27,7 @@ CSS = """<style>
 .xbhero { display:flex; flex-wrap:wrap; gap:12px 22px; align-items:center; justify-content:space-between; padding:14px 18px; border-radius:18px;
   background:linear-gradient(135deg, rgba(59,139,235,.14), rgba(123,69,240,.12) 60%, rgba(26,22,36,.9)); border:1px solid rgba(167,139,250,.28); }
 .xbhero .st { display:flex; align-items:center; gap:10px; font-weight:700; color:#fff; }
+.xbhero .st svg.khl { flex:none; width:34px; height:34px; }
 .xbhero .st i { width:10px; height:10px; border-radius:50%; background:#F5B94A; box-shadow:0 0 0 4px rgba(245,185,74,.18); }
 .xbhero .st.on i { background:#34D27A; box-shadow:0 0 0 4px rgba(52,210,122,.18); animation:xbpulse 1.8s ease-in-out infinite; }
 .xbhero .st.err i { background:#F26B6B; box-shadow:0 0 0 4px rgba(242,107,107,.18); }
@@ -645,7 +647,7 @@ def _hero(cur, bots, states, meta):
             cls, head = "", L("Ready: waiting for the X connection", "جاهزة: تنتظر ربط X")
             sub = L("Nothing is read or traded until the site is connected to X.", "ما تقرأ ولا تتداول شي لين يتربط الموقع بـ X.")
         facts = mk
-    ui.html(f'<div class="xbhero"><div class="st {cls}"><i></i><span>{T.esc(head)}<small>{T.esc(sub)}</small></span></div><div class="facts">{facts}</div></div>')
+    ui.html(f'<div class="xbhero"><div class="st {cls}">{mascot.svg(34, uid="kx")}<i></i><span>{T.esc(head)}<small>{T.esc(sub)}</small></span></div><div class="facts">{facts}</div></div>')
     if not read_at and cls == "":
         ui.html('<div class="xwait">'
                 f'<div><b>{T.icon("key")}{T.esc(L("1 · The key", "1 · المفتاح"))}</b>{T.esc(L("The site owner adds the X API key to the secrets of the site; the key is never shown here.", "صاحب الموقع يضيف مفتاح X API في أسرار الموقع، والمفتاح ما يظهر هنا أبداً."))}</div>'

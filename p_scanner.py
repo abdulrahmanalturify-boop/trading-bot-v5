@@ -36,6 +36,7 @@ import ta
 import tasi
 import taxonomy as X
 import theme as T
+import mascot
 import ui
 import universe as U
 from i18n import L, industry_name, is_ar, sector_name
@@ -68,6 +69,7 @@ CSS = f"""<style>
   background:linear-gradient(90deg,rgba(14,9,24,.8) 0%,rgba(14,9,24,.35) 72%,rgba(14,9,24,0) 100%); }}
 .hnhero.rtl .txt {{ margin-left:auto; background:linear-gradient(270deg,rgba(14,9,24,.8) 0%,rgba(14,9,24,.35) 72%,rgba(14,9,24,0) 100%); }}
 .hnhero .eb {{ color:{_C}; font-weight:600; letter-spacing:.2em; font-size:.72rem; text-transform:uppercase; display:flex; align-items:center; gap:8px; }}
+.hnhero .eb svg.khl {{ width:26px; height:26px; }}
 .hnhero .t {{ font-size:2.7rem; font-weight:300; line-height:1.04; margin:8px 0 8px; color:#fff; letter-spacing:-.035em; }}
 .hnhero .t b {{ background:linear-gradient(90deg,{_A},{_V},{_C}); -webkit-background-clip:text; background-clip:text; color:transparent; }}
 .hnhero .tg {{ color:#CAC5D1; font-size:.94rem; line-height:1.6; max-width:540px; }}
@@ -597,7 +599,7 @@ def hero_html(got, label):
             "كل سهم يُفحص على فرص بشروط دقيقة، ويأخذ تقييم من 100 على الاتجاه والقوة النسبية والتجميع والعائد مقابل المخاطرة، "
             "مع خطة تداول كاملة وكيف كانت نفس الفرصة على نفس السهم قبل.")
     return (f'<div class="hnhero{" rtl" if is_ar() else ""}"><div class="grid"></div><div class="art">{_radar(res, is_ar())}</div>'
-            f'<div class="txt"><div class="eb">{T.icon("radar")}{L("Opportunity scanner", "ماسح الفرص")}</div>'
+            f'<div class="txt"><div class="eb">{mascot.svg(24, uid="ks")}{L("Opportunity scanner", "ماسح الفرص")}</div>'
             f'<div class="t">{L("Opportunity <b>Hunter</b>", "صائد <b>الفرص</b>")}</div><div class="tg">{T.esc(tag)}</div>'
             f'<div class="chips">{"".join(chips)}</div><div class="st">{T.market_status(is_ar())}</div></div></div>')
 
