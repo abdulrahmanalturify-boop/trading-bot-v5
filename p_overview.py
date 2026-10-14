@@ -294,41 +294,6 @@ div.st-key-ovpage{container-type:inline-size;container-name:ovp}
 .vz.days{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;padding:10px 8px;box-sizing:border-box;height:auto!important;min-height:74px}
 .vz.days span{display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 2px;border-radius:9px;background:rgba(255,255,255,.1)}
 .vz.days b{font-size:10px}.vz.days i{font-style:normal;font-size:6px;letter-spacing:1px;color:#A5B4FC;line-height:1}
-/* Discovery cards: quiet surfaces, compact previews and consistent action placement. */
-.st-key-ovfoot .ovad.wide{--accent:#93c5fd;box-sizing:border-box;min-height:400px;padding:24px;border-radius:24px;background:radial-gradient(ellipse at 100% 0%,rgba(139,92,246,.08),transparent 60%),#111827;border:1px solid #293345;box-shadow:0 12px 30px -20px #000;animation:none;transition:border-color .22s ease,transform .22s ease,box-shadow .22s ease}
-.st-key-ovfoot .ovad.scr{--accent:#7dd3fc}
-.st-key-ovfoot .ovad.news{--accent:#c4b5fd}
-.st-key-ovfoot .ovad.academy{--accent:#6ee7b7}
-.st-key-ovfoot .ovad.x{--accent:#a5b4fc}
-.st-key-ovfoot .ovad.wide::after,.st-key-ovfoot .ovad.wide>.big{display:none}
-.st-key-ovfoot div[class*="st-key-ovad_"]:hover .ovad.wide{transform:translateY(-3px);border-color:var(--accent);box-shadow:0 20px 35px -24px #000}
-.st-key-ovfoot div[class*="st-key-ovad_"]:has(button:focus-visible) .ovad.wide{outline:2px solid var(--accent);outline-offset:4px}
-.st-key-ovfoot .ovad.wide .k{font-size:11px;letter-spacing:.1em;color:#cbd5e1}
-.st-key-ovfoot .ovad.wide .k .ic{width:34px;height:34px;border-radius:11px;background:#202d40;box-shadow:none}
-.st-key-ovfoot .ovad.wide .k .ic .ms{color:var(--accent);font-size:20px}
-.st-key-ovfoot .ovad.wide .k em{background:#1b2939;border:1px solid #344256;color:#dbeafe;font-size:10px;font-weight:600;padding:4px 10px}
-.st-key-ovfoot .ovad.wide .bd,.st-key-ovfoot .ovad.wide.news .bd{display:flex;flex-direction:column;align-items:stretch;gap:18px}
-.st-key-ovfoot .ovad.wide .vz{order:2;height:128px!important;min-height:128px;max-height:128px;margin:0;padding:12px 16px;border-radius:14px;background:#0c1321;border:1px solid #263247;box-shadow:none}
-.st-key-ovfoot .ovad.wide .tx{display:flex;flex-direction:column;min-height:208px;padding-top:20px}
-.st-key-ovfoot .ovad.wide .tt{font-size:clamp(20px,2vw,26px);font-weight:700;line-height:1.25;letter-spacing:-.025em;color:#f8fafc}
-.st-key-ovfoot .ovad.wide p{font-size:14px;line-height:1.65;color:#b5c0d2;margin:10px 0 16px;max-width:54ch}
-.st-key-ovfoot .ovad.wide ul{flex-direction:row;flex-wrap:wrap;gap:6px 14px;margin:0 0 18px}
-.st-key-ovfoot .ovad.wide li{font-size:11.5px;color:#b5c0d2}
-.st-key-ovfoot .ovad.wide li .ms{font-size:14px;color:var(--accent)}
-.st-key-ovfoot .ovad.wide .go{margin-top:auto;justify-content:space-between;border-radius:11px;padding:12px 15px;color:var(--accent);background:#202d40;box-shadow:none;font-size:13px;font-weight:700;border:1px solid #344256}
-.st-key-ovfoot div[class*="st-key-ovad_"]:hover .go{background:#29384e;border-color:var(--accent)}
-.st-key-ovfoot .ovad.wide .vz.story{gap:4px;justify-content:flex-start}
-.st-key-ovfoot .ovad.wide .vz.story .s:nth-child(n+3){display:none}
-.st-key-ovfoot .ovad.wide .vz.story .t{-webkit-line-clamp:1;font-size:12px}
-.st-key-ovfoot .ovad.wide .vz.story .m{font-size:10px;margin-top:4px}
-.st-key-ovfoot .ovad.wide .vz.crs .bar i{background:var(--accent)}
-.st-key-ovfoot .ovad.wide.rtl .tt{letter-spacing:0}
-@container ovp (max-width:820px){
-  .st-key-ovfoot div[class*="st-key-ovads_z"]{flex-direction:column!important;overflow:visible;gap:16px!important;margin-bottom:16px}
-  .st-key-ovfoot div[class*="st-key-ovads_z"]>*{flex:1 1 auto!important;min-width:0!important;max-width:none;width:100%}
-  .st-key-ovfoot .ovad.wide{min-height:0;padding:20px}
-  .st-key-ovfoot .ovad.wide .tx{min-height:0}
-}
 @media (prefers-reduced-motion:reduce){.ovad,.ovad *,.ovad::after{animation:none!important;transition:none!important}}
 </style>"""
 
@@ -1064,4 +1029,4 @@ def page_overview():
         print(f"[prof] page {'sa' if sa else 'us'} total {time.time() - t0:.2f}s", flush=True)
 
 
-BUILD = "23.4.24"
+BUILD = "23.4.25"
