@@ -34,7 +34,9 @@ jobs:
           out = open("/tmp/sv/report.txt", "a")
           with sync_playwright() as p:
               b = p.chromium.launch()
-              for name, path, kw in (("desk_home", "/?m=sa&lang=ar", dict(viewport={"width": 1440, "height": 900})),
+              for name, path, kw in (("diag", "/?diag=1&lang=en", dict(viewport={"width": 1200, "height": 900})),
+                                     ("desk_home", "/?m=sa&lang=ar", dict(viewport={"width": 1440, "height": 900})),
+                                     ("desk_home_us", "/?m=us&lang=en", dict(viewport={"width": 1440, "height": 900})),
                                      ("desk_news", "/news?m=sa&lang=ar", dict(viewport={"width": 1440, "height": 900})),
                                      ("phone_home", "/?m=sa&lang=ar", dict(viewport={"width": 390, "height": 844}, is_mobile=True, has_touch=True,
                                                                         device_scale_factor=2))):
@@ -49,6 +51,12 @@ jobs:
                           time.sleep(1)
                       out.write(f"{name}: drawn in {time.time() - t0:.1f}s\n")
                       time.sleep(3)
+                      if name == "diag":
+                          try:
+                              out.write("diag: " + pg.evaluate("() => (document.querySelector('[data-testid=\"stCode\"]') || document.body).innerText")[:3000] + "\n")
+                          except Exception as e:
+                              out.write(f"diag: not read ({str(e)[:80]})\n")
+                          continue
                       if name == "desk_news":
                           try:
                               pg.locator('[data-testid="stExpander"] summary', has_text="مصادر الأخبار").first.click(timeout=8000)
@@ -57,7 +65,7 @@ jobs:
                               out.write("smart reading: " + t.replace("\n", " ")[:200] + "\n")
                           except Exception as e:
                               out.write(f"smart reading: not found ({str(e)[:80]})\n")
-                      if name == "desk_home":
+                      if name in ("desk_home", "desk_home_us"):
                           h = pg.evaluate("() => document.querySelector('[data-testid=\"stMainBlockContainer\"]').scrollHeight + 120")
                           pg.set_viewport_size({"width": 1440, "height": min(max(int(h), 900), 9000)})
                           time.sleep(2)
