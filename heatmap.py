@@ -8,7 +8,7 @@ import html
 import numpy as np
 
 W, H = 1400, 800
-HEAD = 20          # group header strip height
+HEAD = 46          # group header strip height (the group's name, big and clear, opens its comparison)
 GAP = 3            # space between groups
 
 # diverging scale (TradingView look): red -> dark red -> grey -> dark green -> green
@@ -83,7 +83,7 @@ def layout(df, group_col="Group", size_col="Size", width=W, height=H):
     groups, tiles = [], []
     for (g, _), (gx, gy, gw, gh) in zip(gs.items(), squarify(gs.values, 0, 0, width, height)):
         gx, gy, gw, gh = gx + GAP / 2, gy + GAP / 2, gw - GAP, gh - GAP
-        head = HEAD if gh > HEAD * 2.4 and gw > 46 else 0
+        head = HEAD if gh > HEAD * 1.9 and gw > 70 else 0
         sub = d[d[group_col] == g].sort_values(size_col, ascending=False)
         chg = np.average(sub["Val"].fillna(0), weights=sub[size_col]) if sub[size_col].sum() > 0 else 0.0
         groups.append({"name": g, "x": gx, "y": gy, "w": gw, "h": gh, "head": head, "chg": float(chg), "n": len(sub)})
@@ -151,25 +151,34 @@ def render(tiles, groups, logos=None, rng=3.0, lang="en", label=str, tip=None, r
         title = tip(t) if tip else f"{sym} {pct}"
         href = f"stock?symbol={sym}&lang={lang}"
         body.append(f'<a href="{_e(href)}" target="_self"><title>{_e(title)}</title>{"".join(parts)}</a>')
-    for g in groups:                     # headers on top
+    for g in groups:                     # headers on top: a bar with the group's name, big and clear, and its change
         if not g["head"]:
             continue
         name = label(g["name"])
         c = g["chg"]
-        cc = "#4ADE80" if c > 0.005 else ("#F87171" if c < -0.005 else "#A09AA8")
+        cc = "#4ADE80" if c > 0.005 else ("#F87171" if c < -0.005 else "#C9CED8")
         chg = f"{c:+.2f}%"
-        room = g["w"] - 12 - len(chg) * 7.2
-        name = _fit(name, max(room, 20), 12.5)
+        gx, gy, gw = g["x"], g["y"], g["w"]
+        cfs = 19 if gw >= 260 else 15
+        fs = 27 if gw >= 340 else (22 if gw >= 200 else 17)
+        cw = fs * 0.68                           # the bold name's width per letter
+        room = gw - 24 - len(chg) * cfs * 0.66 - 14
+        if len(name) * cw > room:                # the name and the change don't both fit: the name alone, the change in the tooltip
+            room, chg = gw - 24, ""
+        name = _fit(name, max(room, 20), fs * 1.17)
+        ty = gy + HEAD / 2 + fs * 0.36
         if rtl:
-            head = (f'<text x="{g["x"] + g["w"] - 6:.1f}" y="{g["y"] + 14.5:.1f}" class="gh" text-anchor="end">‹ {_e(name)}</text>'
-                    f'<text x="{g["x"] + 6:.1f}" y="{g["y"] + 14.5:.1f}" class="gc" fill="{cc}" text-anchor="start">{chg}</text>')
+            head = (f'<text x="{gx + gw - 12:.1f}" y="{ty:.1f}" class="gh" font-size="{fs}" text-anchor="end">{_e(name)} ‹</text>'
+                    f'<text x="{gx + 12:.1f}" y="{ty:.1f}" class="gc" font-size="{cfs}" fill="{cc}" text-anchor="start">{chg}</text>')
         else:
-            head = (f'<text x="{g["x"] + 6:.1f}" y="{g["y"] + 14.5:.1f}" class="gh" text-anchor="start">{_e(name)} ›</text>'
-                    f'<text x="{g["x"] + g["w"] - 6:.1f}" y="{g["y"] + 14.5:.1f}" class="gc" fill="{cc}" text-anchor="end">{chg}</text>')
+            head = (f'<text x="{gx + 12:.1f}" y="{ty:.1f}" class="gh" font-size="{fs}" text-anchor="start">{_e(name)} ›</text>'
+                    f'<text x="{gx + gw - 12:.1f}" y="{ty:.1f}" class="gc" font-size="{cfs}" fill="{cc}" text-anchor="end">{chg}</text>')
+        bar = f'<rect class="gb" x="{gx + 2:.1f}" y="{gy + 2:.1f}" width="{gw - 4:.1f}" height="{HEAD - 4}" rx="7"/>'
         href = group_href(g["name"]) if group_href else None
-        if href:                                # the whole header strip opens the group's companies compared
-            head = (f'<a href="{_e(href)}" target="_self" class="ghl"><title>{_e(name)}</title>'
-                    f'<rect x="{g["x"]:.1f}" y="{g["y"]:.1f}" width="{g["w"]:.1f}" height="{HEAD}" fill="transparent"/>{head}</a>')
+        if href:                                # the whole bar opens the group's companies compared
+            head = f'<a href="{_e(href)}" target="_self" class="ghl"><title>{_e(label(g["name"]))} {c:+.2f}%</title>{bar}{head}</a>'
+        else:
+            head = bar + head
         body.append(head)
     return (f'<div class="hmwrap"><svg class="hm" viewBox="0 0 {width} {height}" xmlns="http://www.w3.org/2000/svg">'
             f'<defs>{"".join(defs)}</defs>{"".join(body)}</svg></div>')

@@ -953,9 +953,10 @@ a.mst:hover .mh .go {{ opacity:1; transform:none; color:{VIO_FG}; }}
 .hm text {{ font-family:{FONT_LATIN}, {FONT_AR}, sans-serif; pointer-events:none; }}
 .hm .tk {{ fill:#fff; font-weight:600; text-anchor:middle; }}
 .hm .pc {{ fill:#fff; font-weight:600; text-anchor:middle; opacity:.93; }}
-.hm .gh {{ fill:#C9CED8; font-size:12.5px; font-weight:600; }}
-.hm a.ghl {{ cursor:pointer; }} .hm a.ghl:hover .gh {{ fill:#fff; text-decoration:underline; }} .hm a.ghl:hover rect {{ fill:rgba(255,255,255,.08); }}
-.hm .gc {{ font-size:12px; font-weight:600; }}
+.hm .gh {{ fill:#FFFFFF; font-weight:800; letter-spacing:.01em; }}
+.hm .gb {{ fill:#2E2840; stroke:rgba(255,255,255,.14); stroke-width:1; }}
+.hm a.ghl {{ cursor:pointer; }} .hm a.ghl:hover .gb {{ fill:#4A3F6B; stroke:rgba(255,255,255,.4); }} .hm a.ghl:hover .gh {{ text-decoration:underline; }}
+.hm .gc {{ font-weight:700; }}
 .hm a:hover .tl {{ stroke:#fff; stroke-width:2; filter:brightness(1.15); }}
 .hmlegend {{ display:flex; justify-content:center; gap:3px; margin:8px 0 2px; direction:ltr; flex-wrap:wrap; }}
 .hmlegend span {{ min-width:56px; padding:4px 6px; text-align:center; font-size:.74rem; font-weight:600; color:#fff; border-radius:4px; }}
