@@ -309,10 +309,10 @@ FLAG_US, FLAG_SA = flags.US, flags.SA
 
 
 # ---------------------------------------------------------------- the night behind every page
-# Every page of the top bar: the owner's picture of a violet night with a dotted globe, market moves floating in the air and
-# a grid floor (static/bg_markets.jpg: its title and menu bar taken out, very lightly blurred), under a light veil; fixed
-# while the page scrolls, and on a phone the globe stays in view. The landing keeps its own night (landing_bg_css).
-BG_FILE = "bg_markets.jpg"
+# Every page of the top bar: the owner's picture of a deep navy night - rising bars and slanted panels of violet and teal
+# light on the right, a stepped line of data blocks at the bottom left (static/bg_night.jpg) - under a light veil; fixed
+# while the page scrolls. The landing keeps its own night (landing_bg_css).
+BG_FILE = "bg_night.jpg"
 BG_CDN = f"https://cdn.jsdelivr.net/gh/abdulrahmanalturify-boop/trading-bot-v5@main/static/{BG_FILE}"
 BG_VEIL = "linear-gradient(180deg, rgba(14,9,24,.20) 0%, rgba(14,9,24,.28) 45%, rgba(14,9,24,.48) 100%)"
 # the reading pages (news, tables, calendars...): a deeper veil, so the globe and its numbers stay behind the content
@@ -324,7 +324,7 @@ BG_DOTS = "radial-gradient(rgba(255,255,255,.075) 1px, transparent 1.3px) 0 0 / 
 
 
 def background_css(static_ok=False, calm=False):
-    """The page background: the globe picture under its veil (the site's own static file, else the same file on the CDN).
+    """The page background: the night picture under its veil (the site's own static file, else the same file on the CDN).
     calm: a reading page, where the picture is toned down behind the content."""
     url = f"app/static/{BG_FILE}" if static_ok else BG_CDN
     return (f'<style>.stApp::before {{ background: {BG_VEIL_CALM if calm else BG_VEIL}, url("{url}") 68% 40% / cover no-repeat, {BG}; }}'
