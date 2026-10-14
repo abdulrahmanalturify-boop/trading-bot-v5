@@ -6,6 +6,7 @@ The site's tools are cards placed between the parts, like adverts in a magazine 
 Replaces the landing ("Beyond investment") and the old overview.
 """
 import os
+import re
 import time
 
 import streamlit as st
@@ -219,14 +220,16 @@ div.st-key-ovbento .ovad{height:100%;box-sizing:border-box;display:flex;flex-dir
 div.st-key-ovbento .ovad .bd{display:flex;flex-direction:column;flex:1}
 div.st-key-ovbento .ovad .tx{display:flex;flex-direction:column;flex:1}
 div.st-key-ovbento .ovad .go{margin-top:auto}
+div.st-key-ovbento .ovad.hero .vz.picks{flex:1}
+div.st-key-ovbento .ovad.hero .vz.stat,div.st-key-ovbento .ovad.hero .vz.ticket,div.st-key-ovbento .ovad.hero .vz.bot{min-height:190px}
 div.st-key-ovbento .ovad ul{margin-bottom:12px}
-div.st-key-ovbento .ovad.hero{padding:20px 20px 20px;min-height:330px}
+div.st-key-ovbento .ovad.hero{padding:20px 20px 20px;min-height:570px}
 div.st-key-ovbento .ovad.hero .tt{font-size:25px}
 div.st-key-ovbento .ovad.hero p{font-size:14px}
 div.st-key-ovbento .ovad.hero .vz{height:auto;min-height:150px;margin:14px 0 12px}
-div.st-key-ovbento .ovad.mid{min-height:300px}
+div.st-key-ovbento .ovad.mid{min-height:460px}
 div.st-key-ovbento .ovad.mid .tt{font-size:21px}
-div.st-key-ovbento .ovad.sm{padding:14px 14px 15px;min-height:200px}
+div.st-key-ovbento .ovad.sm{padding:14px 14px 15px;min-height:312px}
 div.st-key-ovbento .ovad.sm .tt{font-size:16.5px}
 div.st-key-ovbento .ovad.sm p{margin:4px 0 8px;font-size:12.5px}
 div.st-key-ovbento .ovad.sm .vz{height:74px;margin:10px 0 10px}
@@ -577,13 +580,19 @@ def _live_vz(key, d, f, sa):
         st_ = d.stories()
         if st_:
             n = st_[0]
+            title = str(n.get("title", ""))
+            if is_ar() and not re.search("[\u0600-\u06FF]", title):
+                try:
+                    title = data.translate([title], budget=1)[0] or title
+                except Exception:
+                    pass
             sc = ""
             try:
                 sc = f'<span class="sc">{int(n["iq"]["score"])}/10</span>'
             except Exception:
                 pass
             when = T.time_ago(n["time"], is_ar()) if n.get("time") is not None else ""
-            return (f'<div class="vz story"><div class="t" dir="auto">{T.esc(str(n.get("title", "")))}</div>'
+            return (f'<div class="vz story"><div class="t" dir="auto">{T.esc(title)}</div>'
                     f'<div class="m">{sc}{T.icon("schedule")}{T.esc(str(n.get("source", "")))} · {T.esc(when)}</div></div>'), n
         return (f'<div class="vz story"><div class="t">{T.esc(L("The news bot is collecting the latest headlines from 35 feeds.", "بوت الأخبار يجمع آخر العناوين من 35 مصدراً."))}</div></div>'), None
     if key == "mood":

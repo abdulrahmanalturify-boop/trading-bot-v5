@@ -1834,6 +1834,13 @@ def home_shot(b, report):
             res["problems"] = problems(pg)
             res["tiles"] = pg.evaluate("() => [...document.querySelectorAll('.ovad')].map(e => { const r = e.getBoundingClientRect(); return [e.className.split(' ')[1], Math.round(r.width), Math.round(r.height)]; })")
             res["live"] = pg.evaluate("() => [...document.querySelectorAll('.ovad .k .lv')].map(e => e.innerText)")
+            for sm in pg.locator('[data-testid="stExpander"] summary', has_text="تفاصيل فنية" if lang == "ar" else "Technical details").all():
+                try:
+                    sm.click(timeout=3000)
+                    time.sleep(0.8)
+                except Exception:
+                    pass
+            res["errors"] = pg.evaluate("() => [...document.querySelectorAll('[data-testid=\"stExpander\"] code')].map(e => e.innerText.slice(0, 300))")
             h = pg.evaluate(MAIN_H)
             pg.set_viewport_size({"width": vp["width"], "height": min(max(int(h), vp["height"]), 9000)})
             time.sleep(2)
