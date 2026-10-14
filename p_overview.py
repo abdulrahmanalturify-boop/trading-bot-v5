@@ -215,52 +215,52 @@ div.st-key-ovad_robo{margin:10px 0 6px}
   border:1px solid rgba(255,255,255,.12);box-shadow:0 1px 0 rgba(255,255,255,.12) inset,0 24px 50px -30px rgba(59,139,235,.6)}
 .ovad.banner.rb::after{display:none}
 .ovad.banner.rb .bd{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.6fr);gap:28px;align-items:center}
-.rb .kk{display:flex;align-items:center;gap:8px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#2DB6EB}
-.rb .kk b{font-size:17px;letter-spacing:.1em;color:#fff}.rb .kk span{color:rgba(255,255,255,.35)}.rb .kk em{font-style:normal;color:#9FD9F2}
-.rb.rtl .kk{letter-spacing:0}.rb.rtl .kk em{font-size:12px}
-.rb h3{font-family:"Playfair Display",Georgia,"Times New Roman",serif;font-weight:500;font-size:40px;line-height:1.08;letter-spacing:-.015em;margin:14px 0 12px;color:#fff}
+.rb .rbkk{display:flex;align-items:center;gap:8px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#2DB6EB}
+.rb .rbkk b{font-size:17px;letter-spacing:.1em;color:#fff}.rb .rbkk span{color:rgba(255,255,255,.35)}.rb .rbkk em{font-style:normal;color:#9FD9F2}
+.rb.rtl .rbkk{letter-spacing:0}.rb.rtl .rbkk em{font-size:12px}
+.rb h3{font-family:"Playfair Display",Georgia,"Times New Roman",serif;font-weight:500;font-size:36px;line-height:1.08;letter-spacing:-.015em;margin:14px 0 12px;color:#fff}
 .rb.rtl h3{font-family:Almarai,sans-serif;font-weight:800;font-size:34px;line-height:1.25}
 .rb p{font-size:14.5px;line-height:1.6;color:rgba(255,255,255,.82);margin:0 0 14px;max-width:46ch}
-.rb .chips{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 16px}
-.rb .chips span{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:11px;font-size:12.5px;font-weight:700;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14)}
-.rb .chips .ms{font-size:16px;color:#2DB6EB}
-.rb .cta{display:flex;align-items:center;flex-wrap:wrap;gap:8px 18px;margin:0 0 14px}
-.rb .cta .go{width:auto;padding:12px 20px;font-size:14.5px;border-radius:14px;color:#17122B;background:linear-gradient(135deg,#fff,#DDEBFF)}
-.rb .cta .lnk{display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:700;color:#9FD9F2}
-.rb .cta .lnk .ms{font-size:18px;transition:transform .25s}.rb.rtl .cta .lnk .ms{transform:scaleX(-1)}
+.rb .rbchips{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 16px}
+.rb .rbchips span{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:11px;font-size:12.5px;font-weight:700;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14)}
+.rb .rbchips .ms{font-size:16px;color:#2DB6EB}
+.rb .rbcta{display:flex;align-items:center;flex-wrap:wrap;gap:8px 18px;margin:0 0 14px}
+.rb .rbcta .go{width:auto;padding:12px 20px;font-size:14.5px;border-radius:14px;color:#17122B;background:linear-gradient(135deg,#fff,#DDEBFF)}
+.rb .rbcta .rblnk{display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:700;color:#9FD9F2}
+.rb .rbcta .rblnk .ms{font-size:18px;transition:transform .25s}.rb.rtl .rbcta .rblnk .ms{transform:scaleX(-1)}
 div[class*="st-key-ovad_"]:hover .rb .cta .lnk .ms{transform:translateX(4px)}div[class*="st-key-ovad_"]:hover .rb.rtl .cta .lnk .ms{transform:scaleX(-1) translateX(4px)}
-.rb .facts{font-size:11.5px;letter-spacing:.06em;color:rgba(255,255,255,.6)}
-.rb .pic{display:flex;flex-direction:column;gap:12px;min-width:0}
-.rb .steps{display:grid;grid-template-columns:minmax(0,1.25fr) 18px minmax(0,1fr) 18px minmax(0,1fr);gap:6px;align-items:stretch}
-.rb .arr{align-self:center;color:rgba(255,255,255,.45);width:18px;overflow:hidden;text-align:center}.rb .arr .ms{font-size:18px}.rb.rtl .arr .ms{transform:scaleX(-1)}
-.rb .rbc,.rb .rbs{position:relative;border-radius:18px;padding:14px 14px 12px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);box-shadow:inset 0 1px 0 rgba(255,255,255,.08);min-width:0}
-.rb .rbc small,.rb .rbs .rt small{position:absolute;bottom:8px;inset-inline-end:12px;font-size:9.5px;color:rgba(255,255,255,.45)}
-.rb .rbc .h{display:flex;align-items:flex-start;gap:9px;margin-bottom:10px}
-.rb .rbc .h b{flex:none;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:800;background:linear-gradient(135deg,#2DB6EB,#7B45F0);color:#fff}
-.rb .rbc .n{display:block;font-size:14px;font-weight:800;line-height:1.2}.rb .rbc .s{display:block;font-size:11px;line-height:1.45;color:rgba(255,255,255,.7);margin-top:2px}
-.rb .hs{display:grid;grid-template-columns:78px minmax(0,1fr);gap:10px;align-items:center;padding-bottom:12px}
-.rb .hs .sc{display:flex;flex-direction:column;align-items:center;gap:6px}
-.rb .hs .ring{position:relative;width:78px;height:78px}.rb .hs .ring svg{display:block;width:78px;height:78px}
-.rb .hs .num{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
-.rb .hs .num b{font-size:24px;font-weight:800}.rb .hs .num span{font-size:9.5px;opacity:.7;margin-top:3px}
-.rb .hs .gr{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700}
-.rb .hs .gr i{font-style:normal;width:20px;height:20px;border-radius:6px;display:grid;place-items:center;font-size:11px;font-weight:800;background:#F87171;color:#2A0A0A}
-.rb .hs .fs{display:flex;flex-direction:column;gap:6px;min-width:0}
-.rb .hs .f .t{display:flex;align-items:center;gap:5px;font-size:10.5px;font-weight:700;white-space:nowrap}
-.rb .hs .f .t .ms{display:none}.rb .hs .f .t b{margin-inline-start:auto;font-size:11px}
-.rb .hs .bar{height:4px;margin-top:3px;border-radius:9px;background:rgba(255,255,255,.14);overflow:hidden}.rb .hs .bar i{display:block;height:100%;border-radius:9px}
-.rb .rk{display:block;width:100%;height:auto;margin:6px 0 2px}.rb.rtl .rk{transform:scaleX(-1)}
-.rb .rkl{display:flex;justify-content:space-between;font-size:10.5px;color:rgba(255,255,255,.7);padding-bottom:12px}
-.rb .pl{display:flex;align-items:center;gap:14px;padding:4px 0 12px}
-.rb .pl svg{flex:none;width:84px;height:84px}
-.rb .pl .lg{display:flex;flex-direction:column;gap:7px;font-size:12px;min-width:0}
-.rb .pl .lg span{display:flex;align-items:center;gap:7px}.rb .pl .lg i{width:9px;height:9px;border-radius:3px;flex:none}.rb .pl .lg b{margin-inline-start:auto;font-weight:800}
-.rb .rbs{display:grid;grid-template-columns:minmax(0,1.3fr) repeat(5,minmax(0,1fr));gap:8px;align-items:center;padding:12px 14px}
-.rb .rbs .w .n{display:block;font-size:14px;font-weight:800}.rb .rbs .w .s{display:block;font-size:11px;color:rgba(255,255,255,.7);margin-top:3px;line-height:1.4}
-.rb .rbs .rt{position:relative;display:flex;flex-direction:column;align-items:center;gap:5px;padding-bottom:12px}
-.rb .rbs .rt .l{font-size:10px;font-weight:700;color:rgba(255,255,255,.75);text-align:center;line-height:1.2}
-.rb .rbs .rg{position:relative;width:54px;height:54px;display:grid;place-items:center}.rb .rbs .rg svg{position:absolute;inset:0}.rb .rbs .rg b{font-size:14px;font-weight:800}
-.rb .rbs .rt small{inset-inline-end:auto;left:50%;transform:translateX(-50%);bottom:0}
+.rb .rbfacts{font-size:11.5px;letter-spacing:.06em;color:rgba(255,255,255,.6)}
+.rb .rbpic{display:flex;flex-direction:column;gap:12px;min-width:0}
+.rb .rbsteps{display:grid;grid-template-columns:minmax(0,1.25fr) 18px minmax(0,1fr) 18px minmax(0,1fr);gap:6px;align-items:stretch}
+.rb .rbarr{align-self:center;color:rgba(255,255,255,.45);width:18px;overflow:hidden;text-align:center}.rb .rbarr .ms{font-size:18px}.rb.rtl .rbarr .ms{transform:scaleX(-1)}
+.rb .rbcard,.rb .rbstrip{position:relative;border-radius:18px;padding:14px 14px 12px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);box-shadow:inset 0 1px 0 rgba(255,255,255,.08);min-width:0}
+.rb .rbcard small,.rb .rbstrip .rbrt small{position:absolute;bottom:8px;inset-inline-end:12px;font-size:9.5px;color:rgba(255,255,255,.45)}
+.rb .rbcard .rbh{display:flex;align-items:flex-start;gap:9px;margin-bottom:10px}
+.rb .rbcard .rbh b{flex:none;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:800;background:linear-gradient(135deg,#2DB6EB,#7B45F0);color:#fff}
+.rb .rbcard .rbn{display:block;font-size:13.5px;font-weight:800;line-height:1.2}.rb .rbcard .rbd{display:block;font-size:11px;line-height:1.45;color:rgba(255,255,255,.7);margin-top:2px}
+.rb .rbhs{display:grid;grid-template-columns:78px minmax(0,1fr);gap:10px;align-items:center;padding-bottom:12px}
+.rb .rbhs .rbsc{display:flex;flex-direction:column;align-items:center;gap:6px}
+.rb .rbhs .rbring{position:relative;width:78px;height:78px}.rb .rbhs .rbring svg{display:block;width:78px;height:78px}
+.rb .rbhs .rbnum{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
+.rb .rbhs .rbnum b{font-size:24px;font-weight:800}.rb .rbhs .rbnum span{font-size:9.5px;opacity:.7;margin-top:3px}
+.rb .rbhs .rbgr{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700}
+.rb .rbhs .rbgr i{font-style:normal;width:20px;height:20px;border-radius:6px;display:grid;place-items:center;font-size:11px;font-weight:800;background:#F87171;color:#2A0A0A}
+.rb .rbhs .rbfs{display:flex;flex-direction:column;gap:6px;min-width:0}
+.rb .rbhs .rbf .rbt{display:flex;align-items:center;gap:5px;font-size:10.5px;font-weight:700;white-space:nowrap}
+.rb .rbhs .rbf .rbt .ms{display:none}.rb .rbhs .rbf .rbt b{margin-inline-start:auto;font-size:11px}
+.rb .rbhs .rbbar{height:4px;margin-top:3px;border-radius:9px;background:rgba(255,255,255,.14);overflow:hidden}.rb .rbhs .rbbar i{display:block;height:100%;border-radius:9px}
+.rb .rbrk{display:block;width:100%;height:auto;margin:6px 0 2px}.rb.rtl .rbrk{transform:scaleX(-1)}
+.rb .rbrkl{display:flex;justify-content:space-between;font-size:10.5px;color:rgba(255,255,255,.7);padding-bottom:12px}
+.rb .rbpl{display:flex;align-items:center;gap:10px;padding:4px 0 12px}
+.rb .rbpl svg{flex:none;width:66px;height:66px}
+.rb .rbpl .rblg{display:flex;flex-direction:column;gap:6px;font-size:11px;min-width:0}
+.rb .rbpl .rblg span{display:flex;align-items:center;gap:7px}.rb .rbpl .rblg i{width:9px;height:9px;border-radius:3px;flex:none}.rb .rbpl .rblg b{margin-inline-start:auto;font-weight:800}
+.rb .rbstrip{display:grid;grid-template-columns:minmax(0,1.3fr) repeat(5,minmax(0,1fr));gap:8px;align-items:center;padding:12px 14px}
+.rb .rbstrip .rbw .rbn{display:block;font-size:14px;font-weight:800}.rb .rbstrip .rbw .rbd{display:block;font-size:11px;color:rgba(255,255,255,.7);margin-top:3px;line-height:1.4}
+.rb .rbstrip .rbrt{position:relative;display:flex;flex-direction:column;align-items:center;gap:5px;padding-bottom:12px}
+.rb .rbstrip .rbrt .rbl{font-size:10px;font-weight:700;color:rgba(255,255,255,.75);text-align:center;line-height:1.2}
+.rb .rbstrip .rbrg{position:relative;width:54px;height:54px;display:grid;place-items:center}.rb .rbstrip .rbrg svg{position:absolute;inset:0}.rb .rbstrip .rbrg b{font-size:14px;font-weight:800}
+.rb .rbstrip .rbrt small{inset-inline-end:auto;left:50%;transform:translateX(-50%);bottom:0}
 /* a narrow page (a phone, a tablet, a computer with the side panel open on a small screen - measured on the page itself, not
    the screen): the part first, then its cards side by side (sliding across when there are two) */
 div.st-key-ovpage{container-type:inline-size;container-name:ovp}
@@ -273,7 +273,7 @@ div.st-key-ovpage{container-type:inline-size;container-name:ovp}
   div[class*="st-key-ovads_"]>*{flex:1 0 300px!important;min-width:300px!important;max-width:420px;scroll-snap-align:start}
   .ovad.wide .bd{grid-template-columns:1fr}
   .ovad.banner.rb{padding:20px 16px}.ovad.banner.rb .bd{grid-template-columns:1fr;gap:18px}.rb h3{font-size:30px}.rb.rtl h3{font-size:26px}
-  .rb .steps{grid-template-columns:1fr}.rb .arr{display:none}.rb .rbs{grid-template-columns:repeat(3,minmax(0,1fr))}.rb .rbs .w{grid-column:1/-1}
+  .rb .rbsteps{grid-template-columns:1fr}.rb .rbarr{display:none}.rb .rbstrip{grid-template-columns:repeat(3,minmax(0,1fr))}.rb .rbstrip .rbw{grid-column:1/-1}
   div[class*="st-key-ovbody_"] .msg{grid-template-columns:minmax(0,1fr)!important}
 }
 @container ovp (max-width:520px){div[class*="st-key-ovads_"]>*{flex-basis:84%!important;min-width:84%!important}}
@@ -495,19 +495,19 @@ def _banner_html(key, d, f, sa):
             ("speed", L("Risk", "المخاطرة"), 0, L("Leverage 1.28× · swings 82%/yr", "رافعة 1.28× · تذبذب 82%/سنة")),
             ("trending_up", L("Against the market", "مقابل السوق"), 57, L("+1.2% vs S&P 500 −0.6%", "+1.2% مقابل S&P 500 −0.6%"))]
     col = lambda v: "#4ADE80" if v >= 75 else "#2DB6EB" if v >= 55 else "#F5B94A" if v >= 40 else "#F87171"
-    rows = "".join(f'<div class="f"><div class="t">{T.icon(ic)}<span>{T.esc(n)}</span><b>{v}</b></div>'
-                   f'<div class="bar"><i style="width:{max(v, 2)}%;background:{col(v)}"></i></div></div>' for ic, n, v, _ in facs)
-    health = (f'<div class="hs"><div class="sc"><div class="ring">{_ring(36, 78, "#F87171", 6)}<div class="num"><b>36</b><span>/ 100</span></div></div>'
-              f'<div class="gr"><i>E</i>{T.esc(L("At risk", "في خطر"))}</div></div><div class="fs">{rows}</div></div>')
-    c1 = (f'<div class="rbc"><div class="h"><b>1</b><div><span class="n">{T.esc(L("Your portfolio health", "صحة محفظتك"))}</span>'
-          f'<span class="s">{T.esc(L("Your score, and what makes it.", "درجتك، ووش يصنعها."))}</span></div></div>{health}<small>{smp}</small></div>')
+    rows = "".join(f'<div class="rbf"><div class="rbt">{T.icon(ic)}<span>{T.esc(n)}</span><b>{v}</b></div>'
+                   f'<div class="rbbar"><i style="width:{max(v, 2)}%;background:{col(v)}"></i></div></div>' for ic, n, v, _ in facs)
+    health = (f'<div class="rbhs"><div class="rbsc"><div class="rbring">{_ring(36, 78, "#F87171", 6)}<div class="rbnum"><b>36</b><span>/ 100</span></div></div>'
+              f'<div class="rbgr"><i>E</i>{T.esc(L("At risk", "في خطر"))}</div></div><div class="rbfs">{rows}</div></div>')
+    c1 = (f'<div class="rbcard"><div class="rbh"><b>1</b><div><span class="rbn">{T.esc(L("Your portfolio health", "صحة محفظتك"))}</span>'
+          f'<span class="rbd">{T.esc(L("Your score, and what makes it.", "درجتك، ووش يصنعها."))}</span></div></div>{health}<small>{smp}</small></div>')
     # 2 · the risk: a curve with the marker on moderate risk
-    curve = ('<svg viewBox="0 0 220 70" aria-hidden="true" class="rk"><defs><linearGradient id="rbg" x1="0" x2="1"><stop offset="0" stop-color="#2DB6EB"/><stop offset="1" stop-color="#7B45F0"/></linearGradient></defs>'
+    curve = ('<svg viewBox="0 0 220 70" aria-hidden="true" class="rbrk"><defs><linearGradient id="rbg" x1="0" x2="1"><stop offset="0" stop-color="#2DB6EB"/><stop offset="1" stop-color="#7B45F0"/></linearGradient></defs>'
              '<path d="M6 54 C 50 54, 70 16, 110 16 S 170 54, 214 54" fill="none" stroke="url(#rbg)" stroke-width="3" stroke-linecap="round"/>'
              '<circle cx="110" cy="16" r="8" fill="#fff" stroke="#7B45F0" stroke-width="3"/><circle cx="6" cy="54" r="3.5" fill="#2DB6EB"/><circle cx="214" cy="54" r="3.5" fill="#7B45F0"/></svg>')
-    c2 = (f'<div class="rbc"><div class="h"><b>2</b><div><span class="n">{T.esc(L("Your risk", "مخاطرتك"))}</span>'
-          f'<span class="s">{T.esc(L("Share your comfort with ups and downs.", "قول لنا قد إيش تتحمل الصعود والهبوط."))}</span></div></div>'
-          f'{curve}<div class="rkl"><span>{T.esc(L("Lower risk", "مخاطرة أقل"))}</span><span>{T.esc(L("Moderate risk", "مخاطرة متوسطة"))}</span><span>{T.esc(L("Higher risk", "مخاطرة أعلى"))}</span></div><small>{smp}</small></div>')
+    c2 = (f'<div class="rbcard"><div class="rbh"><b>2</b><div><span class="rbn">{T.esc(L("Your risk", "مخاطرتك"))}</span>'
+          f'<span class="rbd">{T.esc(L("Share your comfort with ups and downs.", "قول لنا قد إيش تتحمل الصعود والهبوط."))}</span></div></div>'
+          f'{curve}<div class="rbrkl"><span>{T.esc(L("Lower risk", "مخاطرة أقل"))}</span><span>{T.esc(L("Moderate risk", "مخاطرة متوسطة"))}</span><span>{T.esc(L("Higher risk", "مخاطرة أعلى"))}</span></div><small>{smp}</small></div>')
     # 3 · the plan: a donut and its legend
     segs = [("#2DB6EB", 60, L("Stocks", "أسهم")), ("#7B45F0", 25, L("Bonds", "سندات")), ("#F5B94A", 10, L("Cash", "كاش")), ("#A78BFA", 5, L("Other", "أخرى"))]
     circ, off, arcs = 2 * 3.14159 * 34, 0.0, ""
@@ -517,16 +517,16 @@ def _banner_html(key, d, f, sa):
                  f'stroke-dashoffset="{-off:.1f}" transform="rotate(-90 50 50)"/>')
         off += ln
     leg = "".join(f'<span><i style="background:{c_}"></i>{T.esc(n)}<b>{pc}%</b></span>' for c_, pc, n in segs)
-    c3 = (f'<div class="rbc"><div class="h"><b>3</b><div><span class="n">{T.esc(L("Your plan", "خطتك"))}</span>'
-          f'<span class="s">{T.esc(L("Get a personalized plan you can follow with virtual money.", "خذ خطة مخصصة لك تتابعها بفلوس افتراضية."))}</span></div></div>'
-          f'<div class="pl"><svg viewBox="0 0 100 100" aria-hidden="true">{arcs}</svg><div class="lg">{leg}</div></div><small>{smp}</small></div>')
-    arrow = f'<i class="arr">{T.icon("arrow_forward")}</i>'
+    c3 = (f'<div class="rbcard"><div class="rbh"><b>3</b><div><span class="rbn">{T.esc(L("Your plan", "خطتك"))}</span>'
+          f'<span class="rbd">{T.esc(L("Get a personalized plan you can follow with virtual money.", "خذ خطة مخصصة لك تتابعها بفلوس افتراضية."))}</span></div></div>'
+          f'<div class="rbpl"><svg viewBox="0 0 100 100" aria-hidden="true">{arcs}</svg><div class="rblg">{leg}</div></div><small>{smp}</small></div>')
+    arrow = f'<i class="rbarr">{T.icon("arrow_forward")}</i>'
     # the strip of ratings
     rates = [(L("Diversification", "التنويع"), 78), (L("Concentration", "التركيز"), 42), (L("Protection", "الحماية"), 71), (L("Risk", "المخاطرة"), 56),
              (L("Against the market", "مقابل السوق"), 69)]
-    rr = "".join(f'<div class="rt"><span class="l">{T.esc(n)}</span><div class="rg">{_ring(v, 54, col(v), 5)}<b>{v}</b></div><small>{smp}</small></div>' for n, v in rates)
-    strip = (f'<div class="rbs"><div class="w"><span class="n">{T.esc(L("Your portfolio rating", "تقييم محفظتك"))}</span>'
-             f'<span class="s">{T.esc(L("See how your portfolio scores across key areas.", "شوف درجات محفظتك في النواحي المهمة."))}</span></div>{rr}</div>')
+    rr = "".join(f'<div class="rbrt"><span class="rbl">{T.esc(n)}</span><div class="rbrg">{_ring(v, 54, col(v), 5)}<b>{v}</b></div><small>{smp}</small></div>' for n, v in rates)
+    strip = (f'<div class="rbstrip"><div class="rbw"><span class="rbn">{T.esc(L("Your portfolio rating", "تقييم محفظتك"))}</span>'
+             f'<span class="rbd">{T.esc(L("See how your portfolio scores across key areas.", "شوف درجات محفظتك في النواحي المهمة."))}</span></div>{rr}</div>')
     # the words
     head = L("From your goals to your next move.", "من أهدافك إلى خطوتك الجاية.")
     sub = L("Rate your portfolio. Build a plan around your goals and risk. Follow it with virtual money.",
@@ -535,12 +535,12 @@ def _banner_html(key, d, f, sa):
              f'<span>{T.icon("bar_chart")}{T.esc(L("Virtual portfolio", "محفظة افتراضية"))}</span>')
     facts = " • ".join(T.esc(x) for x in (L("Free", "مجاني"), L(f"{nq} short questions", f"{nq} سؤال قصير"), L("No sign-up", "بدون تسجيل"), L("Two minutes", "دقيقتين")))
     return (f'<div class="ovad banner rb{" rtl" if ar else ""}" data-nogq><div class="bd">'
-            f'<div class="tx"><div class="kk"><b>TURA</b><span>|</span><em>{T.esc(L("Portfolio dashboard", "لوحة المحفظة"))}</em></div>'
-            f'<h3>{T.esc(head)}</h3><p>{T.esc(sub)}</p><div class="chips">{chips}</div>'
-            f'<div class="cta"><span class="go">{T.esc(L("Explore my portfolio", "استكشف محفظتي"))}{T.icon("arrow_forward")}</span>'
-            f'<span class="lnk">{T.esc(L("Build my plan", "ابنِ خطتي"))}{T.icon("arrow_forward")}</span></div>'
-            f'<div class="facts">{facts}</div></div>'
-            f'<div class="pic"><div class="steps">{c1}{arrow}{c2}{arrow}{c3}</div>{strip}</div></div></div>')
+            f'<div class="tx"><div class="rbkk"><b>TURA</b><span>|</span><em>{T.esc(L("Portfolio dashboard", "لوحة المحفظة"))}</em></div>'
+            f'<h3>{T.esc(head)}</h3><p>{T.esc(sub)}</p><div class="rbchips">{chips}</div>'
+            f'<div class="rbcta"><span class="go">{T.esc(L("Explore my portfolio", "استكشف محفظتي"))}{T.icon("arrow_forward")}</span>'
+            f'<span class="rblnk">{T.esc(L("Build my plan", "ابنِ خطتي"))}{T.icon("arrow_forward")}</span></div>'
+            f'<div class="rbfacts">{facts}</div></div>'
+            f'<div class="rbpic"><div class="rbsteps">{c1}{arrow}{c2}{arrow}{c3}</div>{strip}</div></div></div>')
 
 
 def _open_tool(key, page):
@@ -1094,4 +1094,4 @@ def page_overview():
         print(f"[prof] page {'sa' if sa else 'us'} total {time.time() - t0:.2f}s", flush=True)
 
 
-BUILD = "23.4.28"
+BUILD = "23.4.29"
