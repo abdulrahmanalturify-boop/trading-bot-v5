@@ -1,0 +1,123 @@
+address: http://84.13.143.157
+health: 200 in 0.367260s
+health: 200 in 0.367727s
+health: 200 in 0.371327s
+home page: 200 in 0.370637s
+diag: drawn in 93.3s
+diag: {
+ "at": "2026-10-14 17:26:01 UTC",
+ "machine": {
+  "cpus": 2,
+  "load": [
+   0.24560546875,
+   0.24853515625,
+   0.26123046875
+  ],
+  "mem_mb": {
+   "MemTotal": 11927,
+   "MemAvailable": 10149,
+   "SwapTotal": 0,
+   "SwapFree": 0
+  },
+  "site_rss_mb": 1249,
+  "arch": "aarch64",
+  "cpu_bench_s": 0.24
+ },
+ "sources": {
+  "google": {
+   "s": 0.24,
+   "got": 204
+  },
+  "yahoo_chart": {
+   "s": 0.46,
+   "got": 200
+  },
+  "yf_history_1": {
+   "s": 0.79,
+   "got": 5
+  },
+  "yf_download_30": {
+   "s": 57.11,
+   "got": 5
+  },
+  "yf_screen": {
+   "s": 1.06,
+   "got": 10
+  },
+  "news_feed": {
+   "s": 0.4,
+   "got": 8116
+  }
+ },
+ "warm": {
+  "macro": [
+   2412,
+   0.02
+  ],
+  "heat:us": [
+   923,
+   2.41
+  ],
+  "stories:us": [
+   350,
+   54.39
+  ],
+  "fg:us": [
+   1633,
+   10.93
+  ],
+  "tiles": [
+   276,
+   893.37
+  ],
+  "lists:us": [
+   11,
+   1539.69
+  ],
+  "snap:us": [
+   71,
+   568.25
+  ],
+  "lists:sa": [
+   69,
+   2.05
+  ],
+  "heat:sa": [
+   302,
+   2.71
+  ],
+  "stories:sa": [
+   496,
+   2.08
+  ],
+  "snap:sa": [
+   351,
+   51.45
+  ],
+  "fg:sa": [
+   1468,
+   325.66
+  ],
+  "summary": [
+   228,
+   889.23
+  ],
+  "hunt:us": [
+   398,
+   0.0
+  ],
+  "hunt:sa": [
+   2185,
+   705.62
+  ],
+  "xb": [
+   224,
+   6.98
+  ]
+ }
+}
+desk_home: drawn in 40.5s
+desk_home_us: drawn in 10.5s
+desk_news: drawn in 12.4s
+smart reading: auto_awesome القراءة الذكية · كل خبر يُقرأ بسياقه لـالسوق السعودي 170/497 مقروء 69 مستبعد: ما له علاقة
+phone_home: drawn in 90.7s
