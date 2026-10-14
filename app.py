@@ -98,10 +98,10 @@ import newsbot
 # Reload the academy revision once for already-running sessions.
 _ac_mod = sys.modules.get("academy")
 if (_ac_mod is not None and not getattr(getattr(_ac_mod, "__spec__", None), "_initializing", False)
-        and getattr(_ac_mod, "ACADEMY_REVISION", None) != "2026-09-27.6"):
+        and getattr(_ac_mod, "ACADEMY_REVISION", None) != "2026-10-14.1"):
     with _RELOAD_LOCK:
-        if getattr(sys.modules.get("academy"), "ACADEMY_REVISION", None) != "2026-09-27.6":
-            for _ac in ("academy_extra", "academy_visuals", "academy_labs", "academy", "p_academy"):
+        if getattr(sys.modules.get("academy"), "ACADEMY_REVISION", None) != "2026-10-14.1":
+            for _ac in ("academy_extra", "academy_micro", "academy_visuals", "academy_labs", "academy", "p_academy"):
                 _mod = sys.modules.get(_ac)
                 if _mod is not None and not getattr(getattr(_mod, "__spec__", None), "_initializing", False):
                     importlib.reload(_mod)

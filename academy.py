@@ -375,13 +375,26 @@ BUILD = "23.4.9"
 # Academy expansion: original courses retain their identifiers and progress.
 from academy_extra import EXTRA_COURSES, ACADEMY_REVISION, VIDEOS, COURSE_SOURCES
 from academy_visuals import cover as course_art
+from academy_micro import MICRO_COURSES, ACADEMY_REVISION
 COURSES.extend(EXTRA_COURSES)
+COURSES.extend(MICRO_COURSES)
 
 
 # One progression order for the catalog, next-course action and dashboard.
 LEVEL_ORDER = ("Beginner", "Essential", "Intermediate", "Advanced")
 BEGINNER_ORDER = ("money_foundations", "goals", "basics", "broker_safety", "diversification_basics",
                   "funds", "compounding", "returns_costs", "inflation", "execution",
+                  "price_value", "marketcap_split", "total_return", "loss_recovery",
+                  "spread_basics", "limit_practice", "dividend_basics", "fees_drag",
+                  "currency_return", "rebalance_basics", "scam_signals", "news_evidence",
                   "statements", "behaviour", "candles", "levels")
 COURSES.sort(key=lambda c: (LEVEL_ORDER.index(c["level"][0]),
              BEGINNER_ORDER.index(c["id"]) if c["id"] in BEGINNER_ORDER else 999))
+
+# Curated official reading for the new short lessons.
+for _micro in MICRO_COURSES:
+    COURSE_SOURCES[_micro["id"]] = [("Investor.gov — investment products", "https://www.investor.gov/introduction-investing/investing-basics/investment-products")]
+for _cid in ("limit_practice", "spread_basics"):
+    COURSE_SOURCES[_cid] = [("Investor.gov — order types", "https://www.investor.gov/introduction-investing/investing-basics/glossary/order-types")]
+COURSE_SOURCES["scam_signals"] = [("Investor.gov — fraud warning signs", "https://www.investor.gov/protect-your-investments/fraud/how-avoid-fraud/red-flags-investment-fraud-checklist")]
+COURSE_SOURCES["rebalance_basics"] = [("Investor.gov — asset allocation and diversification", "https://www.investor.gov/introduction-investing/getting-started/asset-allocation")]

@@ -4,12 +4,12 @@ import xml.etree.ElementTree as ET
 from collections import Counter
 import academy
 from academy_extra import EXTRA_COURSES
-from academy_visuals import MARK, WORDMARK, cover
+from academy_visuals import MARK, WORDMARK, vector_cover
 from academy_labs import compound_path, real_return, portfolio, expectancy, perpetuity
 
 class AcademyTests(unittest.TestCase):
     def test_additions_and_complete_bilingual_schema(self):
-        self.assertEqual(Counter(c['level'][0] for c in EXTRA_COURSES),{'Beginner':7,'Essential':3,'Advanced':2})
+        self.assertEqual(Counter(c['level'][0] for c in EXTRA_COURSES),{'Beginner':11,'Essential':3,'Advanced':2})
         self.assertEqual(len({c['id'] for c in academy.COURSES}),len(academy.COURSES))
         for c in EXTRA_COURSES:
             self.assertEqual(len(c['sections']),3)
@@ -19,7 +19,7 @@ class AcademyTests(unittest.TestCase):
                 self.assertTrue(0<=q[3]<len(q[2]))
                 self.assertTrue(all(len(o)==2 and all(o) for o in q[2]))
     def test_art_is_valid_xml(self):
-        for svg in [MARK,WORDMARK]+[cover(c['art'],c['id']) for c in academy.COURSES]: ET.fromstring(svg)
+        for svg in [MARK,WORDMARK]+[vector_cover(c['art'],c['id']) for c in academy.COURSES]: ET.fromstring(svg)
     def test_compounding_timing_and_zero_rate(self):
         result=compound_path(1000,100,0,1).iloc[-1]
         self.assertEqual(result.Balance,2200)
