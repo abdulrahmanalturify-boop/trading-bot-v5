@@ -165,3 +165,46 @@ def academy_wordmark(brand):
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
 BUILD = "23.4.9"
+
+# Refresh stays scoped to the academy; the site's other pages keep their theme.
+CSS += '''<style>
+.st-key-academy_root .ac-refresh{padding:32px 38px;grid-template-columns:minmax(0,1fr) 230px;background:radial-gradient(ellipse at 100% 0%,#24445b55,transparent 52%),linear-gradient(135deg,#161c2b,#201b32);border-color:#35405a;}
+.st-key-academy_root .ac-refresh .ac-brand-lockup{flex-direction:row;align-items:center;gap:20px;margin:0;}
+.st-key-academy_root .ac-refresh .ac-brand-lockup .brand{height:36px;filter:none;}
+.st-key-academy_root .ac-refresh .ac-brand-lockup span{font-size:11px;letter-spacing:4px;border-inline-start:1px solid #53607b;padding-inline-start:20px;}
+.st-key-academy_root .ac-refresh h1{font-size:clamp(32px,4vw,54px);line-height:1.22;letter-spacing:-1px;}
+.st-key-academy_root .ac-kicker{font-size:11px;font-weight:600;letter-spacing:1px;color:#8fcee0;margin:14px 0;}
+.st-key-academy_root .ac-hero-aside{padding:24px;border:1px solid #49546b;border-radius:22px;background:#10172555;}
+.st-key-academy_root .ac-hero-aside>svg{width:85px;height:85px;display:block;margin:0 auto 24px;}
+.st-key-academy_root .ac-lesson-loop{display:grid;gap:12px;color:#d2d9ea;font-size:14px;}
+.st-key-academy_root .ac-lesson-loop span{border-top:1px solid #3c455a;padding-top:10px;}
+.st-key-academy_root .st-key-academy_start_here{background:#1d2739;border:1px solid #526384;border-inline-start:4px solid #8bcfe0;box-shadow:none;padding:24px;margin:12px 0 20px;}
+.st-key-academy_root .course{background:#1b2130;border-color:#35405a;border-radius:16px;box-shadow:none;}
+.st-key-academy_root .course .art{height:155px;}
+.st-key-academy_root .course .art::after{height:0;}
+.st-key-academy_root .course .body{padding:18px;}
+.st-key-academy_root .course .tag{color:#b5c0d1;line-height:1.7;}
+.st-key-academy_root .course .ttl{line-height:1.5;}
+.st-key-academy_root .ac-course-banner{min-height:230px;border-color:#35405a;}
+.st-key-academy_root .ac-course-copy{padding:26px;}
+.st-key-academy_root .ac-course-copy p{margin-bottom:14px;}
+.st-key-academy_root [data-testid="stTabs"] [role="tablist"]{gap:8px;border-bottom:1px solid #35405a;padding-bottom:8px;overflow-x:auto;}
+.st-key-academy_root [data-testid="stTabs"] [role="tab"]{padding:12px 18px;border-radius:9px;white-space:nowrap;}
+.st-key-academy_root [data-testid="stTabs"] [aria-selected="true"]{background:#29334a;color:#c0ddff;}
+.st-key-academy_root .st-key-academy_lesson_panel{background:#1b2130;border-color:#35405a;}
+.st-key-academy_root .lesson p{max-width:850px;line-height:2.05;font-size:1.08rem;}
+@media(max-width:650px){
+.st-key-academy_root .ac-refresh{grid-template-columns:1fr;padding:22px;gap:16px;}
+.st-key-academy_root .ac-refresh .ac-brand-lockup{padding-right:0;gap:12px;}
+.st-key-academy_root .ac-refresh .ac-brand-lockup .brand{height:25px;}
+.st-key-academy_root .ac-refresh .ac-brand-lockup span{font-size:9px;letter-spacing:2px;padding-inline-start:12px;}
+.st-key-academy_root .ac-hero-aside{padding:12px;border-radius:12px;}
+.st-key-academy_root .ac-hero-aside>svg{display:none;}
+.st-key-academy_root .ac-lesson-loop{display:flex;justify-content:space-between;gap:8px;font-size:12px;}
+.st-key-academy_root .ac-lesson-loop span{border:0;padding:0;}
+.st-key-academy_root .ac-meta{gap:6px;margin-top:14px;}
+.st-key-academy_root .ac-meta span{font-size:11px;padding:6px 8px;}
+.st-key-academy_root .ac-course-banner{min-height:210px;}
+.st-key-academy_root [data-testid="stTabs"] [role="tab"]{padding:10px;font-size:13px;}
+}
+</style>'''

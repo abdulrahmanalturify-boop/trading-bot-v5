@@ -3,6 +3,9 @@ p_academy.py - Academy (interactive 3-minute courses with quizzes, learning dash
 Clicking anywhere on a course card opens it (invisible button over the card, no page reload, progress is kept).
 """
 import math
+import json
+import base64
+import academy_micro as AM
 import pandas as pd
 import academy_visuals as AV
 import academy_labs as AL
@@ -29,30 +32,52 @@ def _course(cid):
 
 # ---------------------------------------------------------------- progress kept in the browser
 # The progress (courses completed, the step reached in the others) is kept in this browser like the portfolio code: a compact
-# text "3d_5x2" = course #3 done, course #5 at step 2 (the courses' order in academy.COURSES).
+# text with stable course IDs. Legacy index codes are migrated using a frozen old catalog.
 def _progress_code():
-    parts = []
-    done = ss.get("completed", set())
-    for i, c in enumerate(A.COURSES):
-        if c["id"] in done:
-            parts.append(f"{i}d")
-        elif int(ss.get(f"step_{c['id']}", 0) or 0) > 0:
-            parts.append(f"{i}x{int(ss.get('step_' + c['id'], 0))}")
-    return "_".join(parts) or "0"
+    """Versioned ID-based storage is unaffected by sorting or future additions."""
+    courses = {c["id"]: c for c in A.COURSES}
+    done = sorted(set(ss.get("completed", set())) & courses.keys())
+    steps = {cid: min(max(int(ss.get(f"step_{cid}", 0) or 0), 0), len(c["sections"]))
+             for cid, c in courses.items() if ss.get(f"step_{cid}", 0) and cid not in done}
+    payload = json.dumps({"done": done, "steps": steps}, separators=(",", ":")).encode()
+    return "v2_" + base64.urlsafe_b64encode(payload).decode().rstrip("=")
 
 
 def _progress_load(code):
-    for p in str(code or "").split("_"):
+    courses = {c["id"]: c for c in A.COURSES}
+    done, steps = [], {}
+    if str(code or "").startswith("v2_"):
         try:
-            if p.endswith("d") and p[:-1].isdigit() and int(p[:-1]) < len(A.COURSES):
-                ss.setdefault("completed", set()).add(A.COURSES[int(p[:-1])]["id"])
-            elif "x" in p:
-                i, step = (int(x) for x in p.split("x", 1))
-                if i < len(A.COURSES):
-                    k = f"step_{A.COURSES[i]['id']}"
-                    ss[k] = max(int(ss.get(k, 0) or 0), step)
-        except (ValueError, IndexError):
+            raw = code[3:]
+            payload = json.loads(base64.urlsafe_b64decode(raw + "=" * (-len(raw) % 4)))
+            if not isinstance(payload, dict):
+                return
+            done = payload.get("done", [])
+            steps = payload.get("steps", {})
+            if not isinstance(done, list) or not isinstance(steps, dict):
+                return
+        except (ValueError, TypeError):
+            return
+    else:
+        # Freeze the old index mapping: never interpret old codes against the new catalog.
+        for part in str(code or "").split("_"):
+            try:
+                if part.endswith("d"):
+                    i = int(part[:-1])
+                    if 0 <= i < len(AM.LEGACY_IDS):
+                        done.append(AM.LEGACY_IDS[i])
+                elif "x" in part:
+                    i, step = map(int, part.split("x", 1))
+                    if 0 <= i < len(AM.LEGACY_IDS):
+                        steps[AM.LEGACY_IDS[i]] = step
+            except ValueError:
+                continue
+    ss.setdefault("completed", set()).update(cid for cid in done if isinstance(cid, str) and cid in courses)
+    for cid, step in steps.items():
+        if cid not in courses or not isinstance(step, int):
             continue
+        key = f"step_{cid}"
+        ss[key] = min(len(courses[cid]["sections"]), max(int(ss.get(key, 0) or 0), step, 0))
 
 
 def _progress_sync():
@@ -101,6 +126,13 @@ def _card_html(c):
 def _open_course(cid):
     ss["course"] = cid
     st.query_params["course"] = cid
+    if cid not in ss.get("ac_active_path", []):
+        ss.pop("ac_active_path", None)
+
+
+def _start_path(ids, cid):
+    ss["ac_active_path"] = list(ids)
+    _open_course(cid)
 
 
 def course_cards(courses, prefix="crs", per_row=3):
@@ -116,6 +148,9 @@ def course_cards(courses, prefix="crs", per_row=3):
 
 # ---------------------------------------------------------------- interactive blocks
 def interactive(key):
+    if key in AM.LABS:
+        AM.render(key)
+        return
     if key in AL.LABS:
         AL.render(key)
         return
@@ -196,7 +231,8 @@ def interactive(key):
 def _course_view(c):
     cid = c["id"]
     n = len(c["sections"])
-    step = ss.setdefault(f"step_{cid}", 0)
+    step = min(max(int(ss.setdefault(f"step_{cid}", 0)), 0), n)
+    ss[f"step_{cid}"] = step
     if st.button(L("All courses", "كل الدورات"), icon=":material/arrow_back:"):
         ss.pop("course", None)
         st.query_params.pop("course", None)
@@ -208,6 +244,11 @@ def _course_view(c):
     ui.html(f'<section class="ac-course-banner"><div class="ac-course-background" aria-hidden="true">{artwork}</div>'
             f'<div class="ac-course-copy"><h1>{T.esc(L(*c["title"]))}</h1><p>{T.esc(L(*c["tagline"]))}</p>'
             f'<div class="ac-course-meta">{T.badge(L(*lvl), LEVEL_KIND.get(lvl[0], "neu"), "signal_cellular_alt")}{mins}{lessons}</div></div></section>')
+    with st.expander(L("Lesson map & study notes", "خريطة الدروس وملخص المراجعة")):
+        for i, section in enumerate(c["sections"]):
+            st.button(f"{i+1:02d} · {L(section[0], section[1])}", key=f"lesson_jump_{cid}_{i}",
+                      on_click=_jump_lesson, args=(cid, i), width="stretch")
+        _download_notes(c, "lesson")
     _course_videos(c)
     ui.html('<div class="steps">' + "".join(f'<span class="{"on" if i <= step else ""}"></span>' for i in range(n + 1)) + "</div>")
     rtl = " rtl" if is_ar() else ""
@@ -220,6 +261,8 @@ def _course_view(c):
             if viz:
                 ui.sec("touch_app", "Interactive", "تفاعلي")
                 interactive(viz)
+            if c.get("micro"):
+                _checkpoint(c, step)
             with st.container(key="academy_lesson_navigation"):
                 a, _, b = st.columns([1, 2, 1])
                 if step > 0 and a.button(L("Back", "السابق"), icon=":material/chevron_left:", width="stretch"):
@@ -245,8 +288,8 @@ def _course_view(c):
         if any(answer is None for answer in answers):
             st.warning(L("Answer every question before checking.", "جاوب على كل الأسئلة قبل التحقق."))
         else:
-            ss[f"checked_{cid}"] = True
-    if ss.get(f"checked_{cid}"):
+            ss[f"checked_{cid}"] = list(answers)
+    if ss.get(f"checked_{cid}") == answers:
         score = 0
         for i, ((q_en, q_ar, opts, ans, w_en, w_ar), got) in enumerate(zip(c["quiz"], answers)):
             ok = got == ans
@@ -259,9 +302,12 @@ def _course_view(c):
             st.success(L(f"Great job: {score}/{total}. Course completed!", f"أحسنت: {score}/{total}. أكملت الدورة!"), icon=":material/workspace_premium:")
         else:
             st.warning(L(f"{score}/{total}. Review the lessons and try again.", f"{score}/{total}. راجع الدروس وحاول مرة أخرى."), icon=":material/replay:")
-        idx = [x["id"] for x in A.COURSES].index(cid)
-        if idx + 1 < len(A.COURSES):
-            nxt = A.COURSES[idx + 1]
+        sequence = ss.get("ac_active_path") or [x["id"] for x in A.COURSES]
+        if cid not in sequence:
+            sequence = [x["id"] for x in A.COURSES]
+        idx = sequence.index(cid)
+        if idx + 1 < len(sequence):
+            nxt = _course(sequence[idx + 1])
             ui.html(f'<div style="margin:12px 0 6px">{L("Next course", "الدورة التالية")}:</div>')
             course_cards([nxt], "nxt", 3)
 
@@ -315,15 +361,114 @@ def dashboard():
                  args=(nxt["id"],), width="stretch")
 
 
+def _jump_lesson(cid, step):
+    ss[f"step_{cid}"] = step
+
+
+def _checkpoint(c, step):
+    question = c["quiz"][step]
+    q_en, q_ar, opts, correct, why_en, why_ar = question
+    with st.container(border=True):
+        st.markdown("#### " + L("Try before you continue", "جرّب قبل تكمل"))
+        got = st.radio(L(q_en, q_ar), list(range(len(opts))), index=None,
+                       format_func=lambda i, labels=[L(*o) for o in opts]: labels[i], key=f"checkpoint_{c['id']}_{step}")
+        if got is not None:
+            if got == correct:
+                st.success(L("Correct. ", "صحيح. ") + L(why_en, why_ar))
+            else:
+                st.warning(L("Try again. ", "جرّب مرة ثانية. ") + L(why_en, why_ar))
+
+
+def _study_notes(c):
+    lang = 1 if is_ar() else 0
+    lines = ["# " + c["title"][lang], c["tagline"][lang], ""]
+    for section in c["sections"]:
+        lines.extend(["## " + section[lang], section[2+lang], "", section[4+lang], ""])
+    lines.extend(["## " + L("Check your understanding", "راجع فهمك")])
+    for q in c["quiz"]:
+        lines.extend([q[lang], L("Answer: ", "الإجابة: ") + q[2][q[3]][lang], q[4+lang], ""])
+    lines.append(L("Educational examples, not investment recommendations.", "أمثلة تعليمية وليست توصيات استثمارية."))
+    return "\n".join(lines)
+
+
+def _download_notes(c, namespace):
+    st.download_button(L("Download study notes", "حمّل ملخص المراجعة"), _study_notes(c),
+                       file_name=f"tura-{c['id']}-{'ar' if is_ar() else 'en'}.md",
+                       mime="text/markdown", key=f"notes_{namespace}_{c['id']}")
+
+
 def _academy_hero():
-    count = len(A.COURSES)
-    ui.html(f'<section class="ac-hero"><div class="ac-brand-lockup" dir="ltr">{T.brand(None, "acb", pro=None, color="#F2F5FF", label="TURA")}<span>ACADEMY</span></div><div dir="auto">'
-            f'<h1>{L("Build knowledge.<br>Invest with understanding.", "ابنِ معرفتك.<br>واستثمر بفهم.")}</h1>'
-            f'<p>{L("Your learning space for markets, investing and trading. Follow a path, explore a lesson and test the idea yourself.", "مساحتك لتعلّم الأسواق والاستثمار والتداول. اختر مسارك، افهم الفكرة، وجرّبها بنفسك.")}</p>'
-            f'<div class="ac-meta"><span>{count} {L("courses", "دورة")}</span>'
-            f'<span>{len(AL.LABS)} {L("interactive labs", "مختبرات تفاعلية")}</span>'
+    beginner_count = sum(c["level"][0] == "Beginner" for c in A.COURSES)
+    ui.html(f'<section class="ac-hero ac-refresh"><div class="ac-brand-lockup" dir="ltr">{T.brand(None, "acb", pro=None, color="#F2F5FF", label="TURA")}<span>ACADEMY</span></div>'
+            f'<div dir="auto"><div class="ac-kicker">{L("ONE SMALL LESSON. A BETTER UNDERSTANDING.", "فكرة صغيرة كل مرة. فهم أكبر كل يوم.")}</div>'
+            f'<h1>{L("Your first step.<br>Your own pace.", "خطوتك الأولى.<br>على راحتك.")}</h1>'
+            f'<p>{L("Start from zero with short lessons, real examples and hands-on practice. Learn one idea, try it, then check your understanding.", "ابدأ من الصفر بدروس قصيرة وأمثلة واضحة وتطبيق بيدك. افهم فكرة، جرّبها، وبعدين اختبر فهمك.")}</p>'
+            f'<div class="ac-meta"><span>{beginner_count} {L("beginner courses", "دورة للمبتدئين")}</span><span>{L("12 new • about 4 min each", "١٢ دورة جديدة • نحو ٤ دقائق لكل دورة")}</span>'
             f'<span>{L("Arabic + English", "عربي + إنجليزي")}</span></div></div>'
-            f'<div class="ac-emblem">{AV.MARK}</div></section>')
+            f'<div class="ac-hero-aside">{AV.MARK}<div class="ac-lesson-loop"><span>01 · {L("Learn", "افهم")}</span><span>02 · {L("Try", "جرّب")}</span><span>03 · {L("Check", "اختبر")}</span></div></div></section>')
+
+
+def _academy_home():
+    active = next((c for c in A.COURSES if _status(c["id"]) == "prog"), None)
+    nxt = active or next((c for c in A.COURSES if _status(c["id"]) != "done"), None)
+    with st.container(key="academy_start_here"):
+        a, b = st.columns([3, 1], vertical_alignment="center")
+        a.markdown("### " + L("Pick up where you left off" if active else "A clear place to start", "كمّل من مكانك" if active else "بداية واضحة بدون حيرة"))
+        if nxt:
+            a.write(L(*nxt["title"]))
+            a.caption(L(f"About {nxt['mins']} reading minutes · practise at your own pace", f"نحو {nxt['mins']} دقائق قراءة · طبّق على راحتك"))
+            b.button(L("Continue lesson" if active else "Start learning", "كمّل الدرس" if active else "ابدأ التعلّم"),
+                     type="primary", key="ac_beginner_start", on_click=_open_course, args=(nxt["id"],), width="stretch")
+        else:
+            a.write(L("You completed the library. Revisit any course or try a lab.", "أكملت المكتبة! راجع أي دورة أو جرّب مختبر."))
+    st.subheader(L("Choose your first skill", "اختر أول مهارة"))
+    tracks = [
+        ("01", L("Understand the market", "افهم السوق"), L("Ownership, price and company value", "الملكية والسعر وقيمة الشركة"), ["basics", "price_value", "marketcap_split"]),
+        ("02", L("Know your numbers", "اعرف أرقامك"), L("Returns, fees and recovering from losses", "العوائد والرسوم وتعويض الخسائر"), ["total_return", "fees_drag", "loss_recovery"]),
+        ("03", L("Make informed decisions", "قرارات بفهم"), L("Execution, evidence and warning signs", "التنفيذ والدليل وعلامات التحذير"), ["spread_basics", "limit_practice", "scam_signals"])]
+    for col, (num, title, desc, ids) in zip(st.columns(3), tracks):
+        with col, st.container(border=True):
+            st.caption(num + " / " + L("STARTER PATH", "مسار البداية"))
+            st.markdown("#### " + title)
+            st.write(desc)
+            completed = sum(_status(cid) == "done" for cid in ids)
+            st.progress(completed / len(ids), text=L(f"{completed}/{len(ids)} complete · {sum(_course(cid)['mins'] for cid in ids)} min reading", f"{completed}/{len(ids)} مكتمل · {sum(_course(cid)['mins'] for cid in ids)} دقيقة قراءة"))
+            target = next((cid for cid in ids if _status(cid) != "done"), ids[0])
+            st.button(L("Review path" if completed == len(ids) else "Start / continue", "راجع المسار" if completed == len(ids) else "ابدأ أو أكمل"), key="ac_track_"+num,
+                      on_click=_start_path, args=(ids, target), width="stretch")
+    st.subheader(L("A small lesson for today", "درس خفيف لليوم"))
+    st.caption(L("Short reading time; allow extra time for exercises and quizzes.", "مدة قراءة قصيرة؛ خذ وقتك الإضافي بالتطبيق والاختبار."))
+    course_cards([_course(cid) for cid in ("price_value", "total_return", "loss_recovery")], prefix="crs_featured")
+    with st.expander(L("Plan a complete learning path", "رتّب مسارك التعليمي الكامل")):
+        _learning_path()
+
+
+def _materials():
+    st.subheader(L("Your study desk", "مكتبك الدراسي"))
+    st.caption(L("Review a concept, practise with flashcards, or download a course summary.", "راجع فكرة، تمرّن ببطاقات المراجعة، أو حمّل ملخص الدورة."))
+    kind = st.segmented_control(L("Material type", "نوع المادة"), ["notes", "cards", "video"], default="notes", key="ac_material_type",
+                                format_func=lambda v, labels={"notes":L("Study notes", "ملخصات"),"cards":L("Flashcards", "بطاقات مراجعة"),"video":L("Videos", "فيديوهات")}:labels[v]) or "notes"
+    if kind == "video":
+        _video_library()
+        return
+    selected = st.selectbox(L("Course", "الدورة"), [c["id"] for c in A.COURSES], format_func=lambda cid, labels={c["id"]:L(*c["title"]) for c in A.COURSES}:labels[cid], key="ac_material_course")
+    c = _course(selected)
+    if kind == "notes":
+        for i, section in enumerate(c["sections"], 1):
+            with st.expander(f"{i:02d} · {L(section[0],section[1])}", expanded=i==1):
+                st.write(L(section[2],section[3]))
+                st.info(L(section[4],section[5]))
+        _download_notes(c, "materials")
+        st.button(L("Practise in this course", "طبّق داخل الدورة"), key="material_open", on_click=_open_course, args=(selected,))
+    else:
+        index = st.selectbox(L("Review card", "بطاقة المراجعة"), list(range(len(c["quiz"]))), format_func=lambda i: str(i+1), key="ac_flash_"+selected)
+        question = c["quiz"][index]
+        with st.container(border=True):
+            st.markdown("### " + L(question[0],question[1]))
+            st.caption(L("Think of your answer before revealing it.", "فكّر بإجابتك قبل تكشف الحل."))
+            if st.checkbox(L("Reveal answer", "اكشف الإجابة"), key=f"reveal_{selected}_{index}"):
+                st.success(L(*question[2][question[3]]))
+                st.write(L(question[4],question[5]))
 
 
 def _learning_path():
@@ -340,7 +485,7 @@ def _learning_path():
     st.info(L(f"{len(remaining)} courses remaining · about {total_minutes} reading minutes · {math.ceil(total_minutes/minutes)} study weeks. Allow extra time for practice.",
               f"باقي {len(remaining)} دورات · تقريبًا {total_minutes} دقيقة قراءة · {math.ceil(total_minutes/minutes)} أسابيع دراسة. خصص وقت إضافي للتطبيق."))
     if remaining:
-        st.button(L("Start / continue this path", "ابدأ أو أكمل المسار"),type="primary",key="ac_path_start",on_click=_open_course,args=(remaining[0]["id"],))
+        st.button(L("Start / continue this path", "ابدأ أو أكمل المسار"),type="primary",key="ac_path_start",on_click=_start_path,args=([c["id"] for c in courses],remaining[0]["id"]))
     for i,c in enumerate(courses,1):
         st.write(f"{i:02d} · {L(*c['title'])} " + ("✓" if _status(c['id'])=="done" else ""))
 
@@ -411,24 +556,31 @@ def _page_academy():
             ui.foot()
             return
         _academy_hero()
-        catalog, videos, path, labs, progress = st.tabs([L("Course library", "مكتبة الكورسات"), L("Video explanations", "شروحات الفيديو"), L("My learning path", "مساري التعليمي"),
-                                              L("Interactive labs", "المختبرات التفاعلية"), L("My progress", "تقدمي")])
+        home, catalog, materials, labs, progress = st.tabs([L("Overview", "البداية"), L("Course library", "مكتبة الكورسات"),
+            L("Study materials", "مواد التعلّم"), L("Practice labs", "مختبرات التطبيق"), L("My progress", "تقدمي")])
+        with home:
+            _academy_home()
         with catalog:
-            with st.container(key="academy_start_here"):
-                st.markdown("### " + L("New to investing? Start here.", "جديد على الاستثمار؟ ابدأ هنا."))
-                st.caption(L("Build your foundation first, then move through each level at your own pace.",
-                             "ابدأ بالأساسيات، وبعدها تقدّم بالمستويات على راحتك."))
-                st.button(L("Start the beginner journey", "ابدأ رحلة المبتدئ"), type="primary",
-                          key="ac_beginner_start", on_click=_open_course, args=("money_foundations",))
+            st.subheader(L("Find your next small step", "اختر خطوتك الجاية"))
+            st.caption(L("Beginner first. Filter by level, reading time or progress.", "المبتدئ أولًا. صفِّ حسب المستوى أو وقت القراءة أو تقدمك."))
             a,b=st.columns([3,1])
             query=a.text_input(L("Search courses", "ابحث عن دورة"),placeholder=L("e.g. bonds, cash flow, risk", "مثل: السندات، النقد، المخاطرة"),key="ac_search").strip().casefold()
             state=b.selectbox(L("Show", "اعرض"),["all","new","progress","done"],key="ac_status",format_func=lambda x, labels={"all":L("All courses","كل الدورات"),"new":L("New additions","المضافة حديثًا"),"progress":L("In progress","قيد التعلم"),"done":L("Completed","المكتملة")}:labels[x])
             lvl=st.radio(L("Level", "المستوى"),list(LEVELS),index=0,horizontal=True,key="ac_lvl",format_func=lambda k, labels={key:L(*val) for key,val in LEVELS.items()}:labels[k]) or "all"
-            courses=[c for c in A.COURSES if (lvl=="all" or c["level"][0]==lvl)
+            duration=st.select_slider(L("Maximum reading time", "أقصى وقت للقراءة"),options=[4,6,8],value=8,key="ac_duration")
+            courses=[c for c in A.COURSES if c["mins"]<=duration and (lvl=="all" or c["level"][0]==lvl)
                      and (not query or query in " ".join(c["title"]+c["tagline"]).casefold())
                      and (state=="all" or state=="new" and c.get("new") or state=="progress" and _status(c["id"])=="prog" or state=="done" and _status(c["id"])=="done")]
             st.caption(L(f"{len(courses)} courses · choose a card to begin",f"{len(courses)} دورة · اختر بطاقة للبدء"))
             if courses:
+                signature = (query, state, lvl, duration)
+                if ss.get("ac_filter_signature") != signature:
+                    ss["ac_page"] = 1
+                    ss["ac_filter_signature"] = signature
+                page_count = math.ceil(len(courses)/9)
+                page = st.selectbox(L("Page", "الصفحة"), list(range(1, page_count+1)), key="ac_page",
+                                    format_func=lambda x, labels={i:L(f"Page {i} of {page_count}",f"صفحة {i} من {page_count}") for i in range(1,page_count+1)}:labels[x])
+                courses = courses[(page-1)*9:page*9]
                 descriptions = {
                     "Beginner": ("Start from zero: money, markets and your first portfolio.", "من الصفر: فلوسك، السوق، وأول محفظة لك."),
                     "Essential": ("Build the skills every investor needs.", "مهارات أساسية يحتاجها كل مستثمر."),
@@ -441,18 +593,17 @@ def _page_academy():
                         st.caption(L(*descriptions[level]))
                         course_cards(group)
             else: st.info(L("No matching courses. Try another search or level.","ما فيه دورات تطابق الاختيار. غيّر البحث أو المستوى."))
-        with videos:
-            _video_library()
+        with materials:
+            _materials()
         with catalog:
             with st.expander(L("Photo credits", "مصادر الصور")):
                 for photo in AV.PHOTOS.values():
                     st.markdown(f'[{photo["credit"]} · Unsplash]({photo["page"]})')
-        with path:
-            _learning_path()
         with labs:
             ui.html('<div class="ac-note">'+L("Change the assumptions and see the result. These labs use hypothetical data and work without live market feeds.","غيّر الافتراضات وشوف النتيجة. المختبرات تستخدم بيانات افتراضية وتعمل بدون أسعار سوق مباشرة.")+'</div>')
-            selected=st.selectbox(L("Choose a lab", "اختر المختبر"),list(AL.LABS),format_func=lambda x, labels={key:L(*val) for key,val in AL.LABS.items()}:labels[x],key="ac_lab")
-            AL.render(selected,namespace="hub")
+            all_labs = {**AM.LABS, **AL.LABS}
+            selected=st.selectbox(L("Choose a lab", "اختر المختبر"),list(all_labs),format_func=lambda x, labels={key:L(*val) for key,val in all_labs.items()}:labels[x],key="ac_lab")
+            (AM.render if selected in AM.LABS else AL.render)(selected,namespace="hub")
         with progress:
             ui.safe(dashboard)
             st.caption(L("Your progress is kept in this browser on this device (no account needed). Another device, or clearing the browser's "
