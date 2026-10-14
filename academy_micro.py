@@ -1,5 +1,5 @@
 """Short bilingual lessons and offline exercises. Stable course IDs are permanent."""
-ACADEMY_REVISION = "2026-10-14.1"
+ACADEMY_REVISION = "2026-10-14.2"
 # The exact catalog order used by the previous index-based progress format.
 LEGACY_IDS = ('money_foundations','goals','basics','broker_safety','diversification_basics','funds','compounding','returns_costs','inflation','execution','statements','behaviour','candles','levels','risk','allocation','quality','bonds','ma','momentum','value','macro','options','valuation_scenarios','robustness')
 MICRO_COURSES = []
