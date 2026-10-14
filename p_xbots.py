@@ -186,7 +186,11 @@ def _status(state):
     if s == "resting":
         return "on", L("Resting until its market's next day", "يرتاح لين يوم السوق الجاي")
     if s == "cap":
-        return "", L("Today's reading ceiling reached", "وصل سقف القراءة لليوم")
+        return "", L("Its market's reading ceiling for today is reached", "وصل سقف القراءة لسوقه اليوم")
+    if s == "paced":
+        return "on", L(f"Read X {_when(state.get('read_at'))} · next read in an hour or two (spread within the ceiling)",
+                       f"قرأ X {_when(state.get('read_at'))} · القراءة الجاية بعد ساعة أو ساعتين (موزّعة ضمن السقف)") if state.get("read_at") else \
+            L("Its turn to read comes in an hour or two (spread within the ceiling)", "دوره بالقراءة بعد ساعة أو ساعتين (موزّع ضمن السقف)")
     if s == "error":
         return "err", L("X did not answer on the last try", "X ما رد في آخر محاولة")
     return "", L("Waiting for the X connection", "ينتظر ربط X")
@@ -590,7 +594,7 @@ def _hero(cur, bots, states, meta):
         elif "credits" in stat:
             cls, head = "err", L("No credit left on X", "خلص الرصيد في X")
             sub = L("The bots read again once the X developer account has credit.", "البوتات ترجع تقرأ أول ما ينشحن رصيد حساب مطوري X.")
-        elif stat & {"resting", "cap", "error"}:
+        elif stat & {"resting", "cap", "paced", "error"}:
             cls, head = "on", L("Connected to X: the first read is in the market's next hour", "متصلة بـ X: أول قراءة في أول ساعة من يوم السوق الجاي")
             sub = L("The bots read every hour of the market's day (from an hour before the open to an hour after the close).",
                     "البوتات تقرأ كل ساعة من يوم السوق (من ساعة قبل الافتتاح لين ساعة بعد الإغلاق).")
@@ -689,4 +693,4 @@ def page_xbots():
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.4.19"
+BUILD = "23.4.20"

@@ -49,9 +49,11 @@ def main():
         XB.save(XB.META, meta, meta_row)
     except Exception as e:
         print("meta:", e)
-    print(f"posts read today: {meta.get('reads', 0)} of {XB.daily_reads()}")
+    by = meta.get("by") or {}
+    shares = " · ".join(f"{c}: {by.get(c, 0)} of {XB.market_cap(c)}" for c in sorted({b['market'] for b in XB.BOTS}))
+    print(f"posts read today: {meta.get('reads', 0)} of {XB.daily_reads()} ({shares})")
     # the run's summary as a note on the run's page (GitHub > Actions > x bots): no secret in it
-    print(f"::notice title=x bots::{' · '.join(seen)} · posts read today {meta.get('reads', 0)} of {XB.daily_reads()}")
+    print(f"::notice title=x bots::{' · '.join(seen)} · posts read today {meta.get('reads', 0)} of {XB.daily_reads()} ({shares})")
     return 0
 
 

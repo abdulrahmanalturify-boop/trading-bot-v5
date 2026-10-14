@@ -223,6 +223,38 @@ def daily_reads():
         return DAILY_READS
 
 
+# ---------------------------------------------------------------- the ceiling shared between the two markets
+# The Saudi day comes first (7-12 UTC) and used to use up the whole ceiling before the US day began (13-21 UTC), so the US bots
+# never read. Each market now has its own share of the ceiling, in proportion to its reading hours, and each bot spreads its
+# share over the day: when the share is too small for every bot to read every hour (X returns 10 posts at least), a bot reads
+# every second or third hour, the bots taking turns so every hour reads something.
+def _runs(code):
+    sp = MK.get(code)
+    return int((sp["close"] + 60 - (sp["open"] - 60)) // 60) + 1          # the hours from an hour before the open to an hour after the close
+
+
+def market_cap(code, cap=None):
+    """This market's share of the day's ceiling."""
+    cap = cap if cap is not None else daily_reads()
+    codes = sorted({b["market"] for b in BOTS})
+    tot = sum(_runs(c) for c in codes) or 1
+    return int(cap * _runs(code) / tot)
+
+
+def my_turn(bot, now, cap=None):
+    """(it is this bot's hour, posts it may read now): the bot's share of its market's ceiling spread over the day's hours; when
+    that is under X's minimum of 10 a post, it reads every k-th hour (its turn offset by its place in the list)."""
+    code = bot["market"]
+    peers = [b for b in BOTS if b["market"] == code]
+    per = market_cap(code, cap) / max(1, len(peers)) / max(1, _runs(code))
+    if per >= 10:
+        return True, int(per)
+    k = int(math.ceil(10 / max(per, 1e-9)))
+    t_ = now.tz_convert(MK.tz(code)).tz_localize(None)
+    hour = (t_.hour * 60 + t_.minute - (MK.get(code)["open"] - 60)) // 60
+    return (hour + peers.index(bot)) % k == 0, max(10, int(per * k))
+
+
 # ---------------------------------------------------------------- reading X
 class XError(Exception):
     """kind: auth (the key is wrong) · rate (too many requests) · credits (the X account has no credit left) · network · other"""
@@ -788,19 +820,26 @@ def run(bot, token, meta, now=None, get=None, quotes_fn=None, force=False, close
     state["_row"] = row
     today = now.date().isoformat()
     if meta.get("date") != today:
-        meta.update({"date": today, "reads": 0})
+        meta.update({"date": today, "reads": 0, "by": {}})
+    meta.setdefault("by", {})
     cap = daily_reads()
+    mk_cap = market_cap(bot["market"], cap)
+    mk_reads = int(meta["by"].get(bot["market"]) or 0)
+    turn, allow = my_turn(bot, now, cap)
     if not token:
         state["status"], state["error"] = "no_key", None
     elif not (force or in_hours(bot, now)):
         state["status"] = "resting"
-    elif meta["reads"] >= cap:
+    elif mk_reads >= mk_cap:                        # the shares add up to the ceiling: each market is held to its own
         state["status"] = "cap"
+    elif not (force or turn):
+        state["status"] = "paced"                    # not this bot's hour: it reads again in an hour or two, within its share
     else:
-        n = min(PER_RUN, cap - meta["reads"])
+        n = min(PER_RUN, PER_RUN if force else allow, mk_cap - mk_reads)
         try:
             data_, users, newest = fetch(bot["query"], token, state.get("since_id"), max(10, n), get=get)
             meta["reads"] += len(data_)
+            meta["by"][bot["market"]] = mk_reads + len(data_)
             state["reads"] = int(state.get("reads") or 0) + len(data_)
             fresh = [read_post(p, users, bot["market"]) for p in data_]
             have = {p["id"] for p in state["posts"]}
@@ -820,7 +859,7 @@ def run(bot, token, meta, now=None, get=None, quotes_fn=None, force=False, close
     syms = list(dict.fromkeys(held + (bot.get("trade") or []) + cand))[:40]
     quotes = (quotes_fn or _quotes)(syms) if syms else {}
     open_ = force or MK.session_live(bot["market"])
-    if open_ and state["status"] in ("ok", "cap", "resting", "error") and state["posts"]:
+    if open_ and state["status"] in ("ok", "cap", "paced", "resting", "error") and state["posts"]:
         if not led.get("since"):
             led["since"] = now.isoformat()
         state.setdefault("log", [])
@@ -892,4 +931,4 @@ def load_log(bot_id):
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.4.19"
+BUILD = "23.4.20"
