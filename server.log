@@ -1,0 +1,317 @@
+2026-10-14 18:18:56.328 Uvicorn server started on :::8599
+
+  You can now view your Streamlit app in your browser.
+
+  Local URL: http://localhost:8599
+  Network URL: http://10.1.0.42:8599
+  External URL: http://20.40.223.123:8599
+
+2026-10-14 18:18:59.266 Please replace `st.components.v1.html` with `st.iframe`.
+
+`st.components.v1.html` will be removed after 2026-06-01.
+2026-10-14 18:19:01.925 Thread 'warm-tiles': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.164 Thread 'warm-lists:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.312 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.313 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.313 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.313 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.313 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.313 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.313 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.313 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.313 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.313 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.313 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.313 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.313 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.313 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.313 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.313 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.314 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.314 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.314 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.314 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.314 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.314 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.314 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.314 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.314 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.314 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.314 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.314 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.320 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.320 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.320 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.320 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.320 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.321 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.321 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.321 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.321 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.321 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.321 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.321 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.321 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.321 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.321 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.321 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.322 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.322 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.322 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.322 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.322 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.322 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.322 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.322 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.322 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.322 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.322 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.323 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.323 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.323 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.323 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.323 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.324 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.324 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.325 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.325 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.325 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.325 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.325 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.325 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.325 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.325 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.325 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.325 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.325 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.325 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.325 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.325 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.325 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.325 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.325 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.326 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.326 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.326 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.326 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.326 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.326 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.326 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.326 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.326 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.326 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.326 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.326 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.326 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.328 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.328 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.328 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.329 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.329 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.329 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.329 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.329 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.329 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.329 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.329 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.329 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.329 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.329 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.329 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.329 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.329 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.329 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.329 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.329 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.330 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.330 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.330 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.330 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.330 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.330 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.330 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.330 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.330 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.330 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.330 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.330 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.330 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.331 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.331 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.331 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.331 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.331 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.331 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.331 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.331 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.331 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.331 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.331 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.331 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.331 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.331 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.331 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.332 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.332 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.332 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.332 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.332 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.332 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.332 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.332 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.332 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.332 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.332 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.332 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.332 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.332 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.332 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.332 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.333 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.333 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.333 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.333 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.333 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.333 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.333 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.333 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.333 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.333 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.333 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.333 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.333 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.333 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.333 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.333 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.333 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.334 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.334 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.334 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.334 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.334 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.334 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.334 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.334 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.334 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.334 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.334 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.334 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.334 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.334 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.334 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.336 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.337 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.337 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.337 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.337 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.337 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.337 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.337 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.337 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.337 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.337 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.337 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.337 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.337 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.337 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.337 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.338 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.338 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.338 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.338 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.338 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.338 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.338 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.338 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.338 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.338 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.338 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.338 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.338 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.338 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.338 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.338 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.339 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.341 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.341 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.341 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.341 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.341 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.341 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.341 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.341 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.341 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.341 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.341 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.341 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.341 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.342 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.342 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.342 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.342 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.342 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.342 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.342 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.342 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.342 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.342 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.342 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.342 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.342 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.342 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.342 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.342 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.342 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.343 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.344 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.344 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.344 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.344 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.344 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.344 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.344 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.344 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.344 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.344 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.344 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.344 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.344 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.344 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.344 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.345 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.345 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.345 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:09.345 Thread 'warm-heat:sa': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:19:27.551 Please replace `st.components.v1.html` with `st.iframe`.
+
+`st.components.v1.html` will be removed after 2026-06-01.
+2026-10-14 18:19:39.506 Please replace `st.components.v1.html` with `st.iframe`.
+
+`st.components.v1.html` will be removed after 2026-06-01.
+2026-10-14 18:19:46.197 Please replace `st.components.v1.html` with `st.iframe`.
+
+`st.components.v1.html` will be removed after 2026-06-01.
+$SOX: possibly delisted; no price data found  (period=5d)
+
+1 Failed download:
+['SOX']: possibly delisted; no price data found  (period=5d)
+$SOX: possibly delisted; no price data found  (period=5d)
+
+1 Failed download:
+['SOX']: possibly delisted; no price data found  (period=5d)
+$WBD: possibly delisted; no price data found  (period=5d)
+$EA: possibly delisted; no price data found  (period=5d)
+
+2 Failed downloads:
+['WBD', 'EA']: possibly delisted; no price data found  (period=5d)
+2026-10-14 18:20:06.806 Thread 'warm-summary': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2026-10-14 18:20:40.167 Please replace `st.components.v1.html` with `st.iframe`.
+
+`st.components.v1.html` will be removed after 2026-06-01.
+2026-10-14 18:20:47.118 Please replace `st.components.v1.html` with `st.iframe`.
+
+`st.components.v1.html` will be removed after 2026-06-01.
+2026-10-14 18:20:55.827 Please replace `st.components.v1.html` with `st.iframe`.
+
+`st.components.v1.html` will be removed after 2026-06-01.
+  Stopping...
