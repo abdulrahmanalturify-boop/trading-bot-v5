@@ -39,7 +39,7 @@ div[class*="st-key-wlp_r_"] [data-testid="stButton"] button{min-height:34px!impo
 .wlp-card .hd{display:flex;align-items:center;gap:9px}
 .wlp-card .hd .nm{min-width:0;flex:1}.wlp-card .hd b{display:block;color:#fff;font-size:.95rem}.wlp-card .hd span{display:block;color:#9D97A5;font-size:.72rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .wlp-card .q{display:flex;align-items:baseline;gap:8px;margin:8px 0 6px}.wlp-card .q b{font-size:1.05rem;color:#fff;direction:ltr}
-.wlp-card p{margin:0;font-size:.78rem;line-height:1.5;color:#B9B3C4;min-height:3.6em}
+.wlp-card p{margin:0;font-size:.78rem;line-height:1.5;color:#B9B3C4;min-height:6em}
 div[class*="st-key-wlp_c_"] [data-testid="stButton"] button{min-height:34px!important;border-radius:999px!important;font-size:.8rem!important}
 .wlp-note{font-size:.78rem;color:#9D97A5;margin:6px 0 2px}
 </style>"""
@@ -197,7 +197,7 @@ def _list(wl, key):
         top_, sub_ = (T.sym_label(s_), T.sym_sub(s_)) if tasi.is_sa(s_) else (s_, _name(s_))
         spark = T.sparkline(sp, T.UP if (pct or 0) >= 0 else T.DOWN, 84, 26) if sp is not None else "<span></span>"
         with st.container(key=f"wlp_r_{s_}"):
-            a, b = st.columns([6, 1.3], vertical_alignment="center")
+            a, b = st.columns([5, 1.9], vertical_alignment="center")
             with a:
                 ui.html(f'<div class="wlp-row">{T.logo_circle(s_, lg.get(s_), 36)}<div class="nm"><b dir="auto">{T.esc(top_)}</b><span>{T.esc(sub_)}</span></div>'
                         f'<div class="px">{T.fmt_price(p) if p is not None else "—"}</div><div class="sp">{spark}</div>'
@@ -286,4 +286,4 @@ def _add_typed(key):
     ss.wlp_add = ""
 
 
-BUILD = "23.4.30"
+BUILD = "23.4.31"

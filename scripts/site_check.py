@@ -1814,7 +1814,7 @@ def profile_run(b, report):
     report["profile"] = out
 
 
-HOME_SHOT = True     # a quick run: the home page (the tools bento first), Arabic and English, desktop and phone, whole page
+HOME_SHOT = False     # a quick run: the home page (the tools bento first), Arabic and English, desktop and phone, whole page
 
 
 def home_shot(b, report):
@@ -1869,7 +1869,7 @@ def home_shot(b, report):
                     pg.set_viewport_size(vp)
                 except Exception as e:
                     res["wl_err"] = f"error {str(e)[:200]}"
-            if False and tag in ("en_us_desk", "ar_sa_desk"):   # the heat map: click a sector's header, picture the comparison under the map
+            if tag in ("en_us_desk", "ar_sa_desk"):   # the heat map: click a sector's header, picture the comparison under the map
                 try:
                     hd = pg.locator(".hm a.ghl").first
                     hd.scroll_into_view_if_needed(timeout=8000)
