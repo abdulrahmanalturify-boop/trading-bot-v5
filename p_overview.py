@@ -20,6 +20,7 @@ import p_calendar as PC
 import p_markets as PM
 import p_newsintel as PNI
 import theme as T
+import mascot
 import ui
 import tasi
 import universe as U
@@ -42,7 +43,7 @@ def _timed(label, fn, *a):
 # ---------------------------------------------------------------- the tools, as adverts placed between the page's sections
 # (key, page, icon, tone, kicker, title, pitch, call to action). "ai" opens the chat window instead of a page.
 TOOLS = {
-    "ai": (None, "auto_awesome", "ai", ("AI assistant", "مساعد ذكي"), ("Ask TURA AI anything", "اسأل TURA AI أي شيء"),
+    "ai": (None, "auto_awesome", "ai", ("Kuhailan · AI assistant", "كحيلان · المساعد الذكي"), ("Ask Kuhailan anything", "اسأل كحيلان أي شيء"),
            ("A number you don't get, a chart, a word? Ask here and get it in plain words, on any page of the site.",
             "رقم ما فهمته؟ رسم؟ مصطلح؟ اسأل هنا ويشرح لك بكلام بسيط، في أي صفحة بالموقع."), ("Try it now, free", "جرّبه الآن مجاناً")),
     "hunt": ("scanner", "radar", "hunt", ("Today's picks", "فرص اليوم"), ("Don't miss today's opportunity", "لا تفوّت فرصة اليوم"),
@@ -105,6 +106,8 @@ div[class*="st-key-ovad_"]:hover .ovad .big,.ovad.solo:hover .big{transform:rota
 .ovad .k>span{display:inline-flex;align-items:center;gap:8px}
 .ovad .k .ic{width:28px;height:28px;border-radius:9px;display:grid;place-items:center;background:rgba(255,255,255,.18);box-shadow:inset 0 1px 0 rgba(255,255,255,.22)}
 .ovad .k .ic .ms{font-size:17px;color:#fff}
+.ovad .k .ic svg.khl{width:26px;height:26px;animation:none}
+.vz.chat .a i svg.khl{width:22px;height:22px;animation:none}
 .ovad .k em{font-style:normal;letter-spacing:.04em;padding:3px 9px;border-radius:999px;background:rgba(255,255,255,.95);color:var(--a2);font-weight:800}
 .ovad .vz{position:relative;margin:14px 0 14px;height:118px;border-radius:16px;background:rgba(5,8,25,.26);border:1px solid rgba(255,255,255,.12);box-shadow:inset 0 1px 0 rgba(255,255,255,.08);overflow:hidden}
 .ovad .tt{display:block;font-size:19px;font-weight:800;line-height:1.25;color:#fff;letter-spacing:-.01em}
@@ -131,7 +134,7 @@ div[class*="st-key-ovad_"]:hover .ovad.rtl .go .ms,.ovad.solo.rtl:hover .go .ms{
 .vz.chat .q{align-self:flex-end;max-width:82%;padding:6px 10px;border-radius:12px;border-end-end-radius:4px;background:rgba(255,255,255,.92);color:#312E81;font-size:12px;font-weight:700;animation:ovin .5s .1s ease-out both}
 .ovad.rtl .vz.chat .q{align-self:flex-start}
 .vz.chat .a{display:flex;gap:7px;align-items:flex-start;font-size:11.5px;line-height:1.5;color:rgba(255,255,255,.92);animation:ovin .5s .6s ease-out both}
-.vz.chat .a i{flex:none;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:10px;background:linear-gradient(135deg,#60A5FA,#A78BFA)}
+.vz.chat .a i{flex:none;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:10px;background:linear-gradient(155deg,#7B6CFF,#3B82F6 58%,#2DB6EB)}
 .vz.chat .ty{display:flex;gap:4px;padding-inline-start:27px}
 .vz.chat .ty b{width:5px;height:5px;border-radius:50%;background:#C4B5FD;animation:ovdot 1.2s infinite ease-in-out}
 .vz.chat .ty b:nth-child(2){animation-delay:.15s}.vz.chat .ty b:nth-child(3){animation-delay:.3s}
@@ -386,7 +389,7 @@ def _vz(key, f):
         q = L("What does RSI mean?", "وش يعني مؤشر RSI؟")
         a = L("A momentum gauge from 0 to 100: above 70 the stock may be overbought, under 30 oversold.",
               "مقياس زخم من 0 إلى 100: فوق 70 ممكن يكون السهم متشبّع شراء، وتحت 30 متشبّع بيع.")
-        return (f'<div class="vz chat"><div class="q">{T.esc(q)}</div><div class="a"><i>✦</i><span>{T.esc(a)}</span></div>'
+        return (f'<div class="vz chat"><div class="q">{T.esc(q)}</div><div class="a"><i>{mascot.svg(22, uid="kc")}</i><span>{T.esc(a)}</span></div>'
                 '<div class="ty"><b></b><b></b><b></b></div></div>')
     if key == "hunt":
         lt, le, ls = L("Target", "الهدف"), L("Entry", "الدخول"), L("Stop", "الوقف")
@@ -469,7 +472,7 @@ def _ad_html(key, d, f, sa, wide=False):
             f'<span class="go">{T.esc(L(*cta))}{T.icon("arrow_forward")}</span></div>')
     return (f'<div class="ovad {tone}{" rtl" if ar else ""}{" solo" if solo else ""}{" wide" if wide else ""}" data-nogq{attrs}>'
             f'<span class="big" aria-hidden="true">{icon}</span>'
-            f'<div class="k"><span><span class="ic">{T.icon(icon)}</span>{T.esc(L(*kick))}</span>{_kick_pill(key, live)}</div>'
+            f'<div class="k"><span><span class="ic">{mascot.svg(26, uid="ka") if solo else T.icon(icon)}</span>{T.esc(L(*kick))}</span>{_kick_pill(key, live)}</div>'
             f'<div class="bd">{vz}{text}</div></div>')
 
 

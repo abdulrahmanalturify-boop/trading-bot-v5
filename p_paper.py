@@ -44,6 +44,7 @@ import ta
 import tasi
 import tdash
 import theme as T
+import mascot
 import ui
 from i18n import L, is_ar, sector_name
 from sp500 import gics_name
@@ -135,6 +136,7 @@ PAGE_CSS = f"""<style>
 .pbhero.rtl .txt {{ margin-left:auto; background:linear-gradient(270deg,rgba(14,9,24,.78) 0%,rgba(14,9,24,.35) 70%,rgba(14,9,24,0) 100%); }}
 .pbhero .eb {{ color:{_C}; font-weight:600; letter-spacing:.2em; font-size:.72rem; text-transform:uppercase; display:flex; align-items:center; gap:8px; }}
 .pbhero .eb .ms {{ font-size:1.05rem; }}
+.pbhero .eb svg.khl, .pbfb .eb svg.khl {{ width:26px; height:26px; }}
 .pbhero .t {{ font-size:2.7rem; font-weight:300; line-height:1.04; margin:8px 0 8px; color:#fff; letter-spacing:-.035em; }}
 .pbhero .t b {{ background:linear-gradient(90deg,{_A},{_V},{_C}); -webkit-background-clip:text; background-clip:text; color:transparent; }}
 .pbhero .tg {{ color:#CAC5D1; font-size:.94rem; line-height:1.6; max-width:540px; }}
@@ -972,7 +974,7 @@ def hero_html(sims, n_bots):
     eb = (L("Paper trading lab", "مختبر التداول الافتراضي") + (L(" · Saudi market", " · السوق السعودي") if _sa() else "")
           + (L(" · yours", " · خاصة فيك") if _view() == "mine" else L(" · the site's bots", " · بوتات الموقع")))
     return (f'<div class="pbhero{" rtl" if is_ar() else ""}"><div class="grid"></div><div class="art">{_hero_art(rk)}</div>'
-            f'<div class="txt"><div class="eb">{T.icon("robot_2")}{T.esc(eb)}</div>'
+            f'<div class="txt"><div class="eb">{mascot.svg(24, uid="kb")}{T.esc(eb)}</div>'
             f'<div class="t">{title}</div><div class="tg">{T.esc(tag)}</div><div class="chips">{"".join(chips)}</div>'
             f'<div class="st">{T.market_status(is_ar())}</div></div></div>')
 
@@ -3122,7 +3124,7 @@ def form_banner(mode, bot=None):
         sub = L("Saving replays the bot from its start date with the new settings.", "الحفظ يعيد حساب البوت من تاريخ بدايته بالإعدادات الجديدة.")
     steps = "".join(f'<span><i>{i}</i>{T.esc(L(en, ar_))}</span>' for i, (en, ar_) in enumerate(STEPS, 1))
     return (f'<div class="pbfb{" rtl" if is_ar() else ""}"><div class="art">{FORM_ART}</div><div class="tx">'
-            f'<div class="eb">{T.icon("robot_2")}{L("Paper trading lab", "مختبر التداول الافتراضي")}</div>'
+            f'<div class="eb">{mascot.svg(24, uid="kf")}{L("Paper trading lab", "مختبر التداول الافتراضي")}</div>'
             f'<div class="t">{title}</div><div class="s">{T.esc(sub)}</div><div class="pbstp">{steps}</div></div></div>')
 
 

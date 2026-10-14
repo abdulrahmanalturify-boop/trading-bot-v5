@@ -2765,6 +2765,7 @@ FX_JS = """<script>
   w[KEY + 'Frame'] = window.frameElement;
   var offs = [], live = true;
   w[KEY + 'Off'] = function () { live = false; offs.forEach(function (f) { try { f(); } catch (e) {} }); offs = []; };
+  var ROBOT = true;                              // Kuhailan, the site's robot (mascot.py), stands on the button and in the chat's head now: the sphere is not drawn
   var still = w.matchMedia && w.matchMedia('(prefers-reduced-motion: reduce)').matches;
   // the nodes: evenly over a sphere (a golden spiral); every node linked to its three nearest. Only the wires are drawn:
   // no glowing nodes, no drops, no glow inside the circle, the letters without a glow.
@@ -2891,7 +2892,7 @@ FX_JS = """<script>
     if (ms - last < (hot ? 24 : 32)) return;       // about 40 frames a second while in use, 30 at rest
     last = ms;
     var t = ms / 1000;
-    if (!btn) { big.style.opacity = '0'; } else {
+    if (!btn || ROBOT) { big.style.opacity = '0'; } else {
       var r = btn.getBoundingClientRect();
       if (fr++ % 6 === 0) {
         var f = d.querySelector('.st-key-alturaifi_ai_fab'), cs = f ? w.getComputedStyle(f) : null;
@@ -2910,7 +2911,7 @@ FX_JS = """<script>
       orbs[0].draw(t, hot, lean);
     }
     var head = d.querySelector('.ai-orb');
-    if (head) {
+    if (head && !ROBOT) {
       var hc = head.querySelector('canvas.ai-neural');
       if (!hc) {
         hc = d.createElement('canvas'); hc.className = 'ai-neural'; hc.setAttribute('aria-hidden', 'true');
