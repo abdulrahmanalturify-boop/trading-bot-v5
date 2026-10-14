@@ -79,7 +79,7 @@ CSS = """<style data-lm="keep">
 [data-testid="stColumn"]:has(div[class*="st-key-ovads_"]){position:sticky;top:80px;align-self:flex-start;z-index:2}
 div[class*="st-key-ovads_"]{gap:16px!important;padding-top:18px}
 div[class*="st-key-ovbody_"] .msg{grid-template-columns:repeat(2,minmax(0,1fr))!important}
-div.st-key-ovsum .msg{grid-template-columns:minmax(0,1fr)!important}
+div.st-key-ovsum .msg{grid-template-columns:repeat(2,minmax(0,1fr))!important}
 /* ---- the card: a coloured poster with its tool's picture, name, promise, three points and a call to action; the whole card
    opens the tool. Hovered, it lifts, light sweeps across it and the arrow moves on. */
 @keyframes ovshine{from{transform:translateX(-120%) skewX(-18deg)}to{transform:translateX(320%) skewX(-18deg)}}
@@ -903,8 +903,9 @@ def _regime(d):
     reg = got.get("reg") if got else None
     if reg:
         import p_scanner as PS
+        css = "<style>" + "\n".join(l for l in PS.CSS.splitlines() if ".hnreg" in l) + "</style>"   # the strip's own styles
         ui.sec("explore", "The market today", "السوق اليوم")
-        ui.html(PS.mood_html(reg))
+        ui.html(css + PS.mood_html(reg))
 
 
 def _summary(d):
@@ -919,7 +920,7 @@ def _summary(d):
 
 def _summary_and_mood(d):
     """The market summary on one side, the news mood and the Fear & Greed dial on the other."""
-    a, b = st.columns([1.55, 1], gap="medium")
+    a, b = st.columns([1.9, 1], gap="large")
     with a:
         ui.safe(_summary, d)
     with b:
@@ -1004,8 +1005,8 @@ def page_overview():
         _timed("part a", _with_ads, "a", "right", ["ai"], d, f, sa,
                lambda: (ui.safe(_in_news, d), ui.safe(_markets, px, sa, d.macro())))
         _timed("regime", ui.safe, _regime, d)
-        _timed("part b", _with_ads, "b", "left", ["hunt", "bots"], d, f, sa,
-               lambda: (ui.safe(_summary_and_mood, d), ui.safe(_movers, d)))
+        _timed("summary", ui.safe, _summary_and_mood, d)
+        _timed("part b", _with_ads, "b", "left", ["hunt", "bots"], d, f, sa, lambda: ui.safe(_movers, d))
         _timed("banner", ui.safe, _banner, "robo", d, f, sa)
         _timed("part c", _with_ads, "c", "right", ["pf", "earn"], d, f, sa, lambda: _timed("heatmap", ui.safe, PM.heatmap_section, d.heat()))
         last = [k for k in ("screener", "news", "academy", "xbots") if _available(k, sa)]
