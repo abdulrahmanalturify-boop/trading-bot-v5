@@ -768,13 +768,13 @@ def _jobs(sa):
     """Everything the page needs, with how long each stays fresh (seconds)."""
     m = MK.SA if sa else MK.US
     # in order of importance: the first pieces are made first (two at a time); the heavy ones last, never waited for
-    jobs = {"tiles": (PM._tile_prices, 120),
-            f"snap:{m}": (lambda: PNI.compute_snapshot(m, 24), 480),
-            f"stories:{m}": (lambda: _compute_stories(m, sa), 480),
-            f"lists:{m}": (lambda: _compute_lists(sa), 300)}
+    jobs = {"tiles": (PM._tile_prices, 300),
+            f"snap:{m}": (lambda: PNI.compute_snapshot(m, 24), 600),
+            f"stories:{m}": (lambda: _compute_stories(m, sa), 600),
+            f"lists:{m}": (lambda: _compute_lists(sa), 600)}
     if not sa:
         jobs["macro"] = (data.macro, 3600)
-        jobs["summary"] = (_compute_summary, 300)
+        jobs["summary"] = (_compute_summary, 600)
     jobs.update({"xb": (lambda: __import__("xbots").load_all()[0], 300),
                  f"heat:{m}": (lambda: _compute_heat(sa), 600),
                  f"hunt:{m}": (lambda: _compute_hunt(sa), 600)})
@@ -1040,4 +1040,4 @@ def page_overview():
         print(f"[prof] page {'sa' if sa else 'us'} total {time.time() - t0:.2f}s", flush=True)
 
 
-BUILD = "23.4.27"
+BUILD = "23.4.28"

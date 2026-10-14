@@ -10,7 +10,7 @@ import sys
 import threading
 import time
 
-BUILD = "23.4.27"
+BUILD = "23.4.28"
 
 # kept on sys, so a reload of this module (a new version of the site) keeps what is ready
 _STATE = sys.__dict__.setdefault("_tura_warm", {"store": {}, "busy": {}, "lock": threading.Lock(), "events": {}})
@@ -42,13 +42,19 @@ def _loop_start():
                 e = store.get(k)
                 if _failed_lately(k, ttl, now):
                     continue
-                if k not in busy and (e is None or now - e["t"] > ttl):
+                if k not in busy and (e is None or _stale(e, ttl, now)):
                     _start(k, fn)
                     time.sleep(2)                 # one after another, not all at once
     threading.Thread(target=loop, daemon=True, name="warm-keeper").start()
 
 
 RETRY = 90                                       # a piece that could not be made is asked for again after this long
+
+
+def _stale(e, ttl, now=None):
+    """Is the piece old? A piece that was slow to make is kept longer (at least six times as long as it took): when the data
+    sources crawl (Yahoo slowing the server's address down), the background work calms down by itself instead of piling up."""
+    return (now or time.time()) - e["t"] > max(ttl, 6 * float(e.get("took") or 0))
 
 
 def _failed_lately(key, ttl, now=None):
@@ -100,7 +106,7 @@ def get(key, fn, ttl, wait=60):
         e = _STATE["store"].get(key)
         busy = key in _STATE["busy"]
     if e is not None:
-        if time.time() - e["t"] > ttl and not busy:
+        if _stale(e, ttl) and not busy:
             _start(key, fn)
         return e["v"]
     if _failed_lately(key, ttl):                     # it failed a moment ago: not asked again yet
@@ -124,7 +130,7 @@ def prefetch(jobs, want=True):
         with _STATE["lock"]:
             e = _STATE["store"].get(key)
             busy = key in _STATE["busy"]
-        if not busy and (e is None or now - e["t"] > ttl) and not _failed_lately(key, ttl, now):
+        if not busy and (e is None or _stale(e, ttl, now)) and not _failed_lately(key, ttl, now):
             _start(key, fn)
 
 
