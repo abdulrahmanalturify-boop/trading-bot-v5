@@ -308,11 +308,11 @@ XBSUM_CSS = """<style>
 .xbsum { padding:14px 14px 12px; border-radius:18px; background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.08); }
 .xbsum .h { display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:#C9C4D3; margin-bottom:8px; }
 .xbsum .h .ms { font-size:18px; } .xbsum .h small { margin-inline-start:auto; font-weight:600; letter-spacing:0; text-transform:none; color:#8F899B; font-size:.72rem; }
-.xbsum .r { display:grid; grid-template-columns:36px minmax(0,1fr) 58px auto; gap:10px; align-items:center; padding:7px 0; border-top:1px solid rgba(255,255,255,.07); }
+.xbsum .r { display:grid; grid-template-columns:34px minmax(0,1fr) 46px minmax(52px,auto); gap:8px; align-items:center; padding:7px 0; border-top:1px solid rgba(255,255,255,.07); }
 .xbsum .r:first-of-type { border-top:0; }
-.xbsum .ic { width:36px; height:36px; border-radius:11px; display:grid; place-items:center; background:linear-gradient(140deg, var(--xc), rgba(255,255,255,.14)); box-shadow:0 6px 14px -8px var(--xc); }
+.xbsum .ic { width:34px; height:34px; border-radius:10px; display:grid; place-items:center; background:linear-gradient(140deg, var(--xc), rgba(255,255,255,.14)); box-shadow:0 6px 14px -8px var(--xc); }
 .xbsum .ic .ms { font-size:1.25rem; color:#fff; }
-.xbsum .nm { min-width:0; } .xbsum .nm b { display:block; color:#fff; font-size:.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.xbsum .nm { min-width:0; } .xbsum .nm b { display:block; color:#fff; font-size:.88rem; line-height:1.2; }
 .xbsum .nm span { display:block; color:#8F899B; font-size:.7rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .xbsum .md { text-align:end; line-height:1.15; } .xbsum .md b { display:block; font-size:1rem; font-variant-numeric:tabular-nums; direction:ltr; }
 .xbsum .md span { font-size:.7rem; color:#8F899B; white-space:nowrap; }
@@ -337,7 +337,7 @@ def summary_html(mk, states=None):
             last = st_["read_at"]
         rows += (f'<div class="r" style="--xc:{b["color"]}"><span class="ic">{T.icon(b["icon"])}</span>'
                  f'<span class="nm"><b>{T.esc(L(*b["name"]))}</b><span>{T.esc(L(*b["beat"]))}</span></span>'
-                 f'{_gauge(m, col, 58)}<span class="md"><b style="color:{col}">{"—" if m is None else f"{m:+.0f}"}</b><span>{T.esc(word)}</span></span></div>')
+                 f'{_gauge(m, col, 46)}<span class="md"><b style="color:{col}">{"—" if m is None else f"{m:+.0f}"}</b><span>{T.esc(word)}</span></span></div>')
     head = L("X Bots · the mood on X", "بوتات X · المزاج على X")
     sub = L("Mood · 6 h", "المزاج · 6 ساعات")
     foot = (L(f"Last read {_when(last)}", f"آخر قراءة {_when(last)}") if last else
@@ -735,4 +735,4 @@ def page_xbots():
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.4.20"
+BUILD = "23.4.21"
