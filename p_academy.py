@@ -5,7 +5,9 @@ Clicking anywhere on a course card opens it (invisible button over the card, no 
 import math
 import json
 import base64
+import zlib
 import academy_micro as AM
+import academy_learning as LE
 import pandas as pd
 import academy_visuals as AV
 import academy_labs as AL
@@ -30,6 +32,17 @@ def _course(cid):
     return next((c for c in A.COURSES if c["id"] == cid), None)
 
 
+def _learning():
+    if "ac_learning" not in ss:
+        ss["ac_learning"] = LE.clean({}, A.COURSES)
+    return ss["ac_learning"]
+
+
+def _learning_stats():
+    return LE.stats(_learning(), A.COURSES, ss.get("completed", set()),
+                    {c["id"]: int(ss.get(f"step_{c['id']}", 0) or 0) for c in A.COURSES})
+
+
 # ---------------------------------------------------------------- progress kept in the browser
 # The progress (courses completed, the step reached in the others) is kept in this browser like the portfolio code: a compact
 # text with stable course IDs. Legacy index codes are migrated using a frozen old catalog.
@@ -39,24 +52,31 @@ def _progress_code():
     done = sorted(set(ss.get("completed", set())) & courses.keys())
     steps = {cid: min(max(int(ss.get(f"step_{cid}", 0) or 0), 0), len(c["sections"]))
              for cid, c in courses.items() if ss.get(f"step_{cid}", 0) and cid not in done}
-    payload = json.dumps({"done": done, "steps": steps}, separators=(",", ":")).encode()
-    return "v2_" + base64.urlsafe_b64encode(payload).decode().rstrip("=")
+    payload = json.dumps({"done": done, "steps": steps, "learning": LE.clean(_learning(), A.COURSES)}, separators=(",", ":")).encode()
+    return "v3_" + base64.urlsafe_b64encode(zlib.compress(payload)).decode().rstrip("=")
 
 
 def _progress_load(code):
     courses = {c["id"]: c for c in A.COURSES}
     done, steps = [], {}
-    if str(code or "").startswith("v2_"):
+    if str(code or "").startswith(("v2_", "v3_")):
         try:
             raw = code[3:]
-            payload = json.loads(base64.urlsafe_b64decode(raw + "=" * (-len(raw) % 4)))
+            decoded = base64.urlsafe_b64decode(raw + "=" * (-len(raw) % 4))
+            if code.startswith("v3_"):
+                decoded = zlib.decompressobj().decompress(decoded, 65537)
+                if len(decoded) > 65536:
+                    return
+            payload = json.loads(decoded)
             if not isinstance(payload, dict):
                 return
             done = payload.get("done", [])
             steps = payload.get("steps", {})
             if not isinstance(done, list) or not isinstance(steps, dict):
                 return
-        except (ValueError, TypeError):
+            ss["ac_learning"] = LE.clean(payload.get("learning"), A.COURSES)
+            ss["ac_week_goal"] = ss["ac_learning"]["goal"]
+        except (ValueError, TypeError, zlib.error):
             return
     else:
         # Freeze the old index mapping: never interpret old codes against the new catalog.
@@ -74,7 +94,7 @@ def _progress_load(code):
                 continue
     ss.setdefault("completed", set()).update(cid for cid in done if isinstance(cid, str) and cid in courses)
     for cid, step in steps.items():
-        if cid not in courses or not isinstance(step, int):
+        if cid not in courses or type(step) is not int:
             continue
         key = f"step_{cid}"
         ss[key] = min(len(courses[cid]["sections"]), max(int(ss.get(key, 0) or 0), step, 0))
@@ -102,7 +122,7 @@ def _progress_sync():
 def _status(cid):
     if cid in ss.get("completed", set()):
         return "done"
-    return "prog" if ss.get(f"step_{cid}", 0) > 0 else "new"
+    return "prog" if ss.get(f"step_{cid}", 0) > 0 or any(x.startswith(cid + ":") for x in _learning()["lessons"]) else "new"
 
 
 def _card_html(c):
@@ -124,6 +144,7 @@ def _card_html(c):
 
 
 def _open_course(cid):
+    LE.visit(_learning(), cid)
     ss["course"] = cid
     st.query_params["course"] = cid
     if cid not in ss.get("ac_active_path", []):
@@ -230,6 +251,7 @@ def interactive(key):
 # ---------------------------------------------------------------- course view
 def _course_view(c):
     cid = c["id"]
+    LE.visit(_learning(), cid)
     n = len(c["sections"])
     step = min(max(int(ss.setdefault(f"step_{cid}", 0)), 0), n)
     ss[f"step_{cid}"] = step
@@ -246,7 +268,8 @@ def _course_view(c):
             f'<div class="ac-course-meta">{T.badge(L(*lvl), LEVEL_KIND.get(lvl[0], "neu"), "signal_cellular_alt")}{mins}{lessons}</div></div></section>')
     with st.expander(L("Lesson map & study notes", "خريطة الدروس وملخص المراجعة")):
         for i, section in enumerate(c["sections"]):
-            st.button(f"{i+1:02d} · {L(section[0], section[1])}", key=f"lesson_jump_{cid}_{i}",
+            reached = f"{cid}:{i}" in _learning()["lessons"] or cid in ss.get("completed", set())
+            st.button(f"{'✓' if reached else f'{i+1:02d}'} · {L(section[0], section[1])}", key=f"lesson_jump_{cid}_{i}",
                       on_click=_jump_lesson, args=(cid, i), width="stretch")
         _download_notes(c, "lesson")
     _course_videos(c)
@@ -261,7 +284,7 @@ def _course_view(c):
             if viz:
                 ui.sec("touch_app", "Interactive", "تفاعلي")
                 interactive(viz)
-            if c.get("micro"):
+            if step < len(c["quiz"]):
                 _checkpoint(c, step)
             with st.container(key="academy_lesson_navigation"):
                 a, _, b = st.columns([1, 2, 1])
@@ -270,6 +293,7 @@ def _course_view(c):
                     st.rerun()
                 if b.button(L("Next", "التالي") if step < n - 1 else L("Take the quiz", "ابدأ الاختبار"), icon=":material/chevron_right:",
                             type="primary", width="stretch"):
+                    LE.lesson(_learning(), cid, step)
                     ss[f"step_{cid}"] = step + 1
                     st.rerun()
         return
@@ -289,6 +313,7 @@ def _course_view(c):
             st.warning(L("Answer every question before checking.", "جاوب على كل الأسئلة قبل التحقق."))
         else:
             ss[f"checked_{cid}"] = list(answers)
+            _learning()["quizzes"][cid] = {"score": sum(got == q[3] for got, q in zip(answers, c["quiz"])), "total": len(c["quiz"])}
     if ss.get(f"checked_{cid}") == answers:
         score = 0
         for i, ((q_en, q_ar, opts, ans, w_en, w_ar), got) in enumerate(zip(c["quiz"], answers)):
@@ -362,6 +387,7 @@ def dashboard():
 
 
 def _jump_lesson(cid, step):
+    LE.visit(_learning(), cid)
     ss[f"step_{cid}"] = step
 
 
@@ -399,53 +425,156 @@ def _download_notes(c, namespace):
 
 def _academy_hero():
     beginner_count = sum(c["level"][0] == "Beginner" for c in A.COURSES)
-    ui.html(f'<section class="ac-hero ac-refresh"><div class="ac-brand-lockup" dir="ltr">{T.brand(None, "acb", pro=None, color="#F2F5FF", label="TURA")}<span>ACADEMY</span></div>'
-            f'<div dir="auto"><div class="ac-kicker">{L("ONE SMALL LESSON. A BETTER UNDERSTANDING.", "فكرة صغيرة كل مرة. فهم أكبر كل يوم.")}</div>'
-            f'<h1>{L("Your first step.<br>Your own pace.", "خطوتك الأولى.<br>على راحتك.")}</h1>'
-            f'<p>{L("Start from zero with short lessons, real examples and hands-on practice. Learn one idea, try it, then check your understanding.", "ابدأ من الصفر بدروس قصيرة وأمثلة واضحة وتطبيق بيدك. افهم فكرة، جرّبها، وبعدين اختبر فهمك.")}</p>'
-            f'<div class="ac-meta"><span>{beginner_count} {L("beginner courses", "دورة للمبتدئين")}</span><span>{L("12 new • about 4 min each", "١٢ دورة جديدة • نحو ٤ دقائق لكل دورة")}</span>'
-            f'<span>{L("Arabic + English", "عربي + إنجليزي")}</span></div></div>'
-            f'<div class="ac-hero-aside">{AV.MARK}<div class="ac-lesson-loop"><span>01 · {L("Learn", "افهم")}</span><span>02 · {L("Try", "جرّب")}</span><span>03 · {L("Check", "اختبر")}</span></div></div></section>')
+    direction = "rtl" if is_ar() else "ltr"
+    ui.html(f'<section class="ac-campus" dir="{direction}"><div class="ac-brand-lockup" dir="ltr">'
+            f'{T.brand(None, "acb", pro=None, color="#F2F5FF", label="TURA")}<span>ACADEMY</span></div>'
+            f'<div class="ac-campus-content"><div><div class="ac-kicker">{L("BUILD KNOWLEDGE. ONE IDEA AT A TIME.", "معرفة تبنيها، فكرة وراء فكرة.")}</div>'
+            f'<h1>{L("Invest in your understanding.", "استثمر في فهمك.")}</h1>'
+            f'<p>{L("Short lessons. Clear examples. Practice that makes it click.", "دروس قصيرة، أمثلة واضحة، وتجارب تخلي الفكرة تثبت.")}</p>'
+            f'<div class="ac-meta"><span>{len(A.COURSES)} {L("courses", "دورة")}</span><span>{beginner_count} {L("for beginners", "للمبتدئين")}</span>'
+            f'<span>{L("Learn · Practise · Check", "افهم · جرّب · اختبر")}</span></div></div>'
+            f'<div class="ac-campus-art" aria-hidden="true">{AV.MARK}<span>01 / 02 / 03</span></div></div></section>')
+
+
+def _dashboard_metrics(info):
+    cards = [
+        ("school", L("Courses completed", "دورات أكملتها"), str(len(info["done"])), L(f"of {len(A.COURSES)} courses", f"من {len(A.COURSES)} دورة"), "#8caaff"),
+        ("menu_book", L("Lessons covered", "دروس تعلّمتها"), str(info["lessons"]), L(f"of {info['total_lessons']} lessons", f"من {info['total_lessons']} درس"), "#78d8d4"),
+        ("fact_check", L("Quiz accuracy", "دقّة إجاباتك"), "—" if info["accuracy"] is None else str(info["accuracy"])+"%",
+         L("Take your first quiz", "ابدأ أول اختبار") if info["accuracy"] is None else L(f"Latest result in {info['quiz_count']} quizzes", f"آخر نتيجة في {info['quiz_count']} اختبارات"), "#ba9af4"),
+        ("local_fire_department", L("Learning streak", "أيامك المتواصلة"), str(info["streak"]), L("Days with a lesson or challenge", "أيام فيها درس أو تحدّي"), "#f2bd7a")]
+    ui.html('<div class="ac-metrics">' + "".join(
+        f'<div class="ac-metric" style="--ac-tone:{color}"><div class="ac-metric-top">{T.icon(icon)}<span>{label}</span></div>'
+        f'<strong>{value}</strong><small>{hint}</small></div>' for icon, label, value, hint, color in cards) + '</div>')
+
+
+def _daily_challenge():
+    chosen = LE.daily_question(A.COURSES)
+    if not chosen:
+        return
+    c, _, q = chosen
+    day = LE.today().isoformat()
+    with st.container(key="academy_daily", border=True):
+        ui.html(f'<div class="ac-section-head"><div><div class="ac-kicker">{L("A MINUTE TO THINK", "دقيقة تختبر فيها فهمك")}</div>'
+                f'<h3>{L("Your daily challenge", "تحدّيك اليومي")}</h3></div>{T.icon("bolt", "#f2bd7a")}</div>')
+        solved = _learning()["activity"].get(day, {}).get("challenge", False)
+        got = st.radio(L(q[0], q[1]), list(range(len(q[2]))), index=None,
+                       format_func=lambda i, labels=[L(*o) for o in q[2]]: labels[i], key="ac_daily_"+day)
+        if got is not None:
+            if got == q[3]:
+                LE.challenge(_learning())
+                if not solved:
+                    st.rerun()
+                st.success(L("Correct! ", "صحيح! ") + L(q[4], q[5]))
+            else:
+                st.info(L("Try again. ", "جرّب مرة ثانية. ") + L(q[4], q[5]))
+        elif solved:
+            st.caption(L("You have already completed today's challenge.", "أكملت تحدّي اليوم. تقدر تراجعه مرة ثانية."))
+        st.button(L("Explore this concept", "افهم الفكرة أكثر"), key="ac_daily_course", on_click=_open_course, args=(c["id"],))
+
+
+def _week_goal():
+    meta = _learning()
+    info = _learning_stats()
+    with st.container(key="academy_week", border=True):
+        ui.html(f'<div class="ac-section-head"><h3>{L("Your weekly rhythm", "وتيرة تعلّمك")}</h3>{T.icon("calendar_month", "#ba9af4")}</div>')
+        selected = st.segmented_control(L("Lessons per week", "دروس بالأسبوع"), [3, 5, 10],
+                    default=meta["goal"], key="ac_week_goal", format_func=lambda n: L(f"{n} lessons", f"{n} دروس"))
+        if selected:
+            meta["goal"] = selected
+        goal = meta["goal"]
+        ui.html(f'<div class="ac-goal-value"><strong>{info["weekly"]}</strong><span>/ {goal} {L("lessons this week", "دروس هالأسبوع")}</span></div>')
+        st.progress(min(info["weekly"] / goal, 1.0))
+        if info["weekly"] >= goal:
+            st.caption(L("Weekly goal reached. Keep going at your own pace.", "وصلت هدفك الأسبوعي. كمّل على راحتك."))
+        else:
+            st.caption(L(f"{goal-info['weekly']} more lessons to reach your goal.", f"باقي {goal-info['weekly']} دروس وتوصل لهدفك."))
+        names = [("Mon", "اثنين"),("Tue", "ثلاثاء"),("Wed", "أربعاء"),("Thu", "خميس"),("Fri", "جمعة"),("Sat", "سبت"),("Sun", "أحد")]
+        bars = []
+        maximum = max([len(row["lessons"]) for row in info["activity"]] + [3])
+        for row in info["activity"]:
+            count = len(row["lessons"])
+            label = L(*names[row["day"].weekday()])
+            hint = f'{row["day"].isoformat()} · {count} ' + L("lessons", "دروس") + (" · "+L("challenge completed", "تحدّي مكتمل") if row["challenge"] else "")
+            bars.append(f'<div class="ac-day" title="{T.esc(hint)}"><small>{count}</small><div class="ac-day-track"><span style="height:{max(4, count / maximum * 100):.0f}%" class="{"active" if count else ""}"></span></div>'
+                        f'<span>{label}</span><i class="{"solved" if row["challenge"] else ""}" aria-label="{T.esc(hint)}"></i></div>')
+        ui.html(f'<div class="ac-activity-label">{L("LAST 7 DAYS · LESSONS", "آخر ٧ أيام · الدروس")}</div><div class="ac-activity">{"".join(bars)}</div>')
+        st.caption(L("New lessons count once. The dot marks a daily challenge. Week starts Monday.", "كل درس جديد ينحسب مرة. النقطة تعني تحدّي مكتمل. الأسبوع يبدأ الاثنين."))
 
 
 def _academy_home():
-    active = next((c for c in A.COURSES if _status(c["id"]) == "prog"), None)
+    info = _learning_stats()
+    ui.html(f'<div class="ac-section-head ac-dash-heading"><div><h2>{L("Your learning dashboard", "لوحة تعلّمك")}</h2>'
+            f'<p>{L("A clear next step, and a little progress every day.", "خطوتك الجاية واضحة، وتقدّمك قدّامك كل يوم.")}</p></div>'
+            f'<span class="ac-date" dir="ltr">{LE.today().strftime("%d / %m / %Y")}</span></div>')
+    _dashboard_metrics(info)
+    last = _course(_learning().get("last"))
+    active = last if last and _status(last["id"]) != "done" else next((c for c in A.COURSES if _status(c["id"]) == "prog"), None)
     nxt = active or next((c for c in A.COURSES if _status(c["id"]) != "done"), None)
-    with st.container(key="academy_start_here"):
-        a, b = st.columns([3, 1], vertical_alignment="center")
-        a.markdown("### " + L("Pick up where you left off" if active else "A clear place to start", "كمّل من مكانك" if active else "بداية واضحة بدون حيرة"))
-        if nxt:
-            a.write(L(*nxt["title"]))
-            a.caption(L(f"About {nxt['mins']} reading minutes · practise at your own pace", f"نحو {nxt['mins']} دقائق قراءة · طبّق على راحتك"))
-            b.button(L("Continue lesson" if active else "Start learning", "كمّل الدرس" if active else "ابدأ التعلّم"),
-                     type="primary", key="ac_beginner_start", on_click=_open_course, args=(nxt["id"],), width="stretch")
-        else:
-            a.write(L("You completed the library. Revisit any course or try a lab.", "أكملت المكتبة! راجع أي دورة أو جرّب مختبر."))
-    st.subheader(L("Choose your first skill", "اختر أول مهارة"))
+    left, right = st.columns([1.65, 1], gap="large")
+    with left:
+        with st.container(key="academy_resume", border=True):
+            if nxt:
+                cid = nxt["id"]
+                step = min(int(ss.get(f"step_{cid}", 0) or 0), len(nxt["sections"]))
+                reading_badge = T.badge(L(str(nxt["mins"])+" min reading", str(nxt["mins"])+" دقائق قراءة"), "neu", "schedule")
+                ui.html(f'<div class="ac-resume-art">{A.course_art(nxt["art"], cid+"resume")}<span class="ac-resume-label">'
+                        f'{T.icon("play_circle")} {L("PICK UP WHERE YOU LEFT OFF" if active else "YOUR FIRST STEP", "كمّل من مكانك" if active else "خطوتك الأولى")}</span></div>'
+                        f'<div class="ac-resume-copy"><h3>{T.esc(L(*nxt["title"]))}</h3><p>{T.esc(L(*nxt["tagline"]))}</p>'
+                        f'<div class="ac-resume-meta">{T.badge(L(*nxt["level"]), LEVEL_KIND[nxt["level"][0]], "school")}'
+                        f'{reading_badge}</div></div>')
+                lesson_label = L("Ready for the quiz", "جاهز للاختبار") if step == len(nxt["sections"]) else L(nxt["sections"][step][0], nxt["sections"][step][1])
+                st.caption(L("Next: ", "التالي: ") + lesson_label)
+                st.progress(step / (len(nxt["sections"]) + 1), text=L(f"{step}/{len(nxt['sections'])} lessons · quiz follows", f"{step}/{len(nxt['sections'])} دروس · بعدها الاختبار"))
+                st.button(L("Continue learning" if active else "Start your first lesson", "كمّل التعلّم" if active else "ابدأ أول درس"), type="primary",
+                          icon=":material/play_arrow:", key="ac_beginner_start", on_click=_open_course, args=(cid,), width="stretch")
+            else:
+                st.success(L("You completed every course! Keep your knowledge fresh with a daily challenge.", "أكملت كل الدورات! ثبّت معرفتك بالتحدّي اليومي."))
+        _daily_challenge()
+    with right:
+        _week_goal()
+        with st.container(key="academy_milestones", border=True):
+            ui.html(f'<div class="ac-section-head"><h3>{L("Small wins, real progress", "إنجازاتك خطوة بخطوة")}</h3>{T.icon("workspace_premium", "#f2bd7a")}</div>')
+            achievements = [
+                (info["lessons"] >= 1, "menu_book", L("First idea learned", "تعلّمت أول فكرة"), L("Complete one lesson", "أكمل درس واحد")),
+                (len(info["done"]) >= 1, "school", L("First course completed", "أكملت أول دورة"), L("Pass a course quiz", "اجتز اختبار دورة")),
+                (info["streak"] >= 3, "local_fire_department", L("Three days in a row", "ثلاثة أيام متواصلة"), L("A lesson or challenge each day", "درس أو تحدّي كل يوم")),
+                (len(info["done"]) >= 5, "workspace_premium", L("Five courses completed", "أكملت خمس دورات"), L("Build a solid foundation", "ابنِ أساس قوي"))]
+            ui.html('<div class="ac-wins">' + "".join(f'<div class="ac-win {"earned" if earned else ""}">{T.icon(icon)}<div><b>{title}</b><small>{hint}</small></div>'
+                    f'{T.icon("check_circle" if earned else "radio_button_unchecked")}</div>' for earned, icon, title, hint in achievements) + '</div>')
+    ui.html(f'<div class="ac-section-head"><div><div class="ac-kicker">{L("LEARN WITH A DIRECTION", "تعلّم باتجاه واضح")}</div><h2>{L("Choose your learning path", "اختر مسار تعلّمك")}</h2></div></div>')
     tracks = [
         ("01", L("Understand the market", "افهم السوق"), L("Ownership, price and company value", "الملكية والسعر وقيمة الشركة"), ["basics", "price_value", "marketcap_split"]),
         ("02", L("Know your numbers", "اعرف أرقامك"), L("Returns, fees and recovering from losses", "العوائد والرسوم وتعويض الخسائر"), ["total_return", "fees_drag", "loss_recovery"]),
         ("03", L("Make informed decisions", "قرارات بفهم"), L("Execution, evidence and warning signs", "التنفيذ والدليل وعلامات التحذير"), ["spread_basics", "limit_practice", "scam_signals"])]
     for col, (num, title, desc, ids) in zip(st.columns(3), tracks):
-        with col, st.container(border=True):
-            st.caption(num + " / " + L("STARTER PATH", "مسار البداية"))
-            st.markdown("#### " + title)
-            st.write(desc)
+        with col, st.container(key="academy_track_"+num, border=True):
+            ui.html(f'<div class="ac-track-number">{num}<span>{L("STARTER PATH", "مسار البداية")}</span>{T.icon({"01":"candlestick_chart","02":"calculate","03":"verified"}[num])}</div>'
+                    f'<h3 class="ac-track-title">{title}</h3><p class="ac-track-desc">{desc}</p>')
             completed = sum(_status(cid) == "done" for cid in ids)
             st.progress(completed / len(ids), text=L(f"{completed}/{len(ids)} complete · {sum(_course(cid)['mins'] for cid in ids)} min reading", f"{completed}/{len(ids)} مكتمل · {sum(_course(cid)['mins'] for cid in ids)} دقيقة قراءة"))
             target = next((cid for cid in ids if _status(cid) != "done"), ids[0])
             st.button(L("Review path" if completed == len(ids) else "Start / continue", "راجع المسار" if completed == len(ids) else "ابدأ أو أكمل"), key="ac_track_"+num,
                       on_click=_start_path, args=(ids, target), width="stretch")
-    st.subheader(L("A small lesson for today", "درس خفيف لليوم"))
-    st.caption(L("Short reading time; allow extra time for exercises and quizzes.", "مدة قراءة قصيرة؛ خذ وقتك الإضافي بالتطبيق والاختبار."))
-    course_cards([_course(cid) for cid in ("price_value", "total_return", "loss_recovery")], prefix="crs_featured")
+    ui.html(f'<div class="ac-section-head"><div><div class="ac-kicker">{L("SHORT, PRACTICAL, WORTH YOUR TIME", "قصيرة، عملية، وعلى راحتك")}</div>'
+            f'<h2>{L("Your next discoveries", "أفكار تستكشفها بعدها")}</h2></div></div>')
+    recommended = [c for c in A.COURSES if c.get("micro") and _status(c["id"]) != "done" and (not nxt or c["id"] != nxt["id"])]
+    recommended += [c for c in A.COURSES if c not in recommended and c.get("micro")]
+    course_cards(recommended[:3], prefix="crs_featured")
     with st.expander(L("Plan a complete learning path", "رتّب مسارك التعليمي الكامل")):
         _learning_path()
+    st.caption(L("Progress, goals and activity are kept in this browser on this device. Activity starts when you complete new lessons or a daily challenge.",
+                 "تقدّمك وأهدافك ونشاطك محفوظة بهالمتصفح على هالجهاز. النشاط يبدأ من الدروس الجديدة اللي تكملها أو التحدّي اليومي."))
 
 
 def _materials():
     st.subheader(L("Your study desk", "مكتبك الدراسي"))
     st.caption(L("Review a concept, practise with flashcards, or download a course summary.", "راجع فكرة، تمرّن ببطاقات المراجعة، أو حمّل ملخص الدورة."))
+    ui.html('<div class="ac-resource-strip">'+"".join(
+        f'<div>{T.icon(icon)}<span><b>{title}</b><small>{desc}</small></span></div>' for icon, title, desc in [
+        ("description",L("Course summaries","ملخصات الدورات"),L("Read & download","راجع وحمّل")),
+        ("style",L("Active recall","بطاقات المراجعة"),L("Think, then reveal","فكّر، بعدها اكشف الحل")),
+        ("play_circle",L("Video library","مكتبة الفيديو"),L("Watch, then practise","شاهد، بعدها طبّق"))])+'</div>')
     kind = st.segmented_control(L("Material type", "نوع المادة"), ["notes", "cards", "video"], default="notes", key="ac_material_type",
                                 format_func=lambda v, labels={"notes":L("Study notes", "ملخصات"),"cards":L("Flashcards", "بطاقات مراجعة"),"video":L("Videos", "فيديوهات")}:labels[v]) or "notes"
     if kind == "video":
@@ -556,7 +685,7 @@ def _page_academy():
             ui.foot()
             return
         _academy_hero()
-        home, catalog, materials, labs, progress = st.tabs([L("Overview", "البداية"), L("Course library", "مكتبة الكورسات"),
+        home, catalog, materials, labs, progress = st.tabs([L("Dashboard", "لوحة التعلّم"), L("Course library", "مكتبة الكورسات"),
             L("Study materials", "مواد التعلّم"), L("Practice labs", "مختبرات التطبيق"), L("My progress", "تقدمي")])
         with home:
             _academy_home()
@@ -568,12 +697,18 @@ def _page_academy():
             state=b.selectbox(L("Show", "اعرض"),["all","new","progress","done"],key="ac_status",format_func=lambda x, labels={"all":L("All courses","كل الدورات"),"new":L("New additions","المضافة حديثًا"),"progress":L("In progress","قيد التعلم"),"done":L("Completed","المكتملة")}:labels[x])
             lvl=st.radio(L("Level", "المستوى"),list(LEVELS),index=0,horizontal=True,key="ac_lvl",format_func=lambda k, labels={key:L(*val) for key,val in LEVELS.items()}:labels[k]) or "all"
             duration=st.select_slider(L("Maximum reading time", "أقصى وقت للقراءة"),options=[4,6,8],value=8,key="ac_duration")
+            sorting = st.selectbox(L("Sort courses", "ترتيب الدورات"), ["level", "short", "new"], key="ac_sort",
+                                  format_func=lambda v, labels={"level":L("Beginner first", "المبتدئ أولًا"),"short":L("Shortest first", "الأقصر أولًا"),"new":L("Newest first", "الأحدث أولًا")}:labels[v])
             courses=[c for c in A.COURSES if c["mins"]<=duration and (lvl=="all" or c["level"][0]==lvl)
                      and (not query or query in " ".join(c["title"]+c["tagline"]).casefold())
                      and (state=="all" or state=="new" and c.get("new") or state=="progress" and _status(c["id"])=="prog" or state=="done" and _status(c["id"])=="done")]
+            if sorting == "short":
+                courses.sort(key=lambda c: (c["mins"], A.LEVEL_ORDER.index(c["level"][0])))
+            elif sorting == "new":
+                courses.sort(key=lambda c: (not c.get("new", False), A.LEVEL_ORDER.index(c["level"][0])))
             st.caption(L(f"{len(courses)} courses · choose a card to begin",f"{len(courses)} دورة · اختر بطاقة للبدء"))
             if courses:
-                signature = (query, state, lvl, duration)
+                signature = (query, state, lvl, duration, sorting)
                 if ss.get("ac_filter_signature") != signature:
                     ss["ac_page"] = 1
                     ss["ac_filter_signature"] = signature
@@ -586,7 +721,9 @@ def _page_academy():
                     "Essential": ("Build the skills every investor needs.", "مهارات أساسية يحتاجها كل مستثمر."),
                     "Intermediate": ("Go deeper into analysis and market behaviour.", "تعمّق بالتحليل وفهم حركة الأسواق."),
                     "Advanced": ("Explore derivatives, valuation scenarios and strategy testing.", "المشتقات وسيناريوهات التقييم واختبار الاستراتيجيات.")}
-                for index, level in enumerate(A.LEVEL_ORDER, 1):
+                if sorting != "level":
+                    course_cards(courses)
+                for index, level in enumerate(A.LEVEL_ORDER if sorting == "level" else [], 1):
                     group = [c for c in courses if c["level"][0] == level]
                     if group:
                         st.subheader(f"{index:02d} · {L(*LEVELS[level])} · {len(group)}")
