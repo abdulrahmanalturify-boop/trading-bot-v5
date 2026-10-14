@@ -768,18 +768,22 @@ def _compute_summary():
 def _jobs(sa):
     """Everything the page needs, with how long each stays fresh (seconds)."""
     m = MK.SA if sa else MK.US
+    # in order of importance: the first pieces are made first (two at a time); the heavy ones last, never waited for
     jobs = {"tiles": (PM._tile_prices, 120),
             f"snap:{m}": (lambda: PNI.compute_snapshot(m, 24), 240),
             f"stories:{m}": (lambda: _compute_stories(m, sa), 240),
             f"lists:{m}": (lambda: _compute_lists(sa), 300),
-            f"fg:{m}": (lambda: PI.fg_now(m), 1800),
-            f"heat:{m}": (lambda: _compute_heat(sa), 180),
-            f"hunt:{m}": (lambda: _compute_hunt(sa), 900),
-            "xb": (lambda: __import__("xbots").load_all()[0], 120)}
+            f"fg:{m}": (lambda: PI.fg_now(m), 1800)}
     if not sa:
         jobs["macro"] = (data.macro, 3600)
         jobs["summary"] = (_compute_summary, 300)
+    jobs.update({"xb": (lambda: __import__("xbots").load_all()[0], 300),
+                 f"heat:{m}": (lambda: _compute_heat(sa), 300),
+                 f"hunt:{m}": (lambda: _compute_hunt(sa), 3600)})
     return jobs
+
+
+LATER = ("heat", "hunt", "xb")                   # the page never waits for these: it shows them once they are ready
 
 
 def _get(sa, key):
@@ -787,7 +791,7 @@ def _get(sa, key):
     jobs = _jobs(sa)
     k = key if key in jobs else f"{key}:{m}"
     fn, ttl = jobs[k]
-    return _timed(f"get {k}", warm.get, k, fn, ttl)
+    return _timed(f"get {k}", warm.get, k, fn, ttl, 0 if key in LATER else 60)
 
 
 class _Day:
@@ -987,6 +991,15 @@ def _markets(px, sa, macro=None):
             ui.html(T.tiles(items))
 
 
+def _heat(d):
+    pre = d.heat()
+    if pre is None:                                  # being made in the background: a word now, the map on the next visit
+        ui.sec("grid_view", "Stock heatmap", "خريطة الأسهم الحرارية")
+        st.caption(L("The heat map is being drawn in the background: it shows in a minute.", "الخريطة الحرارية تنرسم بالخلفية: تطلع بعد دقيقة."))
+        return
+    PM.heatmap_section(pre)
+
+
 def page_overview():
     sa = MK.is_sa()
     ui.html('<span class="css-anchor"></span>\n' + CSS + PNI.CSS + PNI.CSS2)
@@ -994,7 +1007,7 @@ def page_overview():
     t0 = time.time()
     warm.prefetch(_jobs(sa))                         # every piece the page needs, side by side, in the background
     import threading                                 # and the other market's, once, a little later, so a switch to it opens at once
-    threading.Timer(20, warm.prefetch, args=(_jobs(not sa),), kwargs={"want": False}).start()
+    threading.Timer(240, warm.prefetch, args=(_jobs(not sa),), kwargs={"want": False}).start()
     px = _get(sa, "tiles") or {}
     PM.ticker_tape(px)
     ui.html(home.top_html(_chips(px, sa)))
@@ -1012,7 +1025,7 @@ def page_overview():
         _timed("summary", ui.safe, _summary_and_mood, d)
         _timed("part b", _with_ads, "b", "left", ["hunt", "bots"], d, f, sa, lambda: ui.safe(_movers, d))
         _timed("banner", ui.safe, _banner, "robo", d, f, sa)
-        _timed("part c", _with_ads, "c", "right", ["pf", "earn"], d, f, sa, lambda: _timed("heatmap", ui.safe, PM.heatmap_section, d.heat()))
+        _timed("part c", _with_ads, "c", "right", ["pf", "earn"], d, f, sa, lambda: _timed("heatmap", ui.safe, _heat, d))
         last = [k for k in ("screener", "news", "academy", "xbots") if _available(k, sa)]
         if last:
             with st.container(key="ovfoot"):

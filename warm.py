@@ -16,6 +16,7 @@ BUILD = "23.4.25"
 _STATE = sys.__dict__.setdefault("_tura_warm", {"store": {}, "busy": {}, "lock": threading.Lock(), "events": {}})
 _STATE.setdefault("jobs", {})                    # key -> [fn, ttl, last time a visitor wanted it]
 _STATE.setdefault("failed", {})                  # key -> when making it last failed (not tried again for its ttl)
+_STATE.setdefault("gate", threading.BoundedSemaphore(2))   # pieces are made two at a time: the server has two cores and one Python
 KEEP = 2 * 3600                                  # a piece nobody has wanted for this long is no longer kept fresh
 
 
@@ -56,12 +57,13 @@ def _failed_lately(key, ttl, now=None):
 
 
 def _run(key, fn):
-    t0 = time.time()
-    try:
-        val = fn()
-        err = None
-    except Exception as e:                       # a failed piece keeps the last good one
-        val, err = None, f"{type(e).__name__}: {e}"[:200]
+    with _STATE["gate"]:                          # two at a time, in the order they were asked for
+        t0 = time.time()
+        try:
+            val = fn()
+            err = None
+        except Exception as e:                   # a failed piece keeps the last good one
+            val, err = None, f"{type(e).__name__}: {e}"[:200]
     with _STATE["lock"]:
         if val is not None:
             _STATE["store"][key] = {"t": time.time(), "v": val, "took": round(time.time() - t0, 2)}
@@ -89,9 +91,10 @@ def _start(key, fn):
     return ev
 
 
-def get(key, fn, ttl, wait=150):
+def get(key, fn, ttl, wait=60):
     """The piece key (made by fn, fresh for ttl seconds). Ready: returned at once (made again in the background when old).
-    Not ready yet: started (if it isn't already) and waited for, up to wait seconds (None if it isn't done by then)."""
+    Not ready yet: started (if it isn't already) and waited for, up to wait seconds (None if it isn't done by then; wait=0: never
+    waited for - a heavy piece the page can do without until it is ready)."""
     _want(key, fn, ttl)
     with _STATE["lock"]:
         e = _STATE["store"].get(key)
@@ -102,6 +105,8 @@ def get(key, fn, ttl, wait=150):
         return e["v"]
     if _failed_lately(key, ttl):                     # it failed a moment ago: not asked again yet
         return None
+    if not wait:
+        return None                                  # the keeper makes it in the background (it is wanted now)
     ev = _start(key, fn)
     ev.wait(wait)
     with _STATE["lock"]:
