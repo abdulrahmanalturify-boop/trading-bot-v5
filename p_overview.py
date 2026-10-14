@@ -535,7 +535,7 @@ def _banner_html(key, d, f, sa):
              f'<span>{T.icon("bar_chart")}{T.esc(L("Virtual portfolio", "محفظة افتراضية"))}</span>')
     facts = " • ".join(T.esc(x) for x in (L("Free", "مجاني"), L(f"{nq} short questions", f"{nq} سؤال قصير"), L("No sign-up", "بدون تسجيل"), L("Two minutes", "دقيقتين")))
     return (f'<div class="ovad banner rb{" rtl" if ar else ""}" data-nogq><div class="bd">'
-            f'<div class="tx"><div class="rbkk"><b>TURA</b><span>|</span><em>{T.esc(L("Portfolio dashboard", "لوحة المحفظة"))}</em></div>'
+            f'<div class="tx"><div class="rbkk"><b>TURA</b><span>|</span><em>{T.esc(L("Robo Advisor", "المستشار الآلي"))}</em></div>'
             f'<h3>{T.esc(head)}</h3><p>{T.esc(sub)}</p><div class="rbchips">{chips}</div>'
             f'<div class="rbcta"><span class="go">{T.esc(L("Explore my portfolio", "استكشف محفظتي"))}{T.icon("arrow_forward")}</span>'
             f'<span class="rblnk">{T.esc(L("Build my plan", "ابنِ خطتي"))}{T.icon("arrow_forward")}</span></div>'
@@ -1094,4 +1094,4 @@ def page_overview():
         print(f"[prof] page {'sa' if sa else 'us'} total {time.time() - t0:.2f}s", flush=True)
 
 
-BUILD = "23.4.29"
+BUILD = "23.4.30"
