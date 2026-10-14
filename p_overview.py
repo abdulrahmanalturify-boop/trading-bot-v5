@@ -43,30 +43,32 @@ def _timed(label, fn, *a):
 # ---------------------------------------------------------------- the tools, as adverts placed between the page's sections
 # (key, page, icon, tone, kicker, title, pitch, call to action). "ai" opens the chat window instead of a page.
 TOOLS = {
-    "ai": (None, "auto_awesome", "ai", ("AI assistant", "مساعد ذكي"), ("TURA AI", "TURA AI"),
-           ("Stuck on a number, a chart or a word? Ask, and get it explained in plain words.",
-            "وقفت عند رقم أو رسم أو مصطلح؟ اسأل، ويشرح لك بكلام بسيط."), ("Ask the AI assistant", "اسأل المساعد الذكي")),
-    "hunt": ("scanner", "radar", "hunt", ("Daily picks", "فرص يومية"), ("Opportunity Hunter", "صائد الفرص"),
-             ("Today's setups, scored out of 100, each with a full trade plan.",
-              "فرص اليوم بدرجة من 100، ولكل فرصة خطة تداول كاملة."), ("See today's picks", "شوف فرص اليوم")),
-    "bots": ("paper", "smart_toy", "bots", ("Automation", "أتمتة"), ("Paper Bots", "البوتات الافتراضية"),
-             ("Build a trading bot in a minute and watch it trade virtual money for you.",
-              "ابنِ بوت تداول بدقيقة، وشوفه يتداول عنك بفلوس افتراضية."), ("Build my bot", "ابنِ بوتي")),
-    "pf": ("pf_dash", "account_balance_wallet", "pf", ("Practice", "تدرّب"), ("Paper trading", "التداول الافتراضي"),
-           ("Trade at real prices with virtual money: learn without risking a cent of your own.",
-            "تداول بأسعار حقيقية وفلوس افتراضية: تعلّم بدون ما تخاطر بفلوسك."), ("Open my portfolio", "افتح محفظتي")),
-    "robo": ("pf_robo", "psychology", "robo", ("Planning", "تخطيط"), ("Robo Advisor", "المستشار الآلي"),
-             ("Answer a few questions and get a portfolio built around your goal and your risk.",
-              "جاوب على كم سؤال، وخذ محفظة مبنية على هدفك ومخاطرتك."), ("Get my plan", "خذ خطتي")),
-    "academy": ("academy", "school", "academy", ("Learning", "تعلّم"), ("Academy", "الأكاديمية"),
-                ("From your first share to options: short courses with labs on real charts.",
-                 "من أول سهم إلى الخيارات: دورات قصيرة مع تطبيقات على رسوم حقيقية."), ("Start learning", "ابدأ التعلّم")),
-    "xbots": ("xbots", "alternate_email", "x", ("Social signals", "إشارات X"), ("X Bots", "بوتات X"),
-              ("Bots that read X every hour and trade on the crowd's mood. Which one reads it right?",
-               "بوتات تقرأ X كل ساعة وتتداول على مزاج الناس. مين فيها يقراه صح؟"), ("Meet the bots", "تعرّف عليها")),
-    "screener": ("screener", "filter_alt", "scr", ("Research", "بحث"), ("Screener", "فلتر الأسهم"),
-                 ("Find the stocks that fit you, from hundreds, in a few clicks.",
-                  "لقّ الأسهم اللي تناسبك من بين المئات، بكم ضغطة."), ("Open the screener", "افتح الفلتر")),
+    "ai": (None, "auto_awesome", "ai", ("AI assistant", "مساعد ذكي"), ("Ask TURA AI anything", "اسأل TURA AI أي شيء"),
+           ("A number you don't get, a chart, a word? Ask here and get it in plain words, on any page of the site.",
+            "رقم ما فهمته؟ رسم؟ مصطلح؟ اسأل هنا ويشرح لك بكلام بسيط، في أي صفحة بالموقع."), ("Try it now, free", "جرّبه الآن مجاناً")),
+    "hunt": ("scanner", "radar", "hunt", ("Today's picks", "فرص اليوم"), ("Don't miss today's opportunity", "لا تفوّت فرصة اليوم"),
+             ("The hunter scans the whole market every day and scores every setup out of 100, with entry, stop and target.",
+              "الصائد يفحص السوق كله كل يوم ويعطي كل فرصة درجة من 100، مع الدخول والوقف والهدف."), ("See today's picks", "شوف فرص اليوم")),
+    "bots": ("paper", "smart_toy", "bots", ("Automation", "أتمتة"), ("Build your bot in a minute", "ابنِ بوتك في دقيقة"),
+             ("Pick a strategy, give it virtual money, and watch it trade for you day after day. No code, no risk.",
+              "اختر استراتيجية، أعطها فلوس افتراضية، وشوفها تتداول عنك يوم بعد يوم. بدون كود وبدون مخاطرة."), ("Start now, free", "ابدأ الآن مجاناً")),
+    "pf": ("pf_dash", "account_balance_wallet", "pf", ("Practice", "تدرّب"), ("Start with virtual money", "ابدأ بفلوس افتراضية"),
+           ("Real prices, virtual money: buy and sell like the pros and learn without risking a cent of your own.",
+            "أسعار حقيقية وفلوس افتراضية: بِع واشترِ مثل المحترفين وتعلّم بدون ما تخاطر بريال من فلوسك."), ("Open my free portfolio", "افتح محفظتك المجانية")),
+    "robo": ("pf_robo", "psychology", "robo", ("Robo Advisor", "المستشار الآلي"), ("Get your portfolio rated, free", "قيّم محفظتك مجاناً"),
+             ("Answer a few short questions and get an investment plan built around your goal and how much risk you can take, "
+              "then follow it with virtual money and see how it does.",
+              "جاوب على كم سؤال قصير وخذ خطة استثمار مبنية على هدفك ومستوى مخاطرتك، ثم تابعها بفلوس افتراضية وشوف كيف تمشي."),
+             ("Start my free plan", "ابدأ خطتك المجانية")),
+    "academy": ("academy", "school", "academy", ("Learning", "تعلّم"), ("Start studying today", "ابدأ دراستك اليوم"),
+                ("From your first share to options: short courses with labs on real charts, at your pace, free.",
+                 "من أول سهم إلى الخيارات: دورات قصيرة مع تطبيقات على رسوم حقيقية، على راحتك، ومجاناً."), ("Start studying, free", "ابدأ الدراسة مجاناً")),
+    "xbots": ("xbots", "alternate_email", "x", ("Social signals", "إشارات X"), ("Who reads X right?", "مين يقرأ X صح؟"),
+              ("Five bots read X every hour and trade on the crowd's mood. Follow the log and see which one gets it right.",
+               "خمس بوتات تقرأ X كل ساعة وتتداول على مزاج الناس. تابع السجل وشوف مين فيها يصيب."), ("Meet the bots", "تعرّف عليها")),
+    "screener": ("screener", "filter_alt", "scr", ("Research", "بحث"), ("Find your stock in a minute", "لقّ سهمك في دقيقة"),
+                 ("Hundreds of companies, a few filters, and the ones that fit you are in front of you.",
+                  "مئات الشركات وكم فلتر، والأسهم اللي تناسبك قدامك."), ("Try the screener", "جرّب الفلتر")),
 }
 
 
@@ -194,6 +196,34 @@ div.st-key-ovmore [data-testid="stButton"] button{border-radius:999px!important}
 div.st-key-ovfoot{margin-top:8px}
 div.st-key-ovads_z{flex-direction:row!important;gap:22px!important;padding-top:0}
 div.st-key-ovads_z>*{flex:1 1 0!important;min-width:0!important}
+/* ---- the banner across the page (the Robo Advisor): words and two calls to action on one side, the picture and the steps on
+   the other; the picture floats */
+@keyframes ovfloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+div.st-key-ovad_robo{margin:10px 0 6px}
+.ovad.banner{padding:26px 30px 24px;border-radius:26px;background:radial-gradient(90% 120% at 100% 0%,rgba(255,255,255,.2),transparent 50%),radial-gradient(60% 80% at 0% 100%,rgba(255,255,255,.1),transparent 60%),linear-gradient(120deg,var(--a1),var(--a2))}
+.ovad.banner .big{font-size:260px;bottom:-90px;inset-inline-end:28%;opacity:.07}
+.ovad.banner .bd{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:26px;align-items:center}
+.ovad.banner .k{justify-content:flex-start;gap:12px;margin-bottom:12px}
+.ovad.banner .tt{font-size:32px;line-height:1.15;letter-spacing:-.02em}
+.ovad.banner p.ld{font-size:16px;font-weight:700;color:#fff;margin:10px 0 4px}
+.ovad.banner p{font-size:14px;max-width:62ch}
+.ovad.banner .cta{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0 12px}
+.ovad.banner .go{width:auto;padding:12px 22px;font-size:15px;border-radius:14px}
+.ovad.banner .go.ghost{background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.4);box-shadow:none}
+div[class*="st-key-ovad_"]:hover .ovad.banner .go:not(.ghost){transform:translateY(-2px)}
+.ovad.banner .chips{display:flex;flex-wrap:wrap;gap:8px 16px;font-size:12.5px;color:rgba(255,255,255,.88)}
+.ovad.banner .chips span{display:inline-flex;align-items:center;gap:4px}
+.ovad.banner .chips .ms{font-size:16px;color:#A7F3D0}
+.ovad.banner .pic{display:flex;flex-direction:column;gap:12px;animation:ovfloat 5s ease-in-out infinite}
+.ovad.banner .pic .vz{margin:0;height:auto;min-height:150px;background:rgba(5,8,25,.3)}
+.ovad.banner .pic .vz.donut svg{width:128px;height:128px}
+.ovad.banner .pic .vz.donut .lg{font-size:13px;gap:8px 14px}
+.ovad.banner .steps{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.ovad.banner .steps .st{flex:1;display:flex;align-items:center;gap:7px;padding:8px 10px;border-radius:12px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.18);font-size:12.5px;font-weight:700;white-space:nowrap}
+.ovad.banner .steps .st b{flex:none;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:11px;background:#fff;color:var(--a2)}
+.ovad.banner .steps .ar .ms{font-size:16px;opacity:.7}
+.ovad.banner.rtl .steps .ar .ms{transform:scaleX(-1)}
+.ovad.banner .vz.donut{padding:14px 16px;gap:18px}
 /* a narrow page (a phone, a tablet, a computer with the side panel open on a small screen - measured on the page itself, not
    the screen): the part first, then its cards side by side (sliding across when there are two) */
 div.st-key-ovpage{container-type:inline-size;container-name:ovp}
@@ -205,36 +235,11 @@ div.st-key-ovpage{container-type:inline-size;container-name:ovp}
   div[class*="st-key-ovads_"]::-webkit-scrollbar{display:none}
   div[class*="st-key-ovads_"]>*{flex:1 0 300px!important;min-width:300px!important;max-width:420px;scroll-snap-align:start}
   .ovad.wide .bd{grid-template-columns:1fr}
+  .ovad.banner{padding:20px 18px}.ovad.banner .bd{grid-template-columns:1fr;gap:16px}.ovad.banner .tt{font-size:25px}.ovad.banner .big{inset-inline-end:-40px}
+  .ovad.banner .go{flex:1;justify-content:center}.ovad.banner .steps .st{white-space:normal;font-size:11.5px}
   div[class*="st-key-ovbody_"] .msg{grid-template-columns:minmax(0,1fr)!important}
 }
 @container ovp (max-width:520px){div[class*="st-key-ovads_"]>*{flex-basis:84%!important;min-width:84%!important}}
-
-/* ---- the tools first: a grid of tiles, the biggest for the most useful (the hunter's picks of the day, the portfolio, the bots),
-   then the assistant, the news and the mood, then the rest - each tile a poster that opens its tool, with its live numbers */
-div.st-key-ovbento{margin:6px 0 10px}
-div.st-key-ovbento [data-testid="stHorizontalBlock"]{align-items:stretch!important}
-div.st-key-ovbento [data-testid="stColumn"]>[data-testid="stVerticalBlock"],div.st-key-ovbento [data-testid="stColumn"]>div>div[data-testid="stVerticalBlock"]{height:100%}
-div.st-key-ovbento div[class*="st-key-ovad_"]{height:100%}
-div.st-key-ovbento div[class*="st-key-ovad_"]>[data-testid="stElementContainer"]:first-child,div.st-key-ovbento div[class*="st-key-ovad_"] [data-testid="stMarkdownContainer"],div.st-key-ovbento div[class*="st-key-ovad_"] [data-testid="stMarkdown"]{height:100%}
-div.st-key-ovbento .ovad{height:100%;box-sizing:border-box;display:flex;flex-direction:column;min-height:236px}
-div.st-key-ovbento .ovad .bd{display:flex;flex-direction:column;flex:1}
-div.st-key-ovbento .ovad .tx{display:flex;flex-direction:column;flex:1}
-div.st-key-ovbento .ovad .go{margin-top:auto}
-div.st-key-ovbento .ovad.hero .vz.picks{flex:1}
-div.st-key-ovbento .ovad.hero .vz.stat,div.st-key-ovbento .ovad.hero .vz.ticket,div.st-key-ovbento .ovad.hero .vz.bot{min-height:190px}
-div.st-key-ovbento .ovad ul{margin-bottom:12px}
-div.st-key-ovbento .ovad.hero{padding:20px 20px 20px;min-height:600px}
-div.st-key-ovbento .ovad.hero .tt{font-size:25px}
-div.st-key-ovbento .ovad.hero p{font-size:14px}
-div.st-key-ovbento .ovad.hero .vz{height:auto;min-height:150px;margin:14px 0 12px}
-div.st-key-ovbento .ovad.mid{min-height:550px}
-div.st-key-ovbento .ovad.mid .tt{font-size:21px}
-div.st-key-ovbento .ovad.sm{padding:14px 14px 15px;min-height:312px}
-div.st-key-ovbento .ovad.sm .tt{font-size:16.5px}
-div.st-key-ovbento .ovad.sm p{margin:4px 0 8px;font-size:12.5px}
-div.st-key-ovbento .ovad.sm .vz{height:74px;margin:10px 0 10px}
-div.st-key-ovbento .ovad.sm ul{display:none}
-div.st-key-ovbento .ovad.sm .go{padding:8px 12px;font-size:12.5px}
 /* the live numbers on a tile: pills in the kicker row and inside the picture */
 .ovad .k .lv{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;background:rgba(5,8,25,.3);border:1px solid rgba(255,255,255,.2);font-size:10.5px;letter-spacing:.04em;text-transform:none;color:#fff}
 .ovad .k .lv i{width:6px;height:6px;border-radius:50%;background:#4ADE80;animation:ovlive 1.8s infinite}
@@ -276,7 +281,6 @@ div.st-key-ovbento .ovad.sm .go{padding:8px 12px;font-size:12.5px}
 .vz.days{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;padding:10px 8px;box-sizing:border-box;height:auto!important;min-height:74px}
 .vz.days span{display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 2px;border-radius:9px;background:rgba(255,255,255,.1)}
 .vz.days b{font-size:10px}.vz.days i{font-style:normal;font-size:6px;letter-spacing:1px;color:#A5B4FC;line-height:1}
-@container ovp (max-width:820px){div.st-key-ovbento .ovad,div.st-key-ovbento .ovad.hero,div.st-key-ovbento .ovad.mid{min-height:0}}
 @media (prefers-reduced-motion:reduce){.ovad,.ovad *,.ovad::after{animation:none!important;transition:none!important}}
 </style>"""
 
@@ -334,12 +338,7 @@ def _points(key, f, sa):
                   L("A log shows which one is right", "سجل يبين مين فيها يصيب")],
         "screener": [L("Descriptive, fundamental and technical filters", "فلاتر وصفية وأساسية وفنية"),
                      L("Ready presets and investment themes", "قوالب جاهزة وثيمات استثمارية"), L("Open any company in one click", "افتح أي شركة بضغطة")],
-        "news": [L("Headlines from 35 feeds, every 3 minutes", "عناوين من 35 مصدراً، كل 3 دقائق"), L("The bot reads each one in its context", "البوت يقرأ كل خبر بسياقه"),
-                 L("Related stories grouped together", "الأخبار المرتبطة مع بعض")],
-        "mood": [L("Seven signals from the market itself", "سبع إشارات من السوق نفسه"), L("Updated through the day", "يتحدّث خلال اليوم"),
-                 L("The news mood beside it", "ومزاج الأخبار جنبه")],
-        "cal": [L("Earnings, day by day", "الأرباح يوم بيوم"), L("Economic events and dividends", "الأحداث الاقتصادية والتوزيعات"), L("IPOs and market holidays", "الاكتتابات وعطلات السوق")],
-    }[key]
+    }.get(key, [])
 
 
 # ---------------------------------------------------------------- each card's picture (drawn, no made-up numbers)
@@ -408,18 +407,57 @@ def _vz(key, f):
     return ""
 
 
-def _ad_html(key, f, sa, wide=False):
-    page, icon, tone, kick, title, pitch, cta = TOOLS[key]
+def _kick_pill(key, live):
+    """What sits at the end of the kicker row: a live number when there is one, else "Free"."""
+    if key == "hunt" and live:
+        n_opp = live["opp"]
+        return f'<span class="lv"><i></i>{T.esc(L(f"{n_opp} opportunities today", f"{n_opp} فرصة اليوم"))}</span>'
+    if key == "bots" and live:
+        n_b = live["n"]
+        en_b = f"{n_b} bot live" if n_b == 1 else f"{n_b} bots live"
+        ar_b = "بوت شغّال" if n_b == 1 else f"{n_b} بوتات شغّالة"
+        return f'<span class="lv"><i></i>{T.esc(L(en_b, ar_b))}</span>'
+    return f'<em>{T.esc(L("Free", "مجاني"))}</em>'
+
+
+def _ad_html(key, d, f, sa, wide=False):
+    page, icon, tone, kick, title, pitch, cta = (TOOLS.get(key) or TILES[key])
     ar = is_ar()
     solo = key == "ai"
     attrs = ' data-open-ai="1" role="button" tabindex="0"' if solo else ""
+    vz, live = _live_vz(key, d, f, sa)
     pts = "".join(f'<li>{T.icon("check_circle")}<span>{T.esc(x)}</span></li>' for x in _points(key, f, sa))
-    text = (f'<div class="tx"><b class="tt">{T.esc(L(*title))}</b><p>{T.esc(L(*pitch))}</p><ul>{pts}</ul>'
+    text = (f'<div class="tx"><b class="tt">{T.esc(L(*title))}</b><p>{T.esc(L(*pitch))}</p>{"<ul>" + pts + "</ul>" if pts else ""}'
             f'<span class="go">{T.esc(L(*cta))}{T.icon("arrow_forward")}</span></div>')
     return (f'<div class="ovad {tone}{" rtl" if ar else ""}{" solo" if solo else ""}{" wide" if wide else ""}" data-nogq{attrs}>'
             f'<span class="big" aria-hidden="true">{icon}</span>'
+            f'<div class="k"><span><span class="ic">{T.icon(icon)}</span>{T.esc(L(*kick))}</span>{_kick_pill(key, live)}</div>'
+            f'<div class="bd">{vz}{text}</div></div>')
+
+
+def _banner_html(key, d, f, sa):
+    """A tool as a banner across the whole page: the words and the call to action on one side, the picture and the trust
+    chips on the other (the Robo Advisor)."""
+    page, icon, tone, kick, title, pitch, cta = TOOLS[key]
+    ar = is_ar()
+    steps = [L("Your goal", "هدفك"), L("Your risk", "مخاطرتك"), L("Your plan", "خطتك")]
+    stp = "".join(f'<span class="st"><b>{i + 1}</b>{T.esc(x)}</span>' + ('<i class="ar">' + T.icon("arrow_forward") + "</i>" if i < 2 else "")
+                  for i, x in enumerate(steps))
+    nq = f["questions"] or 7
+    chips = [L("Free", "مجاني"), L(f"{nq} short questions", f"{nq} سؤال قصير"), L("No sign-up", "بدون تسجيل"),
+             L("Two minutes", "دقيقتين")]
+    ch = "".join(f'<span>{T.icon("check")}{T.esc(c)}</span>' for c in chips)
+    sub = L("Is your portfolio built for you, or just for the market? Find out in two minutes.",
+            "محفظتك مبنية عليك، أو على السوق بس؟ اعرف في دقيقتين.")
+    return (f'<div class="ovad banner {tone}{" rtl" if ar else ""}" data-nogq>'
+            f'<span class="big" aria-hidden="true">{icon}</span>'
+            f'<div class="bd"><div class="tx">'
             f'<div class="k"><span><span class="ic">{T.icon(icon)}</span>{T.esc(L(*kick))}</span><em>{T.esc(L("Free", "مجاني"))}</em></div>'
-            f'<div class="bd">{_vz(key, f)}{text}</div></div>')
+            f'<b class="tt">{T.esc(L(*title))}</b><p class="ld">{T.esc(sub)}</p><p>{T.esc(L(*pitch))}</p>'
+            f'<div class="cta"><span class="go">{T.esc(L(*cta))}{T.icon("arrow_forward")}</span>'
+            f'<span class="go ghost">{T.esc(L("Rate my portfolio", "تقييم محفظة"))}</span></div>'
+            f'<div class="chips">{ch}</div></div>'
+            f'<div class="pic">{_vz("robo", f)}<div class="steps">{stp}</div></div></div></div>')
 
 
 def _open_tool(key, page):
@@ -430,13 +468,13 @@ def _open_tool(key, page):
 
 
 def _available(key, sa):
-    page = TOOLS[key][0] if key in TOOLS else None
+    page = (TOOLS.get(key) or TILES.get(key) or (None,))[0]
     if key == "earn":
         return not sa
-    return key in TOOLS and (page is None or not sa or page in MK.SA_PAGES)
+    return (key in TOOLS or key in TILES) and (page is None or not sa or page in MK.SA_PAGES)
 
 
-def _card(key, f, sa, wide=False):
+def _card(key, d, f, sa, wide=False):
     if key == "earn":                               # the next session's earnings (a card of the earnings calendar)
         with st.container(key="ovearn"):
             got = _timed("earnings", ui.safe, PC.next_session_html, 8)
@@ -446,14 +484,24 @@ def _card(key, f, sa, wide=False):
                           on_click=_open_tool, args=("earn", "earnings"))
         return
     if key == "ai":                                 # the chat window opens on the page (theme.FX_JS presses the AI button)
-        ui.html(_ad_html(key, f, sa, wide))
+        ui.html(_ad_html(key, d, f, sa, wide))
+        return
+    tool = TOOLS.get(key) or TILES[key]
+    with st.container(key=f"ovad_{key}"):
+        ui.html(_ad_html(key, d, f, sa, wide))
+        st.button(L(*tool[4]), key=f"ovgo_t_{key}", on_click=_open_tool, args=(key, tool[0]), width="stretch")
+
+
+def _banner(key, d, f, sa):
+    """A tool across the whole page (the Robo Advisor); the whole banner opens it."""
+    if not _available(key, sa):
         return
     with st.container(key=f"ovad_{key}"):
-        ui.html(_ad_html(key, f, sa, wide))
-        st.button(L(*TOOLS[key][4]), key=f"ovgo_{key}", on_click=_open_tool, args=(key, TOOLS[key][0]), width="stretch")
+        ui.html(_banner_html(key, d, f, sa))
+        st.button(L(*TOOLS[key][4]), key=f"ovgo_t_{key}", on_click=_open_tool, args=(key, TOOLS[key][0]), width="stretch")
 
 
-def _with_ads(tag, side, keys, f, sa, body):
+def _with_ads(tag, side, keys, d, f, sa, body):
     """A part of the page with tool cards beside it, on the given side of the screen ("right" or "left", whatever the page's
     language); the cards stay in view while that part is read. On a phone they come after it."""
     keys = [k for k in keys if _available(k, sa)]
@@ -466,7 +514,7 @@ def _with_ads(tag, side, keys, f, sa, body):
     with ad_col:                                    # the cards first: they show at once while the part's data comes in
         with st.container(key=f"ovads_{tag}"):
             for k in keys:
-                _card(k, f, sa)
+                _card(k, d, f, sa)
     with main_col:
         with st.container(key=f"ovbody_{tag}"):
             return body()
@@ -492,7 +540,6 @@ def _pick_news(sym):
     ss["nie_tkf"] = sym
     ss["nie_n"] = 12
     ss["goto"] = "newsintel"
-
 
 
 # ---------------------------------------------------------------- the tools first: the live numbers each tile shows
@@ -648,70 +695,6 @@ TILES = {
 }
 TONE_CSS = """<style data-lm="keep">.ovad.news{--a1:#7C2D12;--a2:#B91C1C;--sh:rgba(185,28,28,.7)}.ovad.mood{--a1:#312E81;--a2:#0F766E;--sh:rgba(49,46,129,.75)}
 .ovad.cal{--a1:#1F2937;--a2:#4338CA;--sh:rgba(67,56,202,.7)}</style>"""
-
-
-def _tile_html(key, d, f, sa, size):
-    page, icon, tone, kick, title, pitch, cta = (TOOLS.get(key) or TILES[key])
-    ar = is_ar()
-    vz, live = _live_vz(key, d, f, sa)
-    lv = ""
-    if key == "hunt" and live:
-        n_opp = live["opp"]
-        lv = f'<span class="lv"><i></i>{T.esc(L(f"{n_opp} opportunities today", f"{n_opp} فرصة اليوم"))}</span>'
-    elif key == "bots" and live:
-        n_b = live["n"]
-        en_b = f"{n_b} bot live" if n_b == 1 else f"{n_b} bots live"
-        ar_b = "بوت شغّال" if n_b == 1 else f"{n_b} بوتات شغّالة"
-        lv = f'<span class="lv"><i></i>{T.esc(L(en_b, ar_b))}</span>'
-    elif key == "pf":
-        lv = f'<span class="lv">{T.esc(L("Free", "مجاني"))}</span>'
-    else:
-        lv = f'<em>{T.esc(L("Free", "مجاني"))}</em>'
-    solo = key == "ai"
-    attrs = ' data-open-ai="1" role="button" tabindex="0"' if solo else ""
-    pts = "".join(f'<li>{T.icon("check_circle")}<span>{T.esc(x)}</span></li>' for x in _points(key, f, sa))
-    text = (f'<div class="tx"><b class="tt">{T.esc(L(*title))}</b><p>{T.esc(L(*pitch))}</p>{"<ul>" + pts + "</ul>" if pts else ""}'
-            f'<span class="go">{T.esc(L(*cta))}{T.icon("arrow_forward")}</span></div>')
-    return (f'<div class="ovad {tone} {size}{" rtl" if ar else ""}{" solo" if solo else ""}" data-nogq{attrs}>'
-            f'<span class="big" aria-hidden="true">{icon}</span>'
-            f'<div class="k"><span><span class="ic">{T.icon(icon)}</span>{T.esc(L(*kick))}</span>{lv}</div>'
-            f'<div class="bd">{vz}{text}</div></div>')
-
-
-def _tile(key, d, f, sa, size):
-    page = (TOOLS.get(key) or TILES[key])[0]
-    if key == "ai":
-        ui.html(_tile_html(key, d, f, sa, size))
-        return
-    with st.container(key=f"ovad_{key}"):
-        ui.html(_tile_html(key, d, f, sa, size))
-        st.button(L(*(TOOLS.get(key) or TILES[key])[4]), key=f"ovgo_t_{key}", on_click=_open_tool, args=(key, page), width="stretch")
-
-
-def _bento(d, f, sa):
-    """The site's tools, the most useful first and biggest: the hunter's picks of the day and the portfolio and the bots across
-    the top, then the assistant, the news and the mood, then the rest in a row."""
-    ui.html(TONE_CSS)
-    with st.container(key="ovbento"):
-        a, b, c = st.columns([1.9, 1, 1], gap="medium")
-        with a:
-            _tile("hunt", d, f, sa, "hero")
-        with b:
-            _tile("pf", d, f, sa, "hero")
-        with c:
-            _tile("bots", d, f, sa, "hero")
-        a, b, c = st.columns(3, gap="medium")
-        with a:
-            _tile("ai", d, f, sa, "mid")
-        with b:
-            _tile("news", d, f, sa, "mid")
-        with c:
-            _tile("mood", d, f, sa, "mid")
-        rest = [k for k in ("academy", "robo", "screener", "cal", "xbots") if k in TILES or _available(k, sa)]
-        cols = st.columns(len(rest), gap="small")
-        for col, k in zip(cols, rest):
-            with col:
-                _tile(k, d, f, sa, "sm")
 
 
 # ---------------------------------------------------------------- the page's data, kept ready in the background (warm.py)
@@ -962,16 +945,25 @@ def page_overview():
     ui.html(home.top_html(_chips(px, sa)))
     f = _timed("facts", _facts)
     d = _Day(px, sa)
-    # the page as a magazine: the news across the page, then each part with tool cards beside it - one on the right, then
-    # two on the left, one on the right, two on the left - and the last two side by side at the foot
+    # the page as a magazine: the news across the page, then each part with tool cards (adverts) beside it - one on the
+    # right, two on the left, the Robo Advisor as a banner across the page, two on the right, two on the left - and two
+    # wide ones at the foot
     with st.container(key="ovpage"):
-        _timed("bento", ui.safe, _bento, d, f, sa)       # the tools first, the most useful biggest, with the day's numbers
+        ui.html(TONE_CSS)
         _timed("top", ui.safe, _top, d)
-        _timed("part a", ui.safe, _news_and_summary, d)
-        _timed("part b", ui.safe, _movers, d)
-        _timed("mood", ui.safe, _mood, d.snap(), d.fg())
-        _timed("heatmap", ui.safe, PM.heatmap_section, d.heat())
-        _timed("part d", ui.safe, _markets, px, sa, d.macro())
+        _timed("part a", _with_ads, "a", "right", ["ai"], d, f, sa, lambda: ui.safe(_news_and_summary, d))
+        _timed("part b", _with_ads, "b", "left", ["hunt", "bots"], d, f, sa, lambda: ui.safe(_movers, d))
+        _timed("banner", ui.safe, _banner, "robo", d, f, sa)
+        _timed("part c", _with_ads, "c", "right", ["pf", "earn"], d, f, sa,
+               lambda: (_timed("mood", ui.safe, _mood, d.snap(), d.fg()), _timed("heatmap", ui.safe, PM.heatmap_section, d.heat())))
+        _timed("part d", _with_ads, "d", "left", ["academy", "xbots"], d, f, sa, lambda: ui.safe(_markets, px, sa, d.macro()))
+        last = [k for k in ("screener", "news") if _available(k, sa)]
+        if last:
+            with st.container(key="ovfoot"):
+                ui.sec("apps", "More tools to try", "أدوات ثانية تستاهل تجربها")
+                with st.container(key="ovads_z"):
+                    for k in last:
+                        _card(k, d, f, sa, wide=True)
     if sa:
         st.caption(L("Prices from Yahoo Finance (may be delayed). The Saudi market trades Sunday to Thursday, 10 am to 3 pm Riyadh time.",
                      "الأسعار من Yahoo Finance (قد تكون متأخرة). السوق السعودي يتداول من الأحد للخميس، من 10 الصبح لين 3 العصر بتوقيت الرياض."))
