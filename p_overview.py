@@ -17,6 +17,7 @@ import data
 import home
 import markets as MK
 import p_calendar as PC
+import p_heatmap as PH
 import p_insight as PI
 import p_markets as PM
 import p_newsintel as PNI
@@ -714,6 +715,9 @@ def _compute_lists(sa):
 
 
 def _compute_heat(sa):
+    if not sa:                                       # the US market: the treemap (p_heatmap), sectors -> industries -> companies
+        df = PH.heatmap_frame("1D", "cap")
+        return {("1D", "cap"): df} if df is not None and not df.empty else None
     ukey, period, sizing = _HM_DEFAULT[sa]
     syms = list(tasi.SYMBOLS) if sa else list(SP500)
     df, source = PM.heatmap_frame(ukey, period, sizing, syms=syms)
@@ -957,7 +961,8 @@ def page_overview():
         _timed("part b", _with_ads, "b", "left", ["hunt", "bots"], d, f, sa, lambda: ui.safe(_movers, d))
         _timed("banner", ui.safe, _banner, "robo", d, f, sa)
         _timed("part c", _with_ads, "c", "right", ["pf", "earn"], d, f, sa,
-               lambda: (_timed("mood", ui.safe, _mood, d.snap(), d.fg()), _timed("heatmap", ui.safe, PM.heatmap_section, d.heat())))
+               lambda: (_timed("mood", ui.safe, _mood, d.snap(), d.fg()),
+                        _timed("heatmap", ui.safe, PM.heatmap_section if sa else PH.section, d.heat())))
         _timed("part d", _with_ads, "d", "left", ["academy", "xbots"], d, f, sa, lambda: ui.safe(_markets, px, sa, d.macro()))
         last = [k for k in ("screener", "news") if _available(k, sa)]
         if last:

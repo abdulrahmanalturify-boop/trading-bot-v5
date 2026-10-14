@@ -1814,7 +1814,7 @@ def profile_run(b, report):
     report["profile"] = out
 
 
-HOME_SHOT = False     # a quick run: the home page (the tools bento first), Arabic and English, desktop and phone, whole page
+HOME_SHOT = True     # a quick run: the home page (the tools bento first), Arabic and English, desktop and phone, whole page
 
 
 def home_shot(b, report):
@@ -1848,6 +1848,23 @@ def home_shot(b, report):
             pg.set_viewport_size(vp)
             time.sleep(1)
             pg.screenshot(path=os.path.join(OUT, f"home_{tag}_top.jpg"), type="jpeg", quality=80)
+            if tag == "en_us_desk":                 # the treemap: click a sector, then an industry, and picture what opens under it
+                for step in ("sector", "industry"):
+                    try:
+                        sl = pg.locator(".js-plotly-plot .treemaplayer .slice").nth(1)
+                        sl.scroll_into_view_if_needed(timeout=8000)
+                        sl.click(timeout=8000, force=True)
+                        settle(pg, 120)
+                        time.sleep(6)
+                        res[f"map_{step}"] = pg.evaluate("() => [...document.querySelectorAll('.js-plotly-plot .treemaplayer .slicetext')].slice(0, 6).map(e => e.textContent.trim())")
+                        h = pg.evaluate(MAIN_H)
+                        pg.set_viewport_size({"width": vp["width"], "height": min(max(int(h), vp["height"]), 9000)})
+                        time.sleep(2)
+                        pg.screenshot(path=os.path.join(OUT, f"home_map_{step}.jpg"), type="jpeg", quality=72, full_page=True)
+                        pg.set_viewport_size(vp)
+                        res[f"map_{step}_err"] = pg.evaluate("() => [...document.querySelectorAll('[data-testid=\"stExpander\"] code')].map(e => e.innerText.slice(0, 300))")
+                    except Exception as e:
+                        res[f"map_{step}"] = f"error {str(e)[:200]}"
             ctx.close()
         except Exception as e:
             res["error"] = str(e)[:400]
