@@ -127,6 +127,11 @@ CSS = f"""<style>
 .hnc .hd .nm {{ display:flex; flex-direction:column; min-width:0; line-height:1.25; flex:1; }}
 .hnc .hd .nm b {{ color:#fff; font-size:1.02rem; }}
 .hnc .hd .nm span {{ color:{_MU}; font-size:.72rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
+.hnc .px {{ display:flex; align-items:baseline; gap:8px; margin:8px 0 2px; }}
+.hnc .px b {{ color:#fff; font-size:1.25rem; font-weight:800; letter-spacing:-.01em; direction:ltr; }}
+.hnc .px i {{ font-style:normal; font-weight:800; font-size:.86rem; padding:2px 8px; border-radius:999px; direction:ltr; }}
+.hnc .px i.up {{ color:#4ADE80; background:rgba(74,222,128,.14); }} .hnc .px i.dn {{ color:#F87171; background:rgba(248,113,113,.14); }}
+.hnc .px span {{ color:{_MU}; font-size:.72rem; }}
 .hnring {{ position:relative; width:48px; height:48px; flex:none; }}
 .hnring svg {{ width:48px; height:48px; transform:rotate(-90deg); }}
 .hnring .g {{ position:absolute; inset:0; direction:ltr; display:flex; flex-direction:column; align-items:center; justify-content:center; line-height:1; }}
@@ -749,6 +754,10 @@ def card(r, det, selected):
     go_ = L(f"Open the {T.sym_label(sym)} page", f"افتح صفحة {T.sym_label(sym)}")
     hd = (f'<div class="hd"><a class="co" href="{T.esc(ui.href(sym))}" target="_self" title="{T.esc(go_)}">{T.logo_obj(sym, 36)}'
           f'<div class="nm"><b>{T.esc(T.sym_label(sym))}</b><span>{T.esc(T.name_line(sym, str(r["Name"])))}</span></div></a>{ring(r["Score"], r["Grade"])}</div>')
+    chg = r.get("Chg %")
+    if np.isfinite(r["Price"]):                        # the share's price now and its change today
+        pill = f'<i class="{"up" if chg >= 0 else "dn"}">{chg:+.2f}%</i>' if chg is not None and np.isfinite(chg) else ""
+        hd += f'<div class="px"><b>{_money_px(r["Price"])}</b>{pill}<span>{T.esc(L("today", "اليوم"))}</span></div>'
     sp = f'<div class="spk">{spark(det.get("spark", []), entry, stop, tgt, sym.replace(".", "_").replace("-", "_"))}</div>'
     watch = r["Status"] == "watch"
     lv = (f'<div class="lv"><div><span>{L("Buy above", "شراء فوق") if watch else L("Entry", "الدخول")}</span><b>{_money_px(entry)}</b></div>'
@@ -1693,4 +1702,4 @@ def page_scanner():
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.4.15"
+BUILD = "23.4.16"
