@@ -126,6 +126,13 @@ def render(tiles, groups, logos=None, rng=3.0, lang="en", label=str, tip=None, r
         fs = fs if fs >= 7.5 else 0
         pfs = fs * 0.8
         pct = f"{v:+.2f}%" if v is not None and np.isfinite(v) else "—"
+        try:
+            pr = float(t.get("Price"))
+            price = (f"{pr:,.2f}" if abs(pr) >= 1 else f"{pr:.4f}") if np.isfinite(pr) else ""
+        except (TypeError, ValueError):
+            price = ""
+        if price and w >= pfs * 0.6 * (len(price) + len(pct) + 2):    # the price beside the change when the tile is wide enough
+            pct = f"{price}  {pct}"
         show_pct = fs > 0 and h >= fs + pfs + 9 and w >= pfs * 0.6 * len(pct)
         text_h = (fs + (pfs + 4 if show_pct else 0)) if fs else 0
         url = logos.get(sym)
@@ -190,4 +197,4 @@ def legend(rng=3.0):
     return f'<div class="hmlegend">{cells}</div>'
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.4.13"
+BUILD = "23.4.14"
