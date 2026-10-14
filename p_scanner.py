@@ -127,7 +127,7 @@ CSS = f"""<style>
 .hnc .hd .nm {{ display:flex; flex-direction:column; min-width:0; line-height:1.25; flex:1; }}
 .hnc .hd .nm b {{ color:#fff; font-size:1.02rem; }}
 .hnc .hd .nm span {{ color:{_MU}; font-size:.72rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
-.hnc .hd .px {{ display:flex; flex-direction:column; align-items:center; gap:3px; flex:none; padding:0 6px; }}
+.hnc .hd .px {{ display:flex; align-items:center; gap:7px; margin-top:4px; }}
 .hnc .hd .px b {{ color:#fff; font-size:1.08rem; font-weight:800; letter-spacing:-.01em; direction:ltr; line-height:1.1; }}
 .hnc .hd .px i {{ font-style:normal; font-weight:800; font-size:.78rem; padding:1px 8px; border-radius:999px; direction:ltr; }}
 .hnc .hd .px i.up {{ color:#4ADE80; background:rgba(74,222,128,.14); }} .hnc .hd .px i.dn {{ color:#F87171; background:rgba(248,113,113,.14); }}
@@ -757,7 +757,7 @@ def card(r, det, selected):
         pill = f'<i class="{"up" if chg >= 0 else "dn"}">{chg:+.2f}%</i>' if chg is not None and np.isfinite(chg) else ""
         px = f'<div class="px"><b>{_money_px(r["Price"])}</b>{pill}</div>'
     hd = (f'<div class="hd"><a class="co" href="{T.esc(ui.href(sym))}" target="_self" title="{T.esc(go_)}">{T.logo_obj(sym, 36)}'
-          f'<div class="nm"><b>{T.esc(T.sym_label(sym))}</b><span>{T.esc(T.name_line(sym, str(r["Name"])))}</span></div></a>{px}{ring(r["Score"], r["Grade"])}</div>')
+          f'<div class="nm"><b>{T.esc(T.sym_label(sym))}</b><span>{T.esc(T.name_line(sym, str(r["Name"])))}</span>{px}</div></a>{ring(r["Score"], r["Grade"])}</div>')
     sp = f'<div class="spk">{spark(det.get("spark", []), entry, stop, tgt, sym.replace(".", "_").replace("-", "_"))}</div>'
     watch = r["Status"] == "watch"
     lv = (f'<div class="lv"><div><span>{L("Buy above", "شراء فوق") if watch else L("Entry", "الدخول")}</span><b>{_money_px(entry)}</b></div>'
@@ -1702,4 +1702,4 @@ def page_scanner():
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.4.17"
+BUILD = "23.4.18"
