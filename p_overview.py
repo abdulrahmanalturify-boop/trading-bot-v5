@@ -220,8 +220,8 @@ div[class*="st-key-ovad_"]:hover .ovad.banner .go:not(.ghost){transform:translat
 .ovad.banner .pic .vz.donut svg{width:128px;height:128px}
 .ovad.banner .pic .vz.donut .lgn{font-size:13px;gap:8px 14px}
 .ovad.banner .steps{display:flex;align-items:center;justify-content:space-between;gap:6px}
-.ovad.banner .steps .st{flex:1;display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:13px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.18);font-size:13.5px;font-weight:700;white-space:nowrap}
-.ovad.banner .steps .st b{flex:none;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:11px;background:#fff;color:var(--a2)}
+.ovad.banner .steps .stp{flex:1;display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:13px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.18);font-size:13.5px;font-weight:700;white-space:nowrap}
+.ovad.banner .steps .stp b{flex:none;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:11px;background:#fff;color:var(--a2)}
 .ovad.banner .steps .ar .ms{font-size:16px;opacity:.7}
 .ovad.banner.rtl .steps .ar .ms{transform:scaleX(-1)}
 .ovad.banner .vz.donut{padding:14px 16px;gap:18px}
@@ -237,7 +237,7 @@ div.st-key-ovpage{container-type:inline-size;container-name:ovp}
   div[class*="st-key-ovads_"]>*{flex:1 0 300px!important;min-width:300px!important;max-width:420px;scroll-snap-align:start}
   .ovad.wide .bd{grid-template-columns:1fr}
   .ovad.banner{padding:20px 18px}.ovad.banner .bd{grid-template-columns:1fr;gap:16px}.ovad.banner .tt{font-size:25px}.ovad.banner .big{inset-inline-end:-40px}
-  .ovad.banner .go{flex:1;justify-content:center}.ovad.banner .steps .st{white-space:normal;font-size:11.5px}
+  .ovad.banner .go{flex:1;justify-content:center}.ovad.banner .steps .stp{white-space:normal;font-size:11.5px}
   div[class*="st-key-ovbody_"] .msg{grid-template-columns:minmax(0,1fr)!important}
 }
 @container ovp (max-width:520px){div[class*="st-key-ovads_"]>*{flex-basis:84%!important;min-width:84%!important}}
@@ -443,7 +443,7 @@ def _banner_html(key, d, f, sa):
     page, icon, tone, kick, title, pitch, cta = TOOLS[key]
     ar = is_ar()
     steps = [L("Your goal", "هدفك"), L("Your risk", "مخاطرتك"), L("Your plan", "خطتك")]
-    stp = "".join(f'<span class="st"><b>{i + 1}</b>{T.esc(x)}</span>' + ('<i class="ar">' + T.icon("arrow_forward") + "</i>" if i < 2 else "")
+    stp = "".join(f'<span class="stp"><b>{i + 1}</b>{T.esc(x)}</span>' + ('<i class="ar">' + T.icon("arrow_forward") + "</i>" if i < 2 else "")
                   for i, x in enumerate(steps))
     nq = f["questions"] or 7
     chips = [L("Free", "مجاني"), L(f"{nq} short questions", f"{nq} سؤال قصير"), L("No sign-up", "بدون تسجيل"),
@@ -619,8 +619,8 @@ def _live_vz(key, d, f, sa):
             rows = ""
             for pk in got["picks"][:3]:
                 lg = T.logo_obj(pk["sym"], 30)
-                rows += (f'<div class="r"><span class="lg">{lg}</span><span class="nm"><b>{T.esc(T.name_line(pk["sym"], pk["name"]))}</b>'
-                         f'<span><em>{T.esc(short_name(pk["setup"]))}</em> · {T.esc(T.sym_label(pk["sym"]))}</span></span>'
+                rows += (f'<div class="r"><span class="lg">{lg}</span><span class="nm"><b>{T.esc(T.sym_label(pk["sym"]))}</b>'
+                         f'<span><em>{T.esc(short_name(pk["setup"]))}</em> · {T.esc(T.name_line(pk["sym"], pk["name"]))}</span></span>'
                          f'{_ring_html(pk["score"], pk["grade"])}</div>')
             more = max(0, got["opp"] - 3)
             tail = f'<div class="more">{T.esc(L(f"+{more} more opportunities today", f"+{more} فرص ثانية اليوم"))}</div>' if more else ""
@@ -974,4 +974,4 @@ def page_overview():
         print(f"[prof] page {'sa' if sa else 'us'} total {time.time() - t0:.2f}s", flush=True)
 
 
-BUILD = "23.4.9"
+BUILD = "23.4.10"
