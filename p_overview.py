@@ -223,7 +223,7 @@ div.st-key-ovbento .ovad .go{margin-top:auto}
 div.st-key-ovbento .ovad.hero .vz.picks{flex:1}
 div.st-key-ovbento .ovad.hero .vz.stat,div.st-key-ovbento .ovad.hero .vz.ticket,div.st-key-ovbento .ovad.hero .vz.bot{min-height:190px}
 div.st-key-ovbento .ovad ul{margin-bottom:12px}
-div.st-key-ovbento .ovad.hero{padding:20px 20px 20px;min-height:570px}
+div.st-key-ovbento .ovad.hero{padding:20px 20px 20px;min-height:600px}
 div.st-key-ovbento .ovad.hero .tt{font-size:25px}
 div.st-key-ovbento .ovad.hero p{font-size:14px}
 div.st-key-ovbento .ovad.hero .vz{height:auto;min-height:150px;margin:14px 0 12px}
@@ -267,10 +267,15 @@ div.st-key-ovbento .ovad.sm .go{padding:8px 12px;font-size:12.5px}
 .vz.fgm .bar i{position:absolute;top:-4px;width:18px;height:18px;margin-inline-start:-9px;border-radius:50%;background:#fff;border:3px solid #1E1B4B;box-shadow:0 2px 6px rgba(0,0,0,.4)}
 .vz.fgm .zs{display:flex;justify-content:space-between;font-size:9.5px;color:rgba(255,255,255,.7)}
 .vz.story{display:flex;flex-direction:column;justify-content:center;gap:6px;padding:11px 13px;box-sizing:border-box;height:auto!important;min-height:118px}
-.vz.story .t{font-size:13px;font-weight:700;line-height:1.45;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.vz.story .s{padding:6px 0;border-top:1px solid rgba(255,255,255,.12)}.vz.story .s:first-child{border-top:0;padding-top:0}
+.vz.story .t{font-size:12.5px;font-weight:700;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .vz.story .m{display:flex;align-items:center;gap:8px;font-size:11px;color:rgba(255,255,255,.75)}
 .vz.story .m .sc{font-weight:800;padding:2px 7px;border-radius:7px;background:rgba(255,255,255,.92);color:#1E1B4B}
 .vz.story .m .ms{font-size:14px}
+.vz.fgm .row{display:flex;justify-content:space-between;gap:10px;font-size:12px;border-top:1px solid rgba(255,255,255,.12);padding-top:7px;margin-top:2px}
+.vz.days{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;padding:10px 8px;box-sizing:border-box;height:auto!important;min-height:74px}
+.vz.days span{display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 2px;border-radius:9px;background:rgba(255,255,255,.1)}
+.vz.days b{font-size:10px}.vz.days i{font-style:normal;font-size:6px;letter-spacing:1px;color:#A5B4FC;line-height:1}
 @container ovp (max-width:820px){div.st-key-ovbento .ovad,div.st-key-ovbento .ovad.hero,div.st-key-ovbento .ovad.mid{min-height:0}}
 @media (prefers-reduced-motion:reduce){.ovad,.ovad *,.ovad::after{animation:none!important;transition:none!important}}
 </style>"""
@@ -329,6 +334,11 @@ def _points(key, f, sa):
                   L("A log shows which one is right", "سجل يبين مين فيها يصيب")],
         "screener": [L("Descriptive, fundamental and technical filters", "فلاتر وصفية وأساسية وفنية"),
                      L("Ready presets and investment themes", "قوالب جاهزة وثيمات استثمارية"), L("Open any company in one click", "افتح أي شركة بضغطة")],
+        "news": [L("Headlines from 35 feeds, every 3 minutes", "عناوين من 35 مصدراً، كل 3 دقائق"), L("The bot reads each one in its context", "البوت يقرأ كل خبر بسياقه"),
+                 L("Related stories grouped together", "الأخبار المرتبطة مع بعض")],
+        "mood": [L("Seven signals from the market itself", "سبع إشارات من السوق نفسه"), L("Updated through the day", "يتحدّث خلال اليوم"),
+                 L("The news mood beside it", "ومزاج الأخبار جنبه")],
+        "cal": [L("Earnings, day by day", "الأرباح يوم بيوم"), L("Economic events and dividends", "الأحداث الاقتصادية والتوزيعات"), L("IPOs and market holidays", "الاكتتابات وعطلات السوق")],
     }[key]
 
 
@@ -577,32 +587,50 @@ def _live_vz(key, d, f, sa):
                     f'<div class="row"><span>{T.esc(L("Open trades", "صفقات مفتوحة"))}</span><b>{b["open"]}</b></div></div>'), b
         return _vz(key, f), b
     if key == "news":
-        st_ = d.stories()
+        st_ = d.stories()[:3]
         if st_:
-            n = st_[0]
-            title = str(n.get("title", ""))
-            if is_ar() and not re.search("[\u0600-\u06FF]", title):
+            titles = [str(n.get("title", "")) for n in st_]
+            if is_ar() and any(not re.search("[\u0600-\u06FF]", t) for t in titles):
                 try:
-                    title = data.translate([title], budget=1)[0] or title
+                    titles = [t2 or t1 for t1, t2 in zip(titles, data.translate(titles, budget=3))]
                 except Exception:
                     pass
-            sc = ""
-            try:
-                sc = f'<span class="sc">{int(n["iq"]["score"])}/10</span>'
-            except Exception:
-                pass
-            when = T.time_ago(n["time"], is_ar()) if n.get("time") is not None else ""
-            return (f'<div class="vz story"><div class="t" dir="auto">{T.esc(title)}</div>'
-                    f'<div class="m">{sc}{T.icon("schedule")}{T.esc(str(n.get("source", "")))} · {T.esc(when)}</div></div>'), n
+            rows = ""
+            for n, title in zip(st_, titles):
+                sc = ""
+                try:
+                    sc = f'<span class="sc">{int(n["iq"]["score"])}/10</span>'
+                except Exception:
+                    pass
+                when = T.time_ago(n["time"], is_ar()) if n.get("time") is not None else ""
+                rows += (f'<div class="s"><div class="t" dir="auto">{T.esc(title)}</div>'
+                         f'<div class="m">{sc}{T.icon("schedule")}{T.esc(str(n.get("source", "")))} · {T.esc(when)}</div></div>')
+            return f'<div class="vz story">{rows}</div>', st_[0]
         return (f'<div class="vz story"><div class="t">{T.esc(L("The news bot is collecting the latest headlines from 35 feeds.", "بوت الأخبار يجمع آخر العناوين من 35 مصدراً."))}</div></div>'), None
     if key == "mood":
         v = d.fg()
         if v is not None:
             v = max(0.0, min(100.0, float(v)))
+            nm = ""
+            try:
+                snap = d.snap()
+                res = snap.get("res") or {}
+                net = res.get("net") if isinstance(res, dict) else None
+                if net is not None:
+                    nm = (f'<div class="row"><span>{T.icon("newspaper")} {T.esc(L("News mood", "مزاج الأخبار"))}</span>'
+                          f'<b>{T.esc(("+" if net > 0 else "") + f"{net:.0f}")}</b></div>')
+            except Exception:
+                pass
             return (f'<div class="vz fgm"><div class="top"><b>{v:.0f}<small style="font-size:12px;opacity:.7">/100</small></b><span>{T.esc(_fg_label(v))}</span></div>'
                     f'<div class="bar"><i style="inset-inline-start:{v:.0f}%"></i></div>'
-                    f'<div class="zs"><span>{T.esc(L("Fear", "خوف"))}</span><span>{T.esc(L("Neutral", "محايد"))}</span><span>{T.esc(L("Greed", "طمع"))}</span></div></div>'), v
+                    f'<div class="zs"><span>{T.esc(L("Fear", "خوف"))}</span><span>{T.esc(L("Neutral", "محايد"))}</span><span>{T.esc(L("Greed", "طمع"))}</span></div>{nm}</div>'), v
         return (f'<div class="vz fgm"><div class="top"><b>—</b></div><div class="bar"></div></div>'), None
+    if key == "cal":
+        days = [L("Sun", "أحد"), L("Mon", "اثنين"), L("Tue", "ثلاثاء"), L("Wed", "أربعاء"), L("Thu", "خميس")] if sa else \
+            [L("Mon", "اثنين"), L("Tue", "ثلاثاء"), L("Wed", "أربعاء"), L("Thu", "خميس"), L("Fri", "جمعة")]
+        dots = [3, 1, 4, 2, 2]
+        cells = "".join(f'<span><b>{T.esc(dn)}</b><i>{"●" * k}</i></span>' for dn, k in zip(days, dots))
+        return f'<div class="vz days">{cells}</div>', None
     return _vz(key, f), None
 
 
@@ -632,14 +660,16 @@ def _tile_html(key, d, f, sa, size):
         lv = f'<span class="lv"><i></i>{T.esc(L(f"{n_opp} opportunities today", f"{n_opp} فرصة اليوم"))}</span>'
     elif key == "bots" and live:
         n_b = live["n"]
-        lv = f'<span class="lv"><i></i>{T.esc(L(f"{n_b} bots live", f"{n_b} بوتات شغّالة"))}</span>'
+        en_b = f"{n_b} bot live" if n_b == 1 else f"{n_b} bots live"
+        ar_b = "بوت شغّال" if n_b == 1 else f"{n_b} بوتات شغّالة"
+        lv = f'<span class="lv"><i></i>{T.esc(L(en_b, ar_b))}</span>'
     elif key == "pf":
         lv = f'<span class="lv">{T.esc(L("Free", "مجاني"))}</span>'
     else:
         lv = f'<em>{T.esc(L("Free", "مجاني"))}</em>'
     solo = key == "ai"
     attrs = ' data-open-ai="1" role="button" tabindex="0"' if solo else ""
-    pts = "".join(f'<li>{T.icon("check_circle")}<span>{T.esc(x)}</span></li>' for x in (_points(key, f, sa) if key in TOOLS else []))
+    pts = "".join(f'<li>{T.icon("check_circle")}<span>{T.esc(x)}</span></li>' for x in _points(key, f, sa))
     text = (f'<div class="tx"><b class="tt">{T.esc(L(*title))}</b><p>{T.esc(L(*pitch))}</p>{"<ul>" + pts + "</ul>" if pts else ""}'
             f'<span class="go">{T.esc(L(*cta))}{T.icon("arrow_forward")}</span></div>')
     return (f'<div class="ovad {tone} {size}{" rtl" if ar else ""}{" solo" if solo else ""}" data-nogq{attrs}>'
@@ -655,7 +685,7 @@ def _tile(key, d, f, sa, size):
         return
     with st.container(key=f"ovad_{key}"):
         ui.html(_tile_html(key, d, f, sa, size))
-        st.button(L(*(TOOLS.get(key) or TILES[key])[4]), key=f"ovgo_{key}", on_click=_open_tool, args=(key, page), width="stretch")
+        st.button(L(*(TOOLS.get(key) or TILES[key])[4]), key=f"ovgo_t_{key}", on_click=_open_tool, args=(key, page), width="stretch")
 
 
 def _bento(d, f, sa):
