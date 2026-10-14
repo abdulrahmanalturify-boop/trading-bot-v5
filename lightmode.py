@@ -428,13 +428,13 @@ def install():
 
 
 # ---------------------------------------------------------------- the page behind everything, in the light look
-BG_FILE = "bg_markets_light.jpg"     # the site's background picture in light tones (static/, made from bg_markets.jpg)
+BG_FILE = "bg_day.jpg"               # the site's background picture in light tones (static/, the owner's day version of bg_night.jpg)
 BG_CDN = f"https://cdn.jsdelivr.net/gh/abdulrahmanalturify-boop/trading-bot-v5@main/static/{BG_FILE}"
 
 
 def background_css(url, calm=False):
-    """The same globe picture as the dark look, in light tones (its lightness turned over, its colours kept: a pale lavender
-    sky, the globe and the market numbers in dark dots), under a light veil that deepens a little towards the bottom."""
+    """The same picture as the dark look in its day version (a white sky with the bars, the panels and the data blocks in pale
+    lavender and teal), under a light veil that deepens a little towards the bottom."""
     veil = ("linear-gradient(180deg, rgba(246,244,251,.56) 0%, rgba(246,244,251,.64) 45%, rgba(246,244,251,.76) 100%)" if calm else   # a reading page
             "linear-gradient(180deg, rgba(246,244,251,.16) 0%, rgba(246,244,251,.26) 45%, rgba(246,244,251,.46) 100%)")
     keep_white = (".lg, .lgo .ini, .nth.fb .ms, .nth.fb em, .nth img::after, .sax .sx-ic, .sax .sx-ic .ms, "   # white letters on a coloured tile stay white
