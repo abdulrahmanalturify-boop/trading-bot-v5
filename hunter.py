@@ -23,6 +23,7 @@ import pandas as pd
 import playbooks as PB
 import ta
 import universe as U
+import hunter_quant as Q
 
 # key -> (en, ar, icon, kind, side, max_bars, what it is en, ar)
 SETUPS = {
@@ -66,9 +67,14 @@ PLAYBOOK_OF = {"pullback": PB.TREND_PULLBACK, "retest": PB.BREAKOUT_RETEST, "squ
 ORDER = ["pullback", "retest", "squeeze", "breakout", "range", "volume", "gap", "golden", "leader", "dip", "coil", "breakdown"]
 STATUS = {"fresh": ("New today", "جديدة اليوم", "up"), "active": ("Active", "نشطة", "acc"), "watch": ("Watch", "مراقبة", "gold")}
 GRADES = [(85, "A+"), (75, "A"), (65, "B"), (50, "C"), (0, "D")]
-WEIGHTS = {"trend": 0.25, "rs": 0.25, "volume": 0.15, "setup": 0.20, "risk": 0.15}
-PARTS = {"trend": ("Trend", "الاتجاه"), "rs": ("Relative strength", "القوة النسبية"), "volume": ("Accumulation", "التجميع"),
-         "setup": ("Setup", "الفرصة"), "risk": ("Reward / risk", "العائد / المخاطرة")}
+# Seven interpretable factors, with a neutral fallback for missing quant inputs.
+WEIGHTS = {"trend": 0.20, "rs": 0.18, "volume": 0.12, "setup": 0.20,
+           "risk": 0.13, "quant": 0.12, "sector": 0.05}
+PARTS = {"trend": ("Trend", "الاتجاه"), "rs": ("Relative strength", "القوة النسبية"),
+         "volume": ("Accumulation", "التجميع"), "setup": ("Setup", "الفرصة"),
+         "risk": ("Reward / risk", "العائد / المخاطرة"),
+         "quant": ("Quantitative quality", "الجودة الكمية"),
+         "sector": ("Sector leadership", "قوة القطاع")}
 MIN_BARS = 130
 
 
@@ -324,8 +330,9 @@ def analyze(df, market=None):
     if ext > 3:
         risk_pts -= 30
     risk_pts = float(np.clip(risk_pts, 0, 100))
+    quant = Q.assess(df, market)
 
-    return {"price": price, "chg": float((c[i] / c[i - 1] - 1) * 100), "r1": r1, "r3": r3, "r6": r6, "r12": r12, "rs_raw": rs_raw,
+    return {"quant": quant, "price": price, "chg": float((c[i] / c[i - 1] - 1) * 100), "r1": r1, "r3": r3, "r6": r6, "r12": r12, "rs_raw": rs_raw,
             "hi52": hi52, "lo52": lo52, "dist_hi": (price / hi52 - 1) * 100, "rvol": rvol, "dollar": dollar, "ud": ud,
             "rsi": float(last["RSI"]), "adx": adx, "atr": a, "atr_pct": a / price * 100, "ext": ext, "bw_pct": bw_pct,
             "above50": bool(price > s50), "above200": bool(has200 and price > s200), "new_high": bool(h[i] >= hi52 * 0.999),
@@ -371,6 +378,8 @@ def hunt(data_by_symbol, market=None, earnings=None, today=None, names=None, sec
         return pd.DataFrame(), {}
     raw = np.array([r["rs_raw"] for _, r in rows], float)
     spy_raw = spy_strength(market) if market is not None else np.nan
+    sec_scores = Q.sector_scores((sym, (sectors or {}).get(sym) or U.sector_of(sym),
+                                   r["r3"], r["above50"]) for sym, r in rows)
     if len(rows) >= 60 and np.isfinite(raw).sum() >= 30:
         order = pd.Series(raw).rank(pct=True).to_numpy()
         rs = np.where(np.isfinite(raw), np.clip(np.round(order * 98 + 1), 1, 99), 50.0)
@@ -389,9 +398,16 @@ def hunt(data_by_symbol, market=None, earnings=None, today=None, names=None, sec
             flags.append("thin")
         if r["ext"] > 3:
             flags.append("extended")
+        if r["quant"]["volatility_shock"]:
+            flags.append("vol_shock")
+        if r["quant"]["quality"] != "ok":
+            flags.append("quant_data")
         b = r["best"]
+        quant = r["quant"]
+        sector_score = sec_scores.get(sym, 50.0)
         total = (WEIGHTS["trend"] * r["p_trend"] + WEIGHTS["rs"] * rsv + WEIGHTS["volume"] * r["p_volume"]
-                 + WEIGHTS["setup"] * r["p_setup"] + WEIGHTS["risk"] * r["p_risk"])
+                 + WEIGHTS["setup"] * r["p_setup"] + WEIGHTS["risk"] * r["p_risk"]
+                 + WEIGHTS["quant"] * quant["score"] + WEIGHTS["sector"] * sector_score)
         total -= 8 if "earnings" in flags else 0
         total -= 5 if "thin" in flags else 0
         if b is None or b["side"] < 0:
@@ -406,11 +422,16 @@ def hunt(data_by_symbol, market=None, earnings=None, today=None, names=None, sec
                "$Vol": r["dollar"], "Entry": b["entry"] if b else np.nan, "Stop": b["stop"] if b else np.nan,
                "Target": b["target"] if b else np.nan, "R:R": r["rr"], "Earnings": edays, "Flags": ",".join(flags),
                "Trend": r["p_trend"], "Accum": r["p_volume"], "SetupPts": r["p_setup"], "RiskPts": r["p_risk"],
+               "Quant": quant["score"], "SectorPts": sector_score, "QuantQuality": quant["quality"],
+               "Vol63 %": quant["volatility_pct"], "DownsideVol %": quant["downside_vol_pct"],
+               "MaxDD63 %": quant["max_drawdown_pct"], "Beta63": quant["beta"],
+               "Excess63 %": quant["excess_return_pct"], "IR63": quant["information_ratio"],
+               "Efficiency %": quant["efficiency_pct"], "PositiveWeeks %": quant["positive_weeks_pct"],
                "Above50": r["above50"], "Above200": r["above200"], "NewHigh": r["new_high"], "NewLow": r["new_low"]}
         out.append(row)
         detail[sym] = {"setups": r["setups"], "spark": r["spark"], "sma20": r["sma20"], "sma50": r["sma50"], "sma200": r["sma200"],
                        "hi52": r["hi52"], "lo52": r["lo52"], "ud": r["ud"], "ext": r["ext"], "bw_pct": r["bw_pct"]}
-    res = pd.DataFrame(out).sort_values(["Score", "RS"], ascending=False).reset_index(drop=True)
+    res = pd.DataFrame(out).sort_values(["Score", "Quant", "RS"], ascending=False).reset_index(drop=True)
     return res, detail
 
 
@@ -461,4 +482,4 @@ def size(entry, stop, account, risk_pct):
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.4.34"
+BUILD = "23.4.34-quant2"
