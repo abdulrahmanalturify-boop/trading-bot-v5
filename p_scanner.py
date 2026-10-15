@@ -1582,14 +1582,18 @@ def detail(r, det, got):
 
 # ---------------------------------------------------------------- the table and the charts
 def table(view):
-    cols = ["Symbol", "Name", "Sector", "Grade", "Score", "Setup", "Status", "Price", "Chg %", "1M %", "3M %", "RS", "RVOL", "From high %",
+    cols = ["Symbol", "Name", "Sector", "Grade", "Score", "Quant", "SectorPts", "Setup", "Status", "Price", "Chg %", "1M %", "3M %", "RS", "RVOL", "Vol63 %", "MaxDD63 %", "Excess63 %", "From high %",
             "Entry", "Stop", "Target", "R:R", "Earnings"]
     show = view[cols].copy()
     show["Sector"] = show["Sector"].map(lambda s: sector_name(s) if s else "—")
     show["Setup"] = show["Setup"].map(setup_name)
     show["Status"] = show["Status"].map(lambda s: L(*H.STATUS[s][:2]) if s in H.STATUS else "—")
     N = {"Symbol": L("Symbol", "الرمز"), "Name": L("Company", "الشركة"), "Sector": L("Sector", "القطاع"), "Grade": L("Grade", "الدرجة"),
-         "Score": L("Score", "التقييم"), "Setup": L("Setup", "الفرصة"), "Status": L("Status", "الحالة"), "Price": L("Price", "السعر"),
+         "Score": L("Score", "التقييم"), "Quant": L("Quant", "الجودة الكمية"),
+         "SectorPts": L("Sector strength", "قوة القطاع"), "Vol63 %": L("Ann. vol %", "التذبذب السنوي %"),
+         "MaxDD63 %": L("Max DD 63d %", "أكبر تراجع 63 يوم %"),
+         "Excess63 %": L("63d excess %", "التفوق 63 يوم %"),
+         "Setup": L("Setup", "الفرصة"), "Status": L("Status", "الحالة"), "Price": L("Price", "السعر"),
          "Chg %": L("Chg %", "التغير %"), "1M %": L("1M %", "شهر %"), "3M %": L("3M %", "3 أشهر %"), "RS": "RS", "RVOL": "RVOL",
          "From high %": L("From 52W high %", "عن القمة السنوية %"), "Entry": L("Entry", "الدخول"), "Stop": L("Stop", "الوقف"),
          "Target": L("Target", "الهدف"), "R:R": "R:R", "Earnings": L("Earnings in (days)", "الأرباح بعد (أيام)")}
@@ -1598,6 +1602,8 @@ def table(view):
     ui.table(show, sym=N["Symbol"], height=600, pills={N["Chg %"]}, signed={N["1M %"], N["3M %"]},
              cell={N["Score"]: lambda v, r: ui.score_bar(v), N["Grade"]: grade},
              fmt={N["Price"]: "{:,.2f}", N["Chg %"]: "{:+.2f}%", N["1M %"]: "{:+.1f}%", N["3M %"]: "{:+.1f}%", "RS": "{:,.0f}", "RVOL": "{:.1f}×",
+                  N["Quant"]: "{:.0f}", N["SectorPts"]: "{:.0f}",
+                  N["Vol63 %"]: "{:.1f}%", N["MaxDD63 %"]: "{:.1f}%", N["Excess63 %"]: "{:+.1f}%",
                   N["From high %"]: "{:.1f}%", N["Entry"]: "{:,.2f}", N["Stop"]: "{:,.2f}", N["Target"]: "{:,.2f}", "R:R": "{:.1f}",
                   N["Earnings"]: "{:,.0f}"})
     a, b, _ = st.columns([1, 1.3, 3])
@@ -1712,16 +1718,20 @@ def page_scanner():
             "<b>Setups</b> are exact rules on the daily close (the four combined strategies of the Paper Bots, breakouts, leaders, "
             "golden crosses, oversold dips, accumulation days, gaps, squeezes and breakdowns). A setup is <b>new today</b> when it fired "
             "on the latest candle, <b>active</b> when it fired in the last 2-3 sessions and the price is still between its stop and its "
-            "target, and on <b>watch</b> when it is building. <b>The score</b> (0-100): trend 25%, relative strength 25% (RS 1-99: "
-            "the 3-12 month return ranked against every stock scanned), accumulation 15%, the setup 20% and reward-to-risk 15%; "
-            "earnings within 5 days (-8) and thin trading (-5) cost points, and a stock without a buying setup can't pass 49. "
+            "target, and on <b>watch</b> when it is building. <b>The seven-factor score</b> (0-100): trend 20%, relative strength 18%, "
+            "accumulation 12%, setup 20%, reward-to-risk 13%, quantitative quality 12% and sector strength 5%. Quant uses "
+            "risk-adjusted momentum, return consistency, drawdown, price efficiency and benchmark-relative returns. "
+            "Sector strength is neutral for narrow scans. Earnings within 5 days (-8) and thin trading (-5) cost points; "
+            "a stock without a buying setup cannot score over 49. "
             "Grades: A+ from 85, A from 75, B from 65, C from 50. <b>Catalysts</b> (fundamental checks, analyst actions, earnings, "
             "news) are shown for the opened stock; they don't change the score.",
             "<b>الفرص</b> شروط دقيقة على الإغلاق اليومي (الاستراتيجيات المركّبة الأربع في البوتات الافتراضية، والاختراقات، والقادة، "
             "والتقاطع الذهبي، والتشبع البيعي، وأيام التجميع، والفجوات، والانضغاط، والكسر الهابط). الفرصة <b>جديدة اليوم</b> إذا ظهرت على آخر "
             "شمعة، و<b>نشطة</b> إذا ظهرت خلال آخر 2-3 جلسات والسعر لسا بين الوقف والهدف، و<b>مراقبة</b> إذا لسا تتكوّن. <b>التقييم</b> (من 100): "
-            "الاتجاه 25%، والقوة النسبية 25% (RS من 1 إلى 99: عائد 3 إلى 12 شهر مرتب مقابل كل الأسهم المفحوصة)، والتجميع 15%، والفرصة 20%، "
-            "والعائد مقابل المخاطرة 15%؛ وإعلان أرباح خلال 5 أيام (-8) وضعف السيولة (-5) ينقصون النقاط، والسهم بدون فرصة شراء ما يتعدى 49. "
+            "التقييم من 7 عوامل: الاتجاه 20%، والقوة النسبية 18% (RS من 1 إلى 99)، والتجميع 12%، والفرصة 20%، "
+            "والعائد مقابل المخاطرة 13%، والجودة الكمية 12% (الزخم المعدل بالمخاطرة، انتظام العوائد، التراجع، كفاءة المسار، والتفوق على المؤشر)، "
+            "وقوة القطاع 5%. القطاع محايد بالقوائم الضيقة؛ إعلان أرباح خلال 5 أيام (-8) وضعف السيولة (-5) ينقصون النقاط، "
+            "والسهم بدون فرصة شراء ما يتعدى 49. "
             "الدرجات: A+ من 85، وA من 75، وB من 65، وC من 50. <b>المحفزات</b> (الفحص المالي، وتحركات المحللين، والأرباح، والأخبار) تظهر "
             "للسهم المفتوح وما تغيّر التقييم.") + "</div>")
     st.caption(L("Daily prices from Yahoo Finance (may be delayed). This is a research tool, not investment advice: check the chart and the news "
