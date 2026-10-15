@@ -1548,6 +1548,29 @@ def detail(r, det, got):
                          T.kpi("balance", L("Profit factor", "معامل الربح"), pf, "", "pos" if e["pf"] >= 1 else "neg"),
                          T.kpi("savings", L("Total", "المجموع"), f"{e['total_r']:+.1f}R", L("in risk units", "بوحدات المخاطرة"), T.cls(e["total_r"]))]
                 ui.html('<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">' + "".join(tiles) + "</div>")
+                # Five-year history is in-sample and not a calibrated probability.
+                nfmt = "∞" if e["net_pf"] == np.inf else f"{e['net_pf']:.2f}"
+                extra = [
+                    T.kpi("insights", L("Net average · est. costs", "متوسط صافي · تكاليف تقديرية"),
+                          f"{e['net_avg_r']:+.2f}R", f"{e['round_trip_bps']:.0f} bps {L('round trip', 'دخول وخروج')}",
+                          T.cls(e["net_avg_r"])),
+                    T.kpi("verified", L("Conservative win estimate", "نسبة نجاح محافظة"),
+                          f"{e['net_win_shrunk']:.0f}%", L("Shrunk toward 50%, not predictive", "منكمشة باتجاه 50% وليست توقعاً"),
+                          None),
+                    T.kpi("shield", L("95% Wilson lower bound", "الحد الأدنى ويلسون 95%"),
+                          f"{e['net_win_lower95']:.0f}%", L("Historical only", "تاريخي فقط"), None),
+                    T.kpi("balance", L("Net profit factor", "معامل الربح الصافي"),
+                          nfmt, "", T.cls(e["net_avg_r"])),
+                ]
+                ui.html('<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:10px">'
+                        + "".join(extra) + "</div>")
+                if not e["sample_adequate"]:
+                    st.warning(L("Small sample (<30 closed trades). Historical win rates are unreliable.",
+                                 "العينة صغيرة (أقل من 30 صفقة مقفلة). نسبة نجاح الماضي غير موثوقة."))
+                st.caption(L("Net results subtract an illustrative 20-basis-point round-trip cost. "
+                             "These are historical in-sample outcomes, not verified future accuracy.",
+                             "الأرقام الصافية تخصم 20 نقطة أساس كتقدير لتكاليف الدخول والخروج. "
+                             "النتائج من البيانات التاريخية نفسها وليست دليلاً على دقة التوقعات المستقبلية."))
                 show = bt.tail(12).iloc[::-1].copy()
                 show["Entry Date"] = pd.to_datetime(show["Entry Date"]).dt.date
                 show["Exit Date"] = pd.to_datetime(show["Exit Date"]).dt.date
