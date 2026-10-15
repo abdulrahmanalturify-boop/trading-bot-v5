@@ -23,6 +23,7 @@ import pandas as pd
 import playbooks as PB
 import ta
 import universe as U
+import hunter_quant as Q
 
 # key -> (en, ar, icon, kind, side, max_bars, what it is en, ar)
 SETUPS = {
@@ -66,9 +67,14 @@ PLAYBOOK_OF = {"pullback": PB.TREND_PULLBACK, "retest": PB.BREAKOUT_RETEST, "squ
 ORDER = ["pullback", "retest", "squeeze", "breakout", "range", "volume", "gap", "golden", "leader", "dip", "coil", "breakdown"]
 STATUS = {"fresh": ("New today", "جديدة اليوم", "up"), "active": ("Active", "نشطة", "acc"), "watch": ("Watch", "مراقبة", "gold")}
 GRADES = [(85, "A+"), (75, "A"), (65, "B"), (50, "C"), (0, "D")]
-WEIGHTS = {"trend": 0.25, "rs": 0.25, "volume": 0.15, "setup": 0.20, "risk": 0.15}
-PARTS = {"trend": ("Trend", "الاتجاه"), "rs": ("Relative strength", "القوة النسبية"), "volume": ("Accumulation", "التجميع"),
-         "setup": ("Setup", "الفرصة"), "risk": ("Reward / risk", "العائد / المخاطرة")}
+# Seven interpretable factors, with a neutral fallback for missing quant inputs.
+WEIGHTS = {"trend": 0.20, "rs": 0.18, "volume": 0.12, "setup": 0.20,
+           "risk": 0.13, "quant": 0.12, "sector": 0.05}
+PARTS = {"trend": ("Trend", "الاتجاه"), "rs": ("Relative strength", "القوة النسبية"),
+         "volume": ("Accumulation", "التجميع"), "setup": ("Setup", "الفرصة"),
+         "risk": ("Reward / risk", "العائد / المخاطرة"),
+         "quant": ("Quantitative quality", "الجودة الكمية"),
+         "sector": ("Sector leadership", "قوة القطاع")}
 MIN_BARS = 130
 
 
@@ -206,15 +212,54 @@ def backtest(d, key, series=None, market=None):
     return pd.DataFrame(rows)
 
 
-def edge(trades):
-    """Win rate, average R, profit factor and number of trades of a backtest (None when it has no trades)."""
+def edge(trades, round_trip_bps=20.0, shrink_n=20.0):
+    """Descriptive historical signal quality, gross AND estimated after costs.
+
+    round_trip_bps is entry + exit fees/spread/slippage (default 20 bps).
+    Each trade's estimated cash cost is scaled by its initial per-share risk.
+    Wilson's lower win-rate bound and a Beta-style shrinkage towards 50%
+    discourage overconfidence from a handful of historical observations.
+    This is an IN-SAMPLE diagnostic, never a calibrated win probability.
+    """
     if trades is None or trades.empty:
         return None
-    r = trades["R"].to_numpy(float)
+    valid = trades.replace([np.inf, -np.inf], np.nan).dropna(subset=["R", "Entry", "Stop", "Ret %"])
+    if valid.empty:
+        return None
+    if not np.isfinite(round_trip_bps) or not 0 <= float(round_trip_bps) <= 2000:
+        raise ValueError("round_trip_bps must be between 0 and 2000")
+    if not np.isfinite(shrink_n) or float(shrink_n) < 0:
+        raise ValueError("shrink_n must be nonnegative")
+    r = valid["R"].to_numpy(float)
+    entries = valid["Entry"].to_numpy(float)
+    distances = np.abs(entries - valid["Stop"].to_numpy(float))
+    fee_cash = entries * float(round_trip_bps) / 10000
+    net_r = r - np.divide(fee_cash, distances, out=np.full_like(r, np.nan), where=distances > 0)
+    good = np.isfinite(net_r)
+    if not good.any():
+        return None
+    net_r = net_r[good]
+    r = r[good]
+    v = valid.iloc[np.flatnonzero(good)]
     wins, losses = r[r > 0].sum(), -r[r < 0].sum()
-    return {"n": len(r), "win": float((r > 0).mean() * 100), "avg_r": float(r.mean()), "avg_ret": float(trades["Ret %"].mean()),
-            "pf": float(wins / losses) if losses > 0 else (np.inf if wins > 0 else 0.0), "total_r": float(r.sum())}
-
+    net_wins, net_losses = net_r[net_r > 0].sum(), -net_r[net_r < 0].sum()
+    n, nwin = len(net_r), int((net_r > 0).sum())
+    p = nwin / n
+    z = 1.96
+    wilson = (p + z * z / (2 * n) - z * np.sqrt(p * (1-p) / n + z * z / (4*n*n))) / (1 + z*z/n)
+    shrunk = 100 * (nwin + float(shrink_n) / 2) / (n + float(shrink_n))
+    return {
+        "n": n, "win": float((r > 0).mean() * 100),
+        "avg_r": float(r.mean()), "avg_ret": float(v["Ret %"].mean()),
+        "pf": float(wins / losses) if losses > 0 else (np.inf if wins > 0 else 0.0),
+        "total_r": float(r.sum()),
+        "net_avg_r": float(net_r.mean()),
+        "net_win": float(p * 100), "net_win_shrunk": float(shrunk),
+        "net_win_lower95": float(max(0.0, wilson) * 100),
+        "net_pf": float(net_wins / net_losses) if net_losses > 0 else (np.inf if net_wins > 0 else 0.0),
+        "round_trip_bps": float(round_trip_bps),
+        "sample_adequate": bool(n >= 30),
+    }
 
 # ---------------------------------------------------------------- one stock
 def analyze(df, market=None):
@@ -324,8 +369,9 @@ def analyze(df, market=None):
     if ext > 3:
         risk_pts -= 30
     risk_pts = float(np.clip(risk_pts, 0, 100))
+    quant = Q.assess(df, market)
 
-    return {"price": price, "chg": float((c[i] / c[i - 1] - 1) * 100), "r1": r1, "r3": r3, "r6": r6, "r12": r12, "rs_raw": rs_raw,
+    return {"quant": quant, "price": price, "chg": float((c[i] / c[i - 1] - 1) * 100), "r1": r1, "r3": r3, "r6": r6, "r12": r12, "rs_raw": rs_raw,
             "hi52": hi52, "lo52": lo52, "dist_hi": (price / hi52 - 1) * 100, "rvol": rvol, "dollar": dollar, "ud": ud,
             "rsi": float(last["RSI"]), "adx": adx, "atr": a, "atr_pct": a / price * 100, "ext": ext, "bw_pct": bw_pct,
             "above50": bool(price > s50), "above200": bool(has200 and price > s200), "new_high": bool(h[i] >= hi52 * 0.999),
@@ -371,6 +417,8 @@ def hunt(data_by_symbol, market=None, earnings=None, today=None, names=None, sec
         return pd.DataFrame(), {}
     raw = np.array([r["rs_raw"] for _, r in rows], float)
     spy_raw = spy_strength(market) if market is not None else np.nan
+    sec_scores = Q.sector_scores((sym, (sectors or {}).get(sym) or U.sector_of(sym),
+                                   r["r3"], r["above50"]) for sym, r in rows)
     if len(rows) >= 60 and np.isfinite(raw).sum() >= 30:
         order = pd.Series(raw).rank(pct=True).to_numpy()
         rs = np.where(np.isfinite(raw), np.clip(np.round(order * 98 + 1), 1, 99), 50.0)
@@ -389,9 +437,16 @@ def hunt(data_by_symbol, market=None, earnings=None, today=None, names=None, sec
             flags.append("thin")
         if r["ext"] > 3:
             flags.append("extended")
+        if r["quant"]["volatility_shock"]:
+            flags.append("vol_shock")
+        if r["quant"]["quality"] != "ok":
+            flags.append("quant_data")
         b = r["best"]
+        quant = r["quant"]
+        sector_score = sec_scores.get(sym, 50.0)
         total = (WEIGHTS["trend"] * r["p_trend"] + WEIGHTS["rs"] * rsv + WEIGHTS["volume"] * r["p_volume"]
-                 + WEIGHTS["setup"] * r["p_setup"] + WEIGHTS["risk"] * r["p_risk"])
+                 + WEIGHTS["setup"] * r["p_setup"] + WEIGHTS["risk"] * r["p_risk"]
+                 + WEIGHTS["quant"] * quant["score"] + WEIGHTS["sector"] * sector_score)
         total -= 8 if "earnings" in flags else 0
         total -= 5 if "thin" in flags else 0
         if b is None or b["side"] < 0:
@@ -406,11 +461,16 @@ def hunt(data_by_symbol, market=None, earnings=None, today=None, names=None, sec
                "$Vol": r["dollar"], "Entry": b["entry"] if b else np.nan, "Stop": b["stop"] if b else np.nan,
                "Target": b["target"] if b else np.nan, "R:R": r["rr"], "Earnings": edays, "Flags": ",".join(flags),
                "Trend": r["p_trend"], "Accum": r["p_volume"], "SetupPts": r["p_setup"], "RiskPts": r["p_risk"],
+               "Quant": quant["score"], "SectorPts": sector_score, "QuantQuality": quant["quality"],
+               "Vol63 %": quant["volatility_pct"], "DownsideVol %": quant["downside_vol_pct"],
+               "MaxDD63 %": quant["max_drawdown_pct"], "Beta63": quant["beta"],
+               "Excess63 %": quant["excess_return_pct"], "IR63": quant["information_ratio"],
+               "Efficiency %": quant["efficiency_pct"], "PositiveWeeks %": quant["positive_weeks_pct"],
                "Above50": r["above50"], "Above200": r["above200"], "NewHigh": r["new_high"], "NewLow": r["new_low"]}
         out.append(row)
         detail[sym] = {"setups": r["setups"], "spark": r["spark"], "sma20": r["sma20"], "sma50": r["sma50"], "sma200": r["sma200"],
                        "hi52": r["hi52"], "lo52": r["lo52"], "ud": r["ud"], "ext": r["ext"], "bw_pct": r["bw_pct"]}
-    res = pd.DataFrame(out).sort_values(["Score", "RS"], ascending=False).reset_index(drop=True)
+    res = pd.DataFrame(out).sort_values(["Score", "Quant", "RS"], ascending=False).reset_index(drop=True)
     return res, detail
 
 
@@ -461,4 +521,4 @@ def size(entry, stop, account, risk_pct):
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.4.34"
+BUILD = "23.4.34-quant2"

@@ -46,7 +46,9 @@ ss = st.session_state
 _A, _V, _C, _G, _D, _U, _MU, _BD, _BG = T.ACCENT, T.VIOLET, T.CYAN, T.GOLD, T.DOWN, T.UP, "#9D97A5", T.BORDER, T.CARD2
 GRADE_COLOR = {"A+": "#22C55E", "A": "#4ADE80", "B": _C, "C": _G, "D": _D}
 FLAG = {"earnings": ("event", "Earnings in {d} days", "أرباح بعد {d} أيام", "gold"), "extended": ("height", "Stretched", "ممتد", "org"),
-        "thin": ("water_drop", "Thin trading", "سيولة ضعيفة", "neu")}
+        "thin": ("water_drop", "Thin trading", "سيولة ضعيفة", "neu"),
+        "vol_shock": ("warning", "Volatility spike", "قفزة بالتذبذب", "down"),
+        "quant_data": ("info", "Quant data incomplete", "البيانات الكمية ناقصة", "neu")}
 MIN_GRADE = {"A+": 85, "A": 75, "B": 65, "C": 50, "all": 0}
 N_CARDS = 8
 
@@ -777,7 +779,8 @@ def card(r, det, selected):
     mt = (f'<div class="mt"><div><span>{L("3 months", "3 أشهر")}</span><b style="color:{col(m3 if np.isfinite(m3) else 0)}">'
           f'{m3:+.1f}%</b></div><div><span>{L("From 52W high", "عن القمة")}</span><b>{fh:.1f}%</b></div>'
           f'<div><span>{L("Volatility", "التذبذب")}</span><b>{r["ATR %"]:.1f}%</b></div></div>') if np.isfinite(fh) else ""
-    chips = [f'<span class="c">RS <b>{int(r["RS"])}</b></span>']
+    chips = [f'<span class="c">RS <b>{int(r["RS"])}</b></span>',
+             f'<span class="c">Quant <b>{float(r["Quant"]):.0f}</b></span>']
     if np.isfinite(r["R:R"]):
         chips.append(f'<span class="c">R:R <b>{r["R:R"]:.1f}</b></span>')
     if pd.notna(r["RVOL"]):
@@ -1492,10 +1495,28 @@ def detail(r, det, got):
             ui.safe(FV.section, sym, float(r["Price"]), f"fv_{_key(sym)}")
         with right:
             ui.sec("donut_large", "Why this score", "ليش هالتقييم")
-            parts = {"trend": r["Trend"], "rs": r["RS"], "volume": r["Accum"], "setup": r["SetupPts"], "risk": r["RiskPts"]}
+            parts = {"trend": r["Trend"], "rs": r["RS"], "volume": r["Accum"], "setup": r["SetupPts"],
+                     "risk": r["RiskPts"], "quant": r["Quant"], "sector": r["SectorPts"]}
             ui.html('<div class="hnparts">' + "".join(
                 f'<div class="r"><span>{T.esc(L(*H.PARTS[p]))} <span class="w">· {int(H.WEIGHTS[p] * 100)}%</span></span>'
                 f'<div class="bar"><i style="width:{float(v):.0f}%"></i></div><b>{float(v):.0f}</b></div>' for p, v in parts.items()) + "</div>")
+            with st.expander(L("Quant research · 63 sessions", "التحليل الكمي · 63 جلسة"), expanded=False):
+                st.caption(L("Historical risk-adjusted indicators, not a predicted win probability. Missing benchmark data is neutral.",
+                             "مؤشرات تاريخية معدلة بالمخاطرة، وليست احتمال نجاح متوقع. عدم توفر بيانات المؤشر يعطي تقييم محايد."))
+                qcols = st.columns(2)
+                qitems = [
+                    (L("Annualized volatility", "التذبذب السنوي"), "Vol63 %", "%", 1),
+                    (L("63-day max drawdown", "أكبر تراجع خلال 63 يوم"), "MaxDD63 %", "%", 1),
+                    (L("Benchmark excess 63d", "التفوق على المؤشر 63 يوم"), "Excess63 %", "%", 1),
+                    (L("Price path efficiency", "كفاءة المسار السعري"), "Efficiency %", "%", 1),
+                    (L("Beta vs benchmark", "بيتا مقابل المؤشر"), "Beta63", "", 2),
+                    (L("Information ratio", "نسبة المعلومات"), "IR63", "", 2),
+                ]
+                for qi, (label, field, suffix, nd) in enumerate(qitems):
+                    v = r.get(field, np.nan)
+                    qcols[qi % 2].metric(label, f"{float(v):.{nd}f}{suffix}" if pd.notna(v) and np.isfinite(v) else "—")
+                st.caption(L("Sector comparison is neutral in narrow scans. Verify results out of sample before trading.",
+                             "مقارنة القطاعات تكون محايدة في القوائم الضيقة. تحقّق من النتائج خارج عينة الاختبار قبل التداول."))
             tc = tech_checks(r, det, d, spy5)
             npass = sum(c_["Pass"] for c_ in tc)
             ui.html(f'<div class="hnbox" style="margin-top:12px"><div class="hnbt">{T.icon("query_stats")}<span>{L("Technical checks", "الفحص الفني")}</span>'
@@ -1527,6 +1548,29 @@ def detail(r, det, got):
                          T.kpi("balance", L("Profit factor", "معامل الربح"), pf, "", "pos" if e["pf"] >= 1 else "neg"),
                          T.kpi("savings", L("Total", "المجموع"), f"{e['total_r']:+.1f}R", L("in risk units", "بوحدات المخاطرة"), T.cls(e["total_r"]))]
                 ui.html('<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">' + "".join(tiles) + "</div>")
+                # Five-year history is in-sample and not a calibrated probability.
+                nfmt = "∞" if e["net_pf"] == np.inf else f"{e['net_pf']:.2f}"
+                extra = [
+                    T.kpi("insights", L("Net average · est. costs", "متوسط صافي · تكاليف تقديرية"),
+                          f"{e['net_avg_r']:+.2f}R", f"{e['round_trip_bps']:.0f} bps {L('round trip', 'دخول وخروج')}",
+                          T.cls(e["net_avg_r"])),
+                    T.kpi("verified", L("Conservative win estimate", "نسبة نجاح محافظة"),
+                          f"{e['net_win_shrunk']:.0f}%", L("Shrunk toward 50%, not predictive", "منكمشة باتجاه 50% وليست توقعاً"),
+                          None),
+                    T.kpi("shield", L("95% Wilson lower bound", "الحد الأدنى ويلسون 95%"),
+                          f"{e['net_win_lower95']:.0f}%", L("Historical only", "تاريخي فقط"), None),
+                    T.kpi("balance", L("Net profit factor", "معامل الربح الصافي"),
+                          nfmt, "", T.cls(e["net_avg_r"])),
+                ]
+                ui.html('<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:10px">'
+                        + "".join(extra) + "</div>")
+                if not e["sample_adequate"]:
+                    st.warning(L("Small sample (<30 closed trades). Historical win rates are unreliable.",
+                                 "العينة صغيرة (أقل من 30 صفقة مقفلة). نسبة نجاح الماضي غير موثوقة."))
+                st.caption(L("Net results subtract an illustrative 20-basis-point round-trip cost. "
+                             "These are historical in-sample outcomes, not verified future accuracy.",
+                             "الأرقام الصافية تخصم 20 نقطة أساس كتقدير لتكاليف الدخول والخروج. "
+                             "النتائج من البيانات التاريخية نفسها وليست دليلاً على دقة التوقعات المستقبلية."))
                 show = bt.tail(12).iloc[::-1].copy()
                 show["Entry Date"] = pd.to_datetime(show["Entry Date"]).dt.date
                 show["Exit Date"] = pd.to_datetime(show["Exit Date"]).dt.date
@@ -1561,14 +1605,18 @@ def detail(r, det, got):
 
 # ---------------------------------------------------------------- the table and the charts
 def table(view):
-    cols = ["Symbol", "Name", "Sector", "Grade", "Score", "Setup", "Status", "Price", "Chg %", "1M %", "3M %", "RS", "RVOL", "From high %",
+    cols = ["Symbol", "Name", "Sector", "Grade", "Score", "Quant", "SectorPts", "Setup", "Status", "Price", "Chg %", "1M %", "3M %", "RS", "RVOL", "Vol63 %", "MaxDD63 %", "Excess63 %", "From high %",
             "Entry", "Stop", "Target", "R:R", "Earnings"]
     show = view[cols].copy()
     show["Sector"] = show["Sector"].map(lambda s: sector_name(s) if s else "—")
     show["Setup"] = show["Setup"].map(setup_name)
     show["Status"] = show["Status"].map(lambda s: L(*H.STATUS[s][:2]) if s in H.STATUS else "—")
     N = {"Symbol": L("Symbol", "الرمز"), "Name": L("Company", "الشركة"), "Sector": L("Sector", "القطاع"), "Grade": L("Grade", "الدرجة"),
-         "Score": L("Score", "التقييم"), "Setup": L("Setup", "الفرصة"), "Status": L("Status", "الحالة"), "Price": L("Price", "السعر"),
+         "Score": L("Score", "التقييم"), "Quant": L("Quant", "الجودة الكمية"),
+         "SectorPts": L("Sector strength", "قوة القطاع"), "Vol63 %": L("Ann. vol %", "التذبذب السنوي %"),
+         "MaxDD63 %": L("Max DD 63d %", "أكبر تراجع 63 يوم %"),
+         "Excess63 %": L("63d excess %", "التفوق 63 يوم %"),
+         "Setup": L("Setup", "الفرصة"), "Status": L("Status", "الحالة"), "Price": L("Price", "السعر"),
          "Chg %": L("Chg %", "التغير %"), "1M %": L("1M %", "شهر %"), "3M %": L("3M %", "3 أشهر %"), "RS": "RS", "RVOL": "RVOL",
          "From high %": L("From 52W high %", "عن القمة السنوية %"), "Entry": L("Entry", "الدخول"), "Stop": L("Stop", "الوقف"),
          "Target": L("Target", "الهدف"), "R:R": "R:R", "Earnings": L("Earnings in (days)", "الأرباح بعد (أيام)")}
@@ -1577,6 +1625,8 @@ def table(view):
     ui.table(show, sym=N["Symbol"], height=600, pills={N["Chg %"]}, signed={N["1M %"], N["3M %"]},
              cell={N["Score"]: lambda v, r: ui.score_bar(v), N["Grade"]: grade},
              fmt={N["Price"]: "{:,.2f}", N["Chg %"]: "{:+.2f}%", N["1M %"]: "{:+.1f}%", N["3M %"]: "{:+.1f}%", "RS": "{:,.0f}", "RVOL": "{:.1f}×",
+                  N["Quant"]: "{:.0f}", N["SectorPts"]: "{:.0f}",
+                  N["Vol63 %"]: "{:.1f}%", N["MaxDD63 %"]: "{:.1f}%", N["Excess63 %"]: "{:+.1f}%",
                   N["From high %"]: "{:.1f}%", N["Entry"]: "{:,.2f}", N["Stop"]: "{:,.2f}", N["Target"]: "{:,.2f}", "R:R": "{:.1f}",
                   N["Earnings"]: "{:,.0f}"})
     a, b, _ = st.columns([1, 1.3, 3])
@@ -1691,16 +1741,20 @@ def page_scanner():
             "<b>Setups</b> are exact rules on the daily close (the four combined strategies of the Paper Bots, breakouts, leaders, "
             "golden crosses, oversold dips, accumulation days, gaps, squeezes and breakdowns). A setup is <b>new today</b> when it fired "
             "on the latest candle, <b>active</b> when it fired in the last 2-3 sessions and the price is still between its stop and its "
-            "target, and on <b>watch</b> when it is building. <b>The score</b> (0-100): trend 25%, relative strength 25% (RS 1-99: "
-            "the 3-12 month return ranked against every stock scanned), accumulation 15%, the setup 20% and reward-to-risk 15%; "
-            "earnings within 5 days (-8) and thin trading (-5) cost points, and a stock without a buying setup can't pass 49. "
+            "target, and on <b>watch</b> when it is building. <b>The seven-factor score</b> (0-100): trend 20%, relative strength 18%, "
+            "accumulation 12%, setup 20%, reward-to-risk 13%, quantitative quality 12% and sector strength 5%. Quant uses "
+            "risk-adjusted momentum, return consistency, drawdown, price efficiency and benchmark-relative returns. "
+            "Sector strength is neutral for narrow scans. Earnings within 5 days (-8) and thin trading (-5) cost points; "
+            "a stock without a buying setup cannot score over 49. "
             "Grades: A+ from 85, A from 75, B from 65, C from 50. <b>Catalysts</b> (fundamental checks, analyst actions, earnings, "
             "news) are shown for the opened stock; they don't change the score.",
             "<b>الفرص</b> شروط دقيقة على الإغلاق اليومي (الاستراتيجيات المركّبة الأربع في البوتات الافتراضية، والاختراقات، والقادة، "
             "والتقاطع الذهبي، والتشبع البيعي، وأيام التجميع، والفجوات، والانضغاط، والكسر الهابط). الفرصة <b>جديدة اليوم</b> إذا ظهرت على آخر "
             "شمعة، و<b>نشطة</b> إذا ظهرت خلال آخر 2-3 جلسات والسعر لسا بين الوقف والهدف، و<b>مراقبة</b> إذا لسا تتكوّن. <b>التقييم</b> (من 100): "
-            "الاتجاه 25%، والقوة النسبية 25% (RS من 1 إلى 99: عائد 3 إلى 12 شهر مرتب مقابل كل الأسهم المفحوصة)، والتجميع 15%، والفرصة 20%، "
-            "والعائد مقابل المخاطرة 15%؛ وإعلان أرباح خلال 5 أيام (-8) وضعف السيولة (-5) ينقصون النقاط، والسهم بدون فرصة شراء ما يتعدى 49. "
+            "التقييم من 7 عوامل: الاتجاه 20%، والقوة النسبية 18% (RS من 1 إلى 99)، والتجميع 12%، والفرصة 20%، "
+            "والعائد مقابل المخاطرة 13%، والجودة الكمية 12% (الزخم المعدل بالمخاطرة، انتظام العوائد، التراجع، كفاءة المسار، والتفوق على المؤشر)، "
+            "وقوة القطاع 5%. القطاع محايد بالقوائم الضيقة؛ إعلان أرباح خلال 5 أيام (-8) وضعف السيولة (-5) ينقصون النقاط، "
+            "والسهم بدون فرصة شراء ما يتعدى 49. "
             "الدرجات: A+ من 85، وA من 75، وB من 65، وC من 50. <b>المحفزات</b> (الفحص المالي، وتحركات المحللين، والأرباح، والأخبار) تظهر "
             "للسهم المفتوح وما تغيّر التقييم.") + "</div>")
     st.caption(L("Daily prices from Yahoo Finance (may be delayed). This is a research tool, not investment advice: check the chart and the news "
@@ -1711,4 +1765,4 @@ def page_scanner():
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.4.34"
+BUILD = "23.4.34-quant2"
