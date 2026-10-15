@@ -212,15 +212,54 @@ def backtest(d, key, series=None, market=None):
     return pd.DataFrame(rows)
 
 
-def edge(trades):
-    """Win rate, average R, profit factor and number of trades of a backtest (None when it has no trades)."""
+def edge(trades, round_trip_bps=20.0, shrink_n=20.0):
+    """Descriptive historical signal quality, gross AND estimated after costs.
+
+    round_trip_bps is entry + exit fees/spread/slippage (default 20 bps).
+    Each trade's estimated cash cost is scaled by its initial per-share risk.
+    Wilson's lower win-rate bound and a Beta-style shrinkage towards 50%
+    discourage overconfidence from a handful of historical observations.
+    This is an IN-SAMPLE diagnostic, never a calibrated win probability.
+    """
     if trades is None or trades.empty:
         return None
-    r = trades["R"].to_numpy(float)
+    valid = trades.replace([np.inf, -np.inf], np.nan).dropna(subset=["R", "Entry", "Stop", "Ret %"])
+    if valid.empty:
+        return None
+    if not np.isfinite(round_trip_bps) or not 0 <= float(round_trip_bps) <= 2000:
+        raise ValueError("round_trip_bps must be between 0 and 2000")
+    if not np.isfinite(shrink_n) or float(shrink_n) < 0:
+        raise ValueError("shrink_n must be nonnegative")
+    r = valid["R"].to_numpy(float)
+    entries = valid["Entry"].to_numpy(float)
+    distances = np.abs(entries - valid["Stop"].to_numpy(float))
+    fee_cash = entries * float(round_trip_bps) / 10000
+    net_r = r - np.divide(fee_cash, distances, out=np.full_like(r, np.nan), where=distances > 0)
+    good = np.isfinite(net_r)
+    if not good.any():
+        return None
+    net_r = net_r[good]
+    r = r[good]
+    v = valid.iloc[np.flatnonzero(good)]
     wins, losses = r[r > 0].sum(), -r[r < 0].sum()
-    return {"n": len(r), "win": float((r > 0).mean() * 100), "avg_r": float(r.mean()), "avg_ret": float(trades["Ret %"].mean()),
-            "pf": float(wins / losses) if losses > 0 else (np.inf if wins > 0 else 0.0), "total_r": float(r.sum())}
-
+    net_wins, net_losses = net_r[net_r > 0].sum(), -net_r[net_r < 0].sum()
+    n, nwin = len(net_r), int((net_r > 0).sum())
+    p = nwin / n
+    z = 1.96
+    wilson = (p + z * z / (2 * n) - z * np.sqrt(p * (1-p) / n + z * z / (4*n*n))) / (1 + z*z/n)
+    shrunk = 100 * (nwin + float(shrink_n) / 2) / (n + float(shrink_n))
+    return {
+        "n": n, "win": float((r > 0).mean() * 100),
+        "avg_r": float(r.mean()), "avg_ret": float(v["Ret %"].mean()),
+        "pf": float(wins / losses) if losses > 0 else (np.inf if wins > 0 else 0.0),
+        "total_r": float(r.sum()),
+        "net_avg_r": float(net_r.mean()),
+        "net_win": float(p * 100), "net_win_shrunk": float(shrunk),
+        "net_win_lower95": float(max(0.0, wilson) * 100),
+        "net_pf": float(net_wins / net_losses) if net_losses > 0 else (np.inf if net_wins > 0 else 0.0),
+        "round_trip_bps": float(round_trip_bps),
+        "sample_adequate": bool(n >= 30),
+    }
 
 # ---------------------------------------------------------------- one stock
 def analyze(df, market=None):
