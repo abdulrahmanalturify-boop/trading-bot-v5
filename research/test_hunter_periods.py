@@ -172,10 +172,9 @@ def run(prices):
             skipped += 1
             continue
         res = res[(res["Side"] > 0) & res["Entry"].notna() & (res["$Vol"] >= 20e6)].copy()
-        if len(res) == 0:
-            res = res.copy()
-        else:
-            res["OldScore"] = res.apply(score_original, axis=1)
+        # Even during a panic month with no eligible long setups, both
+        # strategies hold cash; keep the schema for the sort below.
+        res["OldScore"] = res.apply(score_original, axis=1) if len(res) else pd.Series(dtype=float)
         picks = {}
         vals = {}
         for method, col in [("v1", "OldScore"), ("v2", "Score")]:
