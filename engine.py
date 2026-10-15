@@ -402,7 +402,33 @@ def signals(name, df, params, market=None):
 # Backtest engine (signals on close, fills on next open, intraday stops)
 # =====================================================================
 def backtest(df, entries, exits, capital=10000.0, fee=0.0005, stop_pct=None, atr_mult=None,
-             tp_pct=None, trail_pct=None):
+             tp_pct=None, trail_pct=None, slippage_bps=0.0, risk_per_trade_pct=None,
+             max_allocation_pct=None, max_drawdown_pct=None):
+    """Daily-bar simulation. Signals fill at the next open.
+
+    Optional, opt-in safeguards:
+    - slippage_bps: adverse execution slippage per side (100 bps = 1%).
+    - risk_per_trade_pct: size a new trade against its initial stop, including
+      entry/estimated stop-exit fees and slippage. No valid stop => no entry.
+    - max_allocation_pct: cap a single new position's notional as a share of cash.
+    - max_drawdown_pct: permanently block NEW entries after the close breaches
+      a peak-equity drawdown. Existing positions still follow their exits/stops.
+    Defaults retain the previous simulation semantics. Daily bars cannot model
+    intraday execution order, market impact, or guaranteed stop fills.
+    """
+    for name, value, upper in (("slippage_bps", slippage_bps, 10000),
+                               ("risk_per_trade_pct", risk_per_trade_pct, 100),
+                               ("max_allocation_pct", max_allocation_pct, 100),
+                               ("max_drawdown_pct", max_drawdown_pct, 100)):
+        if value is None:
+            continue
+        if not np.isfinite(float(value)) or float(value) < 0 or float(value) > upper:
+            raise ValueError(f"{name} must be a finite number between 0 and {upper}")
+    if float(slippage_bps) >= 10000:
+        raise ValueError("slippage_bps must be less than 10000")
+    if max_drawdown_pct is not None and float(max_drawdown_pct) <= 0:
+        raise ValueError("max_drawdown_pct must be positive when enabled")
+    slip = float(slippage_bps) / 10000.0
     o, h, l, c = (df[k].values for k in ("Open", "High", "Low", "Close"))
     atr_v = ta.atr(df).values
     ent, ex = entries.fillna(False).values, exits.fillna(False).values
@@ -412,6 +438,9 @@ def backtest(df, entries, exits, capital=10000.0, fee=0.0005, stop_pct=None, atr
     cash, shares = capital, 0.0
     equity = np.empty(n)
     pos = np.zeros(n)
+    halted = np.zeros(n, dtype=bool)
+    peak_equity = float(capital)
+    block_new_entries = False
     trades = []
     pending_entry = pending_exit = False
     entry_px = stop = target = peak = 0.0
@@ -419,9 +448,10 @@ def backtest(df, entries, exits, capital=10000.0, fee=0.0005, stop_pct=None, atr
 
     def close_trade(i, px, reason):
         nonlocal cash, shares
-        proceeds = shares * px * (1 - fee)
+        fill = px * (1 - slip)
+        proceeds = shares * fill * (1 - fee)
         cost = shares * entry_px * (1 + fee)
-        trades.append({"Entry Date": idx[entry_i], "Entry": entry_px, "Exit Date": idx[i], "Exit": px,
+        trades.append({"Entry Date": idx[entry_i], "Entry": entry_px, "Exit Date": idx[i], "Exit": fill,
                        "Shares": shares, "P&L $": proceeds - cost, "P&L %": (proceeds / cost - 1) * 100,
                        "Bars": i - entry_i, "Exit Reason": reason})
         cash += proceeds
@@ -432,17 +462,32 @@ def backtest(df, entries, exits, capital=10000.0, fee=0.0005, stop_pct=None, atr
         if pending_exit and shares > 0:
             close_trade(i, o[i], "Signal")
         pending_exit = False
-        if pending_entry and shares == 0:
-            entry_px, entry_i, peak = o[i], i, o[i]
-            shares = cash / (entry_px * (1 + fee))
-            cash -= shares * entry_px * (1 + fee)
+        if pending_entry and shares == 0 and not block_new_entries and np.isfinite(o[i]) and o[i] > 0:
+            proposed_px = o[i] * (1 + slip)
             stops = []
             if stop_pct:
-                stops.append(entry_px * (1 - stop_pct / 100))
-            if atr_mult and not np.isnan(atr_v[i - 1 if i else 0]):
-                stops.append(entry_px - atr_mult * atr_v[i - 1 if i else 0])
-            stop = max(stops) if stops else 0.0
-            target = entry_px * (1 + tp_pct / 100) if tp_pct else np.inf
+                stops.append(proposed_px * (1 - stop_pct / 100))
+            if atr_mult and i > 0 and np.isfinite(atr_v[i - 1]):
+                stops.append(proposed_px - atr_mult * atr_v[i - 1])
+            proposed_stop = max(stops) if stops else 0.0
+            budget_shares = max(0.0, cash / (proposed_px * (1 + fee)))
+            if max_allocation_pct is not None:
+                budget_shares = min(budget_shares, cash * float(max_allocation_pct) / 100 /
+                                    (proposed_px * (1 + fee)))
+            if risk_per_trade_pct is not None:
+                if not (0 < proposed_stop < proposed_px):
+                    budget_shares = 0.0  # fail closed: no protective stop, no risk-sized trade
+                else:
+                    stop_fill = proposed_stop * (1 - slip)
+                    worst_loss_share = (proposed_px * (1 + fee) - stop_fill * (1 - fee))
+                    budget_shares = min(budget_shares, cash * float(risk_per_trade_pct) / 100 /
+                                        worst_loss_share)
+            if budget_shares > 0 and np.isfinite(budget_shares):
+                entry_px, entry_i, peak = proposed_px, i, proposed_px
+                shares = budget_shares
+                cash -= shares * entry_px * (1 + fee)
+                stop = proposed_stop
+                target = entry_px * (1 + tp_pct / 100) if tp_pct else np.inf
         pending_entry = False
 
         # 2) intraday risk management. A daily candle doesn't say whether its high or its low came first, so the trailing
@@ -467,6 +512,11 @@ def backtest(df, entries, exits, capital=10000.0, fee=0.0005, stop_pct=None, atr
 
         equity[i] = cash + shares * c[i]
         pos[i] = 1.0 if shares > 0 else 0.0
+        peak_equity = max(peak_equity, equity[i])
+        if max_drawdown_pct is not None and equity[i] <= peak_equity * (1 - float(max_drawdown_pct) / 100):
+            block_new_entries = True
+            pending_entry = False
+        halted[i] = block_new_entries
 
     if shares > 0:
         entry_row = {"Entry Date": idx[entry_i], "Entry": entry_px, "Exit Date": idx[-1], "Exit": c[-1],
@@ -476,6 +526,7 @@ def backtest(df, entries, exits, capital=10000.0, fee=0.0005, stop_pct=None, atr
         trades.append(entry_row)
 
     return {"equity": pd.Series(equity, index=idx), "position": pd.Series(pos, index=idx),
+            "risk_halt": pd.Series(halted, index=idx),
             "trades": pd.DataFrame(trades, columns=["Entry Date", "Entry", "Exit Date", "Exit", "Shares",
                                                     "P&L $", "P&L %", "Bars", "Exit Reason"])}
 
