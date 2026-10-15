@@ -46,7 +46,9 @@ ss = st.session_state
 _A, _V, _C, _G, _D, _U, _MU, _BD, _BG = T.ACCENT, T.VIOLET, T.CYAN, T.GOLD, T.DOWN, T.UP, "#9D97A5", T.BORDER, T.CARD2
 GRADE_COLOR = {"A+": "#22C55E", "A": "#4ADE80", "B": _C, "C": _G, "D": _D}
 FLAG = {"earnings": ("event", "Earnings in {d} days", "أرباح بعد {d} أيام", "gold"), "extended": ("height", "Stretched", "ممتد", "org"),
-        "thin": ("water_drop", "Thin trading", "سيولة ضعيفة", "neu")}
+        "thin": ("water_drop", "Thin trading", "سيولة ضعيفة", "neu"),
+        "vol_shock": ("warning", "Volatility spike", "قفزة بالتذبذب", "down"),
+        "quant_data": ("info", "Quant data incomplete", "البيانات الكمية ناقصة", "neu")}
 MIN_GRADE = {"A+": 85, "A": 75, "B": 65, "C": 50, "all": 0}
 N_CARDS = 8
 
@@ -777,7 +779,8 @@ def card(r, det, selected):
     mt = (f'<div class="mt"><div><span>{L("3 months", "3 أشهر")}</span><b style="color:{col(m3 if np.isfinite(m3) else 0)}">'
           f'{m3:+.1f}%</b></div><div><span>{L("From 52W high", "عن القمة")}</span><b>{fh:.1f}%</b></div>'
           f'<div><span>{L("Volatility", "التذبذب")}</span><b>{r["ATR %"]:.1f}%</b></div></div>') if np.isfinite(fh) else ""
-    chips = [f'<span class="c">RS <b>{int(r["RS"])}</b></span>']
+    chips = [f'<span class="c">RS <b>{int(r["RS"])}</b></span>',
+             f'<span class="c">Quant <b>{float(r["Quant"]):.0f}</b></span>']
     if np.isfinite(r["R:R"]):
         chips.append(f'<span class="c">R:R <b>{r["R:R"]:.1f}</b></span>')
     if pd.notna(r["RVOL"]):
@@ -1492,10 +1495,28 @@ def detail(r, det, got):
             ui.safe(FV.section, sym, float(r["Price"]), f"fv_{_key(sym)}")
         with right:
             ui.sec("donut_large", "Why this score", "ليش هالتقييم")
-            parts = {"trend": r["Trend"], "rs": r["RS"], "volume": r["Accum"], "setup": r["SetupPts"], "risk": r["RiskPts"]}
+            parts = {"trend": r["Trend"], "rs": r["RS"], "volume": r["Accum"], "setup": r["SetupPts"],
+                     "risk": r["RiskPts"], "quant": r["Quant"], "sector": r["SectorPts"]}
             ui.html('<div class="hnparts">' + "".join(
                 f'<div class="r"><span>{T.esc(L(*H.PARTS[p]))} <span class="w">· {int(H.WEIGHTS[p] * 100)}%</span></span>'
                 f'<div class="bar"><i style="width:{float(v):.0f}%"></i></div><b>{float(v):.0f}</b></div>' for p, v in parts.items()) + "</div>")
+            with st.expander(L("Quant research · 63 sessions", "التحليل الكمي · 63 جلسة"), expanded=False):
+                st.caption(L("Historical risk-adjusted indicators, not a predicted win probability. Missing benchmark data is neutral.",
+                             "مؤشرات تاريخية معدلة بالمخاطرة، وليست احتمال نجاح متوقع. عدم توفر بيانات المؤشر يعطي تقييم محايد."))
+                qcols = st.columns(2)
+                qitems = [
+                    (L("Annualized volatility", "التذبذب السنوي"), "Vol63 %", "%", 1),
+                    (L("63-day max drawdown", "أكبر تراجع خلال 63 يوم"), "MaxDD63 %", "%", 1),
+                    (L("Benchmark excess 63d", "التفوق على المؤشر 63 يوم"), "Excess63 %", "%", 1),
+                    (L("Price path efficiency", "كفاءة المسار السعري"), "Efficiency %", "%", 1),
+                    (L("Beta vs benchmark", "بيتا مقابل المؤشر"), "Beta63", "", 2),
+                    (L("Information ratio", "نسبة المعلومات"), "IR63", "", 2),
+                ]
+                for qi, (label, field, suffix, nd) in enumerate(qitems):
+                    v = r.get(field, np.nan)
+                    qcols[qi % 2].metric(label, f"{float(v):.{nd}f}{suffix}" if pd.notna(v) and np.isfinite(v) else "—")
+                st.caption(L("Sector comparison is neutral in narrow scans. Verify results out of sample before trading.",
+                             "مقارنة القطاعات تكون محايدة في القوائم الضيقة. تحقّق من النتائج خارج عينة الاختبار قبل التداول."))
             tc = tech_checks(r, det, d, spy5)
             npass = sum(c_["Pass"] for c_ in tc)
             ui.html(f'<div class="hnbox" style="margin-top:12px"><div class="hnbt">{T.icon("query_stats")}<span>{L("Technical checks", "الفحص الفني")}</span>'
@@ -1711,4 +1732,4 @@ def page_scanner():
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.4.34"
+BUILD = "23.4.34-quant2"
