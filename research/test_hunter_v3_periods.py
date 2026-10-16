@@ -1,4 +1,4 @@
-"""Compare TURA Hunter v1 scoring against v2 quant scoring on separate calendar years.
+"""Compare TURA Hunter v1 scoring against v3 experimental quant scoring on separate calendar years.
 
 Research-only monthly ranking test: at each previous month-end, compute scores
 using historical bars available THEN, buy up to 5 ranked long setups at the next
@@ -7,7 +7,7 @@ Same preselected stock universe and ~20 basis points round-trip assumed friction
 for each selected stock, per month, for both methods.
 
 This is NOT a test of Hunter's actual stop/target execution. It tests the
-INCREMENTAL RANKING value of v2 given the same eligible setup candidates.
+INCREMENTAL RANKING value of V3 given the same eligible setup candidates.
 Importantly: TODAY'S stock universe creates survivorship bias. Yahoo-adjusted
 historical OHLCV may also be revised. Monthly marks hide intramonth drawdowns.
 Never interpret this as a trade recommendation or calibrated accuracy.
@@ -212,7 +212,7 @@ def run(prices):
             "v1_picks": picks["v1"], "v3_picks": picks["v3"],
         })
         print(f"MONTH {entry_day.date()} candidates={len(res)} "
-              f"v1={vals['v1']*100:.2f}% v3={vals['v2']*100:.2f}% SPY={(br/ar-1)*100:.2f}%", flush=True)
+              f"v1={vals['v1']*100:.2f}% v3={vals['v3']*100:.2f}% SPY={(br/ar-1)*100:.2f}%", flush=True)
     if not records:
         raise RuntimeError("No evaluable monthly rebalances; downloaded history is insufficient.")
     out = {"methodology": {
