@@ -3101,9 +3101,12 @@ _XLOGO_MASK = "data:image/svg+xml;base64," + base64.b64encode(
      '<path d="' + XLOGO_D + '"/></svg>').encode("utf-8")
 ).decode("ascii")
 X_BRAND_CSS = f"""<style>
-/* Only the link to the X platform's bots: never replace mathematical/other Xs. */
+/* Only the platform's navigation and its related assistant prompt use the X mark.
+   Never replace ordinary X characters or other application icons. */
 a[href$="x-bots"] [data-testid="stIconMaterial"],
-a[href$="x-bots"] span[class*="material-symbols"] {{
+a[href$="x-bots"] span[class*="material-symbols"],
+[class*="st-key-alturaifi_ai_xbrand_"] [data-testid="stIconMaterial"],
+[class*="st-key-alturaifi_ai_xbrand_"] span[class*="material-symbols"] {{
     font-size:0 !important;
     width:1.18rem !important;
     min-width:1.18rem !important;
