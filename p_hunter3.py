@@ -464,9 +464,9 @@ def market_html(state, got):
         f'<div class="tl"><div class="l">{T.icon("hub")}{L("Correlation", "الارتباط")}</div><div class="v">{_f(corr, "{:.2f}")} <small>{L("avg to index", "متوسط مع المؤشر")}</small></div>'
         f'{_meter(corr * 100 if np.isfinite(corr) else 0, LAV)}<div class="s">{L("dispersion of 1-month returns", "تشتت عوائد الشهر")}: {_f(disp, "{:.1f}")} pts</div></div>',
         f'<div class="tl"><div class="l">{T.icon("water")}{L("Liquidity", "السيولة")}</div><div class="v">{_f(liq, "{:.2f}×")}</div>'
-        f'{_meter(liq * 50 if np.isfinite(liq) else 0, CYA)}<div class="s">{L("traded value against its year's median", "قيمة التداول مقابل وسيط سنتها")}</div></div>',
+        f'{_meter(liq * 50 if np.isfinite(liq) else 0, CYA)}<div class="s">{L("traded value against its year’s median", "قيمة التداول مقابل وسيط سنتها")}</div></div>',
         f'<div class="tl"><div class="l">{T.icon("emoji_events")}{L("Leadership", "القيادة")}</div><div class="v">{_f(lead, "{:+.0f}")} <small>pts</small></div>'
-        f'<div class="s">{L("top decile's lead over the average stock (3M)", "تقدم أعلى 10% على متوسط الأسهم (3 أشهر)")} · {L("concentration", "التركّز")} {_f(conc, "{:.0f}%")}</div></div>']
+        f'<div class="s">{L("top decile’s lead over the average stock (3M)", "تقدم أعلى 10% على متوسط الأسهم (3 أشهر)")} · {L("concentration", "التركّز")} {_f(conc, "{:.0f}%")}</div></div>']
     if s["risk_off_flag"]:
         tiles[0] = tiles[0].replace('<div class="s">', f'<div class="s"><b style="color:#F87171">{L("Risk-off flag on. ", "تحذير عزوف عن المخاطرة. ")}</b>', 1)
     return '<div class="h3mi">' + "".join(tiles) + "</div>"
@@ -665,7 +665,7 @@ def fundamentals_html(sym):
     body = "".join(f'<tr><td>{T.esc(a)}</td><td class="n">{b}</td></tr>' for a, b in rows)
     return (f'<div class="h3box"><div class="h3bt">{T.icon("account_balance")}{L("Fundamentals snapshot", "لقطة الأساسيات")}</div>'
             f'<div class="h3wrap"><table class="h3tbl">{body}</table></div>'
-            f'<div class="h3note warn" style="margin-top:8px">{T.esc(L(f"Today's snapshot ({asof}), not point-in-time history: shown for context only and NOT part of the score or the tests.", f"لقطة اليوم ({asof}) وليست تاريخاً كما كان: للسياق فقط وليست جزءاً من التقييم أو الاختبارات."))}</div></div>')
+            f'<div class="h3note warn" style="margin-top:8px">{T.esc(L(f"Today’s snapshot ({asof}), not point-in-time history: shown for context only and NOT part of the score or the tests.", f"لقطة اليوم ({asof}) وليست تاريخاً كما كان: للسياق فقط وليست جزءاً من التقييم أو الاختبارات."))}</div></div>')
 
 
 def sector_context_html(r, res):
@@ -678,9 +678,10 @@ def sector_context_html(r, res):
     within = int((peers["Score"] > r["Score"]).sum()) + 1
     lead = peers.sort_values("Score", ascending=False).head(5)
     items = "".join(f'<div class="r{" both" if s == r["Symbol"] else ""}"><span>{T.esc(T.sym_label(s))}</span><b>{sc:.0f}</b></div>' for s, sc in zip(lead["Symbol"], lead["Score"]))
+    sec_ret = _f(by_sec.get(sec), "{:+.1f}%")
     return (f'<div class="h3box"><div class="h3bt">{T.icon("category")}{L("Sector context", "سياق القطاع")}</div>'
             f'<div style="font-size:.84rem;color:#D9D4E0;line-height:1.55">{T.esc(sector_name(sec))}: '
-            f'{T.esc(L(f"sector #{rank} of {len(by_sec)} by 3-month return ({_f(by_sec.get(sec), "{:+.1f}%")}); this stock is #{within} of {len(peers)} in its sector by score.", f"القطاع رقم {rank} من {len(by_sec)} بعائد 3 أشهر ({_f(by_sec.get(sec), "{:+.1f}%")})؛ وهذا السهم رقم {within} من {len(peers)} في قطاعه بالتقييم."))}</div>'
+            f'{T.esc(L(f"sector #{rank} of {len(by_sec)} by 3-month return ({sec_ret}); this stock is #{within} of {len(peers)} in its sector by score.", f"القطاع رقم {rank} من {len(by_sec)} بعائد 3 أشهر ({sec_ret})؛ وهذا السهم رقم {within} من {len(peers)} في قطاعه بالتقييم."))}</div>'
             f'<div class="h3cmp" style="margin-top:8px"><div class="m">{items}</div></div></div>')
 
 
@@ -721,8 +722,9 @@ def detail(r, got, method, res):
             if edge and len(bt):
                 last = bt.tail(6).iloc[::-1]
                 rows = "".join(f'<tr><td>{pd.Timestamp(t["Entry Date"]).strftime("%Y-%m-%d")}</td><td class="n">{_money_px(t["Entry"])}</td><td class="n" style="color:{"#4ADE80" if t["R"] > 0 else "#F87171"}">{t["R"]:+.2f} R</td><td>{T.esc(str(t["Reason"]))}</td></tr>' for _, t in last.iterrows())
+                edge_txt = L(f"{edge['n']} trades · win rate {edge['win']:.0f}% · average {edge['avg_r']:+.2f} R · profit factor {edge['pf']:.2f}", f"{edge['n']} صفقة · نسبة الربح {edge['win']:.0f}% · المتوسط {edge['avg_r']:+.2f} R · عامل الربح {edge['pf']:.2f}")
                 ui.html(f'<div class="h3box"><div class="h3bt">{T.icon("history")}{L("The same setup on this stock, last 5 years", "نفس الفرصة على هذا السهم، آخر 5 سنوات")}</div>'
-                        f'<div style="font-size:.82rem;color:#D9D4E0;margin-bottom:6px">{T.esc(L(f"{edge["n"]} trades · win rate {edge["win"]:.0f}% · average {edge["avg_r"]:+.2f} R · profit factor {edge["pf"]:.2f}", f"{edge["n"]} صفقة · نسبة الربح {edge["win"]:.0f}% · المتوسط {edge["avg_r"]:+.2f} R · عامل الربح {edge["pf"]:.2f}"))}</div>'
+                        f'<div style="font-size:.82rem;color:#D9D4E0;margin-bottom:6px">{T.esc(edge_txt)}</div>'
                         f'<div class="h3wrap"><table class="h3tbl"><tr><th>{L("Entered", "الدخول")}</th><th class="n">{L("Price", "السعر")}</th><th class="n">R</th><th>{L("Exit", "الخروج")}</th></tr>{rows}</table></div></div>')
             ui.html(sector_context_html(r, res))
             ui.html(fundamentals_html(sym))
@@ -765,7 +767,7 @@ def comparison(res, methods, ev):
                "baseline": ("no", L("baseline", "الأساس")), None: ("no", L("untested", "بلا اختبار"))}[st_]
         rows = "".join(f'<div class="r{" both" if (m != "v1" and s in ref) else ""}"><span>{T.esc(T.sym_label(s))}</span><b>{base.set_index("Symbol").at[s, f"score_{m}"]:.0f}</b></div>' for s in tops[m])
         same = len(set(tops[m]) & ref)
-        sub = "" if m == "v1" else f'<div style="color:{_MU};font-size:.72rem;margin-top:6px">{T.esc(L(f"{same} of {N_CARDS} also in the baseline's eight", f"{same} من {N_CARDS} موجودة أيضاً في ثمانية الأساس"))}</div>'
+        sub = "" if m == "v1" else f'<div style="color:{_MU};font-size:.72rem;margin-top:6px">{T.esc(L(f"{same} of {N_CARDS} also in the baseline’s eight", f"{same} من {N_CARDS} موجودة أيضاً في ثمانية الأساس"))}</div>'
         boxes.append(f'<div class="m"><div class="t">{T.icon("functions")}{T.esc(_method_name(m))}<span class="tag {tag[0]}">{T.esc(tag[1])}</span></div>{rows}{sub}</div>')
     ui.html(f'<div class="h3cmp">{"".join(boxes)}</div>')
     if len(methods) > 1 and len(base) >= 8:
@@ -823,15 +825,17 @@ def research(ev):
     run, v = ev["run"], ev.get("verdict", {})
     methods = [m for m in ev["methods"] if m != "random"]
     cost = run["cost"]
-    ui.html(f'<div class="h3ver">{T.icon("gavel")}<div><b>{T.esc(L("Verdict", "الحكم"))}: {T.esc(L(f"the page ranks by {_method_name(v.get("default", "v1"))} by default.", f"الصفحة ترتب حسب {_method_name(v.get("default", "v1"))} افتراضياً."))}</b>'
+    dflt = _method_name(v.get("default", "v1"))
+    meas_txt = L(f"Measured on {run['date']} on GitHub Actions: {run['symbols']} symbols, daily bars from 2005, costs {cost['commission_bps'] + cost['half_spread_bps'] + cost['slippage_bps']:.0f} bps a side, fills at the next open, {run['seconds']} s.", f"قيست في {run['date']} على GitHub Actions: {run['symbols']} رمز، شموع يومية من 2005، تكاليف {cost['commission_bps'] + cost['half_spread_bps'] + cost['slippage_bps']:.0f} نقطة أساس لكل جانب، تنفيذ عند الافتتاح التالي، {run['seconds']} ث.")
+    ui.html(f'<div class="h3ver">{T.icon("gavel")}<div><b>{T.esc(L("Verdict", "الحكم"))}: {T.esc(L(f"the page ranks by {dflt} by default.", f"الصفحة ترتب حسب {dflt} افتراضياً."))}</b>'
             f'<p>{T.esc(L("A new score replaces the old Hunter only when it beats it on both rank IC and Sharpe in most out-of-sample periods (2020 on). ", "التقييم الجديد يحل محل الصياد القديم فقط إذا تفوق عليه في ترتيب IC وشارب معاً في أغلب الفترات خارج العينة (من 2020). "))}'
             + " ".join(f"<b>{_method_name(m)}</b>: " + T.esc({"recommended": L("better", "أفضل"), "not better": L("not better", "ليس أفضل"), "rejected": L("rejected", "مرفوض")}.get(row["status"], row["status"]))
                        + (T.esc(L(f" (IC {row['beats_v1_ic']}/{row['periods']}, Sharpe {row['beats_v1_sharpe']}/{row['periods']})", f" (IC {row['beats_v1_ic']}/{row['periods']}، شارب {row['beats_v1_sharpe']}/{row['periods']})")) if "periods" in row else "") + "."
                        for m, row in v.get("methods", {}).items())
-            + f'</p><p style="color:{_MU}">{T.esc(L(f"Measured on {run["date"]} on GitHub Actions: {run["symbols"]} symbols, daily bars from 2005, costs {cost["commission_bps"] + cost["half_spread_bps"] + cost["slippage_bps"]:.0f} bps a side, fills at the next open, {run["seconds"]} s.", f"قيست في {run["date"]} على GitHub Actions: {run["symbols"]} رمز، شموع يومية من 2005، تكاليف {cost["commission_bps"] + cost["half_spread_bps"] + cost["slippage_bps"]:.0f} نقطة أساس لكل جانب، تنفيذ عند الافتتاح التالي، {run["seconds"]} ث."))}</p></div></div>')
+            + f'</p><p style="color:{_MU}">{T.esc(meas_txt)}</p></div></div>')
     periods = list(ev["sim"])
     # 1) ranking quality
-    ui.html(f'<div class="h3bt" style="margin-top:6px">{T.icon("leaderboard")}{L("Ranking quality: rank IC against the next month's return over the index, among stocks with a live setup", "جودة الترتيب: معامل IC مقابل عائد الشهر التالي فوق المؤشر، بين الأسهم ذات الفرصة الحية")}</div>')
+    ui.html(f'<div class="h3bt" style="margin-top:6px">{T.icon("leaderboard")}{L("Ranking quality: rank IC against the next month’s return over the index, among stocks with a live setup", "جودة الترتيب: معامل IC مقابل عائد الشهر التالي فوق المؤشر، بين الأسهم ذات الفرصة الحية")}</div>')
     head = "".join(f'<th class="n">{T.esc(_method_name(m))}</th>' for m in methods)
     rows = "".join(f'<tr><td>{T.esc(p)}</td>' + "".join(f'<td class="n">{_ic_cell(ev["ic"]["candidates"].get(m, {}).get(p))}</td>' for m in methods) + "</tr>" for p in periods)
     ui.html(f'<div class="h3wrap"><table class="h3tbl"><tr><th>{L("Period", "الفترة")}</th>{head}</tr>{rows}</table></div>')
@@ -894,7 +898,7 @@ def research(ev):
         txt = (L(f"ML ranker: trained walk-forward by year from 2016 with a 21-session embargo; out-of-sample IC {ml.get('ic_2016_2024')} against the adaptive score's {ml.get('adaptive_ic_2016_2024')} → {'ACTIVE' if ml.get('active') else 'NOT USED'}.",
                  f"مرتّب التعلم الآلي: دُرّب زمنياً سنة بسنة من 2016 مع حظر 21 جلسة؛ IC خارج العينة {ml.get('ic_2016_2024')} مقابل {ml.get('adaptive_ic_2016_2024')} للتقييم المتكيف ← {'مفعّل' if ml.get('active') else 'غير مستخدم'}."))
         ui.html(f'<div class="h3note" style="margin-top:8px">{T.icon("smart_toy", LAV)} {T.esc(txt)}</div>')
-    ui.html(f'<div class="h3note warn" style="margin-top:8px">{T.esc(L("What this does not show: today's constituents only (survivorship), no earnings dates in the history, fundamentals not point-in-time, prices from Yahoo. A score is a rank, never a probability: 90/100 is not a 90% chance.", "ما لا تُظهره: مكونات اليوم فقط (انحياز البقاء)، لا تواريخ أرباح في التاريخ، الأساسيات ليست كما كانت، والأسعار من ياهو. التقييم ترتيب وليس احتمالاً: 90 من 100 ليست فرصة 90%."))}</div>')
+    ui.html(f'<div class="h3note warn" style="margin-top:8px">{T.esc(L("What this does not show: today’s constituents only (survivorship), no earnings dates in the history, fundamentals not point-in-time, prices from Yahoo. A score is a rank, never a probability: 90/100 is not a 90% chance.", "ما لا تُظهره: مكونات اليوم فقط (انحياز البقاء)، لا تواريخ أرباح في التاريخ، الأساسيات ليست كما كانت، والأسعار من ياهو. التقييم ترتيب وليس احتمالاً: 90 من 100 ليست فرصة 90%."))}</div>')
 
 
 # ---------------------------------------------------------------- the page
