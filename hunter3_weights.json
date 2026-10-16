@@ -1,0 +1,81 @@
+{
+ "fitted_on": [
+  "2010-01-01",
+  "2015-12-31"
+ ],
+ "weights": {
+  "bull": {
+   "momentum": 0.4853,
+   "trend": 0.2096,
+   "volume": 0.075,
+   "risk": 0.075,
+   "setup": 0.1551
+  },
+  "neutral": {
+   "momentum": 0.4231,
+   "trend": 0.252,
+   "volume": 0.075,
+   "risk": 0.075,
+   "setup": 0.1749
+  },
+  "bear": {
+   "momentum": 0.3,
+   "trend": 0.2,
+   "volume": 0.15,
+   "risk": 0.15,
+   "setup": 0.2
+  },
+  "stress": {
+   "momentum": 0.3,
+   "trend": 0.2,
+   "volume": 0.15,
+   "risk": 0.15,
+   "setup": 0.2
+  }
+ },
+ "evidence": {
+  "bull": {
+   "months": 42,
+   "ic": {
+    "momentum": 0.015,
+    "trend": 0.0049,
+    "volume": -0.0044,
+    "risk": -0.0051,
+    "setup": 0.0025
+   }
+  },
+  "neutral": {
+   "months": 21,
+   "ic": {
+    "momentum": 0.0488,
+    "trend": 0.0272,
+    "volume": -0.0541,
+    "risk": -0.0341,
+    "setup": 0.0134
+   }
+  },
+  "bear": {
+   "months": 5,
+   "ic": {
+    "momentum": null,
+    "trend": null,
+    "volume": null,
+    "risk": null,
+    "setup": null
+   },
+   "note": "too few months: default weights"
+  },
+  "stress": {
+   "months": 4,
+   "ic": {
+    "momentum": null,
+    "trend": null,
+    "volume": null,
+    "risk": null,
+    "setup": null
+   },
+   "note": "too few months: default weights"
+  }
+ },
+ "built": "2026-10-16"
+}

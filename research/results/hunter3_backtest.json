@@ -1,0 +1,5091 @@
+{
+ "run": {
+  "date": "2026-10-16",
+  "symbols": 509,
+  "seconds": 119,
+  "cost": {
+   "commission_bps": 1.0,
+   "half_spread_bps": 5.0,
+   "slippage_bps": 5.0
+  },
+  "policy": {
+   "risk_pct": 0.75,
+   "max_pos": 8,
+   "sector_cap": 2,
+   "max_corr": 0.75,
+   "target_vol": 18.0,
+   "max_weight": 20.0,
+   "regime_cap": true,
+   "dd_brake": true,
+   "corr_filter": true,
+   "vol_size": true,
+   "regime_exit": true
+  },
+  "min_score": 60.0,
+  "capital": 100000.0
+ },
+ "methods": [
+  "v1",
+  "quant",
+  "adaptive",
+  "ml",
+  "random"
+ ],
+ "ic": {
+  "candidates": {
+   "v1": {
+    "2008-2009 (dev, flagged)": {
+     "ic_mean": -0.1066,
+     "ic_t": -2.17,
+     "months": 22,
+     "hit_rate": 0.273,
+     "spread_pp": -4.106
+    },
+    "2010-2015 (dev)": {
+     "ic_mean": 0.0031,
+     "ic_t": 0.19,
+     "months": 72,
+     "hit_rate": 0.556,
+     "spread_pp": 0.074
+    },
+    "2016-2019 (validation)": {
+     "ic_mean": -0.0188,
+     "ic_t": -0.86,
+     "months": 48,
+     "hit_rate": 0.396,
+     "spread_pp": 0.068
+    },
+    "2020-2021 (test)": {
+     "ic_mean": 0.0408,
+     "ic_t": 1.25,
+     "months": 23,
+     "hit_rate": 0.609,
+     "spread_pp": 1.061
+    },
+    "2022 (test)": {
+     "ic_mean": 0.0556,
+     "ic_t": 0.88,
+     "months": 11,
+     "hit_rate": 0.636,
+     "spread_pp": 1.555
+    },
+    "2023-2024 (test)": {
+     "ic_mean": 0.0408,
+     "ic_t": 1.34,
+     "months": 24,
+     "hit_rate": 0.583,
+     "spread_pp": 0.865
+    },
+    "2025-2026 (final test)": {
+     "ic_mean": -0.015,
+     "ic_t": -0.38,
+     "months": 20,
+     "hit_rate": 0.55,
+     "spread_pp": 0.737
+    }
+   },
+   "quant": {
+    "2008-2009 (dev, flagged)": {
+     "ic_mean": -0.1063,
+     "ic_t": -2.02,
+     "months": 22,
+     "hit_rate": 0.318,
+     "spread_pp": -3.226
+    },
+    "2010-2015 (dev)": {
+     "ic_mean": 0.0162,
+     "ic_t": 0.66,
+     "months": 72,
+     "hit_rate": 0.569,
+     "spread_pp": 0.38
+    },
+    "2016-2019 (validation)": {
+     "ic_mean": -0.0225,
+     "ic_t": -0.73,
+     "months": 48,
+     "hit_rate": 0.417,
+     "spread_pp": -0.045
+    },
+    "2020-2021 (test)": {
+     "ic_mean": 0.04,
+     "ic_t": 1.11,
+     "months": 23,
+     "hit_rate": 0.565,
+     "spread_pp": 0.893
+    },
+    "2022 (test)": {
+     "ic_mean": 0.0957,
+     "ic_t": 1.19,
+     "months": 11,
+     "hit_rate": 0.727,
+     "spread_pp": 2.205
+    },
+    "2023-2024 (test)": {
+     "ic_mean": 0.009,
+     "ic_t": 0.26,
+     "months": 24,
+     "hit_rate": 0.583,
+     "spread_pp": 0.05
+    },
+    "2025-2026 (final test)": {
+     "ic_mean": -0.0587,
+     "ic_t": -1.2,
+     "months": 20,
+     "hit_rate": 0.45,
+     "spread_pp": -1.44
+    }
+   },
+   "adaptive": {
+    "2008-2009 (dev, flagged)": {
+     "ic_mean": -0.0983,
+     "ic_t": -1.89,
+     "months": 22,
+     "hit_rate": 0.318,
+     "spread_pp": -3.656
+    },
+    "2010-2015 (dev)": {
+     "ic_mean": 0.0231,
+     "ic_t": 0.99,
+     "months": 72,
+     "hit_rate": 0.639,
+     "spread_pp": 0.44
+    },
+    "2016-2019 (validation)": {
+     "ic_mean": -0.0217,
+     "ic_t": -0.74,
+     "months": 48,
+     "hit_rate": 0.438,
+     "spread_pp": -0.034
+    },
+    "2020-2021 (test)": {
+     "ic_mean": 0.0472,
+     "ic_t": 1.23,
+     "months": 23,
+     "hit_rate": 0.609,
+     "spread_pp": 1.244
+    },
+    "2022 (test)": {
+     "ic_mean": 0.1044,
+     "ic_t": 1.35,
+     "months": 11,
+     "hit_rate": 0.727,
+     "spread_pp": 2.581
+    },
+    "2023-2024 (test)": {
+     "ic_mean": 0.0081,
+     "ic_t": 0.24,
+     "months": 24,
+     "hit_rate": 0.5,
+     "spread_pp": 0.181
+    },
+    "2025-2026 (final test)": {
+     "ic_mean": -0.0525,
+     "ic_t": -1.15,
+     "months": 20,
+     "hit_rate": 0.45,
+     "spread_pp": -1.014
+    }
+   },
+   "ml": {
+    "2008-2009 (dev, flagged)": {
+     "ic_mean": null,
+     "ic_t": null,
+     "months": 0,
+     "hit_rate": null,
+     "spread_pp": null
+    },
+    "2010-2015 (dev)": {
+     "ic_mean": null,
+     "ic_t": null,
+     "months": 0,
+     "hit_rate": null,
+     "spread_pp": null
+    },
+    "2016-2019 (validation)": {
+     "ic_mean": 0.0027,
+     "ic_t": 0.13,
+     "months": 48,
+     "hit_rate": 0.5,
+     "spread_pp": -0.027
+    },
+    "2020-2021 (test)": {
+     "ic_mean": -0.0126,
+     "ic_t": -0.35,
+     "months": 23,
+     "hit_rate": 0.478,
+     "spread_pp": 0.077
+    },
+    "2022 (test)": {
+     "ic_mean": 0.0108,
+     "ic_t": 0.25,
+     "months": 11,
+     "hit_rate": 0.455,
+     "spread_pp": 1.034
+    },
+    "2023-2024 (test)": {
+     "ic_mean": 0.0325,
+     "ic_t": 1.18,
+     "months": 24,
+     "hit_rate": 0.667,
+     "spread_pp": 1.09
+    },
+    "2025-2026 (final test)": {
+     "ic_mean": 0.0414,
+     "ic_t": 0.73,
+     "months": 20,
+     "hit_rate": 0.55,
+     "spread_pp": 2.655
+    }
+   }
+  },
+  "all": {
+   "v1": {
+    "2008-2009 (dev, flagged)": {
+     "ic_mean": -0.0588,
+     "ic_t": -1.62,
+     "months": 24,
+     "hit_rate": 0.292
+    },
+    "2010-2015 (dev)": {
+     "ic_mean": 0.0028,
+     "ic_t": 0.14,
+     "months": 72,
+     "hit_rate": 0.556
+    },
+    "2016-2019 (validation)": {
+     "ic_mean": -0.0501,
+     "ic_t": -1.86,
+     "months": 48,
+     "hit_rate": 0.375
+    },
+    "2020-2021 (test)": {
+     "ic_mean": 0.0091,
+     "ic_t": 0.22,
+     "months": 24,
+     "hit_rate": 0.625
+    },
+    "2022 (test)": {
+     "ic_mean": 0.0047,
+     "ic_t": 0.06,
+     "months": 12,
+     "hit_rate": 0.667
+    },
+    "2023-2024 (test)": {
+     "ic_mean": 0.0354,
+     "ic_t": 1.21,
+     "months": 24,
+     "hit_rate": 0.625
+    },
+    "2025-2026 (final test)": {
+     "ic_mean": -0.0145,
+     "ic_t": -0.38,
+     "months": 20,
+     "hit_rate": 0.5
+    }
+   },
+   "quant": {
+    "2008-2009 (dev, flagged)": {
+     "ic_mean": -0.0764,
+     "ic_t": -1.99,
+     "months": 24,
+     "hit_rate": 0.208
+    },
+    "2010-2015 (dev)": {
+     "ic_mean": 0.0049,
+     "ic_t": 0.21,
+     "months": 72,
+     "hit_rate": 0.569
+    },
+    "2016-2019 (validation)": {
+     "ic_mean": -0.0524,
+     "ic_t": -1.79,
+     "months": 48,
+     "hit_rate": 0.375
+    },
+    "2020-2021 (test)": {
+     "ic_mean": 0.0033,
+     "ic_t": 0.07,
+     "months": 24,
+     "hit_rate": 0.583
+    },
+    "2022 (test)": {
+     "ic_mean": 0.0102,
+     "ic_t": 0.13,
+     "months": 12,
+     "hit_rate": 0.667
+    },
+    "2023-2024 (test)": {
+     "ic_mean": 0.0257,
+     "ic_t": 0.74,
+     "months": 24,
+     "hit_rate": 0.542
+    },
+    "2025-2026 (final test)": {
+     "ic_mean": -0.0295,
+     "ic_t": -0.73,
+     "months": 20,
+     "hit_rate": 0.45
+    }
+   },
+   "adaptive": {
+    "2008-2009 (dev, flagged)": {
+     "ic_mean": -0.0738,
+     "ic_t": -1.96,
+     "months": 24,
+     "hit_rate": 0.292
+    },
+    "2010-2015 (dev)": {
+     "ic_mean": 0.0076,
+     "ic_t": 0.33,
+     "months": 72,
+     "hit_rate": 0.583
+    },
+    "2016-2019 (validation)": {
+     "ic_mean": -0.0496,
+     "ic_t": -1.72,
+     "months": 48,
+     "hit_rate": 0.396
+    },
+    "2020-2021 (test)": {
+     "ic_mean": 0.0092,
+     "ic_t": 0.2,
+     "months": 24,
+     "hit_rate": 0.583
+    },
+    "2022 (test)": {
+     "ic_mean": 0.0066,
+     "ic_t": 0.09,
+     "months": 12,
+     "hit_rate": 0.667
+    },
+    "2023-2024 (test)": {
+     "ic_mean": 0.0287,
+     "ic_t": 0.86,
+     "months": 24,
+     "hit_rate": 0.583
+    },
+    "2025-2026 (final test)": {
+     "ic_mean": -0.0284,
+     "ic_t": -0.7,
+     "months": 20,
+     "hit_rate": 0.5
+    }
+   },
+   "ml": {
+    "2008-2009 (dev, flagged)": {
+     "ic_mean": null,
+     "ic_t": null,
+     "months": 0,
+     "hit_rate": null
+    },
+    "2010-2015 (dev)": {
+     "ic_mean": null,
+     "ic_t": null,
+     "months": 0,
+     "hit_rate": null
+    },
+    "2016-2019 (validation)": {
+     "ic_mean": 0.0209,
+     "ic_t": 1.07,
+     "months": 48,
+     "hit_rate": 0.562
+    },
+    "2020-2021 (test)": {
+     "ic_mean": -0.0101,
+     "ic_t": -0.31,
+     "months": 24,
+     "hit_rate": 0.375
+    },
+    "2022 (test)": {
+     "ic_mean": 0.0407,
+     "ic_t": 0.87,
+     "months": 12,
+     "hit_rate": 0.417
+    },
+    "2023-2024 (test)": {
+     "ic_mean": 0.0403,
+     "ic_t": 1.45,
+     "months": 24,
+     "hit_rate": 0.625
+    },
+    "2025-2026 (final test)": {
+     "ic_mean": 0.0157,
+     "ic_t": 0.37,
+     "months": 20,
+     "hit_rate": 0.6
+    }
+   }
+  },
+  "by_regime": {
+   "v1": {
+    "bull": {
+     "ic_mean": -0.0074,
+     "months": 134
+    },
+    "neutral": {
+     "ic_mean": 0.0388,
+     "months": 50
+    },
+    "bear": {
+     "ic_mean": -0.0329,
+     "months": 23
+    },
+    "stress": {
+     "ic_mean": -0.0268,
+     "months": 19
+    }
+   },
+   "quant": {
+    "bull": {
+     "ic_mean": -0.0136,
+     "months": 134
+    },
+    "neutral": {
+     "ic_mean": 0.0346,
+     "months": 50
+    },
+    "bear": {
+     "ic_mean": -0.0671,
+     "months": 23
+    },
+    "stress": {
+     "ic_mean": 0.0192,
+     "months": 19
+    }
+   },
+   "adaptive": {
+    "bull": {
+     "ic_mean": -0.0099,
+     "months": 134
+    },
+    "neutral": {
+     "ic_mean": 0.0477,
+     "months": 50
+    },
+    "bear": {
+     "ic_mean": -0.0671,
+     "months": 23
+    },
+    "stress": {
+     "ic_mean": 0.0192,
+     "months": 19
+    }
+   },
+   "ml": {
+    "bull": {
+     "ic_mean": 0.0114,
+     "months": 84
+    },
+    "neutral": {
+     "ic_mean": 0.021,
+     "months": 22
+    },
+    "bear": {
+     "ic_mean": 0.0513,
+     "months": 11
+    },
+    "stress": {
+     "ic_mean": -0.0463,
+     "months": 9
+    }
+   }
+  }
+ },
+ "weights": {
+  "weights": {
+   "bull": {
+    "momentum": 0.4853,
+    "trend": 0.2096,
+    "volume": 0.075,
+    "risk": 0.075,
+    "setup": 0.1551
+   },
+   "neutral": {
+    "momentum": 0.4231,
+    "trend": 0.252,
+    "volume": 0.075,
+    "risk": 0.075,
+    "setup": 0.1749
+   },
+   "bear": {
+    "momentum": 0.3,
+    "trend": 0.2,
+    "volume": 0.15,
+    "risk": 0.15,
+    "setup": 0.2
+   },
+   "stress": {
+    "momentum": 0.3,
+    "trend": 0.2,
+    "volume": 0.15,
+    "risk": 0.15,
+    "setup": 0.2
+   }
+  },
+  "evidence": {
+   "bull": {
+    "months": 42,
+    "ic": {
+     "momentum": 0.015,
+     "trend": 0.0049,
+     "volume": -0.0044,
+     "risk": -0.0051,
+     "setup": 0.0025
+    }
+   },
+   "neutral": {
+    "months": 21,
+    "ic": {
+     "momentum": 0.0488,
+     "trend": 0.0272,
+     "volume": -0.0541,
+     "risk": -0.0341,
+     "setup": 0.0134
+    }
+   },
+   "bear": {
+    "months": 5,
+    "ic": {
+     "momentum": null,
+     "trend": null,
+     "volume": null,
+     "risk": null,
+     "setup": null
+    },
+    "note": "too few months: default weights"
+   },
+   "stress": {
+    "months": 4,
+    "ic": {
+     "momentum": null,
+     "trend": null,
+     "volume": null,
+     "risk": null,
+     "setup": null
+    },
+    "note": "too few months: default weights"
+   }
+  }
+ },
+ "ml": {
+  "status": "trained",
+  "ic_2016_2024": 0.007,
+  "adaptive_ic_2016_2024": 0.0131,
+  "active": false,
+  "years": {
+   "2016": {
+    "train_rows": 43963,
+    "test_rows": 5620
+   },
+   "2017": {
+    "train_rows": 49579,
+    "test_rows": 5680
+   },
+   "2018": {
+    "train_rows": 55256,
+    "test_rows": 5721
+   },
+   "2019": {
+    "train_rows": 60972,
+    "test_rows": 5809
+   },
+   "2020": {
+    "train_rows": 66773,
+    "test_rows": 5878
+   },
+   "2021": {
+    "train_rows": 72644,
+    "test_rows": 5977
+   },
+   "2022": {
+    "train_rows": 78615,
+    "test_rows": 6013
+   },
+   "2023": {
+    "train_rows": 84626,
+    "test_rows": 6039
+   },
+   "2024": {
+    "train_rows": 90662,
+    "test_rows": 6090
+   },
+   "2025": {
+    "train_rows": 96749,
+    "test_rows": 6107
+   },
+   "2026": {
+    "train_rows": 102855,
+    "test_rows": 4072
+   }
+  }
+ },
+ "sim": {
+  "2008-2009 (dev, flagged)": {
+   "v1": {
+    "cagr": 0.014758,
+    "total_return": 0.029734,
+    "sharpe": 0.251191,
+    "sortino": 0.227331,
+    "max_drawdown": -0.089701,
+    "calmar": 0.164528,
+    "alpha_annual": 0.019533,
+    "beta": 0.054715,
+    "information_ratio": 0.192887,
+    "turnover_per_year": 17.146456,
+    "exposure": 0.466611,
+    "days": 504,
+    "bench_total_return": -0.194341,
+    "trades": 135,
+    "win_rate": 0.392593,
+    "expectancy_R": -0.005744,
+    "avg_gain_pct": 8.945919,
+    "avg_loss_pct": -5.393268,
+    "profit_factor": 0.987485,
+    "avg_bars": 13.725926,
+    "exits": {
+     "time": 48,
+     "stop": 45,
+     "regime": 24,
+     "target": 13,
+     "gap": 5
+    },
+    "by_regime": {
+     "bull": {
+      "days": 140,
+      "ann_return": 0.25318,
+      "bench_ann_return": 0.572715,
+      "sharpe": 2.692897
+     },
+     "neutral": {
+      "days": 78,
+      "ann_return": -0.340591,
+      "bench_ann_return": -0.486901,
+      "sharpe": -3.059171
+     },
+     "bear": {
+      "days": 130,
+      "ann_return": -0.006435,
+      "bench_ann_return": -0.197727,
+      "sharpe": -1.814892
+     },
+     "stress": {
+      "days": 156,
+      "ann_return": 0.003109,
+      "bench_ann_return": -0.26008,
+      "sharpe": 0.237837
+     }
+    },
+    "ci90": {
+     "cagr": [
+      -0.048048,
+      0.047095
+     ],
+     "sharpe": [
+      -1.206666,
+      0.777379
+     ]
+    }
+   },
+   "quant": {
+    "cagr": 0.01637,
+    "total_return": 0.033009,
+    "sharpe": 0.270687,
+    "sortino": 0.240484,
+    "max_drawdown": -0.081584,
+    "calmar": 0.200656,
+    "alpha_annual": 0.02128,
+    "beta": 0.056133,
+    "information_ratio": 0.198034,
+    "turnover_per_year": 18.386338,
+    "exposure": 0.546004,
+    "days": 504,
+    "bench_total_return": -0.194341,
+    "trades": 146,
+    "win_rate": 0.465753,
+    "expectancy_R": -0.06308,
+    "avg_gain_pct": 5.966984,
+    "avg_loss_pct": -4.949762,
+    "profit_factor": 0.869988,
+    "avg_bars": 12.472603,
+    "exits": {
+     "time": 48,
+     "stop": 47,
+     "regime": 24,
+     "target": 20,
+     "gap": 7
+    },
+    "by_regime": {
+     "bull": {
+      "days": 140,
+      "ann_return": 0.227495,
+      "bench_ann_return": 0.572715,
+      "sharpe": 2.47645
+     },
+     "neutral": {
+      "days": 78,
+      "ann_return": -0.303088,
+      "bench_ann_return": -0.486901,
+      "sharpe": -2.554013
+     },
+     "bear": {
+      "days": 130,
+      "ann_return": -0.006513,
+      "bench_ann_return": -0.197727,
+      "sharpe": -1.317651
+     },
+     "stress": {
+      "days": 156,
+      "ann_return": 0.012898,
+      "bench_ann_return": -0.26008,
+      "sharpe": 0.669175
+     }
+    },
+    "ci90": {
+     "cagr": [
+      -0.045242,
+      0.036007
+     ],
+     "sharpe": [
+      -0.904374,
+      0.722355
+     ]
+    }
+   },
+   "adaptive": {
+    "cagr": 0.008189,
+    "total_return": 0.016445,
+    "sharpe": 0.154886,
+    "sortino": 0.138173,
+    "max_drawdown": -0.088774,
+    "calmar": 0.092243,
+    "alpha_annual": 0.012984,
+    "beta": 0.053696,
+    "information_ratio": 0.173321,
+    "turnover_per_year": 17.305807,
+    "exposure": 0.525974,
+    "days": 504,
+    "bench_total_return": -0.194341,
+    "trades": 156,
+    "win_rate": 0.423077,
+    "expectancy_R": -0.081387,
+    "avg_gain_pct": 6.212465,
+    "avg_loss_pct": -5.061932,
+    "profit_factor": 0.833674,
+    "avg_bars": 11.698718,
+    "exits": {
+     "stop": 54,
+     "time": 50,
+     "regime": 24,
+     "target": 22,
+     "gap": 6
+    },
+    "by_regime": {
+     "bull": {
+      "days": 140,
+      "ann_return": 0.191575,
+      "bench_ann_return": 0.572715,
+      "sharpe": 2.115469
+     },
+     "neutral": {
+      "days": 78,
+      "ann_return": -0.288594,
+      "bench_ann_return": -0.486901,
+      "sharpe": -2.504948
+     },
+     "bear": {
+      "days": 130,
+      "ann_return": -0.000862,
+      "bench_ann_return": -0.197727,
+      "sharpe": -0.319244
+     },
+     "stress": {
+      "days": 156,
+      "ann_return": 0.00675,
+      "bench_ann_return": -0.26008,
+      "sharpe": 0.324309
+     }
+    },
+    "ci90": {
+     "cagr": [
+      -0.042531,
+      0.034653
+     ],
+     "sharpe": [
+      -0.946219,
+      0.68149
+     ]
+    }
+   },
+   "random": {
+    "cagr": 0.048345,
+    "total_return": 0.099026,
+    "sharpe": 0.726867,
+    "sortino": 0.642968,
+    "max_drawdown": -0.082667,
+    "calmar": 0.58481,
+    "alpha_annual": 0.052268,
+    "beta": 0.05715,
+    "information_ratio": 0.290772,
+    "turnover_per_year": 22.336384,
+    "exposure": 0.529011,
+    "days": 504,
+    "bench_total_return": -0.194341,
+    "trades": 169,
+    "win_rate": 0.544379,
+    "expectancy_R": 0.126801,
+    "avg_gain_pct": 6.54417,
+    "avg_loss_pct": -4.990092,
+    "profit_factor": 1.311095,
+    "avg_bars": 10.52071,
+    "exits": {
+     "target": 47,
+     "stop": 47,
+     "time": 45,
+     "regime": 21,
+     "gap": 9
+    },
+    "by_regime": {
+     "bull": {
+      "days": 140,
+      "ann_return": 0.261289,
+      "bench_ann_return": 0.572715,
+      "sharpe": 2.73448
+     },
+     "neutral": {
+      "days": 78,
+      "ann_return": -0.189976,
+      "bench_ann_return": -0.486901,
+      "sharpe": -1.714574
+     },
+     "bear": {
+      "days": 130,
+      "ann_return": -0.003878,
+      "bench_ann_return": -0.197727,
+      "sharpe": -1.974506
+     },
+     "stress": {
+      "days": 156,
+      "ann_return": 0.023775,
+      "bench_ann_return": -0.26008,
+      "sharpe": 1.067974
+     }
+    },
+    "ci90": {
+     "cagr": [
+      -0.031226,
+      0.107189
+     ],
+     "sharpe": [
+      -0.396133,
+      1.446667
+     ]
+    }
+   },
+   "SPY": {
+    "cagr": -0.102415,
+    "total_return": -0.194341,
+    "sharpe": -0.137212,
+    "sortino": -0.18558,
+    "max_drawdown": -0.518737,
+    "calmar": -0.197431,
+    "alpha_annual": 0.0,
+    "beta": 1.0,
+    "information_ratio": null,
+    "turnover_per_year": 0.0,
+    "exposure": 1.0,
+    "days": 504,
+    "bench_total_return": -0.194341,
+    "trades": 0,
+    "by_regime": {
+     "bull": {
+      "days": 140,
+      "ann_return": 0.572715,
+      "bench_ann_return": 0.572715,
+      "sharpe": 3.669018
+     },
+     "neutral": {
+      "days": 78,
+      "ann_return": -0.486901,
+      "bench_ann_return": -0.486901,
+      "sharpe": -2.365862
+     },
+     "bear": {
+      "days": 130,
+      "ann_return": -0.197727,
+      "bench_ann_return": -0.197727,
+      "sharpe": -0.877899
+     },
+     "stress": {
+      "days": 156,
+      "ann_return": -0.26008,
+      "bench_ann_return": -0.26008,
+      "sharpe": -0.470028
+     }
+    },
+    "ci90": {
+     "cagr": [
+      -0.371998,
+      0.229464
+     ],
+     "sharpe": [
+      -1.826538,
+      1.198816
+     ]
+    }
+   }
+  },
+  "2010-2015 (dev)": {
+   "v1": {
+    "cagr": 0.022805,
+    "total_return": 0.144564,
+    "sharpe": 0.270203,
+    "sortino": 0.309562,
+    "max_drawdown": -0.175637,
+    "calmar": 0.129841,
+    "alpha_annual": -0.023655,
+    "beta": 0.393771,
+    "information_ratio": -0.815476,
+    "turnover_per_year": 17.146456,
+    "exposure": 0.466611,
+    "days": 1509,
+    "bench_total_return": 1.032127,
+    "trades": 769,
+    "win_rate": 0.429129,
+    "expectancy_R": -0.035871,
+    "avg_gain_pct": 7.137986,
+    "avg_loss_pct": -4.505749,
+    "profit_factor": 0.942766,
+    "avg_bars": 13.443433,
+    "exits": {
+     "stop": 262,
+     "time": 241,
+     "target": 104,
+     "regime": 94,
+     "gap": 68
+    },
+    "by_regime": {
+     "bull": {
+      "days": 934,
+      "ann_return": 0.199302,
+      "bench_ann_return": 0.316587,
+      "sharpe": 1.934225
+     },
+     "neutral": {
+      "days": 405,
+      "ann_return": -0.285177,
+      "bench_ann_return": -0.227559,
+      "sharpe": -2.42815
+     },
+     "bear": {
+      "days": 75,
+      "ann_return": -0.268164,
+      "bench_ann_return": -0.372972,
+      "sharpe": -5.07074
+     },
+     "stress": {
+      "days": 95,
+      "ann_return": -0.088772,
+      "bench_ann_return": 0.231801,
+      "sharpe": -2.745896
+     }
+    },
+    "ci90": {
+     "cagr": [
+      -0.038655,
+      0.097223
+     ],
+     "sharpe": [
+      -0.32816,
+      1.143464
+     ]
+    }
+   },
+   "quant": {
+    "cagr": 0.022636,
+    "total_return": 0.143435,
+    "sharpe": 0.290861,
+    "sortino": 0.357331,
+    "max_drawdown": -0.150605,
+    "calmar": 0.150302,
+    "alpha_annual": -0.017731,
+    "beta": 0.338262,
+    "information_ratio": -0.81489,
+    "turnover_per_year": 18.386338,
+    "exposure": 0.546004,
+    "days": 1509,
+    "bench_total_return": 1.032127,
+    "trades": 706,
+    "win_rate": 0.454674,
+    "expectancy_R": 0.006421,
+    "avg_gain_pct": 5.718608,
+    "avg_loss_pct": -3.790259,
+    "profit_factor": 1.010359,
+    "avg_bars": 14.328612,
+    "exits": {
+     "stop": 226,
+     "time": 221,
+     "target": 119,
+     "regime": 96,
+     "gap": 44
+    },
+    "by_regime": {
+     "bull": {
+      "days": 934,
+      "ann_return": 0.176562,
+      "bench_ann_return": 0.316587,
+      "sharpe": 1.909613
+     },
+     "neutral": {
+      "days": 405,
+      "ann_return": -0.238195,
+      "bench_ann_return": -0.227559,
+      "sharpe": -2.384983
+     },
+     "bear": {
+      "days": 75,
+      "ann_return": -0.229346,
+      "bench_ann_return": -0.372972,
+      "sharpe": -4.814646
+     },
+     "stress": {
+      "days": 95,
+      "ann_return": -0.117493,
+      "bench_ann_return": 0.231801,
+      "sharpe": -2.712904
+     }
+    },
+    "ci90": {
+     "cagr": [
+      -0.023478,
+      0.092087
+     ],
+     "sharpe": [
+      -0.228282,
+      1.078995
+     ]
+    }
+   },
+   "adaptive": {
+    "cagr": 0.042069,
+    "total_return": 0.279868,
+    "sharpe": 0.427622,
+    "sortino": 0.554236,
+    "max_drawdown": -0.156293,
+    "calmar": 0.269165,
+    "alpha_annual": -0.008772,
+    "beta": 0.428599,
+    "information_ratio": -0.664566,
+    "turnover_per_year": 17.305807,
+    "exposure": 0.525974,
+    "days": 1509,
+    "bench_total_return": 1.032127,
+    "trades": 736,
+    "win_rate": 0.460598,
+    "expectancy_R": -0.434753,
+    "avg_gain_pct": 6.237996,
+    "avg_loss_pct": -4.488926,
+    "profit_factor": 0.583254,
+    "avg_bars": 14.300272,
+    "exits": {
+     "stop": 234,
+     "time": 230,
+     "target": 132,
+     "regime": 98,
+     "gap": 42
+    },
+    "by_regime": {
+     "bull": {
+      "days": 934,
+      "ann_return": 0.232552,
+      "bench_ann_return": 0.316587,
+      "sharpe": 2.079596
+     },
+     "neutral": {
+      "days": 405,
+      "ann_return": -0.27851,
+      "bench_ann_return": -0.227559,
+      "sharpe": -2.281656
+     },
+     "bear": {
+      "days": 75,
+      "ann_return": -0.292703,
+      "bench_ann_return": -0.372972,
+      "sharpe": -4.819514
+     },
+     "stress": {
+      "days": 95,
+      "ann_return": -0.115893,
+      "bench_ann_return": 0.231801,
+      "sharpe": -2.618961
+     }
+    },
+    "ci90": {
+     "cagr": [
+      -0.008826,
+      0.115462
+     ],
+     "sharpe": [
+      -0.042262,
+      1.227269
+     ]
+    }
+   },
+   "random": {
+    "cagr": 0.056832,
+    "total_return": 0.392356,
+    "sharpe": 0.577402,
+    "sortino": 0.752322,
+    "max_drawdown": -0.137812,
+    "calmar": 0.412389,
+    "alpha_annual": 0.003276,
+    "beta": 0.439607,
+    "information_ratio": -0.590057,
+    "turnover_per_year": 22.336384,
+    "exposure": 0.529011,
+    "days": 1509,
+    "bench_total_return": 1.032127,
+    "trades": 911,
+    "win_rate": 0.514819,
+    "expectancy_R": 0.09239,
+    "avg_gain_pct": 4.371498,
+    "avg_loss_pct": -3.458502,
+    "profit_factor": 1.19296,
+    "avg_bars": 11.581778,
+    "exits": {
+     "stop": 257,
+     "target": 254,
+     "time": 250,
+     "regime": 96,
+     "gap": 54
+    },
+    "by_regime": {
+     "bull": {
+      "days": 934,
+      "ann_return": 0.260119,
+      "bench_ann_return": 0.316587,
+      "sharpe": 2.546184
+     },
+     "neutral": {
+      "days": 405,
+      "ann_return": -0.280386,
+      "bench_ann_return": -0.227559,
+      "sharpe": -2.311543
+     },
+     "bear": {
+      "days": 75,
+      "ann_return": -0.300115,
+      "bench_ann_return": -0.372972,
+      "sharpe": -4.436477
+     },
+     "stress": {
+      "days": 95,
+      "ann_return": -0.158798,
+      "bench_ann_return": 0.231801,
+      "sharpe": -2.68641
+     }
+    },
+    "ci90": {
+     "cagr": [
+      0.002085,
+      0.129256
+     ],
+     "sharpe": [
+      0.072277,
+      1.417685
+     ]
+    }
+   },
+   "SPY": {
+    "cagr": 0.125712,
+    "total_return": 1.032127,
+    "sharpe": 0.829073,
+    "sortino": 1.072164,
+    "max_drawdown": -0.186055,
+    "calmar": 0.67567,
+    "alpha_annual": -0.0,
+    "beta": 1.0,
+    "information_ratio": null,
+    "turnover_per_year": 0.0,
+    "exposure": 1.0,
+    "days": 1509,
+    "bench_total_return": 1.032127,
+    "trades": 0,
+    "by_regime": {
+     "bull": {
+      "days": 934,
+      "ann_return": 0.316587,
+      "bench_ann_return": 0.316587,
+      "sharpe": 2.867858
+     },
+     "neutral": {
+      "days": 405,
+      "ann_return": -0.227559,
+      "bench_ann_return": -0.227559,
+      "sharpe": -1.382635
+     },
+     "bear": {
+      "days": 75,
+      "ann_return": -0.372972,
+      "bench_ann_return": -0.372972,
+      "sharpe": -1.589974
+     },
+     "stress": {
+      "days": 95,
+      "ann_return": 0.231801,
+      "bench_ann_return": 0.231801,
+      "sharpe": 0.683467
+     }
+    },
+    "ci90": {
+     "cagr": [
+      0.051578,
+      0.220324
+     ],
+     "sharpe": [
+      0.438468,
+      1.767107
+     ]
+    }
+   }
+  },
+  "2016-2019 (validation)": {
+   "v1": {
+    "cagr": 0.041573,
+    "total_return": 0.17638,
+    "sharpe": 0.530001,
+    "sortino": 0.599052,
+    "max_drawdown": -0.150656,
+    "calmar": 0.275943,
+    "alpha_annual": -0.003853,
+    "beta": 0.329472,
+    "information_ratio": -0.905915,
+    "turnover_per_year": 17.146456,
+    "exposure": 0.466611,
+    "days": 1005,
+    "bench_total_return": 0.731155,
+    "trades": 471,
+    "win_rate": 0.460722,
+    "expectancy_R": -0.081605,
+    "avg_gain_pct": 6.394201,
+    "avg_loss_pct": -4.419728,
+    "profit_factor": 0.890638,
+    "avg_bars": 14.227176,
+    "exits": {
+     "time": 160,
+     "stop": 154,
+     "target": 69,
+     "gap": 48,
+     "regime": 40
+    },
+    "by_regime": {
+     "bull": {
+      "days": 678,
+      "ann_return": 0.145913,
+      "bench_ann_return": 0.27203,
+      "sharpe": 1.724423
+     },
+     "neutral": {
+      "days": 177,
+      "ann_return": -0.29599,
+      "bench_ann_return": -0.266863,
+      "sharpe": -2.80126
+     },
+     "bear": {
+      "days": 60,
+      "ann_return": 0.037466,
+      "bench_ann_return": 0.345164,
+      "sharpe": 2.089017
+     },
+     "stress": {
+      "days": 90,
+      "ann_return": -0.048222,
+      "bench_ann_return": -0.125055,
+      "sharpe": -2.087961
+     }
+    },
+    "ci90": {
+     "cagr": [
+      -0.03004,
+      0.107185
+     ],
+     "sharpe": [
+      -0.25846,
+      1.516931
+     ]
+    }
+   },
+   "quant": {
+    "cagr": 0.067456,
+    "total_return": 0.297365,
+    "sharpe": 0.720631,
+    "sortino": 0.787331,
+    "max_drawdown": -0.123883,
+    "calmar": 0.544514,
+    "alpha_annual": 0.011158,
+    "beta": 0.403451,
+    "information_ratio": -0.67512,
+    "turnover_per_year": 18.386338,
+    "exposure": 0.546004,
+    "days": 1005,
+    "bench_total_return": 0.731155,
+    "trades": 438,
+    "win_rate": 0.481735,
+    "expectancy_R": 0.121812,
+    "avg_gain_pct": 5.70963,
+    "avg_loss_pct": -3.565942,
+    "profit_factor": 1.231898,
+    "avg_bars": 15.577626,
+    "exits": {
+     "time": 151,
+     "stop": 143,
+     "target": 67,
+     "regime": 46,
+     "gap": 31
+    },
+    "by_regime": {
+     "bull": {
+      "days": 678,
+      "ann_return": 0.200123,
+      "bench_ann_return": 0.27203,
+      "sharpe": 2.154732
+     },
+     "neutral": {
+      "days": 177,
+      "ann_return": -0.311019,
+      "bench_ann_return": -0.266863,
+      "sharpe": -2.241315
+     },
+     "bear": {
+      "days": 60,
+      "ann_return": 0.004868,
+      "bench_ann_return": 0.345164,
+      "sharpe": 0.267385
+     },
+     "stress": {
+      "days": 90,
+      "ann_return": -0.117148,
+      "bench_ann_return": -0.125055,
+      "sharpe": -4.103861
+     }
+    },
+    "ci90": {
+     "cagr": [
+      -0.003863,
+      0.142608
+     ],
+     "sharpe": [
+      0.013574,
+      1.790419
+     ]
+    }
+   },
+   "adaptive": {
+    "cagr": 0.05697,
+    "total_return": 0.24728,
+    "sharpe": 0.623901,
+    "sortino": 0.69041,
+    "max_drawdown": -0.155135,
+    "calmar": 0.367229,
+    "alpha_annual": 0.004602,
+    "beta": 0.380086,
+    "information_ratio": -0.746318,
+    "turnover_per_year": 17.305807,
+    "exposure": 0.525974,
+    "days": 1005,
+    "bench_total_return": 0.731155,
+    "trades": 429,
+    "win_rate": 0.501166,
+    "expectancy_R": -0.2305,
+    "avg_gain_pct": 6.47384,
+    "avg_loss_pct": -4.126737,
+    "profit_factor": 0.740986,
+    "avg_bars": 15.748252,
+    "exits": {
+     "time": 157,
+     "stop": 132,
+     "target": 74,
+     "regime": 35,
+     "gap": 31
+    },
+    "by_regime": {
+     "bull": {
+      "days": 678,
+      "ann_return": 0.168959,
+      "bench_ann_return": 0.27203,
+      "sharpe": 1.740095
+     },
+     "neutral": {
+      "days": 177,
+      "ann_return": -0.265432,
+      "bench_ann_return": -0.266863,
+      "sharpe": -2.124371
+     },
+     "bear": {
+      "days": 60,
+      "ann_return": 0.02396,
+      "bench_ann_return": 0.345164,
+      "sharpe": 2.527614
+     },
+     "stress": {
+      "days": 90,
+      "ann_return": -0.096034,
+      "bench_ann_return": -0.125055,
+      "sharpe": -3.855486
+     }
+    },
+    "ci90": {
+     "cagr": [
+      -0.028889,
+      0.154139
+     ],
+     "sharpe": [
+      -0.18615,
+      1.639741
+     ]
+    }
+   },
+   "ml": {
+    "cagr": 0.110823,
+    "total_return": 0.520671,
+    "sharpe": 1.149514,
+    "sortino": 1.346463,
+    "max_drawdown": -0.125522,
+    "calmar": 0.882896,
+    "alpha_annual": 0.049322,
+    "beta": 0.41363,
+    "information_ratio": -0.331418,
+    "turnover_per_year": 14.55103,
+    "exposure": 0.2606,
+    "days": 1005,
+    "bench_total_return": 0.731155,
+    "trades": 600,
+    "win_rate": 0.531667,
+    "expectancy_R": 0.194205,
+    "avg_gain_pct": 5.905092,
+    "avg_loss_pct": -4.311541,
+    "profit_factor": 1.406466,
+    "avg_bars": 11.438333,
+    "exits": {
+     "target": 183,
+     "time": 176,
+     "stop": 164,
+     "gap": 44,
+     "regime": 33
+    },
+    "by_regime": {
+     "bull": {
+      "days": 678,
+      "ann_return": 0.224793,
+      "bench_ann_return": 0.27203,
+      "sharpe": 2.472208
+     },
+     "neutral": {
+      "days": 177,
+      "ann_return": -0.149227,
+      "bench_ann_return": -0.266863,
+      "sharpe": -1.125179
+     },
+     "bear": {
+      "days": 60,
+      "ann_return": 0.007953,
+      "bench_ann_return": 0.345164,
+      "sharpe": 0.657456
+     },
+     "stress": {
+      "days": 90,
+      "ann_return": -0.180493,
+      "bench_ann_return": -0.125055,
+      "sharpe": -2.993906
+     }
+    },
+    "ci90": {
+     "cagr": [
+      0.028989,
+      0.201569
+     ],
+     "sharpe": [
+      0.300101,
+      2.264728
+     ]
+    }
+   },
+   "random": {
+    "cagr": 0.046737,
+    "total_return": 0.199816,
+    "sharpe": 0.508231,
+    "sortino": 0.665904,
+    "max_drawdown": -0.169352,
+    "calmar": 0.275977,
+    "alpha_annual": 0.000801,
+    "beta": 0.340785,
+    "information_ratio": -0.775001,
+    "turnover_per_year": 22.336384,
+    "exposure": 0.529011,
+    "days": 1005,
+    "bench_total_return": 0.731155,
+    "trades": 554,
+    "win_rate": 0.476534,
+    "expectancy_R": -0.035197,
+    "avg_gain_pct": 4.371035,
+    "avg_loss_pct": -3.423989,
+    "profit_factor": 0.945019,
+    "avg_bars": 12.074007,
+    "exits": {
+     "stop": 176,
+     "time": 158,
+     "target": 135,
+     "gap": 46,
+     "regime": 39
+    },
+    "by_regime": {
+     "bull": {
+      "days": 678,
+      "ann_return": 0.173066,
+      "bench_ann_return": 0.27203,
+      "sharpe": 1.638093
+     },
+     "neutral": {
+      "days": 177,
+      "ann_return": -0.350705,
+      "bench_ann_return": -0.266863,
+      "sharpe": -3.195122
+     },
+     "bear": {
+      "days": 60,
+      "ann_return": 0.038915,
+      "bench_ann_return": 0.345164,
+      "sharpe": 2.262667
+     },
+     "stress": {
+      "days": 90,
+      "ann_return": -0.075722,
+      "bench_ann_return": -0.125055,
+      "sharpe": -2.678238
+     }
+    },
+    "ci90": {
+     "cagr": [
+      -0.030311,
+      0.149764
+     ],
+     "sharpe": [
+      -0.282343,
+      1.327685
+     ]
+    }
+   },
+   "SPY": {
+    "cagr": 0.147524,
+    "total_return": 0.731155,
+    "sharpe": 1.13475,
+    "sortino": 1.350431,
+    "max_drawdown": -0.193489,
+    "calmar": 0.762442,
+    "alpha_annual": -0.0,
+    "beta": 1.0,
+    "information_ratio": null,
+    "turnover_per_year": 0.0,
+    "exposure": 1.0,
+    "days": 1005,
+    "bench_total_return": 0.731155,
+    "trades": 0,
+    "by_regime": {
+     "bull": {
+      "days": 678,
+      "ann_return": 0.27203,
+      "bench_ann_return": 0.27203,
+      "sharpe": 3.392508
+     },
+     "neutral": {
+      "days": 177,
+      "ann_return": -0.266863,
+      "bench_ann_return": -0.266863,
+      "sharpe": -1.526181
+     },
+     "bear": {
+      "days": 60,
+      "ann_return": 0.345164,
+      "bench_ann_return": 0.345164,
+      "sharpe": 1.890743
+     },
+     "stress": {
+      "days": 90,
+      "ann_return": -0.125055,
+      "bench_ann_return": -0.125055,
+      "sharpe": -0.543891
+     }
+    },
+    "ci90": {
+     "cagr": [
+      0.064421,
+      0.236538
+     ],
+     "sharpe": [
+      0.546086,
+      2.483645
+     ]
+    }
+   }
+  },
+  "2020-2021 (test)": {
+   "v1": {
+    "cagr": 0.022978,
+    "total_return": 0.046483,
+    "sharpe": 0.257087,
+    "sortino": 0.282645,
+    "max_drawdown": -0.13283,
+    "calmar": 0.172985,
+    "alpha_annual": -0.011159,
+    "beta": 0.169395,
+    "information_ratio": -0.888116,
+    "turnover_per_year": 17.146456,
+    "exposure": 0.466611,
+    "days": 504,
+    "bench_total_return": 0.509155,
+    "trades": 250,
+    "win_rate": 0.392,
+    "expectancy_R": -0.086294,
+    "avg_gain_pct": 10.166619,
+    "avg_loss_pct": -6.620717,
+    "profit_factor": 0.871894,
+    "avg_bars": 13.672,
+    "exits": {
+     "stop": 94,
+     "time": 65,
+     "target": 40,
+     "gap": 27,
+     "regime": 24
+    },
+    "by_regime": {
+     "bull": {
+      "days": 378,
+      "ann_return": 0.211918,
+      "bench_ann_return": 0.479182,
+      "sharpe": 1.962169
+     },
+     "neutral": {
+      "days": 49,
+      "ann_return": -0.932387,
+      "bench_ann_return": -1.164056,
+      "sharpe": -6.31149
+     },
+     "stress": {
+      "days": 72,
+      "ann_return": -0.273684,
+      "bench_ann_return": -0.078134,
+      "sharpe": -2.603774
+     }
+    },
+    "ci90": {
+     "cagr": [
+      -0.03555,
+      0.115887
+     ],
+     "sharpe": [
+      -0.377585,
+      2.046552
+     ]
+    }
+   },
+   "quant": {
+    "cagr": 0.057729,
+    "total_return": 0.118791,
+    "sharpe": 0.545178,
+    "sortino": 0.587168,
+    "max_drawdown": -0.147977,
+    "calmar": 0.390122,
+    "alpha_annual": 0.020017,
+    "beta": 0.179551,
+    "information_ratio": -0.751744,
+    "turnover_per_year": 18.386338,
+    "exposure": 0.546004,
+    "days": 504,
+    "bench_total_return": 0.509155,
+    "trades": 248,
+    "win_rate": 0.451613,
+    "expectancy_R": 0.05111,
+    "avg_gain_pct": 9.149612,
+    "avg_loss_pct": -5.283144,
+    "profit_factor": 1.088728,
+    "avg_bars": 13.495968,
+    "exits": {
+     "stop": 83,
+     "time": 65,
+     "target": 54,
+     "gap": 23,
+     "regime": 23
+    },
+    "by_regime": {
+     "bull": {
+      "days": 378,
+      "ann_return": 0.2689,
+      "bench_ann_return": 0.479182,
+      "sharpe": 2.464743
+     },
+     "neutral": {
+      "days": 49,
+      "ann_return": -1.067213,
+      "bench_ann_return": -1.164056,
+      "sharpe": -6.715418
+     },
+     "stress": {
+      "days": 72,
+      "ann_return": -0.245917,
+      "bench_ann_return": -0.078134,
+      "sharpe": -2.604814
+     }
+    },
+    "ci90": {
+     "cagr": [
+      -0.049812,
+      0.18807
+     ],
+     "sharpe": [
+      -0.277452,
+      1.851579
+     ]
+    }
+   },
+   "adaptive": {
+    "cagr": 0.038539,
+    "total_return": 0.078564,
+    "sharpe": 0.380237,
+    "sortino": 0.431546,
+    "max_drawdown": -0.158354,
+    "calmar": 0.243374,
+    "alpha_annual": 0.002016,
+    "beta": 0.179478,
+    "information_ratio": -0.824365,
+    "turnover_per_year": 17.305807,
+    "exposure": 0.525974,
+    "days": 504,
+    "bench_total_return": 0.509155,
+    "trades": 242,
+    "win_rate": 0.413223,
+    "expectancy_R": 0.101759,
+    "avg_gain_pct": 10.891583,
+    "avg_loss_pct": -6.362936,
+    "profit_factor": 1.175841,
+    "avg_bars": 13.743802,
+    "exits": {
+     "stop": 80,
+     "time": 62,
+     "target": 53,
+     "regime": 24,
+     "gap": 23
+    },
+    "by_regime": {
+     "bull": {
+      "days": 378,
+      "ann_return": 0.253484,
+      "bench_ann_return": 0.479182,
+      "sharpe": 2.206281
+     },
+     "neutral": {
+      "days": 49,
+      "ann_return": -1.089568,
+      "bench_ann_return": -1.164056,
+      "sharpe": -7.669044
+     },
+     "stress": {
+      "days": 72,
+      "ann_return": -0.275893,
+      "bench_ann_return": -0.078134,
+      "sharpe": -2.813505
+     }
+    },
+    "ci90": {
+     "cagr": [
+      -0.05766,
+      0.162401
+     ],
+     "sharpe": [
+      -0.521796,
+      1.734081
+     ]
+    }
+   },
+   "ml": {
+    "cagr": 0.008723,
+    "total_return": 0.017523,
+    "sharpe": 0.134022,
+    "sortino": 0.149228,
+    "max_drawdown": -0.143751,
+    "calmar": 0.060685,
+    "alpha_annual": -0.026501,
+    "beta": 0.173401,
+    "information_ratio": -0.959768,
+    "turnover_per_year": 14.55103,
+    "exposure": 0.2606,
+    "days": 504,
+    "bench_total_return": 0.509155,
+    "trades": 427,
+    "win_rate": 0.482436,
+    "expectancy_R": -0.00611,
+    "avg_gain_pct": 7.999586,
+    "avg_loss_pct": -6.659719,
+    "profit_factor": 0.990908,
+    "avg_bars": 7.779859,
+    "exits": {
+     "target": 140,
+     "stop": 126,
+     "time": 87,
+     "gap": 52,
+     "regime": 22
+    },
+    "by_regime": {
+     "bull": {
+      "days": 378,
+      "ann_return": 0.238817,
+      "bench_ann_return": 0.479182,
+      "sharpe": 2.355563
+     },
+     "neutral": {
+      "days": 49,
+      "ann_return": -1.408687,
+      "bench_ann_return": -1.164056,
+      "sharpe": -7.943123
+     },
+     "stress": {
+      "days": 72,
+      "ann_return": -0.191471,
+      "bench_ann_return": -0.078134,
+      "sharpe": -3.098018
+     }
+    },
+    "ci90": {
+     "cagr": [
+      -0.061334,
+      0.140762
+     ],
+     "sharpe": [
+      -0.730768,
+      1.352114
+     ]
+    }
+   },
+   "random": {
+    "cagr": 0.144498,
+    "total_return": 0.309875,
+    "sharpe": 1.438038,
+    "sortino": 1.697206,
+    "max_drawdown": -0.07763,
+    "calmar": 1.861358,
+    "alpha_annual": 0.101189,
+    "beta": 0.161772,
+    "information_ratio": -0.428129,
+    "turnover_per_year": 22.336384,
+    "exposure": 0.529011,
+    "days": 504,
+    "bench_total_return": 0.509155,
+    "trades": 297,
+    "win_rate": 0.531987,
+    "expectancy_R": 0.091053,
+    "avg_gain_pct": 5.87421,
+    "avg_loss_pct": -4.298243,
+    "profit_factor": 1.175488,
+    "avg_bars": 11.161616,
+    "exits": {
+     "target": 87,
+     "time": 87,
+     "stop": 76,
+     "gap": 26,
+     "regime": 21
+    },
+    "by_regime": {
+     "bull": {
+      "days": 378,
+      "ann_return": 0.303004,
+      "bench_ann_return": 0.479182,
+      "sharpe": 3.185111
+     },
+     "neutral": {
+      "days": 49,
+      "ann_return": -0.633371,
+      "bench_ann_return": -1.164056,
+      "sharpe": -4.633169
+     },
+     "stress": {
+      "days": 72,
+      "ann_return": -0.18166,
+      "bench_ann_return": -0.078134,
+      "sharpe": -3.039202
+     }
+    },
+    "ci90": {
+     "cagr": [
+      0.045198,
+      0.245809
+     ],
+     "sharpe": [
+      0.493322,
+      2.54813
+     ]
+    }
+   },
+   "SPY": {
+    "cagr": 0.228477,
+    "total_return": 0.509155,
+    "sharpe": 0.939639,
+    "sortino": 1.039856,
+    "max_drawdown": -0.337173,
+    "calmar": 0.677625,
+    "alpha_annual": -0.0,
+    "beta": 1.0,
+    "information_ratio": null,
+    "turnover_per_year": 0.0,
+    "exposure": 1.0,
+    "days": 504,
+    "bench_total_return": 0.509155,
+    "trades": 0,
+    "by_regime": {
+     "bull": {
+      "days": 378,
+      "ann_return": 0.479182,
+      "bench_ann_return": 0.479182,
+      "sharpe": 3.707211
+     },
+     "neutral": {
+      "days": 49,
+      "ann_return": -1.164056,
+      "bench_ann_return": -1.164056,
+      "sharpe": -5.520506
+     },
+     "stress": {
+      "days": 72,
+      "ann_return": -0.078134,
+      "bench_ann_return": -0.078134,
+      "sharpe": -0.136453
+     }
+    },
+    "ci90": {
+     "cagr": [
+      0.041727,
+      0.489934
+     ],
+     "sharpe": [
+      0.288274,
+      3.166024
+     ]
+    }
+   }
+  },
+  "2022 (test)": {
+   "v1": {
+    "cagr": -0.111127,
+    "total_return": -0.110296,
+    "sharpe": -1.807914,
+    "sortino": -1.631507,
+    "max_drawdown": -0.11169,
+    "calmar": -0.994961,
+    "alpha_annual": -0.100736,
+    "beta": 0.08396,
+    "information_ratio": 0.272468,
+    "turnover_per_year": 17.146456,
+    "exposure": 0.466611,
+    "days": 250,
+    "bench_total_return": -0.186464,
+    "trades": 98,
+    "win_rate": 0.295918,
+    "expectancy_R": -0.377079,
+    "avg_gain_pct": 5.73069,
+    "avg_loss_pct": -4.226776,
+    "profit_factor": 0.44236,
+    "avg_bars": 7.938776,
+    "exits": {
+     "stop": 37,
+     "regime": 37,
+     "gap": 13,
+     "time": 6,
+     "target": 5
+    },
+    "by_regime": {
+     "neutral": {
+      "days": 87,
+      "ann_return": -0.181926,
+      "bench_ann_return": -0.481263,
+      "sharpe": -1.845645
+     },
+     "bear": {
+      "days": 113,
+      "ann_return": -0.005243,
+      "bench_ann_return": -0.302934,
+      "sharpe": -0.235076
+     },
+     "stress": {
+      "days": 38,
+      "ann_return": 0.0,
+      "bench_ann_return": 0.953051,
+      "sharpe": null
+     }
+    },
+    "ci90": {
+     "cagr": [
+      -0.161767,
+      0.040532
+     ],
+     "sharpe": [
+      -2.010293,
+      1.418475
+     ]
+    }
+   },
+   "quant": {
+    "cagr": -0.081242,
+    "total_return": -0.080624,
+    "sharpe": -1.340651,
+    "sortino": -1.30053,
+    "max_drawdown": -0.084386,
+    "calmar": -0.962745,
+    "alpha_annual": -0.068813,
+    "beta": 0.078423,
+    "information_ratio": 0.413768,
+    "turnover_per_year": 18.386338,
+    "exposure": 0.546004,
+    "days": 250,
+    "bench_total_return": -0.186464,
+    "trades": 82,
+    "win_rate": 0.329268,
+    "expectancy_R": -0.247086,
+    "avg_gain_pct": 3.615894,
+    "avg_loss_pct": -3.544107,
+    "profit_factor": 0.520805,
+    "avg_bars": 9.939024,
+    "exits": {
+     "regime": 36,
+     "stop": 26,
+     "time": 11,
+     "target": 5,
+     "gap": 4
+    },
+    "by_regime": {
+     "neutral": {
+      "days": 87,
+      "ann_return": -0.180186,
+      "bench_ann_return": -0.481263,
+      "sharpe": -1.885729
+     },
+     "bear": {
+      "days": 113,
+      "ann_return": -0.012386,
+      "bench_ann_return": -0.302934,
+      "sharpe": -0.541912
+     },
+     "stress": {
+      "days": 38,
+      "ann_return": 0.0,
+      "bench_ann_return": 0.953051,
+      "sharpe": null
+     }
+    },
+    "ci90": {
+     "cagr": [
+      -0.116312,
+      0.016089
+     ],
+     "sharpe": [
+      -2.29416,
+      0.876031
+     ]
+    }
+   },
+   "adaptive": {
+    "cagr": -0.095379,
+    "total_return": -0.094659,
+    "sharpe": -2.2842,
+    "sortino": -2.227416,
+    "max_drawdown": -0.099201,
+    "calmar": -0.961467,
+    "alpha_annual": -0.090528,
+    "beta": 0.048998,
+    "information_ratio": 0.337789,
+    "turnover_per_year": 17.305807,
+    "exposure": 0.525974,
+    "days": 250,
+    "bench_total_return": -0.186464,
+    "trades": 84,
+    "win_rate": 0.333333,
+    "expectancy_R": -0.295815,
+    "avg_gain_pct": 4.136622,
+    "avg_loss_pct": -3.493655,
+    "profit_factor": 0.463439,
+    "avg_bars": 9.952381,
+    "exits": {
+     "regime": 37,
+     "stop": 20,
+     "time": 13,
+     "target": 8,
+     "gap": 6
+    },
+    "by_regime": {
+     "neutral": {
+      "days": 87,
+      "ann_return": -0.1851,
+      "bench_ann_return": -0.481263,
+      "sharpe": -2.783325
+     },
+     "bear": {
+      "days": 113,
+      "ann_return": -0.007507,
+      "bench_ann_return": -0.302934,
+      "sharpe": -0.608711
+     },
+     "stress": {
+      "days": 38,
+      "ann_return": 0.0,
+      "bench_ann_return": 0.953051,
+      "sharpe": null
+     }
+    },
+    "ci90": {
+     "cagr": [
+      -0.139151,
+      0.017475
+     ],
+     "sharpe": [
+      -2.704594,
+      0.98448
+     ]
+    }
+   },
+   "ml": {
+    "cagr": -0.073651,
+    "total_return": -0.073089,
+    "sharpe": -1.278754,
+    "sortino": -1.162841,
+    "max_drawdown": -0.081096,
+    "calmar": -0.908197,
+    "alpha_annual": -0.058106,
+    "beta": 0.093422,
+    "information_ratio": 0.457822,
+    "turnover_per_year": 14.55103,
+    "exposure": 0.2606,
+    "days": 250,
+    "bench_total_return": -0.186464,
+    "trades": 112,
+    "win_rate": 0.375,
+    "expectancy_R": -0.187964,
+    "avg_gain_pct": 4.706834,
+    "avg_loss_pct": -5.478377,
+    "profit_factor": 0.622433,
+    "avg_bars": 6.9375,
+    "exits": {
+     "regime": 36,
+     "stop": 32,
+     "target": 21,
+     "time": 13,
+     "gap": 10
+    },
+    "by_regime": {
+     "neutral": {
+      "days": 87,
+      "ann_return": -0.201017,
+      "bench_ann_return": -0.481263,
+      "sharpe": -2.122084
+     },
+     "bear": {
+      "days": 113,
+      "ann_return": -0.021002,
+      "bench_ann_return": -0.302934,
+      "sharpe": -1.583941
+     },
+     "stress": {
+      "days": 38,
+      "ann_return": 0.0,
+      "bench_ann_return": 0.953051,
+      "sharpe": null
+     }
+    },
+    "ci90": {
+     "cagr": [
+      -0.104301,
+      0.029049
+     ],
+     "sharpe": [
+      -2.648297,
+      0.919534
+     ]
+    }
+   },
+   "random": {
+    "cagr": -0.128193,
+    "total_return": -0.127243,
+    "sharpe": -2.112333,
+    "sortino": -2.058359,
+    "max_drawdown": -0.129689,
+    "calmar": -0.988459,
+    "alpha_annual": -0.116512,
+    "beta": 0.10414,
+    "information_ratio": 0.192799,
+    "turnover_per_year": 22.336384,
+    "exposure": 0.529011,
+    "days": 250,
+    "bench_total_return": -0.186464,
+    "trades": 115,
+    "win_rate": 0.321739,
+    "expectancy_R": -0.365244,
+    "avg_gain_pct": 3.810768,
+    "avg_loss_pct": -4.038232,
+    "profit_factor": 0.40815,
+    "avg_bars": 6.773913,
+    "exits": {
+     "stop": 44,
+     "regime": 37,
+     "target": 13,
+     "gap": 11,
+     "time": 10
+    },
+    "by_regime": {
+     "neutral": {
+      "days": 87,
+      "ann_return": -0.348908,
+      "bench_ann_return": -0.481263,
+      "sharpe": -3.504021
+     },
+     "bear": {
+      "days": 113,
+      "ann_return": -0.012784,
+      "bench_ann_return": -0.302934,
+      "sharpe": -0.458238
+     },
+     "stress": {
+      "days": 38,
+      "ann_return": 0.0,
+      "bench_ann_return": 0.953051,
+      "sharpe": null
+     }
+    },
+    "ci90": {
+     "cagr": [
+      -0.168738,
+      0.00083
+     ],
+     "sharpe": [
+      -2.581741,
+      0.043502
+     ]
+    }
+   },
+   "SPY": {
+    "cagr": -0.187806,
+    "total_return": -0.186464,
+    "sharpe": -0.735293,
+    "sortino": -1.183216,
+    "max_drawdown": -0.244964,
+    "calmar": -0.766668,
+    "alpha_annual": 0.0,
+    "beta": 1.0,
+    "information_ratio": null,
+    "turnover_per_year": 0.0,
+    "exposure": 1.0,
+    "days": 250,
+    "bench_total_return": -0.186464,
+    "trades": 0,
+    "by_regime": {
+     "neutral": {
+      "days": 87,
+      "ann_return": -0.481263,
+      "bench_ann_return": -0.481263,
+      "sharpe": -2.224141
+     },
+     "bear": {
+      "days": 113,
+      "ann_return": -0.302934,
+      "bench_ann_return": -0.302934,
+      "sharpe": -1.277927
+     },
+     "stress": {
+      "days": 38,
+      "ann_return": 0.953051,
+      "bench_ann_return": 0.953051,
+      "sharpe": 2.916198
+     }
+    },
+    "ci90": {
+     "cagr": [
+      -0.310423,
+      0.046592
+     ],
+     "sharpe": [
+      -1.801274,
+      0.306517
+     ]
+    }
+   }
+  },
+  "2023-2024 (test)": {
+   "v1": {
+    "cagr": 0.136447,
+    "total_return": 0.289546,
+    "sharpe": 1.21226,
+    "sortino": 1.545624,
+    "max_drawdown": -0.100574,
+    "calmar": 1.356685,
+    "alpha_annual": -0.002069,
+    "beta": 0.569209,
+    "information_ratio": -1.053314,
+    "turnover_per_year": 17.146456,
+    "exposure": 0.466611,
+    "days": 501,
+    "bench_total_return": 0.582427,
+    "trades": 272,
+    "win_rate": 0.433824,
+    "expectancy_R": -8.584356,
+    "avg_gain_pct": 10.742897,
+    "avg_loss_pct": -5.196647,
+    "profit_factor": 0.090035,
+    "avg_bars": 14.525735,
+    "exits": {
+     "time": 93,
+     "stop": 91,
+     "target": 49,
+     "gap": 31,
+     "regime": 8
+    },
+    "by_regime": {
+     "bull": {
+      "days": 342,
+      "ann_return": 0.263097,
+      "bench_ann_return": 0.416687,
+      "sharpe": 2.553493
+     },
+     "neutral": {
+      "days": 154,
+      "ann_return": -0.11625,
+      "bench_ann_return": -0.126654,
+      "sharpe": -0.939055
+     }
+    },
+    "ci90": {
+     "cagr": [
+      0.061831,
+      0.271299
+     ],
+     "sharpe": [
+      0.7135,
+      3.394786
+     ]
+    }
+   },
+   "quant": {
+    "cagr": 0.104212,
+    "total_return": 0.217845,
+    "sharpe": 1.0968,
+    "sortino": 1.425309,
+    "max_drawdown": -0.065687,
+    "calmar": 1.586493,
+    "alpha_annual": 0.016589,
+    "beta": 0.363876,
+    "information_ratio": -1.171053,
+    "turnover_per_year": 18.386338,
+    "exposure": 0.546004,
+    "days": 501,
+    "bench_total_return": 0.582427,
+    "trades": 246,
+    "win_rate": 0.5,
+    "expectancy_R": 0.056429,
+    "avg_gain_pct": 7.262905,
+    "avg_loss_pct": -4.397827,
+    "profit_factor": 1.086433,
+    "avg_bars": 15.430894,
+    "exits": {
+     "stop": 85,
+     "time": 82,
+     "target": 52,
+     "gap": 19,
+     "regime": 8
+    },
+    "by_regime": {
+     "bull": {
+      "days": 342,
+      "ann_return": 0.232174,
+      "bench_ann_return": 0.416687,
+      "sharpe": 2.452069
+     },
+     "neutral": {
+      "days": 154,
+      "ann_return": -0.179751,
+      "bench_ann_return": -0.126654,
+      "sharpe": -1.925417
+     }
+    },
+    "ci90": {
+     "cagr": [
+      0.022279,
+      0.259754
+     ],
+     "sharpe": [
+      0.334626,
+      2.469515
+     ]
+    }
+   },
+   "adaptive": {
+    "cagr": 0.094811,
+    "total_return": 0.19732,
+    "sharpe": 0.942437,
+    "sortino": 1.279467,
+    "max_drawdown": -0.086765,
+    "calmar": 1.092738,
+    "alpha_annual": -0.004745,
+    "beta": 0.42021,
+    "information_ratio": -1.260437,
+    "turnover_per_year": 17.305807,
+    "exposure": 0.525974,
+    "days": 501,
+    "bench_total_return": 0.582427,
+    "trades": 237,
+    "win_rate": 0.481013,
+    "expectancy_R": -0.000252,
+    "avg_gain_pct": 8.574152,
+    "avg_loss_pct": -5.117544,
+    "profit_factor": 0.999625,
+    "avg_bars": 16.232068,
+    "exits": {
+     "stop": 85,
+     "time": 83,
+     "target": 46,
+     "gap": 15,
+     "regime": 8
+    },
+    "by_regime": {
+     "bull": {
+      "days": 342,
+      "ann_return": 0.227299,
+      "bench_ann_return": 0.416687,
+      "sharpe": 2.129375
+     },
+     "neutral": {
+      "days": 154,
+      "ann_return": -0.185955,
+      "bench_ann_return": -0.126654,
+      "sharpe": -2.099312
+     }
+    },
+    "ci90": {
+     "cagr": [
+      0.005376,
+      0.221224
+     ],
+     "sharpe": [
+      0.122464,
+      1.890695
+     ]
+    }
+   },
+   "ml": {
+    "cagr": 0.011898,
+    "total_return": 0.023793,
+    "sharpe": 0.175405,
+    "sortino": 0.229869,
+    "max_drawdown": -0.09326,
+    "calmar": 0.12758,
+    "alpha_annual": -0.098635,
+    "beta": 0.479253,
+    "information_ratio": -2.354223,
+    "turnover_per_year": 14.55103,
+    "exposure": 0.2606,
+    "days": 501,
+    "bench_total_return": 0.582427,
+    "trades": 403,
+    "win_rate": 0.486352,
+    "expectancy_R": -0.017247,
+    "avg_gain_pct": 7.648783,
+    "avg_loss_pct": -5.917389,
+    "profit_factor": 0.967514,
+    "avg_bars": 9.60794,
+    "exits": {
+     "target": 119,
+     "time": 118,
+     "stop": 115,
+     "gap": 43,
+     "regime": 8
+    },
+    "by_regime": {
+     "bull": {
+      "days": 342,
+      "ann_return": 0.144834,
+      "bench_ann_return": 0.416687,
+      "sharpe": 1.601661
+     },
+     "neutral": {
+      "days": 154,
+      "ann_return": -0.260192,
+      "bench_ann_return": -0.126654,
+      "sharpe": -2.86627
+     }
+    },
+    "ci90": {
+     "cagr": [
+      -0.062817,
+      0.116393
+     ],
+     "sharpe": [
+      -0.911283,
+      1.411567
+     ]
+    }
+   },
+   "random": {
+    "cagr": 0.010316,
+    "total_return": 0.020615,
+    "sharpe": 0.181751,
+    "sortino": 0.244898,
+    "max_drawdown": -0.085189,
+    "calmar": 0.121101,
+    "alpha_annual": -0.075518,
+    "beta": 0.36888,
+    "information_ratio": -2.361584,
+    "turnover_per_year": 22.336384,
+    "exposure": 0.529011,
+    "days": 501,
+    "bench_total_return": 0.582427,
+    "trades": 323,
+    "win_rate": 0.479876,
+    "expectancy_R": 0.100459,
+    "avg_gain_pct": 5.753932,
+    "avg_loss_pct": -4.244635,
+    "profit_factor": 1.200391,
+    "avg_bars": 11.71517,
+    "exits": {
+     "stop": 105,
+     "time": 102,
+     "target": 80,
+     "gap": 28,
+     "regime": 8
+    },
+    "by_regime": {
+     "bull": {
+      "days": 342,
+      "ann_return": 0.138287,
+      "bench_ann_return": 0.416687,
+      "sharpe": 2.09166
+     },
+     "neutral": {
+      "days": 154,
+      "ann_return": -0.263769,
+      "bench_ann_return": -0.126654,
+      "sharpe": -3.486197
+     }
+    },
+    "ci90": {
+     "cagr": [
+      -0.049351,
+      0.088588
+     ],
+     "sharpe": [
+      -0.608454,
+      1.154101
+     ]
+    }
+   },
+   "SPY": {
+    "cagr": 0.259675,
+    "total_return": 0.582427,
+    "sharpe": 1.865756,
+    "sortino": 2.727127,
+    "max_drawdown": -0.099743,
+    "calmar": 2.603438,
+    "alpha_annual": 0.0,
+    "beta": 1.0,
+    "information_ratio": null,
+    "turnover_per_year": 0.0,
+    "exposure": 1.0,
+    "days": 501,
+    "bench_total_return": 0.582427,
+    "trades": 0,
+    "by_regime": {
+     "bull": {
+      "days": 342,
+      "ann_return": 0.416687,
+      "bench_ann_return": 0.416687,
+      "sharpe": 3.573211
+     },
+     "neutral": {
+      "days": 154,
+      "ann_return": -0.126654,
+      "bench_ann_return": -0.126654,
+      "sharpe": -0.861395
+     }
+    },
+    "ci90": {
+     "cagr": [
+      0.111449,
+      0.401462
+     ],
+     "sharpe": [
+      0.919233,
+      3.484474
+     ]
+    }
+   }
+  },
+  "2025-2026 (final test)": {
+   "v1": {
+    "cagr": 0.075986,
+    "total_return": 0.138725,
+    "sharpe": 0.827616,
+    "sortino": 1.147702,
+    "max_drawdown": -0.068164,
+    "calmar": 1.114753,
+    "alpha_annual": 0.039155,
+    "beta": 0.211781,
+    "information_ratio": -0.654596,
+    "turnover_per_year": 17.146456,
+    "exposure": 0.466611,
+    "days": 447,
+    "bench_total_return": 0.346046,
+    "trades": 206,
+    "win_rate": 0.441748,
+    "expectancy_R": 0.124452,
+    "avg_gain_pct": 11.213118,
+    "avg_loss_pct": -6.874732,
+    "profit_factor": 1.235362,
+    "avg_bars": 14.485437,
+    "exits": {
+     "stop": 73,
+     "time": 58,
+     "target": 37,
+     "regime": 24,
+     "gap": 14
+    },
+    "by_regime": {
+     "bull": {
+      "days": 281,
+      "ann_return": 0.146784,
+      "bench_ann_return": 0.271979,
+      "sharpe": 1.447189
+     },
+     "neutral": {
+      "days": 112,
+      "ann_return": -0.043837,
+      "bench_ann_return": 0.093524,
+      "sharpe": -0.462894
+     },
+     "bear": {
+      "days": 31,
+      "ann_return": -0.052587,
+      "bench_ann_return": -0.623843,
+      "sharpe": -1.542015
+     },
+     "stress": {
+      "days": 23,
+      "ann_return": 0.0,
+      "bench_ann_return": 0.594518,
+      "sharpe": null
+     }
+    },
+    "ci90": {
+     "cagr": [
+      -0.019246,
+      0.202887
+     ],
+     "sharpe": [
+      -0.232084,
+      2.109616
+     ]
+    }
+   },
+   "quant": {
+    "cagr": 0.121264,
+    "total_return": 0.225102,
+    "sharpe": 1.215233,
+    "sortino": 1.805125,
+    "max_drawdown": -0.06896,
+    "calmar": 1.758465,
+    "alpha_annual": 0.089568,
+    "beta": 0.163521,
+    "information_ratio": -0.367471,
+    "turnover_per_year": 18.386338,
+    "exposure": 0.546004,
+    "days": 447,
+    "bench_total_return": 0.346046,
+    "trades": 188,
+    "win_rate": 0.515957,
+    "expectancy_R": 0.160931,
+    "avg_gain_pct": 9.100054,
+    "avg_loss_pct": -5.926414,
+    "profit_factor": 1.352393,
+    "avg_bars": 15.893617,
+    "exits": {
+     "time": 63,
+     "stop": 53,
+     "target": 34,
+     "regime": 23,
+     "gap": 15
+    },
+    "by_regime": {
+     "bull": {
+      "days": 281,
+      "ann_return": 0.11885,
+      "bench_ann_return": 0.271979,
+      "sharpe": 1.101929
+     },
+     "neutral": {
+      "days": 112,
+      "ann_return": 0.191737,
+      "bench_ann_return": 0.093524,
+      "sharpe": 2.021901
+     },
+     "bear": {
+      "days": 31,
+      "ann_return": -0.050022,
+      "bench_ann_return": -0.623843,
+      "sharpe": -1.471284
+     },
+     "stress": {
+      "days": 23,
+      "ann_return": 0.0,
+      "bench_ann_return": 0.594518,
+      "sharpe": null
+     }
+    },
+    "ci90": {
+     "cagr": [
+      0.005717,
+      0.199212
+     ],
+     "sharpe": [
+      0.116439,
+      1.65677
+     ]
+    }
+   },
+   "adaptive": {
+    "cagr": 0.040347,
+    "total_return": 0.072681,
+    "sharpe": 0.435933,
+    "sortino": 0.62765,
+    "max_drawdown": -0.090503,
+    "calmar": 0.445806,
+    "alpha_annual": 0.002848,
+    "beta": 0.231023,
+    "information_ratio": -0.849663,
+    "turnover_per_year": 17.305807,
+    "exposure": 0.525974,
+    "days": 447,
+    "bench_total_return": 0.346046,
+    "trades": 204,
+    "win_rate": 0.441176,
+    "expectancy_R": 0.074709,
+    "avg_gain_pct": 11.074648,
+    "avg_loss_pct": -7.096349,
+    "profit_factor": 1.153129,
+    "avg_bars": 14.436275,
+    "exits": {
+     "stop": 71,
+     "time": 56,
+     "target": 40,
+     "regime": 23,
+     "gap": 14
+    },
+    "by_regime": {
+     "bull": {
+      "days": 281,
+      "ann_return": 0.064504,
+      "bench_ann_return": 0.271979,
+      "sharpe": 0.584555
+     },
+     "neutral": {
+      "days": 112,
+      "ann_return": 0.027575,
+      "bench_ann_return": 0.093524,
+      "sharpe": 0.256849
+     },
+     "bear": {
+      "days": 31,
+      "ann_return": -0.037865,
+      "bench_ann_return": -0.623843,
+      "sharpe": -1.265558
+     },
+     "stress": {
+      "days": 23,
+      "ann_return": 0.0,
+      "bench_ann_return": 0.594518,
+      "sharpe": null
+     }
+    },
+    "ci90": {
+     "cagr": [
+      -0.06497,
+      0.120676
+     ],
+     "sharpe": [
+      -0.656238,
+      1.223768
+     ]
+    }
+   },
+   "ml": {
+    "cagr": 0.008269,
+    "total_return": 0.014714,
+    "sharpe": 0.135193,
+    "sortino": 0.181762,
+    "max_drawdown": -0.124947,
+    "calmar": 0.066178,
+    "alpha_annual": -0.03082,
+    "beta": 0.238443,
+    "information_ratio": -1.103226,
+    "turnover_per_year": 14.55103,
+    "exposure": 0.2606,
+    "days": 447,
+    "bench_total_return": 0.346046,
+    "trades": 356,
+    "win_rate": 0.463483,
+    "expectancy_R": -0.094003,
+    "avg_gain_pct": 8.893111,
+    "avg_loss_pct": -7.452291,
+    "profit_factor": 0.846261,
+    "avg_bars": 8.567416,
+    "exits": {
+     "stop": 118,
+     "target": 101,
+     "time": 85,
+     "gap": 32,
+     "regime": 20
+    },
+    "by_regime": {
+     "bull": {
+      "days": 281,
+      "ann_return": 0.096583,
+      "bench_ann_return": 0.271979,
+      "sharpe": 1.014758
+     },
+     "neutral": {
+      "days": 112,
+      "ann_return": -0.135181,
+      "bench_ann_return": 0.093524,
+      "sharpe": -1.312634
+     },
+     "bear": {
+      "days": 31,
+      "ann_return": -0.206645,
+      "bench_ann_return": -0.623843,
+      "sharpe": -3.90776
+     },
+     "stress": {
+      "days": 23,
+      "ann_return": 0.0,
+      "bench_ann_return": 0.594518,
+      "sharpe": null
+     }
+    },
+    "ci90": {
+     "cagr": [
+      -0.080769,
+      0.150023
+     ],
+     "sharpe": [
+      -0.898755,
+      1.771214
+     ]
+    }
+   },
+   "random": {
+    "cagr": -0.043202,
+    "total_return": -0.075347,
+    "sharpe": -0.631884,
+    "sortino": -0.877623,
+    "max_drawdown": -0.107587,
+    "calmar": -0.401552,
+    "alpha_annual": -0.067594,
+    "beta": 0.141071,
+    "information_ratio": -1.416496,
+    "turnover_per_year": 22.336384,
+    "exposure": 0.529011,
+    "days": 447,
+    "bench_total_return": 0.346046,
+    "trades": 291,
+    "win_rate": 0.439863,
+    "expectancy_R": -0.036426,
+    "avg_gain_pct": 5.439827,
+    "avg_loss_pct": -5.095242,
+    "profit_factor": 0.928832,
+    "avg_bars": 10.134021,
+    "exits": {
+     "stop": 99,
+     "target": 74,
+     "time": 74,
+     "gap": 23,
+     "regime": 21
+    },
+    "by_regime": {
+     "bull": {
+      "days": 281,
+      "ann_return": 0.036819,
+      "bench_ann_return": 0.271979,
+      "sharpe": 0.524036
+     },
+     "neutral": {
+      "days": 112,
+      "ann_return": -0.240453,
+      "bench_ann_return": 0.093524,
+      "sharpe": -3.493292
+     },
+     "bear": {
+      "days": 31,
+      "ann_return": -0.070008,
+      "bench_ann_return": -0.623843,
+      "sharpe": -2.094882
+     },
+     "stress": {
+      "days": 23,
+      "ann_return": 0.0,
+      "bench_ann_return": 0.594518,
+      "sharpe": null
+     }
+    },
+    "ci90": {
+     "cagr": [
+      -0.095033,
+      0.000158
+     ],
+     "sharpe": [
+      -1.804533,
+      0.025455
+     ]
+    }
+   },
+   "SPY": {
+    "cagr": 0.182384,
+    "total_return": 0.346046,
+    "sharpe": 1.074653,
+    "sortino": 1.445359,
+    "max_drawdown": -0.187552,
+    "calmar": 0.972443,
+    "alpha_annual": -0.0,
+    "beta": 1.0,
+    "information_ratio": null,
+    "turnover_per_year": 0.0,
+    "exposure": 1.0,
+    "days": 447,
+    "bench_total_return": 0.346046,
+    "trades": 0,
+    "by_regime": {
+     "bull": {
+      "days": 281,
+      "ann_return": 0.271979,
+      "bench_ann_return": 0.271979,
+      "sharpe": 2.512497
+     },
+     "neutral": {
+      "days": 112,
+      "ann_return": 0.093524,
+      "bench_ann_return": 0.093524,
+      "sharpe": 0.597622
+     },
+     "bear": {
+      "days": 31,
+      "ann_return": -0.623843,
+      "bench_ann_return": -0.623843,
+      "sharpe": -2.658489
+     },
+     "stress": {
+      "days": 23,
+      "ann_return": 0.594518,
+      "bench_ann_return": 0.594518,
+      "sharpe": 1.247639
+     }
+    },
+    "ci90": {
+     "cagr": [
+      0.03411,
+      0.364975
+     ],
+     "sharpe": [
+      0.371697,
+      3.010984
+     ]
+    }
+   }
+  }
+ },
+ "sim_all": {
+  "v1": {
+   "cagr": 0.034234,
+   "total_return": 0.88001,
+   "sharpe": 0.400609,
+   "sortino": 0.452423,
+   "max_drawdown": -0.175637,
+   "calmar": 0.194913,
+   "alpha_annual": 0.012071,
+   "beta": 0.20625,
+   "information_ratio": -0.495964,
+   "turnover_per_year": 17.146456,
+   "exposure": 0.466611,
+   "days": 4726,
+   "bench_total_return": 6.495,
+   "trades": 2201,
+   "win_rate": 0.425261,
+   "expectancy_R": -1.106148,
+   "avg_gain_pct": 8.192078,
+   "avg_loss_pct": -5.084393,
+   "profit_factor": 0.360141,
+   "avg_bars": 13.640618,
+   "exits": {
+    "stop": 756,
+    "time": 671,
+    "target": 317,
+    "regime": 251,
+    "gap": 206
+   },
+   "by_regime": {
+    "bull": {
+     "days": 2768,
+     "ann_return": 0.188345,
+     "bench_ann_return": 0.348161,
+     "sharpe": 1.902841
+    },
+    "neutral": {
+     "days": 1065,
+     "ann_return": -0.265552,
+     "bench_ann_return": -0.272785,
+     "sharpe": -2.326175
+    },
+    "bear": {
+     "days": 419,
+     "ann_return": -0.061656,
+     "bench_ann_return": -0.210333,
+     "sharpe": -1.95009
+    },
+    "stress": {
+     "days": 474,
+     "ann_return": -0.067497,
+     "bench_ann_return": 0.030502,
+     "sharpe": -1.48798
+    }
+   },
+   "ci90": {
+    "cagr": [
+     0.002837,
+     0.067726
+    ],
+    "sharpe": [
+     0.07846,
+     0.805128
+    ]
+   }
+  },
+  "quant": {
+   "cagr": 0.04588,
+   "total_return": 1.319309,
+   "sharpe": 0.528566,
+   "sortino": 0.608669,
+   "max_drawdown": -0.158564,
+   "calmar": 0.289345,
+   "alpha_annual": 0.025009,
+   "beta": 0.190762,
+   "information_ratio": -0.429461,
+   "turnover_per_year": 18.386338,
+   "exposure": 0.546004,
+   "days": 4726,
+   "bench_total_return": 6.495,
+   "trades": 2054,
+   "win_rate": 0.466894,
+   "expectancy_R": 0.041494,
+   "avg_gain_pct": 6.615837,
+   "avg_loss_pct": -4.245178,
+   "profit_factor": 1.072839,
+   "avg_bars": 14.462512,
+   "exits": {
+    "stop": 663,
+    "time": 641,
+    "target": 351,
+    "regime": 256,
+    "gap": 143
+   },
+   "by_regime": {
+    "bull": {
+     "days": 2768,
+     "ann_return": 0.196342,
+     "bench_ann_return": 0.348161,
+     "sharpe": 2.02561
+    },
+    "neutral": {
+     "days": 1065,
+     "ann_return": -0.237557,
+     "bench_ann_return": -0.272785,
+     "sharpe": -2.14313
+    },
+    "bear": {
+     "days": 419,
+     "ann_return": -0.048966,
+     "bench_ann_return": -0.210333,
+     "sharpe": -1.840226
+    },
+    "stress": {
+     "days": 474,
+     "ann_return": -0.078901,
+     "bench_ann_return": 0.030502,
+     "sharpe": -1.755926
+    }
+   },
+   "ci90": {
+    "cagr": [
+     0.013862,
+     0.075825
+    ],
+    "sharpe": [
+     0.195249,
+     0.855703
+    ]
+   }
+  },
+  "adaptive": {
+   "cagr": 0.037806,
+   "total_return": 1.005575,
+   "sharpe": 0.420281,
+   "sortino": 0.501542,
+   "max_drawdown": -0.214336,
+   "calmar": 0.176385,
+   "alpha_annual": 0.015346,
+   "beta": 0.211312,
+   "information_ratio": -0.469962,
+   "turnover_per_year": 17.305807,
+   "exposure": 0.525974,
+   "days": 4726,
+   "bench_total_return": 6.495,
+   "trades": 2088,
+   "win_rate": 0.455939,
+   "expectancy_R": -0.199522,
+   "avg_gain_pct": 7.453503,
+   "avg_loss_pct": -4.981006,
+   "profit_factor": 0.75072,
+   "avg_bars": 14.396552,
+   "exits": {
+    "stop": 676,
+    "time": 651,
+    "target": 375,
+    "regime": 249,
+    "gap": 137
+   },
+   "by_regime": {
+    "bull": {
+     "days": 2768,
+     "ann_return": 0.196517,
+     "bench_ann_return": 0.348161,
+     "sharpe": 1.837867
+    },
+    "neutral": {
+     "days": 1065,
+     "ann_return": -0.265266,
+     "bench_ann_return": -0.272785,
+     "sharpe": -2.326315
+    },
+    "bear": {
+     "days": 419,
+     "ann_return": -0.056744,
+     "bench_ann_return": -0.210333,
+     "sharpe": -1.971851
+    },
+    "stress": {
+     "days": 474,
+     "ann_return": -0.081148,
+     "bench_ann_return": 0.030502,
+     "sharpe": -1.758786
+    }
+   },
+   "ci90": {
+    "cagr": [
+     0.005132,
+     0.06948
+    ],
+    "sharpe": [
+     0.101793,
+     0.733051
+    ]
+   }
+  },
+  "ml": {
+   "cagr": 0.021378,
+   "total_return": 0.486915,
+   "sharpe": 0.331644,
+   "sortino": 0.296047,
+   "max_drawdown": -0.212583,
+   "calmar": 0.100565,
+   "alpha_annual": 0.009286,
+   "beta": 0.113765,
+   "information_ratio": -0.550372,
+   "turnover_per_year": 14.55103,
+   "exposure": 0.2606,
+   "days": 4726,
+   "bench_total_return": 6.495,
+   "trades": 1898,
+   "win_rate": 0.488936,
+   "expectancy_R": 0.027632,
+   "avg_gain_pct": 7.215357,
+   "avg_loss_pct": -5.89187,
+   "profit_factor": 1.049429,
+   "avg_bars": 9.42255,
+   "exits": {
+    "target": 564,
+    "stop": 555,
+    "time": 479,
+    "gap": 181,
+    "regime": 119
+   },
+   "by_regime": {
+    "bull": {
+     "days": 2768,
+     "ann_return": 0.116106,
+     "bench_ann_return": 0.348161,
+     "sharpe": 1.578708
+    },
+    "neutral": {
+     "days": 1065,
+     "ann_return": -0.159158,
+     "bench_ann_return": -0.272785,
+     "sharpe": -1.814417
+    },
+    "bear": {
+     "days": 419,
+     "ann_return": -0.023287,
+     "bench_ann_return": -0.210333,
+     "sharpe": -1.226053
+    },
+    "stress": {
+     "days": 474,
+     "ann_return": -0.063355,
+     "bench_ann_return": 0.030502,
+     "sharpe": -1.765304
+    }
+   },
+   "ci90": {
+    "cagr": [
+     -0.005241,
+     0.049539
+    ],
+    "sharpe": [
+     -0.037993,
+     0.70027
+    ]
+   }
+  },
+  "random": {
+   "cagr": 0.036409,
+   "total_return": 0.955575,
+   "sharpe": 0.437429,
+   "sortino": 0.540193,
+   "max_drawdown": -0.216439,
+   "calmar": 0.16822,
+   "alpha_annual": 0.01405,
+   "beta": 0.203867,
+   "information_ratio": -0.491211,
+   "turnover_per_year": 22.336384,
+   "exposure": 0.529011,
+   "days": 4726,
+   "bench_total_return": 6.495,
+   "trades": 2660,
+   "win_rate": 0.48985,
+   "expectancy_R": 0.034957,
+   "avg_gain_pct": 4.960499,
+   "avg_loss_pct": -3.951299,
+   "profit_factor": 1.066625,
+   "avg_bars": 11.219925,
+   "exits": {
+    "stop": 804,
+    "time": 726,
+    "target": 690,
+    "regime": 243,
+    "gap": 197
+   },
+   "by_regime": {
+    "bull": {
+     "days": 2768,
+     "ann_return": 0.205316,
+     "bench_ann_return": 0.348161,
+     "sharpe": 2.159853
+    },
+    "neutral": {
+     "days": 1065,
+     "ann_return": -0.304057,
+     "bench_ann_return": -0.272785,
+     "sharpe": -2.83454
+    },
+    "bear": {
+     "days": 419,
+     "ann_return": -0.058714,
+     "bench_ann_return": -0.210333,
+     "sharpe": -1.684131
+    },
+    "stress": {
+     "days": 474,
+     "ann_return": -0.065974,
+     "bench_ann_return": 0.030502,
+     "sharpe": -1.664334
+    }
+   },
+   "ci90": {
+    "cagr": [
+     0.004021,
+     0.06752
+    ],
+    "sharpe": [
+     0.089628,
+     0.734572
+    ]
+   }
+  }
+ },
+ "ablation": {
+  "no_regime_cap": {
+   "cagr": 0.018117,
+   "total_return": 0.213079,
+   "sharpe": 0.235298,
+   "sortino": 0.276969,
+   "max_drawdown": -0.238944,
+   "calmar": 0.075823,
+   "alpha_annual": -0.012374,
+   "beta": 0.222767,
+   "information_ratio": -0.824319,
+   "turnover_per_year": 17.076156,
+   "exposure": 0.498061,
+   "days": 2711,
+   "bench_total_return": 3.565405,
+   "trades": 1253,
+   "win_rate": 0.451716,
+   "expectancy_R": -0.101135,
+   "avg_gain_pct": 8.037713,
+   "avg_loss_pct": -5.083638,
+   "profit_factor": 0.850934,
+   "avg_bars": 14.255387,
+   "exits": {
+    "stop": 423,
+    "time": 379,
+    "target": 227,
+    "regime": 139,
+    "gap": 85
+   },
+   "by_regime": {
+    "bull": {
+     "days": 1693,
+     "ann_return": 0.140376,
+     "bench_ann_return": 0.344692,
+     "sharpe": 1.414028
+    },
+    "neutral": {
+     "days": 581,
+     "ann_return": -0.256346,
+     "bench_ann_return": -0.269972,
+     "sharpe": -2.259547
+    },
+    "bear": {
+     "days": 214,
+     "ann_return": -0.013706,
+     "bench_ann_return": -0.160991,
+     "sharpe": -0.752077
+    },
+    "stress": {
+     "days": 223,
+     "ann_return": -0.110303,
+     "bench_ann_return": 0.148023,
+     "sharpe": -2.492183
+    }
+   },
+   "ci90": {
+    "cagr": [
+     -0.030773,
+     0.063242
+    ],
+    "sharpe": [
+     -0.229035,
+     0.675297
+    ]
+   }
+  },
+  "no_corr_filter": {
+   "cagr": 0.028202,
+   "total_return": 0.348767,
+   "sharpe": 0.337084,
+   "sortino": 0.381847,
+   "max_drawdown": -0.216533,
+   "calmar": 0.130241,
+   "alpha_annual": -0.002064,
+   "beta": 0.220143,
+   "information_ratio": -0.760115,
+   "turnover_per_year": 16.273861,
+   "exposure": 0.482203,
+   "days": 2711,
+   "bench_total_return": 3.565405,
+   "trades": 1223,
+   "win_rate": 0.461161,
+   "expectancy_R": 0.087399,
+   "avg_gain_pct": 8.496203,
+   "avg_loss_pct": -5.22389,
+   "profit_factor": 1.157949,
+   "avg_bars": 14.520033,
+   "exits": {
+    "stop": 409,
+    "time": 374,
+    "target": 236,
+    "regime": 123,
+    "gap": 81
+   },
+   "by_regime": {
+    "bull": {
+     "days": 1693,
+     "ann_return": 0.165207,
+     "bench_ann_return": 0.344692,
+     "sharpe": 1.615755
+    },
+    "neutral": {
+     "days": 581,
+     "ann_return": -0.273861,
+     "bench_ann_return": -0.269972,
+     "sharpe": -2.640312
+    },
+    "bear": {
+     "days": 214,
+     "ann_return": -0.017793,
+     "bench_ann_return": -0.160991,
+     "sharpe": -0.856198
+    },
+    "stress": {
+     "days": 223,
+     "ann_return": -0.128924,
+     "bench_ann_return": 0.148023,
+     "sharpe": -2.198887
+    }
+   },
+   "ci90": {
+    "cagr": [
+     -0.026658,
+     0.077627
+    ],
+    "sharpe": [
+     -0.194887,
+     0.806453
+    ]
+   }
+  },
+  "no_vol_sizing": {
+   "cagr": 0.071756,
+   "total_return": 1.107518,
+   "sharpe": 0.594583,
+   "sortino": 0.703317,
+   "max_drawdown": -0.173301,
+   "calmar": 0.414055,
+   "alpha_annual": 0.032399,
+   "beta": 0.29014,
+   "information_ratio": -0.453605,
+   "turnover_per_year": 21.433753,
+   "exposure": 0.628352,
+   "days": 2711,
+   "bench_total_return": 3.565405,
+   "trades": 1210,
+   "win_rate": 0.466942,
+   "expectancy_R": 0.06841,
+   "avg_gain_pct": 8.179314,
+   "avg_loss_pct": -5.375247,
+   "profit_factor": 1.122244,
+   "avg_bars": 14.404959,
+   "exits": {
+    "stop": 407,
+    "time": 373,
+    "target": 224,
+    "regime": 119,
+    "gap": 87
+   },
+   "by_regime": {
+    "bull": {
+     "days": 1693,
+     "ann_return": 0.250597,
+     "bench_ann_return": 0.344692,
+     "sharpe": 1.752066
+    },
+    "neutral": {
+     "days": 581,
+     "ann_return": -0.301219,
+     "bench_ann_return": -0.269972,
+     "sharpe": -2.255408
+    },
+    "bear": {
+     "days": 214,
+     "ann_return": -0.023517,
+     "bench_ann_return": -0.160991,
+     "sharpe": -0.910595
+    },
+    "stress": {
+     "days": 223,
+     "ann_return": -0.147981,
+     "bench_ann_return": 0.148023,
+     "sharpe": -2.398249
+    }
+   },
+   "ci90": {
+    "cagr": [
+     0.002319,
+     0.136201
+    ],
+    "sharpe": [
+     0.083593,
+     0.989725
+    ]
+   }
+  },
+  "no_dd_brake": {
+   "cagr": 0.049224,
+   "total_return": 0.676863,
+   "sharpe": 0.505717,
+   "sortino": 0.615285,
+   "max_drawdown": -0.22322,
+   "calmar": 0.220516,
+   "alpha_annual": 0.013219,
+   "beta": 0.258111,
+   "information_ratio": -0.634785,
+   "turnover_per_year": 19.823465,
+   "exposure": 0.581196,
+   "days": 2711,
+   "bench_total_return": 3.565405,
+   "trades": 1264,
+   "win_rate": 0.468354,
+   "expectancy_R": 0.090909,
+   "avg_gain_pct": 7.932044,
+   "avg_loss_pct": -5.173555,
+   "profit_factor": 1.169009,
+   "avg_bars": 14.245253,
+   "exits": {
+    "stop": 416,
+    "time": 375,
+    "target": 241,
+    "regime": 149,
+    "gap": 83
+   },
+   "by_regime": {
+    "bull": {
+     "days": 1693,
+     "ann_return": 0.209725,
+     "bench_ann_return": 0.344692,
+     "sharpe": 1.932368
+    },
+    "neutral": {
+     "days": 581,
+     "ann_return": -0.299562,
+     "bench_ann_return": -0.269972,
+     "sharpe": -2.386304
+    },
+    "bear": {
+     "days": 214,
+     "ann_return": -0.018005,
+     "bench_ann_return": -0.160991,
+     "sharpe": -0.828311
+    },
+    "stress": {
+     "days": 223,
+     "ann_return": -0.141531,
+     "bench_ann_return": 0.148023,
+     "sharpe": -2.216169
+    }
+   },
+   "ci90": {
+    "cagr": [
+     -0.009475,
+     0.106064
+    ],
+    "sharpe": [
+     -0.024125,
+     0.976641
+    ]
+   }
+  },
+  "no_regime_exit": {
+   "cagr": 0.039948,
+   "total_return": 0.524092,
+   "sharpe": 0.43762,
+   "sortino": 0.53108,
+   "max_drawdown": -0.223878,
+   "calmar": 0.178438,
+   "alpha_annual": 0.002434,
+   "beta": 0.267026,
+   "information_ratio": -0.714231,
+   "turnover_per_year": 17.676627,
+   "exposure": 0.555695,
+   "days": 2711,
+   "bench_total_return": 3.565405,
+   "trades": 1386,
+   "win_rate": 0.461039,
+   "expectancy_R": 0.064974,
+   "avg_gain_pct": 8.295983,
+   "avg_loss_pct": -5.258319,
+   "profit_factor": 1.11164,
+   "avg_bars": 14.880952,
+   "exits": {
+    "stop": 501,
+    "time": 479,
+    "target": 278,
+    "gap": 128
+   },
+   "by_regime": {
+    "bull": {
+     "days": 1693,
+     "ann_return": 0.177744,
+     "bench_ann_return": 0.344692,
+     "sharpe": 1.698271
+    },
+    "neutral": {
+     "days": 581,
+     "ann_return": -0.236835,
+     "bench_ann_return": -0.269972,
+     "sharpe": -2.177542
+    },
+    "bear": {
+     "days": 214,
+     "ann_return": -0.05989,
+     "bench_ann_return": -0.160991,
+     "sharpe": -1.060568
+    },
+    "stress": {
+     "days": 223,
+     "ann_return": -0.136086,
+     "bench_ann_return": 0.148023,
+     "sharpe": -1.724098
+    }
+   },
+   "ci90": {
+    "cagr": [
+     -0.004629,
+     0.089228
+    ],
+    "sharpe": [
+     0.003905,
+     0.888922
+    ]
+   }
+  },
+  "adaptive (all rules)": {
+   "cagr": 0.041665,
+   "total_return": 0.551376,
+   "sharpe": 0.460954,
+   "sortino": 0.545765,
+   "max_drawdown": -0.214336,
+   "calmar": 0.194391,
+   "alpha_annual": 0.010043,
+   "beta": 0.227735,
+   "information_ratio": -0.677538,
+   "turnover_per_year": 17.305807,
+   "exposure": 0.525974,
+   "days": 2711,
+   "bench_total_return": 3.565405,
+   "trades": 1196,
+   "win_rate": 0.457358,
+   "expectancy_R": -0.070173,
+   "avg_gain_pct": 8.356547,
+   "avg_loss_pct": -5.270793,
+   "profit_factor": 0.898527,
+   "avg_bars": 14.807692,
+   "exits": {
+    "stop": 388,
+    "time": 371,
+    "target": 221,
+    "regime": 127,
+    "gap": 89
+   },
+   "by_regime": {
+    "bull": {
+     "days": 1693,
+     "ann_return": 0.176212,
+     "bench_ann_return": 0.344692,
+     "sharpe": 1.67109
+    },
+    "neutral": {
+     "days": 581,
+     "ann_return": -0.247908,
+     "bench_ann_return": -0.269972,
+     "sharpe": -2.296569
+    },
+    "bear": {
+     "days": 214,
+     "ann_return": -0.007995,
+     "bench_ann_return": -0.160991,
+     "sharpe": -0.511371
+    },
+    "stress": {
+     "days": 223,
+     "ann_return": -0.127836,
+     "bench_ann_return": 0.148023,
+     "sharpe": -2.20154
+    }
+   },
+   "ci90": {
+    "cagr": [
+     -0.007601,
+     0.087249
+    ],
+    "sharpe": [
+     -0.020267,
+     0.889738
+    ]
+   }
+  }
+ },
+ "equity_monthly": {
+  "v1": {
+   "2008-01-31": 100000.0,
+   "2008-02-29": 100000.0,
+   "2008-03-31": 100000.0,
+   "2008-04-30": 100024.29,
+   "2008-05-31": 100329.93,
+   "2008-06-30": 97162.33,
+   "2008-07-31": 97162.33,
+   "2008-08-31": 97162.33,
+   "2008-09-30": 97162.33,
+   "2008-10-31": 97162.33,
+   "2008-11-30": 97162.33,
+   "2008-12-31": 97162.33,
+   "2009-01-31": 97162.33,
+   "2009-02-28": 97162.33,
+   "2009-03-31": 97162.33,
+   "2009-04-30": 96867.68,
+   "2009-05-31": 95768.46,
+   "2009-06-30": 95092.32,
+   "2009-07-31": 96723.25,
+   "2009-08-31": 97109.23,
+   "2009-09-30": 100234.86,
+   "2009-10-31": 95079.79,
+   "2009-11-30": 100728.93,
+   "2009-12-31": 102973.43,
+   "2010-01-31": 99669.76,
+   "2010-02-28": 99676.43,
+   "2010-03-31": 104263.14,
+   "2010-04-30": 106330.69,
+   "2010-05-31": 94920.23,
+   "2010-06-30": 93414.41,
+   "2010-07-31": 91833.5,
+   "2010-08-31": 90286.76,
+   "2010-09-30": 91712.37,
+   "2010-10-31": 94431.09,
+   "2010-11-30": 96647.34,
+   "2010-12-31": 99224.07,
+   "2011-01-31": 99962.36,
+   "2011-02-28": 103792.38,
+   "2011-03-31": 102000.55,
+   "2011-04-30": 104085.23,
+   "2011-05-31": 101500.63,
+   "2011-06-30": 98367.16,
+   "2011-07-31": 96349.87,
+   "2011-08-31": 95162.26,
+   "2011-09-30": 95162.26,
+   "2011-10-31": 95018.64,
+   "2011-11-30": 94990.53,
+   "2011-12-31": 94842.78,
+   "2012-01-31": 96893.52,
+   "2012-02-29": 99385.8,
+   "2012-03-31": 102950.62,
+   "2012-04-30": 101552.3,
+   "2012-05-31": 95169.32,
+   "2012-06-30": 96989.43,
+   "2012-07-31": 96918.65,
+   "2012-08-31": 97173.76,
+   "2012-09-30": 98915.75,
+   "2012-10-31": 97137.4,
+   "2012-11-30": 97841.71,
+   "2012-12-31": 97849.73,
+   "2013-01-31": 103036.59,
+   "2013-02-28": 102046.16,
+   "2013-03-31": 105319.35,
+   "2013-04-30": 107067.4,
+   "2013-05-31": 112858.16,
+   "2013-06-30": 114399.01,
+   "2013-07-31": 117450.36,
+   "2013-08-31": 113457.48,
+   "2013-09-30": 116824.43,
+   "2013-10-31": 119205.38,
+   "2013-11-30": 121667.73,
+   "2013-12-31": 124935.08,
+   "2014-01-31": 121208.01,
+   "2014-02-28": 126070.74,
+   "2014-03-31": 123976.35,
+   "2014-04-30": 121168.47,
+   "2014-05-31": 124762.57,
+   "2014-06-30": 126484.3,
+   "2014-07-31": 123118.15,
+   "2014-08-31": 126949.81,
+   "2014-09-30": 121154.65,
+   "2014-10-31": 120383.58,
+   "2014-11-30": 124357.6,
+   "2014-12-31": 125135.33,
+   "2015-01-31": 126679.07,
+   "2015-02-28": 130211.22,
+   "2015-03-31": 131436.52,
+   "2015-04-30": 126323.11,
+   "2015-05-31": 128588.6,
+   "2015-06-30": 126994.64,
+   "2015-07-31": 125397.31,
+   "2015-08-31": 121381.11,
+   "2015-09-30": 121381.11,
+   "2015-10-31": 120507.09,
+   "2015-11-30": 120193.32,
+   "2015-12-31": 118743.79,
+   "2016-01-31": 117709.16,
+   "2016-02-29": 117709.16,
+   "2016-03-31": 119418.19,
+   "2016-04-30": 118159.74,
+   "2016-05-31": 120547.39,
+   "2016-06-30": 123757.47,
+   "2016-07-31": 126366.76,
+   "2016-08-31": 124902.19,
+   "2016-09-30": 126264.56,
+   "2016-10-31": 118060.71,
+   "2016-11-30": 120164.26,
+   "2016-12-31": 120235.84,
+   "2017-01-31": 121012.3,
+   "2017-02-28": 123470.55,
+   "2017-03-31": 124007.82,
+   "2017-04-30": 124861.67,
+   "2017-05-31": 132130.33,
+   "2017-06-30": 127436.28,
+   "2017-07-31": 128107.91,
+   "2017-08-31": 129250.05,
+   "2017-09-30": 130434.1,
+   "2017-10-31": 135691.15,
+   "2017-11-30": 135044.52,
+   "2017-12-31": 138713.34,
+   "2018-01-31": 142021.25,
+   "2018-02-28": 133887.25,
+   "2018-03-31": 127813.38,
+   "2018-04-30": 126380.33,
+   "2018-05-31": 127799.46,
+   "2018-06-30": 130292.56,
+   "2018-07-31": 128618.88,
+   "2018-08-31": 134314.99,
+   "2018-09-30": 134217.9,
+   "2018-10-31": 124807.93,
+   "2018-11-30": 124810.58,
+   "2018-12-31": 124392.19,
+   "2019-01-31": 124392.19,
+   "2019-02-28": 125907.32,
+   "2019-03-31": 128663.13,
+   "2019-04-30": 131341.05,
+   "2019-05-31": 127947.2,
+   "2019-06-30": 128846.49,
+   "2019-07-31": 130567.35,
+   "2019-08-31": 132614.51,
+   "2019-09-30": 134915.45,
+   "2019-10-31": 136281.96,
+   "2019-11-30": 135477.12,
+   "2019-12-31": 138785.73,
+   "2020-01-31": 138479.4,
+   "2020-02-29": 128156.35,
+   "2020-03-31": 128156.35,
+   "2020-04-30": 128156.35,
+   "2020-05-31": 128929.88,
+   "2020-06-30": 129489.77,
+   "2020-07-31": 128651.78,
+   "2020-08-31": 131291.22,
+   "2020-09-30": 131359.18,
+   "2020-10-31": 132307.95,
+   "2020-11-30": 134075.97,
+   "2020-12-31": 135463.4,
+   "2021-01-31": 135307.23,
+   "2021-02-28": 135157.15,
+   "2021-03-31": 134558.17,
+   "2021-04-30": 136376.24,
+   "2021-05-31": 136703.18,
+   "2021-06-30": 136232.04,
+   "2021-07-31": 139150.15,
+   "2021-08-31": 145979.13,
+   "2021-09-30": 139424.96,
+   "2021-10-31": 147549.1,
+   "2021-11-30": 144914.27,
+   "2021-12-31": 146692.65,
+   "2022-01-31": 133899.02,
+   "2022-02-28": 134651.49,
+   "2022-03-31": 134157.36,
+   "2022-04-30": 136962.57,
+   "2022-05-31": 136962.57,
+   "2022-06-30": 136962.57,
+   "2022-07-31": 136962.57,
+   "2022-08-31": 136459.39,
+   "2022-09-30": 130363.11,
+   "2022-10-31": 130827.15,
+   "2022-11-30": 130827.15,
+   "2022-12-31": 129261.2,
+   "2023-01-31": 128175.41,
+   "2023-02-28": 127316.96,
+   "2023-03-31": 128958.69,
+   "2023-04-30": 132135.81,
+   "2023-05-31": 136187.75,
+   "2023-06-30": 143521.89,
+   "2023-07-31": 145383.94,
+   "2023-08-31": 147635.73,
+   "2023-09-30": 145115.2,
+   "2023-10-31": 139305.04,
+   "2023-11-30": 145431.4,
+   "2023-12-31": 148707.19,
+   "2024-01-31": 150669.46,
+   "2024-02-29": 153681.69,
+   "2024-03-31": 160575.59,
+   "2024-04-30": 159230.43,
+   "2024-05-31": 162054.54,
+   "2024-06-30": 159022.19,
+   "2024-07-31": 158779.56,
+   "2024-08-31": 160895.5,
+   "2024-09-30": 164876.46,
+   "2024-10-31": 164121.19,
+   "2024-11-30": 176280.07,
+   "2024-12-31": 166599.92,
+   "2025-01-31": 167097.56,
+   "2025-02-28": 169809.41,
+   "2025-03-31": 164955.03,
+   "2025-04-30": 164955.03,
+   "2025-05-31": 167185.2,
+   "2025-06-30": 167593.95,
+   "2025-07-31": 166439.78,
+   "2025-08-31": 168777.5,
+   "2025-09-30": 180036.91,
+   "2025-10-31": 185865.31,
+   "2025-11-30": 188148.57,
+   "2025-12-31": 184375.5,
+   "2026-01-31": 190422.86,
+   "2026-02-28": 195908.24,
+   "2026-03-31": 187063.86,
+   "2026-04-30": 190743.41,
+   "2026-05-31": 194295.01,
+   "2026-06-30": 196358.11,
+   "2026-07-31": 193143.02,
+   "2026-08-31": 190029.33,
+   "2026-09-30": 188599.47,
+   "2026-10-31": 188001.01
+  },
+  "quant": {
+   "2008-01-31": 100000.0,
+   "2008-02-29": 100000.0,
+   "2008-03-31": 100000.0,
+   "2008-04-30": 100049.8,
+   "2008-05-31": 102690.58,
+   "2008-06-30": 98389.28,
+   "2008-07-31": 98389.28,
+   "2008-08-31": 98389.28,
+   "2008-09-30": 98389.28,
+   "2008-10-31": 98389.28,
+   "2008-11-30": 98389.28,
+   "2008-12-31": 98389.28,
+   "2009-01-31": 98389.28,
+   "2009-02-28": 98389.28,
+   "2009-03-31": 98389.28,
+   "2009-04-30": 98331.01,
+   "2009-05-31": 97463.65,
+   "2009-06-30": 97001.13,
+   "2009-07-31": 98241.12,
+   "2009-08-31": 97757.27,
+   "2009-09-30": 99021.77,
+   "2009-10-31": 95631.94,
+   "2009-11-30": 99756.62,
+   "2009-12-31": 103300.87,
+   "2010-01-31": 99270.87,
+   "2010-02-28": 100458.55,
+   "2010-03-31": 104355.61,
+   "2010-04-30": 109947.36,
+   "2010-05-31": 100381.45,
+   "2010-06-30": 99072.33,
+   "2010-07-31": 97919.84,
+   "2010-08-31": 96275.72,
+   "2010-09-30": 97601.18,
+   "2010-10-31": 98732.8,
+   "2010-11-30": 98814.17,
+   "2010-12-31": 99661.29,
+   "2011-01-31": 101068.73,
+   "2011-02-28": 104457.63,
+   "2011-03-31": 102627.12,
+   "2011-04-30": 105306.81,
+   "2011-05-31": 103228.74,
+   "2011-06-30": 101266.41,
+   "2011-07-31": 99782.71,
+   "2011-08-31": 98202.65,
+   "2011-09-30": 98202.65,
+   "2011-10-31": 98099.8,
+   "2011-11-30": 97187.95,
+   "2011-12-31": 98770.47,
+   "2012-01-31": 96286.84,
+   "2012-02-29": 100002.65,
+   "2012-03-31": 102731.28,
+   "2012-04-30": 103791.63,
+   "2012-05-31": 98880.08,
+   "2012-06-30": 99814.12,
+   "2012-07-31": 99743.5,
+   "2012-08-31": 97798.19,
+   "2012-09-30": 98910.05,
+   "2012-10-31": 98028.79,
+   "2012-11-30": 97105.27,
+   "2012-12-31": 97718.23,
+   "2013-01-31": 99621.4,
+   "2013-02-28": 100232.96,
+   "2013-03-31": 103505.99,
+   "2013-04-30": 105034.46,
+   "2013-05-31": 103016.06,
+   "2013-06-30": 99286.74,
+   "2013-07-31": 101524.18,
+   "2013-08-31": 99544.69,
+   "2013-09-30": 100136.45,
+   "2013-10-31": 99374.16,
+   "2013-11-30": 99851.59,
+   "2013-12-31": 100645.35,
+   "2014-01-31": 100073.99,
+   "2014-02-28": 102677.98,
+   "2014-03-31": 99680.57,
+   "2014-04-30": 100380.32,
+   "2014-05-31": 101375.18,
+   "2014-06-30": 107686.62,
+   "2014-07-31": 107735.12,
+   "2014-08-31": 110722.88,
+   "2014-09-30": 107355.86,
+   "2014-10-31": 106807.07,
+   "2014-11-30": 109649.77,
+   "2014-12-31": 109948.93,
+   "2015-01-31": 115706.33,
+   "2015-02-28": 117428.15,
+   "2015-03-31": 119636.62,
+   "2015-04-30": 118042.78,
+   "2015-05-31": 121867.73,
+   "2015-06-30": 120164.33,
+   "2015-07-31": 124254.4,
+   "2015-08-31": 117996.56,
+   "2015-09-30": 117996.56,
+   "2015-10-31": 117200.28,
+   "2015-11-30": 119668.0,
+   "2015-12-31": 118917.55,
+   "2016-01-31": 116741.44,
+   "2016-02-29": 116741.44,
+   "2016-03-31": 118746.89,
+   "2016-04-30": 115093.29,
+   "2016-05-31": 119157.04,
+   "2016-06-30": 122264.04,
+   "2016-07-31": 122386.11,
+   "2016-08-31": 119205.36,
+   "2016-09-30": 120667.08,
+   "2016-10-31": 116875.5,
+   "2016-11-30": 119172.22,
+   "2016-12-31": 119621.81,
+   "2017-01-31": 119561.28,
+   "2017-02-28": 123489.6,
+   "2017-03-31": 120603.18,
+   "2017-04-30": 121903.73,
+   "2017-05-31": 125102.78,
+   "2017-06-30": 122390.12,
+   "2017-07-31": 128398.45,
+   "2017-08-31": 130144.59,
+   "2017-09-30": 131027.16,
+   "2017-10-31": 135924.87,
+   "2017-11-30": 141290.49,
+   "2017-12-31": 142111.03,
+   "2018-01-31": 146340.0,
+   "2018-02-28": 133929.97,
+   "2018-03-31": 131256.33,
+   "2018-04-30": 131217.09,
+   "2018-05-31": 132128.38,
+   "2018-06-30": 133371.11,
+   "2018-07-31": 134976.89,
+   "2018-08-31": 143941.24,
+   "2018-09-30": 143151.1,
+   "2018-10-31": 137090.49,
+   "2018-11-30": 137302.7,
+   "2018-12-31": 136070.36,
+   "2019-01-31": 136070.36,
+   "2019-02-28": 136796.38,
+   "2019-03-31": 142027.83,
+   "2019-04-30": 144296.6,
+   "2019-05-31": 143561.41,
+   "2019-06-30": 147679.57,
+   "2019-07-31": 149764.67,
+   "2019-08-31": 151888.28,
+   "2019-09-30": 151775.48,
+   "2019-10-31": 151317.49,
+   "2019-11-30": 149998.91,
+   "2019-12-31": 153075.87,
+   "2020-01-31": 157738.43,
+   "2020-02-29": 141151.11,
+   "2020-03-31": 141151.11,
+   "2020-04-30": 141151.11,
+   "2020-05-31": 142181.32,
+   "2020-06-30": 143265.24,
+   "2020-07-31": 140973.04,
+   "2020-08-31": 144412.33,
+   "2020-09-30": 141321.48,
+   "2020-10-31": 142628.72,
+   "2020-11-30": 150909.63,
+   "2020-12-31": 150154.89,
+   "2021-01-31": 151908.25,
+   "2021-02-28": 155142.68,
+   "2021-03-31": 155906.85,
+   "2021-04-30": 162906.29,
+   "2021-05-31": 162282.42,
+   "2021-06-30": 161201.69,
+   "2021-07-31": 170827.64,
+   "2021-08-31": 177439.65,
+   "2021-09-30": 164145.83,
+   "2021-10-31": 171891.79,
+   "2021-11-30": 165126.62,
+   "2021-12-31": 172662.64,
+   "2022-01-31": 161120.52,
+   "2022-02-28": 160490.87,
+   "2022-03-31": 160011.32,
+   "2022-04-30": 161903.6,
+   "2022-05-31": 161903.6,
+   "2022-06-30": 161903.6,
+   "2022-07-31": 161903.6,
+   "2022-08-31": 160825.42,
+   "2022-09-30": 156753.58,
+   "2022-10-31": 157207.26,
+   "2022-11-30": 157207.26,
+   "2022-12-31": 156502.74,
+   "2023-01-31": 154833.49,
+   "2023-02-28": 153266.15,
+   "2023-03-31": 154577.91,
+   "2023-04-30": 157036.77,
+   "2023-05-31": 158321.4,
+   "2023-06-30": 164253.03,
+   "2023-07-31": 162522.57,
+   "2023-08-31": 166977.65,
+   "2023-09-30": 161763.43,
+   "2023-10-31": 159256.99,
+   "2023-11-30": 162469.82,
+   "2023-12-31": 160580.93,
+   "2024-01-31": 161780.56,
+   "2024-02-29": 173817.8,
+   "2024-03-31": 184241.86,
+   "2024-04-30": 184698.28,
+   "2024-05-31": 188165.42,
+   "2024-06-30": 183011.14,
+   "2024-07-31": 182764.42,
+   "2024-08-31": 187513.55,
+   "2024-09-30": 192138.32,
+   "2024-10-31": 191440.88,
+   "2024-11-30": 200450.53,
+   "2024-12-31": 190328.56,
+   "2025-01-31": 196290.73,
+   "2025-02-28": 201350.47,
+   "2025-03-31": 199353.99,
+   "2025-04-30": 199353.99,
+   "2025-05-31": 202148.24,
+   "2025-06-30": 203475.2,
+   "2025-07-31": 197945.42,
+   "2025-08-31": 197425.34,
+   "2025-09-30": 214073.91,
+   "2025-10-31": 211741.47,
+   "2025-11-30": 220099.2,
+   "2025-12-31": 215330.99,
+   "2026-01-31": 220156.08,
+   "2026-02-28": 230190.46,
+   "2026-03-31": 223908.24,
+   "2026-04-30": 230517.09,
+   "2026-05-31": 226124.55,
+   "2026-06-30": 231448.28,
+   "2026-07-31": 229249.58,
+   "2026-08-31": 223001.22,
+   "2026-09-30": 225197.25,
+   "2026-10-31": 231930.89
+  },
+  "adaptive": {
+   "2008-01-31": 100000.0,
+   "2008-02-29": 100000.0,
+   "2008-03-31": 100000.0,
+   "2008-04-30": 99839.25,
+   "2008-05-31": 102133.71,
+   "2008-06-30": 98683.54,
+   "2008-07-31": 98683.54,
+   "2008-08-31": 98683.54,
+   "2008-09-30": 98683.54,
+   "2008-10-31": 98683.54,
+   "2008-11-30": 98683.54,
+   "2008-12-31": 98683.54,
+   "2009-01-31": 98683.54,
+   "2009-02-28": 98683.54,
+   "2009-03-31": 98683.54,
+   "2009-04-30": 98298.99,
+   "2009-05-31": 97209.39,
+   "2009-06-30": 96107.48,
+   "2009-07-31": 98112.12,
+   "2009-08-31": 98528.81,
+   "2009-09-30": 99611.64,
+   "2009-10-31": 95946.37,
+   "2009-11-30": 99961.91,
+   "2009-12-31": 101644.48,
+   "2010-01-31": 97279.12,
+   "2010-02-28": 98351.29,
+   "2010-03-31": 102374.66,
+   "2010-04-30": 105062.66,
+   "2010-05-31": 95812.2,
+   "2010-06-30": 94390.64,
+   "2010-07-31": 93362.56,
+   "2010-08-31": 91280.4,
+   "2010-09-30": 92113.5,
+   "2010-10-31": 95408.27,
+   "2010-11-30": 97055.29,
+   "2010-12-31": 97709.18,
+   "2011-01-31": 101735.22,
+   "2011-02-28": 105437.4,
+   "2011-03-31": 103487.15,
+   "2011-04-30": 104049.1,
+   "2011-05-31": 101411.45,
+   "2011-06-30": 100408.9,
+   "2011-07-31": 98040.17,
+   "2011-08-31": 95269.94,
+   "2011-09-30": 95269.94,
+   "2011-10-31": 95143.72,
+   "2011-11-30": 94753.89,
+   "2011-12-31": 95983.78,
+   "2012-01-31": 95251.2,
+   "2012-02-29": 100365.7,
+   "2012-03-31": 104526.9,
+   "2012-04-30": 108139.78,
+   "2012-05-31": 104458.76,
+   "2012-06-30": 105231.01,
+   "2012-07-31": 106091.88,
+   "2012-08-31": 102433.12,
+   "2012-09-30": 106982.93,
+   "2012-10-31": 105686.4,
+   "2012-11-30": 105508.58,
+   "2012-12-31": 104965.66,
+   "2013-01-31": 111133.66,
+   "2013-02-28": 110149.17,
+   "2013-03-31": 114817.44,
+   "2013-04-30": 117366.33,
+   "2013-05-31": 117556.61,
+   "2013-06-30": 115966.66,
+   "2013-07-31": 118200.72,
+   "2013-08-31": 114867.98,
+   "2013-09-30": 118940.77,
+   "2013-10-31": 115932.02,
+   "2013-11-30": 116114.41,
+   "2013-12-31": 117928.33,
+   "2014-01-31": 119074.9,
+   "2014-02-28": 121125.05,
+   "2014-03-31": 118976.01,
+   "2014-04-30": 119203.85,
+   "2014-05-31": 119529.11,
+   "2014-06-30": 124343.61,
+   "2014-07-31": 119000.83,
+   "2014-08-31": 123633.84,
+   "2014-09-30": 120257.3,
+   "2014-10-31": 115871.32,
+   "2014-11-30": 118711.02,
+   "2014-12-31": 119196.7,
+   "2015-01-31": 124965.82,
+   "2015-02-28": 128603.49,
+   "2015-03-31": 129070.34,
+   "2015-04-30": 128207.44,
+   "2015-05-31": 135657.86,
+   "2015-06-30": 131746.52,
+   "2015-07-31": 135110.07,
+   "2015-08-31": 131591.33,
+   "2015-09-30": 131591.33,
+   "2015-10-31": 130850.61,
+   "2015-11-30": 131030.47,
+   "2015-12-31": 130922.41,
+   "2016-01-31": 128039.97,
+   "2016-02-29": 128039.97,
+   "2016-03-31": 130522.74,
+   "2016-04-30": 127128.61,
+   "2016-05-31": 132985.04,
+   "2016-06-30": 139426.86,
+   "2016-07-31": 140255.33,
+   "2016-08-31": 134135.02,
+   "2016-09-30": 132676.67,
+   "2016-10-31": 125649.62,
+   "2016-11-30": 126532.66,
+   "2016-12-31": 129318.38,
+   "2017-01-31": 129808.93,
+   "2017-02-28": 132977.25,
+   "2017-03-31": 133381.31,
+   "2017-04-30": 137923.28,
+   "2017-05-31": 145434.77,
+   "2017-06-30": 137354.21,
+   "2017-07-31": 146012.94,
+   "2017-08-31": 149451.16,
+   "2017-09-30": 149842.26,
+   "2017-10-31": 155579.68,
+   "2017-11-30": 159601.28,
+   "2017-12-31": 160230.19,
+   "2018-01-31": 162892.15,
+   "2018-02-28": 148645.92,
+   "2018-03-31": 144772.65,
+   "2018-04-30": 143303.42,
+   "2018-05-31": 147369.7,
+   "2018-06-30": 146819.26,
+   "2018-07-31": 148917.64,
+   "2018-08-31": 154546.88,
+   "2018-09-30": 157414.98,
+   "2018-10-31": 147900.52,
+   "2018-11-30": 148211.53,
+   "2018-12-31": 147299.88,
+   "2019-01-31": 147299.88,
+   "2019-02-28": 148942.03,
+   "2019-03-31": 152701.08,
+   "2019-04-30": 151838.64,
+   "2019-05-31": 151190.62,
+   "2019-06-30": 157214.97,
+   "2019-07-31": 159518.43,
+   "2019-08-31": 163358.19,
+   "2019-09-30": 160780.2,
+   "2019-10-31": 162291.38,
+   "2019-11-30": 156582.33,
+   "2019-12-31": 161244.88,
+   "2020-01-31": 162687.39,
+   "2020-02-29": 155073.74,
+   "2020-03-31": 155073.74,
+   "2020-04-30": 155073.74,
+   "2020-05-31": 156048.2,
+   "2020-06-30": 156262.66,
+   "2020-07-31": 151454.21,
+   "2020-08-31": 154711.11,
+   "2020-09-30": 151649.85,
+   "2020-10-31": 151792.58,
+   "2020-11-30": 156713.12,
+   "2020-12-31": 158586.77,
+   "2021-01-31": 157945.8,
+   "2021-02-28": 160972.53,
+   "2021-03-31": 162490.56,
+   "2021-04-30": 167571.54,
+   "2021-05-31": 170390.3,
+   "2021-06-30": 169658.19,
+   "2021-07-31": 181748.02,
+   "2021-08-31": 189268.82,
+   "2021-09-30": 173799.99,
+   "2021-10-31": 176933.54,
+   "2021-11-30": 173593.97,
+   "2021-12-31": 175618.01,
+   "2022-01-31": 162884.25,
+   "2022-02-28": 163116.07,
+   "2022-03-31": 162470.77,
+   "2022-04-30": 164441.93,
+   "2022-05-31": 164441.93,
+   "2022-06-30": 164441.93,
+   "2022-07-31": 164441.93,
+   "2022-08-31": 161071.9,
+   "2022-09-30": 157464.76,
+   "2022-10-31": 157835.19,
+   "2022-11-30": 157835.19,
+   "2022-12-31": 157410.7,
+   "2023-01-31": 157337.29,
+   "2023-02-28": 154796.86,
+   "2023-03-31": 155347.82,
+   "2023-04-30": 156498.79,
+   "2023-05-31": 156670.38,
+   "2023-06-30": 161304.83,
+   "2023-07-31": 158679.85,
+   "2023-08-31": 161469.44,
+   "2023-09-30": 162173.64,
+   "2023-10-31": 160588.87,
+   "2023-11-30": 163104.2,
+   "2023-12-31": 163815.49,
+   "2024-01-31": 163589.25,
+   "2024-02-29": 171740.28,
+   "2024-03-31": 182249.33,
+   "2024-04-30": 180347.33,
+   "2024-05-31": 183548.95,
+   "2024-06-30": 176802.68,
+   "2024-07-31": 176201.03,
+   "2024-08-31": 177259.41,
+   "2024-09-30": 180858.2,
+   "2024-10-31": 177695.31,
+   "2024-11-30": 199014.01,
+   "2024-12-31": 188082.57,
+   "2025-01-31": 193032.35,
+   "2025-02-28": 196356.58,
+   "2025-03-31": 192810.59,
+   "2025-04-30": 192810.59,
+   "2025-05-31": 196075.59,
+   "2025-06-30": 196603.27,
+   "2025-07-31": 191683.42,
+   "2025-08-31": 188522.19,
+   "2025-09-30": 201115.47,
+   "2025-10-31": 202131.0,
+   "2025-11-30": 205504.06,
+   "2025-12-31": 200046.97,
+   "2026-01-31": 204972.41,
+   "2026-02-28": 208223.65,
+   "2026-03-31": 197893.7,
+   "2026-04-30": 203929.45,
+   "2026-05-31": 205500.11,
+   "2026-06-30": 212983.86,
+   "2026-07-31": 199301.88,
+   "2026-08-31": 197497.15,
+   "2026-09-30": 197579.85,
+   "2026-10-31": 200557.52
+  },
+  "ml": {
+   "2008-01-31": 100000.0,
+   "2008-02-29": 100000.0,
+   "2008-03-31": 100000.0,
+   "2008-04-30": 100000.0,
+   "2008-05-31": 100000.0,
+   "2008-06-30": 100000.0,
+   "2008-07-31": 100000.0,
+   "2008-08-31": 100000.0,
+   "2008-09-30": 100000.0,
+   "2008-10-31": 100000.0,
+   "2008-11-30": 100000.0,
+   "2008-12-31": 100000.0,
+   "2009-01-31": 100000.0,
+   "2009-02-28": 100000.0,
+   "2009-03-31": 100000.0,
+   "2009-04-30": 100000.0,
+   "2009-05-31": 100000.0,
+   "2009-06-30": 100000.0,
+   "2009-07-31": 100000.0,
+   "2009-08-31": 100000.0,
+   "2009-09-30": 100000.0,
+   "2009-10-31": 100000.0,
+   "2009-11-30": 100000.0,
+   "2009-12-31": 100000.0,
+   "2010-01-31": 100000.0,
+   "2010-02-28": 100000.0,
+   "2010-03-31": 100000.0,
+   "2010-04-30": 100000.0,
+   "2010-05-31": 100000.0,
+   "2010-06-30": 100000.0,
+   "2010-07-31": 100000.0,
+   "2010-08-31": 100000.0,
+   "2010-09-30": 100000.0,
+   "2010-10-31": 100000.0,
+   "2010-11-30": 100000.0,
+   "2010-12-31": 100000.0,
+   "2011-01-31": 100000.0,
+   "2011-02-28": 100000.0,
+   "2011-03-31": 100000.0,
+   "2011-04-30": 100000.0,
+   "2011-05-31": 100000.0,
+   "2011-06-30": 100000.0,
+   "2011-07-31": 100000.0,
+   "2011-08-31": 100000.0,
+   "2011-09-30": 100000.0,
+   "2011-10-31": 100000.0,
+   "2011-11-30": 100000.0,
+   "2011-12-31": 100000.0,
+   "2012-01-31": 100000.0,
+   "2012-02-29": 100000.0,
+   "2012-03-31": 100000.0,
+   "2012-04-30": 100000.0,
+   "2012-05-31": 100000.0,
+   "2012-06-30": 100000.0,
+   "2012-07-31": 100000.0,
+   "2012-08-31": 100000.0,
+   "2012-09-30": 100000.0,
+   "2012-10-31": 100000.0,
+   "2012-11-30": 100000.0,
+   "2012-12-31": 100000.0,
+   "2013-01-31": 100000.0,
+   "2013-02-28": 100000.0,
+   "2013-03-31": 100000.0,
+   "2013-04-30": 100000.0,
+   "2013-05-31": 100000.0,
+   "2013-06-30": 100000.0,
+   "2013-07-31": 100000.0,
+   "2013-08-31": 100000.0,
+   "2013-09-30": 100000.0,
+   "2013-10-31": 100000.0,
+   "2013-11-30": 100000.0,
+   "2013-12-31": 100000.0,
+   "2014-01-31": 100000.0,
+   "2014-02-28": 100000.0,
+   "2014-03-31": 100000.0,
+   "2014-04-30": 100000.0,
+   "2014-05-31": 100000.0,
+   "2014-06-30": 100000.0,
+   "2014-07-31": 100000.0,
+   "2014-08-31": 100000.0,
+   "2014-09-30": 100000.0,
+   "2014-10-31": 100000.0,
+   "2014-11-30": 100000.0,
+   "2014-12-31": 100000.0,
+   "2015-01-31": 100000.0,
+   "2015-02-28": 100000.0,
+   "2015-03-31": 100000.0,
+   "2015-04-30": 100000.0,
+   "2015-05-31": 100000.0,
+   "2015-06-30": 100000.0,
+   "2015-07-31": 100000.0,
+   "2015-08-31": 100000.0,
+   "2015-09-30": 100000.0,
+   "2015-10-31": 100000.0,
+   "2015-11-30": 100000.0,
+   "2015-12-31": 100000.0,
+   "2016-01-31": 100000.0,
+   "2016-02-29": 100000.0,
+   "2016-03-31": 102114.66,
+   "2016-04-30": 100773.64,
+   "2016-05-31": 102541.34,
+   "2016-06-30": 106125.05,
+   "2016-07-31": 107216.54,
+   "2016-08-31": 106390.06,
+   "2016-09-30": 105065.75,
+   "2016-10-31": 102612.27,
+   "2016-11-30": 108588.93,
+   "2016-12-31": 110046.64,
+   "2017-01-31": 113443.23,
+   "2017-02-28": 115709.55,
+   "2017-03-31": 117240.77,
+   "2017-04-30": 118833.78,
+   "2017-05-31": 123213.62,
+   "2017-06-30": 120600.84,
+   "2017-07-31": 122937.07,
+   "2017-08-31": 125472.11,
+   "2017-09-30": 125532.62,
+   "2017-10-31": 132042.66,
+   "2017-11-30": 138961.4,
+   "2017-12-31": 140353.14,
+   "2018-01-31": 144423.55,
+   "2018-02-28": 133669.82,
+   "2018-03-31": 132083.57,
+   "2018-04-30": 133693.44,
+   "2018-05-31": 137511.12,
+   "2018-06-30": 138907.13,
+   "2018-07-31": 137614.08,
+   "2018-08-31": 150184.04,
+   "2018-09-30": 151729.18,
+   "2018-10-31": 138708.94,
+   "2018-11-30": 138682.22,
+   "2018-12-31": 135594.79,
+   "2019-01-31": 135594.79,
+   "2019-02-28": 135585.9,
+   "2019-03-31": 138273.0,
+   "2019-04-30": 139754.9,
+   "2019-05-31": 138470.72,
+   "2019-06-30": 143579.53,
+   "2019-07-31": 148430.3,
+   "2019-08-31": 150855.92,
+   "2019-09-30": 147368.48,
+   "2019-10-31": 150910.58,
+   "2019-11-30": 150082.45,
+   "2019-12-31": 152067.14,
+   "2020-01-31": 152962.82,
+   "2020-02-29": 142084.25,
+   "2020-03-31": 142084.25,
+   "2020-04-30": 142084.25,
+   "2020-05-31": 141938.32,
+   "2020-06-30": 142339.29,
+   "2020-07-31": 139995.83,
+   "2020-08-31": 142137.09,
+   "2020-09-30": 140915.49,
+   "2020-10-31": 141344.02,
+   "2020-11-30": 150623.69,
+   "2020-12-31": 155770.11,
+   "2021-01-31": 156787.0,
+   "2021-02-28": 155389.24,
+   "2021-03-31": 152421.91,
+   "2021-04-30": 153518.29,
+   "2021-05-31": 153145.78,
+   "2021-06-30": 152767.45,
+   "2021-07-31": 153404.55,
+   "2021-08-31": 155626.06,
+   "2021-09-30": 146187.26,
+   "2021-10-31": 156957.88,
+   "2021-11-30": 160232.14,
+   "2021-12-31": 155399.11,
+   "2022-01-31": 149465.25,
+   "2022-02-28": 147326.67,
+   "2022-03-31": 148362.08,
+   "2022-04-30": 150465.14,
+   "2022-05-31": 150465.14,
+   "2022-06-30": 150465.14,
+   "2022-07-31": 150465.14,
+   "2022-08-31": 148493.99,
+   "2022-09-30": 145422.76,
+   "2022-10-31": 145927.12,
+   "2022-11-30": 145927.12,
+   "2022-12-31": 143911.58,
+   "2023-01-31": 146485.43,
+   "2023-02-28": 144350.28,
+   "2023-03-31": 144071.58,
+   "2023-04-30": 143219.57,
+   "2023-05-31": 139816.89,
+   "2023-06-30": 147395.0,
+   "2023-07-31": 153247.28,
+   "2023-08-31": 150443.04,
+   "2023-09-30": 146574.63,
+   "2023-10-31": 146596.01,
+   "2023-11-30": 148827.39,
+   "2023-12-31": 152794.78,
+   "2024-01-31": 155808.2,
+   "2024-02-29": 159109.24,
+   "2024-03-31": 160030.57,
+   "2024-04-30": 155028.64,
+   "2024-05-31": 159188.61,
+   "2024-06-30": 154188.99,
+   "2024-07-31": 152211.16,
+   "2024-08-31": 152428.87,
+   "2024-09-30": 153948.48,
+   "2024-10-31": 151205.9,
+   "2024-11-30": 151884.25,
+   "2024-12-31": 146272.96,
+   "2025-01-31": 144888.09,
+   "2025-02-28": 140259.23,
+   "2025-03-31": 131956.44,
+   "2025-04-30": 131956.44,
+   "2025-05-31": 133992.71,
+   "2025-06-30": 133149.86,
+   "2025-07-31": 134058.31,
+   "2025-08-31": 133290.57,
+   "2025-09-30": 141205.46,
+   "2025-10-31": 143702.71,
+   "2025-11-30": 142512.59,
+   "2025-12-31": 141531.68,
+   "2026-01-31": 147009.21,
+   "2026-02-28": 150825.94,
+   "2026-03-31": 146587.22,
+   "2026-04-30": 148981.5,
+   "2026-05-31": 154494.42,
+   "2026-06-30": 153749.56,
+   "2026-07-31": 154573.43,
+   "2026-08-31": 154371.38,
+   "2026-09-30": 149464.86,
+   "2026-10-31": 148691.49
+  },
+  "random": {
+   "2008-01-31": 100000.0,
+   "2008-02-29": 100000.0,
+   "2008-03-31": 100000.0,
+   "2008-04-30": 100592.43,
+   "2008-05-31": 104358.7,
+   "2008-06-30": 98572.81,
+   "2008-07-31": 98572.81,
+   "2008-08-31": 98572.81,
+   "2008-09-30": 98572.81,
+   "2008-10-31": 98572.81,
+   "2008-11-30": 98572.81,
+   "2008-12-31": 98572.81,
+   "2009-01-31": 98572.81,
+   "2009-02-28": 98572.81,
+   "2009-03-31": 98572.81,
+   "2009-04-30": 98705.0,
+   "2009-05-31": 98499.27,
+   "2009-06-30": 97915.3,
+   "2009-07-31": 101159.67,
+   "2009-08-31": 104126.92,
+   "2009-09-30": 106637.6,
+   "2009-10-31": 101189.05,
+   "2009-11-30": 107824.59,
+   "2009-12-31": 109902.65,
+   "2010-01-31": 104185.09,
+   "2010-02-28": 108349.73,
+   "2010-03-31": 112359.29,
+   "2010-04-30": 118008.73,
+   "2010-05-31": 107206.21,
+   "2010-06-30": 105971.58,
+   "2010-07-31": 104630.57,
+   "2010-08-31": 103846.08,
+   "2010-09-30": 104307.34,
+   "2010-10-31": 106482.92,
+   "2010-11-30": 107321.36,
+   "2010-12-31": 111156.6,
+   "2011-01-31": 111996.88,
+   "2011-02-28": 118712.97,
+   "2011-03-31": 117107.24,
+   "2011-04-30": 123098.29,
+   "2011-05-31": 125460.44,
+   "2011-06-30": 124723.77,
+   "2011-07-31": 120127.75,
+   "2011-08-31": 117402.16,
+   "2011-09-30": 117402.16,
+   "2011-10-31": 116746.28,
+   "2011-11-30": 114388.96,
+   "2011-12-31": 118594.07,
+   "2012-01-31": 122302.69,
+   "2012-02-29": 125382.91,
+   "2012-03-31": 127591.99,
+   "2012-04-30": 129663.04,
+   "2012-05-31": 122471.38,
+   "2012-06-30": 124141.2,
+   "2012-07-31": 125628.96,
+   "2012-08-31": 125097.11,
+   "2012-09-30": 128663.31,
+   "2012-10-31": 128025.76,
+   "2012-11-30": 126295.75,
+   "2012-12-31": 126521.38,
+   "2013-01-31": 132340.26,
+   "2013-02-28": 132465.28,
+   "2013-03-31": 136099.24,
+   "2013-04-30": 139871.68,
+   "2013-05-31": 136455.8,
+   "2013-06-30": 133292.01,
+   "2013-07-31": 141969.61,
+   "2013-08-31": 138588.66,
+   "2013-09-30": 143222.51,
+   "2013-10-31": 145141.34,
+   "2013-11-30": 147926.21,
+   "2013-12-31": 150532.65,
+   "2014-01-31": 148143.27,
+   "2014-02-28": 151752.33,
+   "2014-03-31": 152215.18,
+   "2014-04-30": 147157.74,
+   "2014-05-31": 148629.02,
+   "2014-06-30": 153895.99,
+   "2014-07-31": 155399.49,
+   "2014-08-31": 161685.47,
+   "2014-09-30": 158465.3,
+   "2014-10-31": 154790.73,
+   "2014-11-30": 158405.02,
+   "2014-12-31": 158002.04,
+   "2015-01-31": 153659.59,
+   "2015-02-28": 157517.81,
+   "2015-03-31": 154569.06,
+   "2015-04-30": 153155.29,
+   "2015-05-31": 157337.64,
+   "2015-06-30": 158352.77,
+   "2015-07-31": 157419.41,
+   "2015-08-31": 152804.6,
+   "2015-09-30": 152804.6,
+   "2015-10-31": 154973.1,
+   "2015-11-30": 155951.49,
+   "2015-12-31": 154440.68,
+   "2016-01-31": 151264.54,
+   "2016-02-29": 151264.54,
+   "2016-03-31": 154420.88,
+   "2016-04-30": 152590.72,
+   "2016-05-31": 152880.71,
+   "2016-06-30": 154933.48,
+   "2016-07-31": 176078.84,
+   "2016-08-31": 174588.02,
+   "2016-09-30": 171372.81,
+   "2016-10-31": 168195.05,
+   "2016-11-30": 170510.39,
+   "2016-12-31": 168780.83,
+   "2017-01-31": 173719.76,
+   "2017-02-28": 179856.98,
+   "2017-03-31": 182010.05,
+   "2017-04-30": 182313.05,
+   "2017-05-31": 190558.18,
+   "2017-06-30": 187041.27,
+   "2017-07-31": 188605.16,
+   "2017-08-31": 190462.36,
+   "2017-09-30": 190643.78,
+   "2017-10-31": 192262.85,
+   "2017-11-30": 202090.34,
+   "2017-12-31": 204373.21,
+   "2018-01-31": 212758.13,
+   "2018-02-28": 194467.45,
+   "2018-03-31": 190174.27,
+   "2018-04-30": 188843.24,
+   "2018-05-31": 189720.79,
+   "2018-06-30": 188134.33,
+   "2018-07-31": 193534.51,
+   "2018-08-31": 197363.57,
+   "2018-09-30": 194531.19,
+   "2018-10-31": 182885.08,
+   "2018-11-30": 183203.55,
+   "2018-12-31": 181282.54,
+   "2019-01-31": 181282.54,
+   "2019-02-28": 182563.52,
+   "2019-03-31": 187203.03,
+   "2019-04-30": 187578.4,
+   "2019-05-31": 181950.2,
+   "2019-06-30": 188673.74,
+   "2019-07-31": 187756.01,
+   "2019-08-31": 185419.38,
+   "2019-09-30": 186890.81,
+   "2019-10-31": 184537.36,
+   "2019-11-30": 183591.72,
+   "2019-12-31": 182505.15,
+   "2020-01-31": 179191.92,
+   "2020-02-29": 174323.65,
+   "2020-03-31": 174323.65,
+   "2020-04-30": 174323.65,
+   "2020-05-31": 174364.0,
+   "2020-06-30": 173305.39,
+   "2020-07-31": 174553.64,
+   "2020-08-31": 179685.0,
+   "2020-09-30": 178126.02,
+   "2020-10-31": 180839.56,
+   "2020-11-30": 186898.19,
+   "2020-12-31": 193209.19,
+   "2021-01-31": 189163.21,
+   "2021-02-28": 193686.98,
+   "2021-03-31": 202403.08,
+   "2021-04-30": 208277.74,
+   "2021-05-31": 211090.93,
+   "2021-06-30": 207393.05,
+   "2021-07-31": 219944.88,
+   "2021-08-31": 228047.01,
+   "2021-09-30": 212621.35,
+   "2021-10-31": 224432.77,
+   "2021-11-30": 222395.58,
+   "2021-12-31": 239358.29,
+   "2022-01-31": 223060.24,
+   "2022-02-28": 219029.22,
+   "2022-03-31": 222589.23,
+   "2022-04-30": 222983.27,
+   "2022-05-31": 222983.27,
+   "2022-06-30": 222983.27,
+   "2022-07-31": 222983.27,
+   "2022-08-31": 218331.97,
+   "2022-09-30": 209705.82,
+   "2022-10-31": 210871.25,
+   "2022-11-30": 210871.25,
+   "2022-12-31": 207739.57,
+   "2023-01-31": 211829.0,
+   "2023-02-28": 207483.59,
+   "2023-03-31": 210695.88,
+   "2023-04-30": 214461.55,
+   "2023-05-31": 209531.05,
+   "2023-06-30": 215420.67,
+   "2023-07-31": 216428.18,
+   "2023-08-31": 214321.71,
+   "2023-09-30": 209168.75,
+   "2023-10-31": 203037.26,
+   "2023-11-30": 207456.79,
+   "2023-12-31": 209691.95,
+   "2024-01-31": 210214.42,
+   "2024-02-29": 217197.73,
+   "2024-03-31": 214843.53,
+   "2024-04-30": 205509.8,
+   "2024-05-31": 208662.51,
+   "2024-06-30": 208982.66,
+   "2024-07-31": 204295.07,
+   "2024-08-31": 209130.4,
+   "2024-09-30": 210705.22,
+   "2024-10-31": 211138.97,
+   "2024-11-30": 223836.92,
+   "2024-12-31": 212182.11,
+   "2025-01-31": 212281.56,
+   "2025-02-28": 213871.04,
+   "2025-03-31": 207550.19,
+   "2025-04-30": 207550.19,
+   "2025-05-31": 207690.08,
+   "2025-06-30": 210189.1,
+   "2025-07-31": 209764.31,
+   "2025-08-31": 209891.01,
+   "2025-09-30": 212022.5,
+   "2025-10-31": 210106.32,
+   "2025-11-30": 208834.64,
+   "2025-12-31": 206935.69,
+   "2026-01-31": 204440.94,
+   "2026-02-28": 210171.21,
+   "2026-03-31": 202931.34,
+   "2026-04-30": 201019.47,
+   "2026-05-31": 197098.17,
+   "2026-06-30": 201464.87,
+   "2026-07-31": 198675.59,
+   "2026-08-31": 199774.83,
+   "2026-09-30": 193295.13,
+   "2026-10-31": 195557.46
+  }
+ },
+ "spy_monthly": {
+  "2008-01-31": 97.6,
+  "2008-02-29": 95.08,
+  "2008-03-31": 94.23,
+  "2008-04-30": 98.72,
+  "2008-05-31": 100.21,
+  "2008-06-30": 91.84,
+  "2008-07-31": 91.01,
+  "2008-08-31": 92.42,
+  "2008-09-30": 83.72,
+  "2008-10-31": 69.89,
+  "2008-11-30": 65.02,
+  "2008-12-31": 65.66,
+  "2009-01-31": 60.27,
+  "2009-02-28": 53.79,
+  "2009-03-31": 58.27,
+  "2009-04-30": 64.06,
+  "2009-05-31": 67.81,
+  "2009-06-30": 67.76,
+  "2009-07-31": 72.82,
+  "2009-08-31": 75.51,
+  "2009-09-30": 78.19,
+  "2009-10-31": 76.68,
+  "2009-11-30": 81.41,
+  "2009-12-31": 82.96,
+  "2010-01-31": 79.95,
+  "2010-02-28": 82.44,
+  "2010-03-31": 87.46,
+  "2010-04-30": 88.81,
+  "2010-05-31": 81.76,
+  "2010-06-30": 77.53,
+  "2010-07-31": 82.82,
+  "2010-08-31": 79.1,
+  "2010-09-30": 86.18,
+  "2010-10-31": 89.47,
+  "2010-11-30": 89.47,
+  "2010-12-31": 95.45,
+  "2011-01-31": 97.68,
+  "2011-02-28": 101.07,
+  "2011-03-31": 101.08,
+  "2011-04-30": 104.01,
+  "2011-05-31": 102.84,
+  "2011-06-30": 101.11,
+  "2011-07-31": 99.09,
+  "2011-08-31": 93.64,
+  "2011-09-30": 87.14,
+  "2011-10-31": 96.65,
+  "2011-11-30": 96.26,
+  "2011-12-31": 97.26,
+  "2012-01-31": 101.77,
+  "2012-02-29": 106.19,
+  "2012-03-31": 109.61,
+  "2012-04-30": 108.87,
+  "2012-05-31": 102.33,
+  "2012-06-30": 106.49,
+  "2012-07-31": 107.75,
+  "2012-08-31": 110.45,
+  "2012-09-30": 113.25,
+  "2012-10-31": 111.19,
+  "2012-11-30": 111.82,
+  "2012-12-31": 112.81,
+  "2013-01-31": 118.59,
+  "2013-02-28": 120.1,
+  "2013-03-31": 124.66,
+  "2013-04-30": 127.06,
+  "2013-05-31": 130.06,
+  "2013-06-30": 128.32,
+  "2013-07-31": 134.95,
+  "2013-08-31": 130.91,
+  "2013-09-30": 135.05,
+  "2013-10-31": 141.3,
+  "2013-11-30": 145.49,
+  "2013-12-31": 149.26,
+  "2014-01-31": 144.0,
+  "2014-02-28": 150.55,
+  "2014-03-31": 151.8,
+  "2014-04-30": 152.86,
+  "2014-05-31": 156.41,
+  "2014-06-30": 159.64,
+  "2014-07-31": 157.49,
+  "2014-08-31": 163.71,
+  "2014-09-30": 161.45,
+  "2014-10-31": 165.25,
+  "2014-11-30": 169.79,
+  "2014-12-31": 169.36,
+  "2015-01-31": 164.34,
+  "2015-02-28": 173.58,
+  "2015-03-31": 170.85,
+  "2015-04-30": 172.53,
+  "2015-05-31": 174.75,
+  "2015-06-30": 171.2,
+  "2015-07-31": 175.07,
+  "2015-08-31": 164.4,
+  "2015-09-30": 160.2,
+  "2015-10-31": 173.83,
+  "2015-11-30": 174.46,
+  "2015-12-31": 171.45,
+  "2016-01-31": 162.91,
+  "2016-02-29": 162.78,
+  "2016-03-31": 173.73,
+  "2016-04-30": 174.41,
+  "2016-05-31": 177.38,
+  "2016-06-30": 178.0,
+  "2016-07-31": 184.49,
+  "2016-08-31": 184.71,
+  "2016-09-30": 184.72,
+  "2016-10-31": 181.52,
+  "2016-11-30": 188.2,
+  "2016-12-31": 192.02,
+  "2017-01-31": 195.45,
+  "2017-02-28": 203.13,
+  "2017-03-31": 203.39,
+  "2017-04-30": 205.41,
+  "2017-05-31": 208.31,
+  "2017-06-30": 209.63,
+  "2017-07-31": 213.94,
+  "2017-08-31": 214.57,
+  "2017-09-30": 218.89,
+  "2017-10-31": 224.05,
+  "2017-11-30": 230.9,
+  "2017-12-31": 233.7,
+  "2018-01-31": 246.87,
+  "2018-02-28": 237.89,
+  "2018-03-31": 231.37,
+  "2018-04-30": 232.57,
+  "2018-05-31": 238.22,
+  "2018-06-30": 239.59,
+  "2018-07-31": 248.47,
+  "2018-08-31": 256.4,
+  "2018-09-30": 257.92,
+  "2018-10-31": 240.1,
+  "2018-11-30": 244.55,
+  "2018-12-31": 223.02,
+  "2019-01-31": 240.88,
+  "2019-02-28": 248.68,
+  "2019-03-31": 253.19,
+  "2019-04-30": 263.53,
+  "2019-05-31": 246.72,
+  "2019-06-30": 263.89,
+  "2019-07-31": 267.88,
+  "2019-08-31": 263.4,
+  "2019-09-30": 268.52,
+  "2019-10-31": 274.46,
+  "2019-11-30": 284.39,
+  "2019-12-31": 292.65,
+  "2020-01-31": 292.54,
+  "2020-02-29": 269.38,
+  "2020-03-31": 235.74,
+  "2020-04-30": 265.68,
+  "2020-05-31": 278.33,
+  "2020-06-30": 283.27,
+  "2020-07-31": 299.95,
+  "2020-08-31": 320.89,
+  "2020-09-30": 308.87,
+  "2020-10-31": 301.17,
+  "2020-11-30": 333.93,
+  "2020-12-31": 346.3,
+  "2021-01-31": 342.77,
+  "2021-02-28": 352.31,
+  "2021-03-31": 368.3,
+  "2021-04-30": 387.79,
+  "2021-05-31": 390.33,
+  "2021-06-30": 399.09,
+  "2021-07-31": 408.83,
+  "2021-08-31": 421.0,
+  "2021-09-30": 401.38,
+  "2021-10-31": 429.54,
+  "2021-11-30": 426.09,
+  "2021-12-31": 445.79,
+  "2022-01-31": 422.28,
+  "2022-02-28": 409.82,
+  "2022-03-31": 425.22,
+  "2022-04-30": 387.9,
+  "2022-05-31": 388.78,
+  "2022-06-30": 356.72,
+  "2022-07-31": 389.57,
+  "2022-08-31": 373.67,
+  "2022-09-30": 339.13,
+  "2022-10-31": 366.69,
+  "2022-11-30": 387.07,
+  "2022-12-31": 364.77,
+  "2023-01-31": 387.71,
+  "2023-02-28": 377.96,
+  "2023-03-31": 391.97,
+  "2023-04-30": 398.23,
+  "2023-05-31": 400.07,
+  "2023-06-30": 426.0,
+  "2023-07-31": 439.94,
+  "2023-08-31": 432.79,
+  "2023-09-30": 412.26,
+  "2023-10-31": 403.31,
+  "2023-11-30": 440.15,
+  "2023-12-31": 460.25,
+  "2024-01-31": 467.58,
+  "2024-02-29": 491.98,
+  "2024-03-31": 508.07,
+  "2024-04-30": 487.58,
+  "2024-05-31": 512.25,
+  "2024-06-30": 530.32,
+  "2024-07-31": 536.74,
+  "2024-08-31": 549.28,
+  "2024-09-30": 560.82,
+  "2024-10-31": 555.81,
+  "2024-11-30": 588.96,
+  "2024-12-31": 574.79,
+  "2025-01-31": 590.22,
+  "2025-02-28": 582.73,
+  "2025-03-31": 550.26,
+  "2025-04-30": 545.49,
+  "2025-05-31": 579.77,
+  "2025-06-30": 609.57,
+  "2025-07-31": 623.6,
+  "2025-08-31": 636.4,
+  "2025-09-30": 659.07,
+  "2025-10-31": 674.78,
+  "2025-11-30": 676.1,
+  "2025-12-31": 676.64,
+  "2026-01-31": 686.61,
+  "2026-02-28": 680.67,
+  "2026-03-31": 647.06,
+  "2026-04-30": 715.04,
+  "2026-05-31": 752.67,
+  "2026-06-30": 744.92,
+  "2026-07-31": 745.18,
+  "2026-08-31": 765.15,
+  "2026-09-30": 762.63,
+  "2026-10-31": 771.79
+ }
+}
