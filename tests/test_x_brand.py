@@ -25,6 +25,8 @@ class XBrandTests(unittest.TestCase):
         self.assertIn("_XLOGO_MASK", theme)
         self.assertIn('a[href$="x-bots"]', theme)
         self.assertIn("T.X_BRAND_CSS", app)
+        self.assertIn("st-key-alturaifi_ai_xbrand_", theme)
+        self.assertIn("alturaifi_ai_xbrand_", self.read("ai_assistant.py"))
         self.assertIn('if k == "xbots" else page.title', app)
         self.assertIn('if k == "xbots" else P[k].title', app)
 
