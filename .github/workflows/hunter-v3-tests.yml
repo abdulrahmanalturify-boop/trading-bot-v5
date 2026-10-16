@@ -1,6 +1,9 @@
 name: Hunter V3 isolated research checks
 
 on:
+  push:
+    branches:
+      - feature/hunter-v3-alpha-lab-20261016
   pull_request:
     paths:
       - "hunter_v3.py"
