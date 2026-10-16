@@ -200,6 +200,9 @@ def run(prices):
             if method == "v3":
                 allocation_return *= {"on": 1., "mixed": .65, "off": .25}.get(meta["mood"], .25)
             vals[method] = allocation_return
+        defensive_fraction = {"on": 1., "mixed": .65, "off": .25}.get(meta["mood"], .25)
+        seeking_fraction = 1. if meta["mood"] in ("on", "mixed") else .70
+        vals["v3_seek"] = vals["v3"] / defensive_fraction * seeking_fraction
         ar = float(spy.at[entry_day, "Open"])
         br = float(spy.at[exit_day, "Open"])
         records.append({
@@ -208,11 +211,12 @@ def run(prices):
             "exit": exit_day.date().isoformat(),
             "year": int(entry_day.year),
             "candidates": int(len(res)), "scanned": int(len(samples)),
-            "v1": vals["v1"], "v3": vals["v3"], "SPY": br/ar - 1,
+            "v1": vals["v1"], "v3": vals["v3"], "v3_seek": vals["v3_seek"], "SPY": br/ar - 1,
+            "regime": meta["mood"], "model_status": fit.get("status", "unknown"),
             "v1_picks": picks["v1"], "v3_picks": picks["v3"],
         })
         print(f"MONTH {entry_day.date()} candidates={len(res)} "
-              f"v1={vals['v1']*100:.2f}% v3={vals['v3']*100:.2f}% SPY={(br/ar-1)*100:.2f}%", flush=True)
+              f"v1={vals['v1']*100:.2f}% v3={vals['v3']*100:.2f}% v3_seek={vals['v3_seek']*100:.2f}% SPY={(br/ar-1)*100:.2f}%", flush=True)
     if not records:
         raise RuntimeError("No evaluable monthly rebalances; downloaded history is insufficient.")
     out = {"methodology": {
@@ -223,6 +227,7 @@ def run(prices):
         "cost_per_trade_round_trip_bps": ROUND_TRIP_BPS,
         "benchmark": "SPY next-open to next-open buy-and-hold (no trading-cost drag)",
         "v3_regime_exposure": {"on": 1.0, "mixed": 0.65, "off": 0.25},
+        "v3_return_seeking_exposure": {"on": 1.0, "mixed": 1.0, "off": 0.70},
         "not_tested": "Actual setup stops/targets, options, intraday liquidity, real position sizing, delisting returns, point-in-time constituents",
         "note": "V3 trains only from already resolved 20-session outcomes; this is monthly ranking evidence, not a complete trading simulator. 2026 partial; survivorship bias applies."
     }, "tickers_downloaded": list(prices), "skipped_months": skipped, "years": {}, "periods": {},
@@ -231,7 +236,7 @@ def run(prices):
         chunk = [rec for rec in records if rec["year"] == year]
         if not chunk: continue
         out["years"][str(year)] = {
-            **{m: port_stats([r[m] for r in chunk]) for m in ("v1", "v3", "SPY")},
+            **{m: port_stats([r[m] for r in chunk]) for m in ("v1", "v3", "v3_seek", "SPY")},
             "v3_minus_v1_pct_points": round(port_stats([r["v3"] for r in chunk])["return_pct"] -
                                               port_stats([r["v1"] for r in chunk])["return_pct"], 2),
             "average_eligible": round(float(np.mean([r["candidates"] for r in chunk])), 1),
@@ -242,7 +247,7 @@ def run(prices):
     for label, years in periods.items():
         chunk = [r for r in records if r["year"] in years]
         if chunk:
-            out["periods"][label] = {m: port_stats([r[m] for r in chunk]) for m in ("v1","v3","SPY")}
+            out["periods"][label] = {m: port_stats([r[m] for r in chunk]) for m in ("v1","v3","v3_seek","SPY")}
     Path("research/results").mkdir(parents=True,exist_ok=True)
     dest = Path("research/results/hunter_v3_periods.json")
     dest.write_text(json.dumps(out,ensure_ascii=False,indent=2), encoding="utf-8")
