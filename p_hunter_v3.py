@@ -134,7 +134,7 @@ def page_hunter_v3():
                                          mode=market.get("mood", "off"))
     p1, p2, p3 = st.columns(3)
     p1.metric(L("Invested", "نسبة الاستثمار"), f"{allocations['invested_pct']:.1f}%")
-    p2.metric(L("Cash", "النقد"), f"\${allocations['remaining_cash']:,.0f}")
+    p2.metric(L("Cash", "النقد"), f"${allocations['remaining_cash']:,.0f}")
     p3.metric(L("Exposure limit", "حد الانكشاف"), f"{allocations['market_exposure_cap_pct']:.0f}%")
     if len(selected):
         st.dataframe(selected, hide_index=True, use_container_width=True)
