@@ -3102,8 +3102,8 @@ _XLOGO_MASK = "data:image/svg+xml;base64," + base64.b64encode(
 ).decode("ascii")
 X_BRAND_CSS = f"""<style>
 /* Only the link to the X platform's bots: never replace mathematical/other Xs. */
-a[href$="/x-bots"] [data-testid="stIconMaterial"],
-a[href$="/x-bots"] span[class*="material-symbols"] {{
+a[href$="x-bots"] [data-testid="stIconMaterial"],
+a[href$="x-bots"] span[class*="material-symbols"] {{
     font-size:0 !important;
     width:1.18rem !important;
     min-width:1.18rem !important;
