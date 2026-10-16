@@ -1,0 +1,39 @@
+name: X platform brand checks
+
+on:
+  pull_request:
+    paths:
+      - "theme.py"
+      - "app.py"
+      - "p_xbots.py"
+      - "p_overview.py"
+      - "promo.py"
+      - "xbots.py"
+      - "tests/test_x_brand.py"
+      - ".github/workflows/x-brand.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  brand-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Run branding and compilation tests
+        run: python -m unittest discover -s tests -p 'test_x_brand.py' -v
+      - name: Inspect remaining platform icon aliases
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          for path in Path('.').rglob('*.py'):
+              if path.parts[0] in ('.git',):
+                  continue
+              for n, line in enumerate(path.read_text(encoding='utf-8').splitlines(), 1):
+                  if 'alternate_email' in line or 'xlogo(' in line or 'xify(' in line:
+                      print(f'{path}:{n}: {line.strip()[:240]}')
+          PY
