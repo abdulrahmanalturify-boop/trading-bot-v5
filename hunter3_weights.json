@@ -12,11 +12,11 @@
    "setup": 0.1551
   },
   "neutral": {
-   "momentum": 0.4231,
-   "trend": 0.252,
+   "momentum": 0.4229,
+   "trend": 0.2523,
    "volume": 0.075,
    "risk": 0.075,
-   "setup": 0.1749
+   "setup": 0.1748
   },
   "bear": {
    "momentum": 0.3,
@@ -39,7 +39,7 @@
    "ic": {
     "momentum": 0.015,
     "trend": 0.0049,
-    "volume": -0.0044,
+    "volume": -0.0045,
     "risk": -0.0051,
     "setup": 0.0025
    }
@@ -49,7 +49,7 @@
    "ic": {
     "momentum": 0.0488,
     "trend": 0.0272,
-    "volume": -0.0541,
+    "volume": -0.054,
     "risk": -0.0341,
     "setup": 0.0134
    }
