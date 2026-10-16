@@ -215,7 +215,7 @@ def scan(prices, benchmark, cutoff=None, sectors=None, earnings=None, thin=20e6)
 
 
 def allocate(ranked, capital=100_000, risk_per_trade_pct=.5, max_positions=5,
-             max_position_pct=25., sector_limit=2, mode="mixed"):
+             max_position_pct=25., sector_limit=2, mode="mixed", profile="risk_controlled"):
     """Research-only unlevered allocation respecting absolute cash/exposure caps.
 
     A protective stop is a sizing input, not a guarantee of a fill or capped loss.
@@ -225,7 +225,13 @@ def allocate(ranked, capital=100_000, risk_per_trade_pct=.5, max_positions=5,
         raise ValueError("capital and risk_per_trade_pct must be positive, risk <=5%")
     if not (1 <= int(max_positions) <= 50) or not (0 < max_position_pct <= 100):
         raise ValueError("invalid position limits")
-    exposure = 1.0 if mode == "on" else .65 if mode == "mixed" else .25
+    if profile not in ("risk_controlled", "return_seeking"):
+        raise ValueError("profile must be risk_controlled or return_seeking")
+    exposure = (1.0 if mode == "on" else .65 if mode == "mixed" else .25)
+    if profile == "return_seeking":
+        # Return-seeking != safe. No margin, but can stay 70% exposed in a
+        # market risk-off environment and 100% exposed in mixed conditions.
+        exposure = 1.0 if mode in ("on", "mixed") else .70
     cash = capital
     sector_count = {}
     rows = []
@@ -263,6 +269,6 @@ def allocate(ranked, capital=100_000, risk_per_trade_pct=.5, max_positions=5,
         "invested_pct": round(100 * (capital - cash) / capital, 2),
         "remaining_cash": round(cash, 2),
         "market_exposure_cap_pct": round(exposure * 100, 1),
-        "positions": len(rows), "mode": mode,
+        "positions": len(rows), "mode": mode, "profile": profile,
         "live_orders": False,
     }
