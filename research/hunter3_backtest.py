@@ -493,6 +493,34 @@ def fmt(v, pct=False, d=2):
     return f"{v * 100:.{d}f}%" if pct else f"{v:.{d}f}"
 
 
+TEST_PERIODS = [p for p in PERIODS if "test" in p]
+
+
+def decide(ic, sim, ml_info):
+    """The verdict the page reads: a new score is recommended over the old Hunter (v1) only when it beats v1 on both the rank
+    IC and the Sharpe ratio in most of the out-of-sample periods (2020 on); otherwise the old score stays the default and the
+    new ones are offered as alternatives with their evidence. The ML score counts only when its walk-forward test activated it."""
+    rows = {}
+    for m in ("quant", "adaptive", "ml"):
+        if m == "ml" and not ml_info.get("active"):
+            rows[m] = {"status": "rejected", "reason": "walk-forward IC did not beat the adaptive score"}
+            continue
+        wins_ic = wins_sh = n = 0
+        for p in TEST_PERIODS:
+            a, b = ic["candidates"].get(m, {}).get(p, {}).get("ic_mean"), ic["candidates"].get("v1", {}).get(p, {}).get("ic_mean")
+            sa, sb = sim.get(p, {}).get(m, {}).get("sharpe"), sim.get(p, {}).get("v1", {}).get("sharpe")
+            if a is None or b is None or sa is None or sb is None:
+                continue
+            n += 1
+            wins_ic += int(a > b)
+            wins_sh += int(sa > sb)
+        ok = n >= 3 and wins_ic > n / 2 and wins_sh > n / 2
+        rows[m] = {"status": "recommended" if ok else "not better", "periods": n, "beats_v1_ic": wins_ic, "beats_v1_sharpe": wins_sh}
+    best = [m for m in ("quant", "adaptive", "ml") if rows[m]["status"] == "recommended"]
+    default = best[-1] if best else "v1"
+    return {"default": default, "methods": rows, "rule": "beats v1 on rank IC and Sharpe in most out-of-sample periods (2020 on)"}
+
+
 def report(res):
     L = ["# Opportunity Hunter 3.0 — historical evidence", "",
          f"Run on GitHub Actions on {res['run']['date']} · {res['run']['symbols']} symbols (today's S&P 500 and the site's largest companies: "
@@ -519,6 +547,13 @@ def report(res):
         L.append(f"| {r} | " + " | ".join(f"{w[g]:.2f}" for g in H3.GROUPS) + f" | {ev.get('months', '—')} |")
     L += ["", f"ML model: {res['ml']['status']}" + (f" · walk-forward IC 2016-2024 {res['ml'].get('ic_2016_2024', '—')} against adaptive {res['ml'].get('adaptive_ic_2016_2024', '—')}"
                                                    f" · {'ACTIVE' if res['ml'].get('active') else 'NOT USED (did not beat the adaptive score out of sample)'}" if res['ml'].get('status') == 'trained' else ""), ""]
+    v = res.get("verdict", {})
+    if v:
+        L += ["## Verdict", "", f"Rule: a new score replaces the old Hunter's only when it {v['rule']}.", ""]
+        for m, row in v["methods"].items():
+            L.append(f"- **{m}**: {row['status']}" + (f" (beats v1 on IC in {row['beats_v1_ic']} of {row['periods']} periods, on Sharpe in {row['beats_v1_sharpe']})"
+                                                     if "periods" in row else f" ({row.get('reason', '')})"))
+        L += ["", f"**The page ranks by `{v['default']}` by default**; every score stays selectable, with these numbers beside it.", ""]
     L += ["## 3. Trading simulation by period (same portfolio rules for every method)", ""]
     for p in PERIODS:
         L += [f"### {p}", "", "| Method | CAGR | Total | Sharpe | Sortino | Max DD | Calmar | PF | Expect. (R) | Win | Trades | Alpha | Beta | IR | Turnover | Exposure | CAGR 90% CI |",
@@ -622,8 +657,10 @@ def main():
         log("ablation", name, f"{time.time() - t0:.0f}s")
     eq, trades, extra = eqs["adaptive"]
     ablation["adaptive (all rules)"] = metrics(eq.loc["2016-01-01":], bench, trades[trades["in"] >= "2016-01-01"], extra, state["regime"])
+    verdict = decide(ic, sim, ml_info)
+    log("verdict", verdict)
     res = {"run": {"date": date.today().isoformat(), "symbols": len(panel.syms), "seconds": int(time.time() - t0), "cost": COST, "policy": POLICY,
-                   "min_score": MIN_SCORE, "capital": CAPITAL},
+                   "min_score": MIN_SCORE, "capital": CAPITAL}, "verdict": verdict,
            "methods": methods + ["random"], "ic": ic, "weights": {"weights": weights, "evidence": evidence}, "ml": ml_info, "sim": sim, "sim_all": sim_all,
            "ablation": ablation,
            "equity_monthly": {m: {str(k.date()): round(float(v), 2) for k, v in eq.resample("ME").last().items()} for m, (eq, _, _) in eqs.items()},

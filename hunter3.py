@@ -26,6 +26,9 @@ A score is a rank out of 100, never a probability of success. Everything here is
 import json
 import os
 
+import warnings
+from concurrent.futures import ThreadPoolExecutor
+
 import numpy as np
 import pandas as pd
 
@@ -38,6 +41,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 WEIGHTS_FILE = os.path.join(HERE, "hunter3_weights.json")
 MODEL_FILE = os.path.join(HERE, "models", "hunter3_rank.json")
 
+THREADS = 1                   # the setups of several stocks at once: no gain under the interpreter lock here, left tunable
 MIN_BARS = 260
 HORIZON = 21                  # sessions: the forward window the research ranks against (one month)
 REGIMES = brain.REGIMES       # bull, neutral, bear, stress
@@ -96,7 +100,11 @@ def clean(df, cutoff=None, min_bars=MIN_BARS):
     d = df.copy()
     d.index = _naive(d.index)
     d = d[~d.index.duplicated(keep="last")].sort_index()
-    d = d.apply(pd.to_numeric, errors="coerce")
+    cols = [k for k in ("Open", "High", "Low", "Close", "Volume") if k in d]
+    d = d[cols]
+    if not all(np.issubdtype(t, np.number) for t in d.dtypes):
+        d = d.apply(pd.to_numeric, errors="coerce")
+    d = d.astype(float)
     if "Volume" not in d:
         d["Volume"] = np.nan
     d = d.dropna(subset=["Open", "High", "Low", "Close"])
@@ -107,16 +115,22 @@ def clean(df, cutoff=None, min_bars=MIN_BARS):
 
 
 def _rolling_cvar(x, window, q):
-    """The mean of the worst q share of the last `window` values, on every position (NaN until the window is full)."""
+    """The mean of the worst q share of the last `window` values on every position (NaN until the window is full), per
+    column of a 2-D array (or on a 1-D one)."""
+    x = np.asarray(x, float)
+    one = x.ndim == 1
+    if one:
+        x = x[:, None]
     n = len(x)
-    out = np.full(n, np.nan)
-    if n < window:
-        return out
-    win = np.lib.stride_tricks.sliding_window_view(x, window)
-    k = max(1, int(np.floor(window * q)))
-    part = np.partition(np.nan_to_num(win, nan=0.0), k - 1, axis=1)[:, :k]
-    out[window - 1:] = part.mean(axis=1)
-    return out
+    out = np.full(x.shape, np.nan)
+    if n >= window:
+        win = np.lib.stride_tricks.sliding_window_view(x, window, axis=0)          # (n - window + 1, columns, window)
+        k = max(1, int(np.floor(window * q)))
+        part = np.partition(np.nan_to_num(win, nan=0.0), k - 1, axis=2)[:, :, :k]
+        got = part.mean(axis=2)
+        got[np.isnan(win).sum(axis=2) > 1] = np.nan                                 # the first return is NaN; more means a gap
+        out[window - 1:] = got
+    return out[:, 0] if one else out
 
 
 def _rolling_pct_of_last(x, window, min_periods):
@@ -141,17 +155,59 @@ def _pct_rank(frame):
     return frame.rank(axis=1, pct=True) * 100
 
 
-# ---------------------------------------------------------------- 1) the factor panel of one stock
-def stock_features(df, bench=None):
-    """Every factor of one stock on every session (a DataFrame on df's index), from that session's close and before.
-    bench: the benchmark's OHLCV (for relative and residual momentum, beta and correlation); without it those are NaN."""
-    c, h, lo, o = (df[k].astype(float) for k in ("Close", "High", "Low", "Open"))
-    v = df["Volume"].astype(float)
+# ---------------------------------------------------------------- 1) the factor panels: every stock on every session at once
+OHLCV = ("Open", "High", "Low", "Close", "Volume")
+
+
+def wide(frames, index=None, fill=5):
+    """{column: (date x stock) frame} from {symbol: daily OHLCV}, on `index` (default: every session any of them traded).
+    A gap of up to `fill` sessions inside a stock's history becomes a flat bar at the last close with no volume, so one
+    missing day does not blank a whole rolling window; before a listing, and after a longer gap, the stock is NaN."""
+    if index is None:
+        index = pd.DatetimeIndex(sorted(set().union(*(d.index for d in frames.values())))) if frames else pd.DatetimeIndex([])
+    out = {k: pd.DataFrame({s: d[k].astype(float) for s, d in frames.items()}, index=index) for k in OHLCV}
+    if fill and frames:
+        raw = out["Close"]
+        c = raw.ffill(limit=fill)
+        gap = raw.isna() & c.notna()
+        for k in ("Open", "High", "Low"):
+            out[k] = out[k].where(~gap, c)
+        out["Close"] = c
+        out["Volume"] = out["Volume"].where(~gap, 0.0)
+    return out
+
+
+def _tr(h, lo, c):
+    pc = c.shift(1)
+    return np.fmax(np.fmax(h - lo, (h - pc).abs()), (lo - pc).abs())
+
+
+def _ewm(x, n):
+    return x.ewm(alpha=1 / n, adjust=False).mean()
+
+
+def _adx(h, lo, c, n=14):
+    """ta.adx (Wilder) on (date x stock) frames: ADX, +DI, -DI."""
+    up, down = h.diff(), -lo.diff()
+    plus = up.where((up > down) & (up > 0), 0.0).where(c.notna())
+    minus = down.where((down > up) & (down > 0), 0.0).where(c.notna())
+    tr = _ewm(_tr(h, lo, c), n)
+    pdi, mdi = 100 * _ewm(plus, n) / tr, 100 * _ewm(minus, n) / tr
+    dx = 100 * (pdi - mdi).abs() / (pdi + mdi).replace(0, np.nan)
+    return _ewm(dx, n), pdi, mdi
+
+
+def panel_features(w, bench=None):
+    """Every factor of every stock on every session, {factor: (date x stock) frame}, from the wide OHLCV frames (wide()),
+    each session from its own close and before. bench: the benchmark's OHLCV (for relative and residual momentum, beta and
+    correlation); without it those are NaN. The whole universe is computed in one pass per factor (pandas, column-wise)."""
+    o, h, lo, c, v = (w[k] for k in OHLCV)
+    valid = c.notna()
     r = c.pct_change(fill_method=None)
-    out = pd.DataFrame(index=df.index)
+    out = {}
     sma20, sma50, sma200 = c.rolling(20).mean(), c.rolling(50).mean(), c.rolling(200, min_periods=200).mean()
     out["sma20"], out["sma50"], out["sma200"] = sma20, sma50, sma200
-    atr = H.ta.atr(df).astype(float)
+    atr = _ewm(_tr(h, lo, c), 14)
     out["atr"] = atr
     out["atr_pct"] = atr / c * 100
     # momentum
@@ -162,8 +218,9 @@ def stock_features(df, bench=None):
         out[f"ramom_{n}"] = (c / c.shift(n) - 1) / vol.replace(0, np.nan)
     out["accel"] = out["ret_63"] - (out["ret_126"] - out["ret_63"])
     # trend
-    out["trend_bits"] = ((c > sma20).astype(float) + (c > sma50) + (c > sma200) + (sma50 > sma200) + (sma200 > sma200.shift(20))) / 5 * 100
-    out.loc[sma200.isna(), "trend_bits"] = ((c > sma20).astype(float) + (c > sma50))[sma200.isna()] / 5 * 100
+    full = ((c > sma20).astype(float) + (c > sma50) + (c > sma200) + (sma50 > sma200) + (sma200 > sma200.shift(20))) / 5 * 100
+    part = ((c > sma20).astype(float) + (c > sma50)) / 5 * 100
+    out["trend_bits"] = full.where(sma200.notna(), part)
     path = r.abs().rolling(63).sum()
     out["er_63"] = ((c / c.shift(63) - 1) / path.replace(0, np.nan)).clip(-1, 1)
     out["stab_63"] = (c > sma50).astype(float).rolling(63).mean() * 100
@@ -181,14 +238,14 @@ def stock_features(df, bench=None):
     out["mdd_126"] = (c / c.rolling(126).max() - 1) * 100
     q = r.rolling(252, min_periods=200)
     out["var_95"] = q.quantile(0.05) * 100
-    out["cvar_95"] = _rolling_cvar(r.to_numpy(float), 252, 0.05) * 100
+    out["cvar_95"] = pd.DataFrame(_rolling_cvar(r.to_numpy(float), 252, 0.05) * 100, index=c.index, columns=c.columns)
     out["skew_252"] = q.skew()
     out["autocorr_63"] = r.rolling(63).corr(r.shift(1))
     # volume and liquidity
     dollar = c * v
     out["dollar_20"] = dollar.rolling(20).mean()
     out["dvol_trend"] = out["dollar_20"] / dollar.rolling(126).mean().replace(0, np.nan)
-    out["liq_det"] = (out["dollar_20"] / dollar.rolling(63).mean().replace(0, np.nan)) < 0.6
+    out["liq_det"] = ((out["dollar_20"] / dollar.rolling(63).mean().replace(0, np.nan)) < 0.6).astype(float)
     out["rvol_20"] = v / v.shift(1).rolling(20).mean().replace(0, np.nan)
     upv = v.where(c > c.shift(1), 0.0)
     dnv = v.where(c < c.shift(1), 0.0)
@@ -201,22 +258,35 @@ def stock_features(df, bench=None):
     if bench is not None and len(bench):
         b = bench["Close"].astype(float)
         b.index = _naive(b.index)
-        b = b[~b.index.duplicated(keep="last")].sort_index().reindex(df.index, method="ffill", limit=5)
+        b = b[~b.index.duplicated(keep="last")].sort_index().reindex(c.index, method="ffill", limit=5)
         br = b.pct_change(fill_method=None)
+        y = (r * 0).add(br, axis=0)                                   # the benchmark's return where the stock has one
         for n in (63, 126):
-            out[f"rs_{n}"] = (c / c.shift(n) - b / b.shift(n)) * 100
-        cov = r.rolling(252, min_periods=200).cov(br)
-        var = br.rolling(252, min_periods=200).var()
+            out[f"rs_{n}"] = ((c / c.shift(n) - 1) * 100).sub((b / b.shift(n) - 1) * 100, axis=0)
+        cov = r.rolling(252, min_periods=200).cov(y)
+        var = y.rolling(252, min_periods=200).var()                   # over the same sessions as the covariance
         beta = cov / var.replace(0, np.nan)
         out["beta_252"] = beta
-        out["corr_63"] = r.rolling(63).corr(br)
-        resid = (r - beta.shift(1) * br)
+        out["corr_63"] = r.rolling(63).corr(y)
+        resid = r - beta.shift(1).mul(br, axis=0)
         out["resid_126"] = resid.rolling(126, min_periods=100).sum() * 100
-        out["fwd_excess"] = ((c.shift(-HORIZON) / c - 1) - (b.shift(-HORIZON) / b - 1)) * 100   # research label: NaN at the end
+        out["fwd_excess"] = ((c.shift(-HORIZON) / c - 1) * 100).sub((b.shift(-HORIZON) / b - 1) * 100, axis=0)   # research label: NaN at the end
     else:
         for k in ("rs_63", "rs_126", "beta_252", "corr_63", "resid_126", "fwd_excess"):
-            out[k] = np.nan
-    return out.replace([np.inf, -np.inf], np.nan)
+            out[k] = c * np.nan
+    return {k: f.replace([np.inf, -np.inf], np.nan).where(valid) for k, f in out.items()}
+
+
+FEATURES = ["sma20", "sma50", "sma200", "atr", "atr_pct", "ret_21", "ret_63", "ret_126", "ret_252", "ramom_63", "ramom_126", "ramom_252",
+            "accel", "trend_bits", "er_63", "stab_63", "dist_hi", "z_50", "ext_atr", "brk_str", "vol_20", "vol_63", "vol_126", "dvol_63",
+            "vol_shock", "mdd_126", "var_95", "cvar_95", "skew_252", "autocorr_63", "dollar_20", "dvol_trend", "liq_det", "rvol_20", "ud_50",
+            "imb_20", "ad_slope", "rs_63", "rs_126", "beta_252", "corr_63", "resid_126", "fwd_excess"]
+
+
+def stock_features(df, bench=None):
+    """The factors of one stock (a DataFrame on df's index): panel_features on a universe of one."""
+    f = panel_features(wide({"_": df}, df.index, fill=0), bench)
+    return pd.DataFrame({k: v["_"] for k, v in f.items()}, index=df.index)
 
 
 # ---------------------------------------------------------------- 2) the setups on every session
@@ -295,13 +365,17 @@ def setup_panel(df, bench=None, feats=None):
 
 
 # ---------------------------------------------------------------- the v1 score on every session (hunter.hunt's formula)
-def v1_parts(df, feats, setups):
-    """The Opportunity Hunter's score parts on every session (trend, volume, setup, risk out of 100, and rs_raw to be ranked
-    across the universe): the same arithmetic as hunter.analyze, vectorised over time."""
-    c = df["Close"].astype(float)
+STATE_KEYS = [k for k, v in H.SETUPS.items() if v[3] == "state"]
+
+
+def v1_parts(c, h, lo, feats, setups):
+    """The Opportunity Hunter's score parts on every (session, stock): {part: (date x stock) frame} with trend, volume, setup
+    and risk out of 100, rs_raw to be ranked across the universe, rr, thin and extended: the same arithmetic as
+    hunter.analyze. c, h, lo: wide prices; feats: panel_features; setups: the setup columns as wide frames."""
+    ix, cols = c.index, c.columns
     s20, s50, s200 = feats["sma20"], feats["sma50"], feats["sma200"]
     has200 = s200.notna()
-    adx, dip, dim = H.ta.adx(df)
+    adx, dip, dim = _adx(h, lo, c)
     tr = (20 * (has200 & (c > s200)) + 20 * (has200 & (s50 > s200)) + 20 * (c > s50) + 15 * (has200 & (s200 > s200.shift(20)))
           + 10 * (c > s20) + 15 * ((adx >= 20) & (dip > dim))).astype(float)
     r3, r6, r9, r12 = feats["ret_63"], feats["ret_126"], (c / c.shift(189) - 1) * 100, feats["ret_252"]
@@ -312,21 +386,23 @@ def v1_parts(df, feats, setups):
     volp = ((ud - 0.6) / 1.0 * 100).clip(0, 100) * 0.8
     rvol = feats["rvol_20"]
     volp = volp + ((rvol - 1) * 20).clip(0, 20).where(rvol.notna() & (c >= c.shift(1)), 0)
-    st = setups["status"]
-    setup = pd.Series(np.select([st == "fresh", st == "active", st == "watch"], [100.0, 78.0, 55.0], 0.0), index=df.index)
-    is_state = setups["key"].map(lambda k: isinstance(k, str) and H.SETUPS[k][3] == "state")
+    st, key, side = setups["status"], setups["key"], setups["side"]
+    setup = pd.DataFrame(np.select([(st == "fresh").to_numpy(), (st == "active").to_numpy(), (st == "watch").to_numpy()], [100.0, 78.0, 55.0], 0.0),
+                         index=ix, columns=cols)
+    is_state = key.isin(STATE_KEYS)
     setup = setup.where(~(is_state & (st == "active")), 68.0)
-    in_pb = setups["key"].map(lambda k: isinstance(k, str) and k in H.PLAYBOOK_OF)
+    in_pb = key.isin(list(H.PLAYBOOK_OF))
     setup = setup.where(~(in_pb & (st != "watch")), (setup + 8).clip(upper=100))
-    setup = setup.where(setups["side"] > 0, 0.0)
+    setup = setup.where(side > 0, 0.0)
     risk = (setups["entry"] - setups["stop"])
     rr = (setups["target"] - setups["entry"]) / risk.where(risk > 0)
-    rr = rr.where(setups["side"] > 0)
-    riskp = pd.Series(np.interp(rr.fillna(-1), [0.8, 1.5, 2.0, 3.0], [15, 50, 75, 100]), index=df.index).where(rr.notna(), 0.0)
+    rr = rr.where(side > 0)
+    riskp = pd.DataFrame(np.interp(rr.fillna(-1).to_numpy(float), [0.8, 1.5, 2.0, 3.0], [15, 50, 75, 100]), index=ix, columns=cols).where(rr.notna(), 0.0)
     riskp = riskp - 20 * ((risk / feats["atr"]) > 3.5).where(rr.notna(), False)
     riskp = riskp - 30 * (feats["ext_atr"] > 3)
-    return pd.DataFrame({"p_trend": tr, "p_volume": volp.clip(upper=100), "p_setup": setup, "p_risk": riskp.clip(0, 100),
-                         "rs_raw": rs_raw, "rr": rr, "thin": feats["dollar_20"] < 20e6, "extended": feats["ext_atr"] > 3})
+    valid = c.notna()
+    return {"p_trend": tr.where(valid), "p_volume": volp.clip(upper=100).where(valid), "p_setup": setup.where(valid), "p_risk": riskp.clip(0, 100).where(valid),
+            "rs_raw": rs_raw, "rr": rr, "thin": feats["dollar_20"] < 20e6, "extended": feats["ext_atr"] > 3}
 
 
 def v1_score(parts, rs):
@@ -346,31 +422,54 @@ class Panel:
         self.bench = clean(bench, cutoff, 200)
         self.vix = clean(vix, cutoff, 5) if vix is not None else None
         self.sectors = sectors or {}
-        self.frames, self.feats, self.setups, self.parts = {}, {}, {}, {}
+        frames = {}
         for sym, raw in prices.items():
             if sym in ("SPY", "^VIX", "KSA", "^TASI.SR"):
                 continue
             d = clean(raw, cutoff, min_bars)
-            if d is None:
-                continue
+            if d is not None:
+                frames[sym] = d
+
+        def _setups(item):
+            sym, d = item
             try:
-                f = stock_features(d, self.bench)
-                s = setup_panel(d, self.bench, f)
-                p = v1_parts(d, f, s)
+                return sym, setup_panel(d, self.bench)                       # the old Hunter's rules, stock by stock
             except Exception:
-                continue
-            self.frames[sym], self.feats[sym], self.setups[sym], self.parts[sym] = d, f, s, p
+                return sym, None
+
+        with ThreadPoolExecutor(max_workers=min(THREADS, max(1, len(frames)))) as ex:
+            got = dict(ex.map(_setups, frames.items()))
+        self.setups = {sym: s for sym, s in got.items() if s is not None}
+        self.frames = {sym: d for sym, d in frames.items() if sym in self.setups}
         self.syms = list(self.frames)
-        self.index = self.bench.index if self.bench is not None else pd.DatetimeIndex(sorted(set().union(*(d.index for d in self.frames.values()))))
+        self.index = pd.DatetimeIndex(sorted(set().union(*(d.index for d in self.frames.values())))) if self.syms else pd.DatetimeIndex([])
+        self.ohlcv = wide(self.frames, self.index)
         self._cols = {}
+        if self.syms:
+            self.feats = panel_features(self.ohlcv, self.bench)
+            sw = {k: self.col(k, "setups") for k in ("key", "status", "side", "entry", "stop", "target")}
+            self.parts = v1_parts(self.ohlcv["Close"], self.ohlcv["High"], self.ohlcv["Low"], self.feats, sw)
+        else:
+            self.feats, self.parts = {}, {}
 
     def col(self, name, source="feats"):
-        """A (date x stock) frame of one column, aligned on the panel's index (cached)."""
+        """A (date x stock) frame of one factor ("feats"), price column ("frames"), score part ("parts") or setup column
+        ("setups"), on the panel's index."""
+        if source == "feats":
+            return self.feats[name]
+        if source == "frames":
+            return self.ohlcv[name]
+        if source == "parts":
+            return self.parts[name]
         k = (source, name)
         if k not in self._cols:
-            src = getattr(self, source)
-            self._cols[k] = pd.DataFrame({s: src[s][name] for s in self.syms}).reindex(self.index)
+            self._cols[k] = pd.DataFrame({s: self.setups[s][name] for s in self.syms}).reindex(self.index)
         return self._cols[k]
+
+    def row(self, sym, when=None):
+        """Every factor of one stock on one session, as a Series."""
+        t = self.index[-1] if when is None else pd.Timestamp(when)
+        return pd.Series({k: (f.at[t, sym] if sym in f.columns else np.nan) for k, f in self.feats.items()})
 
     def closes(self):
         return self.col("Close", "frames")
@@ -390,7 +489,9 @@ class Panel:
         """A DataFrame on the panel's index: regime, trend_21/63/252 (%), vol_20, vol_pct (against its own year), breadth50,
         breadth200, highs, lows (shares), dispersion, avg_corr, risk_on (cyclical minus defensive 3-month return, pts),
         liquidity (aggregate dollar volume against its year), leadership (top-decile gap), concentration."""
-        b = self.bench["Close"].astype(float).reindex(self.index)
+        b = self.bench["Close"].astype(float)
+        b.index = _naive(b.index)
+        b = b[~b.index.duplicated(keep="last")].sort_index().reindex(self.index, method="ffill", limit=5)
         br = b.pct_change(fill_method=None)
         c = self.closes()
         above50 = (c > self.col("sma50")).astype(float).where(c.notna())
@@ -422,9 +523,17 @@ class Panel:
         dollar = self.col("dollar_20")
         agg = dollar.sum(axis=1)
         out["liquidity"] = agg / agg.rolling(252, min_periods=60).median()
-        top = r63.apply(lambda row: row.nlargest(max(1, len(row.dropna()) // 10)).mean() if row.notna().sum() >= 10 else np.nan, axis=1)
-        out["leadership"] = top - r63.mean(axis=1)
-        out["concentration"] = (r63.rank(axis=1, pct=True) >= 0.9).mean(axis=1) * 100   # share of names in the top decile: constant by design, kept for the strip
+        a = r63.to_numpy(float)
+        n = np.isfinite(a).sum(axis=1)
+        k = np.maximum(1, n // 10)
+        srt = -np.sort(np.where(np.isfinite(a), -a, np.inf), axis=1)                     # each row largest first
+        cs = np.cumsum(np.where(np.isfinite(srt), srt, 0.0), axis=1)
+        top = np.where(n >= 10, cs[np.arange(len(a)), np.minimum(k, a.shape[1]) - 1] / k, np.nan)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", RuntimeWarning)                                 # a session with no stock listed yet
+            mean = np.nanmean(np.where(np.isfinite(a), a, np.nan), axis=1) if a.size else np.array([])
+        out["leadership"] = top - mean                                                     # the top decile's lead over the average stock, pts
+        out["concentration"] = 100 - (r63.gt(r63.mean(axis=1), axis=0)).sum(axis=1) / np.maximum(n, 1) * 100   # share of stocks under the average: high = a few names carry it
         out["risk_off_flag"] = (out["regime"].isin(["bear", "stress"])) | (out["vol_pct"] >= 90)
         return out
 
@@ -674,7 +783,7 @@ def scan(prices, bench, vix=None, sectors=None, names=None, earnings=None, today
     t = panel.index[-1]
     rows = []
     for sym in panel.syms:
-        f, s, p = panel.feats[sym], panel.setups[sym], panel.parts[sym]
+        s = panel.setups[sym]
         if t not in s.index:
             continue
         st = s.loc[t]
@@ -689,20 +798,20 @@ def scan(prices, bench, vix=None, sectors=None, names=None, earnings=None, today
             edays = int(np.busday_count(pd.Timestamp(today).date(), pd.Timestamp(ed).date()))
             if 0 <= edays <= 5:
                 flags.append("earnings")
-        fl = f.loc[t] if t in f.index else f.iloc[-1]
+        fl = panel.row(sym, t)
         if fl["dollar_20"] < thin:
             flags.append("thin")
         if fl["ext_atr"] > 3:
             flags.append("extended")
         if fl["atr_pct"] > 8:
             flags.append("volatile")
-        if bool(fl["liq_det"]):
+        if fl["liq_det"] > 0:
             flags.append("liquidity")
         if stale:
             flags.append("stale")
         row = {"Symbol": sym, "Name": (names or {}).get(sym) or H.U.name_of(sym), "Sector": (sectors or {}).get(sym) or H.U.sector_of(sym),
                "Setup": key, "Status": st["status"] if key else None, "Tier": st["status"] if key else None, "Age": st["age"], "Setups": st["setups"], "Side": st["side"] if key else 0,
-               "Entry": st["entry"], "Stop": st["stop"], "Target": st["target"], "R:R": p.at[t, "rr"] if t in p.index else np.nan,
+               "Entry": st["entry"], "Stop": st["stop"], "Target": st["target"], "R:R": float(panel.parts["rr"].at[t, sym]),
                "Price": float(d["Close"].iloc[-1]), "Chg %": float(d["Close"].iloc[-1] / d["Close"].iloc[-2] - 1) * 100,
                "ATR %": fl["atr_pct"], "$Vol": fl["dollar_20"], "vol_63": fl["vol_63"], "beta": fl["beta_252"], "mdd_126": fl["mdd_126"],
                "cvar_95": fl["cvar_95"], "var_95": fl["var_95"], "corr_63": fl["corr_63"], "ramom_126": fl["ramom_126"], "rs_126": fl["rs_126"],
