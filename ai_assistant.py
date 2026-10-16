@@ -6,7 +6,7 @@ import streamlit as st
 
 import mascot
 
-BUILD = "23.4.34"
+BUILD = "23.4.35"
 API_URL = "https://api.openai.com/v1/responses"
 MAX_Q = 1200
 SESSION_LIMIT = 40          # questions per visit
@@ -56,22 +56,27 @@ div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]>div>div:first-child:
 """
 
 # the chat window: written for each look (dark and light) and kept as it is by the light look's colour converter.
-# A clean card with a hairline of the site's three colours; a head with the turning sphere, the name and the connection;
-# an empty chat greets and offers three questions as rows that light up and lean their arrow when hovered; the visitor's
-# messages in a tinted bubble on the end side, the assistant's as plain text by a small mark; the box and the send button
-# one pill that lights up while typing; Enter sends; while an answer is on its way, "TURA AI is writing" with three dots.
+# A card with a slowly turning ring of the site's three colours round it; a head over an aurora of the same colours (soft
+# blobs of blue, violet and cyan drifting behind Kuhailan, his name and the connection); an empty chat greets in gradient
+# letters and offers three questions as rows with a tinted icon that light up and lean their arrow when hovered; the visitor's
+# messages in a blue-violet bubble on the end side, the assistant's as plain text beside a small Kuhailan; the box and the
+# send button one pill whose border lights up in the three colours while typing; Enter sends; while an answer is on its way,
+# "Kuhailan is writing" with three dots. On a phone the window is a sheet from the bottom of the screen almost to the top
+# (the page's own popover had been squeezed under the keyboard with only the box showing): a handle at its top, the head
+# stays while the chat scrolls, the box stays at the foot, and a touch above the sheet closes it.
 _PAL = {
     "dark": dict(bg="linear-gradient(180deg,#141A36 0%,#0E1227 100%)", text="#EEF2FF", muted="#9AA6BF", faint="#66728C",
                  line="rgba(148,163,184,.15)", card="rgba(255,255,255,.035)", cardh="rgba(96,165,250,.09)", acc="#60A5FA",
-                 accs="rgba(96,165,250,.18)", user="linear-gradient(135deg,rgba(59,130,246,.30),rgba(124,58,237,.28))",
-                 usert="#F1F5FF", userb="rgba(129,140,248,.34)", inp="rgba(255,255,255,.045)", shadow="0 30px 70px -24px rgba(2,6,23,.9)",
-                 code="rgba(255,255,255,.08)", hello="linear-gradient(90deg,#E0E7FF,#93C5FD 55%,#C4B5FD)"),
-    "light": dict(bg="linear-gradient(180deg,#FFFFFF 0%,#F8F9FE 100%)", text="#0F172A", muted="#5B6478", faint="#8A93A6",
+                 accs="rgba(96,165,250,.18)", user="linear-gradient(135deg,rgba(59,130,246,.34),rgba(124,58,237,.32))",
+                 usert="#F1F5FF", userb="rgba(129,140,248,.34)", inp="rgba(255,255,255,.045)", shadow="0 30px 70px -24px rgba(2,6,23,.9),0 0 70px -24px rgba(124,58,237,.55)",
+                 code="rgba(255,255,255,.08)", hello="linear-gradient(90deg,#E0E7FF,#93C5FD 45%,#C4B5FD 75%,#67E8F9)", aurora=".55", orbgap="#141A36"),
+    "light": dict(bg="linear-gradient(180deg,#FFFFFF 0%,#F7F8FE 100%)", text="#0F172A", muted="#5B6478", faint="#8A93A6",
                   line="rgba(15,23,42,.09)", card="#F4F6FB", cardh="#EAF1FF", acc="#2563EB", accs="rgba(37,99,235,.16)",
                   user="linear-gradient(135deg,#3B82F6,#6D4AE8)", usert="#FFFFFF", userb="transparent", inp="#F4F6FB",
-                  shadow="0 30px 70px -26px rgba(30,41,99,.38)", code="rgba(15,23,42,.06)",
-                  hello="linear-gradient(90deg,#1E3A8A,#2563EB 55%,#7C3AED)"),
+                  shadow="0 30px 70px -26px rgba(30,41,99,.38),0 0 60px -26px rgba(124,58,237,.35)", code="rgba(15,23,42,.06)",
+                  hello="linear-gradient(90deg,#1E3A8A,#2563EB 45%,#7C3AED 75%,#0891B2)", aurora=".32", orbgap="#FFFFFF"),
 }
+_TRI = "#3B82F6,#7C3AED,#22D3EE"          # the site's three colours, blue → violet → cyan
 
 
 def _panel_css(light=False, lang="en"):
@@ -79,60 +84,75 @@ def _panel_css(light=False, lang="en"):
     rtl = lang == "ar"
     arrow = "←" if rtl else "→"
     P = "div.st-key-alturaifi_ai_panel"
+    B = f'[data-testid="stPopoverBody"]:has({P})'
+    W = f'div[data-baseweb="popover"]:has({P})'
+    robot = mascot.data_uri(glow=False)
+    close_hint = pick("Touch above the window to close it", "المس فوق النافذة عشان تقفلها", lang)
     return f"""
 <style data-lm="keep">
 @keyframes aiin{{from{{opacity:0;transform:translateY(6px)}}to{{opacity:1;transform:none}}}}
+@keyframes aiup{{from{{opacity:0;transform:translateY(28px)}}to{{opacity:1;transform:none}}}}
 @keyframes aipulse{{0%{{box-shadow:0 0 0 0 rgba(52,211,153,.55)}}70%{{box-shadow:0 0 0 6px rgba(52,211,153,0)}}100%{{box-shadow:0 0 0 0 rgba(52,211,153,0)}}}}
 @keyframes aidot{{0%,80%,100%{{opacity:.25;transform:translateY(0)}}40%{{opacity:1;transform:translateY(-3px)}}}}
-[data-testid="stPopoverBody"]:has({P}){{padding:16px 16px 14px!important;border:1px solid transparent!important;border-radius:22px!important;background:{c['bg']} padding-box,linear-gradient(135deg,rgba(59,130,246,.75),rgba(124,58,237,.75) 50%,rgba(34,211,238,.75)) border-box!important;box-shadow:{c['shadow']}!important}}
+@keyframes aiaurora{{0%{{transform:translate(0,0) scale(1)}}50%{{transform:translate(6%,-8%) scale(1.12)}}100%{{transform:translate(-5%,6%) scale(1.04)}}}}
+@keyframes aispark{{0%,100%{{opacity:.35;transform:scale(.8) rotate(0)}}50%{{opacity:1;transform:scale(1.1) rotate(25deg)}}}}
+{B}{{position:relative;padding:16px 16px 14px!important;border:1.5px solid transparent!important;border-radius:24px!important;background:{c['bg']} padding-box,conic-gradient(from var(--aiang),{_TRI},#3B82F6) border-box!important;box-shadow:{c['shadow']}!important;animation:airing 14s linear infinite,aiin .3s ease-out;overflow-y:auto!important}}
+{B}::before{{content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;background:radial-gradient(60% 50% at 100% 0,rgba(124,58,237,{c['aurora']}),transparent 70%),radial-gradient(55% 45% at 0 0,rgba(59,130,246,{c['aurora']}),transparent 70%),radial-gradient(50% 40% at 60% -10%,rgba(34,211,238,calc({c['aurora']} * .8)),transparent 70%);mask:linear-gradient(180deg,#000 0,#000 70px,transparent 190px);-webkit-mask:linear-gradient(180deg,#000 0,#000 70px,transparent 190px);animation:aiaurora 16s ease-in-out infinite alternate;z-index:0}}
+{B}>*{{position:relative;z-index:1}}
 {P}{{width:min(400px,calc(100vw - 40px));direction:{'rtl' if rtl else 'ltr'};color:{c['text']}}}
 {P} [data-testid="stVerticalBlock"]{{gap:.55rem}}
-.ai-head{{display:flex;align-items:center;gap:12px;padding:0 2px 14px;border-bottom:1px solid {c['line']}}}
-.ai-orb{{position:relative;overflow:hidden;isolation:isolate;flex:none;width:44px;height:44px;border-radius:50%;background:linear-gradient(155deg,#7B6CFF 0%,#3B82F6 58%,#2DB6EB 100%);display:grid;place-items:center;box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 0 0 1px rgba(96,165,250,.3),0 8px 20px -10px rgba(2,6,23,.8)}}
-.ai-orb svg.khl{{width:36px;height:36px}}
+.ai-head{{position:relative;display:flex;align-items:center;gap:12px;padding:0 2px 14px}}
+.ai-head::after{{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:linear-gradient(90deg,transparent,rgba(96,165,250,.55) 20%,rgba(167,139,250,.6) 50%,rgba(34,211,238,.5) 80%,transparent)}}
+.ai-orb{{position:relative;flex:none;width:46px;height:46px;border-radius:50%;background:linear-gradient(155deg,#7B6CFF 0%,#3B82F6 58%,#2DB6EB 100%);display:grid;place-items:center;box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 0 0 2px {c['orbgap']},0 0 0 3.5px rgba(124,58,237,.35),0 10px 24px -10px rgba(59,130,246,.9)}}
+.ai-orb svg.khl{{width:38px;height:38px}}
+.ai-orb::after{{content:"✦";position:absolute;top:-6px;inset-inline-end:-7px;font-size:13px;color:#A5F3FC;text-shadow:0 0 10px rgba(34,211,238,.9);animation:aispark 2.6s ease-in-out infinite}}
 .ai-copy{{min-width:0;flex:1;line-height:1.25}}
-.ai-copy b{{display:flex;align-items:center;gap:7px;color:{c['text']};font-size:15px;font-weight:700;letter-spacing:.2px}}
-.ai-copy b em{{font-style:normal;font-size:10px;font-weight:700;letter-spacing:.4px;padding:2px 7px;border-radius:999px;color:{c['acc']};background:{c['accs']}}}
+.ai-copy b{{display:flex;align-items:center;gap:7px;color:{c['text']};font-size:15.5px;font-weight:800;letter-spacing:.2px}}
+.ai-copy b em{{font-style:normal;font-size:10px;font-weight:800;letter-spacing:.5px;padding:2px 8px;border-radius:999px;color:#fff;background:linear-gradient(135deg,#3B82F6,#7C3AED 60%,#22D3EE);box-shadow:0 4px 10px -6px rgba(124,58,237,.9)}}
 .ai-copy span{{display:block;margin-top:3px;color:{c['muted']};font-size:11.5px}}
-.ai-live{{display:inline-flex;align-items:center;gap:6px;flex:none;padding:5px 10px;border-radius:999px;background:{c['card']};border:1px solid {c['line']};color:{c['muted']};font-size:11px;white-space:nowrap}}
+.ai-live{{display:inline-flex;align-items:center;gap:6px;flex:none;padding:5px 10px;border-radius:999px;background:{c['card']};border:1px solid {c['line']};color:{c['muted']};font-size:11px;white-space:nowrap;backdrop-filter:blur(6px)}}
 .ai-live i{{width:7px;height:7px;border-radius:50%;background:var(--c)}}
 .ai-live.on i{{animation:aipulse 2.2s ease-out infinite}}
 .ai-hello{{padding:14px 2px 6px;animation:aiin .4s ease-out}}
-.ai-hello b{{display:block;font-size:18px;font-weight:800;line-height:1.35;background:{c['hello']};-webkit-background-clip:text;background-clip:text;color:transparent}}
+.ai-hello b{{display:block;font-size:19px;font-weight:800;line-height:1.35;background:{c['hello']};-webkit-background-clip:text;background-clip:text;color:transparent}}
 .ai-hello span{{display:block;margin-top:6px;color:{c['muted']};font-size:12.5px;line-height:1.65}}
 div.st-key-alturaifi_ai_chips [data-testid="stVerticalBlock"]{{gap:.45rem}}
-div.st-key-alturaifi_ai_chips button{{position:relative!important;justify-content:flex-start!important;min-height:46px!important;padding:0 40px 0 14px!important;padding-inline:14px 40px!important;border-radius:14px!important;background:{c['card']}!important;border:1px solid {c['line']}!important;color:{c['text']}!important;box-shadow:none!important;transition:background .2s ease,border-color .2s ease,transform .2s cubic-bezier(.2,.8,.2,1)!important;animation:aiin .4s ease-out backwards}}
-div.st-key-alturaifi_ai_chips [data-testid="stElementContainer"]:nth-child(2) button{{animation-delay:.05s}}
-div.st-key-alturaifi_ai_chips [data-testid="stElementContainer"]:nth-child(3) button{{animation-delay:.1s}}
+div.st-key-alturaifi_ai_chips button{{position:relative!important;justify-content:flex-start!important;min-height:48px!important;padding:0 40px 0 10px!important;padding-inline:10px 40px!important;border-radius:15px!important;background:{c['card']}!important;border:1px solid {c['line']}!important;color:{c['text']}!important;box-shadow:none!important;transition:background .2s ease,border-color .2s ease,transform .2s cubic-bezier(.2,.8,.2,1),box-shadow .2s ease!important;animation:aiin .4s ease-out backwards}}
+div.st-key-alturaifi_ai_chips [data-testid="stElementContainer"]:nth-child(2) button{{animation-delay:.06s}}
+div.st-key-alturaifi_ai_chips [data-testid="stElementContainer"]:nth-child(3) button{{animation-delay:.12s}}
 div.st-key-alturaifi_ai_chips button>div{{justify-content:flex-start!important;width:100%;gap:10px}}
-div.st-key-alturaifi_ai_chips button p{{font-size:13px!important;font-weight:500;text-align:start;white-space:normal!important}}
-div.st-key-alturaifi_ai_chips button [data-testid="stIconMaterial"]{{color:{c['acc']}!important;font-size:19px!important}}
+div.st-key-alturaifi_ai_chips button p{{font-size:13px!important;font-weight:600;text-align:start;white-space:normal!important}}
+div.st-key-alturaifi_ai_chips button [data-testid="stIconMaterial"]{{flex:none;width:30px;height:30px;border-radius:10px;display:grid;place-items:center;color:#fff!important;font-size:17px!important;background:linear-gradient(135deg,#3B82F6,#7C3AED)}}
+div.st-key-alturaifi_ai_chips [data-testid="stElementContainer"]:nth-child(2) button [data-testid="stIconMaterial"]{{background:linear-gradient(135deg,#7C3AED,#C026D3)}}
+div.st-key-alturaifi_ai_chips [data-testid="stElementContainer"]:nth-child(3) button [data-testid="stIconMaterial"]{{background:linear-gradient(135deg,#0EA5E9,#22D3EE)}}
 div.st-key-alturaifi_ai_chips button::after{{content:"{arrow}";position:absolute;inset-inline-end:15px;top:50%;transform:translateY(-50%);color:{c['faint']};font-size:15px;transition:transform .25s cubic-bezier(.2,.8,.2,1),color .2s ease}}
-div.st-key-alturaifi_ai_chips button:hover{{background:{c['cardh']}!important;border-color:{c['acc']}!important;transform:translateY(-1px)}}
+div.st-key-alturaifi_ai_chips button:hover{{background:{c['cardh']}!important;border-color:{c['acc']}!important;transform:translateY(-1px);box-shadow:0 10px 24px -16px rgba(59,130,246,.8)!important}}
 div.st-key-alturaifi_ai_chips button:hover::after{{color:{c['acc']};transform:translate({'-4px' if rtl else '4px'},-50%)}}
 div.st-key-alturaifi_ai_chips button:active{{transform:scale(.985)}}
 div.st-key-alturaifi_ai_hist{{height:auto!important;max-height:min(340px,48vh)!important;overflow-y:auto!important;padding-inline-end:4px;scrollbar-width:thin;scrollbar-color:{c['line']} transparent}}
 div[class*="st-key-alturaifi_ai_user_"]{{align-items:flex-end!important;margin-block:2px 2px}}
 div[class*="st-key-alturaifi_ai_user_"] [data-testid="stElementContainer"]{{width:auto!important;max-width:84%}}
-div[class*="st-key-alturaifi_ai_user_"] [data-testid="stMarkdownContainer"]{{padding:9px 13px;border-radius:16px;border-end-start-radius:16px;border-end-end-radius:6px;background:{c['user']};border:1px solid {c['userb']};animation:aiin .3s ease-out}}
+div[class*="st-key-alturaifi_ai_user_"] [data-testid="stMarkdownContainer"]{{padding:9px 13px;border-radius:16px;border-end-start-radius:16px;border-end-end-radius:6px;background:{c['user']};border:1px solid {c['userb']};box-shadow:0 8px 20px -14px rgba(79,70,229,.8);animation:aiin .3s ease-out}}
 div[class*="st-key-alturaifi_ai_user_"] p{{color:{c['usert']}!important;margin:0!important}}
-div[class*="st-key-alturaifi_ai_asst_"]{{position:relative;padding-inline-start:34px;margin-block:4px 8px;animation:aiin .35s ease-out}}
-div[class*="st-key-alturaifi_ai_asst_"]::before{{content:"✦";position:absolute;inset-inline-start:0;top:1px;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:11px;color:#fff;background:linear-gradient(135deg,#3B82F6,#7C3AED);box-shadow:0 4px 12px -4px rgba(59,130,246,.6)}}
-div[class*="st-key-alturaifi_ai_user_"] p,div[class*="st-key-alturaifi_ai_asst_"] p,div[class*="st-key-alturaifi_ai_asst_"] li{{font-size:13px!important;line-height:1.65!important}}
+div[class*="st-key-alturaifi_ai_asst_"]{{position:relative;padding-inline-start:36px;margin-block:4px 8px;animation:aiin .35s ease-out}}
+div[class*="st-key-alturaifi_ai_asst_"]::before{{content:"";position:absolute;inset-inline-start:0;top:0;width:26px;height:26px;border-radius:50%;background:{robot} center/86% no-repeat,linear-gradient(155deg,#7B6CFF,#3B82F6 58%,#2DB6EB);box-shadow:0 0 0 2px rgba(124,58,237,.25),0 4px 12px -4px rgba(59,130,246,.7)}}
+div[class*="st-key-alturaifi_ai_asst_"]::after{{content:"";position:absolute;inset-inline-start:12px;top:32px;bottom:4px;width:2px;border-radius:2px;background:linear-gradient(180deg,rgba(124,58,237,.35),rgba(34,211,238,.0))}}
+div[class*="st-key-alturaifi_ai_user_"] p,div[class*="st-key-alturaifi_ai_asst_"] p,div[class*="st-key-alturaifi_ai_asst_"] li{{font-size:13px!important;line-height:1.7!important}}
 div[class*="st-key-alturaifi_ai_asst_"] p,div[class*="st-key-alturaifi_ai_asst_"] li{{color:{c['text']}!important}}
 div[class*="st-key-alturaifi_ai_asst_"] code{{background:{c['code']}!important;border-radius:6px;padding:1px 5px;font-size:12px}}
-div[class*="st-key-alturaifi_ai_asst_"] strong{{color:{c['text']}}}
-div.st-key-alturaifi_ai_composer{{padding:5px;padding-inline-start:8px;border-radius:17px;background:{c['inp']};border:1px solid {c['line']};transition:border-color .2s ease,box-shadow .25s ease}}
-div.st-key-alturaifi_ai_composer:focus-within{{border-color:{c['acc']};box-shadow:0 0 0 4px {c['accs']}}}
+div[class*="st-key-alturaifi_ai_asst_"] strong{{color:{c['text']};background:{c['hello']};-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:800}}
+div.st-key-alturaifi_ai_composer{{padding:5px;padding-inline-start:8px;border-radius:18px;border:1.5px solid transparent;background:{c['inp']} padding-box,linear-gradient(135deg,{c['line']},{c['line']}) border-box;transition:box-shadow .25s ease,background .25s ease}}
+div.st-key-alturaifi_ai_composer:focus-within{{background:{c['inp']} padding-box,linear-gradient(135deg,{_TRI}) border-box;box-shadow:0 0 0 4px {c['accs']},0 12px 30px -18px rgba(124,58,237,.8)}}
 div.st-key-alturaifi_ai_composer [data-testid="stHorizontalBlock"],{P} [data-testid="stHorizontalBlock"]:has(div.st-key-alturaifi_ai_new){{flex-wrap:nowrap!important;gap:6px!important;align-items:center}}
 div.st-key-alturaifi_ai_composer [data-testid="stColumn"]:first-child{{flex:1 1 0!important;min-width:0!important;width:auto!important}}
 div.st-key-alturaifi_ai_composer [data-testid="stColumn"]:last-child{{flex:0 0 auto!important;min-width:40px!important;width:auto!important}}
 {P} [data-testid="stHorizontalBlock"]:has(div.st-key-alturaifi_ai_new) [data-testid="stColumn"]{{min-width:0!important;width:auto!important}}
 div.st-key-alturaifi_ai_prompt [data-testid="stTextInputRootElement"],div.st-key-alturaifi_ai_prompt [data-testid="stTextInputRootElement"]:hover,div.st-key-alturaifi_ai_prompt [data-testid="stTextInputRootElement"]:focus-within,div.st-key-alturaifi_ai_prompt [data-baseweb="input"],div.st-key-alturaifi_ai_prompt [data-baseweb="input"]:hover,div.st-key-alturaifi_ai_prompt [data-baseweb="input"]:focus-within,div.st-key-alturaifi_ai_prompt [data-baseweb="base-input"]{{background:transparent!important;border-color:transparent!important;box-shadow:none!important}}
 div.st-key-alturaifi_ai_prompt [data-testid="InputInstructions"]{{display:none!important}}
-div.st-key-alturaifi_ai_prompt input{{min-height:40px!important;padding-inline:4px!important;background:transparent!important;color:{c['text']}!important;font-size:13.5px!important;caret-color:{c['acc']}}}
+div.st-key-alturaifi_ai_prompt input{{min-height:40px!important;padding-inline:4px!important;background:transparent!important;color:{c['text']}!important;font-size:16px!important;caret-color:{c['acc']}}}
+@media(min-width:641px){{div.st-key-alturaifi_ai_prompt input{{font-size:13.5px!important}}}}
 div.st-key-alturaifi_ai_prompt input::placeholder{{color:{c['faint']}!important;opacity:1}}
-div.st-key-alturaifi_ai_send button{{width:40px!important;height:40px!important;min-height:40px!important;padding:0!important;margin-inline-start:auto;border-radius:50%!important;border:0!important;color:#fff!important;background:linear-gradient(135deg,#3B82F6,#6D4AE8)!important;box-shadow:0 8px 18px -8px rgba(79,70,229,.8)!important;transition:transform .2s cubic-bezier(.2,.8,.2,1),box-shadow .2s ease!important}}
+div.st-key-alturaifi_ai_send button{{width:40px!important;height:40px!important;min-height:40px!important;padding:0!important;margin-inline-start:auto;border-radius:50%!important;border:0!important;color:#fff!important;background:linear-gradient(135deg,#3B82F6,#6D4AE8 60%,#7C3AED)!important;box-shadow:0 8px 18px -8px rgba(79,70,229,.9)!important;transition:transform .2s cubic-bezier(.2,.8,.2,1),box-shadow .2s ease!important}}
 div.st-key-alturaifi_ai_send button:hover{{transform:translateY(-1px) scale(1.05);box-shadow:0 10px 22px -8px rgba(79,70,229,.95)!important}}
 div.st-key-alturaifi_ai_send button:active{{transform:scale(.94)}}
 div.st-key-alturaifi_ai_send button [data-testid="stIconMaterial"]{{color:#fff!important;font-size:20px!important}}
@@ -140,11 +160,28 @@ div.st-key-alturaifi_ai_new button{{min-height:32px!important;padding:0 10px!imp
 div.st-key-alturaifi_ai_new button:hover{{color:{c['acc']}!important;border-color:{c['acc']}!important}}
 div.st-key-alturaifi_ai_new button p{{font-size:11.5px!important}}
 .ai-note{{display:block;color:{c['faint']};font-size:10.5px;line-height:1.5;text-align:center;margin:0;padding:2px 0 4px}}
+.ai-note.ph{{display:none}}
 .ai-typing{{position:fixed;z-index:1000070;display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;font-size:12px;color:{c['muted']};background:{c['card'] if not light else '#FFFFFF'};border:1px solid {c['line']};box-shadow:0 10px 24px -14px rgba(2,6,23,.6);pointer-events:none;animation:aiin .25s ease-out}}
 .ai-typing i{{width:5px;height:5px;border-radius:50%;background:{c['acc']};animation:aidot 1.2s infinite ease-in-out}}
 .ai-typing i:nth-of-type(2){{animation-delay:.15s}}.ai-typing i:nth-of-type(3){{animation-delay:.3s}}
-@media(max-width:640px){{{P}{{width:min(360px,calc(100vw - 28px))}}}}
-@media(prefers-reduced-motion:reduce){{{P} *,.ai-typing,.ai-typing i{{animation:none!important}}}}
+/* phones: a sheet from the foot of the screen */
+@media(max-width:640px){{
+{W}{{position:fixed!important;left:0!important;right:0!important;bottom:0!important;top:max(52px,7dvh)!important;width:100vw!important;max-width:100vw!important;min-width:0!important;margin:0!important;transform:none!important;z-index:1000050!important}}
+{B}{{width:100%!important;max-width:100%!important;height:100%!important;max-height:none!important;display:flex!important;flex-direction:column!important;border-radius:28px 28px 0 0!important;border-width:1.5px 0 0!important;padding:10px 14px calc(12px + env(safe-area-inset-bottom))!important;overflow-y:auto!important;overscroll-behavior:contain;animation:airing 14s linear infinite,aiup .35s cubic-bezier(.2,.8,.2,1)}}
+{B}::after{{content:"";position:absolute;top:8px;left:50%;width:44px;height:4px;margin-left:-22px;border-radius:4px;background:linear-gradient(90deg,{_TRI});opacity:.8;z-index:2}}
+{B}>*{{flex:1 1 auto;display:flex;flex-direction:column;min-height:0;width:100%!important}}
+{P}{{width:100%!important;flex:1 1 auto;display:flex;flex-direction:column;min-height:0}}
+{P}>[data-testid="stVerticalBlock"]{{flex:1 1 auto;min-height:0}}
+.ai-head{{padding-top:12px}}
+.ai-hello b{{font-size:21px}}
+div.st-key-alturaifi_ai_chips button{{min-height:52px!important}}
+div.st-key-alturaifi_ai_hist{{flex:1 1 auto!important;max-height:none!important;min-height:0}}
+div.st-key-alturaifi_ai_composer{{margin-top:auto;position:sticky;bottom:0;z-index:3}}
+.ai-note.ph{{display:block;padding-bottom:0}}
+.ai-note.ph::before{{content:"{close_hint}"}}
+.ai-typing{{bottom:calc(74px + env(safe-area-inset-bottom))!important;top:auto!important}}
+}}
+@media(prefers-reduced-motion:reduce){{{P} *,.ai-typing,.ai-typing i,{B},{B}::before,.ai-orb::after{{animation:none!important}}}}
 </style>
 """
 
@@ -342,6 +379,7 @@ def render(page_path="",page_title="",symbol="",lang="en"):
                         with st.container(key="alturaifi_ai_prompt"): st.text_input("AI question",key="alturaifi_ai_question",label_visibility="collapsed",placeholder=pick("Ask Kuhailan anything…","اسأل كحيلان أي شي…",lang),max_chars=MAX_Q,on_change=send_current,args=(ctx,lang))
                     with c2:
                         with st.container(key="alturaifi_ai_send"): st.button("",icon=":material/arrow_upward:",key="alturaifi_ai_send_btn",on_click=send_current,args=(ctx,lang),help=pick("Send","أرسل",lang))
+                st.markdown('<div class="ai-note ph"></div>',unsafe_allow_html=True)
                 flash=st.session_state.pop("alturaifi_ai_flash",None)
                 if flash: st.warning(flash,icon=":material/info:")
                 if msgs:

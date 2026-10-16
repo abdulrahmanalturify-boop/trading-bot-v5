@@ -8,6 +8,7 @@ setup score's parts, then its AI analysis, the affected stocks, why it matters, 
 confirmation (with the price around the story) and a trading scenario.
 """
 import json
+import re
 import time
 
 import pandas as pd
@@ -103,6 +104,37 @@ a.nx-row:hover { border-color:rgba(167,139,250,.5); transform:translateY(-1px); 
   border-inline-start:4px solid #8B5CF6; }
 .nx-callout .ms { font-size:1.6rem; color:#C4B5FD; flex:none; }
 .nx-callout p { margin:0; color:#EDE9F5; font-size:.95rem; line-height:1.75; }
+/* ---- Kuhailan's analysis: a card with a hairline of the site's three colours, his picture in the head, the points as rows */
+.nx-ai { position:relative; margin:8px 0 12px; padding:14px 16px 10px; border-radius:18px; border:1px solid rgba(167,139,250,.26);
+  background:linear-gradient(180deg, rgba(36,26,62,.9), rgba(20,14,34,.94)); overflow:hidden; unicode-bidi:plaintext; }
+.nx-ai::before { content:""; position:absolute; inset:0 0 auto 0; height:2px; background:linear-gradient(90deg,#3B82F6,#7C3AED 50%,#22D3EE); }
+.nx-ai::after { content:""; position:absolute; inset:-40px auto auto -40px; width:200px; height:200px; border-radius:50%; pointer-events:none;
+  background:radial-gradient(closest-side, rgba(124,58,237,.22), transparent); }
+.nx-ai .hd { position:relative; display:flex; align-items:center; gap:12px; padding-bottom:12px; margin-bottom:8px; border-bottom:1px solid rgba(157,151,165,.16); }
+.nx-ai .av { flex:none; width:44px; height:44px; border-radius:50%; display:grid; place-items:center;
+  background:linear-gradient(155deg,#7B6CFF 0%,#3B82F6 58%,#2DB6EB 100%); box-shadow:0 0 0 3px rgba(124,58,237,.22), 0 10px 22px -10px rgba(59,130,246,.9); }
+.nx-ai .av svg { display:block; overflow:visible; }
+.nx-ai .t { min-width:0; flex:1; }
+.nx-ai .t b { display:flex; align-items:center; gap:7px; color:#fff; font-size:.98rem; font-weight:800; }
+.nx-ai .t b em { font-style:normal; font-size:.6rem; font-weight:800; letter-spacing:.06em; padding:2px 8px; border-radius:999px; color:#fff;
+  background:linear-gradient(135deg,#3B82F6,#7C3AED 60%,#22D3EE); }
+.nx-ai .t span { display:block; color:#9D97A5; font-size:.72rem; margin-top:3px; line-height:1.4; }
+.nx-ai .n { flex:none; color:#C4B5FD; font-size:.7rem; font-weight:800; padding:4px 10px; border-radius:999px; background:rgba(124,58,237,.14);
+  border:1px solid rgba(167,139,250,.3); white-space:nowrap; }
+.nx-ai .rows { display:flex; flex-direction:column; }
+.nx-ai .r { display:flex; align-items:flex-start; gap:12px; padding:10px 2px; border-bottom:1px dashed rgba(157,151,165,.14); }
+.nx-ai .r:last-child { border-bottom:0; }
+.nx-ai .r .i { flex:none; width:32px; height:32px; border-radius:10px; display:grid; place-items:center; margin-top:1px;
+  background:rgba(124,58,237,.16); border:1px solid rgba(167,139,250,.28); }
+.nx-ai .r .i .ms { font-size:1.05rem; color:#C4B5FD; }
+.nx-ai .r .i0 { background:rgba(59,130,246,.16); border-color:rgba(96,165,250,.35); } .nx-ai .r .i0 .ms { color:#93C5FD; }
+.nx-ai .r .i2 { background:rgba(34,211,238,.12); border-color:rgba(34,211,238,.3); } .nx-ai .r .i2 .ms { color:#67E8F9; }
+.nx-ai .r .i3 { background:rgba(74,222,128,.12); border-color:rgba(74,222,128,.3); } .nx-ai .r .i3 .ms { color:#86EFAC; }
+.nx-ai .r .i4 { background:rgba(248,113,113,.12); border-color:rgba(248,113,113,.3); } .nx-ai .r .i4 .ms { color:#FCA5A5; }
+.nx-ai .r .b { min-width:0; flex:1; }
+.nx-ai .r b { display:block; color:#DCD6F7; font-size:.74rem; font-weight:800; letter-spacing:.02em; margin-bottom:2px; }
+.nx-ai .r p { margin:0; color:#EDE9F5; font-size:.92rem; line-height:1.75; text-align:start; }
+@media (max-width: 700px) { .nx-ai { padding:12px 13px 8px; } .nx-ai .t span { display:none; } .nx-ai .r p { font-size:.9rem; } }
 .nx-sec { display:grid; grid-template-columns: minmax(110px, 1.2fr) minmax(0, 1.8fr) 48px 92px 122px; align-items:center; gap:12px;
   padding:9px 14px; border-radius:12px; background:rgba(22,16,36,.86); border:1px solid rgba(157,151,165,.16); }
 .nx-sec .n { color:#fff; font-weight:700; font-size:.84rem; }
@@ -524,9 +556,12 @@ def _ai_analysis(payload, lang):
         return ""
     try:
         import ai_assistant as AI
-        ins = ("You are the News Analyst of a market-research website. Explain in 5 short bullet points what this news means for the "
-               "companies named, why, how long the effect may last and what would confirm or cancel it, using ONLY the facts given. "
-               "No buy/sell instructions; it is education. Answer in " + ("Arabic (clear Gulf-friendly Arabic)." if lang == "ar" else "English."))
+        ins = ("You are Kuhailan, the News Analyst of a market-research website. Using ONLY the facts given, write exactly 5 lines, "
+               "one per point and in this order: (1) what the news means for the companies or the market named, (2) why, (3) how long "
+               "the effect may last, (4) what would confirm it, (5) what would cancel it. Each line starts with a label of 1 to 3 words, "
+               "then a colon, then one or two plain sentences (at most 30 words). Plain text only: no markdown, no asterisks, no bullets, "
+               "no numbering, no headings. No buy/sell instructions; it is education. Answer in "
+               + ("Arabic (clear Gulf-friendly Arabic)." if lang == "ar" else "English."))
         r = requests.post(AI.API_URL, headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
                           json={"model": model, "instructions": ins, "input": payload, "max_output_tokens": 500, "store": False}, timeout=35)
         if r.status_code < 400:
@@ -556,6 +591,42 @@ def _engine_summary(a):
         w = ", ".join(dict.fromkeys(x.lower() for x in a["words"][:6]))
         lines.append((f"Words that decided the sentiment: {w}", f"الكلمات اللي حددت الاتجاه: {w}"))
     return lines
+
+
+_AI_ICONS = ["insights", "psychology", "schedule", "verified", "cancel"]       # meaning, why, how long, confirms, cancels
+
+
+def _ai_rows(txt):
+    """The model's lines as (label, text): bullets, numbers and markdown marks stripped, a short 'Label:' head split off."""
+    rows = []
+    for raw in str(txt or "").splitlines():
+        ln = re.sub(r"^\s*(?:[-•*▪●]+|\d+[.)]|[(]\d+[)])\s*", "", raw.strip())
+        ln = re.sub(r"(\*\*|__|`|#+\s*)", "", ln).strip()
+        if not ln:
+            continue
+        label, body = "", ln
+        m = re.match(r"^([^:：]{2,40})[:：]\s*(.+)$", ln, re.S)
+        if m and len(m.group(1).split()) <= 4:
+            label, body = m.group(1).strip(" -–—*"), m.group(2).strip()
+        rows.append((label, body))
+    return rows
+
+
+def _ai_block(txt, ar):
+    """Kuhailan's analysis as a card: his picture and name in the head, then every point as a row with its icon and label."""
+    import mascot
+    rows = _ai_rows(txt)
+    if not rows:
+        return f'<div class="nx-callout">{T.icon("auto_awesome")}<p>{T.esc(txt)}</p></div>'
+    items = []
+    for i, (label, body) in enumerate(rows[:6]):
+        ic = _AI_ICONS[i] if i < len(_AI_ICONS) else "auto_awesome"
+        items.append(f'<div class="r"><span class="i i{i}">{T.icon(ic)}</span><div class="b">'
+                     + (f'<b>{T.esc(label)}</b>' if label else "") + f'<p>{T.esc(body)}</p></div></div>')
+    head = (f'<div class="hd"><span class="av">{mascot.svg(30, uid="nxai", glow=False)}</span><div class="t"><b>{T.esc(L("Kuhailan\'s analysis", "تحليل كحيلان"))}'
+            f'<em>AI</em></b><span>{T.esc(L("From the engine\'s numbers and the story alone · educational, not a recommendation", "من أرقام المحرك والخبر فقط · تعليمي وليس توصية"))}</span></div>'
+            f'<span class="n">{len(items)} {T.esc(L("points", "نقاط"))}</span></div>')
+    return f'<div class="nx-ai">{head}<div class="rows">{"".join(items)}</div></div>'
 
 
 # ---------------------------------------------------------------- page
@@ -778,7 +849,7 @@ def _tab_ai(a, n, ar):
             with st.spinner(L("The AI analyst is reading the story...", "محلل الذكاء الاصطناعي يقرأ الخبر...")):
                 txt = _ai_analysis(payload, "ar" if ar else "en")
             if txt:
-                ui.html(f'<div class="nx-callout">{T.icon("auto_awesome")}<p>{T.esc(txt).replace(chr(10), "<br>")}</p></div>')
+                ui.html(_ai_block(txt, ar))
             else:
                 st.caption(L("The AI could not answer this time; the engine's reading is below.", "الذكاء الاصطناعي ما رد هالمرة، وقراءة المحرك تحت."))
     en_ev, ar_ev, ic, hz = NI.EVENT.get(a["event"], NI.EVENT["other"])
@@ -1678,4 +1749,4 @@ def page_news_intel():
             _show_story(a, chg, px, titles_ar)
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.4.34"
+BUILD = "23.4.35"
