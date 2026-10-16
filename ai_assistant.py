@@ -450,7 +450,7 @@ def render(page_path="",page_title="",symbol="",lang="en"):
                     st.markdown('<div class="ai-hello"><b>'+pick("Hi! How can I help?","هلا! كيف أقدر أساعدك؟",lang)+'</b><span>'+pick("I explain indicators, strategies, derivatives and company analysis, and how to use the tools on this page.","أشرح لك المؤشرات والاستراتيجيات والمشتقات وتحليل الشركات، وكيف تستخدم أدوات هالصفحة.",lang)+'</span></div>',unsafe_allow_html=True)
                     with st.container(key="alturaifi_ai_chips"):
                         for i,(text,ic) in enumerate(suggestions(page_path,lang)):
-                            st.button(text,key=f"alturaifi_ai_quick_{i}",icon=f":material/{ic}:",width="stretch",on_click=submit,args=(text,ctx,lang))
+                            st.button(text,key=(f"alturaifi_ai_xbrand_{i}" if ic == "alternate_email" else f"alturaifi_ai_quick_{i}"),icon=f":material/{ic}:",width="stretch",on_click=submit,args=(text,ctx,lang))
                 else:
                     with st.container(border=False,key="alturaifi_ai_hist"):
                         for i,m in enumerate(msgs[-12:]):
