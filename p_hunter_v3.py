@@ -70,6 +70,11 @@ def page_hunter_v3():
                     value=.5, step=.1, format="%.1f%%")
     maxpos = e.slider(L("Max holdings", "الحد الأقصى للمراكز"), 1, 15, 5)
     sectorlim = f.slider(L("Max names / sector", "الحد الأقصى لكل قطاع"), 1, 6, 2)
+    profile = st.radio(L("Paper allocation profile", "نوع المحفظة الافتراضية"),
+                       options=["risk_controlled", "return_seeking"], horizontal=True,
+                       format_func=lambda x: L("Risk-controlled", "مضبوط المخاطر") if x == "risk_controlled"
+                       else L("Return-seeking · higher risk", "استهداف عائد أعلى · مخاطرة أكبر"),
+                       key="hunter_v3_profile")
 
     symbols = _symbols(choice, custom)
     if not symbols:
@@ -131,7 +136,7 @@ def page_hunter_v3():
     st.subheader(L("Hypothetical allocation · no live orders", "محفظة افتراضية · بدون أوامر حقيقية"))
     selected, allocations = V3.allocate(frame, capital=cap, risk_per_trade_pct=risk,
                                          max_positions=maxpos, sector_limit=sectorlim,
-                                         mode=market.get("mood", "off"))
+                                         mode=market.get("mood", "off"), profile=profile)
     p1, p2, p3 = st.columns(3)
     p1.metric(L("Invested", "نسبة الاستثمار"), f"{allocations['invested_pct']:.1f}%")
     p2.metric(L("Cash", "النقد"), f"${allocations['remaining_cash']:,.0f}")
@@ -141,6 +146,11 @@ def page_hunter_v3():
     else:
         st.info(L("No positions meet sizing and risk constraints today.",
                   "ما فيه مراكز تستوفي شروط الحجم والمخاطرة اليوم."))
+    if profile == "return_seeking":
+        st.warning(L("Return-seeking mode can stay substantially exposed in bear markets. "
+                     "Higher exposure can amplify losses; it is not a higher-return guarantee.",
+                     "وضع استهداف العائد قد يحتفظ بانكشاف كبير حتى بالسوق الهابط، "
+                     "وقد يضاعف الخسائر ولا يضمن عائدًا أعلى."))
     st.caption(L("Stop prices may gap through; modeled risk budgets cannot cap realized losses. "
                  "Prices may be delayed. No auto orders, derivatives or leverage.",
                  "قد ينفذ وقف الخسارة بسعر أسوأ عند وجود فجوة. تحديد المخاطرة لا يضمن سقفًا للخسارة. "
