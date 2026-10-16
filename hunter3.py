@@ -114,7 +114,7 @@ def clean(df, cutoff=None, min_bars=MIN_BARS):
     return d if len(d) >= min_bars else None
 
 
-def _rolling_cvar(x, window, q):
+def _rolling_cvar(x, window, q, block=16):
     """The mean of the worst q share of the last `window` values on every position (NaN until the window is full), per
     column of a 2-D array (or on a 1-D one)."""
     x = np.asarray(x, float)
@@ -124,12 +124,13 @@ def _rolling_cvar(x, window, q):
     n = len(x)
     out = np.full(x.shape, np.nan)
     if n >= window:
-        win = np.lib.stride_tricks.sliding_window_view(x, window, axis=0)          # (n - window + 1, columns, window)
         k = max(1, int(np.floor(window * q)))
-        part = np.partition(np.nan_to_num(win, nan=0.0), k - 1, axis=2)[:, :, :k]
-        got = part.mean(axis=2)
-        got[np.isnan(win).sum(axis=2) > 1] = np.nan                                 # the first return is NaN; more means a gap
-        out[window - 1:] = got
+        for j in range(0, x.shape[1], block):                                       # a block of columns at a time: the window view's copy stays small
+            win = np.lib.stride_tricks.sliding_window_view(x[:, j:j + block], window, axis=0)    # (n - window + 1, block, window)
+            part = np.partition(np.nan_to_num(win, nan=0.0), k - 1, axis=2)[:, :, :k]
+            got = part.mean(axis=2)
+            got[np.isnan(win).sum(axis=2) > 1] = np.nan                             # the first return is NaN; more means a gap
+            out[window - 1:, j:j + block] = got
     return out[:, 0] if one else out
 
 

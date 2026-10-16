@@ -379,6 +379,8 @@ class Book:
                     st, tg = self.stop[t - 1, j], self.tgt[t - 1, j]
                     if not (st < o < tg):
                         continue                                   # opened beyond the stop or the target: no trade
+                    if o - st < 0.5 * (self.C[t - 1, j] - st):
+                        continue                                   # the open ate over half of the planned risk: the setup is spent
                     if secs.get(self.sector[j], 0) >= pol["sector_cap"]:
                         continue
                     if pol["corr_filter"] and pos:
