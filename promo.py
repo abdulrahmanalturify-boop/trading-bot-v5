@@ -273,5 +273,5 @@ def card_html(key, tool, f, live, mk, sa, wide=False):
             f'<span class="go">{T.esc(L(*cta))}{T.icon("arrow_forward")}</span></div>')
     from p_overview import _kick_pill
     return (f'<div class="ovad pz {tone}{" rtl" if ar else ""}{" wide" if wide else ""}" data-nogq>{radios}'
-            f'<div class="k"><span><span class="ic">{mascot.svg(26, uid="kp" + key)}</span>{xs(L(*kick))}</span>{_kick_pill(key, live)}</div>'
+            f'<div class="k"><span><span class="ic">{T.xlogo() if key == "xbots" else mascot.svg(26, uid="kp" + key)}</span>{xs(L(*kick))}</span>{_kick_pill(key, live)}</div>'
             f'<div class="bd">{stage}{text}</div></div>')
