@@ -1,0 +1,65 @@
+# Opportunity Hunter 3.0: its tests, and its historical evidence on real prices (research/hunter3_backtest.py), which needs
+# Yahoo Finance and so runs here. By hand (Actions > hunter 3.0), or on a push of the backtest to the Hunter 3.0 branch.
+# The evidence (research/results/hunter3_*, hunter3_weights.json, models/hunter3_rank.json) is committed back to that branch;
+# the site on "main" is not touched.
+name: hunter 3.0
+on:
+  push:
+    branches: [claude/project-thread-ncauu4]
+    paths: ["research/hunter3_backtest.py"]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: hunter3
+  cancel-in-progress: true
+jobs:
+  tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt "scikit-learn>=1.4"
+      - run: python -m py_compile hunter3.py p_hunter3.py app.py research/hunter3_backtest.py
+      - run: PYTHONPATH=. python -m unittest tests.test_hunter3 -v
+  evidence:
+    needs: tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt "scikit-learn>=1.4"
+      - id: day
+        run: echo "d=$(date -u +%Y%m%d)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        with:
+          path: research/.cache
+          key: hunter3-prices-${{ steps.day.outputs.d }}
+          restore-keys: hunter3-prices-
+      - run: /usr/bin/time -v python research/hunter3_backtest.py 2> research/results/hunter3_run.txt
+      - run: tail -25 research/results/hunter3_run.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hunter3-evidence
+          path: |
+            research/results/hunter3_*
+            hunter3_weights.json
+            models/hunter3_rank.json
+          if-no-files-found: ignore
+      - name: Save the evidence on the branch
+        run: |
+          git config user.name "research-lab"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add research/results/hunter3_backtest.json research/results/hunter3_report.md research/results/hunter3_trades.csv.gz research/results/hunter3_run.txt hunter3_weights.json models/hunter3_rank.json
+          git commit -m "hunter 3.0 evidence [skip ci]" || exit 0
+          git pull --rebase -q origin ${GITHUB_REF_NAME}
+          git push -q origin HEAD:${GITHUB_REF_NAME}
