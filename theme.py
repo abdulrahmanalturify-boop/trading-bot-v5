@@ -573,7 +573,7 @@ hr {{ border-color:{SHELL} !important; }}
 .sec:hover::after {{ background-position:0 0; }}
 .page-title {{ display:flex; align-items:center; gap:14px; margin:4px 0 4px; }}
 .page-title .ms {{ font-size:1.8rem; color:#fff; background:{PANEL}; border-radius:12px; padding:9px; box-shadow:{GLOW}; }}
-/* the X (formerly Twitter) logo in place of the letter X (xlogo / xify): the size of the letter in running text, a page title's
+/* the X platform mark (xlogo / xify): inline text size, page title icon, and section heading icon
    icon box with .pti, a section head's with .sci */
 svg.xlg {{ display:inline-block; width:.9em; height:.9em; vertical-align:-.1em; margin:0 .1em; fill:currentColor; }}
 .page-title svg.xlg.pti {{ width:1.8rem; height:1.8rem; margin:0; padding:9px; box-sizing:content-box; color:#fff; background:{PANEL}; border-radius:12px; box-shadow:{GLOW}; flex:none; }}
