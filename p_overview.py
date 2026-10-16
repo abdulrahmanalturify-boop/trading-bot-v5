@@ -1027,7 +1027,7 @@ def _mood(snap, v, sa=False, xb=None):
         # the X bots of this market in one card: what X's crowd feels, bot by bot
         import p_xbots as PX
         ui.html(PX.summary_html(MK.SA if sa else MK.US, xb))
-        st.button(L("Meet the X bots", "تعرّف على بوتات X"), key="ovgo_xb", icon=":material/alternate_email:", width="stretch",
+        st.button(L("Meet the X bots", "تعرّف على بوتات X"), key="ovgo_xb", icon=":material/arrow_forward:", width="stretch",
                   on_click=_open_tool, args=("xbots", "xbots"))
 
 

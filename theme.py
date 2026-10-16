@@ -573,7 +573,7 @@ hr {{ border-color:{SHELL} !important; }}
 .sec:hover::after {{ background-position:0 0; }}
 .page-title {{ display:flex; align-items:center; gap:14px; margin:4px 0 4px; }}
 .page-title .ms {{ font-size:1.8rem; color:#fff; background:{PANEL}; border-radius:12px; padding:9px; box-shadow:{GLOW}; }}
-/* the X (formerly Twitter) logo in place of the letter X (xlogo / xify): the size of the letter in running text, a page title's
+/* the X platform mark (xlogo / xify): inline text size, page title icon, and section heading icon
    icon box with .pti, a section head's with .sci */
 svg.xlg {{ display:inline-block; width:.9em; height:.9em; vertical-align:-.1em; margin:0 .1em; fill:currentColor; }}
 .page-title svg.xlg.pti {{ width:1.8rem; height:1.8rem; margin:0; padding:9px; box-sizing:content-box; color:#fff; background:{PANEL}; border-radius:12px; box-shadow:{GLOW}; flex:none; }}
@@ -3073,7 +3073,7 @@ def ico(name, kind="pos"):
 
 
 # ---------------------------------------------------------------- building blocks
-# the X (formerly Twitter) logo, from the Simple Icons library (CC0): drawn in place of the letter X wherever the site names X
+# X platform brand mark (Simple Icons SVG geometry): use for platform branding only.
 XLOGO_D = ("M14.234 10.162 22.977 0h-2.072l-7.591 8.824L7.251 0H.258l9.168 13.343L.258 24H2.33l8.016-9.318L16.749 24h6.993zm-2.837 3.299"
            "-.929-1.329L3.076 1.56h3.182l5.965 8.532.929 1.329 7.754 11.09h-3.182z")
 _XTOK = re.compile(r"(?<![A-Za-z0-9/@._-])X(?![A-Za-z0-9._-])")
@@ -3085,8 +3085,40 @@ def xlogo(cls="xlg"):
 
 
 def xify(text):
-    """The text escaped, with every standalone letter X (the platform) drawn as its logo: "X Bots" / "بوتات X"."""
+    """Escape X-platform-specific copy and render standalone X as the official logo.
+
+    Only call this for text referring to the social platform; regular X characters,
+    symbols and stock tickers must use esc() instead.
+    """
     return _XTOK.sub(lambda m: xlogo(), esc(text))
+
+
+# Streamlit's st.Page/st.page_link icons only accept emoji or Material symbols.
+# Mask the material placeholder at the X Bots page link with the SAME brand
+# silhouette used by xlogo(). This works in both dark and light themes.
+_XLOGO_MASK = "data:image/svg+xml;base64," + base64.b64encode(
+    ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">'
+     '<path d="' + XLOGO_D + '"/></svg>').encode("utf-8")
+).decode("ascii")
+X_BRAND_CSS = f"""<style>
+/* Only the platform's navigation and its related assistant prompt use the X mark.
+   Never replace ordinary X characters or other application icons. */
+a[href$="x-bots"] [data-testid="stIconMaterial"],
+a[href$="x-bots"] span[class*="material-symbols"],
+[class*="st-key-alturaifi_ai_xbrand_"] [data-testid="stIconMaterial"],
+[class*="st-key-alturaifi_ai_xbrand_"] span[class*="material-symbols"] {{
+    font-size:0 !important;
+    width:1.18rem !important;
+    min-width:1.18rem !important;
+    height:1.18rem !important;
+    display:inline-block !important;
+    vertical-align:middle !important;
+    flex:none !important;
+    background-color:currentColor !important;
+    -webkit-mask:url("{_XLOGO_MASK}") center/contain no-repeat !important;
+    mask:url("{_XLOGO_MASK}") center/contain no-repeat !important;
+}}
+</style>"""
 
 
 def page_title(ic, title, sub=""):

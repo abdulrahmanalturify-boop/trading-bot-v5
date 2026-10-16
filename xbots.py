@@ -1,5 +1,5 @@
 """
-xbots.py - Ten bots that read X (Twitter) about the market and trade what they read, on paper: five for the US market and five
+xbots.py - Ten bots that read the X platform for market sentiment and trade paper portfolios: five for the US market and five
 for the Saudi market.
 
 Each bot has a beat on X: the market's mood, the companies suddenly talked about, the analysts' calls, the breaking-news
