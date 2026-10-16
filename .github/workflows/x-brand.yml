@@ -5,6 +5,7 @@ on:
     paths:
       - "theme.py"
       - "app.py"
+      - "ai_assistant.py"
       - "p_xbots.py"
       - "p_overview.py"
       - "promo.py"
