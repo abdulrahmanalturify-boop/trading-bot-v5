@@ -19,7 +19,7 @@ BUILD = "v3-alpha-20261016"
 HORIZON = 20
 FEATURES = ("excess_21", "excess_63", "trend_100", "vol_20",
             "drawdown_63", "ema_diff", "rvol_20", "reversal_5", "market_trend")
-COLUMNS = ("Symbol", "Name", "Sector", "Score", "V1 Score", "Alpha %", "Expected Return %",
+COLUMNS = ("Symbol", "Name", "Sector", "Score", "V1 Score", "Alpha %",
            "Rank", "Setup", "Status", "Entry", "Stop", "Target", "R:R",
            "ATR %", "$Vol", "Risk Flag", "Model Active", "Exposure", "Side")
 MIN_HISTORY = 260
@@ -176,7 +176,6 @@ def scan(prices, benchmark, cutoff=None, sectors=None, earnings=None, thin=20e6)
     out = candidate.copy()
     out["V1 Score"] = out["Score"]
     out["Alpha %"] = np.nan
-    out["Expected Return %"] = np.nan
     out["Model Active"] = bool(model is not None)
     out["Risk Flag"] = ""
     out["Exposure"] = 1.0 if mood == "on" else 0.65 if mood == "mixed" else 0.25
@@ -210,8 +209,6 @@ def scan(prices, benchmark, cutoff=None, sectors=None, earnings=None, thin=20e6)
         rank.append((row.Symbol, score, alpha, flags))
     ranks = pd.DataFrame(rank, columns=["Symbol", "Rank", "Alpha %", "Risk Flag"])
     out = out.drop(columns=["Alpha %", "Risk Flag"]).merge(ranks, on="Symbol", validate="one_to_one")
-    out["Expected Return %"] = out["Alpha %"] + market["Close"].pct_change(HORIZON).iloc[-1] * 100
-    out.loc[out["Alpha %"].isna(), "Expected Return %"] = np.nan  # no model => no fabricated prediction
     out = out.sort_values(["Rank", "V1 Score"], ascending=False).reset_index(drop=True)
     return out, info, {"mood": mood, "date": str(market.index[-1].date()),
                         "universe": int(len(clean)), "eligible_longs": int(((out["Side"] > 0) & (out["Rank"] >= 50)).sum())}
