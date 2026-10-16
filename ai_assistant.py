@@ -6,7 +6,7 @@ import streamlit as st
 
 import mascot
 
-BUILD = "23.4.38"
+BUILD = "23.4.39"
 API_URL = "https://api.openai.com/v1/responses"
 MAX_Q = 1200
 SESSION_LIMIT = 40          # questions per visit
@@ -59,7 +59,7 @@ div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]>div>div:first-child:
 # for the page as rows with a tinted icon that light up and lean their arrow when hovered; the visitor's messages in a
 # blue-violet bubble on the end side, the assistant's as plain text beside a small Kuhailan; after every answer three new
 # questions to ask next, as small pills (never one already asked); the box and the send button one pill with a border of violet and cyan
-# turning round it all the time (a gradient turning under a face, so it needs nothing new of the browser), faster while typing; Enter sends; while an answer is on its way, "Kuhailan is writing" with three dots.
+# turning round it all the time (a gradient turning under the box's own face, so it needs nothing new of the browser), faster while typing; Enter sends; while an answer is on its way, "Kuhailan is writing" with three dots.
 # On a phone the window sits just above the button, and rides above the keyboard when it opens (theme.FX_JS measures the
 # keyboard and sets --kb on <html>); the page's own popover had been pushed under the keyboard with only the box showing.
 _PAL = {
@@ -147,9 +147,9 @@ div.st-key-alturaifi_ai_follow button:nth-child(2){{animation-delay:.06s}}div.st
 div.st-key-alturaifi_ai_follow button p,div.st-key-alturaifi_ai_follow button span{{font-size:12px!important;font-weight:600!important;color:{c['text']}!important;white-space:normal!important;text-align:start}}
 div.st-key-alturaifi_ai_follow button:hover{{background:{c['cardh']}!important;border-color:{c['acc']}!important;transform:translateY(-1px)}}
 div.st-key-alturaifi_ai_follow button:active{{transform:scale(.97)}}
-div.st-key-alturaifi_ai_composer{{position:relative;isolation:isolate;overflow:hidden;padding:7px;padding-inline-start:10px;border-radius:18px;border:0;background:transparent;box-shadow:none}}
-div.st-key-alturaifi_ai_composer::before{{content:"";position:absolute;z-index:-2;left:50%;top:50%;width:200%;aspect-ratio:1;margin:-100% 0 0 -100%;background:conic-gradient(#7C3AED,#22D3EE 50%,#7C3AED);animation:aispin 4s linear infinite;pointer-events:none}}
-div.st-key-alturaifi_ai_composer::after{{content:"";position:absolute;z-index:-1;inset:2.5px;border-radius:16px;background:{c['face']};pointer-events:none}}
+div.st-key-alturaifi_ai_composer{{position:relative;isolation:isolate;overflow:hidden;padding:2.5px;border-radius:18px;border:0;background:transparent;box-shadow:none}}
+div.st-key-alturaifi_ai_composer::before{{content:"";position:absolute;z-index:-1;left:50%;top:50%;width:200%;aspect-ratio:1;margin:-100% 0 0 -100%;background:conic-gradient(#7C3AED,#22D3EE 50%,#7C3AED);animation:aispin 4s linear infinite;pointer-events:none}}
+div.st-key-alturaifi_ai_composer>[data-testid="stVerticalBlock"]{{position:relative;z-index:1;box-sizing:border-box;width:100%;border-radius:15.5px;background:{c['face']};padding:4.5px;padding-inline-start:7.5px}}
 div.st-key-alturaifi_ai_composer:focus-within::before{{animation-duration:2s}}
 @keyframes aispin{{to{{transform:rotate(360deg)}}}}
 div.st-key-alturaifi_ai_composer [data-testid="stHorizontalBlock"],{P} [data-testid="stHorizontalBlock"]:has(div.st-key-alturaifi_ai_new){{flex-wrap:nowrap!important;gap:6px!important;align-items:center}}
