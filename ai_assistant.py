@@ -6,7 +6,7 @@ import streamlit as st
 
 import mascot
 
-BUILD = "23.4.37"
+BUILD = "23.4.38"
 API_URL = "https://api.openai.com/v1/responses"
 MAX_Q = 1200
 SESSION_LIMIT = 40          # questions per visit
@@ -59,7 +59,7 @@ div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]>div>div:first-child:
 # for the page as rows with a tinted icon that light up and lean their arrow when hovered; the visitor's messages in a
 # blue-violet bubble on the end side, the assistant's as plain text beside a small Kuhailan; after every answer three new
 # questions to ask next, as small pills (never one already asked); the box and the send button one pill with a border of violet and cyan
-# turning round it all the time, faster and glowing while typing; Enter sends; while an answer is on its way, "Kuhailan is writing" with three dots.
+# turning round it all the time (a gradient turning under a face, so it needs nothing new of the browser), faster while typing; Enter sends; while an answer is on its way, "Kuhailan is writing" with three dots.
 # On a phone the window sits just above the button, and rides above the keyboard when it opens (theme.FX_JS measures the
 # keyboard and sets --kb on <html>); the page's own popover had been pushed under the keyboard with only the box showing.
 _PAL = {
@@ -67,12 +67,12 @@ _PAL = {
                  line="rgba(148,163,184,.15)", card="rgba(255,255,255,.035)", cardh="rgba(96,165,250,.09)", acc="#60A5FA",
                  accs="rgba(96,165,250,.18)", user="linear-gradient(135deg,rgba(59,130,246,.34),rgba(124,58,237,.32))",
                  usert="#F1F5FF", userb="rgba(129,140,248,.34)", inp="rgba(255,255,255,.045)", shadow="0 30px 70px -24px rgba(2,6,23,.9),0 0 70px -24px rgba(124,58,237,.55)",
-                 code="rgba(255,255,255,.08)", hello="linear-gradient(90deg,#E0E7FF,#93C5FD 45%,#C4B5FD 75%,#67E8F9)", aurora=".55", orbgap="#141A36"),
+                 code="rgba(255,255,255,.08)", hello="linear-gradient(90deg,#E0E7FF,#93C5FD 45%,#C4B5FD 75%,#67E8F9)", aurora=".55", orbgap="#141A36", face="#161C3B"),
     "light": dict(bg="linear-gradient(180deg,#FFFFFF 0%,#F7F8FE 100%)", text="#0F172A", muted="#5B6478", faint="#8A93A6",
                   line="rgba(15,23,42,.09)", card="#F4F6FB", cardh="#EAF1FF", acc="#2563EB", accs="rgba(37,99,235,.16)",
                   user="linear-gradient(135deg,#3B82F6,#6D4AE8)", usert="#FFFFFF", userb="transparent", inp="#F4F6FB",
                   shadow="0 30px 70px -26px rgba(30,41,99,.38),0 0 60px -26px rgba(124,58,237,.35)", code="rgba(15,23,42,.06)",
-                  hello="linear-gradient(90deg,#1E3A8A,#2563EB 45%,#7C3AED 75%,#0891B2)", aurora=".32", orbgap="#FFFFFF"),
+                  hello="linear-gradient(90deg,#1E3A8A,#2563EB 45%,#7C3AED 75%,#0891B2)", aurora=".32", orbgap="#FFFFFF", face="#F4F6FB"),
 }
 _TRI = "#3B82F6,#7C3AED,#22D3EE"          # the site's three colours, blue → violet → cyan
 
@@ -147,8 +147,11 @@ div.st-key-alturaifi_ai_follow button:nth-child(2){{animation-delay:.06s}}div.st
 div.st-key-alturaifi_ai_follow button p,div.st-key-alturaifi_ai_follow button span{{font-size:12px!important;font-weight:600!important;color:{c['text']}!important;white-space:normal!important;text-align:start}}
 div.st-key-alturaifi_ai_follow button:hover{{background:{c['cardh']}!important;border-color:{c['acc']}!important;transform:translateY(-1px)}}
 div.st-key-alturaifi_ai_follow button:active{{transform:scale(.97)}}
-div.st-key-alturaifi_ai_composer{{position:relative;padding:5px;padding-inline-start:8px;border-radius:18px;border:2px solid transparent;background:{c['inp']} padding-box,conic-gradient(from var(--aiang),#7C3AED,#22D3EE 50%,#7C3AED) border-box;box-shadow:0 10px 26px -18px rgba(124,58,237,.55);animation:airing 4s linear infinite;transition:box-shadow .25s ease}}
-div.st-key-alturaifi_ai_composer:focus-within{{box-shadow:0 0 0 4px rgba(124,58,237,.14),0 0 22px -4px rgba(34,211,238,.45),0 12px 30px -18px rgba(124,58,237,.8);animation-duration:2.2s}}
+div.st-key-alturaifi_ai_composer{{position:relative;isolation:isolate;overflow:hidden;padding:7px;padding-inline-start:10px;border-radius:18px;border:0;background:transparent;box-shadow:none}}
+div.st-key-alturaifi_ai_composer::before{{content:"";position:absolute;z-index:-2;left:50%;top:50%;width:200%;aspect-ratio:1;margin:-100% 0 0 -100%;background:conic-gradient(#7C3AED,#22D3EE 50%,#7C3AED);animation:aispin 4s linear infinite;pointer-events:none}}
+div.st-key-alturaifi_ai_composer::after{{content:"";position:absolute;z-index:-1;inset:2.5px;border-radius:16px;background:{c['face']};pointer-events:none}}
+div.st-key-alturaifi_ai_composer:focus-within::before{{animation-duration:2s}}
+@keyframes aispin{{to{{transform:rotate(360deg)}}}}
 div.st-key-alturaifi_ai_composer [data-testid="stHorizontalBlock"],{P} [data-testid="stHorizontalBlock"]:has(div.st-key-alturaifi_ai_new){{flex-wrap:nowrap!important;gap:6px!important;align-items:center}}
 div.st-key-alturaifi_ai_composer [data-testid="stColumn"]:first-child{{flex:1 1 0!important;min-width:0!important;width:auto!important}}
 div.st-key-alturaifi_ai_composer [data-testid="stColumn"]:last-child{{flex:0 0 auto!important;min-width:40px!important;width:auto!important}}
