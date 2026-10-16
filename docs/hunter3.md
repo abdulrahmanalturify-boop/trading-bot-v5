@@ -87,10 +87,10 @@ anything.
 - Verdict rule (`decide()`): a method is "recommended" only if it beats v1 on **both** rank IC and Sharpe in more than
   half of the test periods; ML only if its walk-forward IC beats the adaptive score. Otherwise v1 stays the default.
 
-## 4. Measured results (run of 2026-10-16, 509 symbols, 88 s)
+## 4. Measured results (run of 2026-10-16, 509 symbols, 79 s)
 
 **Verdict: v1 (the old Hunter) stays the default.** `quant` is "not better" (beats v1 on IC in 1 of 4 test periods, on
-Sharpe in 2 of 4). `adaptive` is "not better" (IC 2 of 4, Sharpe 0 of 4). `ml` is **rejected**: walk-forward IC
+Sharpe in 3 of 4). `adaptive` is "not better" (IC 2 of 4, Sharpe 2 of 4). `ml` is **rejected**: walk-forward IC
 2016–2024 of 0.0045 against 0.0131 for the adaptive score.
 
 Rank IC on the test periods (full table with t-stats in the report):
@@ -105,14 +105,15 @@ Rank IC on the test periods (full table with t-stats in the report):
 No score has a t-statistic above 1.4 in any period. The honest reading is that none of the rankings, old or new, shows a
 reliable edge at a one-month horizon on this universe; the differences between them are inside the noise.
 
-Simulation 2025–2026 (final test): v1 CAGR 7.6% / Sharpe 0.83, quant 10.7% / 1.12, adaptive 4.0% / 0.44, ml 2.1% / 0.27,
-random −4.3% / −0.63, SPY 18.2% / 1.07. Whole span 2008–2026: v1 2.6% / 0.32, quant 1.9% / 0.26, adaptive 3.8% / 0.42,
-random 3.6% / 0.44. Every method trails buy-and-hold SPY over the long span; the random floor is not clearly below the
+Simulation 2025–2026 (final test): v1 CAGR 7.4% / Sharpe 0.82, quant 10.2% / 1.06, adaptive 3.7% / 0.39, ml 0.3% / 0.07,
+random −2.5% / −0.25, SPY 18.2% / 1.07. Whole span 2008–2026: v1 3.4% / 0.41, quant 4.0% / 0.46, adaptive 3.9% / 0.43,
+ml 2.4% / 0.37, random 3.6% / 0.43. Every method trails buy-and-hold SPY over the long span; the random floor is not clearly below the
 scored methods, which is the strongest argument against performance claims of any kind.
 
-Ablations (adaptive, 2016–2026): removing volatility sizing raised CAGR from 4.2% to 7.2% and Sharpe from 0.46 to 0.60;
-removing the drawdown brake or the regime exit also helped slightly; removing the regime cap or the correlation filter
-hurt. The sizing rules are therefore kept selectable rather than hard-wired, and nothing is claimed for them.
+Ablations (adaptive, 2016–2026, all rules: CAGR 4.9% / Sharpe 0.52): removing volatility sizing raised them to 6.2% / 0.55;
+removing the regime cap (3.5% / 0.39), the correlation filter (2.7% / 0.33), the drawdown brake (3.7% / 0.40) or the
+regime exit (3.0% / 0.35) hurt. The sizing rules are kept selectable rather than hard-wired, and nothing is claimed for
+them: one ten-year sample does not separate a 0.52 from a 0.55 Sharpe.
 
 Failures recorded, not hidden: the ML ranker, the adaptive weights (fitted on bull and neutral months only), the
 2025–2026 IC of all scores, and the first run's expectancy-in-R distortion (fixed in the simulation, see §3).
@@ -122,8 +123,8 @@ Failures recorded, not hidden: the ML ranker, the adaptive weights (fitted on bu
 | What | Measured |
 |---|---|
 | Page scan, 175 stocks × 500 bars (the default US universe) | 23.4 s, 218 MB peak (vectorised); 48 s before vectorisation |
-| Evidence run on GitHub Actions, 509 symbols from 2005 | 88–119 s wall |
-| Evidence run peak memory | 3.6 GB with the per-stock engine; 12 GB with the first wide engine; the rolling CVaR is now computed in blocks of 16 columns to cut that (re-measured by the next workflow run, `research/results/hunter3_run.txt`) |
+| Evidence run on GitHub Actions, 509 symbols from 2005 | 79–119 s wall |
+| Evidence run peak memory | 3.6 GB with the per-stock engine; 12 GB with the first wide engine; 3.3 GB after the rolling CVaR was computed in blocks of 16 columns (`research/results/hunter3_run.txt`) |
 | Unit tests | 9 tests, about 25 s |
 
 ## 6. How to re-run
