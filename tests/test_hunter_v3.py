@@ -104,6 +104,23 @@ class HunterV3Safety(unittest.TestCase):
         self.assertLessEqual(result["Stop Risk $"].max(), 100)
         self.assertEqual(len(set(result["Sector"])), len(result))
 
+    def test_return_seeking_increases_exposure_without_leverage(self):
+        data = pd.DataFrame({
+            "Symbol": [f"S{i}" for i in range(5)],
+            "Sector": [f"T{i}" for i in range(5)],
+            "Side": [1]*5, "Rank": [95, 93, 91, 89, 87],
+            "Entry": [100.]*5, "Stop": [90.]*5,
+            "ATR %": [2.]*5, "Alpha %": [2.]*5, "Risk Flag": [""]*5,
+        })
+        _, safe = V3.allocate(data, capital=10_000, mode="off",
+                              profile="risk_controlled", risk_per_trade_pct=1)
+        _, seek = V3.allocate(data, capital=10_000, mode="off",
+                              profile="return_seeking", risk_per_trade_pct=1)
+        self.assertEqual(safe["market_exposure_cap_pct"], 25)
+        self.assertEqual(seek["market_exposure_cap_pct"], 70)
+        self.assertGreater(seek["invested_pct"], safe["invested_pct"])
+        self.assertLessEqual(seek["invested_pct"], 70)
+
     def test_allocation_rejects_broken_stops(self):
         data = pd.DataFrame({
             "Symbol": ["A"], "Sector": ["T"], "Side": [1], "Rank": [95],
