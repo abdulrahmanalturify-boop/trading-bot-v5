@@ -6,7 +6,7 @@ import streamlit as st
 
 import mascot
 
-BUILD = "23.4.35"
+BUILD = "23.4.36"
 API_URL = "https://api.openai.com/v1/responses"
 MAX_Q = 1200
 SESSION_LIMIT = 40          # questions per visit
@@ -14,33 +14,30 @@ DAILY_LIMIT = 600           # questions per day for the whole site (all visitors
 
 FAB_CSS = """
 <style data-lm="keep">
-/* (kept as it is in the light look too: the same blue circle on the light page) */
+/* (kept as it is in the light look too) */
 /* the AI button, at the bottom left of the page: just right of an open side panel on a computer (where the owner marked it),
-   in the corner when the panel is closed and on phones. Kuhailan, the site's robot (mascot.py), on a blue-violet circle, floating
-   a little; its label "Ask Kuhailan" stays beside it all the time and opens the chat too. A thin ring of the site's three
-   colours turns slowly round the circle and lights up when hovered or open; hovered, it lifts and its label brightens; pressed,
-   it gives a little and a ring spreads out of it. (The wire sphere theme.FX_JS used to draw over it is no longer shown.) */
+   in the corner when the panel is closed and on phones. Kuhailan, the site's robot (mascot.py), by himself - no circle and no
+   ring round him (the owner asked for them to go) - floating a little over a soft shadow; his label "Ask Kuhailan" stays
+   beside him all the time and opens the chat too. Hovered, he lifts and the label brightens; pressed, he gives a little.
+   (The wire sphere theme.FX_JS used to draw over it is no longer shown.) */
 @property --aiang{syntax:"<angle>";inherits:false;initial-value:0deg}
 @keyframes airing{to{--aiang:360deg}}
-@keyframes aipress{from{opacity:.55;transform:scale(1)}to{opacity:0;transform:scale(1.55)}}
-div.st-key-alturaifi_ai_fab{position:fixed!important;left:calc(var(--sbw,0px) + 20px + min(var(--sbw,0px),8px))!important;right:auto!important;bottom:20px;z-index:999992;width:auto!important;transition:left .28s ease,transform .24s ease,opacity .2s ease}
-div.st-key-alturaifi_ai_fab::before{content:"";position:absolute;inset:-3px;border-radius:50%;background:conic-gradient(from var(--aiang),#3B82F6,#7C3AED,#22D3EE,#3B82F6);-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 1.6px),#000 calc(100% - 1.5px));mask:radial-gradient(farthest-side,transparent calc(100% - 1.6px),#000 calc(100% - 1.5px));opacity:.5;animation:airing 9s linear infinite;transition:opacity .3s ease;pointer-events:none;z-index:-1}
-div.st-key-alturaifi_ai_fab::after{content:"";position:absolute;inset:0;border-radius:50%;border:1.5px solid rgba(96,165,250,.7);opacity:0;pointer-events:none}
-div.st-key-alturaifi_ai_fab:has([data-testid="stPopoverButton"]:hover)::before,div.st-key-alturaifi_ai_fab:has([aria-expanded="true"])::before{opacity:1}
-div.st-key-alturaifi_ai_fab:has([data-testid="stPopoverButton"]:active)::after{animation:aipress .55s ease-out}
-div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]{position:relative!important;overflow:visible!important;width:64px!important;height:64px!important;min-width:64px!important;min-height:64px!important;padding:0!important;border-radius:50%!important;border:0!important;color:#fff!important;background:__ROBOT__ center/84% no-repeat,linear-gradient(155deg,#7B6CFF 0%,#3B82F6 58%,#2DB6EB 100%)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 12px 28px -12px rgba(37,99,235,.8)!important;animation:khlfloat 3.4s ease-in-out infinite;transition:transform .28s cubic-bezier(.2,.8,.2,1),box-shadow .28s ease!important;cursor:pointer}
-div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]:hover{box-shadow:inset 0 1px 0 rgba(255,255,255,.09),0 16px 32px -12px rgba(37,99,235,.6)!important}
-div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]:focus-visible{outline:2px solid #60A5FA!important;outline-offset:4px}
+div.st-key-alturaifi_ai_fab{position:fixed!important;left:calc(var(--sbw,0px) + 20px + min(var(--sbw,0px),8px))!important;right:auto!important;bottom:18px;z-index:999992;width:auto!important;transition:left .28s ease,transform .24s ease,opacity .2s ease}
+div.st-key-alturaifi_ai_fab::before,div.st-key-alturaifi_ai_fab::after{display:none!important}
+div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]{position:relative!important;overflow:visible!important;width:72px!important;height:72px!important;min-width:72px!important;min-height:72px!important;padding:0!important;border-radius:50%!important;border:0!important;color:#fff!important;background:__ROBOT__ center/100% no-repeat transparent!important;box-shadow:none!important;filter:drop-shadow(0 12px 14px rgba(37,99,235,.28)) drop-shadow(0 2px 4px rgba(2,6,23,.25));animation:khlfloat 3.4s ease-in-out infinite;transition:transform .28s cubic-bezier(.2,.8,.2,1),filter .28s ease!important;cursor:pointer}
+div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]:hover,div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"][aria-expanded="true"]{transform:translateY(-3px) scale(1.05);filter:drop-shadow(0 16px 18px rgba(37,99,235,.38)) drop-shadow(0 0 10px rgba(94,240,255,.35))}
+div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]:active{transform:scale(.94)}
+div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]:focus-visible{outline:2px solid #60A5FA!important;outline-offset:6px}
 div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]::before,div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]::after{display:none!important}
 div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]>div{position:static!important;justify-content:center!important}
 div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]>div>div:last-child:not(:first-child){display:none!important}
 div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]>div>div:first-child{position:static!important;display:flex;align-items:center}
 div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"] span[data-testid="stIconMaterial"],div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"] p{opacity:0!important}
-div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]>div>div:first-child::after{content:"__ASK__";position:absolute;left:calc(100% + 12px);top:50%;transform:translateY(-50%);white-space:nowrap;padding:8px 14px;border-radius:11px;font-size:12.5px;font-weight:600;letter-spacing:.1px;line-height:1.2;color:#E2E8F0;background:rgba(10,15,35,.92);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border:1px solid rgba(148,163,184,.22);box-shadow:0 10px 24px -12px rgba(2,6,23,.7);cursor:pointer;transition:color .2s ease,border-color .2s ease,box-shadow .25s ease}
+div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]>div>div:first-child::after{content:"__ASK__";position:absolute;left:calc(100% + 6px);top:50%;transform:translateY(-50%);white-space:nowrap;padding:8px 14px;border-radius:12px;font-size:12.5px;font-weight:700;letter-spacing:.1px;line-height:1.2;color:#E2E8F0;background:rgba(10,15,35,.92);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border:1px solid rgba(148,163,184,.22);box-shadow:0 10px 24px -12px rgba(2,6,23,.7);cursor:pointer;transition:color .2s ease,border-color .2s ease,box-shadow .25s ease}
 div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]:hover>div>div:first-child::after,div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"][aria-expanded="true"]>div>div:first-child::after{color:#fff;border-color:rgba(96,165,250,.55);box-shadow:0 12px 26px -12px rgba(37,99,235,.55)}
 @keyframes khlfloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
 canvas.ai-neural{display:none!important}
-@media(prefers-reduced-motion:reduce){div.st-key-alturaifi_ai_fab::before,div.st-key-alturaifi_ai_fab::after,div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]{animation:none!important}}
+@media(prefers-reduced-motion:reduce){div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]{animation:none!important}}
 @media(max-width:1023px){div.st-key-alturaifi_ai_fab{z-index:99990}}
 </style>
 """
@@ -48,22 +45,23 @@ canvas.ai-neural{display:none!important}
 # phones: the button a little smaller and the corner closer; it steps aside while a page is read downwards
 FAB_PHONE = """
 <style data-lm="keep">
-@media(max-width:640px){div.st-key-alturaifi_ai_fab{left:14px!important;right:auto!important;bottom:16px}
+@media(max-width:640px){div.st-key-alturaifi_ai_fab{left:12px!important;right:auto!important;bottom:14px}
 html.nav-tuck .stApp:not(:has(.ixp)) div.st-key-alturaifi_ai_fab{transform:translateY(96px);opacity:0;pointer-events:none}
-div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]{width:58px!important;height:58px!important;min-height:58px!important;min-width:58px!important}
-div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]>div>div:first-child::after{left:calc(100% + 10px);padding:7px 12px;font-size:12px}}
+div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]{width:64px!important;height:64px!important;min-height:64px!important;min-width:64px!important}
+div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]>div>div:first-child::after{left:calc(100% + 4px);padding:7px 12px;font-size:12px}}
 </style>
 """
 
 # the chat window: written for each look (dark and light) and kept as it is by the light look's colour converter.
-# A card with a slowly turning ring of the site's three colours round it; a head over an aurora of the same colours (soft
-# blobs of blue, violet and cyan drifting behind Kuhailan, his name and the connection); an empty chat greets in gradient
-# letters and offers three questions as rows with a tinted icon that light up and lean their arrow when hovered; the visitor's
-# messages in a blue-violet bubble on the end side, the assistant's as plain text beside a small Kuhailan; the box and the
-# send button one pill whose border lights up in the three colours while typing; Enter sends; while an answer is on its way,
-# "Kuhailan is writing" with three dots. On a phone the window is a sheet from the bottom of the screen almost to the top
-# (the page's own popover had been squeezed under the keyboard with only the box showing): a handle at its top, the head
-# stays while the chat scrolls, the box stays at the foot, and a touch above the sheet closes it.
+# A small card (never the whole screen - the owner wants a window, not a page) with a slowly turning ring of the site's three
+# colours round it; a head over an aurora of the same colours (soft blobs of blue, violet and cyan drifting behind Kuhailan -
+# by himself, no circle - his name and the connection); an empty chat greets in gradient letters and offers three questions
+# for the page as rows with a tinted icon that light up and lean their arrow when hovered; the visitor's messages in a
+# blue-violet bubble on the end side, the assistant's as plain text beside a small Kuhailan; after every answer three new
+# questions to ask next, as small pills (never one already asked); the box and the send button one pill whose border lights
+# up in the three colours while typing; Enter sends; while an answer is on its way, "Kuhailan is writing" with three dots.
+# On a phone the window sits just above the button, and rides above the keyboard when it opens (theme.FX_JS measures the
+# keyboard and sets --kb on <html>); the page's own popover had been pushed under the keyboard with only the box showing.
 _PAL = {
     "dark": dict(bg="linear-gradient(180deg,#141A36 0%,#0E1227 100%)", text="#EEF2FF", muted="#9AA6BF", faint="#66728C",
                  line="rgba(148,163,184,.15)", card="rgba(255,255,255,.035)", cardh="rgba(96,165,250,.09)", acc="#60A5FA",
@@ -87,7 +85,6 @@ def _panel_css(light=False, lang="en"):
     B = f'[data-testid="stPopoverBody"]:has({P})'
     W = f'div[data-baseweb="popover"]:has({P})'
     robot = mascot.data_uri(glow=False)
-    close_hint = pick("Touch above the window to close it", "المس فوق النافذة عشان تقفلها", lang)
     return f"""
 <style data-lm="keep">
 @keyframes aiin{{from{{opacity:0;transform:translateY(6px)}}to{{opacity:1;transform:none}}}}
@@ -103,8 +100,8 @@ def _panel_css(light=False, lang="en"):
 {P} [data-testid="stVerticalBlock"]{{gap:.55rem}}
 .ai-head{{position:relative;display:flex;align-items:center;gap:12px;padding:0 2px 14px}}
 .ai-head::after{{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:linear-gradient(90deg,transparent,rgba(96,165,250,.55) 20%,rgba(167,139,250,.6) 50%,rgba(34,211,238,.5) 80%,transparent)}}
-.ai-orb{{position:relative;flex:none;width:46px;height:46px;border-radius:50%;background:linear-gradient(155deg,#7B6CFF 0%,#3B82F6 58%,#2DB6EB 100%);display:grid;place-items:center;box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 0 0 2px {c['orbgap']},0 0 0 3.5px rgba(124,58,237,.35),0 10px 24px -10px rgba(59,130,246,.9)}}
-.ai-orb svg.khl{{width:38px;height:38px}}
+.ai-orb{{position:relative;flex:none;width:50px;height:50px;display:grid;place-items:center;filter:drop-shadow(0 8px 10px rgba(37,99,235,.3))}}
+.ai-orb svg.khl{{width:50px;height:50px}}
 .ai-orb::after{{content:"✦";position:absolute;top:-6px;inset-inline-end:-7px;font-size:13px;color:#A5F3FC;text-shadow:0 0 10px rgba(34,211,238,.9);animation:aispark 2.6s ease-in-out infinite}}
 .ai-copy{{min-width:0;flex:1;line-height:1.25}}
 .ai-copy b{{display:flex;align-items:center;gap:7px;color:{c['text']};font-size:15.5px;font-weight:800;letter-spacing:.2px}}
@@ -135,12 +132,21 @@ div[class*="st-key-alturaifi_ai_user_"] [data-testid="stElementContainer"]{{widt
 div[class*="st-key-alturaifi_ai_user_"] [data-testid="stMarkdownContainer"]{{padding:9px 13px;border-radius:16px;border-end-start-radius:16px;border-end-end-radius:6px;background:{c['user']};border:1px solid {c['userb']};box-shadow:0 8px 20px -14px rgba(79,70,229,.8);animation:aiin .3s ease-out}}
 div[class*="st-key-alturaifi_ai_user_"] p{{color:{c['usert']}!important;margin:0!important}}
 div[class*="st-key-alturaifi_ai_asst_"]{{position:relative;padding-inline-start:36px;margin-block:4px 8px;animation:aiin .35s ease-out}}
-div[class*="st-key-alturaifi_ai_asst_"]::before{{content:"";position:absolute;inset-inline-start:0;top:0;width:26px;height:26px;border-radius:50%;background:{robot} center/86% no-repeat,linear-gradient(155deg,#7B6CFF,#3B82F6 58%,#2DB6EB);box-shadow:0 0 0 2px rgba(124,58,237,.25),0 4px 12px -4px rgba(59,130,246,.7)}}
-div[class*="st-key-alturaifi_ai_asst_"]::after{{content:"";position:absolute;inset-inline-start:12px;top:32px;bottom:4px;width:2px;border-radius:2px;background:linear-gradient(180deg,rgba(124,58,237,.35),rgba(34,211,238,.0))}}
+div[class*="st-key-alturaifi_ai_asst_"]::before{{content:"";position:absolute;inset-inline-start:-2px;top:-2px;width:30px;height:30px;background:{robot} center/100% no-repeat;filter:drop-shadow(0 4px 6px rgba(37,99,235,.35))}}
+div[class*="st-key-alturaifi_ai_asst_"]::after{{content:"";position:absolute;inset-inline-start:13px;top:34px;bottom:4px;width:2px;border-radius:2px;background:linear-gradient(180deg,rgba(124,58,237,.35),rgba(34,211,238,.0))}}
 div[class*="st-key-alturaifi_ai_user_"] p,div[class*="st-key-alturaifi_ai_asst_"] p,div[class*="st-key-alturaifi_ai_asst_"] li{{font-size:13px!important;line-height:1.7!important}}
 div[class*="st-key-alturaifi_ai_asst_"] p,div[class*="st-key-alturaifi_ai_asst_"] li{{color:{c['text']}!important}}
 div[class*="st-key-alturaifi_ai_asst_"] code{{background:{c['code']}!important;border-radius:6px;padding:1px 5px;font-size:12px}}
 div[class*="st-key-alturaifi_ai_asst_"] strong{{color:{c['text']};background:{c['hello']};-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:800}}
+div.st-key-alturaifi_ai_follow{{margin-top:2px}}
+div.st-key-alturaifi_ai_follow .ai-fl{{display:flex;align-items:center;gap:6px;color:{c['faint']};font-size:10.5px;font-weight:700;letter-spacing:.3px;margin:0 2px 2px}}
+div.st-key-alturaifi_ai_follow .ai-fl::before{{content:"✦";font-size:10px;background:{c['hello']};-webkit-background-clip:text;background-clip:text;color:transparent}}
+div.st-key-alturaifi_ai_follow [data-testid="stButtonGroup"],div.st-key-alturaifi_ai_follow [data-testid="stPills"]{{gap:6px!important;flex-wrap:wrap}}
+div.st-key-alturaifi_ai_follow button{{min-height:30px!important;height:auto!important;padding:5px 11px!important;border-radius:999px!important;background:{c['card']}!important;border:1px solid {c['line']}!important;color:{c['text']}!important;box-shadow:none!important;font-size:12px!important;line-height:1.3!important;transition:border-color .2s ease,background .2s ease,transform .2s cubic-bezier(.2,.8,.2,1)!important;animation:aiin .35s ease-out backwards}}
+div.st-key-alturaifi_ai_follow button:nth-child(2){{animation-delay:.06s}}div.st-key-alturaifi_ai_follow button:nth-child(3){{animation-delay:.12s}}
+div.st-key-alturaifi_ai_follow button p,div.st-key-alturaifi_ai_follow button span{{font-size:12px!important;font-weight:600!important;color:{c['text']}!important;white-space:normal!important;text-align:start}}
+div.st-key-alturaifi_ai_follow button:hover{{background:{c['cardh']}!important;border-color:{c['acc']}!important;transform:translateY(-1px)}}
+div.st-key-alturaifi_ai_follow button:active{{transform:scale(.97)}}
 div.st-key-alturaifi_ai_composer{{padding:5px;padding-inline-start:8px;border-radius:18px;border:1.5px solid transparent;background:{c['inp']} padding-box,linear-gradient(135deg,{c['line']},{c['line']}) border-box;transition:box-shadow .25s ease,background .25s ease}}
 div.st-key-alturaifi_ai_composer:focus-within{{background:{c['inp']} padding-box,linear-gradient(135deg,{_TRI}) border-box;box-shadow:0 0 0 4px {c['accs']},0 12px 30px -18px rgba(124,58,237,.8)}}
 div.st-key-alturaifi_ai_composer [data-testid="stHorizontalBlock"],{P} [data-testid="stHorizontalBlock"]:has(div.st-key-alturaifi_ai_new){{flex-wrap:nowrap!important;gap:6px!important;align-items:center}}
@@ -160,26 +166,20 @@ div.st-key-alturaifi_ai_new button{{min-height:32px!important;padding:0 10px!imp
 div.st-key-alturaifi_ai_new button:hover{{color:{c['acc']}!important;border-color:{c['acc']}!important}}
 div.st-key-alturaifi_ai_new button p{{font-size:11.5px!important}}
 .ai-note{{display:block;color:{c['faint']};font-size:10.5px;line-height:1.5;text-align:center;margin:0;padding:2px 0 4px}}
-.ai-note.ph{{display:none}}
 .ai-typing{{position:fixed;z-index:1000070;display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;font-size:12px;color:{c['muted']};background:{c['card'] if not light else '#FFFFFF'};border:1px solid {c['line']};box-shadow:0 10px 24px -14px rgba(2,6,23,.6);pointer-events:none;animation:aiin .25s ease-out}}
 .ai-typing i{{width:5px;height:5px;border-radius:50%;background:{c['acc']};animation:aidot 1.2s infinite ease-in-out}}
 .ai-typing i:nth-of-type(2){{animation-delay:.15s}}.ai-typing i:nth-of-type(3){{animation-delay:.3s}}
-/* phones: a sheet from the foot of the screen */
+/* phones: a small window just above the button; when the keyboard opens it rides above it (--kb from theme.FX_JS) */
 @media(max-width:640px){{
-{W}{{position:fixed!important;left:0!important;right:0!important;bottom:0!important;top:max(52px,7dvh)!important;width:100vw!important;max-width:100vw!important;min-width:0!important;margin:0!important;transform:none!important;z-index:1000050!important}}
-{B}{{width:100%!important;max-width:100%!important;height:100%!important;max-height:none!important;display:flex!important;flex-direction:column!important;border-radius:28px 28px 0 0!important;border-width:1.5px 0 0!important;padding:10px 14px calc(12px + env(safe-area-inset-bottom))!important;overflow-y:auto!important;overscroll-behavior:contain;animation:airing 14s linear infinite,aiup .35s cubic-bezier(.2,.8,.2,1)}}
-{B}::after{{content:"";position:absolute;top:8px;left:50%;width:44px;height:4px;margin-left:-22px;border-radius:4px;background:linear-gradient(90deg,{_TRI});opacity:.8;z-index:2}}
-{B}>*{{flex:1 1 auto;display:flex;flex-direction:column;min-height:0;width:100%!important}}
-{P}{{width:100%!important;flex:1 1 auto;display:flex;flex-direction:column;min-height:0}}
-{P}>[data-testid="stVerticalBlock"]{{flex:1 1 auto;min-height:0}}
-.ai-head{{padding-top:12px}}
-.ai-hello b{{font-size:21px}}
-div.st-key-alturaifi_ai_chips button{{min-height:52px!important}}
-div.st-key-alturaifi_ai_hist{{flex:1 1 auto!important;max-height:none!important;min-height:0}}
-div.st-key-alturaifi_ai_composer{{margin-top:auto;position:sticky;bottom:0;z-index:3}}
-.ai-note.ph{{display:block;padding-bottom:0}}
-.ai-note.ph::before{{content:"{close_hint}"}}
-.ai-typing{{bottom:calc(74px + env(safe-area-inset-bottom))!important;top:auto!important}}
+{W}{{position:fixed!important;left:10px!important;right:10px!important;top:auto!important;bottom:calc(90px + var(--kb,0px) + env(safe-area-inset-bottom))!important;width:auto!important;max-width:none!important;min-width:0!important;margin:0!important;transform:none!important;z-index:1000050!important;transition:bottom .18s ease}}
+html.ai-kb {W}{{bottom:calc(8px + var(--kb,0px))!important}}
+{B}{{width:100%!important;max-width:100%!important;max-height:calc(100dvh - 110px - var(--kb,0px) - env(safe-area-inset-bottom))!important;padding:14px 14px 12px!important;animation:airing 14s linear infinite,aiup .3s cubic-bezier(.2,.8,.2,1)}}
+html.ai-kb {B}{{max-height:calc(100dvh - 24px - var(--kb,0px))!important}}
+{P}{{width:100%!important}}
+div.st-key-alturaifi_ai_hist{{max-height:min(300px,40dvh)!important}}
+html.ai-kb div.st-key-alturaifi_ai_hist{{max-height:26dvh!important}}
+html.ai-kb .ai-hello span{{display:none}}
+div.st-key-alturaifi_ai_chips button{{min-height:46px!important}}
 }}
 @media(prefers-reduced-motion:reduce){{{P} *,.ai-typing,.ai-typing i,{B},{B}::before,.ai-orb::after{{animation:none!important}}}}
 </style>
@@ -336,6 +336,85 @@ def submit(question, ctx, lang):
     a=ask(q,msgs,ctx,lang); msgs.extend([{"role":"user","content":q},{"role":"assistant","content":a}])
     st.session_state.alturaifi_ai_messages=msgs[-16:]; st.session_state.alturaifi_ai_count=int(st.session_state.get("alturaifi_ai_count",0))+1
 
+
+# ---------------------------------------------------------------- the questions Kuhailan suggests
+# Three to open the chat, chosen for the page, and after every answer three more to ask next; a question already asked in this
+# chat is never offered again, and the page's own questions come before the general ones.
+_Q_GENERAL = [("Explain this page", "اشرح لي هالصفحة", "article"),
+              ("How do I use this tool?", "كيف أستخدم هالأداة؟", "touch_app"),
+              ("Explain Relative Strength Index (RSI) simply", "اشرح لي Relative Strength Index (RSI) ببساطة", "school"),
+              ("What is a stop loss and how do I place it?", "وش هو وقف الخسارة وكيف أحطه؟", "block"),
+              ("How do I read a candlestick chart?", "كيف أقرأ شارت الشموع؟", "candlestick_chart"),
+              ("What does P/E tell me?", "وش يعطيني مكرر الربحية P/E؟", "calculate"),
+              ("How much of my money should one trade risk?", "كم نسبة اللي أخاطر فيها بصفقة وحدة؟", "shield"),
+              ("What is the difference between investing and trading?", "وش الفرق بين الاستثمار والمضاربة؟", "compare_arrows"),
+              ("How do I build a watchlist?", "كيف أسوي قائمة متابعة؟", "visibility"),
+              ("Explain moving averages", "اشرح لي المتوسطات المتحركة", "show_chart")]
+_Q_PAGE = {
+    "news": [("Which of these stories matters most?", "أي خبر من هذي أهم؟", "newspaper"), ("How do I read the importance score?", "كيف أقرأ درجة الأهمية؟", "speed"),
+             ("How does news move a share price?", "كيف يحرك الخبر سعر السهم؟", "trending_up"), ("What is priced in?", "وش معنى إن الخبر مسعّر؟", "price_check")],
+    "news-intelligence": [("Explain the setup score", "اشرح لي درجة الفرصة", "speed"), ("What does confidence measure here?", "وش تقيس الثقة هنا؟", "verified"),
+                          ("How long does a news effect last?", "كم يدوم أثر الخبر عادة؟", "schedule")],
+    "stock": [("Explain this company's numbers", "اشرح لي أرقام هالشركة", "analytics"), ("Is the valuation high or low?", "التقييم مرتفع ولا منخفض؟", "balance"),
+              ("What do the technicals say?", "وش يقول التحليل الفني؟", "candlestick_chart"), ("What are this company's risks?", "وش مخاطر هالشركة؟", "warning")],
+    "screener": [("Which filters find quality companies?", "أي فلاتر تطلع الشركات الجيدة؟", "filter_alt"), ("Explain the metrics in the table", "اشرح لي مقاييس الجدول", "table_chart")],
+    "paper-bots": [("How does a paper bot decide a trade?", "كيف يقرر البوت الصفقة؟", "smart_toy"), ("Explain momentum, breakout and reversion", "اشرح لي الزخم والاختراق والارتداد", "route"),
+                   ("How do I judge a bot's results?", "كيف أحكم على نتائج البوت؟", "fact_check"), ("What is drawdown?", "وش هو أقصى تراجع (drawdown)؟", "trending_down")],
+    "scanner": [("How is the opportunity score built?", "كيف تنحسب درجة الفرصة؟", "radar"), ("Explain entry, stop and target", "اشرح لي الدخول والوقف والهدف", "flag"),
+                ("What is risk to reward?", "وش هي نسبة المخاطرة للعائد؟", "balance")],
+    "academy": [("Where should a beginner start?", "من وين يبدأ المبتدئ؟", "school"), ("Quiz me on this lesson", "اختبرني في هالدرس", "quiz"),
+                ("Summarise this course in five points", "لخّص لي هالدورة في خمس نقاط", "summarize")],
+    "overview": [("What is moving the market today?", "وش يحرك السوق اليوم؟", "public"), ("Explain the market mood gauges", "اشرح لي مقاييس مزاج السوق", "mood"),
+                 ("Which tool should I start with?", "بأي أداة أبدأ؟", "explore")],
+    "sentiment": [("What is Fear & Greed?", "وش هو مؤشر الخوف والطمع؟", "mood"), ("How do I use sentiment in a decision?", "كيف أستخدم المعنويات في قراري؟", "psychology")],
+    "seasonality": [("What is seasonality and does it work?", "وش هي الموسمية وهل تنفع؟", "calendar_month")],
+    "economy": [("How do interest rates move stocks?", "كيف تحرك الفائدة الأسهم؟", "percent"), ("What is inflation's effect on sectors?", "وش أثر التضخم على القطاعات؟", "trending_up")],
+    "glossary": [("Explain a term I choose", "اشرح لي مصطلح أختاره", "menu_book")],
+    "brief": [("Summarise today's brief", "لخّص لي موجز اليوم", "summarize")],
+    "portfolio": [("How healthy is this portfolio?", "كم صحة هالمحفظة؟", "favorite"), ("What is diversification and do I have it?", "وش التنويع وهل عندي؟", "pie_chart"),
+                  ("Explain the portfolio's risk numbers", "اشرح لي أرقام مخاطر المحفظة", "shield")],
+    "robo-advisor": [("How does the Robo Advisor build a plan?", "كيف يبني المستشار الآلي الخطة؟", "smart_toy"), ("What does my risk level mean?", "وش معنى مستوى مخاطرتي؟", "speed")],
+    "x-bots": [("How do the X bots read the mood?", "كيف تقرأ بوتات X المزاج؟", "alternate_email"), ("Is mood a good signal?", "هل المزاج إشارة جيدة؟", "psychology")],
+    "watchlist": [("How do I pick what to follow?", "كيف أختار وش أتابع؟", "star"), ("What are the emerging sectors?", "وش القطاعات الناشئة؟", "rocket_launch")],
+    "earnings-calendar": [("How do I trade around earnings?", "كيف أتعامل مع فترة النتائج؟", "event"), ("What is an earnings surprise?", "وش هي مفاجأة الأرباح؟", "celebration")],
+    "dividend-calendar": [("Explain ex-dividend date", "اشرح لي تاريخ الاستحقاق", "payments"), ("What is dividend yield?", "وش هو عائد التوزيعات؟", "percent")],
+}
+
+
+def _asked():
+    return {str(m.get("content") or "").strip() for m in st.session_state.get("alturaifi_ai_messages") or [] if m.get("role") == "user"}
+
+
+def suggestions(page, lang, n=3, follow=False):
+    """n questions (text, icon) for this page not asked yet. To open: "Explain this page" then the page's own. After an answer
+    (follow): the page's own first, then the general ones, each list turned by the number of answers so the three are new
+    every time even when the visitor typed their own question."""
+    k = page if page in _Q_PAGE else {"portfolio-trade": "portfolio", "portfolio-analytics": "portfolio", "portfolio-history": "portfolio",
+                                        "earnings-results": "earnings-calendar", "trending": "news"}.get(page, "")
+    asked = _asked()
+
+    def ok(qs):
+        return [(pick(en, ar, lang), ic) for en, ar, ic in qs if pick(en, ar, lang) not in asked]
+
+    def turn(qs):
+        if not follow or not qs:
+            return qs
+        i = (int(st.session_state.get("alturaifi_ai_count", 0)) * n) % len(qs)
+        return qs[i:] + qs[:i]
+
+    pagep, genp = ok(_Q_PAGE.get(k, [])), ok(_Q_GENERAL)
+    if not follow:
+        return (genp[:1] + pagep + genp[1:])[:n] if genp and genp[0][0] == pick(*_Q_GENERAL[0][:2], lang) else (pagep + genp)[:n]
+    return (turn(pagep) + turn(genp))[:n]
+
+
+def pick_follow(key, ctx, lang):
+    """A follow-up pill was chosen: it is asked, and the pills are drawn new under the answer."""
+    q = st.session_state.get(key)
+    if q:
+        submit(str(q), ctx, lang)
+    st.session_state[key] = None
+
 def send_current(ctx,lang):
     submit(str(st.session_state.get("alturaifi_ai_question") or ""),ctx,lang); st.session_state.alturaifi_ai_question=""
 
@@ -364,22 +443,25 @@ def render(page_path="",page_title="",symbol="",lang="en"):
                 st.markdown(head,unsafe_allow_html=True)
                 if not msgs:
                     st.markdown('<div class="ai-hello"><b>'+pick("Hi! How can I help?","هلا! كيف أقدر أساعدك؟",lang)+'</b><span>'+pick("I explain indicators, strategies, derivatives and company analysis, and how to use the tools on this page.","أشرح لك المؤشرات والاستراتيجيات والمشتقات وتحليل الشركات، وكيف تستخدم أدوات هالصفحة.",lang)+'</span></div>',unsafe_allow_html=True)
-                    quicks=(["Explain this page","How do I use this tool?","Explain Relative Strength Index (RSI) simply"] if lang=="en" else ["اشرح لي هالصفحة","كيف أستخدم هالأداة؟","اشرح لي Relative Strength Index (RSI) ببساطة"])
-                    icons=[":material/article:",":material/touch_app:",":material/school:"]
                     with st.container(key="alturaifi_ai_chips"):
-                        for i,(text,ic) in enumerate(zip(quicks,icons)):
-                            st.button(text,key=f"alturaifi_ai_quick_{i}",icon=ic,width="stretch",on_click=submit,args=(text,ctx,lang))
+                        for i,(text,ic) in enumerate(suggestions(page_path,lang)):
+                            st.button(text,key=f"alturaifi_ai_quick_{i}",icon=f":material/{ic}:",width="stretch",on_click=submit,args=(text,ctx,lang))
                 else:
                     with st.container(border=False,key="alturaifi_ai_hist"):
                         for i,m in enumerate(msgs[-12:]):
                             with st.container(key=f"alturaifi_ai_{'user' if m.get('role')=='user' else 'asst'}_{i}"): st.markdown(str(m.get("content") or ""))
+                    nxt=[t for t,_ic in suggestions(page_path,lang,follow=True)]
+                    if nxt:                                    # three new questions to ask next, as pills; chosen, one is asked at once
+                        with st.container(key="alturaifi_ai_follow"):
+                            st.markdown('<div class="ai-fl">'+pick("Ask next","اسأل بعدها",lang)+'</div>',unsafe_allow_html=True)
+                            fk=f"alturaifi_ai_follow_{int(st.session_state.alturaifi_ai_count)}"
+                            st.pills("Ask next",nxt,key=fk,label_visibility="collapsed",on_change=pick_follow,args=(fk,ctx,lang))
                 with st.container(key="alturaifi_ai_composer"):
                     c1,c2=st.columns([6,1],gap="small",vertical_alignment="center")
                     with c1:
                         with st.container(key="alturaifi_ai_prompt"): st.text_input("AI question",key="alturaifi_ai_question",label_visibility="collapsed",placeholder=pick("Ask Kuhailan anything…","اسأل كحيلان أي شي…",lang),max_chars=MAX_Q,on_change=send_current,args=(ctx,lang))
                     with c2:
                         with st.container(key="alturaifi_ai_send"): st.button("",icon=":material/arrow_upward:",key="alturaifi_ai_send_btn",on_click=send_current,args=(ctx,lang),help=pick("Send","أرسل",lang))
-                st.markdown('<div class="ai-note ph"></div>',unsafe_allow_html=True)
                 flash=st.session_state.pop("alturaifi_ai_flash",None)
                 if flash: st.warning(flash,icon=":material/info:")
                 if msgs:

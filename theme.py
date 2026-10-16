@@ -2756,7 +2756,7 @@ FX_JS = """<script>
   every(scan, 800); scan();
 })();
 (function () {                                   // the AI button: a fine wire sphere, turning, a faint current now and then
-  var w = window.parent, d = w.document;
+  var w = window.parent, d = w.document, de = d.documentElement;
   var VER = '__VER__', KEY = '__alturaifiOrb';
   var OLD = w[KEY + 'Frame'];
   if (w[KEY] === VER && OLD && OLD.isConnected) return;
@@ -2961,7 +2961,7 @@ FX_JS = """<script>
   }
   function onClick(e) {
     if (e.target && e.target.closest && e.target.closest('[data-open-ai]')) { w.setTimeout(openChat, 60); return; }   // after this click (the window closes on a click outside it)
-    var t = e.target && e.target.closest && e.target.closest('div.st-key-alturaifi_ai_send button, div.st-key-alturaifi_ai_chips button');
+    var t = e.target && e.target.closest && e.target.closest('div.st-key-alturaifi_ai_send button, div.st-key-alturaifi_ai_chips button, div.st-key-alturaifi_ai_follow button');
     if (!t) return;
     if (t.closest('div.st-key-alturaifi_ai_send')) {
       var inp = d.querySelector('div.st-key-alturaifi_ai_prompt input');
@@ -2975,7 +2975,19 @@ FX_JS = """<script>
     if (e.target.value && e.target.value.trim()) showTyping();
   }
   d.addEventListener('click', onClick, true); d.addEventListener('keydown', onKey, true);
-  var tIv = w.setInterval(place, 150);
+  // phones: the keyboard. --kb on <html> is its height (0 when it is closed) and html.ai-kb says it is open; the chat window's
+  // styles (ai_assistant) use them to sit just above it instead of under it.
+  var vv = w.visualViewport, kbH = -1;
+  function kb() {
+    if (!vv) return;
+    var h = Math.max(0, Math.round(w.innerHeight - vv.height - vv.offsetTop));
+    if (h < 80) h = 0;
+    if (h === kbH) return;
+    kbH = h; de.style.setProperty('--kb', h + 'px'); de.classList.toggle('ai-kb', h > 0);
+  }
+  if (vv) { vv.addEventListener('resize', kb); vv.addEventListener('scroll', kb); kb(); }
+  var tIv = w.setInterval(function () { place(); kb(); }, 150);
+  offs.push(function () { if (vv) { vv.removeEventListener('resize', kb); vv.removeEventListener('scroll', kb); } de.style.removeProperty('--kb'); de.classList.remove('ai-kb'); });
   offs.push(function () { d.removeEventListener('click', onClick, true); d.removeEventListener('keydown', onKey, true); w.clearInterval(tIv); hideTyping(); });
 })();
 </script>""".replace("__SEL__", json.dumps(_fx)).replace("__GLOSS__", json.dumps(GL.client(), ensure_ascii=False))
@@ -3646,4 +3658,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.4.35"
+BUILD = "23.4.36"

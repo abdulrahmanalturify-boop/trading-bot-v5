@@ -164,7 +164,7 @@ def academy_wordmark(brand):
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.4.35"
+BUILD = "23.4.36"
 
 # Refresh stays scoped to the academy; the site's other pages keep their theme.
 CSS += '''<style>
