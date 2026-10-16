@@ -6,7 +6,7 @@ import streamlit as st
 
 import mascot
 
-BUILD = "23.4.39"
+BUILD = "23.4.40"
 API_URL = "https://api.openai.com/v1/responses"
 MAX_Q = 1200
 SESSION_LIMIT = 40          # questions per visit
@@ -149,7 +149,9 @@ div.st-key-alturaifi_ai_follow button:hover{{background:{c['cardh']}!important;b
 div.st-key-alturaifi_ai_follow button:active{{transform:scale(.97)}}
 div.st-key-alturaifi_ai_composer{{position:relative;isolation:isolate;overflow:hidden;padding:2.5px;border-radius:18px;border:0;background:transparent;box-shadow:none}}
 div.st-key-alturaifi_ai_composer::before{{content:"";position:absolute;z-index:-1;left:50%;top:50%;width:200%;aspect-ratio:1;margin:-100% 0 0 -100%;background:conic-gradient(#7C3AED,#22D3EE 50%,#7C3AED);animation:aispin 4s linear infinite;pointer-events:none}}
-div.st-key-alturaifi_ai_composer>[data-testid="stVerticalBlock"]{{position:relative;z-index:1;box-sizing:border-box;width:100%;border-radius:15.5px;background:{c['face']};padding:4.5px;padding-inline-start:7.5px}}
+div.st-key-alturaifi_ai_composer [data-testid="stVerticalBlock"]{{gap:0!important}}
+div.st-key-alturaifi_ai_composer>div,div.st-key-alturaifi_ai_composer [data-testid="stVerticalBlock"]{{position:relative;z-index:1}}
+div.st-key-alturaifi_ai_composer>[data-testid="stHorizontalBlock"],div.st-key-alturaifi_ai_composer>div>[data-testid="stHorizontalBlock"],div.st-key-alturaifi_ai_composer>div>div>[data-testid="stHorizontalBlock"],div.st-key-alturaifi_ai_composer [data-testid="stVerticalBlock"]>[data-testid="stHorizontalBlock"]{{position:relative;z-index:1;box-sizing:border-box;width:100%;border-radius:15.5px;background:{c['face']};padding:4.5px;padding-inline-start:7.5px}}
 div.st-key-alturaifi_ai_composer:focus-within::before{{animation-duration:2s}}
 @keyframes aispin{{to{{transform:rotate(360deg)}}}}
 div.st-key-alturaifi_ai_composer [data-testid="stHorizontalBlock"],{P} [data-testid="stHorizontalBlock"]:has(div.st-key-alturaifi_ai_new){{flex-wrap:nowrap!important;gap:6px!important;align-items:center}}
