@@ -23,7 +23,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.13"
       - name: Run branding and compilation tests
         run: python -m unittest discover -s tests -p 'test_x_brand.py' -v
       - name: Inspect remaining platform icon aliases
