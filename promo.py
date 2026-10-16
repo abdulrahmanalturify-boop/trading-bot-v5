@@ -267,10 +267,11 @@ def card_html(key, tool, f, live, mk, sa, wide=False):
         radios, stage, pts = hunt_html(f, live, mk, sa, wide)
     else:
         radios, stage, pts = xbots_html(f, live, mk, wide)
-    li = "".join(f'<li>{T.icon("check_circle")}<span>{T.esc(x)}</span></li>' for x in pts)
-    text = (f'<div class="tx"><b class="tt">{T.esc(L(*title))}</b><p>{T.esc(L(*pitch))}</p><ul>{li}</ul>'
+    xs = T.xify if key == "xbots" else T.esc          # the X bots' card: the letter X drawn as X's logo
+    li = "".join(f'<li>{T.icon("check_circle")}<span>{xs(x)}</span></li>' for x in pts)
+    text = (f'<div class="tx"><b class="tt">{xs(L(*title))}</b><p>{xs(L(*pitch))}</p><ul>{li}</ul>'
             f'<span class="go">{T.esc(L(*cta))}{T.icon("arrow_forward")}</span></div>')
     from p_overview import _kick_pill
     return (f'<div class="ovad pz {tone}{" rtl" if ar else ""}{" wide" if wide else ""}" data-nogq>{radios}'
-            f'<div class="k"><span><span class="ic">{mascot.svg(26, uid="kp" + key)}</span>{T.esc(L(*kick))}</span>{_kick_pill(key, live)}</div>'
+            f'<div class="k"><span><span class="ic">{mascot.svg(26, uid="kp" + key)}</span>{xs(L(*kick))}</span>{_kick_pill(key, live)}</div>'
             f'<div class="bd">{stage}{text}</div></div>')

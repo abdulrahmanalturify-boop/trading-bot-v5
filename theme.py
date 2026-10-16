@@ -11,6 +11,7 @@ import hashlib
 import html
 import json
 import math
+import re
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
@@ -572,6 +573,11 @@ hr {{ border-color:{SHELL} !important; }}
 .sec:hover::after {{ background-position:0 0; }}
 .page-title {{ display:flex; align-items:center; gap:14px; margin:4px 0 4px; }}
 .page-title .ms {{ font-size:1.8rem; color:#fff; background:{PANEL}; border-radius:12px; padding:9px; box-shadow:{GLOW}; }}
+/* the X (formerly Twitter) logo in place of the letter X (xlogo / xify): the size of the letter in running text, a page title's
+   icon box with .pti, a section head's with .sci */
+svg.xlg {{ display:inline-block; width:.9em; height:.9em; vertical-align:-.1em; margin:0 .1em; fill:currentColor; }}
+.page-title svg.xlg.pti {{ width:1.8rem; height:1.8rem; margin:0; padding:9px; box-sizing:content-box; color:#fff; background:{PANEL}; border-radius:12px; box-shadow:{GLOW}; flex:none; }}
+.sec svg.xlg.sci {{ width:1.25rem; height:1.25rem; margin:0; padding:7px; box-sizing:content-box; color:#fff; background:linear-gradient(140deg,#3B8BEB,#7B45F0 70%,#A855F7); border-radius:12px; flex:none; }}
 .page-title h1 {{ margin:0 !important; padding:0 !important; }}
 .page-sub {{ color:{MUTED}; font-size:.95rem; margin:4px 0 14px; }}
 /* ---------- the colour rule: green for gains, red for losses, nothing else ---------- */
@@ -3067,6 +3073,22 @@ def ico(name, kind="pos"):
 
 
 # ---------------------------------------------------------------- building blocks
+# the X (formerly Twitter) logo, from the Simple Icons library (CC0): drawn in place of the letter X wherever the site names X
+XLOGO_D = ("M14.234 10.162 22.977 0h-2.072l-7.591 8.824L7.251 0H.258l9.168 13.343L.258 24H2.33l8.016-9.318L16.749 24h6.993zm-2.837 3.299"
+           "-.929-1.329L3.076 1.56h3.182l5.965 8.532.929 1.329 7.754 11.09h-3.182z")
+_XTOK = re.compile(r"(?<![A-Za-z0-9/@._-])X(?![A-Za-z0-9._-])")
+
+
+def xlogo(cls="xlg"):
+    """The X logo inline, the colour of the text round it."""
+    return f'<svg class="{cls}" viewBox="0 0 24 24" role="img" aria-label="X"><path d="{XLOGO_D}"/></svg>'
+
+
+def xify(text):
+    """The text escaped, with every standalone letter X (the platform) drawn as its logo: "X Bots" / "بوتات X"."""
+    return _XTOK.sub(lambda m: xlogo(), esc(text))
+
+
 def page_title(ic, title, sub=""):
     return f'<div class="page-title">{icon(ic)}<h1>{esc(title)}</h1></div>' + (f'<div class="page-sub">{sub}</div>' if sub else "")
 
@@ -3658,4 +3680,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.4.40"
+BUILD = "23.4.41"

@@ -100,6 +100,8 @@ div[class*="st-key-ovad_"] [data-testid="stButton"] button{opacity:0!important;c
 div[class*="st-key-ovad_"]:hover .ovad,.ovad.solo:hover{transform:translateY(-4px);box-shadow:0 1px 0 rgba(255,255,255,.2) inset,0 28px 48px -22px var(--sh)}
 div[class*="st-key-ovad_"]:hover .ovad::after,.ovad.solo:hover::after{animation:ovshine .9s ease}
 .ovad .big{position:absolute;inset-inline-end:-18px;bottom:-30px;z-index:-1;font-family:"Material Symbols Rounded";font-size:130px;line-height:1;color:#fff;opacity:.09;transform:rotate(-12deg);transition:transform .6s cubic-bezier(.2,.8,.2,1)}
+.ovad .big svg.xlg{width:118px;height:118px;margin:6px}
+.ovad .k .ic svg.xlg{width:17px;height:17px;margin:0;color:#fff}
 div[class*="st-key-ovad_"]:hover .ovad .big,.ovad.solo:hover .big{transform:rotate(-2deg) scale(1.08)}
 .ovad .k{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.8)}
 .ovad.rtl .k{letter-spacing:0;font-size:11.5px}
@@ -467,12 +469,13 @@ def _ad_html(key, d, f, sa, wide=False):
     solo = key == "ai"
     attrs = ' data-open-ai="1" role="button" tabindex="0"' if solo else ""
     vz, live = _live_vz(key, d, f, sa)
-    pts = "".join(f'<li>{T.icon("check_circle")}<span>{T.esc(x)}</span></li>' for x in _points(key, f, sa))
-    text = (f'<div class="tx"><b class="tt">{T.esc(L(*title))}</b><p>{T.esc(L(*pitch))}</p>{"<ul>" + pts + "</ul>" if pts else ""}'
+    xs = T.xify if key == "xbots" else T.esc          # the X bots' texts: the letter X drawn as X's logo
+    pts = "".join(f'<li>{T.icon("check_circle")}<span>{xs(x)}</span></li>' for x in _points(key, f, sa))
+    text = (f'<div class="tx"><b class="tt">{xs(L(*title))}</b><p>{xs(L(*pitch))}</p>{"<ul>" + pts + "</ul>" if pts else ""}'
             f'<span class="go">{T.esc(L(*cta))}{T.icon("arrow_forward")}</span></div>')
     return (f'<div class="ovad {tone}{" rtl" if ar else ""}{" solo" if solo else ""}{" wide" if wide else ""}" data-nogq{attrs}>'
-            f'<span class="big" aria-hidden="true">{icon}</span>'
-            f'<div class="k"><span><span class="ic">{mascot.svg(26, uid="ka") if solo else T.icon(icon)}</span>{T.esc(L(*kick))}</span>{_kick_pill(key, live)}</div>'
+            f'<span class="big" aria-hidden="true">{T.xlogo() if key == "xbots" else icon}</span>'
+            f'<div class="k"><span><span class="ic">{mascot.svg(26, uid="ka") if solo else T.xlogo() if key == "xbots" else T.icon(icon)}</span>{xs(L(*kick))}</span>{_kick_pill(key, live)}</div>'
             f'<div class="bd">{vz}{text}</div></div>')
 
 
@@ -1106,4 +1109,4 @@ def page_overview():
         print(f"[prof] page {'sa' if sa else 'us'} total {time.time() - t0:.2f}s", flush=True)
 
 
-BUILD = "23.4.40"
+BUILD = "23.4.41"

@@ -686,8 +686,8 @@ def page_xbots():
     ui.html(CSS)
     cur = MK.current()
     sa = cur == MK.SA
-    ui.header("alternate_email", "X Bots · Saudi market" if sa else "X Bots · US market", "بوتات X · السوق السعودي" if sa else "بوتات X · السوق الأمريكي",
-              ("Five bots that read X (Twitter) about the Saudi market every hour of its day: TASI's mood, the companies on everyone's lips, "
+    _title = L("X Bots · Saudi market" if sa else "X Bots · US market", "بوتات X · السوق السعودي" if sa else "بوتات X · السوق الأمريكي")
+    _sub = L(("Five bots that read X (Twitter) about the Saudi market every hour of its day: TASI's mood, the companies on everyone's lips, "
                "the technical crowd, the market's news wire and the talk about oil. Each turns what it reads into signals and trades them on paper.")
               if sa else
               ("Five bots that read X (Twitter) about the US market every hour of its day: the mood, the stocks suddenly talked about, the "
@@ -697,6 +697,7 @@ def page_xbots():
               if sa else
               ("خمس بوتات تقرأ X (تويتر) عن السوق الأمريكي كل ساعة من يومه: المزاج، والأسهم اللي فجأة صار عنها كلام، والمحللين، والعاجل، "
                "وخوف الناس من الشركات العملاقة. كل بوت يحوّل اللي يقرأه لإشارات ويتداولها وهمياً."))
+    ui.html(f'<div class="page-title">{T.xlogo("xlg pti")}<h1>{T.xify(_title)}</h1></div><div class="page-sub">{T.xify(_sub)}</div>')
     try:
         states, meta = _load()
     except Exception:
@@ -738,4 +739,4 @@ def page_xbots():
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.4.40"
+BUILD = "23.4.41"
