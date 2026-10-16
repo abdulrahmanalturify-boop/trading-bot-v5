@@ -6,7 +6,7 @@ import streamlit as st
 
 import mascot
 
-BUILD = "23.4.36"
+BUILD = "23.4.37"
 API_URL = "https://api.openai.com/v1/responses"
 MAX_Q = 1200
 SESSION_LIMIT = 40          # questions per visit
@@ -58,8 +58,8 @@ div.st-key-alturaifi_ai_fab [data-testid="stPopoverButton"]>div>div:first-child:
 # by himself, no circle - his name and the connection); an empty chat greets in gradient letters and offers three questions
 # for the page as rows with a tinted icon that light up and lean their arrow when hovered; the visitor's messages in a
 # blue-violet bubble on the end side, the assistant's as plain text beside a small Kuhailan; after every answer three new
-# questions to ask next, as small pills (never one already asked); the box and the send button one pill whose border lights
-# up in the three colours while typing; Enter sends; while an answer is on its way, "Kuhailan is writing" with three dots.
+# questions to ask next, as small pills (never one already asked); the box and the send button one pill with a border of violet and cyan
+# turning round it all the time, faster and glowing while typing; Enter sends; while an answer is on its way, "Kuhailan is writing" with three dots.
 # On a phone the window sits just above the button, and rides above the keyboard when it opens (theme.FX_JS measures the
 # keyboard and sets --kb on <html>); the page's own popover had been pushed under the keyboard with only the box showing.
 _PAL = {
@@ -93,7 +93,7 @@ def _panel_css(light=False, lang="en"):
 @keyframes aidot{{0%,80%,100%{{opacity:.25;transform:translateY(0)}}40%{{opacity:1;transform:translateY(-3px)}}}}
 @keyframes aiaurora{{0%{{transform:translate(0,0) scale(1)}}50%{{transform:translate(6%,-8%) scale(1.12)}}100%{{transform:translate(-5%,6%) scale(1.04)}}}}
 @keyframes aispark{{0%,100%{{opacity:.35;transform:scale(.8) rotate(0)}}50%{{opacity:1;transform:scale(1.1) rotate(25deg)}}}}
-{B}{{position:relative;padding:16px 16px 14px!important;border:1.5px solid transparent!important;border-radius:24px!important;background:{c['bg']} padding-box,conic-gradient(from var(--aiang),{_TRI},#3B82F6) border-box!important;box-shadow:{c['shadow']}!important;animation:airing 14s linear infinite,aiin .3s ease-out;overflow-y:auto!important}}
+{B}{{position:relative;box-sizing:border-box!important;min-width:0!important;padding:16px 16px 14px!important;border:1.5px solid transparent!important;border-radius:24px!important;background:{c['bg']} padding-box,conic-gradient(from var(--aiang),{_TRI},#3B82F6) border-box!important;box-shadow:{c['shadow']}!important;animation:airing 14s linear infinite,aiin .3s ease-out;overflow-y:auto!important}}
 {B}::before{{content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;background:radial-gradient(60% 50% at 100% 0,rgba(124,58,237,{c['aurora']}),transparent 70%),radial-gradient(55% 45% at 0 0,rgba(59,130,246,{c['aurora']}),transparent 70%),radial-gradient(50% 40% at 60% -10%,rgba(34,211,238,calc({c['aurora']} * .8)),transparent 70%);mask:linear-gradient(180deg,#000 0,#000 70px,transparent 190px);-webkit-mask:linear-gradient(180deg,#000 0,#000 70px,transparent 190px);animation:aiaurora 16s ease-in-out infinite alternate;z-index:0}}
 {B}>*{{position:relative;z-index:1}}
 {P}{{width:min(400px,calc(100vw - 40px));direction:{'rtl' if rtl else 'ltr'};color:{c['text']}}}
@@ -147,8 +147,8 @@ div.st-key-alturaifi_ai_follow button:nth-child(2){{animation-delay:.06s}}div.st
 div.st-key-alturaifi_ai_follow button p,div.st-key-alturaifi_ai_follow button span{{font-size:12px!important;font-weight:600!important;color:{c['text']}!important;white-space:normal!important;text-align:start}}
 div.st-key-alturaifi_ai_follow button:hover{{background:{c['cardh']}!important;border-color:{c['acc']}!important;transform:translateY(-1px)}}
 div.st-key-alturaifi_ai_follow button:active{{transform:scale(.97)}}
-div.st-key-alturaifi_ai_composer{{padding:5px;padding-inline-start:8px;border-radius:18px;border:1.5px solid transparent;background:{c['inp']} padding-box,linear-gradient(135deg,{c['line']},{c['line']}) border-box;transition:box-shadow .25s ease,background .25s ease}}
-div.st-key-alturaifi_ai_composer:focus-within{{background:{c['inp']} padding-box,linear-gradient(135deg,{_TRI}) border-box;box-shadow:0 0 0 4px {c['accs']},0 12px 30px -18px rgba(124,58,237,.8)}}
+div.st-key-alturaifi_ai_composer{{position:relative;padding:5px;padding-inline-start:8px;border-radius:18px;border:2px solid transparent;background:{c['inp']} padding-box,conic-gradient(from var(--aiang),#7C3AED,#22D3EE 50%,#7C3AED) border-box;box-shadow:0 10px 26px -18px rgba(124,58,237,.55);animation:airing 4s linear infinite;transition:box-shadow .25s ease}}
+div.st-key-alturaifi_ai_composer:focus-within{{box-shadow:0 0 0 4px rgba(124,58,237,.14),0 0 22px -4px rgba(34,211,238,.45),0 12px 30px -18px rgba(124,58,237,.8);animation-duration:2.2s}}
 div.st-key-alturaifi_ai_composer [data-testid="stHorizontalBlock"],{P} [data-testid="stHorizontalBlock"]:has(div.st-key-alturaifi_ai_new){{flex-wrap:nowrap!important;gap:6px!important;align-items:center}}
 div.st-key-alturaifi_ai_composer [data-testid="stColumn"]:first-child{{flex:1 1 0!important;min-width:0!important;width:auto!important}}
 div.st-key-alturaifi_ai_composer [data-testid="stColumn"]:last-child{{flex:0 0 auto!important;min-width:40px!important;width:auto!important}}
@@ -171,9 +171,9 @@ div.st-key-alturaifi_ai_new button p{{font-size:11.5px!important}}
 .ai-typing i:nth-of-type(2){{animation-delay:.15s}}.ai-typing i:nth-of-type(3){{animation-delay:.3s}}
 /* phones: a small window just above the button; when the keyboard opens it rides above it (--kb from theme.FX_JS) */
 @media(max-width:640px){{
-{W}{{position:fixed!important;left:10px!important;right:10px!important;top:auto!important;bottom:calc(90px + var(--kb,0px) + env(safe-area-inset-bottom))!important;width:auto!important;max-width:none!important;min-width:0!important;margin:0!important;transform:none!important;z-index:1000050!important;transition:bottom .18s ease}}
+{W}{{position:fixed!important;box-sizing:border-box!important;left:10px!important;right:10px!important;top:auto!important;bottom:calc(90px + var(--kb,0px) + env(safe-area-inset-bottom))!important;width:auto!important;max-width:none!important;min-width:0!important;margin:0!important;transform:none!important;z-index:1000050!important;transition:bottom .18s ease}}
 html.ai-kb {W}{{bottom:calc(8px + var(--kb,0px))!important}}
-{B}{{width:100%!important;max-width:100%!important;max-height:calc(100dvh - 110px - var(--kb,0px) - env(safe-area-inset-bottom))!important;padding:14px 14px 12px!important;animation:airing 14s linear infinite,aiup .3s cubic-bezier(.2,.8,.2,1)}}
+{B}{{width:100%!important;min-width:0!important;max-width:100%!important;overflow-x:hidden!important;max-height:calc(100dvh - 110px - var(--kb,0px) - env(safe-area-inset-bottom))!important;padding:14px 14px 12px!important;animation:airing 14s linear infinite,aiup .3s cubic-bezier(.2,.8,.2,1)}}
 html.ai-kb {B}{{max-height:calc(100dvh - 24px - var(--kb,0px))!important}}
 {P}{{width:100%!important}}
 div.st-key-alturaifi_ai_hist{{max-height:min(300px,40dvh)!important}}

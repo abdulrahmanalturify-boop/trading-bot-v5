@@ -7,7 +7,7 @@ import os
 import threading
 import time
 
-BUILD = "23.4.36"
+BUILD = "23.4.37"
 _LOCK = threading.Lock()
 _LAST = {"t": 0.0, "res": None}
 
