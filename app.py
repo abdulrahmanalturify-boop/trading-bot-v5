@@ -457,7 +457,7 @@ except Exception:
     _static = False
 _calm = _cur not in ("", "overview")              # the reading pages: the background picture toned down behind the content
 _bg = LM.background_css(f"app/static/{LM.BG_FILE}" if _static else LM.BG_CDN, _calm) if _light else T.background_css(_static, _calm)
-st.markdown(f'<span class="css-anchor" data-th="{ss.get(LM.THEME_KEY, "dark")}" data-build="{BUILD}"></span>' + T.CSS + _bg + (T.RTL_CSS if ss.lang == "ar" else "")
+st.markdown(f'<span class="css-anchor" data-th="{ss.get(LM.THEME_KEY, "dark")}" data-build="{BUILD}"></span>' + T.CSS + T.X_BRAND_CSS + _bg + (T.RTL_CSS if ss.lang == "ar" else "")
             + LM.landing_css() + T.logo_glow_css(_light), unsafe_allow_html=True)
 st.logo(T.logo_wordmark(_light), icon_image=T.LOGO_ICON_LIGHT if _light else T.LOGO_ICON, size="large")
 try:                                   # interactive cards: the light follows the pointer (a script run once per browser tab)
@@ -537,9 +537,9 @@ def nav_bar():
                             page = P[k]
                             if getattr(page, "url_path", None) == cur:
                                 with st.container(key=f"navon_{k}"):
-                                    st.page_link(page, label=page.title, icon=page.icon, width="stretch")
+                                    st.page_link(page, label=L("Bots", "البوتات") if k == "xbots" else page.title, icon=page.icon, width="stretch")
                             else:
-                                st.page_link(page, label=page.title, icon=page.icon, width="stretch")
+                                st.page_link(page, label=L("Bots", "البوتات") if k == "xbots" else page.title, icon=page.icon, width="stretch")
         with st.container(key="navsearch"):
             search_box()
         with st.container(key="navright", horizontal=True, vertical_alignment="center", gap="small", width="content"):
@@ -556,7 +556,7 @@ def nav_fallback():
         cols[0].markdown(f"**{label}**")
         for col, k in zip(cols[1:], keys):
             with col:
-                st.page_link(P[k], label=P[k].title, icon=P[k].icon)
+                st.page_link(P[k], label=L("Bots", "البوتات") if k == "xbots" else P[k].title, icon=P[k].icon)
     a, b, c = st.columns([4, 1, 1])
     a.text_input("search", key="gq", on_change=_global_search, label_visibility="collapsed",
                  placeholder=L("Search a symbol or company…", "ابحث عن سهم أو شركة…"))

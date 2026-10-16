@@ -1,5 +1,5 @@
 """
-p_xbots.py - The X Bots page of the current market: its five bots that read X (Twitter) and trade what they read on paper
+p_xbots.py - The X platform Bots page: bots read posts and trade their signals in paper mode
 (xbots.py). The US market and the Saudi market each have their own five, and the page shows the market the visitor is in.
 
 The page only shows what the bots stored on their last run (scripts/xbots_run.py, every hour of their market's day): it never
@@ -28,6 +28,7 @@ CSS = """<style>
   background:linear-gradient(135deg, rgba(59,139,235,.14), rgba(123,69,240,.12) 60%, rgba(26,22,36,.9)); border:1px solid rgba(167,139,250,.28); }
 .xbhero .st { display:flex; align-items:center; gap:10px; font-weight:700; color:#fff; }
 .xbhero .st svg.khl { flex:none; width:34px; height:34px; }
+.xbhero .st svg.xlg { flex:none; width:28px; height:28px; margin:0; color:#fff; }
 .xbhero .st i { width:10px; height:10px; border-radius:50%; background:#F5B94A; box-shadow:0 0 0 4px rgba(245,185,74,.18); }
 .xbhero .st.on i { background:#34D27A; box-shadow:0 0 0 4px rgba(52,210,122,.18); animation:xbpulse 1.8s ease-in-out infinite; }
 .xbhero .st.err i { background:#F26B6B; box-shadow:0 0 0 4px rgba(242,107,107,.18); }
@@ -101,7 +102,8 @@ CSS = """<style>
 .xpost .tag.bull { color:#4ADE80; background:rgba(74,222,128,.08); } .xpost .tag.bear { color:#F87171; background:rgba(248,113,113,.08); }
 .xpost .tag.neutral { color:#C4B5FD; background:rgba(167,139,250,.08); }
 .xpost .ev { padding:2px 8px; border-radius:99px; background:rgba(255,255,255,.06); font-size:.7rem; }
-.xpost a.go { margin-inline-start:auto; color:#79B8F4 !important; text-decoration:none !important; font-weight:600; }
+.xpost a.go { margin-inline-start:auto; color:#79B8F4 !important; text-decoration:none !important; font-weight:600; display:inline-flex; align-items:center; gap:5px; }
+.xpost a.go svg.xlg { width:13px; height:13px; margin:0; flex:none; }
 .xrules { padding:14px 16px; border-radius:14px; border:1px dashed rgba(167,139,250,.35); background:rgba(123,69,240,.06); color:#D8D3E2;
   font-size:.88rem; line-height:1.75; }
 .xrules b { color:#fff; }
@@ -309,7 +311,9 @@ def _card(bot, state, rank, sel):
 XBSUM_CSS = f"""<style>
 .xbsum {{ padding:14px 14px 12px; border-radius:18px; background:{T.BOX_BG}; border:1px solid {T.BORDER}; box-shadow:0 10px 24px -18px rgba(0,0,0,.6); }}
 .xbsum .h {{ display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:#C9C4D3; margin-bottom:6px; }}
-.xbsum .h .ms {{ font-size:18px; }} .xbsum .h small {{ margin-inline-start:auto; font-weight:600; letter-spacing:0; text-transform:none; color:#8F899B; font-size:.72rem; }}
+.xbsum .h .ms {{ font-size:18px; }}
+.xbsum .h svg.xlg {{ width:18px; height:18px; margin:0; flex:none; }}
+.xbsum .h small {{ margin-inline-start:auto; font-weight:600; letter-spacing:0; text-transform:none; color:#8F899B; font-size:.72rem; }}
 .xbsum .r {{ display:grid; grid-template-columns:36px minmax(0,1fr) 48px 92px; gap:10px; align-items:center; padding:9px 0; border-top:1px solid {T.BORDER}; }}
 .xbsum .r:first-of-type {{ border-top:0; }}
 .xbsum .ic {{ width:36px; height:36px; border-radius:11px; display:grid; place-items:center; background:linear-gradient(140deg, var(--xc), rgba(255,255,255,.14)); box-shadow:0 6px 14px -8px var(--xc); }}
@@ -345,7 +349,7 @@ def summary_html(mk, states=None):
     sub = L("Mood · 6 h", "المزاج · 6 ساعات")
     foot = (L(f"Last read {_when(last)}", f"آخر قراءة {_when(last)}") if last else
             L("The first read comes in the market's next hour", "أول قراءة في أول ساعة من يوم السوق"))
-    return (f'{XBSUM_CSS}<div class="xbsum" data-nogq><div class="h">{T.icon("alternate_email")}{T.esc(head)}<small>{T.esc(sub)}</small></div>'
+    return (f'{XBSUM_CSS}<div class="xbsum" data-nogq><div class="h">{T.xlogo()}{T.xify(head)}<small>{T.esc(sub)}</small></div>'
             f'{rows}<div class="ft"><i></i>{T.esc(foot)}</div></div>')
 
 
@@ -362,7 +366,7 @@ def _post(p):
             f'<div class="tx" dir="auto">{T.esc(p.get("text") or "")}</div>'
             f'<div class="ft"><span class="tag {lab}">{T.esc(words)} {p.get("s", 0):+.2f}</span>{evh}{tick}'
             f'<span>♥ {int(p.get("likes") or 0):,} · ↻ {int(p.get("reposts") or 0):,}</span>'
-            f'<a class="go" href="{T.esc(link)}" target="_blank" rel="noopener">{T.esc(L("Open on X", "افتح في X"))} ↗</a></div></div>')
+            f'<a class="go" href="{T.esc(link)}" target="_blank" rel="noopener">{T.xlogo()}{T.esc(L("Open post", "افتح المنشور"))} ↗</a></div></div>')
 
 
 AR_MONTHS = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"]
@@ -647,10 +651,10 @@ def _hero(cur, bots, states, meta):
             cls, head = "", L("Ready: waiting for the X connection", "جاهزة: تنتظر ربط X")
             sub = L("Nothing is read or traded until the site is connected to X.", "ما تقرأ ولا تتداول شي لين يتربط الموقع بـ X.")
         facts = mk
-    ui.html(f'<div class="xbhero"><div class="st {cls}">{mascot.svg(34, uid="kx")}<i></i><span>{T.esc(head)}<small>{T.esc(sub)}</small></span></div><div class="facts">{facts}</div></div>')
+    ui.html(f'<div class="xbhero"><div class="st {cls}">{T.xlogo()}<i></i><span>{T.xify(head)}<small>{T.xify(sub)}</small></span></div><div class="facts">{facts}</div></div>')
     if not read_at and cls == "":
         ui.html('<div class="xwait">'
-                f'<div><b>{T.icon("key")}{T.esc(L("1 · The key", "1 · المفتاح"))}</b>{T.esc(L("The site owner adds the X API key to the secrets of the site; the key is never shown here.", "صاحب الموقع يضيف مفتاح X API في أسرار الموقع، والمفتاح ما يظهر هنا أبداً."))}</div>'
+                f'<div><b>{T.icon("key")}{T.esc(L("1 · The key", "1 · المفتاح"))}</b>{T.xify(L("The site owner adds the X API key to the secrets of the site; the key is never shown here.", "صاحب الموقع يضيف مفتاح X API في أسرار الموقع، والمفتاح ما يظهر هنا أبداً."))}</div>'
                 f'<div><b>{T.icon("schedule")}{T.esc(L("2 · Every hour", "2 · كل ساعة"))}</b>{T.esc(L("From then on each bot reads the new posts of its beat every hour of the day of its market, within a daily ceiling.", "بعدها كل بوت يقرأ تغريدات مجاله الجديدة كل ساعة من يوم سوقه، ضمن سقف يومي."))}</div>'
                 f'<div><b>{T.icon("candlestick_chart")}{T.esc(L("3 · On paper", "3 · وهمياً"))}</b>{T.esc(L("It turns what it reads into a mood and signals, and trades a paper account by its written rules.", "يحوّل اللي يقرأه لمزاج وإشارات، ويتداول حساب وهمي حسب قواعده المكتوبة."))}</div></div>')
 
@@ -687,15 +691,15 @@ def page_xbots():
     cur = MK.current()
     sa = cur == MK.SA
     _title = L("X Bots · Saudi market" if sa else "X Bots · US market", "بوتات X · السوق السعودي" if sa else "بوتات X · السوق الأمريكي")
-    _sub = L(("Five bots that read X (Twitter) about the Saudi market every hour of its day: TASI's mood, the companies on everyone's lips, "
+    _sub = L(("Five bots that read X about the Saudi market every hour of its day: TASI's mood, the companies on everyone's lips, "
                "the technical crowd, the market's news wire and the talk about oil. Each turns what it reads into signals and trades them on paper.")
               if sa else
-              ("Five bots that read X (Twitter) about the US market every hour of its day: the mood, the stocks suddenly talked about, the "
+              ("Five bots that read X about the US market every hour of its day: the mood, the stocks suddenly talked about, the "
                "market pros, breaking news and the crowd's fear about the mega-caps. Each turns what it reads into signals and trades them on paper."),
-              ("خمس بوتات تقرأ X (تويتر) عن السوق السعودي كل ساعة من يومه: مزاج تاسي، والشركات اللي على كل لسان، وأهل التحليل الفني، "
+              ("خمس بوتات تقرأ X عن السوق السعودي كل ساعة من يومه: مزاج تاسي، والشركات اللي على كل لسان، وأهل التحليل الفني، "
                "وأخبار السوق، والكلام عن النفط. كل بوت يحوّل اللي يقرأه لإشارات ويتداولها وهمياً.")
               if sa else
-              ("خمس بوتات تقرأ X (تويتر) عن السوق الأمريكي كل ساعة من يومه: المزاج، والأسهم اللي فجأة صار عنها كلام، والمحللين، والعاجل، "
+              ("خمس بوتات تقرأ X عن السوق الأمريكي كل ساعة من يومه: المزاج، والأسهم اللي فجأة صار عنها كلام، والمحللين، والعاجل، "
                "وخوف الناس من الشركات العملاقة. كل بوت يحوّل اللي يقرأه لإشارات ويتداولها وهمياً."))
     ui.html(f'<div class="page-title">{T.xlogo("xlg pti")}<h1>{T.xify(_title)}</h1></div><div class="page-sub">{T.xify(_sub)}</div>')
     try:
