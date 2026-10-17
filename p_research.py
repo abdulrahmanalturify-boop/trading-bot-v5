@@ -21,6 +21,7 @@ import ta
 import tasi
 import taxonomy as X
 import theme as T
+import tvchart as TV
 import ui
 import universe as U
 from i18n import L, industry_name, is_ar, sector_name, sig, theme_name
@@ -102,6 +103,15 @@ def key_stats(daily, inf):
 
 
 def chart_tab(sym, daily):
+    # TradingView's own chart (their data, drawing tools and indicators) or the site's chart (our data and indicators)
+    src = st.segmented_control(L("Chart source", "مصدر الرسم"), ["tv", "tura"], default="tv", key="st_src",
+                               format_func=lambda k: {"tv": L("TradingView", "تريدنج فيو"), "tura": L("TURA chart", "رسم تورا")}[k],
+                               label_visibility="collapsed") or "tv"
+    if src == "tv":
+        TV.widget(sym, height=600)
+        st.caption(L("Live chart from TradingView: pick the range, add indicators and draw from its own toolbar.",
+                     "رسم مباشر من تريدنج فيو: اختر المدى وأضف المؤشرات وارسم من شريط أدواته."))
+        return
     c1, c2 = st.columns([3, 1.2])
     tf = c1.segmented_control(L("Range", "المدى"), list(TF), default="1Y", key="st_tf", label_visibility="collapsed") or "1Y"
     ctype = c2.selectbox(L("Chart type", "نوع الرسم"), list(CHART_TYPES), format_func=lambda k: L(k, CHART_TYPES[k]),

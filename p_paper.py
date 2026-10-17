@@ -45,6 +45,7 @@ import tasi
 import tdash
 import theme as T
 import mascot
+import tvchart as TV
 import ui
 from i18n import L, is_ar, sector_name
 from sp500 import gics_name
@@ -1798,9 +1799,10 @@ def price_chart_section(sim):
         full = data.history(sym, PB.period_for(b["start_date"], PB.market_of(b)))
     else:
         sym, full = b["value"], sim.get("frame")
-    ui.valid(f"pb_ct_{b['id']}", ["Line", "Candles"])
-    mode = right.segmented_control(L("Chart", "الشارت"), ["Line", "Candles"], default="Line", key=f"pb_ct_{b['id']}",
-                                   format_func=lambda k: {"Line": L("Line", "خط"), "Candles": L("Candles", "شموع")}[k]) or "Line"
+    ui.valid(f"pb_ct_{b['id']}", ["TV", "Line", "Candles"])
+    mode = right.segmented_control(L("Chart", "الشارت"), ["TV", "Line", "Candles"], default="TV", key=f"pb_ct_{b['id']}",
+                                   format_func=lambda k: {"TV": L("TradingView", "تريدنج فيو"), "Line": L("Line", "خط"),
+                                                          "Candles": L("Candles", "شموع")}[k]) or "TV"
     if full is None or full.empty:
         return
     full = ta.add_all(full)
@@ -1814,6 +1816,13 @@ def price_chart_section(sim):
     marks["Why"] = marks["Exit Reason"].map(lambda x: L(x, EXIT_AR.get(x, x)))
     words = None if not is_ar() else {"buy": "شراء", "sell": "بيع", "win": "صفقة رابحة", "loss": "صفقة خاسرة", "open": "صفقة مفتوحة",
                                       "BUY": "شراء", "SELL": "بيع", "at": "بسعر", "stock": "السهم"}
+    if mode == "TV":                            # TradingView's Lightweight Charts: our candles with the bot's buys and sells
+        TV.candles(view, marks, height=480, words=None if not is_ar() else {"BUY": "شراء", "SELL": "بيع"})
+        st.caption(L("▲ green = buy, under the bar · ▼ red = sell, above the bar, with the trade's result. Scroll or pinch to zoom, "
+                     "drag to move. Options are marked at the stock's price.",
+                     "▲ الأخضر = شراء تحت الشمعة · ▼ الأحمر = بيع فوق الشمعة مع نتيجة الصفقة. كبّر بالتمرير أو بإصبعين، "
+                     "واسحب للتنقل. عقود الأوبشن معلّمة على سعر السهم."))
+        return
     fig = charts.trade_chart(view, marks, overlays, panels, mode, words=words)
     try:
         first = pd.Timestamp(sim["equity"].index[0]).strftime("%Y-%m-%d")
