@@ -306,6 +306,9 @@ CSS2 = """<style>
 .nie-brk .tr { display:inline-flex; gap:34px; white-space:nowrap; padding:10px 0; animation:niemq 60s linear infinite; will-change:transform; }
 .nie-brk:hover .tr { animation-play-state:paused; }
 @keyframes niemq { from { transform:translateX(0); } to { transform:translateX(-50%); } }
+/* in Arabic the strip starts at the right, where a sentence begins, and runs to the right so the rest of it comes in from the left */
+.nie-brk.rtl .vw { direction:rtl; } .nie-brk.rtl .tr { animation-name:niemqr; }
+@keyframes niemqr { from { transform:translateX(0); } to { transform:translateX(50%); } }
 .nie-brk .it { display:inline-flex; gap:8px; align-items:center; font-size:.82rem; color:#E9E5F0; }
 .nie-brk .it b { font-weight:800; color:#fff; }
 .nie-brk .it .ar { font-weight:900; } .nie-brk .it.bull .ar { color:#4ADE80; } .nie-brk .it.bear .ar { color:#F87171; } .nie-brk .it.neutral .ar { color:#C4B5FD; }
@@ -1229,7 +1232,7 @@ def _breaking(res, titles_ar):
                      f'<span class="im">{a["impact"]:.0f}</span><small>{T.time_ago(n["time"], ar) if pd.notna(n.get("time")) else ""}</small></span>')
     inner = "".join(items)
     dur = max(30, 9 * len(items))
-    return (f'<div class="nie-brk" data-nogq><span class="lb">{T.icon("campaign")}{T.esc(L("Breaking", "عاجل"))}</span>'
+    return (f'<div class="nie-brk{" rtl" if ar else ""}" data-nogq><span class="lb">{T.icon("campaign")}{T.esc(L("Breaking", "عاجل"))}</span>'
             f'<div class="vw"><div class="tr" style="animation-duration:{dur}s">{inner}{inner}</div></div></div>')
 
 
@@ -1749,4 +1752,4 @@ def page_news_intel():
             _show_story(a, chg, px, titles_ar)
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.4.51"
+BUILD = "23.4.52"
