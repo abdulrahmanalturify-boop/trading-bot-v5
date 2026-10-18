@@ -28,6 +28,10 @@ CSS = """
 """
 
 
+# The S&P 500 holds 503 shares (some companies list two classes), so the cap sits above it.
+MAX_SCAN = 600
+
+
 def _symbols(choice, custom):
     if choice == "Core 29":
         return DEFAULT
@@ -80,8 +84,8 @@ def page_hunter_v3():
     if not symbols:
         st.info(L("Enter at least one US stock symbol.", "أدخل رمز سهم أمريكي واحد على الأقل."))
         return
-    if len(symbols) > 500:
-        st.error(L("Limit scans to 500 symbols.", "الحد الأقصى للفحص 500 سهم."))
+    if len(symbols) > MAX_SCAN:
+        st.error(L(f"Limit scans to {MAX_SCAN} symbols.", f"الحد الأقصى للفحص {MAX_SCAN} سهم."))
         return
     if st.button(L(f"Run separate V3 scan ({len(symbols)} stocks)", f"تشغيل الصياد V3 بشكل مستقل ({len(symbols)} سهم)"),
                  icon=":material/radar:", type="primary", use_container_width=True):
