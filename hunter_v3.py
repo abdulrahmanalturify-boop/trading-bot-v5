@@ -20,7 +20,7 @@ import hunter as H
 import universe as U
 
 
-BUILD = "23.4.49"
+BUILD = "23.4.50"
 HORIZON = 20
 FEATURES = ("excess_21", "excess_63", "trend_100", "vol_20",
             "drawdown_63", "ema_diff", "rvol_20", "reversal_5", "market_trend")

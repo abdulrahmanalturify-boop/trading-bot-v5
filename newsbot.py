@@ -727,8 +727,10 @@ class NewsBot:
         self._side_t.start()
 
     def _pics(self, limit=80, budget=60):
-        """Stories whose feed sent no picture get the photo of their own article page (newspics.find_images), newest first,
-        each story tried at most twice; then the topic photos are looked up if they are missing or a week old."""
+        """Stories whose feed sent no picture get the photo of their own article page (newspics.find_meta), and the day the
+        page says it was published when that is earlier than the feed's time (Google News dates a story when it saw it, days
+        after an old article came out), newest first, each story tried at most twice; then the topic photos are looked up if
+        they are missing or a week old."""
         try:
             import newspics
         except Exception:
@@ -736,16 +738,22 @@ class NewsBot:
         try:
             cut = pd.Timestamp.now(tz="UTC") - pd.Timedelta(hours=48)
             with self.lock:
-                todo = sorted((v for v in self.store.values() if not v.get("img") and v.get("_pic", 0) < 2 and v["time"] >= cut),
+                todo = sorted((v for v in self.store.values() if v.get("_pic", 0) < 2 and v["time"] >= cut
+                               and (not v.get("img") or ("news.google.com" in v["link"] and not v.get("_dated")))),
                               key=lambda v: v["time"], reverse=True)[:limit]
                 for v in todo:
                     v["_pic"] = v.get("_pic", 0) + 1
-            found = newspics.find_images([{"link": v["link"]} for v in todo], budget=budget) if todo else {}
+                    v["_dated"] = True                   # a Google News story's page is read for its date once, picture or not
+            found = newspics.find_meta([{"link": v["link"]} for v in todo], budget=budget) if todo else {}
             if found:
                 with self.lock:
                     for v in todo:
-                        if not v.get("img") and found.get(v["link"]):
-                            v["img"] = found[v["link"]]
+                        meta = found.get(v["link"]) or {}
+                        if not v.get("img") and meta.get("img"):
+                            v["img"] = meta["img"]
+                        ts = meta.get("time")                # the article's own day: a Google News time is when Google saw it
+                        if ts is not None and ts < v["time"] - pd.Timedelta(hours=1):
+                            v["time"] = ts
         except Exception:
             pass
         try:
@@ -936,4 +944,4 @@ def sa_headlines(hours=48):
         return []
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.4.49"
+BUILD = "23.4.50"
