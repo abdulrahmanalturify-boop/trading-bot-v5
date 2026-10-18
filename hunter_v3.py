@@ -5,6 +5,11 @@ ridge forecaster is trained only on realized outcomes whose exit dates precede
 the scan date. Its validation samples are purged and chronologically later than
 training samples. No probability claims are made. A negative validation
 information coefficient disables its influence on live ranks.
+
+The rank is fully quantitative and statistical: four factors (momentum, trend,
+low risk, short-term reversal) ranked as percentiles across the scanned stocks,
+blended with the validated forecast's percentile. The hunter's technical score,
+setups and levels are kept as information only.
 """
 from __future__ import annotations
 
@@ -23,6 +28,13 @@ COLUMNS = ("Symbol", "Name", "Sector", "Score", "V1 Score", "Alpha %",
            "Rank", "Setup", "Status", "Entry", "Stop", "Target", "R:R",
            "ATR %", "$Vol", "Risk Flag", "Model Active", "Exposure", "Side")
 MIN_HISTORY = 260
+# The rank is fully quantitative: statistical factors ranked across the scanned stocks, plus the validated forecast.
+# Each factor: (column, the features it averages, +1 = higher is better / -1 = lower is better). Fixed weights, not fitted.
+FACTORS = (("Q Momentum", (("excess_63", 1), ("excess_21", 1)), .35),
+           ("Q Trend", (("trend_100", 1), ("ema_diff", 1)), .25),
+           ("Q Low Risk", (("vol_20", -1), ("drawdown_63", 1)), .25),
+           ("Q Reversal", (("reversal_5", 1),), .15))
+FORECAST_WEIGHT = .5                                 # with a validated model: half the forecast's percentile, half the factors
 
 
 def _clean(df, cutoff=None):
@@ -159,8 +171,27 @@ def _technical_quality(row, market_mood):
     return float(np.clip(score, 0, 100))
 
 
+def _pctl(values, sign=1):
+    """Cross-sectional percentile, 0-100 (the middle of each rank, so one stock alone sits at 50); NaN stays NaN."""
+    v = pd.Series(values, dtype=float) * sign
+    n = int(v.notna().sum())
+    return (v.rank(method="average") - .5) / n * 100 if n else v
+
+
+def quant_scores(feats):
+    """feats: one row of FEATURES per stock (index = symbol). Returns each factor (0-100) and their weighted blend,
+    'Quant Score'; a factor whose inputs are all missing for a stock counts as neutral (50)."""
+    out = pd.DataFrame(index=feats.index)
+    for name, cols, _ in FACTORS:
+        out[name] = pd.concat([_pctl(feats[c], sg) for c, sg in cols], axis=1).mean(axis=1, skipna=True).fillna(50.0)
+    out["Quant Score"] = sum(w * out[name] for name, _, w in FACTORS) / sum(w for *_, w in FACTORS)
+    return out
+
+
 def scan(prices, benchmark, cutoff=None, sectors=None, earnings=None, thin=20e6):
-    """Full isolated V3 scan. Existing V1 scanning rules are READ only."""
+    """Full isolated V3 scan. Existing V1 scanning rules are READ only: they give each stock its setup, levels and flags,
+    shown for information. The rank itself is fully quantitative: with a validated forecast, half its cross-sectional
+    percentile and half the factor blend (Quant Score); without one, the factor blend alone."""
     market = _clean(benchmark, cutoff)
     if market is None:
         return pd.DataFrame(), {"status": "no_benchmark", "n": 0}, {"mood": "unknown"}
@@ -179,13 +210,13 @@ def scan(prices, benchmark, cutoff=None, sectors=None, earnings=None, thin=20e6)
     out["Model Active"] = bool(model is not None)
     out["Risk Flag"] = ""
     out["Exposure"] = 1.0 if mood == "on" else 0.65 if mood == "mixed" else 0.25
+    feats = pd.DataFrame({sym: features_for(clean[sym], market)[0].iloc[-1] for sym in out["Symbol"]}).T
+    quant = quant_scores(feats)
     rank = []
     for row in out.itertuples(index=False):
         d = clean[row.Symbol]
-        last = d.index.max()
-        staleness = (market.index.max() - last).days
+        staleness = (market.index.max() - d.index.max()).days
         rowdata = candidate.loc[candidate["Symbol"] == row.Symbol].iloc[0]
-        q = _technical_quality(rowdata, mood)
         flags = str(rowdata["Flags"]).strip(",")
         if staleness > 5:
             flags = (flags + ",stale_data").strip(",")
@@ -194,24 +225,25 @@ def scan(prices, benchmark, cutoff=None, sectors=None, earnings=None, thin=20e6)
         if float(rowdata["$Vol"]) < thin:
             flags = (flags + ",illiquid").strip(",")
         alpha = np.nan
-        if model is not None:
-            feat = features_for(d, market)[0].iloc[-1]
-            if feat.notna().all():
-                alpha = float(np.clip(100 * _predict(model, feat.to_numpy(float)[None, :])[0], -15, 15))
-        score = .75 * float(rowdata["Score"]) + .25 * q
-        if np.isfinite(alpha):
-            score = .55 * float(rowdata["Score"]) + .20 * q + .25 * np.clip(50 + 3 * alpha, 0, 100)
-        if "stale_data" in flags or "extreme_volatility" in flags or "illiquid" in flags:
-            score = min(score, 49.0)
-        if rowdata["Side"] <= 0:
-            score = min(score, 49.0)
-        # Penalties already reflected in baseline V1 score; do not double count.
-        rank.append((row.Symbol, score, alpha, flags))
-    ranks = pd.DataFrame(rank, columns=["Symbol", "Rank", "Alpha %", "Risk Flag"])
+        feat = feats.loc[row.Symbol]
+        if model is not None and feat.notna().all():
+            alpha = float(np.clip(100 * _predict(model, feat.to_numpy(float)[None, :])[0], -15, 15))
+        rank.append((row.Symbol, alpha, flags))
+    ranks = pd.DataFrame(rank, columns=["Symbol", "Alpha %", "Risk Flag"]).set_index("Symbol")
+    ranks = ranks.join(quant)
+    ranks["Forecast Pctl"] = _pctl(ranks["Alpha %"])
+    has = ranks["Forecast Pctl"].notna()
+    ranks["Rank"] = ranks["Quant Score"]
+    ranks.loc[has, "Rank"] = FORECAST_WEIGHT * ranks.loc[has, "Forecast Pctl"] + (1 - FORECAST_WEIGHT) * ranks.loc[has, "Quant Score"]
+    # Data you cannot trust (stale, extreme volatility, illiquid) caps the rank under the eligibility line.
+    capped = ranks["Risk Flag"].str.contains("stale_data|extreme_volatility|illiquid", na=False)
+    ranks.loc[capped, "Rank"] = ranks.loc[capped, "Rank"].clip(upper=49.0)
+    ranks["Rank"] = ranks["Rank"].clip(0, 100)
+    ranks = ranks.reset_index()
     out = out.drop(columns=["Alpha %", "Risk Flag"]).merge(ranks, on="Symbol", validate="one_to_one")
-    out = out.sort_values(["Rank", "V1 Score"], ascending=False).reset_index(drop=True)
+    out = out.sort_values(["Rank", "Quant Score"], ascending=False).reset_index(drop=True)
     return out, info, {"mood": mood, "date": str(market.index[-1].date()),
-                        "universe": int(len(clean)), "eligible_longs": int(((out["Side"] > 0) & (out["Rank"] >= 50)).sum())}
+                        "universe": int(len(clean)), "eligible_longs": int((out["Rank"] >= 50).sum())}
 
 
 def allocate(ranked, capital=100_000, risk_per_trade_pct=.5, max_positions=5,

@@ -80,9 +80,25 @@ class HunterV3Safety(unittest.TestCase):
         self.assertEqual(report["horizon_sessions"], 20)
         self.assertTrue(res["Rank"].between(0, 100).all())
         self.assertTrue((res["V1 Score"] == res["Score"]).all())
-        self.assertTrue(res.loc[res["Side"] <= 0, "Rank"].le(49).all())
+        self.assertTrue(res["Quant Score"].between(0, 100).all())
+        capped = res["Risk Flag"].str.contains("stale_data|extreme_volatility|illiquid", na=False)
+        self.assertTrue(res.loc[capped, "Rank"].le(49).all())
+        free = res[~capped & res["Alpha %"].isna()]
+        np.testing.assert_allclose(free["Rank"], free["Quant Score"])
         if report["status"] != "active":
             self.assertTrue(res["Alpha %"].isna().all())
+
+    def test_rank_is_quantitative_not_the_hunter_score(self):
+        cut = self.market.index[-1]
+        res, _, _ = V3.scan(self.prices, self.market, cutoff=cut)
+        for name, *_ in V3.FACTORS:
+            self.assertTrue(res[name].between(0, 100).all())
+        # The quant factors are cross-sectional percentiles: their mean across the stocks sits at 50.
+        self.assertAlmostEqual(float(res["Q Momentum"].mean()), 50.0, places=6)
+
+    def test_percentile_of_one_stock_is_neutral(self):
+        self.assertEqual(float(V3._pctl([3.0]).iloc[0]), 50.0)
+        self.assertEqual(V3._pctl([1.0, 2.0], -1).tolist(), [75.0, 25.0])
 
     def test_allocation_respects_exposure_and_cash(self):
         data = pd.DataFrame({

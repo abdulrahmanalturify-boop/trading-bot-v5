@@ -1,16 +1,19 @@
 """
 p_hunter_v3.py - Hunter V3 · Alpha Lab (menu: الصياد V3): the page of hunter_v3.py, which is untouched.
 
-Its own look, not the hunter's: a lab in teal and cyan, the model at the centre.
+A modern lab in teal and cyan, research only (no paper allocation on this page). The rank is fully quantitative
+(hunter_v3.scan: four cross-sectional factors and the validated forecast); the hunter's score, setups and levels are information.
 Top to bottom:
-  * a hero: the alpha ladder (the best-ranked stocks as bars: the rank and the forecast), the totals as chips,
-  * the hunt bar: the universe, the paper capital and the risk settings, the Run button,
-  * the model's board: the market mood, validation, training samples, the holdout IC and the exposure cap,
-  * filters (setups with their counts, rank at least, new today, no risk flags, with a forecast only),
-  * the best-ranked opportunities as cards (the rank ring, the forecast meter, the rank's three parts, the levels); click one
-    to open it: the chart with entry / stop / target, why it ranked what it ranked, its line in the paper allocation,
-  * the hypothetical allocation (tiles and the full table), every result with every column in a sortable table,
-  * the forecast map (forecast vs V1 score) and the methodology.
+  * a hero: the title, the totals as chips, the top pick in a spotlight and the alpha ladder (the five best ranks),
+  * the hunt bar: the universe and the Run button,
+  * the model's board: the market mood, validation, training samples and the holdout IC,
+  * four tabs:
+      - opportunities: filters (setups with their counts, rank at least, new today, no risk flags, with a forecast),
+        a toolbar (search, sort, how many cards), the cards (the rank ring, the forecast meter, the four factors, the levels);
+        click one to open it: the chart with entry / stop / target, its plan and why it ranked what it ranked,
+      - the full table: every result with every column of the engine's output, sortable, with a CSV export,
+      - the forecast map (forecast vs the quant score),
+      - the methodology and limitations.
 """
 import numpy as np
 import pandas as pd
@@ -40,87 +43,136 @@ DEFAULT = (
 )
 UNIS = {"core": ("Core 29", "الأساسية (29 سهم)"), "large": ("Largest 100", "أكبر 100 شركة"),
         "sp500": ("S&P 500 (all, slower)", "إس آند بي 500 (كامل، أبطأ)"), "custom": ("My symbols", "رموزي")}
-PROFILES = {"risk_controlled": ("Risk-controlled", "مضبوط المخاطر"), "return_seeking": ("Return-seeking · higher risk", "استهداف عائد أعلى · مخاطرة أكبر")}
 RISK_FLAG = {"stale_data": ("history", "Stale data", "بيانات قديمة"), "extreme_volatility": ("bolt", "Extreme volatility", "تذبذب شديد"),
              "illiquid": ("water_drop", "Illiquid", "سيولة ضعيفة"), "earnings": ("event", "Earnings soon", "أرباح قريبة"),
              "extended": ("height", "Stretched", "ممتد"), "thin": ("water_drop", "Thin trading", "سيولة ضعيفة")}
-N_CARDS = 8
+SORTS = {"rank": ("Rank", "الترتيب"), "alpha": ("Forecast", "التوقع"), "rr": ("Reward / risk", "العائد للمخاطرة"), "fresh": ("Newest", "الأحدث")}
+COUNTS = (8, 12, 20)
 # The S&P 500 holds 503 shares (some companies list two classes), so the cap sits above it.
 MAX_SCAN = 600
 
+# Each <style> goes to the page in its own st.markdown call: two style blocks joined on one line ("</style><style>") end
+# Markdown's HTML block early and the rest of the CSS shows on the page as text.
 CSS = f"""<style>
-/* ---------- hero: the alpha ladder, in the lab's teal ---------- */
-.v3hero {{ position:relative; overflow:hidden; border-radius:22px; border:1px solid rgba(45,212,191,.28); margin:2px 0 16px; min-height:250px;
-  background:linear-gradient(120deg,#07131C,#0B2230,#0E3545,#08141F); background-size:300% 300%; animation:sky 20s ease-in-out infinite; }}
-.v3hero::after {{ content:""; position:absolute; left:0; right:0; top:0; height:1px; background:linear-gradient(90deg,transparent,rgba(45,212,191,.6),transparent); z-index:3; pointer-events:none; }}
-.v3hero .grid {{ position:absolute; inset:0; pointer-events:none;
-  background-image:linear-gradient(rgba(45,212,191,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(45,212,191,.07) 1px,transparent 1px);
-  background-size:36px 36px; -webkit-mask-image:radial-gradient(ellipse at 78% 50%,#000 0%,transparent 66%); mask-image:radial-gradient(ellipse at 78% 50%,#000 0%,transparent 66%); }}
-.v3hero.rtl .grid {{ -webkit-mask-image:radial-gradient(ellipse at 22% 50%,#000 0%,transparent 66%); mask-image:radial-gradient(ellipse at 22% 50%,#000 0%,transparent 66%); }}
-.v3hero .art {{ position:absolute; top:0; bottom:0; right:0; width:50%; pointer-events:none; }}
-.v3hero.rtl .art {{ right:auto; left:0; }}
-.v3hero .art svg {{ width:100%; height:100%; display:block; }}
-.v3hero .txt {{ position:relative; z-index:2; padding:26px 30px 24px; max-width:640px;
-  background:linear-gradient(90deg,rgba(7,19,28,.82) 0%,rgba(7,19,28,.35) 72%,rgba(7,19,28,0) 100%); }}
-.v3hero.rtl .txt {{ margin-left:auto; background:linear-gradient(270deg,rgba(7,19,28,.82) 0%,rgba(7,19,28,.35) 72%,rgba(7,19,28,0) 100%); }}
-.v3hero .eb {{ color:{_E}; font-weight:600; letter-spacing:.2em; font-size:.72rem; text-transform:uppercase; display:flex; align-items:center; gap:8px; }}
-.v3hero .t {{ font-size:2.7rem; font-weight:300; line-height:1.04; margin:8px 0 8px; color:#fff; letter-spacing:-.035em; }}
-.v3hero .t b {{ background:linear-gradient(90deg,{_C},{_E},#A7F3D0); -webkit-background-clip:text; background-clip:text; color:transparent; font-weight:700; }}
-.v3hero .tg {{ color:#CAD5D6; font-size:.94rem; line-height:1.6; max-width:540px; }}
-.v3hero .chips {{ display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }}
-.v3hero .chip {{ background:rgba(7,19,28,.75); border:1px solid rgba(45,212,191,.25); backdrop-filter:blur(6px); border-radius:10px; padding:6px 10px;
-  font-size:.8rem; display:inline-flex; align-items:center; gap:7px; color:#CAD5D6; }}
-.v3hero .chip b {{ color:#fff; unicode-bidi:isolate; direction:ltr; }} .v3hero .chip .ms {{ color:{_E}; font-size:1rem; }}
-.v3hero .st {{ margin-top:12px; }}
-.v3hero .lad {{ animation:v3grow 1.1s cubic-bezier(.2,.8,.2,1) both; transform-origin:left center; }}
-.v3hero.rtl .lad {{ transform-origin:right center; }}
-@keyframes v3grow {{ from {{ transform:scaleX(0); }} }}
-@media (max-width: 820px) {{ .v3hero .art {{ width:100%; opacity:.22; }} .v3hero .t {{ font-size:1.9rem; }} .v3hero .txt {{ background:none; }} }}
-/* ---------- the model's board ---------- */
-.v3reg {{ display:grid; grid-template-columns:1.5fr repeat(4,1fr); gap:10px; margin:2px 0 4px; }}
-@media (max-width: 1000px) {{ .v3reg {{ grid-template-columns:1fr 1fr; }} }}
-.v3reg .tl {{ background:{T.BOX_BG}; border:1px solid {_BD}; border-radius:16px; padding:12px 14px; position:relative; overflow:hidden; }}
-.v3reg .tl::before {{ content:""; position:absolute; top:0; bottom:0; left:0; width:2px; background:linear-gradient(180deg,{_C},{_E}); opacity:.8; }}
-.v3reg .tl .l {{ color:{_MU}; font-size:.68rem; font-weight:600; letter-spacing:.08em; text-transform:uppercase; display:flex; align-items:center; gap:6px; }}
-.v3reg .tl .l .ms {{ font-size:.95rem; color:{_E}; }}
-.v3reg .tl .v {{ font-size:1.35rem; font-weight:600; color:#fff; margin-top:4px; direction:ltr; unicode-bidi:isolate; }}
-.v3reg .tl .s {{ color:{_MU}; font-size:.74rem; margin-top:2px; line-height:1.45; }}
-.v3reg .tl.on {{ border-color:{_U}66; background:linear-gradient(135deg,rgba(34,197,94,.14),{T.CARD}); }}
-.v3reg .tl.mixed {{ border-color:{_G}66; background:linear-gradient(135deg,rgba(245,185,74,.13),{T.CARD}); }}
-.v3reg .tl.off {{ border-color:{_D}66; background:linear-gradient(135deg,rgba(239,68,68,.14),{T.CARD}); }}
-.v3reg .tl.pass {{ border-color:{_E}66; background:linear-gradient(135deg,rgba(45,212,191,.14),{T.CARD}); }}
-.v3reg .tl.fall {{ border-color:{_G}66; background:linear-gradient(135deg,rgba(245,185,74,.13),{T.CARD}); }}
-.v3reg .mood .v {{ font-size:1.08rem; display:flex; align-items:center; gap:8px; direction:inherit; }}
-.v3reg .mood .dot {{ width:10px; height:10px; border-radius:50%; box-shadow:0 0 0 4px rgba(255,255,255,.06); flex:none; }}
-.v3reg .mood .s {{ color:#CAD5D6; }}
-/* ---------- the cards: the hunter's frame with the lab's content ---------- */
-.hnc.v3 {{ height:372px; }}
-.hnc.v3::before {{ background:linear-gradient(90deg,transparent,rgba(45,212,191,.7),transparent); }}
-.hnc.v3.sel {{ border-color:{_E} !important; box-shadow:0 0 0 1px {_E}66, 0 12px 30px rgba(45,212,191,.18); }}
-[class*="st-key-hncard_v3"]:hover .hnc {{ box-shadow:0 14px 34px rgba(45,212,191,.18); }}
+/* hero */
+.v3hero {{ position:relative; overflow:hidden; border-radius:24px; margin:2px 0 16px; padding:26px 28px; isolation:isolate;
+  border:1px solid rgba(45,212,191,.26); background:radial-gradient(1200px 400px at 85% -20%,rgba(45,212,191,.20),transparent 60%),
+  radial-gradient(900px 380px at 0% 120%,rgba(45,182,235,.18),transparent 60%),linear-gradient(135deg,#06111A,#0A1E2B 55%,#071621);
+  box-shadow:0 20px 60px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.05); }}
+.v3hero::before {{ content:""; position:absolute; inset:0; z-index:-1; pointer-events:none; opacity:.55;
+  background-image:linear-gradient(rgba(45,212,191,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(45,212,191,.06) 1px,transparent 1px);
+  background-size:34px 34px; -webkit-mask-image:linear-gradient(180deg,#000,transparent 85%); mask-image:linear-gradient(180deg,#000,transparent 85%); }}
+.v3hero::after {{ content:""; position:absolute; width:340px; height:340px; border-radius:50%; z-index:-1; pointer-events:none;
+  background:radial-gradient(circle,rgba(45,212,191,.22),transparent 65%); top:-120px; inset-inline-end:-80px; animation:v3pulse 7s ease-in-out infinite; }}
+@keyframes v3pulse {{ 0%,100% {{ transform:scale(1); opacity:.75; }} 50% {{ transform:scale(1.15); opacity:1; }} }}
+.v3hero .wrap {{ display:grid; grid-template-columns:minmax(0,1.25fr) minmax(0,1fr); gap:26px; align-items:center; }}
+.v3hero .eb {{ display:inline-flex; align-items:center; gap:7px; color:{_E}; font-weight:700; font-size:.74rem; letter-spacing:.14em;
+  background:rgba(45,212,191,.10); border:1px solid rgba(45,212,191,.28); border-radius:999px; padding:5px 12px; }}
+.v3hero .eb .ms {{ font-size:1rem; }}
+.v3hero .t {{ font-size:2.9rem; font-weight:300; line-height:1.05; margin:14px 0 10px; color:#fff; letter-spacing:-.03em; }}
+.v3hero .t b {{ font-weight:800; background:linear-gradient(90deg,{_C},{_E},#A7F3D0); -webkit-background-clip:text; background-clip:text; color:transparent; }}
+.v3hero .tg {{ color:#C4D2D4; font-size:.95rem; line-height:1.75; max-width:560px; }}
+.v3hero .chips {{ display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }}
+.v3hero .chip {{ display:inline-flex; align-items:center; gap:7px; font-size:.8rem; color:#C4D2D4; border-radius:12px; padding:7px 11px;
+  background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); }}
+.v3hero .chip b {{ color:#fff; unicode-bidi:isolate; }} .v3hero .chip .ms {{ color:{_E}; font-size:1rem; }}
+.v3hero .st {{ margin-top:14px; }}
+/* the spotlight: the top pick and the ladder */
+.v3spot {{ border-radius:20px; padding:16px; background:linear-gradient(160deg,rgba(255,255,255,.07),rgba(255,255,255,.02));
+  border:1px solid rgba(45,212,191,.22); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); box-shadow:0 10px 40px rgba(0,0,0,.25); }}
+.v3spot .lb {{ display:flex; align-items:center; gap:6px; color:{_E}; font-size:.72rem; font-weight:700; letter-spacing:.06em; margin-bottom:10px; }}
+.v3spot .lb .ms {{ font-size:1rem; }}
+.v3spot .best {{ display:flex; align-items:center; gap:12px; padding-bottom:12px; border-bottom:1px solid rgba(255,255,255,.07); }}
+.v3spot .best .nm {{ flex:1; min-width:0; display:flex; flex-direction:column; line-height:1.3; }}
+.v3spot .best .nm b {{ color:#fff; font-size:1.25rem; }}
+.v3spot .best .nm span {{ color:{_MU}; font-size:.76rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
+.v3spot .best .nm em {{ font-style:normal; font-size:.74rem; color:#C4D2D4; margin-top:3px; }}
+.v3spot .best .nm em i {{ font-style:normal; font-weight:700; unicode-bidi:isolate; direction:ltr; }}
+.v3lad {{ display:flex; flex-direction:column; gap:8px; margin-top:12px; }}
+.v3lad .row {{ display:grid; grid-template-columns:18px 54px minmax(0,1fr) 28px 56px; gap:8px; align-items:center; font-size:.78rem; }}
+.v3lad .row .n {{ color:{_MU}; font-weight:700; text-align:center; }}
+.v3lad .row .sy {{ color:#fff; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
+.v3lad .row .bar {{ height:8px; border-radius:8px; background:rgba(45,212,191,.10); overflow:hidden; }}
+.v3lad .row .bar i {{ display:block; height:100%; border-radius:8px; background:linear-gradient(90deg,{_C},{_E}); animation:v3grow 1s cubic-bezier(.2,.8,.2,1) both; }}
+.v3lad .row b {{ font-weight:800; text-align:center; }}
+.v3lad .row em {{ font-style:normal; font-weight:700; font-size:.74rem; text-align:end; direction:ltr; unicode-bidi:isolate; }}
+.v3lad .row em.up {{ color:#4ADE80; }} .v3lad .row em.dn {{ color:#F87171; }} .v3lad .row em.na {{ color:{_MU}; }}
+.v3lad .ft {{ color:#7FA7AC; font-size:.68rem; margin-top:2px; }}
+@keyframes v3grow {{ from {{ width:0; }} }}
+/* the empty state: three steps */
+.v3steps {{ display:flex; flex-direction:column; gap:10px; }}
+.v3steps .s {{ display:flex; gap:12px; align-items:flex-start; padding:12px 14px; border-radius:16px; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.07); }}
+.v3steps .s .k {{ flex:none; width:30px; height:30px; border-radius:10px; display:grid; place-items:center; font-weight:800; color:#06111A;
+  background:linear-gradient(135deg,{_C},{_E}); }}
+.v3steps .s b {{ color:#fff; font-size:.9rem; display:block; }} .v3steps .s span {{ color:{_MU}; font-size:.78rem; line-height:1.5; }}
+@media (max-width: 860px) {{
+  .v3hero {{ padding:20px 16px; border-radius:20px; }}
+  .v3hero .wrap {{ grid-template-columns:1fr; gap:18px; }}
+  .v3hero .t {{ font-size:2.1rem; margin:12px 0 8px; }}
+  .v3hero .tg {{ font-size:.88rem; }}
+  .v3hero .chip {{ font-size:.74rem; padding:6px 9px; }}
+}}
+/* the hunt bar */
+[class*="st-key-hnbar_v3"] {{ border-color:rgba(45,212,191,.22) !important; border-radius:20px !important; }}
+[class*="st-key-hn_go_v3"] button {{ background:linear-gradient(135deg,{_C},{_E}) !important; box-shadow:0 8px 24px rgba(45,212,191,.28) !important; }}
+[class*="st-key-hn_go_v3"] button p, [class*="st-key-hn_go_v3"] button [data-testid="stIconMaterial"] {{ color:#04131B !important; font-weight:800 !important; }}
+/* the model's board */
+.v3reg {{ display:grid; grid-template-columns:1.6fr repeat(3,1fr); gap:10px; margin:2px 0 4px; }}
+@media (max-width: 1000px) {{ .v3reg {{ grid-template-columns:1fr 1fr; }} .v3reg .mood {{ grid-column:1 / -1; }} }}
+.v3reg .tl {{ background:linear-gradient(160deg,rgba(255,255,255,.05),rgba(255,255,255,.015)); border:1px solid rgba(255,255,255,.08); border-radius:18px;
+  padding:14px 16px; position:relative; overflow:hidden; transition:transform .18s ease, border-color .18s ease; }}
+.v3reg .tl:hover {{ transform:translateY(-2px); border-color:rgba(45,212,191,.35); }}
+.v3reg .tl .l {{ color:{_MU}; font-size:.72rem; font-weight:700; display:flex; align-items:center; gap:6px; }}
+.v3reg .tl .l .ms {{ font-size:1rem; color:{_E}; }}
+.v3reg .tl .v {{ font-size:1.45rem; font-weight:700; color:#fff; margin-top:6px; unicode-bidi:isolate; }}
+.v3reg .tl .s {{ color:{_MU}; font-size:.75rem; margin-top:3px; line-height:1.5; }}
+.v3reg .tl.on {{ border-color:{_U}55; background:linear-gradient(135deg,rgba(34,197,94,.16),rgba(255,255,255,.02)); }}
+.v3reg .tl.mixed {{ border-color:{_G}55; background:linear-gradient(135deg,rgba(245,185,74,.15),rgba(255,255,255,.02)); }}
+.v3reg .tl.off {{ border-color:{_D}55; background:linear-gradient(135deg,rgba(239,68,68,.16),rgba(255,255,255,.02)); }}
+.v3reg .tl.pass {{ border-color:{_E}55; background:linear-gradient(135deg,rgba(45,212,191,.16),rgba(255,255,255,.02)); }}
+.v3reg .tl.fall {{ border-color:{_G}55; background:linear-gradient(135deg,rgba(245,185,74,.15),rgba(255,255,255,.02)); }}
+.v3reg .mood .v {{ font-size:1.12rem; display:flex; align-items:center; gap:9px; }}
+.v3reg .mood .dot {{ width:10px; height:10px; border-radius:50%; flex:none; animation:v3blink 2.4s ease-in-out infinite; }}
+@keyframes v3blink {{ 0%,100% {{ box-shadow:0 0 0 0 rgba(255,255,255,.18); }} 50% {{ box-shadow:0 0 0 6px rgba(255,255,255,0); }} }}
+.v3reg .mood .s {{ color:#C4D2D4; }}
+/* the tabs */
+[class*="st-key-v3tabs"] [data-baseweb="tab-list"] {{ gap:6px; padding:5px; border-radius:16px; background:rgba(255,255,255,.035);
+  border:1px solid rgba(255,255,255,.07); overflow-x:auto; scrollbar-width:none; }}
+[class*="st-key-v3tabs"] [data-baseweb="tab-list"]::-webkit-scrollbar {{ display:none; }}
+[class*="st-key-v3tabs"] [data-baseweb="tab"] {{ border-radius:12px !important; padding:8px 14px !important; height:auto !important; white-space:nowrap; }}
+[class*="st-key-v3tabs"] [data-baseweb="tab"][aria-selected="true"] {{ background:linear-gradient(135deg,rgba(45,182,235,.22),rgba(45,212,191,.22)); }}
+[class*="st-key-v3tabs"] [data-baseweb="tab"][aria-selected="true"] p {{ color:#fff !important; font-weight:700 !important; }}
+[class*="st-key-v3tabs"] [data-baseweb="tab-highlight"], [class*="st-key-v3tabs"] [data-baseweb="tab-border"] {{ display:none; }}
+/* the cards: the hunter's frame with the lab's content */
+.hnc.v3 {{ height:372px; border-radius:20px !important; background:linear-gradient(165deg,rgba(255,255,255,.06),rgba(255,255,255,.015)) !important;
+  border:1px solid rgba(255,255,255,.08) !important; }}
+.hnc.v3::before {{ background:linear-gradient(90deg,transparent,rgba(45,212,191,.8),transparent); }}
+.hnc.v3.sel {{ border-color:{_E} !important; box-shadow:0 0 0 1px {_E}66, 0 14px 34px rgba(45,212,191,.22); }}
+.hnc.v3 .no {{ position:absolute; top:10px; inset-inline-end:12px; font-size:.66rem; font-weight:800; color:{_E}; opacity:.75; }}
+[class*="st-key-hncard_v3"]:hover .hnc {{ box-shadow:0 16px 38px rgba(45,212,191,.22); border-color:rgba(45,212,191,.45) !important; }}
 .hnc .su .ms {{ color:{_E}; }}
 .v3al {{ margin:8px 0 2px; }}
-.v3al .l {{ display:flex; justify-content:space-between; align-items:center; font-size:.62rem; font-weight:600; color:{_MU}; letter-spacing:.05em; text-transform:uppercase; }}
-.v3al .l b {{ font-size:.8rem; letter-spacing:0; direction:ltr; unicode-bidi:isolate; }}
+.v3al .l {{ display:flex; justify-content:space-between; align-items:center; font-size:.66rem; font-weight:700; color:{_MU}; }}
+.v3al .l b {{ font-size:.82rem; direction:ltr; unicode-bidi:isolate; }}
 .v3al .l b.up {{ color:#4ADE80; }} .v3al .l b.dn {{ color:#F87171; }} .v3al .l b.na {{ color:{_MU}; }}
 .v3al .m {{ position:relative; height:7px; border-radius:7px; background:rgba(157,151,165,.16); margin-top:4px; overflow:hidden; direction:ltr; }}
 .v3al .m::before {{ content:""; position:absolute; left:50%; top:-2px; bottom:-2px; width:1px; background:rgba(255,255,255,.35); }}
 .v3al .m i {{ position:absolute; top:0; bottom:0; border-radius:7px; }}
 .v3al .m i.up {{ left:50%; background:linear-gradient(90deg,{_E},#4ADE80); }} .v3al .m i.dn {{ right:50%; background:linear-gradient(270deg,{_G},#F87171); }}
-.v3pt {{ display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin:6px 0 6px; direction:ltr; }}
+.v3pt {{ display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin:6px 0 6px; }}
 .v3pt div {{ min-width:0; }}
-.v3pt span {{ display:block; color:{_MU}; font-size:.6rem; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
-.v3pt b {{ display:block; color:#fff; font-size:.78rem; font-weight:600; }}
+.v3pt span {{ display:block; color:{_MU}; font-size:.62rem; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }}
+.v3pt b {{ display:block; color:#fff; font-size:.8rem; font-weight:700; }}
 .v3pt .bar {{ height:4px; border-radius:4px; background:rgba(157,151,165,.16); margin-top:3px; overflow:hidden; }}
 .v3pt .bar i {{ display:block; height:100%; border-radius:4px; }}
-.v3pt .v1 .bar i {{ background:{_A}; }} .v3pt .q .bar i {{ background:{_V}; }} .v3pt .al .bar i {{ background:{_E}; }}
+.v3pt .fmo .bar i, .hnparts .r.fmo .bar i {{ background:linear-gradient(90deg,{_C},{_E}); }} .v3pt .ftr .bar i, .hnparts .r.ftr .bar i {{ background:{_A}; }}
+.v3pt .flr .bar i, .hnparts .r.flr .bar i {{ background:#4ADE80; }} .v3pt .frv .bar i, .hnparts .r.frv .bar i {{ background:{_V}; }}
 .hnparts .r.al .bar i {{ background:linear-gradient(90deg,{_C},{_E}); }}
 .hnparts .r.q .bar i {{ background:linear-gradient(90deg,{_V},{_C}); }}
-.v3alloc {{ display:flex; flex-direction:column; gap:6px; margin-top:10px; }}
-.v3alloc .check {{ display:flex; gap:9px; align-items:center; font-size:.84rem; color:#DDD9E2; padding:6px 0; border-bottom:1px solid rgba(157,151,165,.12); }}
-.v3alloc .check b {{ color:#fff; direction:ltr; unicode-bidi:isolate; }}
-.v3alloc .check:last-child {{ border-bottom:0; }}
-.v3tab {{ border:1px solid {_BD}; border-radius:16px; padding:8px 8px 4px; background:{T.BOX_BG}; }}
+.v3fl {{ display:flex; flex-direction:column; gap:6px; margin-top:10px; }}
+.v3fl .check {{ display:flex; gap:9px; align-items:center; font-size:.84rem; color:#DDD9E2; padding:6px 0; border-bottom:1px solid rgba(157,151,165,.12); }}
+.v3fl .check:last-child {{ border-bottom:0; }}
+.v3cnt {{ color:{_MU}; font-size:.78rem; margin:2px 0 8px; }} .v3cnt b {{ color:#fff; }}
 </style>"""
 
 
@@ -147,9 +199,8 @@ def _research(symbols):
 
 
 def _init():
-    for k, v in {"v3_uni": "core", "v3_custom": "AAPL, MSFT, NVDA, AMZN", "v3_cap": 100_000.0, "v3_risk": .5, "v3_maxpos": 5,
-                 "v3_seclim": 2, "v3_profile": "risk_controlled", "v3_grade": "all", "v3_clean": False, "v3_alpha": False,
-                 "v3_fresh": False}.items():
+    for k, v in {"v3_uni": "core", "v3_custom": "AAPL, MSFT, NVDA, AMZN", "v3_grade": "all", "v3_clean": False, "v3_alpha": False,
+                 "v3_fresh": False, "v3_sort": "rank", "v3_count": 8, "v3_q": ""}.items():
         ss.setdefault(k, v)
 
 
@@ -167,57 +218,60 @@ def _alpha_cls(a):
 
 
 # ---------------------------------------------------------------- hero
-def _ladder(frame, rtl=False):
-    """The alpha ladder: the seven best-ranked stocks as bars (the rank), each with its forecast; the lab's own picture."""
-    s = ['<svg viewBox="0 0 520 250" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" style="direction:ltr">'
-         '<defs><linearGradient id="v3lg" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#2DB6EB"/><stop offset="1" stop-color="#2DD4BF"/></linearGradient>'
-         '<filter id="v3gl" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2.5" result="b"/>'
-         '<feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>']
-    top = frame.head(7) if frame is not None and len(frame) else pd.DataFrame()
-    x0, w = (60, 300) if not rtl else (160, 300)
-    for i, r in enumerate(top.itertuples()):
-        y = 28 + i * 31
-        rk = float(r.Rank)
-        bw = w * rk / 100
+def _spotlight(frame):
+    """The top pick (the best-ranked long) and the alpha ladder: the five best ranks as bars, each with its forecast."""
+    longs = frame.sort_values(["Rank", "Quant Score"], ascending=False)
+    b = longs.iloc[0]
+    sym, rank = b["Symbol"], float(b["Rank"])
+    setup = S.short_name(b["Setup"]) if b["Setup"] in H.SETUPS else L("No chart setup", "بدون نمط فني")
+    best = (f'<div class="best">{T.logo_obj(sym, 46)}<div class="nm"><b>{T.esc(T.sym_label(sym))}</b>'
+            f'<span>{T.esc(T.name_line(sym, str(b["Name"])))}</span>'
+            f'<em>{T.esc(setup)} · {L("forecast", "التوقع")} <i class="{_alpha_cls(b["Alpha %"])}">{_alpha_txt(b["Alpha %"])}</i></em></div>'
+            f'{S.ring(rank, H.grade(rank), 62)}</div>')
+    rows = []
+    for i, (_, r) in enumerate(longs.head(5).iterrows(), 1):
+        rk = float(r["Rank"])
         col = S.GRADE_COLOR.get(H.grade(rk), _C)
-        al = frame.loc[r.Index, "Alpha %"]
-        acol = "#4ADE80" if pd.notna(al) and al >= 0 else "#F87171" if pd.notna(al) else "#9D97A5"
-        bx = x0 if not rtl else x0 + w - bw
-        s.append(f'<rect x="{x0}" y="{y}" width="{w}" height="12" rx="6" fill="rgba(45,212,191,.10)"/>'
-                 f'<rect class="lad" x="{bx:.0f}" y="{y}" width="{bw:.0f}" height="12" rx="6" fill="url(#v3lg)" style="animation-delay:{i * .08:.2f}s"/>'
-                 f'<circle cx="{(x0 + bw) if not rtl else bx:.0f}" cy="{y + 6}" r="5" fill="{col}" filter="url(#v3gl)"/>')
-        lx = x0 - 8 if not rtl else x0 + w + 8
-        s.append(f'<text x="{lx}" y="{y + 10}" text-anchor="{"end" if not rtl else "start"}" font-size="11" font-weight="800" fill="#fff" '
-                 f'font-family="{T.FONT}">{T.esc(T.sym_label(r.Symbol))}</text>')
-        vx = x0 + w + 10 if not rtl else x0 - 10
-        s.append(f'<text x="{vx}" y="{y + 10}" text-anchor="{"start" if not rtl else "end"}" font-size="10" font-weight="700" fill="{col}" '
-                 f'font-family="{T.FONT}">{rk:.0f}</text>'
-                 f'<text x="{vx + (26 if not rtl else -26)}" y="{y + 10}" text-anchor="{"start" if not rtl else "end"}" font-size="9.5" fill="{acol}" '
-                 f'font-family="{T.FONT}">{_alpha_txt(al)}</text>')
-    if len(top):
-        s.append(f'<text x="{x0 if not rtl else x0 + w}" y="246" text-anchor="{"start" if not rtl else "end"}" font-size="9" fill="#7FA7AC" font-family="{T.FONT}">'
-                 f'{T.esc(L("rank 0-100 · forecast 20 sessions vs SPY", "الترتيب من 100 · التوقع 20 جلسة مقابل المؤشر"))}</text>')
-    return "".join(s) + "</svg>"
+        rows.append(f'<div class="row"><span class="n">{i}</span><span class="sy">{T.esc(T.sym_label(r["Symbol"]))}</span>'
+                    f'<div class="bar"><i style="width:{rk:.0f}%;animation-delay:{i * .08:.2f}s"></i></div>'
+                    f'<b style="color:{col}">{rk:.0f}</b><em class="{_alpha_cls(r["Alpha %"])}">{_alpha_txt(r["Alpha %"])}</em></div>')
+    return (f'<div class="v3spot"><div class="lb">{T.icon("workspace_premium")}{L("Top pick today", "أفضل فرصة اليوم")}</div>{best}'
+            f'<div class="v3lad">{"".join(rows)}<div class="ft">{L("rank out of 100 · forecast for 20 sessions over the index", "الترتيب من 100 · التوقع لـ 20 جلسة مقابل المؤشر")}</div></div></div>')
+
+
+def _steps():
+    steps = [(L("Choose the stocks", "اختر الأسهم"), L("The core list, the largest 100, the whole S&P 500 or your own symbols.",
+                                                       "القائمة الأساسية، أو أكبر 100 شركة، أو إس آند بي 500 كامل، أو رموزك الخاصة.")),
+             (L("Run the lab", "شغّل المختبر"), L("The model trains, validates itself on an unseen period, then ranks every stock.",
+                                                 "النموذج يتدرب ويختبر نفسه على فترة ما شافها، ثم يرتب كل الأسهم.")),
+             (L("Explore the results", "استكشف النتائج"), L("Cards, a full table, a forecast map, and every opportunity's chart and plan.",
+                                                          "بطاقات وجدول كامل وخريطة توقع، ولكل فرصة رسمها وخطتها."))]
+    return ('<div class="v3spot"><div class="v3steps">' + "".join(
+        f'<div class="s"><div class="k">{i}</div><div><b>{T.esc(t)}</b><span>{T.esc(d)}</span></div></div>' for i, (t, d) in enumerate(steps, 1))
+        + "</div></div>")
 
 
 def hero_html(frame, fit, market, label):
     chips = []
-    if frame is not None and len(frame):
+    has = frame is not None and len(frame)
+    if has:
         active = fit.get("status") == "active"
         chips.append(f'<span class="chip">{T.icon("radar")}{L("Scanned", "تم فحص")} <b>{market.get("universe", 0):,}</b> · {T.esc(label)}</span>')
-        chips.append(f'<span class="chip">{T.icon("target")}{L("Eligible opportunities", "الفرص المؤهلة")} <b>{market.get("eligible_longs", 0)}</b></span>')
+        chips.append(f'<span class="chip">{T.icon("target")}{L("Eligible", "الفرص المؤهلة")} <b>{market.get("eligible_longs", 0)}</b></span>')
         chips.append(f'<span class="chip">{T.icon("psychology")}{L("Model", "النموذج")} <b>{L("validated", "مُعتمد") if active else L("fallback", "بديل")}</b></span>')
         chips.append(f'<span class="chip">{T.icon("bolt")}{L("New today", "جديدة اليوم")} <b>{int((frame["Status"] == "fresh").sum())}</b></span>')
         chips.append(f'<span class="chip">{T.icon("schedule")}{L("Last data", "آخر بيانات")} <b>{T.esc(str(market.get("date", "—")))}</b></span>')
-    tag = L("An independent, experimental signal-ranking engine: a ridge model, validated on a purged chronological holdout, forecasts "
-            "each stock's 20-session return over SPY; the rank blends the hunter's score, technical quality and that forecast, "
-            "with a capped paper allocation. Research only.",
-            "محرك ترتيب تجريبي مستقل: نموذج إحصائي، مُختبر على فترة تاريخية مستقلة، يتوقع عائد كل سهم الزائد على المؤشر خلال 20 جلسة، "
-            "والترتيب يجمع تقييم الصياد والجودة الفنية والتوقع، مع محفظة افتراضية محدودة الانكشاف. أبحاث فقط.")
-    return (f'<div class="v3hero{" rtl" if is_ar() else ""}"><div class="grid"></div><div class="art">{_ladder(frame, is_ar())}</div>'
-            f'<div class="txt"><div class="eb">{T.icon("science")}{L("Alpha Lab · quant research", "مختبر ألفا · بحث كمي")}</div>'
+    tag = L("A fully quantitative ranking engine: four statistical factors (momentum, trend, low risk, short-term reversal) ranked "
+            "across the scanned stocks, plus a statistical model, validated on an unseen period, that forecasts each stock's excess return "
+            "over the index for the next 20 sessions. Research only.",
+            "محرك ترتيب كمي بالكامل: أربعة عوامل إحصائية (الزخم، والاتجاه، وانخفاض المخاطر، والارتداد القصير) مرتبة بين الأسهم المفحوصة، "
+            "مع نموذج إحصائي مُختبر على فترة لم يرها يتوقع عائد كل سهم الزائد على المؤشر خلال 20 جلسة. للأبحاث فقط.")
+    side = _spotlight(frame) if has else _steps()
+    return (f'<div class="v3hero"><div class="wrap"><div class="txt">'
+            f'<span class="eb">{T.icon("science")}{L("Alpha Lab · quant research", "مختبر ألفا · بحث كمي")}</span>'
             f'<div class="t">{L("Hunter <b>V3</b>", "الصياد <b>V3</b>")}</div><div class="tg">{T.esc(tag)}</div>'
-            f'<div class="chips">{"".join(chips)}</div><div class="st">{T.market_status(is_ar(), "us")}</div></div></div>')
+            f'<div class="chips">{"".join(chips)}</div><div class="st">{T.market_status(is_ar(), "us")}</div></div>'
+            f'<div class="side">{side}</div></div></div>')
 
 
 # ---------------------------------------------------------------- the hunt bar
@@ -235,15 +289,6 @@ def hunt_bar():
                           " إس آند بي 500 كامل ياخذ دقيقة أو دقيقتين أول مرة، وبعدها ينحفظ 15 دقيقة.")
             c[1].caption(note)
         c[2].button(L("Run V3", "شغّل V3"), icon=":material/science:", key="hn_go_v3", on_click=_go, width="stretch")
-        d = st.columns([1.3, 1.2, 1, 1, 1.9], vertical_alignment="bottom")
-        d[0].number_input(L("Paper capital ($)", "رأس مال افتراضي ($)"), min_value=1_000., max_value=10_000_000., step=10_000., key="v3_cap")
-        d[1].slider(L("Risk budget / trade", "مخاطرة الصفقة"), min_value=.1, max_value=2.0, step=.1, format="%.1f%%", key="v3_risk")
-        d[2].slider(L("Max holdings", "الحد الأقصى للمراكز"), 1, 15, key="v3_maxpos")
-        d[3].slider(L("Max names / sector", "الحد الأقصى لكل قطاع"), 1, 6, key="v3_seclim")
-        d[4].segmented_control(L("Paper allocation profile", "نوع المحفظة الافتراضية"), list(PROFILES), key="v3_profile",
-                               format_func=lambda k: L(*PROFILES[k]))
-        if not ss.get("v3_profile"):
-            ss["v3_profile"] = "risk_controlled"
 
 
 # ---------------------------------------------------------------- the model's board
@@ -252,14 +297,11 @@ def board_html(fit, market):
     ic = fit.get("holdout_ic")
     ic_s = f"{float(ic):+.3f}" if ic is not None and np.isfinite(float(ic)) else "—"
     mood = market.get("mood", "mixed")
-    head = {"on": ("Risk-on: full exposure", "السوق إيجابي: انكشاف كامل", _U), "mixed": ("Mixed: reduced exposure", "السوق متذبذب: انكشاف مخفّض", _G),
-            "off": ("Risk-off: minimal exposure", "السوق سلبي: أقل انكشاف", _D)}.get(mood, ("Unknown", "غير معروف", _MU))
-    tip = {"on": ("Most stocks above their averages: the allocation may use all the paper capital.", "أغلب الأسهم فوق متوسطاتها: المحفظة تقدر تستخدم كل رأس المال."),
-           "mixed": ("A selective market: the allocation keeps part of the capital in cash.", "سوق انتقائي: المحفظة تبقي جزء من رأس المال نقدًا."),
-           "off": ("A weak market: the allocation keeps most of the capital in cash.", "سوق ضعيف: المحفظة تبقي أغلب رأس المال نقدًا.")}.get(mood, ("", ""))
-    expo = {"on": 100, "mixed": 65, "off": 25}.get(mood, 65)
-    if ss.get("v3_profile") == "return_seeking":
-        expo = 100 if mood in ("on", "mixed") else 70
+    head = {"on": ("Risk-on", "السوق إيجابي", _U), "mixed": ("Mixed", "السوق متذبذب", _G),
+            "off": ("Risk-off", "السوق سلبي", _D)}.get(mood, ("Unknown", "غير معروف", _MU))
+    tip = {"on": ("Most stocks are above their averages: a friendly backdrop for buying setups.", "أغلب الأسهم فوق متوسطاتها: بيئة مناسبة لفرص الشراء."),
+           "mixed": ("A selective market: favour the strongest setups only.", "سوق انتقائي: الأفضل التركيز على أقوى الفرص فقط."),
+           "off": ("A weak market: caution first, and smaller risk.", "سوق ضعيف: الحذر أولًا وتقليل المخاطرة.")}.get(mood, ("", ""))
     tiles = [
         f'<div class="tl mood {mood}"><div class="l">{T.icon("explore")}{L("Market mood", "مزاج السوق")}</div>'
         f'<div class="v"><span class="dot" style="background:{head[2]}"></span>{T.esc(L(head[0], head[1]))}</div><div class="s">{T.esc(L(*tip))}</div></div>',
@@ -269,13 +311,11 @@ def board_html(fit, market):
         f'<div class="tl"><div class="l">{T.icon("dataset")}{L("Training samples", "عينات التدريب")}</div><div class="v">{int(fit.get("n", 0) or 0):,}</div>'
         f'<div class="s">{L("labeled outcomes, 20 sessions ahead", "نتائج معلومة، 20 جلسة للأمام")}</div></div>',
         f'<div class="tl"><div class="l">{T.icon("insights")}{L("Validation IC", "ارتباط التحقق")}</div><div class="v">{ic_s}</div>'
-        f'<div class="s">{L("forecast vs realized, out of sample · benchmark SPY", "التوقع مقابل الفعلي خارج العينة · المؤشر SPY")}</div></div>',
-        f'<div class="tl"><div class="l">{T.icon("shield")}{L("Exposure cap", "حد الانكشاف")}</div><div class="v">{expo}%</div>'
-        f'<div class="s">{L("of the paper capital, from the mood and the profile", "من رأس المال الافتراضي، حسب المزاج ونوع المحفظة")}</div></div>']
+        f'<div class="s">{L("forecast vs realized, out of sample", "التوقع مقابل الفعلي خارج العينة")}</div></div>']
     return '<div class="v3reg">' + "".join(tiles) + "</div>"
 
 
-# ---------------------------------------------------------------- filters
+# ---------------------------------------------------------------- filters and the toolbar
 def filters(frame, fit):
     counts = frame["Setups"].str.split(",").explode().value_counts()
     keys = [k for k in H.ORDER if counts.get(k, 0)]
@@ -292,10 +332,14 @@ def filters(frame, fit):
         c[1].toggle(L("New today", "الجديدة اليوم"), key="v3_fresh")
         c[2].toggle(L("No risk flags", "بدون تحذيرات"), key="v3_clean")
         c[3].toggle(L("With a forecast", "مع توقع"), key="v3_alpha", disabled=fit.get("status") != "active")
+        t = st.columns([1.4, 1.6, 1], vertical_alignment="bottom")
+        t[0].text_input(L("Search", "بحث"), key="v3_q", placeholder=L("Symbol or company", "الرمز أو اسم الشركة"), icon=":material/search:")
+        t[1].segmented_control(L("Sort by", "رتّب حسب"), list(SORTS), key="v3_sort", format_func=lambda k: L(*SORTS[k]))
+        t[2].segmented_control(L("Cards", "عدد البطاقات"), list(COUNTS), key="v3_count")
 
 
 def apply(frame):
-    v = frame[(frame["Side"] > 0) & (frame["Rank"] >= 50)].copy()
+    v = frame[frame["Rank"] >= 50].copy()
     picks = ss.get("v3_setups") or []
     if picks:
         v = v[v["Setups"].apply(lambda s: any(k in str(s).split(",") for k in picks))]
@@ -306,7 +350,17 @@ def apply(frame):
         v = v[~v["Risk Flag"].astype(str).str.contains("illiquid|stale_data|extreme_volatility", na=False)]
     if ss.get("v3_alpha"):
         v = v[v["Alpha %"].notna()]
-    return v.sort_values(["Rank", "V1 Score"], ascending=False)
+    q = str(ss.get("v3_q") or "").strip().upper()
+    if q:
+        v = v[v["Symbol"].astype(str).str.upper().str.contains(q, regex=False) | v["Name"].astype(str).str.upper().str.contains(q, regex=False)]
+    how = ss.get("v3_sort") or "rank"
+    if how == "alpha":
+        return v.sort_values(["Alpha %", "Rank"], ascending=False, na_position="last")
+    if how == "rr":
+        return v.sort_values(["R:R", "Rank"], ascending=False, na_position="last")
+    if how == "fresh":
+        return v.assign(_f=(v["Status"] == "fresh")).sort_values(["_f", "Age", "Rank"], ascending=[False, True, False]).drop(columns="_f")
+    return v.sort_values(["Rank", "Quant Score"], ascending=False)
 
 
 # ---------------------------------------------------------------- cards
@@ -323,32 +377,44 @@ def _spark(prices, sym):
     return d["Close"].tail(63).tolist() if d is not None and "Close" in d else []
 
 
-def _parts(r, mood):
+FACTOR_NAMES = {"Q Momentum": ("fmo", "Momentum", "الزخم", "Momentum", "الزخم"), "Q Trend": ("ftr", "Trend", "الاتجاه", "Trend", "الاتجاه"),
+                "Q Low Risk": ("flr", "Low risk", "انخفاض المخاطر", "Low risk", "الأمان"),
+                "Q Reversal": ("frv", "Reversal", "الارتداد القصير", "Reversal", "الارتداد")}
+
+
+def _factors(r, short=False):
+    """The four quant factors: (class, label, weight %, value 0-100), as hunter_v3.quant_scores blends them."""
+    tot = sum(w for *_, w in V3.FACTORS)
+    return [(FACTOR_NAMES[n][0], L(*(FACTOR_NAMES[n][3:5] if short else FACTOR_NAMES[n][1:3])), round(100 * w / tot), float(r[n]))
+            for n, _, w in V3.FACTORS]
+
+
+def _parts(r):
     """The rank's parts: (class, label, weight %, value 0-100), as hunter_v3.scan blends them."""
-    v1, q, alpha = float(r["V1 Score"]), V3._technical_quality(r, mood), r["Alpha %"]
-    if pd.notna(alpha):
-        return [("v1", L("Hunter score", "تقييم الصياد"), 55, v1), ("q", L("Technical quality", "الجودة الفنية"), 20, q),
-                ("al", L("Forecast", "التوقع"), 25, float(np.clip(50 + 3 * alpha, 0, 100)))]
-    return [("v1", L("Hunter score", "تقييم الصياد"), 75, v1), ("q", L("Technical quality", "الجودة الفنية"), 25, q)]
+    if pd.notna(r.get("Forecast Pctl")):
+        fw = round(100 * V3.FORECAST_WEIGHT)
+        return [("al", L("Forecast percentile", "ترتيب التوقع"), fw, float(r["Forecast Pctl"])),
+                ("q", L("Quant score", "التقييم الكمي"), 100 - fw, float(r["Quant Score"]))]
+    return [("q", L("Quant score", "التقييم الكمي"), 100, float(r["Quant Score"]))]
 
 
 def alpha_meter(alpha):
     """The forecast as a meter round zero: -15% at the left edge, +15% at the right."""
+    lab = L("Forecast · 20 sessions over the index", "التوقع · 20 جلسة مقابل المؤشر")
     if pd.isna(alpha):
-        return (f'<div class="v3al"><div class="l"><span>{L("Forecast 20 sessions vs SPY", "التوقع 20 جلسة مقابل المؤشر")}</span><b class="na">—</b></div>'
-                f'<div class="m"></div></div>')
+        return f'<div class="v3al"><div class="l"><span>{lab}</span><b class="na">—</b></div><div class="m"></div></div>'
     w = min(50.0, abs(float(alpha)) / 15 * 50)
-    return (f'<div class="v3al"><div class="l"><span>{L("Forecast 20 sessions vs SPY", "التوقع 20 جلسة مقابل المؤشر")}</span><b class="{_alpha_cls(alpha)}">{alpha:+.2f}%</b></div>'
+    return (f'<div class="v3al"><div class="l"><span>{lab}</span><b class="{_alpha_cls(alpha)}">{alpha:+.2f}%</b></div>'
             f'<div class="m"><i class="{_alpha_cls(alpha)}" style="width:{w:.1f}%"></i></div></div>')
 
 
-def card(r, prices, mood, selected):
+def card(r, prices, mood, selected, no=None):
     sym, k = r["Symbol"], r["Setup"]
     ic = H.SETUPS[k][2] if k in H.SETUPS else "radar"
     entry, stop, tgt = r["Entry"], r["Stop"], r["Target"]
     rank = float(r["Rank"])
-    top = (f'<div class="top"><span class="su">{T.icon(ic)}<span class="tx">{T.esc(S.short_name(k))}</span></span>'
-           f'{S.status_tag(r["Status"], r["Age"])}</div>')
+    top = (f'<div class="top"><span class="su">{T.icon(ic)}<span class="tx">{T.esc(S.short_name(k) if k in H.SETUPS else L("No chart setup", "بدون نمط فني"))}</span></span>'
+           f'{S.status_tag(r["Status"] if r["Status"] in H.STATUS else None, r["Age"])}</div>')
     go_ = L(f"Open the {T.sym_label(sym)} page", f"افتح صفحة {T.sym_label(sym)}")
     chg = r.get("Chg %")
     px = ""
@@ -359,13 +425,13 @@ def card(r, prices, mood, selected):
           f'<div class="nm"><b>{T.esc(T.sym_label(sym))}</b><span>{T.esc(T.name_line(sym, str(r["Name"])))}</span>{px}</div></a>'
           f'{S.ring(rank, H.grade(rank))}</div>')
     sp = f'<div class="spk">{S.spark(_spark(prices, sym), entry, stop, tgt, S._key(sym))}</div>'
-    pt = '<div class="v3pt">' + "".join(f'<div class="{c_}"><span>{T.esc(l_)} · {w}%</span><b>{v:.0f}</b><div class="bar"><i style="width:{v:.0f}%"></i></div></div>'
-                                        for c_, l_, w, v in _parts(r, mood)) + "</div>"
+    pt = '<div class="v3pt">' + "".join(f'<div class="{c_}"><span>{T.esc(l_)}</span><b>{v:.0f}</b><div class="bar"><i style="width:{v:.0f}%"></i></div></div>'
+                                        for c_, l_, w, v in _factors(r, short=True)) + "</div>"
     watch = r["Status"] == "watch"
     lv = (f'<div class="lv"><div><span>{L("Buy above", "شراء فوق") if watch else L("Entry", "الدخول")}</span><b>{S._money_px(entry)}</b></div>'
           f'<div><span>{L("Stop", "الوقف")}</span><b>{S._money_px(stop)}</b><i class="dn">{S._pct(entry, stop):+.1f}%</i></div>'
           f'<div><span>{L("Target", "الهدف")}</span><b>{S._money_px(tgt)}</b><i class="up">{S._pct(entry, tgt):+.1f}%</i></div></div>') if np.isfinite(entry) else ""
-    chips = [f'<span class="c">RS <b>{int(r["RS"])}</b></span>']
+    chips = [f'<span class="c">RS <b>{int(r["RS"])}</b></span>'] if pd.notna(r.get("RS")) else []
     if np.isfinite(r["R:R"]):
         chips.append(f'<span class="c">R:R <b>{r["R:R"]:.1f}</b></span>')
     if np.isfinite(r["ATR %"]):
@@ -380,9 +446,11 @@ def _pick(sym):
 
 
 def cards(view, prices, mood):
-    top = view.head(N_CARDS)
+    top = view.head(int(ss.get("v3_count") or COUNTS[0]))
     sel = ss.get("v3_sel")
     rows = list(top.iterrows())
+    ui.html(f'<div class="v3cnt">{L(f"Showing <b>{len(rows)}</b> of <b>{len(view)}</b> · tap a card to open it",
+                                     f"معروض <b>{len(rows)}</b> من <b>{len(view)}</b> · اضغط على أي بطاقة لفتح تفاصيلها")}</div>')
     for i in range(0, len(rows), 4):
         cols = st.columns(4)
         for col, (_, r) in zip(cols, rows[i:i + 4]):
@@ -393,9 +461,9 @@ def cards(view, prices, mood):
 
 
 # ---------------------------------------------------------------- the opened opportunity
-def detail(r, prices, market, selected):
+def detail(r, prices, market):
     sym, k = r["Symbol"], r["Setup"]
-    rank, v1, alpha = float(r["Rank"]), float(r["V1 Score"]), r["Alpha %"]
+    rank, v1, alpha, qs = float(r["Rank"]), float(r["V1 Score"]), r["Alpha %"], float(r["Quant Score"])
     with st.container(key=f"hnsec_v3_head_{S._key(sym)}"):
         badges = T.badge(sector_name(r["Sector"]) if r["Sector"] else "—", "gold", "category")
         badges += T.badge(f'{L("Hunter", "الصياد")} {H.grade(v1)} · {v1:.0f}', "acc", "radar")
@@ -423,7 +491,7 @@ def detail(r, prices, market, selected):
                 ui.chart(charts.price_chart(dd, "Candles", [], [], False, levels=levels, height=430), key=f"hn_chart_v3_{S._key(sym)}")
             k4 = st.columns(4)
             k4[0].metric(L("V3 rank", "ترتيب V3"), f"{rank:.1f}/100")
-            k4[1].metric(L("Hunter V1 score", "تقييم الصياد V1"), f"{v1:.1f}/100")
+            k4[1].metric(L("Quant score", "التقييم الكمي"), f"{qs:.1f}/100")
             k4[2].metric(L("Forecast 20d excess", "العائد الزائد المتوقع 20 جلسة"), f"{alpha:+.2f}%" if pd.notna(alpha) else "—")
             k4[3].metric(L("Reward / Risk", "العائد / المخاطرة"), f"{r['R:R']:.2f}" if pd.notna(r["R:R"]) else "—")
             if np.isfinite(r["Entry"]) and int(r["Side"] or 0) > 0:
@@ -433,75 +501,38 @@ def detail(r, prices, market, selected):
                           L("on a close above it", "بإغلاق فوقه") if watch else L("next open, near this price", "الافتتاح القادم، قرب هذا السعر")),
                          ("sl", L("Stop loss", "وقف الخسارة"), S._money_px(stop), f"{S._pct(entry, stop):+.1f}%"),
                          ("tp", L("Target", "الهدف"), S._money_px(tgt), f"{S._pct(entry, tgt):+.1f}%"),
-                         ("", "ATR (14)", f"{r['ATR %']:.1f}%", L("a day", "يومياً")),
+                         ("", L("ATR (14)", "متوسط المدى (14)"), f"{r['ATR %']:.1f}%", L("a day", "يومياً")),
                          ("", L("Traded a day", "التداول اليومي"), T.money(r["$Vol"], short=True), L("dollar volume", "قيمة التداول")),
                          ("", L("Exposure", "الانكشاف"), f"{float(r.get('Exposure', 1)) * 100:.0f}%", L("the regime's scale", "حسب حالة السوق"))]
                 ui.html('<div class="hnplan" style="margin-top:8px">' + "".join(f'<div class="p {c_}"><div class="l">{T.esc(l_)}</div><div class="v">{v_}</div>'
                                                                                  f'<div class="s">{T.esc(s_)}</div></div>' for c_, l_, v_, s_ in tiles) + "</div>")
         with right:
             ui.sec("donut_large", "Why this rank", "ليش هالترتيب")
-            ui.html('<div class="hnparts">' + "".join(
+            bars = lambda parts: '<div class="hnparts">' + "".join(
                 f'<div class="r {c_}"><span>{T.esc(l_)} <span class="w">· {w}%</span></span>'
-                f'<div class="bar"><i style="width:{float(v):.0f}%"></i></div><b>{float(v):.0f}</b></div>' for c_, l_, w, v in _parts(r, market.get("mood", "mixed"))) + "</div>")
-            if str(r["Risk Flag"] or "") or r["Side"] <= 0:
-                st.caption(L("A risk flag (or no buying setup) caps the rank at 49.", "تحذير المخاطر (أو غياب فرصة شراء) يحدّ الترتيب عند 49."))
+                f'<div class="bar"><i style="width:{float(v):.0f}%"></i></div><b>{float(v):.0f}</b></div>' for c_, l_, w, v in parts) + "</div>"
+            ui.html(bars(_parts(r)))
+            ui.html(f'<div class="v3cnt" style="margin:12px 0 4px">{L("Inside the quant score (percentile among the scanned stocks)", "مكونات التقييم الكمي (ترتيبه المئوي بين الأسهم المفحوصة)")}</div>')
+            ui.html(bars(_factors(r)))
+            if any(f in str(r["Risk Flag"] or "") for f in ("stale_data", "extreme_volatility", "illiquid")):
+                st.caption(L("A data risk flag (stale data, extreme volatility, illiquid) caps the rank at 49.",
+                             "تحذير بيانات (بيانات قديمة، تذبذب شديد، سيولة ضعيفة) يحدّ الترتيب عند 49."))
             ui.html(alpha_meter(alpha))
-            line = selected[selected["Symbol"] == sym] if len(selected) else pd.DataFrame()
-            if len(line):
-                a = line.iloc[0]
-                items = [("inventory_2", f'{L("Shares", "الأسهم")}: <b>{int(a["Shares"]):,}</b>'),
-                         ("payments", f'{L("Notional", "القيمة")}: <b>{T.money(a["Notional"])}</b> · {a["Weight %"]:.1f}% {L("of the capital", "من رأس المال")}'),
-                         ("shield", f'{L("Risk at the stop", "الخسارة عند الوقف")}: <b>{T.money(a["Stop Risk $"])}</b>')]
-                chip = S.score_chip(L("in the plan", "ضمن الخطة"), True)
-            else:
-                items = [("do_not_disturb_on", L("Not in the paper allocation: the rank, a risk flag, the sector limit, the position cap or the cash left it out.",
-                                                 "خارج المحفظة الافتراضية: الترتيب أو تحذير المخاطر أو حد القطاع أو حد المراكز أو النقد المتبقي استبعدوه."))]
-                chip = S.score_chip(L("not in the plan", "خارج الخطة"), False)
-            ui.html(f'<div class="hnbox" style="margin-top:12px"><div class="hnbt">{T.icon("account_balance_wallet")}<span>{L("Paper allocation", "المحفظة الافتراضية")}</span>{chip}</div>'
-                    f'<div class="v3alloc">' + "".join(f'<div class="check">{T.ico(ic, "acc")}<div>{t}</div></div>' for ic, t in items) + "</div></div>")
+            flags = _flags(r)
+            items = [(ic, t) for ic, t in flags] or [("verified", L("No risk flags on this stock.", "ما فيه تحذيرات مخاطر على هالسهم."))]
+            setups = [S.short_name(x) for x in str(r.get("Setups") or "").split(",") if x]
+            if len(setups) > 1:
+                items.append(("layers", L("Other setups too: ", "فرص ثانية بنفس السهم: ") + " · ".join(setups[1:])))
+            ui.html(f'<div class="hnbox" style="margin-top:12px"><div class="hnbt">{T.icon("fact_check")}<span>{L("Checks", "الفحوصات")}</span></div>'
+                    f'<div class="v3fl">' + "".join(f'<div class="check">{T.ico(ic, "acc")}<div>{T.esc(t)}</div></div>' for ic, t in items) + "</div></div>")
 
 
-# ---------------------------------------------------------------- allocation and the tables
-def _cfg(**cols):
-    return {k: v for k, v in cols.items() if v is not None}
-
-
-def allocation(selected, allocations, profile):
-    ui.sec("account_balance_wallet", "Hypothetical allocation · no live orders", "محفظة افتراضية · بدون أوامر حقيقية")
-    tiles = [("en", L("Invested", "نسبة الاستثمار"), f"{allocations['invested_pct']:.1f}%", L("of the paper capital", "من رأس المال الافتراضي")),
-             ("", L("Cash", "النقد"), T.money(allocations["remaining_cash"]), L("left after sizing", "المتبقي بعد التوزيع")),
-             ("", L("Exposure limit", "حد الانكشاف"), f"{allocations['market_exposure_cap_pct']:.0f}%", L("from the mood and the profile", "حسب مزاج السوق ونوع المحفظة")),
-             ("tp", L("Positions", "المراكز"), f"{allocations['positions']}", L(*PROFILES[profile]))]
-    ui.html('<div class="hnplan">' + "".join(f'<div class="p {c_}"><div class="l">{T.esc(l_)}</div><div class="v">{v_}</div>'
-                                             f'<div class="s">{T.esc(s_)}</div></div>' for c_, l_, v_, s_ in tiles) + "</div>")
-    if len(selected):
-        show = selected.copy()
-        show["Sector"] = show["Sector"].map(lambda s: sector_name(s) if s else "—")
-        N = {"Symbol": L("Symbol", "الرمز"), "Sector": L("Sector", "القطاع"), "Shares": L("Shares", "الأسهم"), "Entry": L("Entry", "الدخول"),
-             "Stop": L("Stop", "الوقف"), "Notional": L("Notional ($)", "القيمة ($)"), "Weight %": L("Weight %", "الوزن %"),
-             "Stop Risk $": L("Risk at stop ($)", "الخسارة عند الوقف ($)"), "Alpha %": L("Forecast %", "التوقع %"), "Rank": L("V3 rank", "ترتيب V3")}
-        st.dataframe(show.rename(columns=N), hide_index=True, width="stretch",
-                     column_config=_cfg(**{N["Rank"]: st.column_config.ProgressColumn(N["Rank"], min_value=0, max_value=100, format="%.1f"),
-                                           N["Weight %"]: st.column_config.ProgressColumn(N["Weight %"], min_value=0, max_value=100, format="%.1f%%"),
-                                           N["Alpha %"]: st.column_config.NumberColumn(N["Alpha %"], format="%+.2f%%"),
-                                           N["Notional"]: st.column_config.NumberColumn(N["Notional"], format="$%,.0f"),
-                                           N["Stop Risk $"]: st.column_config.NumberColumn(N["Stop Risk $"], format="$%,.0f"),
-                                           N["Entry"]: st.column_config.NumberColumn(N["Entry"], format="%.2f"),
-                                           N["Stop"]: st.column_config.NumberColumn(N["Stop"], format="%.2f")}))
-    else:
-        st.info(L("No positions meet sizing and risk constraints today.", "ما فيه مراكز تستوفي شروط الحجم والمخاطرة اليوم."), icon=":material/info:")
-    if profile == "return_seeking":
-        st.warning(L("Return-seeking mode can stay substantially exposed in bear markets. Higher exposure can amplify losses; it is not a higher-return guarantee.",
-                     "وضع استهداف العائد قد يحتفظ بانكشاف كبير حتى بالسوق الهابط، وقد يضاعف الخسائر ولا يضمن عائدًا أعلى."), icon=":material/warning:")
-    st.caption(L("Stop prices may gap through; modeled risk budgets cannot cap realized losses. Prices may be delayed. No auto orders, derivatives or leverage.",
-                 "قد ينفذ وقف الخسارة بسعر أسوأ عند وجود فجوة. تحديد المخاطرة لا يضمن سقفًا للخسارة. الأسعار قد تتأخر، ولا يوجد تداول فعلي أو مشتقات أو رافعة."))
-
-
+# ---------------------------------------------------------------- the table and the map
 def table(frame):
     """Every result with every column of the engine's frame, sortable, in the lab's order: the V3 columns first, then the
-    hunter's measurements. Hidden here: the rank's internal parts and the breadth flags (Trend, Accum, SetupPts, RiskPts,
+    hunter's measurements (for information). Hidden here: the rank's internal parts and the breadth flags (Trend, Accum, SetupPts, RiskPts,
     Above50, Above200, NewHigh, NewLow, Side, Model Active)."""
-    cols = ["Symbol", "Name", "Sector", "Rank", "V1 Score", "Alpha %", "Setup", "Status", "Age", "Setups", "Price", "Chg %", "Entry", "Stop", "Target",
+    cols = ["Symbol", "Name", "Sector", "Rank", "Quant Score", "Forecast Pctl", "Alpha %", "Q Momentum", "Q Trend", "Q Low Risk", "Q Reversal", "V1 Score", "Setup", "Status", "Age", "Setups", "Price", "Chg %", "Entry", "Stop", "Target",
             "R:R", "ATR %", "$Vol", "Risk Flag", "Exposure", "RS", "RVOL", "RSI", "ADX", "1M %", "3M %", "6M %", "From high %", "Earnings", "Flags"]
     show = frame[[c for c in cols if c in frame.columns]].copy()
     show["Sector"] = show["Sector"].map(lambda s: sector_name(s) if s else "—")
@@ -509,10 +540,13 @@ def table(frame):
     show["Setups"] = show["Setups"].map(lambda s: " · ".join(S.short_name(k) for k in str(s or "").split(",") if k) or "—")
     show["Status"] = show["Status"].map(lambda s: L(*H.STATUS[s][:2]) if s in H.STATUS else "—")
     show["Risk Flag"] = show["Risk Flag"].map(lambda s: " · ".join(L(*RISK_FLAG[f][1:]) if f in RISK_FLAG else f for f in str(s or "").split(",") if f) or "—")
-    show["Flags"] = show["Flags"].map(lambda s: " · ".join(L(*RISK_FLAG[f][1:]) if f in RISK_FLAG else f for f in str(s or "").split(",") if f) or "—")
+    if "Flags" in show:
+        show["Flags"] = show["Flags"].map(lambda s: " · ".join(L(*RISK_FLAG[f][1:]) if f in RISK_FLAG else f for f in str(s or "").split(",") if f) or "—")
     show["Exposure"] = show["Exposure"].astype(float) * 100
     N = {"Symbol": L("Symbol", "الرمز"), "Name": L("Company", "الشركة"), "Sector": L("Sector", "القطاع"), "Rank": L("V3 rank", "ترتيب V3"),
-         "V1 Score": L("V1 score", "تقييم الصياد"), "Alpha %": L("Forecast %", "التوقع %"), "Setup": L("Setup", "الفرصة"), "Status": L("Status", "الحالة"),
+         "Quant Score": L("Quant score", "التقييم الكمي"), "Forecast Pctl": L("Forecast percentile", "ترتيب التوقع"),
+         "Q Momentum": L("Momentum", "الزخم"), "Q Trend": L("Trend", "الاتجاه"), "Q Low Risk": L("Low risk", "انخفاض المخاطر"),
+         "Q Reversal": L("Reversal", "الارتداد القصير"), "V1 Score": L("Hunter score (info)", "تقييم الصياد (للاطلاع)"), "Alpha %": L("Forecast %", "التوقع %"), "Setup": L("Setup", "الفرصة"), "Status": L("Status", "الحالة"),
          "Age": L("Age (days)", "العمر (أيام)"), "Setups": L("All setups", "كل الفرص"), "Price": L("Price", "السعر"), "Chg %": L("Chg %", "التغير %"),
          "Entry": L("Entry", "الدخول"), "Stop": L("Stop", "الوقف"), "Target": L("Target", "الهدف"), "R:R": "R:R", "ATR %": L("ATR %", "التذبذب %"),
          "$Vol": L("Traded/day ($)", "التداول اليومي ($)"), "Risk Flag": L("Risk flags", "تحذيرات المخاطر"), "Exposure": L("Exposure %", "الانكشاف %"),
@@ -522,13 +556,15 @@ def table(frame):
     pct = lambda name, f="%+.1f%%": st.column_config.NumberColumn(name, format=f)
     cfg = {N["Rank"]: st.column_config.ProgressColumn(N["Rank"], min_value=0, max_value=100, format="%.1f"),
            N["V1 Score"]: st.column_config.ProgressColumn(N["V1 Score"], min_value=0, max_value=100, format="%.1f"),
+           **{N[c]: st.column_config.ProgressColumn(N[c], min_value=0, max_value=100, format="%.0f")
+              for c in ("Quant Score", "Forecast Pctl", "Q Momentum", "Q Trend", "Q Low Risk", "Q Reversal")},
            N["Alpha %"]: pct(N["Alpha %"], "%+.2f%%"), N["Chg %"]: pct(N["Chg %"], "%+.2f%%"), N["1M %"]: pct(N["1M %"]), N["3M %"]: pct(N["3M %"]),
            N["6M %"]: pct(N["6M %"]), N["From high %"]: pct(N["From high %"]), N["ATR %"]: pct(N["ATR %"], "%.1f%%"), N["Exposure"]: pct(N["Exposure"], "%.0f%%"),
            N["Price"]: pct(N["Price"], "%.2f"), N["Entry"]: pct(N["Entry"], "%.2f"), N["Stop"]: pct(N["Stop"], "%.2f"), N["Target"]: pct(N["Target"], "%.2f"),
            "R:R": pct("R:R", "%.2f"), N["$Vol"]: pct(N["$Vol"], "$%,.0f"), "RVOL": pct("RVOL", "%.2f×"), "RSI": pct("RSI", "%.0f"), "ADX": pct("ADX", "%.0f"),
            N["Earnings"]: pct(N["Earnings"], "%.0f"), N["Age"]: pct(N["Age"], "%.0f"),
            N["Symbol"]: st.column_config.TextColumn(N["Symbol"], pinned=True)}
-    st.dataframe(show, hide_index=True, width="stretch", height=520, column_config=cfg)
+    st.dataframe(show, hide_index=True, width="stretch", height=520, column_config={k: v for k, v in cfg.items() if k in show.columns})
     st.caption(L(f"{len(show)} stocks · click a column header to sort · every column of the engine's output.",
                  f"{len(show)} سهم · اضغط على عنوان العمود للترتيب · كل أعمدة مخرجات المحرك."))
     st.download_button(L("Export V3 research CSV", "تصدير نتائج V3"), data=frame.to_csv(index=False).encode("utf-8-sig"),
@@ -536,35 +572,62 @@ def table(frame):
 
 
 def forecast_map(frame, fit):
-    """The lab's map: the forecast (or, without a model, the technical quality) against the hunter's score; colour = the rank."""
-    d = frame.dropna(subset=["V1 Score"]).copy()
+    """The lab's map: the forecast (or, without a model, the rank) against the quant score; colour = the rank."""
+    d = frame.dropna(subset=["Quant Score"]).copy()
     active = fit.get("status") == "active" and d["Alpha %"].notna().any()
     if active:
-        y, ylab = d["Alpha %"], L("Forecast 20 sessions vs SPY %", "التوقع 20 جلسة مقابل المؤشر %")
+        y, ylab = d["Alpha %"], L("Forecast 20 sessions over the index %", "التوقع 20 جلسة مقابل المؤشر %")
     else:
         y, ylab = d["Rank"], L("V3 rank", "ترتيب V3")
     top = set(d.nlargest(14, "Rank")["Symbol"])
     fig = go.Figure(go.Scatter(
-        x=d["V1 Score"], y=y, mode="markers+text", text=[s if s in top else "" for s in d["Symbol"]], textposition="top center",
+        x=d["Quant Score"], y=y, mode="markers+text", text=[s if s in top else "" for s in d["Symbol"]], textposition="top center",
         textfont=dict(size=9, color="#CAD5D6"), cliponaxis=False,
         customdata=np.column_stack([d["Symbol"], d["Rank"].to_numpy(), d["Alpha %"].fillna(np.nan).to_numpy()]),
         marker=dict(size=11, color=d["Rank"], cmin=20, cmax=95, colorscale=[[0, _D], [0.45, _G], [0.7, _C], [1, _E]], showscale=True,
                     colorbar=dict(title=L("V3 rank", "ترتيب V3"), thickness=10), line=dict(width=0.5, color="rgba(255,255,255,.25)"), opacity=0.9),
-        hovertemplate="<b>%{customdata[0]}</b><br>" + L("V1 score", "تقييم الصياد") + ": %{x:.0f}<br>" + ylab + ": %{y:.2f}<br>"
+        hovertemplate="<b>%{customdata[0]}</b><br>" + L("Quant score", "التقييم الكمي") + ": %{x:.0f}<br>" + ylab + ": %{y:.2f}<br>"
                       + L("V3 rank", "ترتيب V3") + ": %{customdata[1]:.0f}<extra></extra>"))
     if active:
         fig.add_hline(y=0, line=dict(color=_MU, dash="dot", width=0.8))
-    fig.add_vline(x=65, line=dict(color=_MU, dash="dot", width=0.8))
-    charts.style(fig, 440, L("Forecast map: the model's view against the hunter's score", "خريطة التوقع: رأي النموذج مقابل تقييم الصياد"), legend=False)
+    fig.add_vline(x=50, line=dict(color=_MU, dash="dot", width=0.8))
+    charts.style(fig, 460, L("Forecast map: the model's view against the quant score", "خريطة التوقع: رأي النموذج مقابل التقييم الكمي"), legend=False)
     fig.update_layout(hovermode="closest")
-    fig.update_xaxes(title_text=L("Hunter V1 score (0-100)", "تقييم الصياد V1 (من 100)"), showgrid=True, gridcolor=charts.GRID, range=[0, 104])
+    fig.update_xaxes(title_text=L("Quant score (0-100)", "التقييم الكمي (من 100)"), showgrid=True, gridcolor=charts.GRID, range=[0, 104])
     fig.update_yaxes(title_text=ylab, side="left")
     return fig
 
 
+def methodology():
+    ui.html('<div class="hnnote">' + L(
+        "<b>The rank is fully quantitative.</b> Four factors are measured for every scanned stock from its daily prices and the index: "
+        "<b>momentum</b> (its excess return over the index across 1 and 3 months, 35%), <b>trend</b> (its distance from the 100-day average "
+        "and the 20/50-day average spread, 25%), <b>low risk</b> (lower 20-day volatility and a smaller 3-month drawdown, 25%) and "
+        "<b>short-term reversal</b> (a weak last week, 15%). Each is a percentile among the scanned stocks (50 = the middle), and their "
+        "weighted blend is the quant score. A pooled ridge model forecasts each stock's return over the index for the next 20 sessions, "
+        "trained only on outcomes already known, with a purged chronological holdout; if it does not beat its baseline there it is switched "
+        "off. With the model on, the rank is half the forecast's percentile and half the quant score; with it off, the quant score alone. "
+        "A data risk flag (stale data, extreme volatility, illiquid) caps it at 49. The factor weights are fixed, not fitted, and this "
+        "ranking has not been shown to beat the hunter out of sample. The hunter's score, setups and levels stay on the page for information "
+        "only. No future return or win probability is guaranteed.",
+        "<b>الترتيب كمي بالكامل.</b> لكل سهم مفحوص تُقاس أربعة عوامل من أسعاره اليومية ومن المؤشر: <b>الزخم</b> (عائده الزائد على المؤشر "
+        "خلال شهر و3 أشهر، 35%)، و<b>الاتجاه</b> (بعده عن متوسط 100 يوم والفرق بين متوسطي 20 و50 يوم، 25%)، و<b>انخفاض المخاطر</b> "
+        "(تذبذب أقل خلال 20 يوم وتراجع أصغر خلال 3 أشهر، 25%)، و<b>الارتداد القصير</b> (أسبوع أخير ضعيف، 15%). كل عامل يُحوَّل إلى ترتيب "
+        "مئوي بين الأسهم المفحوصة (50 = المنتصف)، ومجموعها الموزون هو التقييم الكمي. ونموذج إحصائي يتوقع عائد السهم الزائد على المؤشر "
+        "خلال 20 جلسة، ويتدرب على نتائج معلومة فقط مع فصل زمني واختبار تحقق مستقل، ويُعطّل إذا ما تفوق على مرجعه. إذا كان النموذج شغّالًا "
+        "فالترتيب نصفه ترتيب التوقع ونصفه التقييم الكمي، وإذا تعطّل فالتقييم الكمي وحده. تحذير البيانات (بيانات قديمة، تذبذب شديد، سيولة "
+        "ضعيفة) يحدّه عند 49. أوزان العوامل ثابتة وليست مُدرّبة، ولم يثبت بعد أن هذا الترتيب يتفوق على الصياد الأول في اختبار خارج العينة. "
+        "تقييم الصياد وفرصه ومستوياته باقية في الصفحة للاطلاع فقط. ما فيه ضمان للعائد أو دقة التنبؤ.") + "</div>")
+    st.caption(L("Stop prices may gap through. Prices may be delayed. No auto orders, derivatives or leverage.",
+                 "قد ينفذ وقف الخسارة بسعر أسوأ عند وجود فجوة. الأسعار قد تتأخر، ولا يوجد تداول فعلي أو مشتقات أو رافعة."))
+
+
 # ---------------------------------------------------------------- page
 def page_hunter_v3():
-    ui.html(S.CSS + (S.RTL_CSS if is_ar() else "") + CSS)
+    ui.html(S.CSS)
+    if is_ar():
+        ui.html(S.RTL_CSS)
+    ui.html(CSS)
     _init()
     symbols = ss.get("v3_run")
     got = None
@@ -583,7 +646,7 @@ def page_hunter_v3():
     ui.html(hero_html(frame, fit, market, label))
     hunt_bar()
     if not symbols:
-        st.info(L("Choose your universe, then run the V3 scan. Hunter V1 remains untouched.", "اختر الأسهم ثم شغّل الصياد V3. الصياد القديم ما يتغير."),
+        st.info(L("Choose your universe, then run the V3 scan. Hunter V1 remains untouched.", "اختر الأسهم ثم شغّل الصياد V3. الصياد الأول ما يتغير."),
                 icon=":material/info:")
         ui.foot()
         return
@@ -601,58 +664,48 @@ def page_hunter_v3():
         st.warning(L("The forecasting model did not beat its historical validation baseline (or data were insufficient). "
                      "V3 uses a transparent, non-predictive ranking fallback and leaves the forecast blank.",
                      "النموذج التنبؤي ما تفوق على مرجعه في التحقق التاريخي (أو البيانات ناقصة). "
-                     "V3 يستخدم ترتيبًا بديلًا بدون توقعات، ويترك خانة التوقع فارغة."), icon=":material/warning:")
+                     "الصياد V3 يستخدم ترتيبًا بديلًا بدون توقعات، ويترك خانة التوقع فارغة."), icon=":material/warning:")
     mood = market.get("mood", "mixed")
     with st.container(key="hnsec_v3_board"):
         ui.safe(lambda: ui.html(board_html(fit, market)))
         st.caption(L(f"Last market data: {market.get('date', '—')} · training samples: {fit.get('n', 0)} · validation IC: {fit.get('holdout_ic', '—')} · "
                      f"horizon: {fit.get('horizon_sessions', 20)} sessions · benchmark: SPY",
                      f"آخر بيانات: {market.get('date', '—')} · عينات التدريب: {fit.get('n', 0)} · ارتباط التحقق: {fit.get('holdout_ic', '—')} · "
-                     f"الأفق: {fit.get('horizon_sessions', 20)} جلسة · المؤشر: SPY"))
-    with st.container(key="hnsec_v3_filters"):
-        ui.safe(filters, frame, fit)
-    view = apply(frame)
-    profile = ss.get("v3_profile") or "risk_controlled"
-    selected, allocations = V3.allocate(frame, capital=float(ss["v3_cap"]), risk_per_trade_pct=float(ss["v3_risk"]),
-                                         max_positions=int(ss["v3_maxpos"]), sector_limit=int(ss["v3_seclim"]),
-                                         mode=market.get("mood", "off"), profile=profile)
-    if not view.empty:
-        if ss.get("v3_sel") not in set(view["Symbol"]):
-            ss["v3_sel"] = view["Symbol"].iloc[0]
-        with st.container(key="hnsec_v3_cards"):
-            ui.sec("science", f"Highest-ranked research opportunities ({len(view)})", f"أعلى فرص البحث الكمي ({len(view)})")
-            ui.safe(cards, view, prices, mood)
-        r = view[view["Symbol"] == ss["v3_sel"]].iloc[0]
-        ui.safe(detail, r, prices, market, selected)
-    else:
-        with st.container(key="hnsec_v3_none"):
-            st.info(L("Nothing matches these filters. Lower the rank, clear the setups, or scan a bigger universe.",
-                      "ما فيه شي يطابق هالتصفية. نزّل الترتيب، أو شيل الفرص المختارة، أو افحص نطاق أكبر."), icon=":material/search_off:")
-    with st.container(key="hnsec_v3_alloc"):
-        ui.safe(allocation, selected, allocations, profile)
-    with st.container(key="hnsec_v3_table"):
-        ui.sec("table_rows", "Every result · the full research table", "كل النتائج · جدول البحث الكامل")
-        ui.safe(table, frame)
-    with st.container(key="hnsec_v3_charts"):
-        ui.safe(lambda: ui.chart(forecast_map(frame, fit), key="hn_map_v3"))
-    with st.expander(L("Research methodology and limitations", "منهجية البحث والقيود"), icon=":material/help:"):
-        ui.html('<div class="hnnote">' + L(
-            "V3 scans the same deterministic long setups as V1, with a different scoring layer. The pooled ridge model predicts stock return "
-            "less SPY return over the next 20 sessions, using only past-labeled outcomes, a purged chronological holdout, and a validation gate. "
-            "If validation fails the predictor is deactivated. <b>The rank</b>: 55% the V1 score, 20% technical quality (reward-to-risk, "
-            "volatility, distance from the high, the market mood) and 25% the forecast; without a forecast, 75% and 25%. A risk flag (stale data, "
-            "extreme volatility, illiquid) or no buying setup caps it at 49. The allocation is long-only, cash-based, and scaled down in adverse "
-            "regimes. No future return or win probability is guaranteed. This is NOT a verified profitable strategy and must be evaluated with a "
-            "point-in-time universe and realistic walk-forward backtests before relying on it.",
-            "V3 يستخدم نفس شروط فرص الشراء القديمة مع طبقة ترتيب جديدة. النموذج الإحصائي يتوقع عائد السهم الزائد على المؤشر خلال 20 جلسة، "
-            "ويتدرب على نتائج معلومة تاريخيًا فقط مع فصل زمني واختبار تحقق مستقل، ويُعطّل إذا ما اجتاز الاختبار. <b>الترتيب</b>: 55% تقييم الصياد، "
-            "و20% الجودة الفنية (العائد مقابل المخاطرة، والتذبذب، والبعد عن القمة، ومزاج السوق)، و25% التوقع؛ وبدون توقع 75% و25%. تحذير المخاطر "
-            "(بيانات قديمة، تذبذب شديد، سيولة ضعيفة) أو غياب فرصة شراء يحدّه عند 49. المحفظة افتراضية وبدون اقتراض، وتقلل الانكشاف إذا ساءت حالة "
-            "السوق. ما فيه ضمان للعائد أو دقة التنبؤ، ولازم اختبارات تاريخية أقوى قبل الاعتماد.") + "</div>")
-    st.caption(L("US equities · daily bars from Yahoo Finance (may be delayed) · educational/paper research only · no brokerage execution.",
-                 "أسهم أمريكية · شموع يومية من ياهو فاينانس (قد تكون متأخرة) · أبحاث وتداول افتراضي فقط · بدون تنفيذ حقيقي."))
+                     f"الأفق: {fit.get('horizon_sessions', 20)} جلسة · المؤشر: إس آند بي 500"))
+    view_all = frame[frame["Rank"] >= 50]
+    with st.container(key="v3tabs"):
+        t_op, t_tb, t_map, t_how = st.tabs([f":material/target: {L('Opportunities', 'الفرص')} ({len(view_all)})",
+                                            f":material/table_rows: {L('Full table', 'الجدول الكامل')} ({len(frame)})",
+                                            f":material/scatter_plot: {L('Forecast map', 'خريطة التوقع')}",
+                                            f":material/help: {L('Methodology', 'المنهجية')}"])
+    with t_op:
+        with st.container(key="hnsec_v3_filters"):
+            ui.safe(filters, frame, fit)
+        view = apply(frame)
+        if not view.empty:
+            if ss.get("v3_sel") not in set(view["Symbol"]):
+                ss["v3_sel"] = view["Symbol"].iloc[0]
+            with st.container(key="hnsec_v3_cards"):
+                ui.sec("science", "Highest-ranked research opportunities", "أعلى فرص البحث الكمي")
+                ui.safe(cards, view, prices, mood)
+            r = view[view["Symbol"] == ss["v3_sel"]].iloc[0]
+            ui.safe(detail, r, prices, market)
+        else:
+            with st.container(key="hnsec_v3_none"):
+                st.info(L("Nothing matches these filters. Lower the rank, clear the setups or the search, or scan a bigger universe.",
+                          "ما فيه شي يطابق هالتصفية. نزّل الترتيب، أو امسح الفرص المختارة أو البحث، أو افحص نطاق أكبر."), icon=":material/search_off:")
+    with t_tb:
+        with st.container(key="hnsec_v3_table"):
+            ui.safe(table, frame)
+    with t_map:
+        with st.container(key="hnsec_v3_charts"):
+            ui.safe(lambda: ui.chart(forecast_map(frame, fit), key="hn_map_v3"))
+    with t_how:
+        methodology()
+    st.caption(L("US equities · daily bars from Yahoo Finance (may be delayed) · educational research only · no brokerage execution.",
+                 "أسهم أمريكية · شموع يومية من ياهو فاينانس (قد تكون متأخرة) · أبحاث تعليمية فقط · بدون تنفيذ حقيقي."))
     ui.foot()
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.4.46"
+BUILD = "23.4.47"
