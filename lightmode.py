@@ -459,4 +459,4 @@ def landing_css():
             '.st-key-langdd button, .st-key-langdd button * { color: #E7E3EB !important; }</style>')
 
 
-BUILD = "23.4.51"
+BUILD = "23.4.52"
