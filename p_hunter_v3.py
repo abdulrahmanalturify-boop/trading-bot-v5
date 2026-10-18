@@ -209,6 +209,19 @@ def _go():
     ss["v3_sel"] = None
 
 
+TIERS = {"active": ("Validated", "مُعتمد"), "weak": ("Weak", "ضعيف"), "rejected": ("Unproven", "غير مثبت")}
+
+
+def _tier(fit):
+    """The model's measured tier: active (validated), weak (positive, unproven), rejected (no edge measured), or None (no model)."""
+    st_ = fit.get("status")
+    return st_ if st_ in TIERS else None
+
+
+def _weight_pct(fit):
+    return int(round(100 * float(fit.get("forecast_weight", 0) or 0)))
+
+
 def _alpha_txt(a):
     return f"{a:+.1f}%" if pd.notna(a) else "—"
 
@@ -255,17 +268,18 @@ def hero_html(frame, fit, market, label):
     chips = []
     has = frame is not None and len(frame)
     if has:
-        active = fit.get("status") == "active"
+        tier = _tier(fit)
         chips.append(f'<span class="chip">{T.icon("radar")}{L("Scanned", "تم فحص")} <b>{market.get("universe", 0):,}</b> · {T.esc(label)}</span>')
         chips.append(f'<span class="chip">{T.icon("target")}{L("Eligible", "الفرص المؤهلة")} <b>{market.get("eligible_longs", 0)}</b></span>')
-        chips.append(f'<span class="chip">{T.icon("psychology")}{L("Model", "النموذج")} <b>{L("validated", "مُعتمد") if active else L("fallback", "بديل")}</b></span>')
+        chips.append(f'<span class="chip">{T.icon("psychology")}{L("Model", "النموذج")} <b>{L(*TIERS[tier]) if tier else L("not trained", "غير مدرّب")}{f" · {_weight_pct(fit)}%" if tier else ""}</b></span>')
         chips.append(f'<span class="chip">{T.icon("bolt")}{L("New today", "جديدة اليوم")} <b>{int((frame["Status"] == "fresh").sum())}</b></span>')
         chips.append(f'<span class="chip">{T.icon("schedule")}{L("Last data", "آخر بيانات")} <b>{T.esc(str(market.get("date", "—")))}</b></span>')
     tag = L("A fully quantitative ranking engine: four statistical factors (momentum, trend, low risk, short-term reversal) ranked "
-            "across the scanned stocks, plus a statistical model, validated on an unseen period, that forecasts each stock's excess return "
-            "over the index for the next 20 sessions. Research only.",
+            "across the scanned stocks, plus a statistical model that ranks the stocks against each other and forecasts each one's excess return "
+            "over the index for the next 20 sessions, validated walking forward; its weight in the rank follows its measured accuracy. Research only.",
             "محرك ترتيب كمي بالكامل: أربعة عوامل إحصائية (الزخم، والاتجاه، وانخفاض المخاطر، والارتداد القصير) مرتبة بين الأسهم المفحوصة، "
-            "مع نموذج إحصائي مُختبر على فترة لم يرها يتوقع عائد كل سهم الزائد على المؤشر خلال 20 جلسة. للأبحاث فقط.")
+            "مع نموذج إحصائي يرتّب الأسهم مقابل بعضها ويتوقع عائد كل سهم الزائد على المؤشر خلال 20 جلسة، مُختبر بالتدرج الزمني، "
+            "ووزنه في الترتيب على قدر دقته المقاسة. للأبحاث فقط.")
     side = _spotlight(frame) if has else _steps()
     return (f'<div class="v3hero"><div class="wrap"><div class="txt">'
             f'<span class="eb">{T.icon("science")}{L("Alpha Lab · quant research", "مختبر ألفا · بحث كمي")}</span>'
@@ -293,25 +307,37 @@ def hunt_bar():
 
 # ---------------------------------------------------------------- the model's board
 def board_html(fit, market):
-    active = fit.get("status") == "active"
-    ic = fit.get("holdout_ic")
+    tier = _tier(fit)
+    ic, t = fit.get("holdout_ic"), fit.get("ic_t")
     ic_s = f"{float(ic):+.3f}" if ic is not None and np.isfinite(float(ic)) else "—"
+    t_s = f"t = {float(t):.1f}" if t is not None and np.isfinite(float(t)) else ""
     mood = market.get("mood", "mixed")
     head = {"on": ("Risk-on", "السوق إيجابي", _U), "mixed": ("Mixed", "السوق متذبذب", _G),
             "off": ("Risk-off", "السوق سلبي", _D)}.get(mood, ("Unknown", "غير معروف", _MU))
     tip = {"on": ("Most stocks are above their averages: a friendly backdrop for buying setups.", "أغلب الأسهم فوق متوسطاتها: بيئة مناسبة لفرص الشراء."),
            "mixed": ("A selective market: favour the strongest setups only.", "سوق انتقائي: الأفضل التركيز على أقوى الفرص فقط."),
            "off": ("A weak market: caution first, and smaller risk.", "سوق ضعيف: الحذر أولًا وتقليل المخاطرة.")}.get(mood, ("", ""))
+    w = _weight_pct(fit)
+    if tier == "active":
+        cls, ico, val = "pass", "verified", L("Validated", "مُعتمد")
+        sub = L(f"walking forward it ranked stocks reliably: {w}% of the rank", f"رتّب الأسهم بشكل يُعتمد عليه في التحقق المتدرج: {w}% من الترتيب")
+    elif tier == "weak":
+        cls, ico, val = "fall", "trending_flat", L("Weak", "ضعيف")
+        sub = L(f"a positive but unproven edge: {w}% of the rank", f"أثر إيجابي لكن غير مثبت: {w}% من الترتيب")
+    elif tier == "rejected":
+        cls, ico, val = "fall", "visibility", L("Shown only", "للعرض فقط")
+        sub = L("no edge measured walking forward: the forecast shows, the rank is the quant score", "ما قاس أي أثر في التحقق المتدرج: التوقع يُعرض والترتيب من التقييم الكمي")
+    else:
+        cls, ico, val = "fall", "warning", L("Not trained", "غير مدرّب")
+        sub = L("not enough history to train and validate it", "التاريخ ما يكفي لتدريبه والتحقق منه")
     tiles = [
         f'<div class="tl mood {mood}"><div class="l">{T.icon("explore")}{L("Market mood", "مزاج السوق")}</div>'
         f'<div class="v"><span class="dot" style="background:{head[2]}"></span>{T.esc(L(head[0], head[1]))}</div><div class="s">{T.esc(L(*tip))}</div></div>',
-        f'<div class="tl {"pass" if active else "fall"}"><div class="l">{T.icon("verified" if active else "warning")}{L("Model validation", "حالة النموذج")}</div>'
-        f'<div class="v">{L("Validated", "مُعتمد") if active else L("Fallback", "ترتيب بديل")}</div>'
-        f'<div class="s">{L("the forecast is on: it beat its baseline on the holdout", "التوقع شغّال: تفوق على مرجعه في فترة التحقق") if active else L("the forecast is off: a transparent rank without predictions", "التوقع متوقف: ترتيب شفاف بدون توقعات")}</div></div>',
+        f'<div class="tl {cls}"><div class="l">{T.icon(ico)}{L("Model", "النموذج")}</div><div class="v">{val}</div><div class="s">{T.esc(sub)}</div></div>',
         f'<div class="tl"><div class="l">{T.icon("dataset")}{L("Training samples", "عينات التدريب")}</div><div class="v">{int(fit.get("n", 0) or 0):,}</div>'
-        f'<div class="s">{L("labeled outcomes, 20 sessions ahead", "نتائج معلومة، 20 جلسة للأمام")}</div></div>',
+        f'<div class="s">{L("stock-days with a known 20-session outcome", "سهم-يوم بنتيجة معلومة بعد 20 جلسة")}</div></div>',
         f'<div class="tl"><div class="l">{T.icon("insights")}{L("Validation IC", "ارتباط التحقق")}</div><div class="v">{ic_s}</div>'
-        f'<div class="s">{L("forecast vs realized, out of sample", "التوقع مقابل الفعلي خارج العينة")}</div></div>']
+        f'<div class="s">{L("mean daily rank correlation, walking forward", "متوسط ارتباط الترتيب اليومي في التحقق المتدرج")}{(" · " + t_s) if t_s else ""}</div></div>']
     return '<div class="v3reg">' + "".join(tiles) + "</div>"
 
 
@@ -331,7 +357,7 @@ def filters(frame, fit):
                                format_func=lambda g: L("All", "الكل") if g == "all" else f"{g} · {S.MIN_GRADE[g]}")
         c[1].toggle(L("New today", "الجديدة اليوم"), key="v3_fresh")
         c[2].toggle(L("No risk flags", "بدون تحذيرات"), key="v3_clean")
-        c[3].toggle(L("With a forecast", "مع توقع"), key="v3_alpha", disabled=fit.get("status") != "active")
+        c[3].toggle(L("With a forecast", "مع توقع"), key="v3_alpha", disabled=not frame["Alpha %"].notna().any())
         t = st.columns([1.4, 1.6, 1], vertical_alignment="bottom")
         t[0].text_input(L("Search", "بحث"), key="v3_q", placeholder=L("Symbol or company", "الرمز أو اسم الشركة"), icon=":material/search:")
         t[1].segmented_control(L("Sort by", "رتّب حسب"), list(SORTS), key="v3_sort", format_func=lambda k: L(*SORTS[k]))
@@ -575,7 +601,7 @@ def table(frame):
 def forecast_map(frame, fit):
     """The lab's map: the forecast (or, without a model, the rank) against the quant score; colour = the rank."""
     d = frame.dropna(subset=["Quant Score"]).copy()
-    active = fit.get("status") == "active" and d["Alpha %"].notna().any()
+    active = d["Alpha %"].notna().any()
     if active:
         y, ylab = d["Alpha %"], L("Forecast 20 sessions over the index %", "التوقع 20 جلسة مقابل المؤشر %")
     else:
@@ -605,9 +631,12 @@ def methodology():
         "<b>momentum</b> (its excess return over the index across 1 and 3 months, 35%), <b>trend</b> (its distance from the 100-day average "
         "and the 20/50-day average spread, 25%), <b>low risk</b> (lower 20-day volatility and a smaller 3-month drawdown, 25%) and "
         "<b>short-term reversal</b> (a weak last week, 15%). Each is a percentile among the scanned stocks (50 = the middle), and their "
-        "weighted blend is the quant score. A pooled ridge model forecasts each stock's return over the index for the next 20 sessions, "
-        "trained only on outcomes already known, with a purged chronological holdout; if it does not beat its baseline there it is switched "
-        "off. With the model on, the rank is half the forecast's percentile and half the quant score; with it off, the quant score alone. "
+        "weighted blend is the quant score. A cross-sectional ridge model ranks the scanned stocks against each other on every feature each day "
+        "and learns which ranks went with a better rank of the next 20 sessions' return over the index, from outcomes already known. It is "
+        "validated walking forward: the later part of the history is cut into blocks, each forecast by a model fitted on the days before it "
+        "(20 sessions purged at the boundary), and the day-by-day rank correlation of those forecasts is measured. The forecast always shows; "
+        "its weight in the rank follows that measure: validated (mean IC of at least .02 with t of at least 2) half, a positive but unproven "
+        "edge a quarter, none measured nothing, so the rank is then the quant score alone. "
         "A data risk flag (stale data, extreme volatility, illiquid) caps it at 49. The factor weights are fixed, not fitted, and this "
         "ranking has not been shown to beat the hunter out of sample. Measured on today's S&P 500 members from 2013 (training "
         "2013-2019, testing 2020 on), none of these factors, nor value or financial quality from SEC filings, ranked stocks reliably "
@@ -616,9 +645,12 @@ def methodology():
         "<b>الترتيب كمي بالكامل.</b> لكل سهم مفحوص تُقاس أربعة عوامل من أسعاره اليومية ومن المؤشر: <b>الزخم</b> (عائده الزائد على المؤشر "
         "خلال شهر و3 أشهر، 35%)، و<b>الاتجاه</b> (بعده عن متوسط 100 يوم والفرق بين متوسطي 20 و50 يوم، 25%)، و<b>انخفاض المخاطر</b> "
         "(تذبذب أقل خلال 20 يوم وتراجع أصغر خلال 3 أشهر، 25%)، و<b>الارتداد القصير</b> (أسبوع أخير ضعيف، 15%). كل عامل يُحوَّل إلى ترتيب "
-        "مئوي بين الأسهم المفحوصة (50 = المنتصف)، ومجموعها الموزون هو التقييم الكمي. ونموذج إحصائي يتوقع عائد السهم الزائد على المؤشر "
-        "خلال 20 جلسة، ويتدرب على نتائج معلومة فقط مع فصل زمني واختبار تحقق مستقل، ويُعطّل إذا ما تفوق على مرجعه. إذا كان النموذج شغّالًا "
-        "فالترتيب نصفه ترتيب التوقع ونصفه التقييم الكمي، وإذا تعطّل فالتقييم الكمي وحده. تحذير البيانات (بيانات قديمة، تذبذب شديد، سيولة "
+        "مئوي بين الأسهم المفحوصة (50 = المنتصف)، ومجموعها الموزون هو التقييم الكمي. ونموذج إحصائي مقطعي يرتّب الأسهم المفحوصة مقابل "
+        "بعضها على كل عامل كل يوم، ويتعلم من نتائج معلومة أي الترتيبات صاحبها ترتيب أفضل لعائد 20 جلسة فوق المؤشر. ويُختبر بالتدرج "
+        "الزمني: الجزء الأخير من التاريخ يُقسم إلى فترات، كل فترة يتوقعها نموذج مدرّب على الأيام اللي قبلها (مع فصل 20 جلسة عند الحد)، "
+        "ويُقاس ارتباط الترتيب اليومي بين التوقع والنتيجة. التوقع يُعرض دائمًا، ووزنه في الترتيب على قدر هذا القياس: مُعتمد (متوسط "
+        "ارتباط 0.02 على الأقل مع t لا يقل عن 2) نصف الترتيب، وأثر إيجابي غير مثبت ربعه، وبدون أثر صفر فيكون الترتيب من التقييم الكمي "
+        "وحده. تحذير البيانات (بيانات قديمة، تذبذب شديد، سيولة "
         "ضعيفة) يحدّه عند 49. أوزان العوامل ثابتة وليست مُدرّبة، ولم يثبت بعد أن هذا الترتيب يتفوق على الصياد الأول في اختبار خارج العينة. "
         "وفي اختبار على أسهم إس آند بي 500 الحالية من 2013 (التدريب حتى 2019، والاختبار من 2020)، ما رتّب أي عامل من هذه "
         "العوامل، ولا القيمة ولا الجودة المالية من تقارير الشركات، الأسهم بشكل يعتمد عليه خلال 20 أو 60 أو 120 جلسة؛ فتعامل مع "
@@ -666,17 +698,21 @@ def page_hunter_v3():
         st.warning(L("No valid completed-bar setups for this universe.", "ما فيه فرص مكتملة مؤهلة بهذه القائمة."), icon=":material/search_off:")
         ui.foot()
         return
-    if fit.get("status") != "active":
-        st.warning(L("The forecasting model did not beat its historical validation baseline (or data were insufficient). "
-                     "V3 uses a transparent, non-predictive ranking fallback and leaves the forecast blank.",
-                     "النموذج التنبؤي ما تفوق على مرجعه في التحقق التاريخي (أو البيانات ناقصة). "
-                     "الصياد V3 يستخدم ترتيبًا بديلًا بدون توقعات، ويترك خانة التوقع فارغة."), icon=":material/warning:")
+    tier = _tier(fit)
+    if tier is None:
+        st.warning(L("There is not enough history to train and validate the forecasting model: the rank is the quant score alone and the forecast is blank.",
+                     "التاريخ ما يكفي لتدريب نموذج التوقع والتحقق منه: الترتيب من التقييم الكمي وحده وخانة التوقع فارغة."), icon=":material/warning:")
+    elif tier == "rejected":
+        st.info(L("The model measured no edge walking forward, so the forecast is shown but carries no weight in the rank.",
+                  "النموذج ما قاس أي أثر في التحقق المتدرج، فالتوقع معروض لكن بدون وزن في الترتيب."), icon=":material/visibility:")
     mood = market.get("mood", "mixed")
     with st.container(key="hnsec_v3_board"):
         ui.safe(lambda: ui.html(board_html(fit, market)))
-        st.caption(L(f"Last market data: {market.get('date', '—')} · training samples: {fit.get('n', 0)} · validation IC: {fit.get('holdout_ic', '—')} · "
+        st.caption(L(f"Last market data: {market.get('date', '—')} · training samples: {fit.get('n', 0)} · validation IC: {fit.get('holdout_ic', '—')} "
+                     f"(t = {fit.get('ic_t', '—')}, {fit.get('validation_days', 0)} days) · forecast weight: {_weight_pct(fit)}% · "
                      f"horizon: {fit.get('horizon_sessions', 20)} sessions · benchmark: SPY",
-                     f"آخر بيانات: {market.get('date', '—')} · عينات التدريب: {fit.get('n', 0)} · ارتباط التحقق: {fit.get('holdout_ic', '—')} · "
+                     f"آخر بيانات: {market.get('date', '—')} · عينات التدريب: {fit.get('n', 0)} · ارتباط التحقق: {fit.get('holdout_ic', '—')} "
+                     f"(t = {fit.get('ic_t', '—')}، {fit.get('validation_days', 0)} يوم) · وزن التوقع: {_weight_pct(fit)}% · "
                      f"الأفق: {fit.get('horizon_sessions', 20)} جلسة · المؤشر: إس آند بي 500"))
     view_all = frame[frame["Rank"] >= 50]
     with st.container(key="v3tabs"):
@@ -714,4 +750,4 @@ def page_hunter_v3():
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.4.52"
+BUILD = "23.4.53"

@@ -20,7 +20,7 @@ import hunter as H
 import universe as U
 
 
-BUILD = "23.4.52"
+BUILD = "23.4.53"
 HORIZON = 20
 FEATURES = ("excess_21", "excess_63", "trend_100", "vol_20",
             "drawdown_63", "ema_diff", "rvol_20", "reversal_5", "market_trend")
@@ -34,7 +34,7 @@ FACTORS = (("Q Momentum", (("excess_63", 1), ("excess_21", 1)), .35),
            ("Q Trend", (("trend_100", 1), ("ema_diff", 1)), .25),
            ("Q Low Risk", (("vol_20", -1), ("drawdown_63", 1)), .25),
            ("Q Reversal", (("reversal_5", 1),), .15))
-FORECAST_WEIGHT = .5                                 # with a validated model: half the forecast's percentile, half the factors
+FORECAST_WEIGHT = .5                                 # a validated model's share of the rank (see forecast_weight)
 
 
 def _clean(df, cutoff=None):
@@ -81,77 +81,168 @@ def features_for(df, benchmark):
     return out.replace([np.inf, -np.inf], np.nan), label
 
 
-def _fit(train, y, alpha=80.0):
-    med = np.median(train, axis=0)
-    scale = np.std(train, axis=0)
-    scale = np.where(scale < 1e-6, 1.0, scale)
-    z = np.clip((train - med) / scale, -5, 5)
-    # Intercept is unpenalized. All numeric features are trained on past data.
+MODEL_FEATURES = tuple(f for f in FEATURES if f != "market_trend")   # the same for every stock on a day: no use across stocks
+MIN_CROSS = 8                                        # stocks a day needs to be ranked against each other
+MODEL_STRIDE = 5                                     # a sample every 5 sessions (overlapping 20-session outcomes)
+RIDGE_ALPHA = 10.0
+# the forecast's weight in the rank by its measured accuracy: "by_accuracy" (validated: half; weak: a quarter; rejected: shown
+# but unweighted), "always" (half whatever it measured), "show_only" (never in the rank)
+FORECAST_MODE = "by_accuracy"
+FORECAST_WEIGHTS = {"active": FORECAST_WEIGHT, "weak": .25, "rejected": 0.0}
+
+
+def _cs_rank(df, cols):
+    """Each column as a centred percentile within its day (-0.5 = the lowest of that day, +0.5 = the highest): the model ranks
+    stocks against each other, so a feature's level across time (a bull year, a crash) never enters it."""
+    out = df.copy()
+    g = out.groupby("date")
+    for c in cols:
+        out[c] = g[c].rank(pct=True) - 0.5
+    return out
+
+
+def _fit(train, y, alpha=RIDGE_ALPHA):
+    """Ridge on centred rank features (already comparable, so no scaling); the intercept is unpenalised."""
+    med = np.zeros(train.shape[1])
+    scale = np.ones(train.shape[1])
+    z = np.asarray(train, float)
     zm = z.mean(axis=0)
-    ym = y.mean()
+    ym = float(np.mean(y))
     x = z - zm
-    coef = np.linalg.solve(x.T @ x + alpha * np.eye(x.shape[1]), x.T @ (y - ym))
-    return {"med": med, "scale": scale, "zm": zm, "coef": coef, "ym": float(ym)}
+    coef = np.linalg.solve(x.T @ x + alpha * np.eye(x.shape[1]), x.T @ (np.asarray(y, float) - ym))
+    return {"med": med, "scale": scale, "zm": zm, "coef": coef, "ym": ym}
 
 
 def _predict(model, data):
-    z = np.clip((data - model["med"]) / model["scale"], -5, 5)
+    z = (np.asarray(data, float) - model["med"]) / model["scale"]
     return model["ym"] + (z - model["zm"]) @ model["coef"]
 
 
-def train(prices, benchmark, cutoff=None, min_training=150, stride=10):
-    """Fit pooled stock returns and hold out the most recent 25% by time.
-
-    Only use labels whose horizon has fully expired by \`cutoff\`. Purge 20
-    sessions around the train/validation boundary to prevent overlap.
-    A negative or meaningless holdout IC disables the predictive overlay;
-    the model is still returned for transparent diagnostics.
-    """
-    market = _clean(benchmark, cutoff)
-    if market is None:
-        return None, {"status": "no_benchmark", "n": 0}
-    rows, labels, dates = [], [], []
+def _panel(prices, market, cutoff, stride):
+    """One row per stock and sample day: the model's features, the day, and the outcome (the 20-session excess return and
+    its rank within the day). Only days where the outcome is already known by the cutoff."""
+    rows = []
     for sym, raw in prices.items():
         d = _clean(raw, cutoff)
         if d is None:
             continue
         x, y = features_for(d, market)
+        x = x[list(MODEL_FEATURES)]
         good = np.flatnonzero(x.notna().all(axis=1).to_numpy() & y.notna().to_numpy())
         for i in good[::max(1, int(stride))]:
-            rows.append(x.iloc[i].to_numpy(dtype=float))
-            labels.append(float(np.clip(y.iloc[i], -0.75, 0.75)))
-            dates.append(x.index[i])
-    if len(rows) < min_training + 60:
-        return None, {"status": "insufficient_training_data", "n": len(rows)}
-    x = np.asarray(rows, float)
-    y = np.asarray(labels, float)
-    ds = pd.DatetimeIndex(dates)
-    # The split is by distinct date, NOT random stock rows.
+            rows.append((sym, x.index[i], *x.iloc[i].to_numpy(dtype=float), float(np.clip(y.iloc[i], -0.75, 0.75))))
+    if not rows:
+        return pd.DataFrame(columns=["sym", "date", *MODEL_FEATURES, "y"])
+    df = pd.DataFrame(rows, columns=["sym", "date", *MODEL_FEATURES, "y"])
+    n = df.groupby("date")["sym"].transform("size")
+    df = df[n >= MIN_CROSS].reset_index(drop=True)
+    if df.empty:
+        return df
+    df = _cs_rank(df, list(MODEL_FEATURES))
+    df["y_rank"] = df.groupby("date")["y"].rank(pct=True) - 0.5
+    return df
+
+
+def _ic_series(pred, truth, dates):
+    """The rank correlation between the forecast and the outcome within each day."""
+    f = pd.DataFrame({"p": pred, "t": truth, "d": dates})
+    out = []
+    for _, g in f.groupby("d"):
+        if len(g) >= MIN_CROSS and g["p"].std() > 1e-9 and g["t"].std() > 1e-9:
+            out.append(float(np.corrcoef(g["p"].rank(), g["t"].rank())[0, 1]))      # Spearman, without scipy
+    return np.asarray(out, float)
+
+
+def train(prices, benchmark, cutoff=None, min_training=150, stride=MODEL_STRIDE, folds=3):
+    """A cross-sectional model: each day the scanned stocks are ranked against each other on every feature, and ridge regression
+    learns which of those ranks go with a better rank of the next 20 sessions' excess return. Validated walking forward: the
+    later part of the history is cut into `folds` blocks, each forecast by a model fitted on the days before it (with 20
+    sessions purged at the boundary), and the day-by-day rank correlation (IC) of those forecasts is measured. The status says
+    how much the forecast earned: "active" (mean IC >= .02 with t >= 2), "weak" (positive but unproven) or "rejected"; the
+    forecast is shown in every case, and its weight in the rank follows the status (FORECAST_MODE)."""
+    market = _clean(benchmark, cutoff)
+    if market is None:
+        return None, {"status": "no_benchmark", "n": 0}
+    panel = _panel(prices, market, cutoff, stride)
+    if len(panel) < min_training + 60:
+        return None, {"status": "insufficient_training_data", "n": int(len(panel))}
+    x = panel[list(MODEL_FEATURES)].to_numpy(float)
+    y = panel["y_rank"].to_numpy(float)
+    ds = pd.DatetimeIndex(panel["date"])
     unique = ds.unique().sort_values()
-    boundary = unique[max(1, int(len(unique) * 0.75))]
-    cutoff_training = boundary - pd.offsets.BDay(HORIZON)
-    fit_mask = (ds < cutoff_training)
-    val_mask = (ds >= boundary)
-    if fit_mask.sum() < min_training or val_mask.sum() < 40:
+    if len(unique) < 24:
         return None, {"status": "insufficient_validation_data", "n": int(len(x))}
-    fitted = _fit(x[fit_mask], y[fit_mask])
-    pred = _predict(fitted, x[val_mask])
-    truth = y[val_mask]
-    ic = float(np.corrcoef(pred, truth)[0, 1]) if pred.std() > 1e-8 and truth.std() > 1e-8 else np.nan
-    mae = float(np.mean(np.abs(pred - truth)))
-    benchmark_mae = float(np.mean(np.abs(truth - np.mean(y[fit_mask]))))
-    # Simple baseline must be beaten on chronological held-out outcomes.
-    reliable = bool(np.isfinite(ic) and ic > .03 and mae < benchmark_mae and val_mask.sum() >= 60)
-    # Fit after validation ONLY with outcomes available by scan cutoff.
-    deployed = _fit(x, y) if reliable else None
-    stats = {"status": "active" if reliable else "rejected_by_validation",
-             "n": int(len(x)), "fit_n": int(fit_mask.sum()), "validation_n": int(val_mask.sum()),
-             "holdout_ic": round(ic, 4) if np.isfinite(ic) else None,
-             "holdout_mae_pct": round(100 * mae, 2),
-             "naive_mae_pct": round(100 * benchmark_mae, 2),
-             "horizon_sessions": HORIZON, "purge_sessions": HORIZON,
-             "calibration": "No calibrated probabilities. 20-session benchmark-excess return."}
+    # walk forward over the later 60% of the days, in blocks
+    first = unique[int(len(unique) * 0.4)]
+    blocks = np.array_split(unique[unique >= first], max(1, int(folds)))
+    ics, val_n, fit_n = [], 0, 0
+    for b in blocks:
+        if len(b) == 0:
+            continue
+        purge = b[0] - pd.offsets.BDay(HORIZON)
+        fit_mask = ds < purge
+        val_mask = (ds >= b[0]) & (ds <= b[-1])
+        if fit_mask.sum() < min_training or val_mask.sum() < MIN_CROSS * 2:
+            continue
+        m = _fit(x[fit_mask], y[fit_mask])
+        ics.extend(_ic_series(_predict(m, x[val_mask]), y[val_mask], ds[val_mask]))
+        val_n += int(val_mask.sum())
+        fit_n = max(fit_n, int(fit_mask.sum()))
+    ics = np.asarray(ics, float)
+    if len(ics) < 12:
+        return None, {"status": "insufficient_validation_data", "n": int(len(x))}
+    ic = float(np.mean(ics))
+    # the samples overlap (a 20-session outcome every `stride` sessions): the t-statistic counts only the independent ones
+    n_eff = max(2.0, len(ics) * min(1.0, stride / HORIZON))
+    t = float(ic / (np.std(ics, ddof=1) / np.sqrt(n_eff))) if np.std(ics, ddof=1) > 1e-9 else 0.0
+    hit = float(np.mean(ics > 0))
+    status = "active" if (ic >= .02 and t >= 2) else ("weak" if ic > 0 else "rejected")
+    deployed = _fit(x, y)                            # fitted on every day whose outcome is known by the cutoff
+    # the expected excess return behind a forecast rank: the slope of the realised outcome on the model's own forecast
+    pred_all = _predict(deployed, x)
+    yr = panel["y"].to_numpy(float)
+    if pred_all.std() > 1e-9:
+        slope = float(np.cov(pred_all, yr)[0, 1] / np.var(pred_all))
+        inter = float(yr.mean() - slope * pred_all.mean())
+    else:
+        slope, inter = 0.0, float(yr.mean())
+    deployed["cal"] = (inter, slope)
+    stats = {"status": status, "n": int(len(x)), "fit_n": fit_n, "validation_n": val_n, "validation_days": int(len(ics)),
+             "holdout_ic": round(ic, 4), "ic_t": round(t, 2), "ic_hit": round(hit, 3),
+             "forecast_weight": forecast_weight(status),
+             "horizon_sessions": HORIZON, "purge_sessions": HORIZON, "folds": int(folds), "stride": int(stride),
+             "calibration": "No calibrated probabilities. 20-session benchmark-excess return, from the forecast rank's slope."}
     return deployed, stats
+
+
+def forecast_weight(status):
+    """The forecast's share of the rank for a model status (see FORECAST_MODE)."""
+    if status not in FORECAST_WEIGHTS:
+        return 0.0
+    if FORECAST_MODE == "always":
+        return FORECAST_WEIGHT
+    if FORECAST_MODE == "show_only":
+        return 0.0
+    return FORECAST_WEIGHTS[status]
+
+
+def forecast(model, feats):
+    """The model's forecast for the stocks scanned today ({symbol: features} rows): each feature ranked across them, the ridge
+    forecast of the outcome's rank, and the expected 20-session excess return (%) behind it. NaN without a model, for a stock
+    missing a feature, or when fewer than MIN_CROSS stocks can be ranked against each other."""
+    out = pd.Series(np.nan, index=feats.index, dtype=float)
+    if model is None or feats.empty:
+        return out
+    f = feats[list(MODEL_FEATURES)].astype(float)
+    ok = f.notna().all(axis=1)
+    if ok.sum() < MIN_CROSS:
+        return out
+    f = f[ok].copy()
+    f["date"] = 0
+    z = _cs_rank(f, list(MODEL_FEATURES))[list(MODEL_FEATURES)].to_numpy(float)
+    inter, slope = model.get("cal", (0.0, 1.0))
+    out[ok] = np.clip(100 * (inter + slope * _predict(model, z)), -15, 15)
+    return out
 
 
 def _technical_quality(row, market_mood):
@@ -224,17 +315,15 @@ def scan(prices, benchmark, cutoff=None, sectors=None, earnings=None, thin=20e6)
             flags = (flags + ",extreme_volatility").strip(",")
         if float(rowdata["$Vol"]) < thin:
             flags = (flags + ",illiquid").strip(",")
-        alpha = np.nan
-        feat = feats.loc[row.Symbol]
-        if model is not None and feat.notna().all():
-            alpha = float(np.clip(100 * _predict(model, feat.to_numpy(float)[None, :])[0], -15, 15))
-        rank.append((row.Symbol, alpha, flags))
-    ranks = pd.DataFrame(rank, columns=["Symbol", "Alpha %", "Risk Flag"]).set_index("Symbol")
+        rank.append((row.Symbol, flags))
+    ranks = pd.DataFrame(rank, columns=["Symbol", "Risk Flag"]).set_index("Symbol")
     ranks = ranks.join(quant)
+    ranks["Alpha %"] = forecast(model, feats.loc[ranks.index])
     ranks["Forecast Pctl"] = _pctl(ranks["Alpha %"])
+    w = float(info.get("forecast_weight", 0.0) or 0.0) if model is not None else 0.0
     has = ranks["Forecast Pctl"].notna()
     ranks["Rank"] = ranks["Quant Score"]
-    ranks.loc[has, "Rank"] = FORECAST_WEIGHT * ranks.loc[has, "Forecast Pctl"] + (1 - FORECAST_WEIGHT) * ranks.loc[has, "Quant Score"]
+    ranks.loc[has, "Rank"] = w * ranks.loc[has, "Forecast Pctl"] + (1 - w) * ranks.loc[has, "Quant Score"]
     # Data you cannot trust (stale, extreme volatility, illiquid) caps the rank under the eligibility line.
     capped = ranks["Risk Flag"].str.contains("stale_data|extreme_volatility|illiquid", na=False)
     ranks.loc[capped, "Rank"] = ranks.loc[capped, "Rank"].clip(upper=49.0)

@@ -63,17 +63,45 @@ class HunterV3Safety(unittest.TestCase):
 
     def test_validation_and_sufficient_samples(self):
         model, report = V3.train(self.prices, self.market)
-        self.assertIn(report["status"], ("active", "rejected_by_validation"))
+        self.assertIn(report["status"], ("active", "weak", "rejected"))
         self.assertGreater(report["fit_n"], 100)
         self.assertGreater(report["validation_n"], 40)
-        self.assertTrue(model is None or len(model["coef"]) == len(V3.FEATURES))
+        self.assertGreaterEqual(report["validation_days"], 12)
+        self.assertEqual(len(model["coef"]), len(V3.MODEL_FEATURES))
+        self.assertEqual(report["forecast_weight"], V3.forecast_weight(report["status"]))
+
+    def test_a_planted_signal_is_found_and_weighted(self):
+        # 30 stocks whose drift persists for months: past excess return predicts the next 20 sessions, so the
+        # cross-sectional model must measure a clearly positive IC walking forward and be validated.
+        rng = np.random.default_rng(7)
+        n, idx = 700, pd.bdate_range("2022-06-01", periods=700)
+        prices = {}
+        for i in range(30):
+            drift = np.zeros(n)
+            for t in range(1, n):
+                drift[t] = .985 * drift[t - 1] + .0006 * rng.normal()
+            ret = np.clip(drift + .006 * rng.normal(size=n), -.15, .15)
+            close = 50 * np.exp(np.cumsum(ret))
+            prices[f"P{i:02}"] = pd.DataFrame({"Open": close * .999, "High": close * 1.01, "Low": close * .99, "Close": close,
+                                               "Volume": 2_000_000 * (1 + .2 * rng.random(n))}, index=idx)
+        market = sample(n=n, seed=99, gain=.0002)
+        market.index = idx
+        model, report = V3.train(prices, market)
+        self.assertEqual(report["status"], "active", report)
+        self.assertGreater(report["holdout_ic"], .05)
+        self.assertEqual(report["forecast_weight"], V3.FORECAST_WEIGHT)
+        feats = pd.DataFrame({s_: V3.features_for(prices[s_], market)[0].iloc[-1] for s_ in prices}).T
+        fc = V3.forecast(model, feats)
+        self.assertTrue(fc.notna().all())
+        # the forecast agrees with the planted drift: the stocks with the best 3-month excess return rank highest
+        self.assertGreater(np.corrcoef(fc.rank(), feats["excess_63"].rank())[0, 1], .5)
 
     def test_tiny_universe_predictor_fails_closed(self):
         model, report = V3.train({"A": sample(280)}, self.market)
         self.assertIsNone(model)
         self.assertIn("insufficient", report["status"])
 
-    def test_ranking_works_when_model_rejected(self):
+    def test_ranking_shows_the_forecast_and_weights_it_by_status(self):
         cut = self.market.index[-1]
         res, report, mode = V3.scan(self.prices, self.market, cutoff=cut)
         self.assertEqual(len(res), 10)
@@ -83,10 +111,12 @@ class HunterV3Safety(unittest.TestCase):
         self.assertTrue(res["Quant Score"].between(0, 100).all())
         capped = res["Risk Flag"].str.contains("stale_data|extreme_volatility|illiquid", na=False)
         self.assertTrue(res.loc[capped, "Rank"].le(49).all())
-        free = res[~capped & res["Alpha %"].isna()]
-        np.testing.assert_allclose(free["Rank"], free["Quant Score"])
-        if report["status"] != "active":
-            self.assertTrue(res["Alpha %"].isna().all())
+        self.assertTrue(res["Alpha %"].notna().all())                 # the forecast shows whatever the model measured
+        w = report["forecast_weight"]
+        free = res[~capped]
+        np.testing.assert_allclose(free["Rank"], w * free["Forecast Pctl"] + (1 - w) * free["Quant Score"])
+        if report["status"] == "rejected":
+            np.testing.assert_allclose(free["Rank"], free["Quant Score"])
 
     def test_rank_is_quantitative_not_the_hunter_score(self):
         cut = self.market.index[-1]
