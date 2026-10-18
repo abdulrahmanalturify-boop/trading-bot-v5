@@ -20,6 +20,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor, wait
 from urllib.parse import quote, urljoin, urlparse
 
+import pandas as pd
 import requests
 
 # commons asks every tool to say who it is
@@ -388,27 +389,67 @@ _LOGOISH = re.compile(r"(logo|favicon|sprite|placeholder|default[-_]?(?:image|im
 _PREF = ("og:image:secure_url", "og:image", "og:image:url", "twitter:image", "twitter:image:src")
 
 
-def page_image(url, timeout=7, limit=400_000):
-    """The photo an article page shows when it is shared (its og:image), '' when it has none or cannot be read."""
-    if not url or not url.startswith("http"):
-        return ""
+_DATE_KEYS = ("article:published_time", "og:article:published_time", "article:published", "datepublished", "pubdate", "publishdate",
+              "publish-date", "publish_date", "publication_date", "date", "dc.date", "dc.date.issued", "dcterms.created", "dcterms.date",
+              "parsely-pub-date", "sailthru.date", "article.published", "og:pubdate", "rnews:datepublished")
+_JSON_DATE = re.compile(r'"datePublished"\s*:\s*"([^"]{8,40})"')
+_URL_DATE = re.compile(r"/(20\d\d)[/-](\d{1,2})[/-](\d{1,2})(?:[/-]|$)")
+
+
+def _when(s):
+    """A date string from a page -> a UTC timestamp, None when it isn't one or is absurd (before 2000, after tomorrow)."""
+    s = _html.unescape(str(s or "")).strip()
+    if not s:
+        return None
+    ts = None
     try:
-        with requests.get(url, headers=BROWSER, timeout=timeout, stream=True, allow_redirects=True) as r:
-            if r.status_code >= 400 or "html" not in r.headers.get("Content-Type", "html").lower():
-                return ""
-            buf, size = [], 0
-            for chunk in r.iter_content(16384):
-                buf.append(chunk)
-                size += len(chunk)
-                if size >= limit or b"</head>" in chunk.lower():
-                    break
-            page = b"".join(buf).decode(r.encoding or "utf-8", "ignore")
-            base = r.url
+        from email.utils import parsedate_to_datetime
+        ts = pd.Timestamp(parsedate_to_datetime(s))
     except Exception:
-        return ""
-    head = page.split("</head>", 1)[0] if "</head>" in page else page
+        try:
+            ts = pd.Timestamp(s)
+        except Exception:
+            return None
+    if ts is None or pd.isna(ts):
+        return None
+    ts = ts.tz_localize("UTC") if ts.tzinfo is None else ts.tz_convert("UTC")
+    now = pd.Timestamp.now(tz="UTC")
+    if ts.year < 2000 or ts > now + pd.Timedelta(days=1):
+        return None
+    return ts
+
+
+def published_in(head, url=""):
+    """When the article was published, read from its page's head (the article:published_time meta and its kin, else the
+    datePublished of its JSON-LD), else the day in its address (/2026/10/11/, as noon UTC); None when nothing says."""
     found = {}
-    for tag in _META.findall(head):
+    for tag in _META.findall(head or ""):
+        at = {k.lower(): (a or b) for k, a, b in _ATTR.findall(tag)}
+        key = (at.get("property") or at.get("name") or at.get("itemprop") or "").lower()
+        if key in _DATE_KEYS and at.get("content"):
+            found.setdefault(key, at["content"])
+    for key in _DATE_KEYS:
+        ts = _when(found.get(key))
+        if ts is not None:
+            return ts
+    m = _JSON_DATE.search(head or "")
+    if m:
+        ts = _when(m.group(1))
+        if ts is not None:
+            return ts
+    m = _URL_DATE.search(urlparse(url or "").path)
+    if m:
+        try:
+            return pd.Timestamp(int(m.group(1)), int(m.group(2)), int(m.group(3)), 12, tz="UTC")
+        except Exception:
+            return None
+    return None
+
+
+def image_in(head, base=""):
+    """The photo an article page shows when it is shared (its og:image), '' when its head names none."""
+    found = {}
+    for tag in _META.findall(head or ""):
         at = {k.lower(): (a or b) for k, a, b in _ATTR.findall(tag)}
         key = (at.get("property") or at.get("name") or at.get("itemprop") or "").lower()
         if key in _PREF or key == "image":
@@ -423,6 +464,34 @@ def page_image(url, timeout=7, limit=400_000):
         if u.startswith("https://") and not _LOGOISH.search(urlparse(u).path):
             return u
     return ""
+
+
+def page_meta(url, timeout=7, limit=400_000):
+    """What an article page's head says about it: {"img": its shared photo or '', "time": when it was published or None}.
+    Empty when the page cannot be read."""
+    if not url or not url.startswith("http"):
+        return {"img": "", "time": None}
+    try:
+        with requests.get(url, headers=BROWSER, timeout=timeout, stream=True, allow_redirects=True) as r:
+            if r.status_code >= 400 or "html" not in r.headers.get("Content-Type", "html").lower():
+                return {"img": "", "time": None}
+            buf, size = [], 0
+            for chunk in r.iter_content(16384):
+                buf.append(chunk)
+                size += len(chunk)
+                if size >= limit or b"</head>" in chunk.lower():
+                    break
+            page = b"".join(buf).decode(r.encoding or "utf-8", "ignore")
+            base = r.url
+    except Exception:
+        return {"img": "", "time": None}
+    head = page.split("</head>", 1)[0] if "</head>" in page else page
+    return {"img": image_in(head, base), "time": published_in(head, base)}
+
+
+def page_image(url, timeout=7, limit=400_000):
+    """The photo an article page shows when it is shared (its og:image), '' when it has none or cannot be read."""
+    return page_meta(url, timeout, limit)["img"]
 
 
 # ---------------------------------------------------------------- Google News links -> the publisher's link
@@ -464,12 +533,14 @@ def gn_decode(link, timeout=7):
     return ""
 
 
-def find_images(stories, budget=60, workers=8):
-    """{link: photo url} for the stories given (dicts with "link"), each looked up on its article page; Google News links
-    are turned into the publisher's link first. Never raises; stops waiting after `budget` seconds."""
+def find_meta(stories, budget=60, workers=8):
+    """{link: {"img": photo url or '', "time": published or None}} for the stories given (dicts with "link"), each read from
+    its article page; Google News links are turned into the publisher's link first. Never raises; stops waiting after `budget`
+    seconds. The feed's time for a Google News story is when Google saw it, which can be days after the article came out, so
+    the page's own date puts a story back on its day."""
     def one(link):
         url = gn_decode(link) if "news.google.com" in link else link
-        return link, page_image(url) if url else ""
+        return link, (page_meta(url) if url else {"img": "", "time": None})
     links = list(dict.fromkeys(s.get("link") or "" for s in stories if s.get("link")))
     if not links:
         return {}
@@ -480,11 +551,16 @@ def find_images(stories, budget=60, workers=8):
     out = {}
     for f in futs:
         if f.done() and not f.cancelled() and f.exception() is None:
-            link, img = f.result()
-            if img:
-                out[link] = img
+            link, meta = f.result()
+            if meta.get("img") or meta.get("time") is not None:
+                out[link] = meta
     return out
 
 
+def find_images(stories, budget=60, workers=8):
+    """{link: photo url} for the stories given (see find_meta)."""
+    return {k: v["img"] for k, v in find_meta(stories, budget, workers).items() if v.get("img")}
+
+
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.4.49"
+BUILD = "23.4.50"
