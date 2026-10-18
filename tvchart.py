@@ -51,25 +51,39 @@ def _dark():
 
 
 def widget_html(sym, height=560, interval="D"):
+    # a fixed pixel height, not "autosize": Streamlit's iframe opens 150px tall and iPhone Safari kept the widget at that size,
+    # its header and toolbars piled on the candles. The config is finished in the page, where the screen's width is known:
+    # on a phone the side drawing toolbar and the date-range bar give their room to the chart.
     cfg = {
-        "autosize": True, "symbol": tv_symbol(sym), "interval": interval, "timezone": "Asia/Riyadh" if str(sym).upper().endswith(".SR") else "America/New_York",
+        "width": "100%", "height": height, "symbol": tv_symbol(sym), "interval": interval,
+        "timezone": "Asia/Riyadh" if str(sym).upper().endswith(".SR") else "America/New_York",
         "theme": "dark" if _dark() else "light", "style": "1", "locale": "ar_AE" if is_ar() else "en",
         "backgroundColor": "rgba(26,22,36,1)" if _dark() else "rgba(255,255,255,1)",
         "gridColor": "rgba(157,151,165,0.10)" if _dark() else "rgba(60,50,80,0.08)",
         "allow_symbol_change": False, "hide_side_toolbar": False, "withdateranges": True, "details": False,
         "calendar": False, "support_host": "https://www.tradingview.com",
     }
-    return f"""<div class="tradingview-widget-container" style="height:{height}px;width:100%">
-<div class="tradingview-widget-container__widget" style="height:100%;width:100%"></div>
-<script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js" async>
-{json.dumps(cfg)}
-</script></div>
-<style>html,body{{margin:0;padding:0;background:transparent;overflow:hidden}}</style>"""
+    return f"""<div class="tradingview-widget-container" id="tvw" style="height:{height}px;min-height:{height}px;width:100%">
+<div class="tradingview-widget-container__widget" style="height:{height}px;width:100%"></div></div>
+<style>html,body{{margin:0;padding:0;background:transparent;overflow:hidden;height:{height}px}}</style>
+<script>
+(function(){{
+  var cfg = {json.dumps(cfg)};
+  if ((window.innerWidth || document.documentElement.clientWidth) < 600) {{
+    cfg.hide_side_toolbar = true; cfg.withdateranges = false; cfg.hide_legend = false;
+  }}
+  var sc = document.createElement('script');
+  sc.type = 'text/javascript'; sc.async = true;
+  sc.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
+  sc.innerHTML = JSON.stringify(cfg);
+  document.getElementById('tvw').appendChild(sc);
+}})();
+</script>"""
 
 
 def widget(sym, height=560, interval="D"):
     """TradingView's Advanced Chart for one symbol, the page's width (phones too), in the page's look and language."""
-    components.html(widget_html(sym, height, interval), height=height + 6)
+    components.html(widget_html(sym, height, interval), height=height + 4)
 
 
 @lru_cache(maxsize=1)

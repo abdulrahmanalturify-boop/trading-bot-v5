@@ -48,6 +48,8 @@ class CandlesTest(unittest.TestCase):
         self.assertNotIn("</script\n", h)
         w = TV.widget_html("2222.SR")
         self.assertIn('"symbol": "TADAWUL:2222"', w)
+        self.assertIn('"height": 560', w)
+        self.assertNotIn('"autosize"', w)
         self.assertIn("embed-widget-advanced-chart.js", w)
 
 
