@@ -63,12 +63,13 @@ def _clean_pegs(px):
     return out
 
 
-def _tile_prices():
-    return _clean_pegs(_tile_prices_raw())
+def _tile_prices(sa=None):
+    """sa: the market to fetch (None: the visitor's). Background work names it, since it runs outside any visitor's session."""
+    return _clean_pegs(_tile_prices_raw(MK.is_sa() if sa is None else sa))
 
 
-def _tile_prices_raw():
-    if MK.is_sa():
+def _tile_prices_raw(sa):
+    if sa:
         syms = [s for g in SA_TILES.values() for s in g]
         px = data.history_many(tuple(syms + SA_TAPE), "1mo")
         return data.with_quotes(px, ["^TASI.SR", "^NOMUC.SR"])      # the indices: Yahoo keeps only their live quote
@@ -1598,4 +1599,4 @@ def page_news():
     ui.foot()
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.4.41"
+BUILD = "23.4.49"

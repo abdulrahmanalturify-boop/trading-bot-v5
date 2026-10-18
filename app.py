@@ -13,7 +13,7 @@ import streamlit as st
 # ---------------------------------------------------------------- always run the newest code
 # Streamlit Cloud re-reads app.py after every GitHub upload but can keep the other modules (theme, data, ...) from the
 # previous version in memory. Every module carries BUILD; if one in memory is older, all of them are reloaded in order.
-BUILD = "23.4.41"
+BUILD = "23.4.49"
 _ORDER = ["terms", "lightmode", "i18n", "ai_assistant", "flags", "mcal", "mcal_sa", "markets", "tasi", "universe", "sp500", "taxonomy", "ta", "academy_visuals", "academy", "insight", "heatmap", "newsiq", "newspics", "newsai", "theme", "data",
           "caldata", "newsbot", "newsintel", "charts", "engine", "playbooks", "autotrader", "ui", "fairvalue", "segments", "holders", "sharia", "lab", "tdash", "mlbots", "brain", "account", "paperbots", "smartbots", "portfolio", "robobot", "robo", "pfinsight", "p_markets", "p_newsintel", "p_research", "p_insight",
           "p_academy", "p_paper", "p_portfolio", "p_robo", "p_calendar", "hunter", "p_scanner", "hunter_v3", "p_hunter_v3", "xbots", "p_xbots", "p_watchlist", "home", "warm", "p_heatmap", "p_overview", "diag"]
@@ -179,12 +179,17 @@ def _phone_lang():
     return "ar" if loc.strip().lower().startswith("ar") else "en"
 
 
+ss["_run_n"] = ss.get("_run_n", 0) + 1         # this run (the browser-storage frame is drawn once per run: counted before the
+#                                                language and the market both ask it, or the second ask draws it twice and loses the answer)
+
 # language: remembered in the session. A new visit starts from ?lang= (a link that says it), else from the language the visitor
 # picked on an earlier visit (kept in this browser, read a moment after the page opens), else the language of their phone.
 if ss.get("lang") not in ("en", "ar"):
     _ql = st.query_params.get("lang")
     if _ql in ("en", "ar"):
         ss.lang, ss["_lang_src"] = _ql, "link"
+    elif p_portfolio.stored("tura_lang") in ("en", "ar"):  # the cookie this browser sent with the page (on the site's own server)
+        ss.lang, ss["_lang_src"] = p_portfolio.stored("tura_lang"), "kept"
     else:
         ss.lang, ss["_lang_src"] = _phone_lang(), "phone"
 if ss.get("_lang_src") == "phone":
@@ -208,7 +213,6 @@ ss.setdefault("symbol", "AAPL")
 ss.setdefault("watchlist", ["SPY", "QQQ", "AAPL", "NVDA", "MSFT", "TSLA", "AMZN", "META", "GOOGL", "AMD"])
 ss.setdefault("watchlist_sa", ["2222.SR", "1120.SR", "1180.SR", "2010.SR", "7010.SR", "1211.SR", "2082.SR", "4013.SR"])
 ss.setdefault("acct", {"size": 10000, "risk": 1.0})
-ss["_run_n"] = ss.get("_run_n", 0) + 1         # this run (the browser-storage frame is drawn once per run)
 
 # market: the US market or the Saudi market (Tadawul). Remembered in the session; a new visit starts from ?m= (kept in the address
 # bar like ?lang=), else from what this browser keeps (the visitor's last choice), else the landing asks.
@@ -216,6 +220,8 @@ if ss.get("market") not in MK.CODES:
     _qm = st.query_params.get("m")
     if _qm in MK.CODES:
         ss.market = _qm
+    elif p_portfolio.stored("tura_mk") in MK.CODES:      # the cookie this browser sent with the page (on the site's own server)
+        ss.market = p_portfolio.stored("tura_mk")
     else:
         try:
             _got = p_portfolio.browser()             # None until the browser answers (the first moment of a visit)

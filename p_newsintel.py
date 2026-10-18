@@ -886,7 +886,7 @@ def _tab_stocks(a, chg):
                 name, sec, sub = inf_.get("shortName") or inf_.get("longName") or sym, sec or inf_.get("sector") or "", sub or inf_.get("industry") or ""
             c = chg.get(sym)
             secn = _secn(sec) if sec else ""
-            rows.append(f'<a class="nx-row" href="stock?symbol={T.esc(sym)}" target="_self">{T.logo_obj(sym, 36)}'
+            rows.append(f'<a class="nx-row" href="{T.esc(ui.href(sym))}" target="_self">{T.logo_obj(sym, 36)}'
                         f'<div style="min-width:0"><div class="tk" dir="auto">{T.esc(T.sym_label(sym))}</div><div class="nm" dir="auto">{T.esc(T.name_line(sym, name))}</div></div>'
                         f'<span class="nx-badge {cls}">{T.esc(kind)}</span>'
                         f'<div class="sc">{T.esc(secn)}<span>{T.esc(_subn(sym, sub))}</span></div>{T.pill(c[1] if c else None)}</a>')
@@ -1749,4 +1749,4 @@ def page_news_intel():
             _show_story(a, chg, px, titles_ar)
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.4.41"
+BUILD = "23.4.49"
