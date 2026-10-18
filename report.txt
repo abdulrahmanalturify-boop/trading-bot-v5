@@ -1,0 +1,12 @@
+address: http://84.13.143.157
+health: 200 in 0.380601s
+health: 200 in 0.393340s
+health: 200 in 0.398784s
+home page: 200 in 0.421054s
+diag: drawn in 94.1s
+diag: Stop
+desk_home: drawn in 17.7s
+desk_home_us: drawn in 16.2s
+desk_news: drawn in 15.6s
+smart reading: auto_awesome القراءة الذكية · كل خبر يُقرأ بسياقه لـالسوق السعودي 280/280 مقروء 127 مستبعد: ما له علاقة
+phone_home: drawn in 9.8s
