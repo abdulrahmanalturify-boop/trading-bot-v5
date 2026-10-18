@@ -6,8 +6,8 @@ At every month-end from 2013, for each of today's S&P 500 members:
   * the four price factors Hunter V3 ranks by (momentum, trend, low risk, short-term reversal), from hunter_v3.features_for,
   * value (earnings, book and operating cash-flow yields) and financial quality (ROE, gross profitability, low leverage,
     low accruals) from the SEC company facts KNOWN ON THAT DAY (fundamentals.as_of: a fact counts from its filing date),
-each as a percentile among the stocks that day; the outcome is the stock's return over SPY in the next 20 sessions
-(the label hunter_v3 trains on). Every factor and blend gets its monthly rank IC (Spearman), t-stat, hit rate, and the
+plus classic 12-1 momentum (the year's return over SPY, skipping the last month), each as a percentile among the stocks that
+day; the outcome is the stock's return over SPY in the next 20, 60 and 120 sessions (20 is the label hunter_v3 trains on). Every factor and blend gets its monthly rank IC (Spearman), t-stat, hit rate, and the
 top-fifth minus bottom-fifth spread, on 2013-2019 (training) and 2020 on (testing) separately.
 
 The decision is fixed before the run (DECISION below): the weights come only from the training years, and the blend
@@ -36,11 +36,14 @@ START, TRAIN_END, DOWNLOAD_FROM = "2013-01-01", "2019-12-31", "2011-06-01"
 OUT_JSON = ROOT / "research" / "results" / "factor_test.json"
 OUT_MD = ROOT / "research" / "results" / "factor_test.md"
 MIN_NAMES = 50                                      # a month needs this many stocks with a value to count
-PRICE_FEATURES = sorted({c for _, cols, _ in V3.FACTORS for c, _ in cols})
+HORIZONS = (20, 60, 120)                            # sessions ahead: about one, three and six months
+PRICE_FEATURES = sorted({c for _, cols, _ in V3.FACTORS for c, _ in cols}) + ["mom_12_1"]
 GROUPS = {name: cols for name, cols, _ in V3.FACTORS}
+GROUPS["Momentum 12-1"] = (("mom_12_1", 1),)        # the classic one: the year's return over the index, skipping the last month
 GROUPS["Value"] = tuple((c, 1) for c in F.VALUE)
 GROUPS["Quality"] = tuple((c, 1) for c in F.QUALITY)
-DECISION = ("Candidates: the current V3 blend (four price factors, 35/25/25/15), all six groups equally weighted, and an "
+DECISION = ("For each horizon: candidates are the current V3 blend (four price factors, 35/25/25/15), all seven groups "
+            "(the four, classic 12-1 momentum, value, quality) equally weighted, and an "
             "IC-weighted blend (weights proportional to each group's training-years mean IC, zero when it is not positive). "
             "Chosen: the candidate with the highest testing-years mean IC whose testing t-stat is at least 2; if none reaches 2, "
             "the highest testing IC, flagged as weak. A group whose training IC is not positive gets no weight.")
@@ -101,12 +104,16 @@ def panel(prices, facts):
     spy = prices["SPY"]
     days = spy.index[spy.index >= pd.Timestamp(START)]
     ends = pd.Series(days, index=days).groupby([days.year, days.month]).last().tolist()
-    ends = [d for d in ends if spy.index.get_loc(d) + V3.HORIZON < len(spy)]        # the outcome must be known
+    ends = [d for d in ends if spy.index.get_loc(d) + min(HORIZONS) < len(spy)]     # an outcome must be known
+    b = spy["Close"]
     rows = []
     for s, d in prices.items():
         if s == "SPY":
             continue
         x, y = V3.features_for(d, spy)
+        c, bb = d["Close"], b.reindex(d.index, method="ffill", limit=3)
+        x["mom_12_1"] = (c.shift(21) / c.shift(252) - 1) - (bb.shift(21) / bb.shift(252) - 1)
+        fwd = {h: (c.shift(-h) / c - 1) - (bb.shift(-h) / bb - 1) for h in HORIZONS}     # known only h sessions later
         sector = SP500.get(s, ("", "", ""))[1]
         f = facts.get(s)
         fund = dict(zip(sorted(ends), F.known(f, sorted(ends)))) if f else {}
@@ -114,6 +121,7 @@ def panel(prices, facts):
             if e not in x.index or not np.isfinite(y.get(e, np.nan)):
                 continue
             r = {"date": e, "symbol": s, "sector": sector, "label": float(y[e])}
+            r.update({f"label_{h}": float(fwd[h].get(e, np.nan)) for h in HORIZONS})
             r.update({c: float(x.at[e, c]) for c in PRICE_FEATURES})
             if f:
                 m = fund[e]
@@ -152,10 +160,12 @@ def scores(p):
 
 
 # ---------------------------------------------------------------- the measures
-def measure(s, col):
+def measure(s, col, label="label_20", h=20):
+    """Monthly rank IC and spread. With an outcome longer than a month the monthly samples overlap, so the t-stat counts
+    n * 21 / h independent months instead of n."""
     ics, spreads = [], []
     for _, g in s.groupby("date"):
-        g = g[[col, "label"]].dropna()
+        g = g[[col, label]].dropna().rename(columns={label: "label"})
         if len(g) < MIN_NAMES or g[col].nunique() < 5:
             continue
         ics.append(g[col].rank().corr(g["label"].rank()))
@@ -165,16 +175,52 @@ def measure(s, col):
     n = len(ics)
     if n < 6:
         return {"months": n}
-    sd = ics.std(ddof=1)
-    return {"months": n, "ic": round(float(ics.mean()), 4), "t": round(float(ics.mean() / sd * np.sqrt(n)), 2) if sd > 0 else None,
+    sd, eff = ics.std(ddof=1), n * min(1.0, 21 / h)
+    per_year = 252 / h                                # non-overlapping periods a year, for the spread's Sharpe
+    return {"months": n, "ic": round(float(ics.mean()), 4), "t": round(float(ics.mean() / sd * np.sqrt(eff)), 2) if sd > 0 else None,
             "hit": round(float((ics > 0).mean()), 3), "spread_pct": round(100 * float(spreads.mean()), 3),
-            "ls_sharpe": round(float(spreads.mean() / spreads.std(ddof=1) * np.sqrt(12)), 2) if spreads.std(ddof=1) > 0 else None}
+            "ls_sharpe": round(float(spreads.mean() / spreads.std(ddof=1) * np.sqrt(per_year)), 2) if spreads.std(ddof=1) > 0 else None}
 
 
 def blend(s, weights):
     w = {k: v for k, v in weights.items() if v > 0}
     tot = sum(w.values())
     return sum(v * s[k].fillna(50.0) for k, v in w.items()) / tot
+
+
+def evaluate(s, h):
+    """Every factor and blend against the outcome h sessions ahead, and the pre-declared choice."""
+    lab = f"label_{h}"
+    train, test = s[s["date"] <= TRAIN_END], s[s["date"] > TRAIN_END]
+    cols = list(GROUPS) + ["Value (in sector)", "Quality (in sector)"] + ["f:" + c for c in PRICE_FEATURES + list(F.VALUE + F.QUALITY)]
+    single = {c: {"train": measure(train, c, lab, h), "test": measure(test, c, lab, h)} for c in cols}
+    # value and quality: whichever form (raw or within the sector) did better in the training years
+    use = {}
+    for g in ("Value", "Quality"):
+        a, b = single[g]["train"].get("ic", -1), single[g + " (in sector)"]["train"].get("ic", -1)
+        use[g] = g + " (in sector)" if b > a else g
+    seven = ["Q Momentum", "Q Trend", "Q Low Risk", "Q Reversal", "Momentum 12-1", use["Value"], use["Quality"]]
+    ic_w = {k: max(single[k]["train"].get("ic", 0) or 0, 0) for k in seven}
+    cands = {
+        "current V3 (price only)": {name: w for name, _, w in V3.FACTORS},
+        "seven groups, equal": {k: 1.0 for k in seven},
+        "seven groups, IC-weighted": ic_w,
+        "value + quality only": {use["Value"]: 1.0, use["Quality"]: 1.0},
+    }
+    blends = {}
+    for name, w in cands.items():
+        if sum(v for v in w.values() if v > 0) <= 0:
+            continue
+        s["blend"] = blend(s, w)
+        tr, te = s[s["date"] <= TRAIN_END], s[s["date"] > TRAIN_END]
+        tot = sum(v for v in w.values() if v > 0)
+        blends[name] = {"weights": {k: round(v / tot, 3) for k, v in w.items() if v > 0},
+                        "train": measure(tr, "blend", lab, h), "test": measure(te, "blend", lab, h)}
+    eligible = [k for k in ("current V3 (price only)", "seven groups, equal", "seven groups, IC-weighted") if k in blends]
+    strong = [k for k in eligible if (blends[k]["test"].get("t") or 0) >= 2]
+    chosen = max(strong or eligible, key=lambda k: blends[k]["test"].get("ic", -9))
+    return {"value_form": use["Value"], "quality_form": use["Quality"], "single": single, "blends": blends,
+            "chosen": chosen, "chosen_weights": blends[chosen]["weights"], "chosen_is_weak": not strong}
 
 
 def run():
@@ -187,44 +233,13 @@ def run():
     print(f"  {len(facts)} with facts, {len(missing)} without ({time.time() - t0:.0f}s); the panel...", flush=True)
     p = panel(prices, facts)
     s = scores(p)
-    train, test = s[s["date"] <= TRAIN_END], s[s["date"] > TRAIN_END]
-    cols = list(GROUPS) + ["Value (in sector)", "Quality (in sector)"] + ["f:" + c for c in PRICE_FEATURES + list(F.VALUE + F.QUALITY)]
-    single = {c: {"train": measure(train, c), "test": measure(test, c), "all": measure(s, c)} for c in cols}
-
-    # value and quality: whichever form (raw or within the sector) did better in the training years
-    use = {}
-    for g in ("Value", "Quality"):
-        a, b = single[g]["train"].get("ic", -1), single[g + " (in sector)"]["train"].get("ic", -1)
-        use[g] = g + " (in sector)" if b > a else g
-    six = ["Q Momentum", "Q Trend", "Q Low Risk", "Q Reversal", use["Value"], use["Quality"]]
-    ic_w = {k: max(single[k]["train"].get("ic", 0) or 0, 0) for k in six}
-    cands = {
-        "current V3 (price only)": {name: w for name, _, w in V3.FACTORS},
-        "six groups, equal": {k: 1.0 for k in six},
-        "six groups, IC-weighted": ic_w,
-        "value + quality only": {use["Value"]: 1.0, use["Quality"]: 1.0},
-    }
-    blends = {}
-    for name, w in cands.items():
-        if sum(v for v in w.values() if v > 0) <= 0:
-            continue
-        s["blend"] = blend(s, w)
-        tr, te = s[s["date"] <= TRAIN_END], s[s["date"] > TRAIN_END]
-        tot = sum(v for v in w.values() if v > 0)
-        blends[name] = {"weights": {k: round(v / tot, 3) for k, v in w.items() if v > 0},
-                        "train": measure(tr, "blend"), "test": measure(te, "blend"), "all": measure(s, "blend")}
-    eligible = [k for k in ("current V3 (price only)", "six groups, equal", "six groups, IC-weighted") if k in blends]
-    strong = [k for k in eligible if (blends[k]["test"].get("t") or 0) >= 2]
-    pool = strong or eligible
-    chosen = max(pool, key=lambda k: blends[k]["test"].get("ic", -9))
+    per = {h: evaluate(s, h) for h in HORIZONS}
     cover = (p.assign(year=p["date"].dt.year).groupby("year")[["ep", "roe"]].apply(lambda g: g.notna().mean()).round(3)
              .reset_index().to_dict("records"))
     res = {"run": time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime()), "universe": len(prices) - 1, "with_facts": len(facts),
            "missing_facts": missing, "months": int(s["date"].nunique()), "rows": int(len(s)),
            "train": f"{START} .. {TRAIN_END}", "test": f"after {TRAIN_END} .. {str(s['date'].max().date())}",
-           "decision_rule": DECISION, "value_form": use["Value"], "quality_form": use["Quality"],
-           "single": single, "blends": blends, "chosen": chosen, "chosen_weights": blends[chosen]["weights"],
-           "chosen_is_weak": not strong, "coverage_by_year": cover,
+           "decision_rule": DECISION, "horizons": per, "coverage_by_year": cover,
            "limits": "Today's S&P 500 members only (survivorship bias), no costs, monthly snapshots, Yahoo adjusted prices."}
     OUT_JSON.parent.mkdir(parents=True, exist_ok=True)
     OUT_JSON.write_text(json.dumps(res, indent=1, default=str))
@@ -237,16 +252,22 @@ def report(r):
     def row(name, m):
         f = lambda k: "—" if m.get(k) is None else m[k]
         return f"| {name} | {f('ic')} | {f('t')} | {f('hit')} | {f('spread_pct')} | {f('ls_sharpe')} | {m.get('months', 0)} |"
-    head = "| | mean IC | t | IC > 0 | top-bottom fifth, % / 20 sessions | long-short Sharpe | months |\n|---|---|---|---|---|---|---|"
     out = [f"# Factor test, S&P 500 ({r['run']})", "",
            f"{r['universe']} stocks with prices, {r['with_facts']} with SEC facts, {r['months']} month-ends, {r['rows']:,} stock-months. "
-           f"Training {r['train']}, testing {r['test']}.", "", f"**Decision rule (fixed before the run):** {r['decision_rule']}", "",
-           f"**Chosen: {r['chosen']}**{' (weak: no candidate reached t ≥ 2 in the testing years)' if r['chosen_is_weak'] else ''} · "
-           f"weights {r['chosen_weights']}", "", f"Value as {r['value_form']}, quality as {r['quality_form']} (picked on the training years).", ""]
-    for part in ("train", "test"):
-        out += [f"## Blends · {part}", "", head] + [row(k, v[part]) for k, v in r["blends"].items()] + [""]
-    for part in ("train", "test"):
-        out += [f"## Factors · {part}", "", head] + [row(k, v[part]) for k, v in r["single"].items()] + [""]
+           f"Training {r['train']}, testing {r['test']}.", "", f"**Decision rule (fixed before the run):** {r['decision_rule']}", ""]
+    out += ["| horizon | chosen | weak? | testing IC | testing t | weights |", "|---|---|---|---|---|---|"]
+    for h, v in r["horizons"].items():
+        te = v["blends"][v["chosen"]]["test"]
+        out.append(f"| {h} sessions | {v['chosen']} | {'yes' if v['chosen_is_weak'] else 'no'} | {te.get('ic')} | {te.get('t')} | {v['chosen_weights']} |")
+    out.append("")
+    for h, v in r["horizons"].items():
+        head = (f"| | mean IC | t (overlap-adjusted) | IC > 0 | top-bottom fifth, % / {h} sessions | long-short Sharpe | months |\n"
+                "|---|---|---|---|---|---|---|")
+        out += [f"# Horizon: {h} sessions", "", f"Value as {v['value_form']}, quality as {v['quality_form']} (picked on the training years).", ""]
+        for part in ("train", "test"):
+            out += [f"## Blends · {part} · {h} sessions", "", head] + [row(k, x[part]) for k, x in v["blends"].items()] + [""]
+        for part in ("train", "test"):
+            out += [f"## Factors · {part} · {h} sessions", "", head] + [row(k, x[part]) for k, x in v["single"].items()] + [""]
     out += ["## Coverage of the SEC facts (share of stock-months with a value)", "", "| year | earnings yield | ROE |", "|---|---|---|"]
     out += [f"| {c['year']} | {c['ep']} | {c['roe']} |" for c in r["coverage_by_year"]]
     out += ["", "Rows starting f: are single inputs as raw percentiles (higher value = higher score), so a negative IC there "
