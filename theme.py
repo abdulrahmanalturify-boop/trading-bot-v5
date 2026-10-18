@@ -726,7 +726,7 @@ a.tkt .bar {{ position:absolute; inset-inline-start:0; bottom:0; height:3px; bor
 .ncov li a {{ color:#E7E3EB !important; text-decoration:none !important; font-size:.86rem; font-weight:550; line-height:1.45; }}
 .ncov li a:hover {{ color:#79B8F4 !important; }}
 .ncov li span {{ flex:none; color:{MUTED}; font-size:.74rem; white-space:nowrap; }}
-@media (max-width: 640px) {{ .ncov li {{ flex-direction:column; gap:2px; }} }}
+@media (max-width: 640px) {{ .ncov li {{ flex-direction:column; gap:2px; align-items:flex-start; }} }}   /* an English title in an Arabic drawer starts at the right edge too */
 .news a.t {{ color:{TEXT}; text-decoration:none; font-weight:600; font-size:1rem; line-height:1.65; }}
 .news a.t:hover {{ color:#79B8F4; }}
 .news .meta {{ color:{MUTED}; font-size:.78rem; margin-top:4px; }}
@@ -3389,7 +3389,7 @@ def coverage(n, ui_ar=False, titles=None):
     k = len(more)
     lab = (f"تغطية كاملة · {k} {'خبر آخر' if k == 1 else 'أخبار أخرى'} عن نفس الحدث" if ui_ar else
            f"Full coverage · {k} more {'story' if k == 1 else 'stories'} on this")
-    return (f'<details class="ncov"><summary>{icon("stacks")}<span>{esc(lab)}</span>{icon("expand_more")}</summary>'
+    return (f'<details class="ncov" dir="{"rtl" if ui_ar else "ltr"}"><summary>{icon("stacks")}<span>{esc(lab)}</span>{icon("expand_more")}</summary>'
             f'<ul>{rows}</ul></details>')
 
 
@@ -3403,7 +3403,7 @@ def related_drawer(rel, ui_ar=False, titles=None):
                    f'<span>{esc(m.get("source") or "")} · {time_ago(m.get("time"), ui_ar)}</span></li>' for m in rel[:6])
     k = len(rel)
     lab = (f"مرتبط بهذا الحدث · {k} {'خبر' if k == 1 else 'أخبار'}" if ui_ar else f"Linked to this event · {k} {'story' if k == 1 else 'stories'}")
-    return (f'<details class="ncov nrel"><summary>{icon("hub")}<span>{esc(lab)}</span>{icon("expand_more")}</summary>'
+    return (f'<details class="ncov nrel" dir="{"rtl" if ui_ar else "ltr"}"><summary>{icon("hub")}<span>{esc(lab)}</span>{icon("expand_more")}</summary>'
             f'<ul>{rows}</ul></details>')
 
 
@@ -3414,7 +3414,8 @@ def ai_line(iq, ui_ar=False):
     if not txt:
         return ""
     lab = "قراءة البوت" if ui_ar else "Bot's reading"
-    return f'<div class="nwhy" dir="auto">{icon("auto_awesome")}<b>{lab}:</b> <span>{esc(txt)}</span></div>'
+    # the direction is said outright: dir="auto" read the icon's ligature name (Latin letters) and laid the Arabic line out left to right
+    return f'<div class="nwhy" dir="{"rtl" if ui_ar else "ltr"}">{icon("auto_awesome")}<b>{lab}:</b> <span>{esc(txt)}</span></div>'
 
 
 def news_card(n, title, summary, chips="", aff_label="", ar=False, tag=None, iq=None, ui_ar=None, cov_titles=None, foot=False, related=None):
@@ -3712,4 +3713,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.4.50"
+BUILD = "23.4.51"
