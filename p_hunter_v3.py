@@ -609,7 +609,9 @@ def methodology():
         "trained only on outcomes already known, with a purged chronological holdout; if it does not beat its baseline there it is switched "
         "off. With the model on, the rank is half the forecast's percentile and half the quant score; with it off, the quant score alone. "
         "A data risk flag (stale data, extreme volatility, illiquid) caps it at 49. The factor weights are fixed, not fitted, and this "
-        "ranking has not been shown to beat the hunter out of sample. The hunter's score, setups and levels stay on the page for information "
+        "ranking has not been shown to beat the hunter out of sample. Measured on today's S&P 500 members from 2013 (training "
+        "2013-2019, testing 2020 on), none of these factors, nor value or financial quality from SEC filings, ranked stocks reliably "
+        "over the next 20, 60 or 120 sessions; treat the rank as a research view, not a forecast. The hunter's score, setups and levels stay on the page for information "
         "only. No future return or win probability is guaranteed.",
         "<b>الترتيب كمي بالكامل.</b> لكل سهم مفحوص تُقاس أربعة عوامل من أسعاره اليومية ومن المؤشر: <b>الزخم</b> (عائده الزائد على المؤشر "
         "خلال شهر و3 أشهر، 35%)، و<b>الاتجاه</b> (بعده عن متوسط 100 يوم والفرق بين متوسطي 20 و50 يوم، 25%)، و<b>انخفاض المخاطر</b> "
@@ -618,6 +620,9 @@ def methodology():
         "خلال 20 جلسة، ويتدرب على نتائج معلومة فقط مع فصل زمني واختبار تحقق مستقل، ويُعطّل إذا ما تفوق على مرجعه. إذا كان النموذج شغّالًا "
         "فالترتيب نصفه ترتيب التوقع ونصفه التقييم الكمي، وإذا تعطّل فالتقييم الكمي وحده. تحذير البيانات (بيانات قديمة، تذبذب شديد، سيولة "
         "ضعيفة) يحدّه عند 49. أوزان العوامل ثابتة وليست مُدرّبة، ولم يثبت بعد أن هذا الترتيب يتفوق على الصياد الأول في اختبار خارج العينة. "
+        "وفي اختبار على أسهم إس آند بي 500 الحالية من 2013 (التدريب حتى 2019، والاختبار من 2020)، ما رتّب أي عامل من هذه "
+        "العوامل، ولا القيمة ولا الجودة المالية من تقارير الشركات، الأسهم بشكل يعتمد عليه خلال 20 أو 60 أو 120 جلسة؛ فتعامل مع "
+        "الترتيب كرأي بحثي وليس توقعًا. "
         "تقييم الصياد وفرصه ومستوياته باقية في الصفحة للاطلاع فقط. ما فيه ضمان للعائد أو دقة التنبؤ.") + "</div>")
     st.caption(L("Stop prices may gap through. Prices may be delayed. No auto orders, derivatives or leverage.",
                  "قد ينفذ وقف الخسارة بسعر أسوأ عند وجود فجوة. الأسعار قد تتأخر، ولا يوجد تداول فعلي أو مشتقات أو رافعة."))
@@ -709,4 +714,4 @@ def page_hunter_v3():
 
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.4.47"
+BUILD = "23.4.48"
