@@ -312,6 +312,7 @@ XBSUM_CSS = f"""<style>
 .xbsum {{ padding:14px 14px 12px; border-radius:18px; background:{T.BOX_BG}; border:1px solid {T.BORDER}; box-shadow:0 10px 24px -18px rgba(0,0,0,.6); }}
 .xbsum .h {{ display:flex; align-items:center; gap:8px; font-size:13px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:#C9C4D3; margin-bottom:6px; }}
 .xbsum .h .ms {{ font-size:18px; }}
+.xbsum .h .title {{ display:inline-block; white-space:nowrap; }}
 .xbsum .h svg.xlg {{ width:18px; height:18px; margin:0; flex:none; }}
 .xbsum .h small {{ margin-inline-start:auto; font-weight:600; letter-spacing:0; text-transform:none; color:#8F899B; font-size:.72rem; }}
 .xbsum .r {{ display:grid; grid-template-columns:36px minmax(0,1fr) 48px 92px; gap:10px; align-items:center; padding:9px 0; border-top:1px solid {T.BORDER}; }}
@@ -345,11 +346,11 @@ def summary_html(mk, states=None):
         rows += (f'<div class="r" style="--xc:{b["color"]}"><span class="ic">{T.icon(b["icon"])}</span>'
                  f'<span class="nm"><b>{T.esc(L(*b["name"]))}</b><span>{T.esc(L(*b["beat"]))}</span></span>'
                  f'<span class="gg">{_gauge(m, col, 48)}</span><span class="md"><b style="color:{col}">{"—" if m is None else f"{m:+.0f}"}</b><span>{T.esc(word)}</span></span></div>')
-    head = L("X Bots · the mood on X", "بوتات X · المزاج على X")
+    head = L("Mood on X", "المزاج على X")
     sub = L("Mood · 6 h", "المزاج · 6 ساعات")
     foot = (L(f"Last read {_when(last)}", f"آخر قراءة {_when(last)}") if last else
             L("The first read comes in the market's next hour", "أول قراءة في أول ساعة من يوم السوق"))
-    return (f'{XBSUM_CSS}<div class="xbsum" data-nogq><div class="h">{T.xlogo()}{T.xify(head)}<small>{T.esc(sub)}</small></div>'
+    return (f'{XBSUM_CSS}<div class="xbsum" data-nogq><div class="h"><span class="title" dir="auto">{T.xify(head)}</span><small>{T.esc(sub)}</small></div>'
             f'{rows}<div class="ft"><i></i>{T.esc(foot)}</div></div>')
 
 
