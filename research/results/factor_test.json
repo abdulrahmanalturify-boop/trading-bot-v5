@@ -1,0 +1,796 @@
+{
+ "run": "2026-10-18 13:00 UTC",
+ "universe": 498,
+ "with_facts": 498,
+ "missing_facts": [],
+ "months": 164,
+ "rows": 78313,
+ "train": "2013-01-01 .. 2019-12-31",
+ "test": "after 2019-12-31 .. 2026-08-31",
+ "decision_rule": "Candidates: the current V3 blend (four price factors, 35/25/25/15), all six groups equally weighted, and an IC-weighted blend (weights proportional to each group's training-years mean IC, zero when it is not positive). Chosen: the candidate with the highest testing-years mean IC whose testing t-stat is at least 2; if none reaches 2, the highest testing IC, flagged as weak. A group whose training IC is not positive gets no weight.",
+ "value_form": "Value (in sector)",
+ "quality_form": "Quality",
+ "single": {
+  "Q Momentum": {
+   "train": {
+    "months": 84,
+    "ic": -0.0296,
+    "t": -1.74,
+    "hit": 0.464,
+    "spread_pct": -0.484,
+    "ls_sharpe": -0.63
+   },
+   "test": {
+    "months": 80,
+    "ic": 0.0105,
+    "t": 0.52,
+    "hit": 0.55,
+    "spread_pct": 0.319,
+    "ls_sharpe": 0.22
+   },
+   "all": {
+    "months": 164,
+    "ic": -0.0101,
+    "t": -0.77,
+    "hit": 0.506,
+    "spread_pct": -0.092,
+    "ls_sharpe": -0.08
+   }
+  },
+  "Q Trend": {
+   "train": {
+    "months": 84,
+    "ic": -0.0267,
+    "t": -1.54,
+    "hit": 0.452,
+    "spread_pct": -0.423,
+    "ls_sharpe": -0.53
+   },
+   "test": {
+    "months": 80,
+    "ic": 0.0071,
+    "t": 0.34,
+    "hit": 0.575,
+    "spread_pct": 0.164,
+    "ls_sharpe": 0.11
+   },
+   "all": {
+    "months": 164,
+    "ic": -0.0102,
+    "t": -0.76,
+    "hit": 0.512,
+    "spread_pct": -0.137,
+    "ls_sharpe": -0.11
+   }
+  },
+  "Q Low Risk": {
+   "train": {
+    "months": 84,
+    "ic": -0.0285,
+    "t": -1.38,
+    "hit": 0.488,
+    "spread_pct": -0.716,
+    "ls_sharpe": -0.7
+   },
+   "test": {
+    "months": 80,
+    "ic": -0.0296,
+    "t": -1.16,
+    "hit": 0.463,
+    "spread_pct": -1.553,
+    "ls_sharpe": -0.85
+   },
+   "all": {
+    "months": 164,
+    "ic": -0.029,
+    "t": -1.78,
+    "hit": 0.476,
+    "spread_pct": -1.124,
+    "ls_sharpe": -0.77
+   }
+  },
+  "Q Reversal": {
+   "train": {
+    "months": 84,
+    "ic": 0.0147,
+    "t": 1.03,
+    "hit": 0.56,
+    "spread_pct": 0.137,
+    "ls_sharpe": 0.21
+   },
+   "test": {
+    "months": 80,
+    "ic": -0.0044,
+    "t": -0.24,
+    "hit": 0.463,
+    "spread_pct": -0.159,
+    "ls_sharpe": -0.11
+   },
+   "all": {
+    "months": 164,
+    "ic": 0.0054,
+    "t": 0.47,
+    "hit": 0.512,
+    "spread_pct": -0.008,
+    "ls_sharpe": -0.01
+   }
+  },
+  "Value": {
+   "train": {
+    "months": 84,
+    "ic": -0.0194,
+    "t": -1.09,
+    "hit": 0.417,
+    "spread_pct": -0.493,
+    "ls_sharpe": -0.59
+   },
+   "test": {
+    "months": 80,
+    "ic": 0.0113,
+    "t": 0.53,
+    "hit": 0.525,
+    "spread_pct": -0.046,
+    "ls_sharpe": -0.03
+   },
+   "all": {
+    "months": 164,
+    "ic": -0.0044,
+    "t": -0.32,
+    "hit": 0.47,
+    "spread_pct": -0.275,
+    "ls_sharpe": -0.23
+   }
+  },
+  "Quality": {
+   "train": {
+    "months": 84,
+    "ic": 0.0076,
+    "t": 0.75,
+    "hit": 0.548,
+    "spread_pct": 0.12,
+    "ls_sharpe": 0.24
+   },
+   "test": {
+    "months": 80,
+    "ic": -0.0035,
+    "t": -0.25,
+    "hit": 0.425,
+    "spread_pct": -0.044,
+    "ls_sharpe": -0.05
+   },
+   "all": {
+    "months": 164,
+    "ic": 0.0022,
+    "t": 0.26,
+    "hit": 0.488,
+    "spread_pct": 0.04,
+    "ls_sharpe": 0.06
+   }
+  },
+  "Value (in sector)": {
+   "train": {
+    "months": 84,
+    "ic": -0.0176,
+    "t": -1.15,
+    "hit": 0.464,
+    "spread_pct": -0.38,
+    "ls_sharpe": -0.56
+   },
+   "test": {
+    "months": 80,
+    "ic": 0.0105,
+    "t": 0.6,
+    "hit": 0.512,
+    "spread_pct": 0.187,
+    "ls_sharpe": 0.16
+   },
+   "all": {
+    "months": 164,
+    "ic": -0.0039,
+    "t": -0.34,
+    "hit": 0.488,
+    "spread_pct": -0.104,
+    "ls_sharpe": -0.11
+   }
+  },
+  "Quality (in sector)": {
+   "train": {
+    "months": 84,
+    "ic": 0.0007,
+    "t": 0.08,
+    "hit": 0.464,
+    "spread_pct": 0.024,
+    "ls_sharpe": 0.05
+   },
+   "test": {
+    "months": 80,
+    "ic": -0.0093,
+    "t": -0.82,
+    "hit": 0.4,
+    "spread_pct": -0.364,
+    "ls_sharpe": -0.47
+   },
+   "all": {
+    "months": 164,
+    "ic": -0.0042,
+    "t": -0.56,
+    "hit": 0.433,
+    "spread_pct": -0.165,
+    "ls_sharpe": -0.25
+   }
+  },
+  "f:drawdown_63": {
+   "train": {
+    "months": 84,
+    "ic": -0.0382,
+    "t": -2.17,
+    "hit": 0.429,
+    "spread_pct": -0.832,
+    "ls_sharpe": -1.04
+   },
+   "test": {
+    "months": 80,
+    "ic": -0.0121,
+    "t": -0.59,
+    "hit": 0.487,
+    "spread_pct": -0.74,
+    "ls_sharpe": -0.49
+   },
+   "all": {
+    "months": 164,
+    "ic": -0.0255,
+    "t": -1.88,
+    "hit": 0.457,
+    "spread_pct": -0.787,
+    "ls_sharpe": -0.66
+   }
+  },
+  "f:ema_diff": {
+   "train": {
+    "months": 84,
+    "ic": -0.0252,
+    "t": -1.45,
+    "hit": 0.44,
+    "spread_pct": -0.432,
+    "ls_sharpe": -0.54
+   },
+   "test": {
+    "months": 80,
+    "ic": 0.0068,
+    "t": 0.33,
+    "hit": 0.575,
+    "spread_pct": 0.168,
+    "ls_sharpe": 0.11
+   },
+   "all": {
+    "months": 164,
+    "ic": -0.0096,
+    "t": -0.71,
+    "hit": 0.506,
+    "spread_pct": -0.139,
+    "ls_sharpe": -0.12
+   }
+  },
+  "f:excess_21": {
+   "train": {
+    "months": 84,
+    "ic": -0.0338,
+    "t": -2.14,
+    "hit": 0.44,
+    "spread_pct": -0.418,
+    "ls_sharpe": -0.61
+   },
+   "test": {
+    "months": 80,
+    "ic": 0.0206,
+    "t": 1.11,
+    "hit": 0.562,
+    "spread_pct": 0.489,
+    "ls_sharpe": 0.38
+   },
+   "all": {
+    "months": 164,
+    "ic": -0.0072,
+    "t": -0.59,
+    "hit": 0.5,
+    "spread_pct": 0.025,
+    "ls_sharpe": 0.02
+   }
+  },
+  "f:excess_63": {
+   "train": {
+    "months": 84,
+    "ic": -0.0191,
+    "t": -1.09,
+    "hit": 0.464,
+    "spread_pct": -0.346,
+    "ls_sharpe": -0.42
+   },
+   "test": {
+    "months": 80,
+    "ic": -0.004,
+    "t": -0.19,
+    "hit": 0.562,
+    "spread_pct": 0.019,
+    "ls_sharpe": 0.01
+   },
+   "all": {
+    "months": 164,
+    "ic": -0.0117,
+    "t": -0.85,
+    "hit": 0.512,
+    "spread_pct": -0.168,
+    "ls_sharpe": -0.14
+   }
+  },
+  "f:reversal_5": {
+   "train": {
+    "months": 84,
+    "ic": 0.0147,
+    "t": 1.03,
+    "hit": 0.56,
+    "spread_pct": 0.137,
+    "ls_sharpe": 0.21
+   },
+   "test": {
+    "months": 80,
+    "ic": -0.0044,
+    "t": -0.24,
+    "hit": 0.463,
+    "spread_pct": -0.159,
+    "ls_sharpe": -0.11
+   },
+   "all": {
+    "months": 164,
+    "ic": 0.0054,
+    "t": 0.47,
+    "hit": 0.512,
+    "spread_pct": -0.008,
+    "ls_sharpe": -0.01
+   }
+  },
+  "f:trend_100": {
+   "train": {
+    "months": 84,
+    "ic": -0.0272,
+    "t": -1.58,
+    "hit": 0.44,
+    "spread_pct": -0.396,
+    "ls_sharpe": -0.5
+   },
+   "test": {
+    "months": 80,
+    "ic": 0.0072,
+    "t": 0.35,
+    "hit": 0.575,
+    "spread_pct": 0.26,
+    "ls_sharpe": 0.17
+   },
+   "all": {
+    "months": 164,
+    "ic": -0.0105,
+    "t": -0.78,
+    "hit": 0.506,
+    "spread_pct": -0.076,
+    "ls_sharpe": -0.06
+   }
+  },
+  "f:vol_20": {
+   "train": {
+    "months": 84,
+    "ic": 0.0123,
+    "t": 0.61,
+    "hit": 0.464,
+    "spread_pct": 0.476,
+    "ls_sharpe": 0.49
+   },
+   "test": {
+    "months": 80,
+    "ic": 0.0383,
+    "t": 1.45,
+    "hit": 0.55,
+    "spread_pct": 1.89,
+    "ls_sharpe": 0.98
+   },
+   "all": {
+    "months": 164,
+    "ic": 0.025,
+    "t": 1.52,
+    "hit": 0.506,
+    "spread_pct": 1.166,
+    "ls_sharpe": 0.76
+   }
+  },
+  "f:ep": {
+   "train": {
+    "months": 84,
+    "ic": -0.0132,
+    "t": -0.83,
+    "hit": 0.452,
+    "spread_pct": -0.493,
+    "ls_sharpe": -0.67
+   },
+   "test": {
+    "months": 80,
+    "ic": 0.0128,
+    "t": 0.83,
+    "hit": 0.512,
+    "spread_pct": -0.348,
+    "ls_sharpe": -0.3
+   },
+   "all": {
+    "months": 164,
+    "ic": -0.0006,
+    "t": -0.05,
+    "hit": 0.482,
+    "spread_pct": -0.422,
+    "ls_sharpe": -0.44
+   }
+  },
+  "f:bp": {
+   "train": {
+    "months": 84,
+    "ic": -0.0256,
+    "t": -1.72,
+    "hit": 0.369,
+    "spread_pct": -0.462,
+    "ls_sharpe": -0.63
+   },
+   "test": {
+    "months": 80,
+    "ic": 0.0024,
+    "t": 0.13,
+    "hit": 0.5,
+    "spread_pct": 0.216,
+    "ls_sharpe": 0.18
+   },
+   "all": {
+    "months": 164,
+    "ic": -0.0119,
+    "t": -0.99,
+    "hit": 0.433,
+    "spread_pct": -0.131,
+    "ls_sharpe": -0.13
+   }
+  },
+  "f:cp": {
+   "train": {
+    "months": 84,
+    "ic": -0.0065,
+    "t": -0.39,
+    "hit": 0.476,
+    "spread_pct": -0.318,
+    "ls_sharpe": -0.4
+   },
+   "test": {
+    "months": 80,
+    "ic": 0.0144,
+    "t": 0.71,
+    "hit": 0.475,
+    "spread_pct": 0.145,
+    "ls_sharpe": 0.1
+   },
+   "all": {
+    "months": 164,
+    "ic": 0.0037,
+    "t": 0.28,
+    "hit": 0.476,
+    "spread_pct": -0.092,
+    "ls_sharpe": -0.08
+   }
+  },
+  "f:roe": {
+   "train": {
+    "months": 84,
+    "ic": 0.0023,
+    "t": 0.23,
+    "hit": 0.512,
+    "spread_pct": -0.269,
+    "ls_sharpe": -0.59
+   },
+   "test": {
+    "months": 80,
+    "ic": 0.0065,
+    "t": 0.6,
+    "hit": 0.487,
+    "spread_pct": -0.45,
+    "ls_sharpe": -0.58
+   },
+   "all": {
+    "months": 164,
+    "ic": 0.0043,
+    "t": 0.59,
+    "hit": 0.5,
+    "spread_pct": -0.357,
+    "ls_sharpe": -0.56
+   }
+  },
+  "f:gpa": {
+   "train": {
+    "months": 84,
+    "ic": 0.0212,
+    "t": 1.77,
+    "hit": 0.548,
+    "spread_pct": 0.34,
+    "ls_sharpe": 0.56
+   },
+   "test": {
+    "months": 80,
+    "ic": 0.0072,
+    "t": 0.55,
+    "hit": 0.487,
+    "spread_pct": -0.372,
+    "ls_sharpe": -0.43
+   },
+   "all": {
+    "months": 164,
+    "ic": 0.0144,
+    "t": 1.63,
+    "hit": 0.518,
+    "spread_pct": -0.008,
+    "ls_sharpe": -0.01
+   }
+  },
+  "f:lev": {
+   "train": {
+    "months": 84,
+    "ic": -0.0119,
+    "t": -1.32,
+    "hit": 0.417,
+    "spread_pct": -0.123,
+    "ls_sharpe": -0.26
+   },
+   "test": {
+    "months": 80,
+    "ic": -0.0142,
+    "t": -1.32,
+    "hit": 0.412,
+    "spread_pct": -0.135,
+    "ls_sharpe": -0.18
+   },
+   "all": {
+    "months": 164,
+    "ic": -0.013,
+    "t": -1.87,
+    "hit": 0.415,
+    "spread_pct": -0.129,
+    "ls_sharpe": -0.21
+   }
+  },
+  "f:acc": {
+   "train": {
+    "months": 84,
+    "ic": 0.0134,
+    "t": 1.35,
+    "hit": 0.571,
+    "spread_pct": 0.277,
+    "ls_sharpe": 0.57
+   },
+   "test": {
+    "months": 80,
+    "ic": -0.001,
+    "t": -0.12,
+    "hit": 0.5,
+    "spread_pct": 0.388,
+    "ls_sharpe": 0.63
+   },
+   "all": {
+    "months": 164,
+    "ic": 0.0064,
+    "t": 0.97,
+    "hit": 0.537,
+    "spread_pct": 0.332,
+    "ls_sharpe": 0.6
+   }
+  }
+ },
+ "blends": {
+  "current V3 (price only)": {
+   "weights": {
+    "Q Momentum": 0.35,
+    "Q Trend": 0.25,
+    "Q Low Risk": 0.25,
+    "Q Reversal": 0.15
+   },
+   "train": {
+    "months": 84,
+    "ic": -0.0305,
+    "t": -1.65,
+    "hit": 0.464,
+    "spread_pct": -0.616,
+    "ls_sharpe": -0.73
+   },
+   "test": {
+    "months": 80,
+    "ic": 0.0003,
+    "t": 0.01,
+    "hit": 0.55,
+    "spread_pct": -0.213,
+    "ls_sharpe": -0.14
+   },
+   "all": {
+    "months": 164,
+    "ic": -0.0155,
+    "t": -1.1,
+    "hit": 0.506,
+    "spread_pct": -0.419,
+    "ls_sharpe": -0.35
+   }
+  },
+  "six groups, equal": {
+   "weights": {
+    "Q Momentum": 0.167,
+    "Q Trend": 0.167,
+    "Q Low Risk": 0.167,
+    "Q Reversal": 0.167,
+    "Value (in sector)": 0.167,
+    "Quality": 0.167
+   },
+   "train": {
+    "months": 84,
+    "ic": -0.0293,
+    "t": -1.67,
+    "hit": 0.488,
+    "spread_pct": -0.58,
+    "ls_sharpe": -0.72
+   },
+   "test": {
+    "months": 80,
+    "ic": -0.0002,
+    "t": -0.01,
+    "hit": 0.562,
+    "spread_pct": -0.256,
+    "ls_sharpe": -0.2
+   },
+   "all": {
+    "months": 164,
+    "ic": -0.0151,
+    "t": -1.14,
+    "hit": 0.524,
+    "spread_pct": -0.422,
+    "ls_sharpe": -0.39
+   }
+  },
+  "six groups, IC-weighted": {
+   "weights": {
+    "Q Reversal": 0.659,
+    "Quality": 0.341
+   },
+   "train": {
+    "months": 84,
+    "ic": 0.0163,
+    "t": 1.13,
+    "hit": 0.536,
+    "spread_pct": 0.217,
+    "ls_sharpe": 0.33
+   },
+   "test": {
+    "months": 80,
+    "ic": -0.0056,
+    "t": -0.31,
+    "hit": 0.475,
+    "spread_pct": -0.176,
+    "ls_sharpe": -0.13
+   },
+   "all": {
+    "months": 164,
+    "ic": 0.0056,
+    "t": 0.49,
+    "hit": 0.506,
+    "spread_pct": 0.025,
+    "ls_sharpe": 0.02
+   }
+  },
+  "value + quality only": {
+   "weights": {
+    "Value (in sector)": 0.5,
+    "Quality": 0.5
+   },
+   "train": {
+    "months": 84,
+    "ic": -0.0098,
+    "t": -0.85,
+    "hit": 0.429,
+    "spread_pct": -0.294,
+    "ls_sharpe": -0.52
+   },
+   "test": {
+    "months": 80,
+    "ic": 0.0052,
+    "t": 0.44,
+    "hit": 0.475,
+    "spread_pct": 0.129,
+    "ls_sharpe": 0.16
+   },
+   "all": {
+    "months": 164,
+    "ic": -0.0025,
+    "t": -0.3,
+    "hit": 0.451,
+    "spread_pct": -0.088,
+    "ls_sharpe": -0.13
+   }
+  }
+ },
+ "chosen": "current V3 (price only)",
+ "chosen_weights": {
+  "Q Momentum": 0.35,
+  "Q Trend": 0.25,
+  "Q Low Risk": 0.25,
+  "Q Reversal": 0.15
+ },
+ "chosen_is_weak": true,
+ "coverage_by_year": [
+  {
+   "year": 2013,
+   "ep": 0.887,
+   "roe": 0.896
+  },
+  {
+   "year": 2014,
+   "ep": 0.898,
+   "roe": 0.899
+  },
+  {
+   "year": 2015,
+   "ep": 0.898,
+   "roe": 0.899
+  },
+  {
+   "year": 2016,
+   "ep": 0.905,
+   "roe": 0.897
+  },
+  {
+   "year": 2017,
+   "ep": 0.902,
+   "roe": 0.904
+  },
+  {
+   "year": 2018,
+   "ep": 0.901,
+   "roe": 0.907
+  },
+  {
+   "year": 2019,
+   "ep": 0.917,
+   "roe": 0.905
+  },
+  {
+   "year": 2020,
+   "ep": 0.929,
+   "roe": 0.918
+  },
+  {
+   "year": 2021,
+   "ep": 0.939,
+   "roe": 0.921
+  },
+  {
+   "year": 2022,
+   "ep": 0.956,
+   "roe": 0.913
+  },
+  {
+   "year": 2023,
+   "ep": 0.955,
+   "roe": 0.915
+  },
+  {
+   "year": 2024,
+   "ep": 0.961,
+   "roe": 0.925
+  },
+  {
+   "year": 2025,
+   "ep": 0.971,
+   "roe": 0.931
+  },
+  {
+   "year": 2026,
+   "ep": 0.975,
+   "roe": 0.934
+  }
+ ],
+ "limits": "Today's S&P 500 members only (survivorship bias), no costs, monthly snapshots, Yahoo adjusted prices."
+}
