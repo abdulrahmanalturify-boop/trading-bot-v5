@@ -1,0 +1,41 @@
+# Which statistical factors rank S&P 500 stocks (research/factor_test.py): the four price factors of Hunter V3, value and
+# financial quality from SEC filings known at the time. On a push of the runner to its branch, or by hand. The results are
+# committed back to the branch that ran it (research/results/factor_test.md and .json).
+name: factor test
+on:
+  push:
+    branches: [claude/hunter-v3-redesign-0bmwac]
+    paths: ["research/factor_test.py", "fundamentals.py", ".github/workflows/factor-test.yml"]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: factor-test
+  cancel-in-progress: true
+jobs:
+  run:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Unit tests
+        run: python -m unittest discover -s tests -p 'test_fundamentals.py' -v && python -m unittest discover -s tests -p 'test_hunter_v3.py'
+      - name: Run the factor test
+        run: |
+          set -o pipefail
+          python research/factor_test.py 2>&1 | tee factor_log.txt
+      - name: Save
+        if: always()
+        run: |
+          git config user.name "research-lab"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          mkdir -p research/results
+          cp factor_log.txt research/results/factor_test_log.txt 2>/dev/null || true
+          git add research/results/factor_test* 2>/dev/null || true
+          git commit -q -m "factor test results [skip ci]" || exit 0
+          git pull -q --rebase origin "${GITHUB_REF_NAME}" && git push -q origin "HEAD:${GITHUB_REF_NAME}"
