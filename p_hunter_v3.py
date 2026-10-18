@@ -449,8 +449,9 @@ def cards(view, prices, mood):
     top = view.head(int(ss.get("v3_count") or COUNTS[0]))
     sel = ss.get("v3_sel")
     rows = list(top.iterrows())
-    ui.html(f'<div class="v3cnt">{L(f"Showing <b>{len(rows)}</b> of <b>{len(view)}</b> · tap a card to open it",
-                                     f"معروض <b>{len(rows)}</b> من <b>{len(view)}</b> · اضغط على أي بطاقة لفتح تفاصيلها")}</div>')
+    shown = L(f"Showing <b>{len(rows)}</b> of <b>{len(view)}</b> · tap a card to open it",
+              f"معروض <b>{len(rows)}</b> من <b>{len(view)}</b> · اضغط على أي بطاقة لفتح تفاصيلها")
+    ui.html(f'<div class="v3cnt">{shown}</div>')
     for i in range(0, len(rows), 4):
         cols = st.columns(4)
         for col, (_, r) in zip(cols, rows[i:i + 4]):
