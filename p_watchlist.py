@@ -19,24 +19,24 @@ from i18n import L, is_ar
 ss = st.session_state
 
 CSS = """<style>
-.wlp-row{display:grid;grid-template-columns:34px minmax(0,1fr) 92px 96px 84px;gap:12px;align-items:center;padding:6px 14px;border-radius:14px;
+.wlp-row{display:grid;grid-template-columns:34px minmax(0,1fr) 92px 96px 84px;gap:12px;align-items:center;padding:24px 14px 6px;border-radius:14px;
   background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08)}
 .wlp-row .nm{min-width:0}.wlp-row .nm b{display:block;color:#fff;font-size:.95rem;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .wlp-row .nm span{display:block;color:#9D97A5;font-size:.72rem;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .wlp-row .px{font-size:1rem;font-weight:800;color:#fff;direction:ltr;text-align:end}
 .wlp-row .sp{display:grid;place-items:center}.wlp-row .sp svg{max-width:100%;height:auto}
 .wlp-row .pc{display:flex;justify-content:flex-end;min-width:0}.wlp-row .pc .pill{white-space:nowrap}
-/* a row with its two small round buttons on its top corners: open on the right, drop on the left */
+/* a row with its two small round buttons inside its top corners: open on the right, drop on the left */
 div[class*="st-key-wlp_r_"]{position:relative;gap:0!important}
-div[class*="st-key-wlp_o_"],div[class*="st-key-wlp_d_"]{position:absolute!important;top:-7px;width:auto!important;z-index:3}
-div[class*="st-key-wlp_o_"]{right:-5px}div[class*="st-key-wlp_d_"]{left:-5px}
-div[class*="st-key-wlp_o_"] button,div[class*="st-key-wlp_d_"] button{width:24px!important;height:24px!important;min-height:24px!important;padding:0!important;
+div[class*="st-key-wlp_o_"],div[class*="st-key-wlp_d_"]{position:absolute!important;top:3px;width:auto!important;z-index:3}
+div[class*="st-key-wlp_o_"]{right:6px}div[class*="st-key-wlp_d_"]{left:6px}
+div[class*="st-key-wlp_o_"] button,div[class*="st-key-wlp_d_"] button{width:20px!important;height:20px!important;min-height:20px!important;padding:0!important;
   border-radius:50%!important;display:grid!important;place-items:center!important;gap:0!important}
 div[class*="st-key-wlp_o_"] button [data-testid="stMarkdownContainer"],div[class*="st-key-wlp_d_"] button [data-testid="stMarkdownContainer"]{display:none!important}
-div[class*="st-key-wlp_o_"] button span,div[class*="st-key-wlp_d_"] button span{font-size:15px!important;margin:0!important}
+div[class*="st-key-wlp_o_"] button span,div[class*="st-key-wlp_d_"] button span{font-size:13px!important;margin:0!important}
 div[class*="st-key-wlp_d_"] button:hover{border-color:#F43F5E!important;color:#F43F5E!important}
 @media (max-width:640px){
-  .wlp-row{grid-template-columns:30px minmax(0,1fr) auto 60px auto;gap:8px;padding:5px 10px}
+  .wlp-row{grid-template-columns:30px minmax(0,1fr) auto 60px auto;gap:8px;padding:24px 10px 6px}
   .wlp-row .nm span{display:none}
   .wlp-row .px{font-size:.92rem}
   .wlp-row .pc .pill{font-size:.72rem;padding:2px 6px}
