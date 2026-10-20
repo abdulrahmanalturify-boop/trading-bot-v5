@@ -611,4 +611,4 @@ def compare_section(view, title, period, sub_label=None, ind_label=None, file_na
     st.download_button(L("Export comparison (CSV)", "تصدير المقارنة (CSV)"), comp.to_csv(index=False).encode("utf-8-sig"),
                        f"tura_{file_name}.csv", "text/csv", icon=":material/download:", key=f"{key}_csv")
 
-BUILD = "23.4.53"
+BUILD = "23.4.54"
