@@ -19,15 +19,28 @@ from i18n import L, is_ar
 ss = st.session_state
 
 CSS = """<style>
-.wlp-row{display:grid;grid-template-columns:40px minmax(0,1fr) 92px 110px 96px;gap:12px;align-items:center;padding:10px 14px;border-radius:16px;
-  background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);margin-bottom:8px}
-.wlp-row .nm{min-width:0}.wlp-row .nm b{display:block;color:#fff;font-size:.98rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.wlp-row .nm span{display:block;color:#9D97A5;font-size:.74rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.wlp-row .px{font-size:1.02rem;font-weight:800;color:#fff;direction:ltr;text-align:end}
-.wlp-row .sp{display:grid;place-items:center}
-.wlp-row .pc{display:flex;justify-content:flex-end}
-div[class*="st-key-wlp_r_"] [data-testid="stHorizontalBlock"]{gap:6px!important}
-div[class*="st-key-wlp_r_"] [data-testid="stButton"] button{min-height:34px!important;border-radius:999px!important;font-size:.8rem!important}
+.wlp-row{display:grid;grid-template-columns:34px minmax(0,1fr) 92px 96px 84px;gap:12px;align-items:center;padding:6px 14px;border-radius:14px;
+  background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08)}
+.wlp-row .nm{min-width:0}.wlp-row .nm b{display:block;color:#fff;font-size:.95rem;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wlp-row .nm span{display:block;color:#9D97A5;font-size:.72rem;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wlp-row .px{font-size:1rem;font-weight:800;color:#fff;direction:ltr;text-align:end}
+.wlp-row .sp{display:grid;place-items:center}.wlp-row .sp svg{max-width:100%;height:auto}
+.wlp-row .pc{display:flex;justify-content:flex-end;min-width:0}.wlp-row .pc .pill{white-space:nowrap}
+/* a row with its two small round buttons on its top corners: open on the right, drop on the left */
+div[class*="st-key-wlp_r_"]{position:relative;gap:0!important}
+div[class*="st-key-wlp_o_"],div[class*="st-key-wlp_d_"]{position:absolute!important;top:-7px;width:auto!important;z-index:3}
+div[class*="st-key-wlp_o_"]{right:-5px}div[class*="st-key-wlp_d_"]{left:-5px}
+div[class*="st-key-wlp_o_"] button,div[class*="st-key-wlp_d_"] button{width:24px!important;height:24px!important;min-height:24px!important;padding:0!important;
+  border-radius:50%!important;display:grid!important;place-items:center!important;gap:0!important}
+div[class*="st-key-wlp_o_"] button [data-testid="stMarkdownContainer"],div[class*="st-key-wlp_d_"] button [data-testid="stMarkdownContainer"]{display:none!important}
+div[class*="st-key-wlp_o_"] button span,div[class*="st-key-wlp_d_"] button span{font-size:15px!important;margin:0!important}
+div[class*="st-key-wlp_d_"] button:hover{border-color:#F43F5E!important;color:#F43F5E!important}
+@media (max-width:640px){
+  .wlp-row{grid-template-columns:30px minmax(0,1fr) auto 60px auto;gap:8px;padding:5px 10px}
+  .wlp-row .nm span{display:none}
+  .wlp-row .px{font-size:.92rem}
+  .wlp-row .pc .pill{font-size:.72rem;padding:2px 6px}
+}
 /* the ideas */
 .wlp-grp{display:flex;align-items:center;gap:10px;margin:18px 0 10px}
 .wlp-grp .ic{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;background:linear-gradient(135deg,var(--g1),var(--g2));box-shadow:0 8px 18px -10px var(--g1)}
@@ -176,8 +189,8 @@ def _name(sym, q=None):
 
 
 def _list(wl, key):
-    """The visitor's list: a row per company with the price, the day's change and a month's line, and a button to open it or
-    drop it."""
+    """The visitor's list: a slim row per company with the price, the day's change and a month's line, and two small round
+    buttons on its top corners: open it (right), drop it (left)."""
     ui.sec("star", "My watchlist", "قائمة متابعتي")
     if not wl:
         st.caption(L("Your list is empty: add a symbol below, or pick ideas from the sectors under it.",
@@ -197,15 +210,13 @@ def _list(wl, key):
         top_, sub_ = (T.sym_label(s_), T.sym_sub(s_)) if tasi.is_sa(s_) else (s_, _name(s_))
         spark = T.sparkline(sp, T.UP if (pct or 0) >= 0 else T.DOWN, 84, 26) if sp is not None else "<span></span>"
         with st.container(key=f"wlp_r_{s_}"):
-            a, b = st.columns([5, 1.9], vertical_alignment="center")
-            with a:
-                ui.html(f'<div class="wlp-row">{T.logo_circle(s_, lg.get(s_), 36)}<div class="nm"><b dir="auto">{T.esc(top_)}</b><span>{T.esc(sub_)}</span></div>'
-                        f'<div class="px">{T.fmt_price(p) if p is not None else "—"}</div><div class="sp">{spark}</div>'
-                        f'<div class="pc">{T.pill(pct) if pct is not None else ""}</div></div>')
-            with b:
-                c1, c2 = st.columns(2)
-                c1.button(L("Open", "افتح"), key=f"wlp_o_{s_}", icon=":material/open_in_new:", width="stretch", on_click=ui.open_stock, args=(s_,))
-                c2.button(L("Drop", "احذف"), key=f"wlp_d_{s_}", icon=":material/close:", width="stretch", on_click=_toggle, args=(s_, key))
+            ui.html(f'<div class="wlp-row">{T.logo_circle(s_, lg.get(s_), 30)}<div class="nm"><b dir="auto">{T.esc(top_)}</b><span>{T.esc(sub_)}</span></div>'
+                    f'<div class="px">{T.fmt_price(p) if p is not None else "—"}</div><div class="sp">{spark}</div>'
+                    f'<div class="pc">{T.pill(pct) if pct is not None else ""}</div></div>')
+            st.button(L("Open", "افتح"), key=f"wlp_o_{s_}", icon=":material/open_in_new:", help=L("Open", "افتح"),
+                      on_click=ui.open_stock, args=(s_,))
+            st.button(L("Drop", "احذف"), key=f"wlp_d_{s_}", icon=":material/close:", help=L("Drop", "احذف"),
+                      on_click=_toggle, args=(s_, key))
 
 
 def _ideas(wl, key):
