@@ -127,7 +127,7 @@ div.st-key-alturaifi_ai_chips button:hover{{background:{c['cardh']}!important;bo
 div.st-key-alturaifi_ai_chips button:hover::after{{color:{c['acc']};transform:translate({'-4px' if rtl else '4px'},-50%)}}
 div.st-key-alturaifi_ai_chips button:active{{transform:scale(.985)}}
 div.st-key-alturaifi_ai_hist{{height:auto!important;max-height:min(340px,48vh)!important;overflow-y:auto!important;padding-inline-end:4px;scrollbar-width:thin;scrollbar-color:{c['line']} transparent}}
-div[class*="st-key-alturaifi_ai_user_"]{{align-items:flex-end!important;margin-block:2px 2px}}
+div[class*="st-key-alturaifi_ai_user_"]{{align-items:flex-end!important;margin-block:4px 16px}}
 div[class*="st-key-alturaifi_ai_user_"] [data-testid="stElementContainer"]{{width:auto!important;max-width:84%}}
 div[class*="st-key-alturaifi_ai_user_"] [data-testid="stMarkdownContainer"]{{padding:9px 13px;border-radius:16px;border-end-start-radius:16px;border-end-end-radius:6px;background:{c['user']};border:1px solid {c['userb']};box-shadow:0 8px 20px -14px rgba(79,70,229,.8);animation:aiin .3s ease-out}}
 div[class*="st-key-alturaifi_ai_user_"] p{{color:{c['usert']}!important;margin:0!important}}
@@ -138,8 +138,8 @@ div[class*="st-key-alturaifi_ai_user_"] p,div[class*="st-key-alturaifi_ai_asst_"
 div[class*="st-key-alturaifi_ai_asst_"] p,div[class*="st-key-alturaifi_ai_asst_"] li{{color:{c['text']}!important}}
 div[class*="st-key-alturaifi_ai_asst_"] code{{background:{c['code']}!important;border-radius:6px;padding:1px 5px;font-size:12px}}
 div[class*="st-key-alturaifi_ai_asst_"] strong{{color:{c['text']};background:{c['hello']};-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:800}}
-div.st-key-alturaifi_ai_follow{{margin-top:2px}}
-div.st-key-alturaifi_ai_follow .ai-fl{{display:flex;align-items:center;gap:6px;color:{c['faint']};font-size:10.5px;font-weight:700;letter-spacing:.3px;margin:0 2px 2px}}
+div.st-key-alturaifi_ai_follow{{margin-top:14px}}
+div.st-key-alturaifi_ai_follow .ai-fl{{display:flex;align-items:center;gap:6px;color:{c['faint']};font-size:10.5px;font-weight:700;letter-spacing:.3px;margin:0 2px 8px}}
 div.st-key-alturaifi_ai_follow .ai-fl::before{{content:"✦";font-size:10px;background:{c['hello']};-webkit-background-clip:text;background-clip:text;color:transparent}}
 div.st-key-alturaifi_ai_follow [data-testid="stButtonGroup"],div.st-key-alturaifi_ai_follow [data-testid="stPills"]{{gap:6px!important;flex-wrap:wrap}}
 div.st-key-alturaifi_ai_follow button{{min-height:30px!important;height:auto!important;padding:5px 11px!important;border-radius:999px!important;background:{c['card']}!important;border:1px solid {c['line']}!important;color:{c['text']}!important;box-shadow:none!important;font-size:12px!important;line-height:1.3!important;transition:border-color .2s ease,background .2s ease,transform .2s cubic-bezier(.2,.8,.2,1)!important;animation:aiin .35s ease-out backwards}}
