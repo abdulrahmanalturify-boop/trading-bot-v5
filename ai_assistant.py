@@ -6,7 +6,7 @@ import streamlit as st
 
 import mascot
 
-BUILD = "23.4.56"
+BUILD = "23.4.57"
 API_URL = "https://api.openai.com/v1/responses"
 MAX_Q = 1200
 SESSION_LIMIT = 40          # questions per visit
