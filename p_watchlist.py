@@ -297,4 +297,4 @@ def _add_typed(key):
     ss.wlp_add = ""
 
 
-BUILD = "23.4.58"
+BUILD = "23.4.59"
