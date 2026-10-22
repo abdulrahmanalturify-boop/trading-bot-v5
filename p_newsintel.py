@@ -308,6 +308,10 @@ CSS2 = """<style>
 @keyframes niemq { from { transform:translateX(0); } to { transform:translateX(-50%); } }
 /* in Arabic the strip starts at the right, where a sentence begins, and runs to the right so the rest of it comes in from the left */
 .nie-brk.rtl .vw { direction:rtl; } .nie-brk.rtl .tr { animation-name:niemqr; }
+/* each story reads in its headline's own direction: an Arabic one from the right (arrow, company, headline, time), an English
+   one from the left, whatever the page's language */
+.nie-brk .it[dir="rtl"] { direction:rtl; unicode-bidi:isolate; } .nie-brk .it[dir="ltr"] { direction:ltr; unicode-bidi:isolate; }
+.nie-brk .it b { unicode-bidi:isolate; }
 @keyframes niemqr { from { transform:translateX(0); } to { transform:translateX(50%); } }
 .nie-brk .it { display:inline-flex; gap:8px; align-items:center; font-size:.82rem; color:#E9E5F0; }
 .nie-brk .it b { font-weight:800; color:#fff; }
@@ -1213,6 +1217,9 @@ def _hero(res, hrs, now, n_src):
     return f'<div class="nie-hero">{dial}{nums}{flow}</div>'
 
 
+_AR_CH = re.compile("[\u0600-\u06FF]")
+
+
 def _breaking(res, titles_ar):
     """The stories with the most impact, running across the page (hover to stop)."""
     top = sorted(res, key=lambda a: -a["impact"])
@@ -1228,12 +1235,14 @@ def _breaking(res, titles_ar):
         title = (titles_ar.get(n["title"]) if ar and titles_ar else None) or n["title"]
         who = _tk(a["direct"][0]) if a["direct"] else L(*NI.EVENT[a["event"]][:2])
         arrow = {"bull": "▲", "bear": "▼", "neutral": "●"}[a["lab"]]
-        items.append(f'<span class="it {a["lab"]}"><span class="ar">{arrow}</span><b>{T.esc(who)}</b><span dir="auto">{T.esc(title)}</span>'
+        d = "rtl" if _AR_CH.search(title) else "ltr"
+        items.append(f'<span class="it {a["lab"]}" dir="{d}"><span class="ar">{arrow}</span><b>{T.esc(who)}</b><span dir="{d}">{T.esc(title)}</span>'
                      f'<span class="im">{a["impact"]:.0f}</span><small>{T.time_ago(n["time"], ar) if pd.notna(n.get("time")) else ""}</small></span>')
     inner = "".join(items)
     dur = max(30, 9 * len(items))
-    return (f'<div class="nie-brk{" rtl" if ar else ""}" data-nogq><span class="lb">{T.icon("campaign")}{T.esc(L("Breaking", "عاجل"))}</span>'
-            f'<div class="vw"><div class="tr" style="animation-duration:{dur}s">{inner}{inner}</div></div></div>')
+    sd = "rtl" if ar else "ltr"
+    return (f'<div class="nie-brk {sd}" dir="{sd}" data-nogq><span class="lb">{T.icon("campaign")}{T.esc(L("Breaking", "عاجل"))}</span>'
+            f'<div class="vw" dir="{sd}"><div class="tr" dir="{sd}" style="animation-duration:{dur}s">{inner}{inner}</div></div></div>')
 
 
 def _flow_fig(rows, titles_ar):
