@@ -1008,7 +1008,7 @@ def _movers(d):
         st.info(L("Saudi quotes are unavailable right now. Try again in a minute.", "أسعار السوق السعودي غير متاحة حالياً. حاول بعد دقيقة."))
         return
     ui.sec("leaderboard", "Movers at a glance", "الأسهم الأكثر حركة")
-    PM.movers_grid(lists, d.lg(), sa=d.sa, per_row=2)
+    PM.movers_tabs(lists, d.lg(), sa=d.sa)
     with st.container(key="ovmore", horizontal=True, gap="small"):
         st.button(L("Everything trending today", "كل اللي رائج اليوم"), key="ovgo_trend", icon=":material/local_fire_department:",
                   on_click=_open_tool, args=("trend", "trending"))

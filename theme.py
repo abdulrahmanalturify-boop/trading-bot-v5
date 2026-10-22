@@ -653,6 +653,10 @@ a.lnk {{ color:inherit !important; text-decoration:none !important; }} a.lnk:hov
    column ran 1rem past it and the two rows of cards touched; without that pull the rows (and the cards stacked on a
    phone) keep the same 1rem gap as the cards side by side */
 [class*="st-key-mvrow_"] :is(.stMarkdown, [data-testid="stMarkdownContainer"]) {{ margin-bottom:0 !important; }}
+.mvtab {{ padding:6px 14px; }}
+.mvtab .mvcols {{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); column-gap:28px; }}
+.mvtab .rowlist .rw:last-child {{ border-bottom:none; }}
+@media (max-width:640px) {{ .mvtab .mvcols {{ grid-template-columns:minmax(0,1fr); }} .mvtab .rowlist:first-child .rw:last-child {{ border-bottom:1px solid {BORDER}; }} }}
 .lead {{ display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:10px; }}
 .lc {{ background:{BOX_BG}; border:1px solid {BORDER}; border-radius:14px; padding:12px; direction:ltr; }}
 .lc .top {{ display:flex; justify-content:space-between; align-items:center; gap:8px; }}
