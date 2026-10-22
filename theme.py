@@ -1645,7 +1645,7 @@ table[data-tx] tbody tr.tx-hide {{ display:none; }}
   color:{TEXT}; font:inherit; font-size:.82rem; padding:0; }}
 .tx-q input::placeholder {{ color:{MUTED}; opacity:1; }}
 .tx-n {{ font-size:.74rem; color:{MUTED}; font-weight:600; font-variant-numeric:tabular-nums; white-space:nowrap; }}
-/* ---------- the "?" next to every trading term (terms.py) and the box that explains it in Arabic and English (theme.FX_JS) ---------- */
+/* ---------- the "!" next to every trading term (terms.py) and the box that explains it in Arabic and English (theme.FX_JS) ---------- */
 .gq {{ display:inline-flex !important; align-items:center; justify-content:center; flex:none; width:15px; height:15px; box-sizing:border-box;
   margin-inline-start:4px; padding:0 !important; border-radius:50%; vertical-align:1px; position:relative; z-index:3;
   font:700 10px/1 {FONT_LATIN}, system-ui, sans-serif !important; letter-spacing:0 !important; text-transform:none !important; font-style:normal;
@@ -2709,7 +2709,7 @@ FX_JS = """<script>
   }
   function mk(m) {
     var g = d.createElement('span');
-    g.className = 'gq cl'; g.setAttribute('role', 'button'); g.tabIndex = 0; g.setAttribute('data-g', m.k); g.textContent = '?';
+    g.className = 'gq cl'; g.setAttribute('role', 'button'); g.tabIndex = 0; g.setAttribute('data-g', m.k); g.textContent = '!';
     var t = T[m.k] || ['', ''];
     g.setAttribute('aria-label', m.a ? '\u0645\u0627 \u0645\u0639\u0646\u0649 ' + t[1] + '\u061f' : 'What does ' + t[0] + ' mean?');
     return g;

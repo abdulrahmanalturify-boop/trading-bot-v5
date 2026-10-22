@@ -1,11 +1,11 @@
 """
-terms.py - a small "?" next to every trading term on the site; pressing it explains the term in the page's language.
+terms.py - a small "!" next to every trading term on the site; pressing it explains the term in the page's language.
 
 TERMS holds each term once: its key, its name in both languages, the ways the site writes it (English and Arabic
 patterns) and a short explanation in both languages. Two places use it:
 
 - annotate(html): every HTML block the site sends (st.markdown / st.html, hooked in lightmode) gets a
-  <span class="gq" data-g="KEY">?</span> right after the first time each term appears in it (not inside links, buttons,
+  <span class="gq" data-g="KEY">!</span> right after the first time each term appears in it (not inside links, buttons,
   icons, the landing, the top bar or the assistant);
 - client(): the same list for the page script (theme.FX_JS), which opens the explanation when a "?" is pressed and adds
   the "?" to the text Streamlit draws itself (labels, captions, plain text).
@@ -744,7 +744,7 @@ def _skip_open(name, attrs):
 def mark(key, ar=False):
     t = BY_KEY[key]
     label = (f"ما معنى {t[2]}؟" if ar else f"What does {t[1]} mean?")
-    return f'<span class="gq" role="button" tabindex="0" data-g="{key}" aria-label="{label}">?</span>'
+    return f'<span class="gq" role="button" tabindex="0" data-g="{key}" aria-label="{label}">!</span>'
 
 
 def _annotate_text(text, seen, strict=False):
