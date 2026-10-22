@@ -1252,6 +1252,24 @@ def movers_grid(lists, lg, sa=False, per_row=3):
             col.markdown(f'<div class="mcard"><div class="hd">{T.icon(ic)}<span>{T.esc(L(en, ar))}</span></div>{body}</div>', unsafe_allow_html=True)
 
 
+
+def movers_tabs(lists, lg, sa=False, n=10):
+    """Movers at a glance as a strip of tabs, like Markets at a glance: one list at a time, its first n companies in two
+    columns (one on a phone)."""
+    spec = SA_LISTS if sa else LISTS
+    tabs = st.tabs([L(en, ar) for en, ar, _ in spec.values()])
+    for tab, kind in zip(tabs, spec):
+        with tab:
+            df = lists[kind] if sa else lists[kind][0]
+            if df.empty:
+                ui.html(f'<div class="mcard mvtab"><div class="muted">{L("No data", "لا بيانات")}</div></div>')
+                continue
+            df = df.head(n)
+            half = (len(df) + 1) // 2
+            cols = "".join(ui.row_list(part, lg, show_vol=sa and kind == "volume") for part in (df.iloc[:half], df.iloc[half:])
+                           if not part.empty)
+            ui.html(f'<div class="mcard mvtab"><div class="mvcols">{cols}</div></div>')
+
 def page_trending_sa():
     ui.header("local_fire_department", "What's Trending · Saudi Market", "الأكثر رواجاً · السوق السعودي",
               "Today's most important Saudi stories, the biggest movers of the main market, the most traded and the unusual volumes, and a "
