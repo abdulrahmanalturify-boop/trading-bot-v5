@@ -972,6 +972,9 @@ def simulate(bot, px, spy=None, record=None, ext=None, now=None):
             hv = (df["Close"].pct_change().rolling(20).std() * np.sqrt(252)).to_numpy(float)
             HVC[p, j], HVP[p, j] = hv, np.r_[np.nan, hv[:-1]]
         K[p, j] = np.arange(len(df))
+        # a session the stock has no candle for (a halt, a day missing from the feed) keeps its last bar count, so a trade's
+        # age never turns into NaN there
+        K[:, j] = pd.Series(K[:, j]).ffill().fillna(0).to_numpy(float)
         MOM[p, j] = df["Close"].pct_change(63).to_numpy(float)
         if brain is not None:
             for key_, arr_ in BR.stock_parts(df, b_atr).items():
@@ -2020,4 +2023,4 @@ def journal(sim):
                          "Days": tr["Bars"], "Exit Reason": tr["Exit Reason"]})
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.4.55"
+BUILD = "23.4.56"
