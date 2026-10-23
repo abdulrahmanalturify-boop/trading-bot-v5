@@ -1,15 +1,20 @@
 """Persistent bilingual AI helper for TURA Pro."""
 from __future__ import annotations
+import hashlib
+import json
 import os
+import sys
+import threading
 import requests
 import streamlit as st
 
 import mascot
 
-BUILD = "23.4.61"
+BUILD = "23.4.62"
 API_URL = "https://api.openai.com/v1/responses"
 MAX_Q = 1200
-SESSION_LIMIT = 40          # questions per visit
+MAX_OUT = 750               # the longest answer, in tokens
+SESSION_LIMIT = 40          # questions per visit; Secrets AI_SESSION_LIMIT
 DAILY_LIMIT = 600           # questions per day for the whole site (all visitors): a ceiling on the spending; Secrets AI_DAILY_LIMIT
 
 FAB_CSS = """
@@ -254,33 +259,189 @@ def context(page, title, symbol, lang):
     return " ".join(bits)
 
 
-# ---------------------------------------------------------------- the whole site's daily ceiling and the connection's state
-@st.cache_resource(show_spinner=False)
+# ---------------------------------------------------------------- the spending ceilings and the connection's state
+# Every question to OpenAI costs money, so the assistant stops before a ceiling is passed. All of them can be changed in the
+# Secrets (Streamlit Secrets, or the server's environment) without touching the code:
+#   AI_ASSISTANT            "off" turns the assistant off at once (no question reaches OpenAI)
+#   AI_DAILY_LIMIT          questions per day for the whole site, all visitors together            (DAILY_LIMIT)
+#   AI_MONTHLY_LIMIT        questions per month for the whole site                                  (MONTHLY_LIMIT)
+#   AI_MONTHLY_BUDGET_USD   estimated dollars per month; when reached the assistant stops till the 1st (MONTHLY_BUDGET_USD)
+#   AI_PRICE_IN_PER_M       dollars per million input tokens, for the estimate                     (PRICE_IN_PER_M)
+#   AI_PRICE_OUT_PER_M      dollars per million output tokens, for the estimate                    (PRICE_OUT_PER_M)
+#   AI_VISITOR_DAILY_LIMIT  questions per day from one visitor (one internet address)              (VISITOR_DAILY_LIMIT)
+#   AI_VISITOR_HOURLY_LIMIT questions per hour from one visitor                                    (VISITOR_HOURLY_LIMIT)
+#   AI_MIN_GAP_SECONDS      seconds a visit waits between two questions                            (MIN_GAP_SECONDS)
+# The counts are kept in a file (.cache/kuhailan_usage.json), so a restart or a new version does not start them again from zero.
+# Days and months are counted in UTC. The real hard stop is the budget set on the OpenAI account itself; this is the site's own.
+MONTHLY_LIMIT = 6000
+MONTHLY_BUDGET_USD = 10.0
+PRICE_IN_PER_M = 2.0        # set on the high side on purpose: the estimate should run ahead of the real bill, not behind it
+PRICE_OUT_PER_M = 8.0
+VISITOR_DAILY_LIMIT = 30
+VISITOR_HOURLY_LIMIT = 12
+MIN_GAP_SECONDS = 4
+USAGE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".cache", "kuhailan_usage.json")
+
+# one state per server process, kept across module reloads (a new version of the site re-imports this file)
+_U = sys.__dict__.setdefault("_tura_kuhailan_usage", {"lock": threading.RLock(), "loaded": False, "day": None, "n": 0,
+                                                      "month": None, "mn": 0, "tin": 0, "tout": 0, "usd": 0.0,
+                                                      "who": {}, "ok": None, "err": None, "quota": None})
+
+
 def _usage():
-    return {"day": None, "n": 0, "ok": None, "err": None}
+    _load_usage()
+    return _U
+
+
+def _now():
+    import datetime as _dt
+    return _dt.datetime.now(_dt.timezone.utc)
 
 
 def _today():
-    import datetime as _dt
-    return _dt.datetime.utcnow().date().isoformat()
+    return _now().date().isoformat()
 
 
-def daily_limit():
+def _month():
+    return _now().strftime("%Y-%m")
+
+
+def _num(name, default, cast=int, low=0):
     try:
-        return max(1, int(secret("AI_DAILY_LIMIT", str(DAILY_LIMIT))))
+        return max(low, cast(secret(name, str(default))))
     except ValueError:
-        return DAILY_LIMIT
+        return default
 
 
-def _take():
-    """One question of today's site-wide budget; False when it is used up."""
-    u = _usage()
-    if u["day"] != _today():
-        u["day"], u["n"] = _today(), 0
-    if u["n"] >= daily_limit():
-        return False
-    u["n"] += 1
-    return True
+def daily_limit(): return _num("AI_DAILY_LIMIT", DAILY_LIMIT, int, 1)
+def monthly_limit(): return _num("AI_MONTHLY_LIMIT", MONTHLY_LIMIT, int, 1)
+def monthly_budget(): return _num("AI_MONTHLY_BUDGET_USD", MONTHLY_BUDGET_USD, float, 0.0)
+def visitor_daily_limit(): return _num("AI_VISITOR_DAILY_LIMIT", VISITOR_DAILY_LIMIT, int, 1)
+def visitor_hourly_limit(): return _num("AI_VISITOR_HOURLY_LIMIT", VISITOR_HOURLY_LIMIT, int, 1)
+def min_gap(): return _num("AI_MIN_GAP_SECONDS", MIN_GAP_SECONDS, float, 0.0)
+def switched_off(): return secret("AI_ASSISTANT", "on").strip().lower() in ("off", "0", "false", "no")
+
+
+def _load_usage():
+    if _U["loaded"]:
+        return
+    _U["loaded"] = True
+    try:
+        with open(USAGE_FILE, encoding="utf-8") as f:
+            data = json.load(f)
+        for k in ("day", "n", "month", "mn", "tin", "tout", "usd", "who"):
+            if k in data:
+                _U[k] = data[k]
+    except Exception:
+        pass
+
+
+def _save_usage():
+    try:
+        os.makedirs(os.path.dirname(USAGE_FILE), exist_ok=True)
+        tmp = USAGE_FILE + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump({k: _U[k] for k in ("day", "n", "month", "mn", "tin", "tout", "usd", "who")}, f)
+        os.replace(tmp, USAGE_FILE)
+    except Exception:
+        pass
+
+
+def _roll():
+    """Start a new day / a new month when the date has moved on."""
+    if _U["day"] != _today():
+        _U["day"], _U["n"], _U["who"] = _today(), 0, {}
+    if _U["month"] != _month():
+        _U["month"], _U["mn"], _U["tin"], _U["tout"], _U["usd"] = _month(), 0, 0, 0, 0.0
+
+
+def visitor_id():
+    """The visitor's internet address (kept only as a short hash), or the visit itself when the address is not known."""
+    ip = ""
+    try:
+        h = st.context.headers
+        ip = (h.get("X-Forwarded-For") or "").split(",")[0].strip() or (h.get("X-Real-Ip") or "").strip()
+    except Exception:
+        pass
+    if not ip:
+        try:
+            ip = str(getattr(st.context, "ip_address", "") or "")
+        except Exception:
+            ip = ""
+    if not ip:
+        ip = "s:" + st.session_state.setdefault("alturaifi_ai_sid", os.urandom(8).hex())
+    return hashlib.sha256(("tura:" + ip).encode()).hexdigest()[:16]
+
+
+def _take(who, now=None):
+    """Takes one question from every budget it counts against; returns None when it may go to OpenAI, or the reason it may not:
+    off / day / month / budget / visitor_day / visitor_hour."""
+    import time as _t
+    now = _t.time() if now is None else now
+    with _U["lock"]:
+        _load_usage(); _roll()
+        if switched_off():
+            return "off"
+        if _U["quota"] and now - _U["quota"] < 3600:          # OpenAI itself said the account has no credit left
+            return "budget"
+        if _U["n"] >= daily_limit():
+            return "day"
+        if _U["mn"] >= monthly_limit():
+            return "month"
+        if _U["usd"] >= monthly_budget():
+            return "budget"
+        hits = [t for t in _U["who"].get(who, []) if now - t < 86400]
+        if len(hits) >= visitor_daily_limit():
+            return "visitor_day"
+        if sum(1 for t in hits if now - t < 3600) >= visitor_hourly_limit():
+            return "visitor_hour"
+        _U["n"] += 1; _U["mn"] += 1
+        _U["who"][who] = hits[-200:] + [now]
+        _save_usage()
+        return None
+
+
+def _spent(data):
+    """Adds what one answer cost, from the token counts OpenAI sends back (the whole allowance when they are missing)."""
+    use = (data or {}).get("usage") or {}
+    tin = int(use.get("input_tokens") or 0) or 4000
+    tout = int(use.get("output_tokens") or 0) or MAX_OUT
+    with _U["lock"]:
+        _roll()
+        _U["tin"] += tin; _U["tout"] += tout
+        _U["usd"] = round(_U["usd"] + tin / 1e6 * _num("AI_PRICE_IN_PER_M", PRICE_IN_PER_M, float, 0.0)
+                          + tout / 1e6 * _num("AI_PRICE_OUT_PER_M", PRICE_OUT_PER_M, float, 0.0), 6)
+        _save_usage()
+
+
+def usage_summary():
+    """Today's and this month's counts against their ceilings (for the owner's checks)."""
+    with _U["lock"]:
+        _load_usage(); _roll()
+        return {"day": _U["day"], "today": _U["n"], "daily_limit": daily_limit(), "month": _U["month"], "this_month": _U["mn"],
+                "monthly_limit": monthly_limit(), "usd": round(_U["usd"], 4), "budget_usd": monthly_budget(),
+                "tokens_in": _U["tin"], "tokens_out": _U["tout"], "off": switched_off()}
+
+
+_LIMIT_MSG = {
+    "off": ("The assistant is paused for now.", "كحيلان متوقف مؤقتًا."),
+    "day": ("Kuhailan has answered as many questions as he can today for the whole site. Please come back tomorrow.",
+            "كحيلان وصل الحد اليومي للأسئلة في الموقع كله. ارجع لنا بكرة."),
+    "month": ("Kuhailan has reached this month's question limit for the whole site. He will be back at the start of next month.",
+              "كحيلان وصل الحد الشهري للأسئلة في الموقع كله. يرجع أول الشهر الجاي."),
+    "budget": ("Kuhailan has reached this month's spending limit. He will be back at the start of next month.",
+               "كحيلان وصل حد الإنفاق لهالشهر. يرجع أول الشهر الجاي."),
+    "visitor_day": ("You have reached today's question limit. Please come back tomorrow.",
+                    "وصلت حدك اليومي من الأسئلة. ارجع لنا بكرة."),
+    "visitor_hour": ("You have asked a lot in the last hour. Please wait a little and try again.",
+                     "سألت كثير في آخر ساعة. انتظر شوي وجرّب مرة ثانية."),
+    "gap": ("One moment, please wait a few seconds between questions.", "لحظة، انتظر ثواني بين كل سؤال والثاني."),
+    "session": ("This session reached its question limit.", "وصلت حد الأسئلة لهالجلسة."),
+}
+
+
+def limit_message(reason, lang):
+    return pick(*_LIMIT_MSG.get(reason, _LIMIT_MSG["day"]), lang)
 
 
 def status(lang):
@@ -290,6 +451,11 @@ def status(lang):
     u = _usage()
     if not key:
         return pick("Not enabled", "غير مفعّل", lang), "#8D8798"
+    if switched_off():
+        return pick("Paused", "متوقف مؤقتًا", lang), "#8D8798"
+    s = usage_summary()
+    if s["today"] >= s["daily_limit"] or s["this_month"] >= s["monthly_limit"] or s["usd"] >= s["budget_usd"]:
+        return pick("Limit reached", "وصل الحد", lang), "#F5B94A"
     if u["err"] and (not u["ok"] or u["err"] > u["ok"]) and _t.time() - u["err"] < 1800:
         return pick("Connection issue", "تعذّر الاتصال", lang), "#F5B94A"
     if u["ok"]:
@@ -318,16 +484,20 @@ def ask(question, messages, ctx, lang):
     transcript=[]
     for m in messages[-8:]: transcript.append(("Visitor" if m.get("role")=="user" else "Assistant")+": "+str(m.get("content") or ""))
     transcript.append("Visitor: "+question)
-    if not _take():
-        return pick("The assistant reached today's limit for the whole site. Please try again tomorrow.","المساعد وصل حد اليوم للموقع كله. جرّب بكرة.",lang)
+    why=_take(visitor_id())
+    if why:
+        return limit_message(why,lang)
     import time as _t
     u=_usage()
     try:
-        r=requests.post(API_URL,headers={"Authorization":f"Bearer {key}","Content-Type":"application/json"},json={"model":model,"instructions":instructions(ctx),"input":"\n\n".join(transcript),"max_output_tokens":750,"store":False},timeout=35)
+        r=requests.post(API_URL,headers={"Authorization":f"Bearer {key}","Content-Type":"application/json"},json={"model":model,"instructions":instructions(ctx),"input":"\n\n".join(transcript),"max_output_tokens":MAX_OUT,"store":False},timeout=35)
         if r.status_code < 400:
-            text=extract(r.json())
+            data=r.json(); _spent(data)
+            text=extract(data)
             if text:
                 u["ok"]=_t.time(); return text
+        elif r.status_code==429 and "quota" in (r.text or "").lower():      # the OpenAI account has no credit left
+            u["quota"]=u["err"]=_t.time(); return limit_message("budget",lang)
     except Exception: pass
     u["err"]=_t.time()
     return pick("I couldn't generate an answer this time. Please try again.","ما قدرت أطلع إجابة هالمرة. جرّب مرة ثانية.",lang)
@@ -335,8 +505,12 @@ def ask(question, messages, ctx, lang):
 def submit(question, ctx, lang):
     q=(question or "").strip()[:MAX_Q]
     if not q: return
-    if int(st.session_state.get("alturaifi_ai_count",0)) >= SESSION_LIMIT:
-        st.session_state.alturaifi_ai_flash=pick("This session reached its question limit.","وصلت حد الأسئلة لهالجلسة.",lang); return
+    import time as _t
+    if int(st.session_state.get("alturaifi_ai_count",0)) >= _num("AI_SESSION_LIMIT",SESSION_LIMIT,int,1):
+        st.session_state.alturaifi_ai_flash=limit_message("session",lang); return
+    if _t.time()-float(st.session_state.get("alturaifi_ai_last",0)) < min_gap():
+        st.session_state.alturaifi_ai_flash=limit_message("gap",lang); return
+    st.session_state.alturaifi_ai_last=_t.time()
     msgs=st.session_state.setdefault("alturaifi_ai_messages",[])
     a=ask(q,msgs,ctx,lang); msgs.extend([{"role":"user","content":q},{"role":"assistant","content":a}])
     st.session_state.alturaifi_ai_messages=msgs[-16:]; st.session_state.alturaifi_ai_count=int(st.session_state.get("alturaifi_ai_count",0))+1
