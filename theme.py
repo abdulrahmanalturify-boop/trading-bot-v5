@@ -175,6 +175,7 @@ _GLYPHS = {
     "U": (72, "M0 0 V64 A36 36 0 0 0 72 64 V0"),
     "R": (66, "M0 100 V0 H38 A25 25 0 0 1 38 50 H0 M26 50 L66 100"),
     "I": (0, "M0 0 V100"),
+    "B": (65, "M0 100 V0 H35 A25 25 0 0 1 35 50 H0 M0 50 H40 A25 25 0 0 1 40 100 H0"),
     "F": (58, "M0 100 V0 H58 M14 50 H48"),
     "P": (64, "M0 100 V0 H38 A25 25 0 0 1 38 50 H0"),
     "O": (100, "M0 50 A50 50 0 1 0 100 50 A50 50 0 1 0 0 50"),
@@ -235,23 +236,25 @@ _TUBE = (1099.1 - _LW / 2, 563.5 - _LW / 2, 1582.0 + _LW / 2 - (1099.1 - _LW / 2
 _MARK_GAP = 24                # between the mark's bar and the U, in grid units (the letters keep 26 between them)
 
 
-def brand(height="1em", p="bm", dot=False, pro="sup", color="#FFFFFF", cls="brand", label="TURA Pro", mark=None):
+def brand(height="1em", p="bm", dot=False, pro="sup", color="#FFFFFF", cls="brand", label="TURA Pro", mark=None,
+          name=None):
     """The site's name as line art. pro: 'sup' (small, raised, blue to cyan), 'inline' (same size, blue) or None.
     dot is kept for the callers that asked for the old leading 'A.' (the name is TURA now: nothing is added).
     mark: 'dark' or 'light' sets the logo in the name as its T (the owner's word: no plain T beside the mark), the tubes exactly
     as tall as the letters with their line, in that look's light; None: the name in letters only.
+    name: other letters in place of NAME (the home page's hero says IBR); the mark is set as the T only for a name starting with T.
     height is any CSS length; the width follows."""
     x = _SW / 2
     first = ""
-    name = NAME
-    if mark:
+    name = (name or NAME).upper()
+    if mark and name.startswith("T"):
         tx, ty, tw, th = _TUBE
         k = (100 + _SW) / th                                 # the tubes from the top of the letters' line to its foot
         gx, gy, gw, gh = LOGO_GLOW_BOX
         first = (f'<svg x="{(gx - tx) * k:.2f}" y="{-_SW / 2 + (gy - ty) * k:.2f}" width="{gw * k:.2f}" height="{gh * k:.2f}" '
                  f'viewBox="{gx} {gy} {gw} {gh}" overflow="visible">{logo_parts(p + "k", **(DARK_LOOK if mark == "dark" else LIGHT_LOOK))}</svg>')
         x = tw * k + _MARK_GAP
-        name = NAME[1:]
+        name = name[1:]
     main, x = _word(name, x)
     tail = defs = ""
     if pro:
