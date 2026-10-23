@@ -174,6 +174,11 @@ def day_html(df, ipo, d, today, lim=12):
             f'<span class="mo">{L(MON[d.month - 1][0], MON[d.month - 1][1])}</span>'
             + (f'<span class="now">{L("Today", "اليوم")}</span>' if d == today else "")
             + f'<span class="cnt">{len(day)}</span></div>')
+    if not day.empty:                                # the logos checked on the server first, so the tiles show them as plain images
+        try:
+            data.logos([s_ for s_ in day["Symbol"].astype(str) if not s_.endswith(".SR")][:200])
+        except Exception:
+            pass
     body = holiday_note(d)
     for when, sel in (("bmo", ["bmo"]), ("amc", ["amc"]), ("tns", ["dmh", "tns"])):
         g = day[day["When"].isin(sel)] if not day.empty else day
