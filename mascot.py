@@ -1,5 +1,5 @@
 """
-mascot.py - Kuhailan (كحيلان), the site's robot: the face of the AI assistant and of everything to do with bots.
+mascot.py - Abu Saleh (أبو صالح), the site's robot: the face of the AI assistant and of everything to do with bots.
 
 A small white robot with a dark visor and two glowing cyan eyes, an antenna with a light on top, round ears and a chest light,
 floating a little (CSS). Drawn once here as SVG and used everywhere: the AI button at the foot of the page and the chat
@@ -9,9 +9,9 @@ The picture is the same in the dark and the light look (data-lm="keep").
 """
 from urllib.parse import quote
 
-BUILD = "23.4.65"
+BUILD = "23.4.66"
 
-NAME = ("Kuhailan", "كحيلان")
+NAME = ("Abu Saleh", "أبو صالح")
 ASK = ("Ask Abu Saleh", "اسأل أبو صالح")      # the label on the AI button (the owner chose it)
 
 _N = 0

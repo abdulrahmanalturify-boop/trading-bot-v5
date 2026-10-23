@@ -2780,7 +2780,7 @@ FX_JS = """<script>
   w[KEY + 'Frame'] = window.frameElement;
   var offs = [], live = true;
   w[KEY + 'Off'] = function () { live = false; offs.forEach(function (f) { try { f(); } catch (e) {} }); offs = []; };
-  var ROBOT = true;                              // Kuhailan, the site's robot (mascot.py), stands on the button and in the chat's head now: the sphere is not drawn
+  var ROBOT = true;                              // Abu Saleh, the site's robot (mascot.py), stands on the button and in the chat's head now: the sphere is not drawn
   var still = w.matchMedia && w.matchMedia('(prefers-reduced-motion: reduce)').matches;
   // the nodes: evenly over a sphere (a golden spiral); every node linked to its three nearest. Only the wires are drawn:
   // no glowing nodes, no drops, no glow inside the circle, the letters without a glow.
@@ -3728,4 +3728,4 @@ def fg_gauge(v, ar=False, sub=""):
             + "</svg>")
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.4.65"
+BUILD = "23.4.66"

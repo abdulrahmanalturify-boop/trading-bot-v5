@@ -1,4 +1,4 @@
-"""Kuhailan's spending ceilings: the site-wide day / month / dollar limits and the per-visitor limits stop a question before
+"""Abu Saleh's (the assistant's) spending ceilings: the site-wide day / month / dollar limits and the per-visitor limits stop a question before
 it reaches OpenAI, and the counts survive a restart (they are kept in a file)."""
 import os
 import sys
