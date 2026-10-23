@@ -104,7 +104,7 @@ a.nx-row:hover { border-color:rgba(167,139,250,.5); transform:translateY(-1px); 
   border-inline-start:4px solid #8B5CF6; }
 .nx-callout .ms { font-size:1.6rem; color:#C4B5FD; flex:none; }
 .nx-callout p { margin:0; color:#EDE9F5; font-size:.95rem; line-height:1.75; }
-/* ---- Kuhailan's analysis: a card with a hairline of the site's three colours, his picture in the head, the points as rows */
+/* ---- Abu Saleh's analysis: a card with a hairline of the site's three colours, his picture in the head, the points as rows */
 .nx-ai { position:relative; margin:8px 0 12px; padding:14px 16px 10px; border-radius:18px; border:1px solid rgba(167,139,250,.26);
   background:linear-gradient(180deg, rgba(36,26,62,.9), rgba(20,14,34,.94)); overflow:hidden; unicode-bidi:plaintext; }
 .nx-ai::before { content:""; position:absolute; inset:0 0 auto 0; height:2px; background:linear-gradient(90deg,#3B82F6,#7C3AED 50%,#22D3EE); }
@@ -563,7 +563,7 @@ def _ai_analysis(payload, lang):
         return ""
     try:
         import ai_assistant as AI
-        ins = ("You are Kuhailan, the News Analyst of a market-research website. Using ONLY the facts given, write exactly 5 lines, "
+        ins = ("You are Abu Saleh, the News Analyst of a market-research website. Using ONLY the facts given, write exactly 5 lines, "
                "one per point and in this order: (1) what the news means for the companies or the market named, (2) why, (3) how long "
                "the effect may last, (4) what would confirm it, (5) what would cancel it. Each line starts with a label of 1 to 3 words, "
                "then a colon, then one or two plain sentences (at most 30 words). Plain text only: no markdown, no asterisks, no bullets, "
@@ -620,7 +620,7 @@ def _ai_rows(txt):
 
 
 def _ai_block(txt, ar):
-    """Kuhailan's analysis as a card: his picture and name in the head, then every point as a row with its icon and label."""
+    """Abu Saleh's analysis as a card: his picture and name in the head, then every point as a row with its icon and label."""
     import mascot
     rows = _ai_rows(txt)
     if not rows:
@@ -630,7 +630,7 @@ def _ai_block(txt, ar):
         ic = _AI_ICONS[i] if i < len(_AI_ICONS) else "auto_awesome"
         items.append(f'<div class="r"><span class="i i{i}">{T.icon(ic)}</span><div class="b">'
                      + (f'<b>{T.esc(label)}</b>' if label else "") + f'<p>{T.esc(body)}</p></div></div>')
-    head = (f'<div class="hd"><span class="av">{mascot.svg(30, uid="nxai", glow=False)}</span><div class="t"><b>{T.esc(L("Kuhailan\'s analysis", "تحليل كحيلان"))}'
+    head = (f'<div class="hd"><span class="av">{mascot.svg(30, uid="nxai", glow=False)}</span><div class="t"><b>{T.esc(L("Abu Saleh\'s analysis", "تحليل أبو صالح"))}'
             f'<em>AI</em></b><span>{T.esc(L("From the engine\'s numbers and the story alone · educational, not a recommendation", "من أرقام المحرك والخبر فقط · تعليمي وليس توصية"))}</span></div>'
             f'<span class="n">{len(items)} {T.esc(L("points", "نقاط"))}</span></div>')
     return f'<div class="nx-ai">{head}<div class="rows">{"".join(items)}</div></div>'
@@ -1761,4 +1761,4 @@ def page_news_intel():
             _show_story(a, chg, px, titles_ar)
 
 # version stamp: app.py reloads any module still in memory from an older version of the site
-BUILD = "23.4.65"
+BUILD = "23.4.66"

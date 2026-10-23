@@ -43,7 +43,7 @@ def _timed(label, fn, *a):
 # ---------------------------------------------------------------- the tools, as adverts placed between the page's sections
 # (key, page, icon, tone, kicker, title, pitch, call to action). "ai" opens the chat window instead of a page.
 TOOLS = {
-    "ai": (None, "auto_awesome", "ai", ("Kuhailan · AI assistant", "كحيلان · المساعد الذكي"), ("Ask Kuhailan anything", "اسأل كحيلان أي شيء"),
+    "ai": (None, "auto_awesome", "ai", ("Abu Saleh · AI assistant", "أبو صالح · المساعد الذكي"), ("Ask Abu Saleh anything", "اسأل أبو صالح أي شيء"),
            ("A number you don't get, a chart, a word? Ask here and get it in plain words, on any page of the site.",
             "رقم ما فهمته؟ رسم؟ مصطلح؟ اسأل هنا ويشرح لك بكلام بسيط، في أي صفحة بالموقع."), ("Try it now, free", "جرّبه الآن مجاناً")),
     "hunt": ("scanner", "radar", "hunt", ("Today's picks", "فرص اليوم"), ("Don't miss today's opportunity", "لا تفوّت فرصة اليوم"),
@@ -1109,4 +1109,4 @@ def page_overview():
         print(f"[prof] page {'sa' if sa else 'us'} total {time.time() - t0:.2f}s", flush=True)
 
 
-BUILD = "23.4.65"
+BUILD = "23.4.66"
