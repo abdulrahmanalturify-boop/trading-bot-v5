@@ -8,6 +8,7 @@ Fonts: DM Sans (Latin) + Almarai (Arabic). Material Symbols icons. No emoji.
 """
 import base64
 import hashlib
+import sys
 import html
 import json
 import math
@@ -1397,6 +1398,7 @@ html[data-menu-closed] [class*="st-key-navdd_"], html[data-menu-closed] .st-key-
 .wklbl .tag, .ehub .hd .now, .evday .dh .now {{ font-size:.66rem; font-weight:600; padding:3px 9px; border-radius:20px; background:{ACCENT}; color:#fff; letter-spacing:.02em; }}
 .lgo {{ position:relative; display:inline-block; flex:none; border-radius:11px; overflow:hidden; background:#fff; box-shadow:0 0 0 1px rgba(255,255,255,.1); }}
 .lgo object {{ position:absolute; inset:0; width:100%; height:100%; border:0; pointer-events:none; }}
+.lgo img {{ position:absolute; inset:0; width:100%; height:100%; object-fit:contain; background:#fff; z-index:1; }}
 .lgo .ini {{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:600; letter-spacing:-.02em; }}
 .ehub {{ display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:10px; margin:12px 0 6px; }}
 .ehub .day {{ background:{BOX_BG}; border:1px solid {BORDER}; border-radius:16px; padding:10px 10px 12px; min-width:0;
@@ -3154,11 +3156,17 @@ def logo_obj(sym, size=40):
     h = int(hashlib.md5(s.encode()).hexdigest()[:6], 16) % 360
     ini = s[:3] if len(s) <= 3 else s[:2]
     fs = max(9, int(size * (0.3 if len(ini) == 3 else 0.36)))
+    ini_html = (f'<span class="ini" style="font-size:{fs}px;background:linear-gradient(135deg,hsl({h},62%,46%),hsl({(h + 40) % 360},62%,34%))">'
+                f'{esc(ini)}</span>')
+    known = getattr(sys.modules.get("data"), "_LOGO_MEM", {})     # the logos the server already checked (data.logos)
+    if s in known:                                                 # a plain image, as everywhere else: some browsers leave
+        u = known[s]                                               # <object> empty, and the initials showed for every company
+        return (f'<span class="lgo" style="width:{size}px;height:{size}px">{ini_html}'
+                + (f'<img src="{esc(u)}" alt="" loading="lazy">' if u else "") + '</span>')
     return (f'<span class="lgo" style="width:{size}px;height:{size}px">'
             f'<object data="https://assets.parqet.com/logos/symbol/{esc(s)}?format=png&amp;size=100" type="image/png" tabindex="-1" aria-hidden="true">'
             f'<object data="https://financialmodelingprep.com/image-stock/{esc(s)}.png" type="image/png" tabindex="-1" aria-hidden="true">'
-            f'<span class="ini" style="font-size:{fs}px;background:linear-gradient(135deg,hsl({h},62%,46%),hsl({(h + 40) % 360},62%,34%))">{esc(ini)}</span>'
-            f'</object></object></span>')
+            f'{ini_html}</object></object></span>')
 
 
 def _ar():
