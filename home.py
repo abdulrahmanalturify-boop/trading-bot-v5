@@ -12,7 +12,7 @@ import theme as T
 import ui
 from i18n import L, is_ar
 
-BUILD = "23.4.63"
+BUILD = "23.4.64"
 
 _LINE = "rgba(150,140,250,"
 CSS = f"""
@@ -297,13 +297,16 @@ def _sa():
     return MK.is_sa()
 
 
+HERO_NAME = "IBR"            # the name in the home page's hero, its watermark and its footer (the owner's word, 2026-10-23)
+
+
 def top_html(chips_html=""):
     ar = is_ar()
     tag = L("Paper trading · Opportunity hunting · Market research", "تداول افتراضي · صيد الفرص · أبحاث السوق")
     chips = f'<div class="czchips">{chips_html}</div>' if chips_html else ""
     return (f'<div class="cztop{" ar" if ar else ""}"><div class="czline"></div>{_GLINT}'
-            f'<div class="czghost" aria-hidden="true">{T.brand(None, "czgh", pro=None, color="rgba(150,170,255,.09)", label="")}</div>'
-            f'<div class="czlogo">{T.brand(None, "czbr", mark="dark")}</div>'
+            f'<div class="czghost" aria-hidden="true">{T.brand(None, "czgh", pro=None, color="rgba(150,170,255,.09)", label="", name=HERO_NAME)}</div>'
+            f'<div class="czlogo">{T.brand(None, "czbr", mark="dark", name=HERO_NAME, label=f"{HERO_NAME} Pro")}</div>'
             f'<div class="cztag">{tag}</div>{chips}{_ARC}</div>')
 
 
@@ -933,7 +936,7 @@ def intro_html():
     end = (f'<section class="ixend rv"><span class="ixl">{L("Ready when you are", "جاهز متى ما كنت جاهز")}</span>'
            f'<div class="ixh">{L("Your next trade<br><em>starts on paper.</em>", "صفقتك الجاية<br><em>تبدأ افتراضية.</em>")}</div>'
            f'<p class="ixt">{L("Pick a market below to open the markets, the hunter and your bots.", "اختر سوق تحت عشان تفتح الأسواق والصياد وبوتاتك.")}</p></section>')
-    foot = (f'<div class="ixfoot"><span>© TURA Pro</span><span>{L("Virtual money only · real prices · not investment advice", "فلوس افتراضية فقط · أسعار حقيقية · ليست نصيحة استثمارية")}</span></div>')
+    foot = (f'<div class="ixfoot"><span>© {HERO_NAME} Pro</span><span>{L("Virtual money only · real prices · not investment advice", "فلوس افتراضية فقط · أسعار حقيقية · ليست نصيحة استثمارية")}</span></div>')
     return (f'<div class="ixp{" ar" if ar else ""}" dir="{"rtl" if ar else "ltr"}">' + hero + state + two + grid + bots + hunt + mkts + numbers + how + learn
             + end + foot + "</div>")
 

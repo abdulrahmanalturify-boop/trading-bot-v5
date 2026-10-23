@@ -9,7 +9,7 @@ The picture is the same in the dark and the light look (data-lm="keep").
 """
 from urllib.parse import quote
 
-BUILD = "23.4.63"
+BUILD = "23.4.64"
 
 NAME = ("Kuhailan", "كحيلان")
 ASK = ("Ask Kuhailan", "اسأل كحيلان")

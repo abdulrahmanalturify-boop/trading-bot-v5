@@ -10,7 +10,7 @@ import streamlit as st
 
 import mascot
 
-BUILD = "23.4.63"
+BUILD = "23.4.64"
 API_URL = "https://api.openai.com/v1/responses"
 MAX_Q = 1200
 MAX_OUT = 750               # the longest answer, in tokens
