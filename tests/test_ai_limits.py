@@ -17,7 +17,7 @@ class LimitsTest(unittest.TestCase):
         self.env = {}
         self.sec = mock.patch.object(A, "secret", lambda n, d="": self.env.get(n, d)); self.sec.start()
         A._U.update({"loaded": True, "day": None, "n": 0, "month": None, "mn": 0, "tin": 0, "tout": 0, "usd": 0.0, "who": {},
-                     "quota": None})
+                     "sent": {}, "quota": None})
 
     def tearDown(self):
         self.file.stop(); self.sec.stop()
@@ -56,6 +56,29 @@ class LimitsTest(unittest.TestCase):
         A._U.update({"loaded": False, "n": 0, "mn": 0})
         A._load_usage()
         self.assertEqual((A._U["n"], A._U["mn"]), (2, 2))
+
+    def test_alert_once_per_day(self):
+        self.env.update({"AI_DAILY_LIMIT": "1", "AI_ALERT_NTFY_TOPIC": "tura-test"})
+        with mock.patch.object(A.requests, "post") as post, mock.patch.object(A.threading, "Thread") as th:
+            th.side_effect = lambda target, daemon: mock.Mock(start=target)
+            A._take("a"); A._take("b"); A._take("c")
+        self.assertEqual(post.call_count, 1)
+        self.assertEqual(post.call_args[0][0], "https://ntfy.sh/tura-test")
+        self.assertIn("الحد اليومي", post.call_args[1]["data"].decode("utf-8"))
+
+    def test_warn_at_80_percent(self):
+        self.env.update({"AI_MONTHLY_BUDGET_USD": "1", "AI_PRICE_OUT_PER_M": "1000", "AI_ALERT_NTFY_TOPIC": "t"})
+        with mock.patch.object(A.requests, "post") as post, mock.patch.object(A.threading, "Thread") as th:
+            th.side_effect = lambda target, daemon: mock.Mock(start=target)
+            A._take("a"); A._spent({"usage": {"input_tokens": 1, "output_tokens": 850}})
+        self.assertEqual(post.call_count, 1)
+        self.assertIn("80%", post.call_args[1]["data"].decode("utf-8"))
+
+    def test_no_alert_without_topic(self):
+        self.env["AI_DAILY_LIMIT"] = "1"
+        with mock.patch.object(A.requests, "post") as post:
+            A._take("a"); A._take("b")
+        post.assert_not_called()
 
     def test_arabic_messages(self):
         for k in A._LIMIT_MSG:
