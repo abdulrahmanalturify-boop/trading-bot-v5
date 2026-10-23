@@ -10,7 +10,7 @@ import streamlit as st
 
 import mascot
 
-BUILD = "23.4.62"
+BUILD = "23.4.63"
 API_URL = "https://api.openai.com/v1/responses"
 MAX_Q = 1200
 MAX_OUT = 750               # the longest answer, in tokens
@@ -271,6 +271,8 @@ def context(page, title, symbol, lang):
 #   AI_VISITOR_DAILY_LIMIT  questions per day from one visitor (one internet address)              (VISITOR_DAILY_LIMIT)
 #   AI_VISITOR_HOURLY_LIMIT questions per hour from one visitor                                    (VISITOR_HOURLY_LIMIT)
 #   AI_MIN_GAP_SECONDS      seconds a visit waits between two questions                            (MIN_GAP_SECONDS)
+#   AI_ALERT_NTFY_TOPIC     the owner's ntfy.sh topic: a phone notification when a ceiling is reached, when 80% of the month's
+#                           questions or dollars are used, and once a day when a visitor hits his own limit (none when empty)
 # The counts are kept in a file (.cache/kuhailan_usage.json), so a restart or a new version does not start them again from zero.
 # Days and months are counted in UTC. The real hard stop is the budget set on the OpenAI account itself; this is the site's own.
 MONTHLY_LIMIT = 6000
@@ -285,7 +287,7 @@ USAGE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".cache", 
 # one state per server process, kept across module reloads (a new version of the site re-imports this file)
 _U = sys.__dict__.setdefault("_tura_kuhailan_usage", {"lock": threading.RLock(), "loaded": False, "day": None, "n": 0,
                                                       "month": None, "mn": 0, "tin": 0, "tout": 0, "usd": 0.0,
-                                                      "who": {}, "ok": None, "err": None, "quota": None})
+                                                      "who": {}, "sent": {}, "ok": None, "err": None, "quota": None})
 
 
 def _usage():
@@ -329,7 +331,7 @@ def _load_usage():
     try:
         with open(USAGE_FILE, encoding="utf-8") as f:
             data = json.load(f)
-        for k in ("day", "n", "month", "mn", "tin", "tout", "usd", "who"):
+        for k in ("day", "n", "month", "mn", "tin", "tout", "usd", "who", "sent"):
             if k in data:
                 _U[k] = data[k]
     except Exception:
@@ -341,7 +343,7 @@ def _save_usage():
         os.makedirs(os.path.dirname(USAGE_FILE), exist_ok=True)
         tmp = USAGE_FILE + ".tmp"
         with open(tmp, "w", encoding="utf-8") as f:
-            json.dump({k: _U[k] for k in ("day", "n", "month", "mn", "tin", "tout", "usd", "who")}, f)
+            json.dump({k: _U[k] for k in ("day", "n", "month", "mn", "tin", "tout", "usd", "who", "sent")}, f)
         os.replace(tmp, USAGE_FILE)
     except Exception:
         pass
@@ -374,6 +376,13 @@ def visitor_id():
 
 
 def _take(who, now=None):
+    why = _take_one(who, now)
+    if why and why not in ("off",):
+        _alert(why)
+    return why
+
+
+def _take_one(who, now=None):
     """Takes one question from every budget it counts against; returns None when it may go to OpenAI, or the reason it may not:
     off / day / month / budget / visitor_day / visitor_hour."""
     import time as _t
@@ -412,6 +421,42 @@ def _spent(data):
         _U["usd"] = round(_U["usd"] + tin / 1e6 * _num("AI_PRICE_IN_PER_M", PRICE_IN_PER_M, float, 0.0)
                           + tout / 1e6 * _num("AI_PRICE_OUT_PER_M", PRICE_OUT_PER_M, float, 0.0), 6)
         _save_usage()
+        warn = _U["usd"] >= 0.8 * monthly_budget() or _U["mn"] >= 0.8 * monthly_limit()
+    if warn:
+        _alert("warn")
+
+
+_ALERT_TEXT = {
+    "warn": "كحيلان استهلك 80% من حد الشهر: {mn} سؤال من {ml}، وتقريبًا {usd}$ من {bud}$.",
+    "day": "كحيلان وصل الحد اليومي للموقع كله ({n} سؤال) ووقف إلى بكرة.",
+    "month": "كحيلان وصل الحد الشهري ({mn} سؤال) ووقف إلى أول الشهر.",
+    "budget": "كحيلان وصل حد الإنفاق لهالشهر (تقريبًا {usd}$ من {bud}$) أو رصيد OpenAI خلص، ووقف.",
+    "visitor_day": "زائر وصل حده اليومي من أسئلة كحيلان. لو تكرر كثير يمكن أحد يحاول يستهلك الرصيد.",
+    "visitor_hour": "زائر وصل حده بالساعة من أسئلة كحيلان. لو تكرر كثير يمكن أحد يحاول يستهلك الرصيد.",
+}
+
+
+def _alert(reason):
+    """One phone notification per kind: a day's limit once a day, the month's once a month (ntfy.sh, AI_ALERT_NTFY_TOPIC)."""
+    topic = secret("AI_ALERT_NTFY_TOPIC", "").strip()
+    if not topic or reason not in _ALERT_TEXT:
+        return
+    kind = "visitor" if reason.startswith("visitor") else reason
+    with _U["lock"]:
+        when = _U["month"] if kind in ("warn", "month", "budget") else _U["day"]
+        if _U["sent"].get(kind) == when:
+            return
+        _U["sent"][kind] = when
+        _save_usage()
+        text = _ALERT_TEXT[reason].format(n=_U["n"], mn=_U["mn"], ml=monthly_limit(), usd=round(_U["usd"], 2), bud=monthly_budget())
+
+    def send():
+        try:
+            requests.post("https://ntfy.sh/" + topic, data=text.encode("utf-8"), timeout=10,
+                          headers={"Title": "TURA - Kuhailan", "Priority": "high" if reason != "warn" else "default", "Tags": "robot"})
+        except Exception:
+            pass
+    threading.Thread(target=send, daemon=True).start()
 
 
 def usage_summary():
@@ -497,7 +542,7 @@ def ask(question, messages, ctx, lang):
             if text:
                 u["ok"]=_t.time(); return text
         elif r.status_code==429 and "quota" in (r.text or "").lower():      # the OpenAI account has no credit left
-            u["quota"]=u["err"]=_t.time(); return limit_message("budget",lang)
+            u["quota"]=u["err"]=_t.time(); _alert("budget"); return limit_message("budget",lang)
     except Exception: pass
     u["err"]=_t.time()
     return pick("I couldn't generate an answer this time. Please try again.","ما قدرت أطلع إجابة هالمرة. جرّب مرة ثانية.",lang)
