@@ -9,10 +9,10 @@ The picture is the same in the dark and the light look (data-lm="keep").
 """
 from urllib.parse import quote
 
-BUILD = "23.4.64"
+BUILD = "23.4.65"
 
 NAME = ("Kuhailan", "كحيلان")
-ASK = ("Ask Kuhailan", "اسأل كحيلان")
+ASK = ("Ask Abu Saleh", "اسأل أبو صالح")      # the label on the AI button (the owner chose it)
 
 _N = 0
 
