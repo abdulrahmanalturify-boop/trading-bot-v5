@@ -12,7 +12,7 @@ from urllib.parse import quote
 BUILD = "23.4.64"
 
 NAME = ("Kuhailan", "كحيلان")
-ASK = ("Ask Kuhailan", "اسأل كحيلان")
+ASK = ("Ask Abu Saleh", "اسأل أبو صالح")      # the label on the AI button (the owner chose it)
 
 _N = 0
 
