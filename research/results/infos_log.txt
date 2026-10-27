@@ -9276,28 +9276,28 @@ See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace 
 See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace for more details.
   df.rename(columns={df.columns[0]: 'Value'}, inplace=True)
 yfinance 1.7.0 · 841 symbols, 841 already saved
-50/841 · 27s · {'ok': 50, 'kept': 0}
-100/841 · 53s · {'ok': 100, 'kept': 0}
-150/841 · 79s · {'ok': 150, 'kept': 0}
-200/841 · 105s · {'ok': 200, 'kept': 0}
-250/841 · 131s · {'ok': 250, 'kept': 0}
-300/841 · 159s · {'ok': 300, 'kept': 0}
-350/841 · 185s · {'ok': 350, 'kept': 0}
-400/841 · 212s · {'ok': 400, 'kept': 0}
-450/841 · 239s · {'ok': 450, 'kept': 0}
-500/841 · 265s · {'ok': 500, 'kept': 0}
-550/841 · 292s · {'ok': 550, 'kept': 0}
-600/841 · 318s · {'ok': 600, 'kept': 0}
-650/841 · 343s · {'ok': 650, 'kept': 0}
-700/841 · 369s · {'ok': 700, 'kept': 0}
-750/841 · 395s · {'ok': 750, 'kept': 0}
-800/841 · 421s · {'ok': 800, 'kept': 0}
-841/841 · 442s · {'ok': 841, 'kept': 0}
-META: 161 fields · price 642.62 · cap 1637078401024 · PE 21.92494 · margin 0.31145 · rec {'strongBuy': 9, 'buy': 46, 'hold': 6, 'sell': 1, 'strongSell': 0} · 2026-10-23
-NKE: 163 fields · price 37.3 · cap 55402016768 · PE 17.932693 · margin 0.0674 · rec {'strongBuy': 2, 'buy': 8, 'hold': 25, 'sell': 5, 'strongSell': 3} · 2026-10-23
-AAPL: 163 fields · price 347.725 · cap 5074761285632 · PE 39.87672 · margin 0.27618998 · rec {'strongBuy': 6, 'buy': 18, 'hold': 14, 'sell': 3, 'strongSell': 3} · 2026-10-23
-TSM: 157 fields · price 418.51 · cap 2170591248384 · PE 27.123137 · margin 0.51116 · rec {'strongBuy': 6, 'buy': 14, 'hold': 1, 'sell': 0, 'strongSell': 0} · 2026-10-23
-2222.SR: 141 fields · price 25.4 · cap 6144447741952 · PE 15.029585 · margin 0.22395 · rec {'strongBuy': 4, 'buy': 6, 'hold': 8, 'sell': 0, 'strongSell': 0} · 2026-10-23
-1120.SR: 136 fields · price 59.8 · cap 358799998976 · PE 14.375 · margin 0.67950994 · rec {'strongBuy': 3, 'buy': 6, 'hold': 9, 'sell': 0, 'strongSell': 0} · 2026-10-23
-sizes 3020 KB figures, 1755 KB texts, 1187 KB insiders
-insiders: {'META': 40, 'NKE': 31, 'AAPL': 32, 'TSLA': 9, 'CRWV': 40}
+50/841 · 33s · {'ok': 50, 'kept': 0}
+100/841 · 62s · {'ok': 100, 'kept': 0}
+150/841 · 91s · {'ok': 150, 'kept': 0}
+200/841 · 121s · {'ok': 200, 'kept': 0}
+250/841 · 150s · {'ok': 250, 'kept': 0}
+300/841 · 179s · {'ok': 300, 'kept': 0}
+350/841 · 209s · {'ok': 350, 'kept': 0}
+400/841 · 238s · {'ok': 400, 'kept': 0}
+450/841 · 268s · {'ok': 450, 'kept': 0}
+500/841 · 298s · {'ok': 500, 'kept': 0}
+550/841 · 326s · {'ok': 550, 'kept': 0}
+600/841 · 355s · {'ok': 600, 'kept': 0}
+650/841 · 384s · {'ok': 650, 'kept': 0}
+700/841 · 414s · {'ok': 700, 'kept': 0}
+750/841 · 442s · {'ok': 750, 'kept': 0}
+800/841 · 470s · {'ok': 800, 'kept': 0}
+841/841 · 494s · {'ok': 841, 'kept': 0}
+META: 162 fields · price 620.19 · cap 1585722294272 · PE 21.159674 · margin 0.31145 · rec {'strongBuy': 9, 'buy': 46, 'hold': 6, 'sell': 1, 'strongSell': 0} · 2026-10-27
+NKE: 163 fields · price 37.56 · cap 55788199936 · PE 18.057693 · margin 0.0674 · rec {'strongBuy': 2, 'buy': 8, 'hold': 25, 'sell': 5, 'strongSell': 3} · 2026-10-27
+AAPL: 163 fields · price 347.1 · cap 5065640247296 · PE 39.805046 · margin 0.27618998 · rec {'strongBuy': 6, 'buy': 18, 'hold': 14, 'sell': 3, 'strongSell': 3} · 2026-10-27
+TSM: 157 fields · price 436.87 · cap 2265814925312 · PE 28.313026 · margin 0.51116 · rec {'strongBuy': 6, 'buy': 14, 'hold': 1, 'sell': 0, 'strongSell': 0} · 2026-10-27
+2222.SR: 141 fields · price 26.08 · cap 6308945199104 · PE 15.431952 · margin 0.22395 · rec {'strongBuy': 4, 'buy': 6, 'hold': 8, 'sell': 0, 'strongSell': 0} · 2026-10-27
+1120.SR: 136 fields · price 60.9 · cap 365399998464 · PE 14.639424 · margin 0.67950994 · rec {'strongBuy': 3, 'buy': 5, 'hold': 9, 'sell': 0, 'strongSell': 0} · 2026-10-27
+sizes 3022 KB figures, 1752 KB texts, 1166 KB insiders
+insiders: {'META': 40, 'NKE': 31, 'AAPL': 31, 'TSLA': 9, 'CRWV': 40}
