@@ -1090,6 +1090,9 @@ See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace 
 /opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/yfinance/scrapers/holders.py:164: Pandas4Warning: The inplace keyword in DataFrame.rename is deprecated and will be removed in a future version (PDEP-8).
 See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace for more details.
   df.rename(columns={
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/yfinance/scrapers/holders.py:190: Pandas4Warning: The inplace keyword in DataFrame.rename is deprecated and will be removed in a future version (PDEP-8).
+See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace for more details.
+  df.rename(columns={
 /opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/yfinance/scrapers/holders.py:119: Pandas4Warning: The inplace keyword in DataFrame.rename is deprecated and will be removed in a future version (PDEP-8).
 See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace for more details.
   df.rename(columns={"reportDate": "Date Reported", "organization": "Holder", "position": "Shares", "value": "Value"}, inplace=True)  # "pctHeld": "% Out"
@@ -1205,6 +1208,9 @@ See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace 
 See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace for more details.
   df.rename(columns={df.columns[0]: 'Value'}, inplace=True)
 /opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/yfinance/scrapers/holders.py:164: Pandas4Warning: The inplace keyword in DataFrame.rename is deprecated and will be removed in a future version (PDEP-8).
+See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace for more details.
+  df.rename(columns={
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/yfinance/scrapers/holders.py:190: Pandas4Warning: The inplace keyword in DataFrame.rename is deprecated and will be removed in a future version (PDEP-8).
 See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace for more details.
   df.rename(columns={
 /opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/yfinance/scrapers/holders.py:119: Pandas4Warning: The inplace keyword in DataFrame.rename is deprecated and will be removed in a future version (PDEP-8).
@@ -1232,6 +1238,9 @@ See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace 
 See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace for more details.
   df.rename(columns={df.columns[0]: 'Value'}, inplace=True)
 /opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/yfinance/scrapers/holders.py:164: Pandas4Warning: The inplace keyword in DataFrame.rename is deprecated and will be removed in a future version (PDEP-8).
+See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace for more details.
+  df.rename(columns={
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/yfinance/scrapers/holders.py:190: Pandas4Warning: The inplace keyword in DataFrame.rename is deprecated and will be removed in a future version (PDEP-8).
 See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace for more details.
   df.rename(columns={
 /opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/yfinance/scrapers/holders.py:119: Pandas4Warning: The inplace keyword in DataFrame.rename is deprecated and will be removed in a future version (PDEP-8).
@@ -2144,6 +2153,9 @@ See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace 
 See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace for more details.
   df.rename(columns={df.columns[0]: 'Value'}, inplace=True)
 /opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/yfinance/scrapers/holders.py:164: Pandas4Warning: The inplace keyword in DataFrame.rename is deprecated and will be removed in a future version (PDEP-8).
+See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace for more details.
+  df.rename(columns={
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/yfinance/scrapers/holders.py:190: Pandas4Warning: The inplace keyword in DataFrame.rename is deprecated and will be removed in a future version (PDEP-8).
 See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace for more details.
   df.rename(columns={
 /opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/yfinance/scrapers/holders.py:119: Pandas4Warning: The inplace keyword in DataFrame.rename is deprecated and will be removed in a future version (PDEP-8).
@@ -2171,6 +2183,9 @@ See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace 
 See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace for more details.
   df.rename(columns={df.columns[0]: 'Value'}, inplace=True)
 /opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/yfinance/scrapers/holders.py:164: Pandas4Warning: The inplace keyword in DataFrame.rename is deprecated and will be removed in a future version (PDEP-8).
+See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace for more details.
+  df.rename(columns={
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/yfinance/scrapers/holders.py:190: Pandas4Warning: The inplace keyword in DataFrame.rename is deprecated and will be removed in a future version (PDEP-8).
 See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace for more details.
   df.rename(columns={
 /opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/yfinance/scrapers/holders.py:119: Pandas4Warning: The inplace keyword in DataFrame.rename is deprecated and will be removed in a future version (PDEP-8).
@@ -2545,6 +2560,9 @@ See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace 
 /opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/yfinance/scrapers/holders.py:164: Pandas4Warning: The inplace keyword in DataFrame.rename is deprecated and will be removed in a future version (PDEP-8).
 See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace for more details.
   df.rename(columns={
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/yfinance/scrapers/holders.py:190: Pandas4Warning: The inplace keyword in DataFrame.rename is deprecated and will be removed in a future version (PDEP-8).
+See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace for more details.
+  df.rename(columns={
 /opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/yfinance/scrapers/holders.py:119: Pandas4Warning: The inplace keyword in DataFrame.rename is deprecated and will be removed in a future version (PDEP-8).
 See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace for more details.
   df.rename(columns={"reportDate": "Date Reported", "organization": "Holder", "position": "Shares", "value": "Value"}, inplace=True)  # "pctHeld": "% Out"
@@ -3373,12 +3391,6 @@ See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace 
 /opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/yfinance/scrapers/holders.py:152: Pandas4Warning: The inplace keyword in DataFrame.rename is deprecated and will be removed in a future version (PDEP-8).
 See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace for more details.
   df.rename(columns={df.columns[0]: 'Value'}, inplace=True)
-/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/yfinance/scrapers/holders.py:164: Pandas4Warning: The inplace keyword in DataFrame.rename is deprecated and will be removed in a future version (PDEP-8).
-See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace for more details.
-  df.rename(columns={
-/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/yfinance/scrapers/holders.py:190: Pandas4Warning: The inplace keyword in DataFrame.rename is deprecated and will be removed in a future version (PDEP-8).
-See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace for more details.
-  df.rename(columns={
 /opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/yfinance/scrapers/holders.py:119: Pandas4Warning: The inplace keyword in DataFrame.rename is deprecated and will be removed in a future version (PDEP-8).
 See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace for more details.
   df.rename(columns={"reportDate": "Date Reported", "organization": "Holder", "position": "Shares", "value": "Value"}, inplace=True)  # "pctHeld": "% Out"
@@ -3689,6 +3701,9 @@ See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace 
 See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace for more details.
   df.rename(columns={df.columns[0]: 'Value'}, inplace=True)
 /opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/yfinance/scrapers/holders.py:164: Pandas4Warning: The inplace keyword in DataFrame.rename is deprecated and will be removed in a future version (PDEP-8).
+See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace for more details.
+  df.rename(columns={
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/yfinance/scrapers/holders.py:190: Pandas4Warning: The inplace keyword in DataFrame.rename is deprecated and will be removed in a future version (PDEP-8).
 See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace for more details.
   df.rename(columns={
 /opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/yfinance/scrapers/holders.py:119: Pandas4Warning: The inplace keyword in DataFrame.rename is deprecated and will be removed in a future version (PDEP-8).
@@ -4733,6 +4748,9 @@ See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace 
 See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace for more details.
   df.rename(columns={df.columns[0]: 'Value'}, inplace=True)
 /opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/yfinance/scrapers/holders.py:164: Pandas4Warning: The inplace keyword in DataFrame.rename is deprecated and will be removed in a future version (PDEP-8).
+See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace for more details.
+  df.rename(columns={
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/yfinance/scrapers/holders.py:190: Pandas4Warning: The inplace keyword in DataFrame.rename is deprecated and will be removed in a future version (PDEP-8).
 See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace for more details.
   df.rename(columns={
 /opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/yfinance/scrapers/holders.py:119: Pandas4Warning: The inplace keyword in DataFrame.rename is deprecated and will be removed in a future version (PDEP-8).
@@ -4850,6 +4868,9 @@ See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace 
 See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace for more details.
   df.rename(columns={df.columns[0]: 'Value'}, inplace=True)
 /opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/yfinance/scrapers/holders.py:164: Pandas4Warning: The inplace keyword in DataFrame.rename is deprecated and will be removed in a future version (PDEP-8).
+See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace for more details.
+  df.rename(columns={
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/yfinance/scrapers/holders.py:190: Pandas4Warning: The inplace keyword in DataFrame.rename is deprecated and will be removed in a future version (PDEP-8).
 See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace for more details.
   df.rename(columns={
 /opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/yfinance/scrapers/holders.py:119: Pandas4Warning: The inplace keyword in DataFrame.rename is deprecated and will be removed in a future version (PDEP-8).
@@ -5072,6 +5093,9 @@ See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace 
 See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace for more details.
   df.rename(columns={df.columns[0]: 'Value'}, inplace=True)
 /opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/yfinance/scrapers/holders.py:164: Pandas4Warning: The inplace keyword in DataFrame.rename is deprecated and will be removed in a future version (PDEP-8).
+See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace for more details.
+  df.rename(columns={
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/yfinance/scrapers/holders.py:190: Pandas4Warning: The inplace keyword in DataFrame.rename is deprecated and will be removed in a future version (PDEP-8).
 See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace for more details.
   df.rename(columns={
 /opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/yfinance/scrapers/holders.py:119: Pandas4Warning: The inplace keyword in DataFrame.rename is deprecated and will be removed in a future version (PDEP-8).
@@ -5446,6 +5470,9 @@ See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace 
 /opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/yfinance/scrapers/holders.py:164: Pandas4Warning: The inplace keyword in DataFrame.rename is deprecated and will be removed in a future version (PDEP-8).
 See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace for more details.
   df.rename(columns={
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/yfinance/scrapers/holders.py:190: Pandas4Warning: The inplace keyword in DataFrame.rename is deprecated and will be removed in a future version (PDEP-8).
+See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace for more details.
+  df.rename(columns={
 /opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/yfinance/scrapers/holders.py:119: Pandas4Warning: The inplace keyword in DataFrame.rename is deprecated and will be removed in a future version (PDEP-8).
 See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace for more details.
   df.rename(columns={"reportDate": "Date Reported", "organization": "Holder", "position": "Shares", "value": "Value"}, inplace=True)  # "pctHeld": "% Out"
@@ -6746,6 +6773,9 @@ See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace 
 See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace for more details.
   df.rename(columns={df.columns[0]: 'Value'}, inplace=True)
 /opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/yfinance/scrapers/holders.py:164: Pandas4Warning: The inplace keyword in DataFrame.rename is deprecated and will be removed in a future version (PDEP-8).
+See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace for more details.
+  df.rename(columns={
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/yfinance/scrapers/holders.py:190: Pandas4Warning: The inplace keyword in DataFrame.rename is deprecated and will be removed in a future version (PDEP-8).
 See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace for more details.
   df.rename(columns={
 /opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/yfinance/scrapers/holders.py:119: Pandas4Warning: The inplace keyword in DataFrame.rename is deprecated and will be removed in a future version (PDEP-8).
@@ -8462,25 +8492,25 @@ See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace 
 See https://pandas.pydata.org/docs/dev/whatsnew/v3.1.0.html#deprecation-inplace for more details.
   df.rename(columns={
 570 symbols, 569 already known
-50/570 · 16s · {'ok': 50, 'none': 0, 'error': 0}
-100/570 · 31s · {'ok': 100, 'none': 0, 'error': 0}
-150/570 · 47s · {'ok': 150, 'none': 0, 'error': 0}
-200/570 · 62s · {'ok': 200, 'none': 0, 'error': 0}
-250/570 · 78s · {'ok': 250, 'none': 0, 'error': 0}
-300/570 · 93s · {'ok': 300, 'none': 0, 'error': 0}
-350/570 · 109s · {'ok': 349, 'none': 1, 'error': 0}
-400/570 · 124s · {'ok': 399, 'none': 1, 'error': 0}
-450/570 · 140s · {'ok': 449, 'none': 1, 'error': 0}
-500/570 · 155s · {'ok': 499, 'none': 1, 'error': 0}
-550/570 · 170s · {'ok': 549, 'none': 1, 'error': 0}
-570/570 · 177s · {'ok': 569, 'none': 1, 'error': 0}
-AAPL: inst 66.347 ins 1.648 instf 67.459 n 7707 rep 2026-06-30 6m {'buys': 12, 'sells': 20, 'net_pct': 0.1} hist 7 · 1M inst None · top: Blackrock Inc. 7.97%, Vanguard Capital Management LLC 6.57%, State Street Corporation 4.21%
-MSFT: inst 75.792 ins 0.079 instf 75.852 n 8153 rep 2026-06-30 6m {'buys': 16, 'sells': 10, 'net_pct': 4.7} hist 7 · 1M inst None · top: Blackrock Inc. 8.18%, Vanguard Capital Management LLC 6.53%, State Street Corporation 4.25%
-NVDA: inst 71.407 ins 4.007 instf 74.387 n 7703 rep 2026-06-30 6m {'buys': 18, 'sells': 9, 'net_pct': -0.4} hist 7 · 1M inst None · top: Blackrock Inc. 8.06%, Vanguard Capital Management LLC 6.39%, FMR, LLC 4.26%
-AMZN: inst 68.844 ins 8.852 instf 75.53 n 7901 rep 2026-06-30 6m {'buys': 58, 'sells': 67, 'net_pct': 0.1} hist 7 · 1M inst None · top: Blackrock Inc. 6.94%, Vanguard Capital Management LLC 5.89%, State Street Corporation 3.68%
-TSLA: inst 43.686 ins 17.805 instf 53.149 n 5296 rep 2026-06-30 6m {'buys': 8, 'sells': 8, 'net_pct': 76.0} hist 7 · 1M inst None · top: Blackrock Inc. 5.42%, Vanguard Capital Management LLC 4.66%, State Street Corporation 2.97%
-META: inst 78.804 ins 0.147 instf 78.92 n 6621 rep 2026-06-30 6m {'buys': 35, 'sells': 41, 'net_pct': 44.8} hist 7 · 1M inst None · top: Blackrock Inc. 7.86%, Vanguard Capital Management LLC 6.50%, FMR, LLC 4.35%
-CRWV: inst 76.891 ins 18.619 instf 94.483 n 1310 rep 2026-06-30 6m {'buys': 107, 'sells': 142, 'net_pct': -15.4} hist 7 · 1M inst None · top: Magnetar Financial LLC 11.35%, Nvidia Corp 10.29%, Blackrock Inc. 5.25%
-PLTR: inst 64.634 ins 3.457 instf 66.948 n 3772 rep 2026-06-30 6m {'buys': 14, 'sells': 23, 'net_pct': 0.3} hist 7 · 1M inst None · top: Blackrock Inc. 8.70%, Vanguard Capital Management LLC 6.70%, State Street Corporation 4.79%
-JPM: inst 75.609 ins 0.39 instf 75.905 n 6372 rep 2026-06-30 6m {'buys': 7, 'sells': 11, 'net_pct': 0.8} hist 7 · 1M inst None · top: Blackrock Inc. 7.76%, Vanguard Capital Management LLC 6.08%, State Street Corporation 4.71%
-KO: inst 68.239 ins 9.895 instf 75.732 n 4653 rep 2026-06-30 6m {'buys': 11, 'sells': 12, 'net_pct': -0.1} hist 7 · 1M inst None · top: Berkshire Hathaway, Inc 9.30%, Blackrock Inc. 7.50%, Vanguard Capital Management LLC 5.55%
+50/570 · 18s · {'ok': 50, 'none': 0, 'error': 0}
+100/570 · 35s · {'ok': 100, 'none': 0, 'error': 0}
+150/570 · 51s · {'ok': 150, 'none': 0, 'error': 0}
+200/570 · 68s · {'ok': 200, 'none': 0, 'error': 0}
+250/570 · 84s · {'ok': 250, 'none': 0, 'error': 0}
+300/570 · 101s · {'ok': 300, 'none': 0, 'error': 0}
+350/570 · 117s · {'ok': 349, 'none': 1, 'error': 0}
+400/570 · 134s · {'ok': 399, 'none': 1, 'error': 0}
+450/570 · 150s · {'ok': 449, 'none': 1, 'error': 0}
+500/570 · 166s · {'ok': 499, 'none': 1, 'error': 0}
+550/570 · 182s · {'ok': 549, 'none': 1, 'error': 0}
+570/570 · 189s · {'ok': 569, 'none': 1, 'error': 0}
+AAPL: inst 66.366 ins 1.648 instf 67.479 n 7724 rep 2026-06-30 6m {'buys': 12, 'sells': 19, 'net_pct': 0.1} hist 8 · 1M inst 0.051 · top: Blackrock Inc. 7.97%, Vanguard Capital Management LLC 6.57%, State Street Corporation 4.21%
+MSFT: inst 75.798 ins 0.079 instf 75.858 n 8181 rep 2026-06-30 6m {'buys': 16, 'sells': 10, 'net_pct': 4.7} hist 8 · 1M inst 0.023 · top: Blackrock Inc. 8.18%, Vanguard Capital Management LLC 6.53%, State Street Corporation 4.25%
+NVDA: inst 71.52 ins 4.007 instf 74.505 n 7728 rep 2026-06-30 6m {'buys': 18, 'sells': 9, 'net_pct': -0.4} hist 8 · 1M inst 0.118 · top: Blackrock Inc. 8.06%, Vanguard Capital Management LLC 6.39%, FMR, LLC 4.26%
+AMZN: inst 68.782 ins 8.832 instf 75.445 n 7922 rep 2026-06-30 6m {'buys': 58, 'sells': 66, 'net_pct': 0.1} hist 8 · 1M inst 0.079 · top: Blackrock Inc. 6.94%, Vanguard Capital Management LLC 5.89%, State Street Corporation 3.68%
+TSLA: inst 43.733 ins 17.805 instf 53.207 n 5303 rep 2026-06-30 6m {'buys': 8, 'sells': 8, 'net_pct': 76.0} hist 8 · 1M inst 0.068 · top: Blackrock Inc. 5.42%, Vanguard Capital Management LLC 4.66%, State Street Corporation 2.97%
+META: inst 77.53 ins 0.145 instf 77.642 n 6645 rep 2026-06-30 6m {'buys': 35, 'sells': 42, 'net_pct': 45.9} hist 8 · 1M inst -1.465 · top: Blackrock Inc. 7.83%, Vanguard Capital Management LLC 6.48%, FMR, LLC 4.33%
+CRWV: inst 77.188 ins 18.619 instf 94.848 n 1314 rep 2026-06-30 6m {'buys': 103, 'sells': 132, 'net_pct': -14.1} hist 8 · 1M inst 0.325 · top: Magnetar Financial LLC 11.35%, Nvidia Corp 10.29%, Blackrock Inc. 5.25%
+PLTR: inst 64.792 ins 3.457 instf 67.112 n 3837 rep 2026-06-30 6m {'buys': 13, 'sells': 23, 'net_pct': 0.3} hist 8 · 1M inst 0.037 · top: Blackrock Inc. 8.70%, Vanguard Capital Management LLC 6.70%, State Street Corporation 4.79%
+JPM: inst 75.602 ins 0.39 instf 75.897 n 6391 rep 2026-06-30 6m {'buys': 7, 'sells': 11, 'net_pct': 0.8} hist 8 · 1M inst -0.038 · top: Blackrock Inc. 7.76%, Vanguard Capital Management LLC 6.08%, State Street Corporation 4.71%
+KO: inst 68.257 ins 9.896 instf 75.754 n 4684 rep 2026-06-30 6m {'buys': 11, 'sells': 12, 'net_pct': -0.1} hist 8 · 1M inst 0.055 · top: Berkshire Hathaway, Inc 9.30%, Blackrock Inc. 7.50%, Vanguard Capital Management LLC 5.55%
