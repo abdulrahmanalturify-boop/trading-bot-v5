@@ -1,27 +1,27 @@
 HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"No fundamentals data found for symbol: FOX"}}}
 yfinance 1.8.0 · 841 symbols, 841 already saved
-50/841 · 21s · {'ok': 50, 'kept': 0}
-100/841 · 42s · {'ok': 100, 'kept': 0}
-150/841 · 62s · {'ok': 150, 'kept': 0}
-200/841 · 83s · {'ok': 200, 'kept': 0}
-250/841 · 103s · {'ok': 250, 'kept': 0}
-300/841 · 124s · {'ok': 300, 'kept': 0}
-350/841 · 145s · {'ok': 350, 'kept': 0}
-400/841 · 166s · {'ok': 400, 'kept': 0}
-450/841 · 187s · {'ok': 450, 'kept': 0}
-500/841 · 207s · {'ok': 500, 'kept': 0}
-550/841 · 228s · {'ok': 550, 'kept': 0}
-600/841 · 249s · {'ok': 600, 'kept': 0}
-650/841 · 269s · {'ok': 650, 'kept': 0}
-700/841 · 289s · {'ok': 700, 'kept': 0}
-750/841 · 309s · {'ok': 750, 'kept': 0}
-800/841 · 329s · {'ok': 800, 'kept': 0}
-841/841 · 346s · {'ok': 841, 'kept': 0}
-META: 162 fields · price 641.39 · cap 1639927119872 · PE 21.882977 · margin 0.31145 · rec {'strongBuy': 9, 'buy': 45, 'hold': 6, 'sell': 1, 'strongSell': 0} · 2026-11-11
-NKE: 163 fields · price 38.67 · cap 57436889088 · PE 18.591347 · margin 0.0674 · rec {'strongBuy': 2, 'buy': 8, 'hold': 24, 'sell': 6, 'strongSell': 3} · 2026-11-11
-AAPL: 163 fields · price 348.51 · cap 5064611069952 · PE 38.80958 · margin 0.27604 · rec {'strongBuy': 6, 'buy': 19, 'hold': 14, 'sell': 3, 'strongSell': 3} · 2026-11-11
-TSM: 157 fields · price 396.48 · cap 2056333295616 · PE 25.695398 · margin 0.51116 · rec {'strongBuy': 5, 'buy': 15, 'hold': 1, 'sell': 0, 'strongSell': 0} · 2026-11-11
-2222.SR: 141 fields · price 25.6 · cap 6192829562880 · PE 13.763441 · margin 0.23211999 · rec {'strongBuy': 4, 'buy': 6, 'hold': 8, 'sell': 0, 'strongSell': 0} · 2026-11-11
-1120.SR: 136 fields · price 63.85 · cap 383099994112 · PE 14.918223 · margin 0.68202 · rec {'strongBuy': 3, 'buy': 5, 'hold': 9, 'sell': 0, 'strongSell': 0} · 2026-11-11
-sizes 3016 KB figures, 1752 KB texts, 1087 KB insiders
-insiders: {'META': 40, 'NKE': 31, 'AAPL': 29, 'TSLA': 7, 'CRWV': 40}
+50/841 · 25s · {'ok': 50, 'kept': 0}
+100/841 · 50s · {'ok': 100, 'kept': 0}
+150/841 · 75s · {'ok': 150, 'kept': 0}
+200/841 · 99s · {'ok': 200, 'kept': 0}
+250/841 · 124s · {'ok': 250, 'kept': 0}
+300/841 · 149s · {'ok': 300, 'kept': 0}
+350/841 · 174s · {'ok': 350, 'kept': 0}
+400/841 · 199s · {'ok': 400, 'kept': 0}
+450/841 · 227s · {'ok': 450, 'kept': 0}
+500/841 · 252s · {'ok': 500, 'kept': 0}
+550/841 · 276s · {'ok': 550, 'kept': 0}
+600/841 · 301s · {'ok': 600, 'kept': 0}
+650/841 · 325s · {'ok': 650, 'kept': 0}
+700/841 · 350s · {'ok': 700, 'kept': 0}
+750/841 · 375s · {'ok': 750, 'kept': 0}
+800/841 · 400s · {'ok': 800, 'kept': 0}
+841/841 · 419s · {'ok': 841, 'kept': 0}
+META: 162 fields · price 641.69 · cap 1640694153216 · PE 21.893211 · margin 0.31145 · rec {'strongBuy': 9, 'buy': 45, 'hold': 6, 'sell': 1, 'strongSell': 0} · 2026-11-14
+NKE: 163 fields · price 37.99 · cap 56426885120 · PE 18.264425 · margin 0.0674 · rec {'strongBuy': 2, 'buy': 8, 'hold': 25, 'sell': 6, 'strongSell': 3} · 2026-11-14
+AAPL: 163 fields · price 356.27 · cap 5177380175872 · PE 39.67372 · margin 0.27604 · rec {'strongBuy': 6, 'buy': 20, 'hold': 13, 'sell': 3, 'strongSell': 3} · 2026-11-14
+TSM: 157 fields · price 398.73 · cap 2068002373632 · PE 25.841219 · margin 0.51116 · rec {'strongBuy': 6, 'buy': 14, 'hold': 1, 'sell': 0, 'strongSell': 0} · 2026-11-14
+2222.SR: 141 fields · price 26.4 · cap 6386355273728 · PE 14.193548 · margin 0.23211999 · rec {'strongBuy': 4, 'buy': 6, 'hold': 8, 'sell': 0, 'strongSell': 0} · 2026-11-14
+1120.SR: 136 fields · price 63.95 · cap 383700008960 · PE 14.941588 · margin 0.68202 · rec {'strongBuy': 3, 'buy': 4, 'hold': 10, 'sell': 0, 'strongSell': 0} · 2026-11-14
+sizes 3015 KB figures, 1757 KB texts, 1091 KB insiders
+insiders: {'META': 40, 'NKE': 31, 'AAPL': 30, 'TSLA': 7, 'CRWV': 40}
